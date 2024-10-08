@@ -1,7 +1,7 @@
 /* Main Navbar Styles */
 .mainNavbar-container {
     width: 100%;
-    background: #f4f4f4;
+    background: white;
     padding: 10px 20px;
     position: fixed; /* Stick the navbar at the top */
     top: 0;

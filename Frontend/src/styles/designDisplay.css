@@ -1,0 +1,92 @@
+
+.design-display-main {
+    margin: 20px auto; /* Center container with a max-width and auto margins */
+    padding: 20px; /* Optional padding for better spacing */
+    margin-top: 40px !important;
+  }
+  
+  .design-display-main h2 {
+    font-size: 6vh;
+    font-family: "Playfair Display", serif;
+    font-weight: 600; /* Bold font weight */
+    text-align: center; /* Center the heading */
+    margin-bottom: 20px; /* Space below the heading */
+    margin-top: 20px;
+  }
+
+  .design-display-main .main-para{
+    text-align: center;
+  }
+  
+  .design-display-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 20px; /* Space between design items */
+  }
+  
+  .design-slide {
+    text-align: center; /* Center the image in the slide */
+    width: 100%; /* Ensure it takes full width within its container */
+  }
+
+  .design-slider-bar{
+    margin-top: 30px !important;
+    width: 80%;
+    margin: auto;
+    margin-bottom: 60px !important;
+  }
+  
+  .design-slide img {
+    width: 100%; /* Make sure image fills the container */
+    height: auto; /* Maintain image aspect ratio */
+    display: block; /* Remove default inline spacing */
+  }
+  
+  .design-display-main .design-slider-bar p {
+    font-size: 15px; /* Responsive font size for descriptions */
+    color: #00bfa6; /* Text color for readability */
+    text-align: center; /* Center the text */
+    margin-top: 10px; /* Space above the text */
+    font-family: "Playfair Display", serif;
+    opacity: 0.7;
+  }
+  
+  .design-display-main .design-slider-bar p:hover{
+    opacity: 1;
+  }
+
+  .selected-category {
+    color: #8b6f47 !important;
+  }
+  /* designDisplay.css */
+.category-select {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #00bfa6;
+  border-radius: 4px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 480px) {
+  .design-display-main {
+    margin: 0px; /* Center container with a max-width and auto margins */
+    padding: 10px; /* Optional padding for better spacing */
+  }
+
+  .select-window{
+    display: flex;
+    justify-content: center;
+  }
+
+  .design-display-main .main-para{
+    text-align: center;
+  }
+  
+}
+
+
+  

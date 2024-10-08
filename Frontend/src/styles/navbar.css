@@ -1,0 +1,132 @@
+/* Navbar Styles */
+.navbar {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    border-bottom: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 53px;
+    z-index: 1000;
+    width: 95%;
+    transform: translateX(-50%);
+  }
+  
+  .navbar-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.8rem 2rem;
+  }
+  
+  .navbar-logo {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .navbar-links {
+    list-style: none;
+    display: flex;
+    gap: 1.5rem;
+  }
+  
+  .navbar-links li {
+    position: relative;
+  }
+  
+  .navbar-links a {
+    color: #333;
+    text-decoration: none;
+    font-size: 1rem;
+    transition: color 0.3s, transform 0.3s;
+    padding: 0.5rem 0;
+    border-radius: 12px;
+  }
+  
+  .navbar-links a:hover {
+    color: #f4f4f4;
+    transform: translateY(-2px);
+  }
+  
+  .hamburger {
+    display: none;
+    flex-direction: column;
+    cursor: pointer;
+  }
+  
+  .hamburger .bar {
+    height: 3px;
+    width: 25px;
+    background-color: #333;
+    margin: 4px 0;
+    transition: all 0.3s ease;
+  }
+
+  .navbar-links a::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 3px;
+    background: #f4f4f4;
+    border-radius: 12px;
+    transform: scaleX(0);
+    transition: transform 0.3s;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+  }
+  
+  .navbar-links a:hover::after {
+    transform: scaleX(1);
+  }
+  
+  @media (max-width: 768px) {
+    .navbar-links {
+      display: none;
+      flex-direction: column;
+      position: absolute;
+      top: 65px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.8);
+      width: 80%;
+      text-align: center;
+      transform: translateX(-50%);
+      left: 50%;
+      gap: 0.5rem;
+    }
+  
+    /* When open, display the links */
+    .navbar-links-container.open .navbar-links {
+      display: flex;
+    }
+  
+    .navbar-logo {
+      font-size: 1.2rem;
+    }
+  
+    .hamburger {
+      display: flex;
+    }
+
+    .hamburger:hover .bar{
+        background-color: #f4f4f4;
+    }
+  
+    .navbar-links a {
+      font-size: 1rem;
+      padding: 0.06rem 0.5rem; /* Adjusted padding to make items closer */
+      border-bottom: 1px solid #f4f4f4;
+    }
+
+    .navbar-links a::after {
+        display:none;
+      }
+      
+      .navbar-links a:hover::after {
+        display: none;
+      }
+  }
+  

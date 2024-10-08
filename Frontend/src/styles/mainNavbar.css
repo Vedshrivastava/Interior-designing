@@ -1,0 +1,160 @@
+/* Main Navbar Styles */
+.mainNavbar-container {
+    width: 100%;
+    background: #f4f4f4;
+    padding: 10px 20px;
+    position: fixed; /* Stick the navbar at the top */
+    top: 0;
+    left: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: row;
+    align-items: center; /* Vertically center items */
+    justify-content: space-between; /* Space between logo and menu items */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mainNavbar-logo {
+    width: 150px; /* Adjust the width as needed */
+}
+
+.mainNavbar-links-container {
+    display: flex;
+}
+
+.mainNavbar-links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+}
+
+.mainNavbar-links li {
+    margin: 0 15px; /* Add some spacing between items */
+}
+
+.mainNavbar-links a {
+    color: #00bfa6;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.mainNavbar-links a:hover {
+    text-decoration: underline;
+}
+
+.mainNavbar-links .services {
+    color: #00bfa6;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.mainNavbar-links .services:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.consult-online {
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+    background-color: #00bfa6;
+    padding: 8px 20px; /* Adjust padding to your liking */
+    border: none;
+    border-radius: 5px; /* Rounded corners */
+    margin-top: -6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth transition for hover effects */
+}
+
+.consult-online:hover {
+    background-color: #009c8f; /* Slightly darker shade on hover */
+    transform: scale(1.05); /* Slightly enlarge on hover */
+}
+
+.consult-online:active {
+    background-color: #007a69; /* Even darker shade on click */
+    transform: scale(0.95); /* Slightly shrink on click */
+}
+
+.hamburger {
+    display: none; /* Hide hamburger menu by default */
+    flex-direction: column;
+    cursor: pointer;
+    z-index: 11; /* Ensure it stays above the navbar */
+}
+
+.mainNavbar-container .hamburger .bar {
+    width: 25px;
+    height: 3px;
+    background-color: #00bfa6;
+    margin: 3px 0;
+    transition: 0.3s ease;
+}
+
+/* Transform bars to form a cross when isOpen is true */
+.bar1 {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+
+.bar2 {
+    opacity: 0; /* Hide the middle bar */
+}
+
+.bar3 {
+    transform: rotate(-45deg) translate(7.5px, -7.5px);
+}
+
+/* Ensure the hamburger is visible on mobile screens */
+@media (max-width: 768px) {
+    .mainNavbar-links-container {
+        width: 100%;
+        background: white;
+        position: absolute;
+        top: 50px; /* Position below the navbar */
+        left: 0;
+        text-align: center;
+        flex-direction: column;
+        z-index: 9;
+    }
+
+    .mainNavbar-links {
+        display: none; /* Hide menu by default */
+        flex-direction: column;
+    }
+
+    .mainNavbar-links-container.open .mainNavbar-links {
+        display: flex; /* Show menu when open */
+    }
+
+    .mainNavbar-links-container.open .mainNavbar-links .consult-online {
+        background: none;
+        color: #009c8f;
+    }
+
+    .mainNavbar-logo {
+        font-size: 1.2rem;
+    }
+
+    .hamburger {
+        display: flex;
+    }
+
+    .hamburger:hover .bar {
+        background-color: #007a69;
+    }
+
+    .mainNavbar-links a {
+        font-size: 1rem;
+        padding: 0.5rem 0.5rem; /* Adjusted padding to make items closer */
+        border-bottom: 1px solid #f4f4f4;
+    }
+
+    .mainNavbar-links a::after {
+        display: none;
+    }
+
+    .mainNavbar-links a:hover::after {
+        display: none;
+    }
+}

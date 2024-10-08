@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+
+*{
+  margin: 0;
+  box-sizing: border-box;
+  font-family: Outfit;
+}
+
+body{
+  min-height: 100vh;
+  background-color: #fcfcfc;
+}
+
+a{
+  text-decoration: none;
+  color: inherit;
+}
+
+hr{
+  border: none;
+  height: 1px;
+  background-color: #a9a9a9;
+}
+
+.app-contents {
+  display: flex;
+}
+
+.sidebar {
+  width: 18%;
+  min-height: 100vh;
+  border: 1.5vh solid #a9a9a9;
+  border-top: 0;
+  font-size: max(1vw, 10px);
+}
+
+.main-content {
+  width: 82%; /* Adjust based on the sidebar width */
+  padding: 20px; /* Optional: Add padding for better spacing */
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cursor{
+  cursor: pointer;
+}

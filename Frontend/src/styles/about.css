@@ -1,0 +1,156 @@
+.about-container {
+    padding-top: 80px;
+    background-color: #f7f7f7;
+  }
+  
+  .about-container h1 {
+    font-size: 3rem;
+    margin-bottom: 30px;
+    font-family: "Playfair Display", serif;
+    font-weight: 600;
+    color: #333;
+    text-align: center;
+  }
+  
+  .about-container h2 {
+    font-size: 2rem;
+    margin-bottom: 15px;
+    color: #444;
+  }
+  
+  .about-container p {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #555;
+    margin-bottom: 20px;
+  }
+  
+  .about-section {
+    display: flex;
+    align-items: center;
+    margin-bottom: 50px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .about-section:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  }
+  
+  .about-section:nth-child(even) {
+    flex-direction: row-reverse;
+  }
+  
+  .about-text {
+    flex: 1;
+    padding: 40px;
+    text-align: justify;
+  }
+  
+  .about-text h2 {
+    font-size: 2rem;
+    color: #333;
+  }
+  
+  .about-image {
+    flex: 1;
+    max-width: 500px;
+    height: auto;
+    object-fit: cover;
+    margin-left: 30px;
+    border-radius: 10px;
+  }
+  
+  .footer-wrapper {
+    width: 100%;
+  }
+
+  .see-products {
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+    background-color: #00bfa6;
+    padding: 8px 20px; /* Adjust padding to your liking */
+    border: none;
+    border-radius: 5px; /* Rounded corners */
+    margin-top: -6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth transition for hover effects */
+  }
+  
+  .see-products:hover {
+    background-color: #009c8f; /* Slightly darker shade on hover */
+    transform: scale(1.05); /* Slightly enlarge on hover */
+  }
+  
+  .see-products:active {
+    background-color: #007a69; /* Even darker shade on click */
+    transform: scale(0.95); /* Slightly shrink on click */
+  }
+  
+  .about-services{
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+    background-color: #00bfa6;
+    padding: 8px 20px; /* Adjust padding to your liking */
+    border: none;
+    border-radius: 5px; /* Rounded corners */
+    margin-top: -6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+
+  .about-services:hover{
+    background-color: #009c8f; /* Slightly darker shade on hover */
+    transform: scale(1.05); /* Slightly enlarge on hover */
+  }
+
+  .about-services:active{
+    background-color: #007a69; /* Even darker shade on click */
+    transform: scale(0.95); /* Slightly shrink on click */
+  }
+  @media (max-width: 768px) {
+    .about-section {
+      flex-direction: column !important;
+      text-align: center !important;
+      padding: 20px;
+    }
+  
+    .about-image {
+      margin: 20px 0;
+      max-width: 100%;
+    }
+  
+    .about-text {
+      padding: 20px;
+      text-align: left;
+    }
+
+    .about-services{
+        display: none;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .about-container h1 {
+        font-size: 4vh;
+        font-weight: 600;
+    }
+
+    .about-container h2 {
+        font-size: 3.4vh;
+        font-weight: 500;
+    }
+
+    .about-container p {
+        font-size: 1rem;
+    }
+
+    .see-products {
+        font-size: 14px;
+        padding: 6px 16px;
+    }
+}
+  

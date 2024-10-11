@@ -5,6 +5,8 @@ import designRouter from "./routes/design.js"
 import router from "./routes/appointments.js"
 import 'dotenv/config.js'
 import dotenv from 'dotenv'
+import admin from "./routes/admin.js"
+import user from "./routes/user.js"
 
 dotenv.config()
 
@@ -18,6 +20,8 @@ connectDB(process.env.MONGO_URI)
 
 app.use('/api/design', designRouter)
 app.use('/api/appointment', router)
+app.use('/api/admin', admin)
+app.use('/api/user', user)
 
 app.use('/images', express.static('uploads'));
 

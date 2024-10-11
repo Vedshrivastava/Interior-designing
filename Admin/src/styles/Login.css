@@ -1,0 +1,94 @@
+.login {
+    position: fixed; /* Change from absolute to fixed */
+    z-index: 1;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%; /* Use 100% to ensure it takes up the full viewport height */
+    background-color: #00000090;
+    display: grid;
+}
+
+.login-container {
+    place-self: center;
+    width: max(23vw, 330px);
+    color: #808080;
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    padding: 25px 30px;
+    border-radius: 8px;
+    font-size: 14px;
+    animation: fadeIn 0.5s;
+}
+
+.login-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: black;
+}
+
+.login-title img {
+    width: 16px;
+    cursor: pointer;
+}
+
+.login-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.login-inputs input {
+    outline: none;
+    border: 1px solid #c9c9c9;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.login-container button {
+    border: none;
+    padding: 10px;
+    border-radius: 4px;
+    color: white;
+    background-color: tomato;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.login-condition {
+    display: flex;
+    align-items: start;
+    gap: 8px;
+    margin-top: -15px;
+}
+
+.login-condition input {
+    margin-top: 5px;
+}
+
+.login p span {
+    color: tomato;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.submitted-message {
+    color: rgb(211, 73, 48); /* Or any color you prefer */
+    margin-top: 10px; /* Space from the buttons */
+    font-weight: bold; /* Make it bold */
+}
+
+
+@media (max-width: 480px) {
+
+    .login{
+        top: 30px;
+    }
+    .login-container {
+        width: 85%;
+        margin: auto;
+    }
+}

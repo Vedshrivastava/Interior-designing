@@ -1,31 +1,73 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Navbar from './components/Navbar';
 import Sidebar from './components/sidebar';
 import { Routes, Route } from 'react-router-dom';
 import Add from './pages/Add';
 import List from './pages/List';
-import './index.css'
-import 'react-toastify/dist/ReactToastify.css'
-import {ToastContainer, toast} from 'react-toastify'
 import Orders from './pages/Orders';
 import Quotes from './pages/Quotes';
+import './index.css';
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from 'react-toastify';
+import Login from './components/Login';
+import ProtectedRoute from './components/ProtectedRoute'; // Importing ProtectedRoute
+import Email_verification from './pages/Email_verification'
+import ResetPassword from './pages/ResetPassword';
 
 const App = () => {
-
-  const url = "http://localhost:3000";
+  const [showLogin, setShowLogin] = useState(false); // For managing login modal
+  const url = "http://localhost:3000"; // Updated to match previous setup
 
   return (
     <div>
-      <ToastContainer/>
-      <Navbar />
+      {showLogin && <Login setShowLogin={setShowLogin} />} {/* Conditionally show Login */}
+
+      <ToastContainer /> {/* Toast notifications */}
+      <Navbar setShowLogin={setShowLogin} /> {/* Pass setShowLogin to Navbar */}
+
       <div className="app-contents">
         <Sidebar />
         <div className="main-content">
           <Routes>
-            <Route path='/add' element={<Add url={url} /> } />
-            <Route path='/list' element={<List url={url} />} />
-            < Route path='/appointments' element={<Orders url={url} />}/>
-            <Route path='/quotes' element={<Quotes url={url} />}/>
+            {/* Protected routes with login handling */}
+            <Route
+              path='/add'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <Add url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/list'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <List url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/appointments'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <Orders url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/quotes'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <Quotes url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route path='/verify-email' element={
+                <Email_verification />
+            } />
+            <Route path='/reset-password/:token' element={
+              <ResetPassword setShowLogin={setShowLogin} />
+            } />
           </Routes>
         </div>
       </div>

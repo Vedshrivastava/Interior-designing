@@ -29,7 +29,7 @@ const registerAdmin = async (req, res) => {
       name,
       email,
       password: hashedPass,
-      role: "ADMIN",
+      role: "USER",
     });
 
     const admin = await newAdmin.save();

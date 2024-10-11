@@ -3,77 +3,7 @@ import bcrypt from "bcrypt";
 import validator from "validator";
 import crypto from 'crypto';
 import { sendVerificationEmail, sendWelcomeEmail, sendResetSuccessEmail, sendPasswordResetEmail } from "../middlewares/emails.js";
-import {
-  signTokenForConsumer,
-} from "../middlewares/index.js";
 import { generateVerificationCode } from "../utils/generateVerificationCode.js";
-
-const loginUser = async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    // Find user by email
-    const user = await userModel.findOne({ email });
-
-    // Check if user exists
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "The user does not exist",
-      });
-    }
-
-    // Compare provided password with stored password
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    // Check if password matches
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Wrong password",
-      });
-    }
-
-    // Prepare token data
-    const tokenData = {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-    };
-
-    // Generate token for the user
-    const token = await signTokenForConsumer(tokenData);
-
-    // Check if the token was generated
-    if (token) {
-      return res.status(200).json({
-        success: true,
-        token,
-        userId: user._id,
-        name: user.name,
-        email: user.email,
-        cartItems: user.cartItems,
-        message: "Logged in successfully",
-        user: {
-          ...user._doc,
-          password: undefined, // Exclude password
-        },
-      });
-    } else {
-      return res.status(500).json({
-        success: false,
-        message: "Error generating token",
-      });
-    }
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      success: false,
-      message: "Some internal error occurred",
-    });
-  }
-};
-
 
 const verifyEmail = async (req, res) => {
 
@@ -113,66 +43,6 @@ const verifyEmail = async (req, res) => {
     });
   }
 }
-
-
-const registerUser = async (req, res) => {
-  const { name, password, email } = req.body;
-  try {
-    const exists = await userModel.findOne({ email });
-    if (exists) {
-      return res.json({ success: false, message: "User Already Exists" });
-    }
-    console.log("Email:", email);
-
-    if (!validator.isEmail(email)) {
-      return res.json({
-        success: false,
-        message: "Please Enter a valid email",
-      });
-    }
-
-    if (password.length < 8) {
-      return res.json({
-        success: false,
-        message: "The password must be at least 8 digits long.",
-      });
-    }
-
-    const verificationCode = generateVerificationCode();
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPass = await bcrypt.hash(password, salt);
-
-    const newUser = new userModel({
-      name: name,
-      email: email,
-      password: hashedPass,
-      verificationToken: verificationCode,
-      verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000
-    });
-
-    const user = await newUser.save();
-
-    await sendVerificationEmail(email, verificationCode);
-
-
-    return res.json({
-      success: true,
-      userId: user._id,
-      message: "Account Created",
-      user:{
-        ...user._doc,
-        password: undefined
-      },
-    });
-  } catch (error) {
-    console.log(error);
-    return res.json({
-      success: false,
-      message: "Some Internal Error Occurred",
-    });
-  }
-};
 
 const forgotPassword = async (req, res) => {
   const { email } = req.body;

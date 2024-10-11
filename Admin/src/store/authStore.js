@@ -8,6 +8,7 @@ export const useAuthStore = create((set) => ({
     error: null,
     isLoading: false,
     isCheckingAuth: true,
+    url: 'http://localhost:3000',
 
     signup: async (email, password, name) => {
         set({
@@ -16,7 +17,7 @@ export const useAuthStore = create((set) => ({
         });
         console.log("isLoading (signup start):", true); // Log when isLoading is true
         try {
-            const response = await axios.post(`http://localhost:3000/api/admin/register-admin`, { email, password, name });
+            const response = await axios.post(`${url}/api/admin/register-admin`, { email, password, name });
             const { user } = response.data;
             
             localStorage.setItem('user', JSON.stringify(user));
@@ -38,7 +39,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         console.log("isLoading (login start):", true); // Log when isLoading is true
         try {
-            const response = await axios.post(`http://localhost:3000/api/admin/login-admin`, { email, password });
+            const response = await axios.post(`${url}/api/admin/login-admin`, { email, password });
             const { user } = response.data;
 
             localStorage.setItem('user', JSON.stringify(user));
@@ -60,7 +61,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         console.log("isLoading (verifyEmail start):", true); // Log when isLoading is true
         try {
-            const response = await axios.post(`http://localhost:3000/api/user/verify-email`, { code });
+            const response = await axios.post(`${url}/api/user/verify-email`, { code });
             const { user } = response.data;
 
             localStorage.setItem('user', JSON.stringify(user));
@@ -83,7 +84,7 @@ export const useAuthStore = create((set) => ({
         console.log("isCheckingAuth (start):", true); // Log when checking authentication starts
         try {
             const { token } = useContext(StoreContext);
-            const response = await axios.get(`http://localhost:3000/api/user/check-auth`, { 
+            const response = await axios.get(`${url}/api/user/check-auth`, { 
                 headers: { Authorization: `Bearer ${token}` } 
             });
             const { user } = response.data;
@@ -109,7 +110,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         console.log("isLoading (forgotPassword start):", true); // Log when isLoading is true
         try {
-            const response = await axios.post(`http://localhost:3000/api/user/forgot-password`, { email });
+            const response = await axios.post(`${url}/api/user/forgot-password`, { email });
             set({ message: response.data.message, isLoading: false });
             console.log("isLoading (forgotPassword end):", false); // Log when isLoading is false
             return response;
@@ -124,7 +125,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         console.log("isLoading (resetPassword start):", true); // Log when isLoading is true
         try {
-            const response = await axios.post(`http://localhost:3000/api/user/reset-password/${token}`, { password });
+            const response = await axios.post(`${url}/api/user/reset-password/${token}`, { password });
             set({ message: response.data.message });
             console.log("isLoading (resetPassword end):", false); // Log when isLoading is false
             return response;

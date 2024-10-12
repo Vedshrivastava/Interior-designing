@@ -7,11 +7,11 @@ import { assets } from '../assets/admin_assets/assets';
 
 const Quotes = ({ url }) => {
   const [orders, setOrders] = useState([]);
-
+  const token = localStorage.getItem('token');
   // Fetch all orders (whether paid or unpaid)
   const fetchAllOrders = async () => {
     try {
-      const response = await axios.get(`${url}/api/appointment/list-quotes`);
+      const response = await axios.get(`${url}/api/appointment/list-quotes`, { headers: { Authorization: `Bearer ${token}` } });
 
       if (response.data.success) {
         setOrders(response.data.appointments); // Set the orders if the response is successful

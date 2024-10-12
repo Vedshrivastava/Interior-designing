@@ -6,7 +6,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';
-import { jwtDecode } from 'jwt-decode'; // Import jwt-decode
+import jwtDecode from 'jwt-decode'; // Import jwt-decode
 
 const Login = ({ setShowLogin }) => {
     const { signup, isLoading, login, forgotPassword } = useAuthStore();
@@ -119,9 +119,26 @@ const Login = ({ setShowLogin }) => {
         localStorage.removeItem("userName");
         localStorage.removeItem("userEmail");
         setIsLoggedIn(false);
-        toast.info("You have been logged out due to inactivity.");
-        navigate('/login'); // Redirect to login or any other page
+        toast.info("You have been logged out due to token expiration.");
+        navigate('/login'); // Redirect to login page
     };
+
+    // Effect to check token expiration if user refreshes page
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            const decodedToken = jwtDecode(token);
+            const expirationTime = decodedToken.exp * 1000;
+            if (Date.now() >= expirationTime) {
+                handleLogout();
+            } else {
+                const logoutTime = expirationTime - Date.now();
+                setTimeout(() => {
+                    handleLogout();
+                }, logoutTime);
+            }
+        }
+    }, []);
 
     return (
         <div className='login'>

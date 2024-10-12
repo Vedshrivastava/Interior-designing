@@ -1,64 +1,79 @@
 import userModel from "../models/user.js";
 import bcrypt from "bcrypt";
 import { signTokenForAdmin } from "../middlewares/index.js";
+import validator from "validator";
+import { generateVerificationCode } from "../utils/generateVerificationCode.js";
+import { sendVerificationEmail } from "../middlewares/emails.js";
 
 const registerAdmin = async (req, res) => {
-  const { email, password, name } = req.body;
-
+  const { name, password, email } = req.body;
   try {
-    const exist = await userModel.findOne({ email });
+    const exists = await userModel.findOne({ email });
+    if (exists) {
+      return res.json({ success: false, message: "User Already Exists" });
+    }
+    console.log("Email:", email);
 
-    if (exist) {
-      return res.status(400).json({
+    if (!validator.isEmail(email)) {
+      return res.json({
         success: false,
-        message: "Admin already exists with provided email",
+        message: "Please Enter a valid email",
       });
     }
 
     if (password.length < 8) {
-      return res.status(400).json({
+      return res.json({
         success: false,
-        message: "The password must be at least 8 characters long.",
+        message: "The password must be at least 8 digits long.",
       });
     }
+
+    const verificationCode = generateVerificationCode();
 
     const salt = await bcrypt.genSalt(10);
     const hashedPass = await bcrypt.hash(password, salt);
 
-    const newAdmin = new userModel({
-      name,
-      email,
+    const newUser = new userModel({
+      name: name,
+      email: email,
       password: hashedPass,
-      role: "USER",
+      verificationToken: verificationCode,
+      verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000
     });
 
-    const admin = await newAdmin.save();
+    const user = await newUser.save();
 
-    return res.status(201).json({
+    await sendVerificationEmail(email, verificationCode);
+
+
+    return res.json({
       success: true,
-      userId: admin._id,
-      message: "Admin created successfully",
-      user: {
-        ...admin._doc,
-        password: undefined, // Exclude password
+      userId: user._id,
+      message: "Account Created",
+      user:{
+        ...user._doc,
+        password: undefined
       },
     });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({
+    console.log(error);
+    return res.json({
       success: false,
-      message: "Some internal error occurred",
+      message: "Some Internal Error Occurred",
     });
   }
 };
 
 const loginAdmin = async (req, res) => {
   const { email, password } = req.body;
+  console.log("Login Admin Request Data:", { email, password });
 
   try {
     const admin = await userModel.findOne({ email });
+    console.log("Admin existence check result:", admin);
 
     if (!admin || admin.role !== "ADMIN") {
+      console.log("Admin not found or not an ADMIN:", email);
       return res.status(400).json({
         success: false,
         message: "Admin does not exist with provided email",
@@ -66,8 +81,10 @@ const loginAdmin = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, admin.password);
+    console.log("Password match result:", isMatch);
 
     if (!isMatch) {
+      console.log("Incorrect password provided");
       return res.status(400).json({
         success: false,
         message: "Incorrect password",
@@ -81,8 +98,10 @@ const loginAdmin = async (req, res) => {
     };
 
     const token = await signTokenForAdmin(tokenData);
+    console.log("Generated token:", token);
 
     if (token) {
+      console.log("Login successful for:", email);
       return res.status(200).json({
         success: true,
         token,
@@ -97,13 +116,14 @@ const loginAdmin = async (req, res) => {
         },
       });
     } else {
+      console.log("Error generating token for:", email);
       return res.status(500).json({
         success: false,
         message: "Error generating token",
       });
     }
   } catch (error) {
-    console.error(error);
+    console.error("Error logging in admin:", error);
     return res.status(500).json({
       success: false,
       message: "Some internal error occurred",

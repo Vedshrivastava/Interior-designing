@@ -9,9 +9,10 @@ import '../index.css'
 const List = ({ url }) => {
 
   const [list, setList] = useState([]);
+  const token = localStorage.getItem('token');
 
   const fetchList = async () => {
-    const response = await axios.get(`${url}/api/design/list`);
+    const response = await axios.get(`${url}/api/design/list`, { headers: { Authorization: `Bearer ${token}` } });
     if (response.data.success) {
       setList(response.data.data);
     } else {
@@ -22,7 +23,8 @@ const List = ({ url }) => {
   const removeFood = async (foodId) => {
     try {
       const response = await axios.delete(`${url}/api/design/remove`, {
-        data: { _id: foodId }
+        data: { _id: foodId },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (response.data.success) {
         await fetchList();

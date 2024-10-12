@@ -7,11 +7,12 @@ import moment from 'moment'; // Import moment.js for date formatting
 
 const Orders = ({ url }) => {
   const [orders, setOrders] = useState([]);
+  const token = localStorage.getItem('token');
 
   // Fetch all orders (whether paid or unpaid)
   const fetchAllOrders = async () => {
     try {
-      const response = await axios.get(`${url}/api/appointment/list`);
+      const response = await axios.get(`${url}/api/appointment/list`, { headers: { Authorization: `Bearer ${token}` } });
 
       if (response.data.success) {
         setOrders(response.data.appointments); // Set the orders if the response is successful

@@ -15,6 +15,7 @@ const Add = ({ url }) => {
     });
 
     const [points, setPoints] = useState([""]); // Initialize with one empty point
+    const token = localStorage.getItem('token');
 
     // Hardcoded categories
     const categories = [
@@ -81,7 +82,7 @@ const Add = ({ url }) => {
         });
 
         try {
-            const response = await axios.post(`${url}/api/design/add`, formData);
+            const response = await axios.post(`${url}/api/design/add`, formData, { headers: { Authorization: `Bearer ${token}` } });
             if (response.data.success) {
                 setData({
                     name: "",

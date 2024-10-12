@@ -125,4 +125,4 @@ const checkAuth = async (req, res) => {
   }
 }
 
-export { loginUser, registerUser, verifyEmail, forgotPassword, resetPassword, checkAuth };
+export { verifyEmail, forgotPassword, resetPassword, checkAuth };

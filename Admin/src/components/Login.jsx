@@ -6,7 +6,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';
-import jwtDecode from 'jwt-decode'; // Import jwt-decode
+import {jwtDecode} from 'jwt-decode'; // Import jwt-decode
 
 const Login = ({ setShowLogin }) => {
     const { signup, isLoading, login, forgotPassword } = useAuthStore();

@@ -44,9 +44,11 @@ const Orders = ({ url }) => {
 
     try {
       // Call API to update the status directly in the backend
-      const response = await axios.post(url + '/api/appointment/status', {
+      const response = await axios.post(`${url}/api/appointment/status`, {
         orderId,
-        status: newStatus, // Send the new status directly
+        status: newStatus,
+      }, {
+        headers: { Authorization: `Bearer ${token}`},
       });
 
       if (response.data.success) {

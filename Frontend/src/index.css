@@ -7,98 +7,116 @@
 @import "slick-carousel/slick/slick-theme.css";
 
 /* Remove the background and border for the arrows */
-.slick-prev, 
+.slick-prev,
 .slick-next {
-  background: none !important; /* Remove default background */
-  border: none; /* Remove border */
-  z-index: 1; /* Ensure arrows stay on top */
+  background: none !important;
+  /* Remove default background */
+  border: none;
+  /* Remove border */
+  z-index: 1;
+  /* Ensure arrows stay on top */
   margin-top: -18px;
 }
 
 /* Customize the arrow icons (color and size) */
 .slick-prev::before,
 .slick-next::before {
-  color: #00bfa6 !important; /* Set arrow color to white */
-  font-size: 70px !important; /* Adjust arrow size */
+  color: #00bfa6 !important;
+  /* Set arrow color to white */
+  font-size: 70px !important;
+  /* Adjust arrow size */
 }
 
 /* Bring the arrows closer to the center */
 .slick-prev {
-  left: -70px; /* Move the previous arrow closer to the right */
+  left: -70px;
+  /* Move the previous arrow closer to the right */
 }
 
 .slick-next {
-  right: -20px; /* Move the next arrow closer to the left */
+  right: -20px;
+  /* Move the next arrow closer to the left */
 }
 
 /* Optional: Remove any hover or focus effects that could interfere */
-.slick-prev:hover, 
-.slick-next:hover, 
-.slick-prev:focus, 
+.slick-prev:hover,
+.slick-next:hover,
+.slick-prev:focus,
 .slick-next:focus {
-  background: none; /* Ensure no background on hover or focus */
+  background: none;
+  /* Ensure no background on hover or focus */
   border: none;
   outline: none;
 }
 
 /* Customize the dot container */
 .slick-dots {
-    display: flex !important;
-    justify-content: center;
-    align-items: center;
-    gap: 10px; /* Space between dots */
-  }
-  
-  /* Style the individual dots */
-  .slick-dots li button::before {
-    font-size: 10px; /* Dot size */
-    color: gray; /* Dot color */
-    opacity: 0.5; /* Dot transparency */
-    transition: all 0.3s ease; /* Smooth transition on hover */
-  }
-  
-  /* Change color of active dot */
-  .slick-dots li.slick-active button::before {
-    color: #333; /* Active dot color */
-    opacity: 1; /* Full opacity for the active dot */
-    font-size: 15px; /* Slightly larger size for active dot */
-  }
-  
-  /* Hover effect on dots */
-  .slick-dots li button:hover::before {
-    color: #333; /* Dot color on hover */
-    opacity: 0.8; /* Increased opacity on hover */
-  }
-  
-  /* Optional: You can also adjust the container for responsiveness */
-  @media (max-width: 768px) {
-    .slick-dots {
-      bottom: 5px; /* Adjust for smaller screens */
-      gap: 5px; /* Reduce gap between dots */
-    }
-    
-    .slick-dots li button::before {
-      font-size: 10px; /* Reduce dot size on smaller screens */
-    }
-  
-    .slick-dots li.slick-active button::before {
-      font-size: 12px; /* Adjust active dot size on smaller screens */
-    }
-  }
-
-  @media (max-width: 480px) {
-
-    .slick-prev::before,
-.slick-next::before {
-  font-size: 30px !important; /* Adjust arrow size */
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  /* Space between dots */
 }
 
-.slick-prev {
-    left: -30px !important; /* Move the previous arrow closer to the right */
+/* Style the individual dots */
+.slick-dots li button::before {
+  font-size: 10px;
+  /* Dot size */
+  color: gray;
+  /* Dot color */
+  opacity: 0.5;
+  /* Dot transparency */
+  transition: all 0.3s ease;
+  /* Smooth transition on hover */
+}
+
+/* Change color of active dot */
+.slick-dots li.slick-active button::before {
+  color: #333;
+  /* Active dot color */
+  opacity: 1;
+  /* Full opacity for the active dot */
+  font-size: 15px;
+  /* Slightly larger size for active dot */
+}
+
+/* Hover effect on dots */
+.slick-dots li button:hover::before {
+  color: #333;
+  /* Dot color on hover */
+  opacity: 0.8;
+  /* Increased opacity on hover */
+}
+
+/* Optional: You can also adjust the container for responsiveness */
+@media (max-width: 768px) {
+  .slick-dots {
+    bottom: 5px;
+    /* Adjust for smaller screens */
+    gap: 5px;
+    /* Reduce gap between dots */
   }
+
+  .slick-dots li button::before {
+    font-size: 10px;
+    /* Reduce dot size on smaller screens */
+  }
+
+  .slick-dots li.slick-active button::before {
+    font-size: 12px;
+    /* Adjust active dot size on smaller screens */
+  }
+}
+
+@media (max-width: 480px) {
+
+  .slick-prev::before,
+  .slick-next::before {
+    display: none;
+  }
+
   .slick-dots {
     bottom: -20px;
   }
 
-  }
-  
+}

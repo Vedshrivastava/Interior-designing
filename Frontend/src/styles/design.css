@@ -1,181 +1,173 @@
-/* Container for the entire design section */
 .design-display {
-    display: flex; /* Flexbox layout */
-    flex-wrap: wrap; /* Allow wrapping on smaller screens */
-    justify-content: space-between; /* Distribute space between items */
-    max-width: 90vw;
-    margin: 0 auto; /* Center the container */
-    background: none;
-    margin-bottom: 120px !important;
-  }
-  
-  /* Design slider (left side on large screens) */
-  .design-slider {
-    flex: 1 1 48%; /* Take 48% of the width on larger screens */
-    padding: 30px;
-  }
-
-  .design-slider img{
-    margin-top: 50px !important;
-    max-height: 600px;
-  }
-  
-  /* Design info (right side on large screens) */
-  .design-info {
-    flex: 1 1 48%; /* Take 48% of the width on larger screens */
-    padding: 30px;
-    position: relative; /* Ensure button positions correctly */
-  }
-  
-  /* Mobile view */
-  @media (max-width: 768px) {
-    .design-display {
-      flex-direction: column; /* Stack items vertically */
-    }
-  
-    .design-slider,
-    .design-info {
-      flex: 1 1 100%; /* Full width on small screens */
-      padding: 15px;
-    }
-  
-    .get-quote-button {
-      bottom: -60px !important;
-    }
-  }
-  
-  /* Description text */
-  .description-text {
-    font-size: 18px;
-    color: #333;
-    font-family: "Roboto", sans-serif;
-    line-height: 1.6;
-    max-height: 100px; /* Limit height for collapsed state */
-    overflow: hidden; /* Hide overflow content */
-    transition: max-height 0.3s ease, padding-bottom 0.3s ease; /* Smooth transition */
-    padding-bottom: 10px; /* Add padding for the collapsed state */
-  }
-  
-  /* Expanded description text */
-  .description-text.expanded {
-    max-height: none; /* Remove height restriction when expanded */
-    padding-bottom: 20px; /* Increase padding when expanded */
-  }
-  
-  /* Design points list */
-  .design-points {
-    list-style-type: disc;
-    padding-left: 20px;
-    margin-top: 10px;
-    margin-bottom: 10px;
-    transition: max-height 0.3s ease, opacity 0.3s ease; /* Smooth transition */
-    opacity: 0; /* Hide points initially */
-    max-height: 0; /* Hide points initially */
-    text-align: left; /* Align list items to the left */
-  }
-  
-  /* Expanded design points */
-  .design-points.expanded {
-    max-height: 1000px; /* Ensure enough height to show all items */
-    opacity: 1; /* Show points when expanded */
-  }
-
-  .description-text.expanded ~ .see-more-button,
-.design-points.expanded ~ .see-more-button {
-    position: absolute;
-    align-self: flex-end;
-    bottom: 10px;
+  margin-top: 30px;
+  max-width: 80vw;
+  margin: 0 auto; /* Center the container */
+  position: relative; /* Ensure proper positioning */
+  background: none;
+  margin-bottom: 40px !important;
 }
-  
-  /* See more button styling */
+
+/* Description text */
+.description-text {
+  font-size: 18px;
+  color: #333;
+  font-family: "Roboto", sans-serif;
+  line-height: 1.6;
+  max-height: 100px; /* Limit height for collapsed state */
+  overflow: hidden; /* Hide overflow content */
+  transition: max-height 0.3s ease, padding-bottom 0.3s ease; /* Smooth transition */
+  padding-bottom: 10px; /* Add padding for the collapsed state */
+}
+
+/* Expanded description text */
+.description-text.expanded {
+  max-height: none; /* Remove height restriction when expanded */
+  padding-bottom: 20px; /* Increase padding when expanded */
+}
+
+/* Design points list */
+.design-points {
+  list-style-type: disc;
+  padding-left: 20px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  transition: max-height 0.3s ease, opacity 0.3s ease; /* Smooth transition */
+  opacity: 0; /* Hide points initially */
+  max-height: 0; /* Hide points initially */
+  text-align: left; /* Align list items to the left */
+}
+
+/* Expanded design points */
+.design-points.expanded {
+  max-height: 1000px; /* Ensure enough height to show all items */
+  opacity: 1; /* Show points when expanded */
+}
+
+/* See more button styling */
+.see-more-button {
+  background: none;
+  color: #00bfa6; /* Text color */
+  border: none;
+  padding: 0px 10px 0px 0px;
+  font-size: 20px;
+  opacity: 0.7;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s ease, transform 0.3s ease; /* Smooth transition for button */
+  position: absolute; /* Position absolutely within the parent */
+  bottom: -15px;
+}
+
+/* See more button hover effect */
+.see-more-button:hover {
+  opacity: 1;
+}
+
+/* Heading and paragraph styling */
+.design-display h3 {
+  font-size: 4vh;
+  margin-bottom: 15px;
+  font-weight: 550;
+  color: #333;
+}
+
+.design-display h2 {
+  color: #333;
+  font-size: 5vh;
+}
+
+.design-display p {
+  font-size: 18px;
+  color: #666;
+  font-family: "Roboto", sans-serif;
+  line-height: 1.6;
+}
+
+.design-display ul {
+  font-size: 18px;
+  color: #666;
+  font-family: "Roboto", sans-serif;
+  line-height: 1.6;
+}
+
+.design-slider {
+  padding: 30px;
+}
+
+.get-quote-button {
+  position: absolute;
+  bottom: -70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #00bfa6;
+  color: white;
+  padding: 10px 20px;
+  font-family: "Roboto", sans-serif;
+  border: none;
+  cursor: pointer;
+  font-size: 24px;
+  opacity: 0.8;
+  transition: transform 0.3s ease, background-color 0.3s ease; /* Smooth transition for scaling and background color */
+}
+
+.get-quote-button:hover {
+  opacity: 1;
+  transform: translateX(-50%) scale(1.1); /* Increase the size on hover */
+}
+
+@media (max-width: 900px) {
+
   .see-more-button {
-    background: none;
-    color: #00bfa6; /* Text color */
-    border: none;
-    padding: 0px 10px 0px 0px;
-    font-size: 20px;
-    opacity: 0.7;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: background-color 0.3s ease, transform 0.3s ease; /* Smooth transition for button */
-    position: relative; /* Keep it within the flow */
-    align-self: flex-end; /* Align button to the start */
-    bottom: 0px;
-    left: 50%; /* Center horizontally */
-    transform: translateX(-50%); /* Center horizontally */
+    bottom: -30px !important;
   }
-  
-  /* See more button hover effect */
-  .see-more-button:hover {
-    opacity: 1;
-  }
-  
-  /* Get quote button */
-  .get-quote-button {
-    position: absolute;
-    bottom: -50px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #00bfa6;
-    color: white;
-    padding: 10px 20px;
-    font-family: "Roboto", sans-serif;
-    border: none;
-    cursor: pointer;
-    font-size: 24px;
-    opacity: 0.8;
-    transition: transform 0.3s ease, background-color 0.3s ease; /* Smooth transition for scaling and background color */
-  }
-  
-  .get-quote-button:hover {
-    opacity: 1;
-    transform: translateX(-50%) scale(1.1); /* Increase the size on hover */
-  }
-  
-  /* Headings */
-  .design-display h3 {
-    font-size: 4vh;
-    margin-bottom: 15px;
-    font-weight: 550;
-    color: #333;
-  }
-  
-  .design-display h2 {
-    color: #333;
-    font-size: 5vh;
-  }
-  
-  /* Mobile-specific styles */
-  @media (max-width: 480px) {
-    .design-display {
+}
+
+@media (max-width: 480px) {
+
+  .design-display {
       margin-top: 30px;
       max-width: 100vw;
-    }
-  
-    /* Description text */
-    .description-text {
-      font-size: 16px !important;
-      margin-bottom: 20px !important;
-    }
-  
-    /* Expanded design points */
-    .design-points.expanded {
-      margin-bottom: 20px !important;
-    }
-  
-    .get-quote-button {
-      bottom: -60px !important;
-      font-size: 18px;
+      bottom: 20px;
     }
 
     .see-more-button{
-        position: absolute;
-        left: 13px;
-        bottom: 10px;
-        transform: none;
+      bottom: -10px !important;
     }
-    .design-slider img{
-        margin-top: 5px !important;
-      }
-  }
-  
+/* Description text */
+.description-text {
+  font-size: 16px !important;
+  margin-bottom: 20px !important;
+}
+
+/* Expanded description text */
+.description-text.expanded {
+  max-height: none; /* Remove height restriction when expanded */
+  padding-bottom: 10px !important; /* Increase padding when expanded */
+}
+
+/* Design points list */
+.design-points {
+  font-size: 16px !important;
+}
+
+/* Expanded design points */
+.design-points.expanded {
+  margin-bottom: 20px !important;
+
+}
+
+/* Heading and paragraph styling */
+.design-display h3 {
+  font-size: 3vh;
+  margin-bottom: 8px;
+}
+
+.design-display h2 {
+  font-size: 4vh;
+}
+
+.design-display p {
+  font-size: 18px;
+}
+
+}

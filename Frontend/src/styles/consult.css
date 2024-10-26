@@ -23,6 +23,7 @@
     border-radius: 8px;
     font-size: 14px;
     animation: fadeIn 0.5s; /* Ensure you define this animation if it's used */
+    top: 500px;
 }
 
 .login-title {
@@ -92,10 +93,11 @@
 
 /* Media query for responsiveness */
 @media (max-width: 768px) {
-    
+
     .login-container {
-        width: max(20vw, 300px); /* Adjust container width for smaller screens */
-        height: max(55vh, 450px); 
+        width: 90%;
+        margin: auto;
+        height: auto;
     }
 
     .login {

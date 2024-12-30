@@ -220,7 +220,7 @@ const Home = ({ setShowLogin }) => {
 
         <main>
         <section id="services" className="services-section">
-          <h2>Our Services</h2>
+          <h2>Our Projects</h2>
 
           <div className="service-item">
             <div className="service-image">

@@ -107,55 +107,50 @@
 
 /* Ensure the hamburger is visible on mobile screens */
 @media (max-width: 768px) {
+    .mainNavbar-container {
+        padding: 10px 15px; /* Adjust padding for smaller screens */
+    }
+
     .mainNavbar-links-container {
         width: 100%;
         background: white;
         position: absolute;
-        top: 50px; /* Position below the navbar */
+        top: 47px;
         left: 0;
         text-align: center;
         flex-direction: column;
         z-index: 9;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add shadow for better visibility */
+        display: none; /* Hide by default */
     }
 
     .mainNavbar-links {
-        display: none; /* Hide menu by default */
         flex-direction: column;
+        padding: 10px 0;
     }
 
-    .mainNavbar-links-container.open .mainNavbar-links {
-        display: flex; /* Show menu when open */
+    .mainNavbar-links li {
+        margin: 10px 0; /* Add spacing for clarity */
     }
 
-    .mainNavbar-links-container.open .mainNavbar-links .consult-online {
-        background: none;
-        color: #009c8f;
+    .mainNavbar-links a {
+        font-size: 1rem;
+        padding: 0.5rem 0;
     }
 
-    .mainNavbar-logo {
-        font-size: 1.2rem;
+    .mainNavbar-links-container.open {
+        display: flex; /* Show menu on toggle */
     }
 
     .hamburger {
         display: flex;
     }
 
-    .hamburger:hover .bar {
-        background-color: #007a69;
+    .mainNavbar-logo {
+        font-size: 1rem; /* Adjust for better fit */
     }
-
-    .mainNavbar-links a {
-        font-size: 1rem;
-        padding: 0.5rem 0.5rem; /* Adjusted padding to make items closer */
-        border-bottom: 1px solid #f4f4f4;
+    .mainNavbar-links-container.open .mainNavbar-links .consult-online {
+        background: none;
+        color: #00bfa6;
     }
-
-    .mainNavbar-links a::after {
-        display: none;
-    }
-
-    .mainNavbar-links a:hover::after {
-        display: none;
-    }
-    
 }

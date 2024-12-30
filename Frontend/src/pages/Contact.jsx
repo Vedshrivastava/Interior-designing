@@ -36,7 +36,7 @@ const Contact = ({ setShowLogin }) => {
                 email: formData.email,
                 phoneNumber: formData.phoneNumber,
                 message: formData.message,
-                address: {}, // Optionally, you can pass an address here if needed
+                address: formData.address || "No Address Provided", // Use formData or a default
             });
 
             toast.success('Appointment added successfully!');

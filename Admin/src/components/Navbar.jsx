@@ -27,7 +27,7 @@ const Navbar = ({ setShowLogin }) => {
                 <div className='navbar-profile'>
                     <img src={assets.profile_image} alt="Profile" />
                     <ul className="nav-profile-dropdown">
-                        <li onClick={logout}>Logout</li> // Show Logout option if authenticated
+                        <li onClick={logout}>Logout</li>
                     </ul>
                 </div>
             )}

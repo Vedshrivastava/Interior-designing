@@ -10,6 +10,16 @@
     margin: 0 !important; /* no margins left or right */
 }
 
+.footer {
+    border-top: 2px solid #d5b697;
+    background-color: #183030;
+    color: #d5b697;
+    padding: 40px 0;
+    text-align: center;
+    font-family: 'Poppins', sans-serif;
+}
+
+
 .footer-logo {
     width: 120px !important;  /* adjust the width as needed */
     height: auto !important;  /* maintain aspect ratio */

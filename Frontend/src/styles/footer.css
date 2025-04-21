@@ -8,16 +8,9 @@
     padding: 20px 0 !important; /* removed left/right padding */
     padding-top: 10px !important;
     margin: 0 !important; /* no margins left or right */
+    border-top: 2px solid #d5b697;
 }
 
-.footer {
-    border-top: 2px solid #d5b697;
-    background-color: #183030;
-    color: #d5b697;
-    padding: 40px 0;
-    text-align: center;
-    font-family: 'Poppins', sans-serif;
-}
 
 
 .footer-logo {

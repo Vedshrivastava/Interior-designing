@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/mainNavbar.css';
 import { useNavigate } from 'react-router-dom';
+import logo from '../assets/logo.jpg'
 import axios from 'axios';
 
 
@@ -45,7 +46,9 @@ const MainNavbar = ({ setShowLogin }) => {
     return (
         <nav className="mainNavbar">
             <div className="mainNavbar-container">
-                <div className="mainNavbar-logo">Logo</div>
+                <div className="mainNavbar-logo">
+                    <img src={logo} alt="" srcSet="" />
+                </div>
                 <div className={`mainNavbar-links-container ${isOpen ? 'open' : ''}`}>
                     <ul className="mainNavbar-links">
                         <li><Link to="/">Home</Link></li>

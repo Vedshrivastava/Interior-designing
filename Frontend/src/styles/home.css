@@ -38,6 +38,7 @@
       font-weight: 600; /* Bold weight */
       font-style: normal;
       margin-bottom: 0;
+      color: #d5b697;
       /* Bold weight */
   }
 
@@ -52,12 +53,13 @@
     font-style: normal;
     text-align: center;
     margin: 0 auto; 
+    color: #d5b697;
 }
 
   .hero-button {
       padding: 0.8rem 2rem;
-      background: rgba(255, 255, 255, 0.6); /* Semi-transparent white background */
-      color: #333;
+      background: rgba(213, 182, 151, 0.6); /* Semi-transparent white background */
+      color: #183030;
       border: none;
       cursor: pointer;
       transition: background-color 0.3s;
@@ -69,7 +71,7 @@
   }
 
   .hero-button:hover {
-      background-color: #f4f4f4;
+      background-color: #d5b697;
   }
 
   .card-area .contents{
@@ -102,14 +104,14 @@
     font-size: 6vh;
     font-weight: 600;
     font-family: "Roboto", sans-serif;
-    color: #333;
+    color: #183030;
   }
 
   .card-area .contents p{
     font-size: 3vh;
     font-weight: 400;
     font-family: "Roboto", sans-serif;
-    color: #333;
+    color: #183030;
     width: 86%;
     font-style: normal;
     text-align: center;
@@ -130,7 +132,7 @@
     font-weight: 600;
     font-family: "Roboto", sans-serif;
     margin-bottom: 50px;
-    color: #333;
+    color: #183030;
   }
   
   /* Service Item Styling */
@@ -168,7 +170,7 @@
     margin-bottom: 15px;
     font-weight: 550;
     font-family: "Roboto", sans-serif;
-    color: #333;
+    color: #183030;
   }
   
   .service-content p {

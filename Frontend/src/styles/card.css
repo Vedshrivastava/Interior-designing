@@ -27,24 +27,26 @@
     flex-direction: column;
     align-items: center; 
     justify-content: center; 
+    color: #183030;
   }
   
   .Card-heading {
     margin-top: 3vh;
     font-size: 1.2rem;
     font-weight: 500;
+    color: #183030;
   }
   
   .Card-description {
     font-size: 0.9rem;
-    color: #666;
+    color: #183030;
     margin-top: 0.5rem;
   }
   
   .Card-icon {
     margin-top: 0.5rem; 
     font-size: 1.2rem; 
-    color: #333; 
+    color: #183030; 
     margin-bottom: 1rem;
   }
   

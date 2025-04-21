@@ -3,6 +3,7 @@
     z-index: 100;
     top: 0;
     left: 0;
+    padding-top: 70px;
     width: 100%;
     height: 100vh; /* Full viewport height */
     background-color: rgba(0, 0, 0, 0.56); /* Slightly adjusted for better readability */
@@ -13,9 +14,9 @@
 
 .login-container {
     width: max(25vw, 350px);
-    height: max(60vh, 500px); /* Adjust the size as needed */
-    background: #f4f4f4;
-    color: #808080;
+    height: max(60vh, 470px); /* Adjust the size as needed */
+    background: #183030;
+    color: #d5b697;
     display: flex;
     flex-direction: column;
     gap: 25px;
@@ -23,7 +24,7 @@
     border-radius: 8px;
     font-size: 14px;
     animation: fadeIn 0.5s; /* Ensure you define this animation if it's used */
-    top: 500px;
+    padding-top: 10px;
 }
 
 .login-title {
@@ -39,12 +40,23 @@
     font-weight: 570;
     font-family: "Roboto", sans-serif;
     margin: 0px 10px !important;
+    color: #d5b697;
 }
 
-.login-title img {
+.login-title span {
     width: 16px;
     cursor: pointer; /* Pointer cursor for close button */
+    margin-top: -85px;
+    color: #d5b697;
 }
+
+.login-logo {
+    width: 80px;
+    margin: 0 auto;
+    display: block;
+    margin-bottom: -20px; /* Optional: tweak spacing between logo and title */
+}
+
 
 .login-inputs {
     display: flex;
@@ -55,22 +67,29 @@
 
 .login-inputs input {
     outline: none; /* Removes the default outline */
-    border: 1px solid #c9c9c9; /* Light border for inputs */
+    border: 1px solid #183030; /* Light border for inputs */
     padding: 10px; /* Padding inside input fields */
-    border-radius: 4px; /* Rounded corners for inputs */
-    background: #f4f4f4; /* Background color for inputs */
+    border-radius: 12px; /* Rounded corners for inputs */
+    background: #d5b697; /* Background color for inputs */
 }
+
+.login-container input::placeholder {
+    color: #183030; /* Change the color and opacity here */
+    opacity: 0.7; /* Ensures the color is applied correctly across browsers */
+  }
 
 .login-container button {
     border: none; /* Remove default border */
     padding: 10px; /* Padding inside button */
-    border-radius: 4px; /* Rounded corners for button */
-    color: white; /* Text color */
-    background-color: #333; /* Dark background color */
+    border-radius: 12px; /* Rounded corners for button */
+    color: #183030; /* Text color */
+    background-color: #d5b697; /* Dark background color */
     font-size: 15px; /* Font size */
     cursor: pointer; /* Pointer cursor on hover */
-    margin-bottom: 15px; /* Margin below the button */
-    margin: 0px 10px;
+    margin-bottom: 5px; /* Margin below the button */
+    font-size: 300;
+    font-weight: 500;
+    margin: 40px 10px;
 }
 
 .login-condition {
@@ -86,7 +105,7 @@
 }
 
 .login p span {
-    color: tomato; /* Red color for the span */
+    color: #183030; /* Red color for the span */
     font-weight: 500; /* Semi-bold weight */
     cursor: pointer; /* Pointer cursor on hover */
 }

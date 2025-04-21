@@ -1,29 +1,45 @@
 .footer {
     color: #d9d9d9 !important;
-    background-color: #333 !important;
+    background-color: #183030 !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     gap: 20px !important;
-    padding: 20px 8vw !important;
+    padding: 20px 0 !important; /* removed left/right padding */
     padding-top: 10px !important;
-    margin-top: 10px !important;
+    margin: 0 !important; /* no margins left or right */
 }
+
+.footer-logo {
+    width: 120px !important;  /* adjust the width as needed */
+    height: auto !important;  /* maintain aspect ratio */
+    object-fit: contain !important;
+}
+
 
 .footer-content {
     width: 100% !important;
     display: grid !important;
     grid-template-columns: 2fr 1fr 1fr !important;
     gap: 80px !important;
+    padding: 0 20px; /* Optional inner padding for layout */
+    box-sizing: border-box;
+    color: #d5b697;
 }
 
-.footer-content-left,
+.footer-content-left {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: start !important;
+    gap: 20px !important;
+}
+
 .footer-content-right,
 .footer-content-center {
     display: flex !important;
     flex-direction: column !important;
     align-items: start !important;
-    gap: 20px !important;
+    gap: 60px !important;
 }
 
 .footer-content-right li,
@@ -35,40 +51,69 @@
 
 .footer-content-right h2,
 .footer-content-center h2 {
-    color: white !important;
+    color: #d5b697 !important;
+    font-size:larger !important;
+    font-weight: 500;
 }
 
 .footer-social-icons {
-    display: flex !important;
-    gap: 15px !important;
-}
-
-.footer-social-icons img {
-    width: 40px !important;
-    height: 40px !important;
-    object-fit: contain !important;
-}
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    justify-content: start;
+  }
+  
+  .footer-social-icons .social-icon svg {
+    transition: all 0.3s ease;
+    width: 40px;
+    height: 40px;
+  }
+  
+  .footer-social-icons .social-icon svg:hover {
+    fill: #b48a60;
+    transform: scale(1.1);
+  }
 
 .footer hr {
     width: 100% !important;
     height: 2px !important;
     margin: 20px 0 !important;
-    background-color: grey !important;
+    background-color: #d5b697 !important;
     border: none !important;
 }
 
 .footer-content-left p {
     font-size: 1rem !important;
     line-height: 1.6 !important;
-    color: #d9d9d9 !important;
+    color: #d5b697 !important;
     margin-bottom: 10px !important;
 }
+
+.footer-social-icons {
+    display: flex;
+    gap: 15px;
+  }
+  
+  .footer-social-icons .social-icon svg {
+    transition: all 0.3s ease;
+  }
+  
+  .footer-social-icons .social-icon svg:hover {
+    fill: #b48a60; /* optional darker shade on hover */
+    transform: scale(1.1);
+  }
+
+  .footer-copyright{
+    color: #d5b697;
+  }
+  
 
 @media (max-width: 750px) {
     .footer-content {
         display: flex !important;
         flex-direction: column !important;
         gap: 35px !important;
+        padding: 0 10px; /* smaller padding for mobile */
     }
 
     .footer-copyright {

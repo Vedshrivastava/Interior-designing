@@ -1,8 +1,8 @@
 /* Main Navbar Styles */
 .mainNavbar-container {
     width: 100%;
-    background: white;
-    padding: 10px 20px;
+    background: #183030;
+    padding: 5px 20px;
     position: fixed; /* Stick the navbar at the top */
     top: 0;
     left: 0;
@@ -34,7 +34,7 @@
 }
 
 .mainNavbar-links a {
-    color: #00bfa6;
+    color: #d5b697;
     text-decoration: none;
     font-size: 16px;
 }
@@ -44,7 +44,7 @@
 }
 
 .mainNavbar-links .services {
-    color: #00bfa6;
+    color: #d5b697;
     text-decoration: none;
     font-size: 16px;
 }
@@ -55,10 +55,10 @@
 }
 
 .consult-online {
-    color: white;
+    color: #183030;
     text-decoration: none;
     font-size: 16px;
-    background-color: #00bfa6;
+    background-color: #d5b697;
     padding: 8px 20px; /* Adjust padding to your liking */
     border: none;
     border-radius: 5px; /* Rounded corners */
@@ -68,12 +68,12 @@
 }
 
 .consult-online:hover {
-    background-color: #009c8f; /* Slightly darker shade on hover */
+    background-color: #d5b697; /* Slightly darker shade on hover */
     transform: scale(1.05); /* Slightly enlarge on hover */
 }
 
 .consult-online:active {
-    background-color: #007a69; /* Even darker shade on click */
+    background-color: #183030; /* Even darker shade on click */
     transform: scale(0.95); /* Slightly shrink on click */
 }
 
@@ -87,7 +87,7 @@
 .mainNavbar-container .hamburger .bar {
     width: 25px;
     height: 3px;
-    background-color: #00bfa6;
+    background-color: #183030;
     margin: 3px 0;
     transition: 0.3s ease;
 }
@@ -113,7 +113,7 @@
 
     .mainNavbar-links-container {
         width: 100%;
-        background: white;
+        background: #d5b697;
         position: absolute;
         top: 47px;
         left: 0;
@@ -151,6 +151,6 @@
     }
     .mainNavbar-links-container.open .mainNavbar-links .consult-online {
         background: none;
-        color: #00bfa6;
+        color: #183030;
     }
 }

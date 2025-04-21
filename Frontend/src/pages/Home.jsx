@@ -19,7 +19,6 @@ import flooring from '../assets/flooring.jpg'
 import residence from '../assets/residence.webp'
 import commercial from '../assets/commercial.webp'
 import renovation from '../assets/renovation.webp'
-import projects from '../assets/projects.jpg'
 import design from '../assets/refund-design.jpg'
 import rates from '../assets/rates.jpg'
 import Card from '../components/card';
@@ -46,9 +45,9 @@ const Home = ({ setShowLogin }) => {
         {/* Hero Section */}
         <header className="hero-section">
           <div className="hero-content">
-            <h1>VS Interiors</h1>
+            <h1>Shrivastava's Elevate</h1>
             <p>"Designing Space where your imagination meets reality."</p>
-            <p className='underline'>Designers | Contractors | Distributors</p>
+            <p className='underline'>Designers & Contractors</p>
             <button onClick={() => setShowLogin(true)} className="hero-button">Get Started</button>
           </div>
         </header>
@@ -63,42 +62,42 @@ const Home = ({ setShowLogin }) => {
           <Card
             image={kitchen_img}
             heading="Kitchen Designs"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="Modular kitchens, simple kithchens and much more..."
           />
           <Card
             image={bedroom_img}
             heading="Bedroom Designs"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="Bedroom interiors, stylish furnishings, and much more..."
           />
           <Card
             image={bathroom_img}
             heading="Bathroom Designs"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="Bathroom interior, elegant designs, and much more.."
           />
           <Card
             image={lounge_img}
             heading="Lounge area Designs"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="Lounge interior, cozy designs, and much more.."
           />
           <Card
             image={cinema_img}
             heading="Home Cinema Designs"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="Luxury, acoustic designs, and much more.."
           />
           <Card
             image={kids_img}
             heading="Kids Room Designs"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="playful functional themes, and much more.."
           />
           <Card
             image={shop_img}
             heading="Commercial Designs"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="Modern workspaces, retail designs, etc.."
           />
           <Card
             image={house_img}
             heading="House Exterior"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="Modern facades, landscaping designs, etc.."
           />
         </div>
         <div className='contents' id='design-materials'>
@@ -109,42 +108,42 @@ const Home = ({ setShowLogin }) => {
           <Card
             image={pvc_louver}
             heading="PVC Louvers"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="PVC louvers, stylish, durable, and versatile."
           />
           <Card
             image={wpc_louver}
             heading="WPC Louvers"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="WPC louvers, eco-friendly, sturdy, and elegant."
           />
           <Card
             image={charcoal_louver}
             heading="Charcoal Louvers"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="Charcoal louvers, sleek, modern, and durable."
           />
           <Card
             image=""
             heading="Five G Louvers"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="Efficient, innovative, and modern Louvers."
           />
           <Card
             image={marble_sheet}
             heading="Marble sheets"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="Marble sheets, elegant, durable, and luxurious."
           />
           <Card
             image={acrylic_sheet}
             heading="Acrylic Sheets"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="Lightweight, versatile, and durable."
           />
           <Card
             image={flooring}
             heading="Flooring"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="Floor panels, Stylish, Efficient and durable."
           />
           <Card
             image={pvc_panels}
             heading="PVC Panels"
-            description="Modular kitchens, simple kithchens and many more..."
+            description="Lightweight, durable, and versatile Panels."
           />
         </div>
       </div>

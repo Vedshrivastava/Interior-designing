@@ -50,10 +50,10 @@ const About = ({ setShowLogin }) => {
                 <div className="about-text">
                     <h2>Welcome to Shrivastavas Elevate</h2>
                     <p>
-                        Founded by two brothers, <strong>Ved Shrivastava</strong> and <strong>Shubh Shrivastava</strong>, Shrivastavas Elevate is a dynamic interior design company committed to transforming spaces with elegance and precision. 
+                        Shrivastavas Elevate is a dynamic interior design company committed to transforming spaces with elegance and precision. Our leadership includes <strong>Ved Shrivastava</strong> as the Director, <strong>Shubh Shrivastava</strong> as the Designer, Creative Head and the head consultant, and <strong>Pranjay Gautam</strong> as the CEO.
                     </p>
                     <p>
-                        Backed by the Indian Corporation through strategic joint ventures, we proudly lead the design execution for many of their prestigious interior projects. This collaboration reflects our trusted reputation in the industry and our capacity to handle large-scale commercial designs while maintaining attention to detail in residential projects.
+                        Backed by the <strong>Indian Corporation Group Of Companies Builders and Developers</strong> through strategic joint ventures, we proudly lead the design execution for many of their prestigious interior projects. This collaboration reflects our trusted reputation in the industry and our capacity to handle large-scale commercial designs while maintaining attention to detail in residential projects.
                     </p>
                 </div>
             </section>

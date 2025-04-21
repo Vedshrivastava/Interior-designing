@@ -60,7 +60,7 @@ const Contact = ({ setShowLogin }) => {
                 <div className="contact-details">
                     <h1>Contact Us</h1>
                     <p>
-                        At <strong>VS Interiors</strong>, we are passionate about turning your dream spaces into reality. We offer a range of interior design services, including customized designs, project management, and high-quality materials like PVC louvers, panels, and marble sheets.
+                        At <strong>Shrivastavas Elevate</strong>, we are passionate about turning your dream spaces into reality. We offer a range of interior design services, including customized designs, project management, and high-quality materials like PVC louvers, panels, and marble sheets.
                     </p>
                     <p>
                         <strong>Address:</strong> 123 Interior Avenue, Design City, DC 45678

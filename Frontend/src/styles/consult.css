@@ -120,7 +120,17 @@
     }
 
     .login {
-        margin-top: 60px; /* Margin adjustment for login container */
+        margin-top: 0px; /* Margin adjustment for login container */
+    }
+
+    .login-title span {
+        margin-top: -100px;
+        color: #d5b697;
+        font-size: large !important;
+    }
+
+    .login-container {
+        height: max(60vh, 480px); /* Adjust the size as needed */
     }
 
     .login-condition{

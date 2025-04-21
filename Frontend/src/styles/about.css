@@ -1,6 +1,6 @@
 .about-container {
-    padding-top: 80px;
-    background-color: #f7f7f7;
+    padding-top: 100px;
+    background-color: #d5b697;
   }
   
   .about-container h1 {
@@ -8,20 +8,20 @@
     margin-bottom: 30px;
     font-family: "Playfair Display", serif;
     font-weight: 600;
-    color: #333;
+    color: #183030;
     text-align: center;
   }
   
   .about-container h2 {
     font-size: 2rem;
     margin-bottom: 15px;
-    color: #444;
+    color: #d5b697;
   }
   
   .about-container p {
     font-size: 1.1rem;
     line-height: 1.8;
-    color: #555;
+    color: #d5b697;
     margin-bottom: 20px;
   }
   
@@ -29,8 +29,7 @@
     display: flex;
     align-items: center;
     margin-bottom: 50px;
-    background-color: white;
-    border-radius: 10px;
+    background-color: #183030;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   }
   
@@ -50,7 +49,7 @@
   
   .about-text h2 {
     font-size: 2rem;
-    color: #333;
+    color: #d5b697;
   }
   
   .about-image {
@@ -67,10 +66,10 @@
   }
 
   .see-products {
-    color: white;
+    color: #183030;
     text-decoration: none;
     font-size: 16px;
-    background-color: #00bfa6;
+    background-color: #d5b697;
     padding: 8px 20px; /* Adjust padding to your liking */
     border: none;
     border-radius: 5px; /* Rounded corners */
@@ -80,20 +79,20 @@
   }
   
   .see-products:hover {
-    background-color: #009c8f; /* Slightly darker shade on hover */
+    background-color: #b48a60; /* Slightly darker shade on hover */
     transform: scale(1.05); /* Slightly enlarge on hover */
   }
   
   .see-products:active {
-    background-color: #007a69; /* Even darker shade on click */
+    background-color: #b48a60; /* Even darker shade on click */
     transform: scale(0.95); /* Slightly shrink on click */
   }
   
   .about-services{
-    color: white;
+    color: #183030;
     text-decoration: none;
     font-size: 16px;
-    background-color: #00bfa6;
+    background-color: #d5b697;
     padding: 8px 20px; /* Adjust padding to your liking */
     border: none;
     border-radius: 5px; /* Rounded corners */
@@ -103,14 +102,24 @@
   }
 
   .about-services:hover{
-    background-color: #009c8f; /* Slightly darker shade on hover */
+    background-color: #d5b697; /* Slightly darker shade on hover */
     transform: scale(1.05); /* Slightly enlarge on hover */
   }
 
   .about-services:active{
-    background-color: #007a69; /* Even darker shade on click */
+    background-color: #d5b697; /* Even darker shade on click */
     transform: scale(0.95); /* Slightly shrink on click */
   }
+
+  .footer-content-right,
+.footer-content-center {
+    gap: 40px !important;
+}
+
+  .footer-copyright{
+    color: #d5b697 !important;
+  }
+
   @media (max-width: 768px) {
     .about-section {
       flex-direction: column !important;

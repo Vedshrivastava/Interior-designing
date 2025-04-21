@@ -45,7 +45,7 @@ const Home = ({ setShowLogin }) => {
         {/* Hero Section */}
         <header className="hero-section">
           <div className="hero-content">
-            <h1>Shrivastava's Elevate</h1>
+            <h1>Shrivastavas Elevate</h1>
             <p>"Designing Space where your imagination meets reality."</p>
             <p className='underline'>Designers & Contractors</p>
             <button onClick={() => setShowLogin(true)} className="hero-button">Get Started</button>

@@ -3,17 +3,17 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../styles/about.css';
 import MainNavbar from '../components/mainNavbar';
-import products from '../assets/products-img.jpg'
-import services from '../assets/services-img.jpg'
-import commitment from '../assets/commitment.jpg'
+import products from '../assets/products-img.jpg';
+import services from '../assets/services-img.jpg';
+import commitment from '../assets/commitment.jpg';
 import Footer from '../components/Footer';
 import '../styles/footer.css';
+import logo from '../assets/logo.jpg'
 import { useNavigate } from 'react-router-dom';
 
 const About = ({ setShowLogin }) => {
     const [data, setData] = useState(null);
     const navigate = useNavigate();
-
 
     useEffect(() => {
         axios.get('/api/about')
@@ -30,30 +30,30 @@ const About = ({ setShowLogin }) => {
     }
 
     const handleButtonClick = (id) => {
-        // Navigate to the Home page
         navigate('/', { replace: true });
-
-        // Wait for navigation to complete and then scroll to the target section
         setTimeout(() => {
             const element = document.getElementById(id);
             if (element) {
                 element.scrollIntoView({ behavior: 'smooth' });
             }
-        }, 100); // Small delay to ensure navigation has time to complete
+        }, 100);
     };
 
     return (
         <div className="about-container">
             <MainNavbar setShowLogin={setShowLogin} />
 
-            <h1>About VS Interiors</h1>
+            <h1>About Shrivastavas Elevate</h1>
 
             <section className="about-section">
-                <img src='' alt="Welcome to VS Interiors" className="about-image" />
+                <img src={logo} alt="Welcome to Shrivastavas Elevate" className="about-image" />
                 <div className="about-text">
-                    <h2>Welcome to VS Interiors</h2>
+                    <h2>Welcome to Shrivastavas Elevate</h2>
                     <p>
-                        At VS Interiors, we specialize in creating exceptional interior designs tailored to your needs. With a commitment to quality and excellence, we offer a range of services and products designed to transform your spaces into stunning environments.
+                        Founded by two brothers, <strong>Ved Shrivastava</strong> and <strong>Shubh Shrivastava</strong>, Shrivastavas Elevate is a dynamic interior design company committed to transforming spaces with elegance and precision. 
+                    </p>
+                    <p>
+                        Backed by the Indian Corporation through strategic joint ventures, we proudly lead the design execution for many of their prestigious interior projects. This collaboration reflects our trusted reputation in the industry and our capacity to handle large-scale commercial designs while maintaining attention to detail in residential projects.
                     </p>
                 </div>
             </section>
@@ -73,7 +73,6 @@ const About = ({ setShowLogin }) => {
 
             <section className="about-section">
                 <img src={products} alt="Quality Products" className="about-image" />
-
                 <div className="about-text">
                     <h2>Quality Products</h2>
                     <p>We pride ourselves on using only the finest materials in our designs. Our products include:</p>
@@ -87,14 +86,14 @@ const About = ({ setShowLogin }) => {
 
             <section className="about-section">
                 <img src={commitment} alt="Our Commitment" className="about-image" />
-
                 <div className="about-text">
                     <h2>Our Commitment</h2>
                     <p>
-                        At VS Interiors, we are dedicated to providing the highest quality interior design solutions. We exclusively use products from Decostar, a renowned brand known for its exceptional quality and reliability. Our focus on quality ensures that every project we undertake meets the highest standards.
+                        At Shrivastavas Elevate, we are dedicated to providing the highest quality interior design solutions. We exclusively use products from Decostar, a renowned brand known for its exceptional quality and reliability. Our focus on quality ensures that every project we undertake meets the highest standards.
                     </p>
                 </div>
             </section>
+
             <div className="footer-wrapper">
                 <Footer />
             </div>

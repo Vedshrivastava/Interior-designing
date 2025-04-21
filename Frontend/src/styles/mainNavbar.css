@@ -87,7 +87,7 @@
 .mainNavbar-container .hamburger .bar {
     width: 25px;
     height: 3px;
-    background-color: #183030;
+    background-color: #d5b697;
     margin: 3px 0;
     transition: 0.3s ease;
 }
@@ -113,9 +113,9 @@
 
     .mainNavbar-links-container {
         width: 100%;
-        background: #d5b697;
+        background: #183030;
         position: absolute;
-        top: 47px;
+        top: 100px;
         left: 0;
         text-align: center;
         flex-direction: column;
@@ -151,6 +151,6 @@
     }
     .mainNavbar-links-container.open .mainNavbar-links .consult-online {
         background: none;
-        color: #183030;
+        color: #d5b697;
     }
 }

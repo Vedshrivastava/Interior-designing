@@ -98,6 +98,12 @@
     background-color: #d5b697; /* Darker shade for hover effect */
 }
 
+.footer-content-right,
+.footer-content-center {
+    gap: 50px !important;
+}
+
+
 @media (max-width: 1024px) {
     .contact-container {
         flex-direction: column;

@@ -1,71 +1,71 @@
-
 .design-display-main {
-    margin: 20px auto; /* Center container with a max-width and auto margins */
-    padding: 20px; /* Optional padding for better spacing */
-    margin-top: 60px !important;
-    padding-bottom: 50px;
-  }
-  
-  .design-display-main h2 {
-    font-size: 6vh;
-    font-family: "Playfair Display", serif;
-    font-weight: 600; /* Bold font weight */
-    text-align: center; /* Center the heading */
-    margin-bottom: 20px; /* Space below the heading */
-    margin-top: 20px;
-    color: #183030;
-  }
+  margin: 20px auto;
+  padding: 20px;
+  margin-top: 60px !important;
+  padding-bottom: 50px;
+}
 
-  .design-display-main .main-para{
-    text-align: center;
-  }
-  
-  .design-display-list {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 20px; /* Space between design items */
-  }
-  
-  .design-slide {
-    text-align: center; /* Center the image in the slide */
-    width: 100%; /* Ensure it takes full width within its container */
-  }
+.design-display-main h2 {
+  font-size: 6vh;
+  font-family: "Playfair Display", serif;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 20px;
+  margin-top: 20px;
+  color: #183030;
+}
 
-  .design-slider-bar{
-    margin-top: 30px !important;
-    width: 80%;
-    margin: auto;
-    margin-bottom: 60px !important;
-    background-color: #183030;
-    border-radius: 12px;
-    height: 70px;
-  }
-  
-  .design-slide img {
-    width: 100%; /* Make sure image fills the container */
-    height: auto; /* Maintain image aspect ratio */
-    display: block; /* Remove default inline spacing */
-  }
-  
-  .design-display-main .design-slider-bar p {
-    font-size: 15px; /* Responsive font size for descriptions */
-    color: #d5b697; /* Text color for readability */
-    text-align: center; /* Center the text */
-    margin-top: 22px; /* Space above the text */
-    font-family: "Playfair Display", serif;
-  }
+.design-display-main .main-para {
+  text-align: center;
+}
 
-  .design-display-main .design-slider-bar p:hover{
-    cursor: pointer;
-    color: #b48a60;
-  }
+.design-display-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
 
-  .selected-category {
-    color: #b48a60 !important;
-  }
-  /* designDisplay.css */
+.design-slide {
+  text-align: center;
+  width: 100%;
+}
+
+.design-slider-bar {
+  margin-top: 30px !important;
+  width: 80%;
+  margin: auto;
+  margin-bottom: 60px !important;
+  background-color: #183030;
+  border-radius: 12px;
+  height: 70px;
+  overflow: hidden;
+}
+
+.design-slide img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.design-display-main .design-slider-bar p {
+  font-size: 15px;
+  color: #d5b697;
+  text-align: center;
+  margin-top: 22px;
+  font-family: "Playfair Display", serif;
+}
+
+.design-display-main .design-slider-bar p:hover {
+  cursor: pointer;
+  color: #b48a60;
+}
+
+.selected-category {
+  color: #b48a60 !important;
+}
+
 .category-select {
   width: 100%;
   padding: 10px;
@@ -76,23 +76,94 @@
   margin-bottom: 20px;
 }
 
-@media (max-width: 480px) {
+/* 📱 Mobile View Styling */
+@media (max-width: 780px) {
   .design-display-main {
-    margin: 0px; /* Center container with a max-width and auto margins */
-    padding: 10px; /* Optional padding for better spacing */
+    margin: 0px;
+    padding: 10px;
     padding-top: 40px;
   }
 
-  .select-window{
+  .select-window {
     display: flex;
     justify-content: center;
+    background-color: #183030;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 20px 10px;
   }
 
-  .design-display-main .main-para{
+  .category-select {
+    width: 90%;
+    background-color: #183030;
+    color: #d5b697;
+    border: 1px solid #d5b697;
+    font-family: "Playfair Display", serif;
+  }
+
+  .category-select option {
+    background-color: white;
+    color: #183030;
+  }
+  .category-select.open {
+    background-color: #183030 !important;
+  }
+  
+  /* Style for the select options */
+  .category-select option {
+    background-color: #183030 !important;
+    color: #d5b697;
+  }
+  
+  /* Hover effect for options */
+  .category-select option:hover {
+    background-color: #b48a60;
+    color: #fff;
+  }
+  .category-slider {
+    width: 100%;
+    overflow-x: auto; /* Enable horizontal scrolling */
+    padding: 10px 0;
+    background-color: #183030; /* Dark background */
+    border-radius: 10px; /* Rounded corners */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+
+  .slider-container {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 12px; /* Space between items */
+  }
+
+  .slider-item {
+    padding: 12px 18px;
+    background-color: #d5b697; /* Darker item background */
+    color: #183030; /* Light text */
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 140px; /* Fixed width for each item */
     text-align: center;
   }
-  
+
+  .slider-item:hover {
+    background-color: #b48a60; /* Highlight color on hover */
+    transform: scale(1.05); /* Slight scale effect */
+  }
+
+  .selected-category {
+    background-color: #d5b697; /* Highlight selected category */
+    color: #183030; /* Dark text color */
+    font-weight: bold;
+  }
+
+  .slider-item:active {
+    transform: scale(0.98); /* Shrink effect when clicked */
+  }
+
+  /* Add smooth scrolling when the user scrolls horizontally */
+  .category-slider {
+    scroll-behavior: smooth;
+  }
 }
-
-
-  

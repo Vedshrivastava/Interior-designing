@@ -76,93 +76,67 @@
 }
 
 /* 📱 Mobile View Styling */
+/* Prevent both horizontal and vertical scrollbars on the body */
+body, html {
+  overflow: hidden;
+  overflow-y: auto;
+}
+
+/* For mobile view styling */
 @media (max-width: 780px) {
   .design-display-main {
-    margin: 0px;
     padding: 10px;
     padding-top: 40px;
+    overflow: hidden; /* Prevent scrollbars in the main container */
   }
 
-  .select-window {
-    display: flex;
-    justify-content: center;
-    background-color: #183030;
-    border-radius: 8px;
-    padding: 10px;
-    margin: 20px 10px;
-  }
-
-  .category-select {
-    width: 90%;
-    background-color: #183030;
-    color: #d5b697;
-    border: 1px solid #d5b697;
-    font-family: "Playfair Display", serif;
-  }
-
-  .category-select option {
-    background-color: white;
-    color: #183030;
-  }
-  .category-select.open {
-    background-color: #183030 !important;
-  }
-  
-  /* Style for the select options */
-  .category-select option {
-    background-color: #183030 !important;
-    color: #d5b697;
-  }
-  
-  /* Hover effect for options */
-  .category-select option:hover {
-    background-color: #b48a60;
-    color: #fff;
-  }
-
+  /* Scrollbar styling for elements that need to scroll without showing scrollbars */
   .category-slider {
     width: 100%;
-    overflow-x: auto; /* Enable horizontal scrolling */
-    padding: 10px 0;
-    background-color: #183030; /* Dark background */
-    border-radius: 10px; /* Rounded corners */
+    overflow-x: auto; /* Allow horizontal scrolling */
+    overflow-y: hidden; /* Hide vertical scrollbar */
+    padding: 10px 10px;
+    background-color: #183030;
+    border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    margin-top: 20px;
   }
 
+  /* Hide scrollbar for webkit browsers */
+  .category-slider::-webkit-scrollbar {
+    display: none; /* Hide the scrollbar */
+  }
+
+  /* Style the category items */
   .slider-container {
     display: flex;
     flex-wrap: nowrap;
     justify-content: space-between;
-    gap: 12px; /* Space between items */
+    gap: 12px;
   }
 
   .slider-item {
     padding: 12px 18px;
-    background-color: #d5b697; /* Darker item background */
-    color: #183030; /* Light text */
+    background-color: #d5b697;
+    color: #183030;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
-    width: 140px; /* Fixed width for each item */
+    width: 140px;
     text-align: center;
   }
 
+  /* Hover effects and active states */
   .slider-item:hover {
-    background-color: #b48a60; /* Highlight color on hover */
-    transform: scale(1.05); /* Slight scale effect */
-  }
-
-  .selected-category {
-    background-color: #d5b697; /* Highlight selected category */
-    color: #183030; /* Dark text color */
-    font-weight: bold;
+    background-color: #b48a60;
+    transform: scale(1.05);
   }
 
   .slider-item:active {
-    transform: scale(0.98); /* Shrink effect when clicked */
+    transform: scale(0.98);
   }
 
-  /* Add smooth scrolling when the user scrolls horizontally */
+  /* Add smooth scrolling behavior */
   .category-slider {
     scroll-behavior: smooth;
   }

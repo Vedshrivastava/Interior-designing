@@ -1,6 +1,7 @@
 import React from 'react';
 import '../styles/footer.css';
 import logo from '../assets/logo.jpg';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
@@ -33,10 +34,10 @@ const Footer = () => {
         <div className="footer-content-center">
           <h2>Company</h2>
           <ul>
-            <li><a href="#home">Home</a></li>
-            <li><a href="#about">About Us</a></li>
-            <li><a href="#services">Services</a></li>
-            <li><a href="#contact">Contact</a></li>
+            <li><Link to="/">Home</Link></li>
+            <li><Link to="/about">About Us</Link></li>
+            <li><Link to="/services">Services</Link></li>
+            <li><Link to="/contact">Contact</Link></li>
           </ul>
         </div>
         <div className="footer-content-right">

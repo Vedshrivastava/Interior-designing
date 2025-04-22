@@ -21,7 +21,7 @@
 /* Customize the arrow icons (color and size) */
 .slick-prev::before,
 .slick-next::before {
-  color: #00bfa6 !important;
+  color: #183030 !important;
   /* Set arrow color to white */
   font-size: 70px !important;
   /* Adjust arrow size */
@@ -62,9 +62,9 @@
 .slick-dots li button::before {
   font-size: 10px;
   /* Dot size */
-  color: gray;
+  color: #183030;
   /* Dot color */
-  opacity: 0.5;
+  opacity: 0.98;
   /* Dot transparency */
   transition: all 0.3s ease;
   /* Smooth transition on hover */
@@ -72,7 +72,7 @@
 
 /* Change color of active dot */
 .slick-dots li.slick-active button::before {
-  color: #333;
+  color: #183030;
   /* Active dot color */
   opacity: 1;
   /* Full opacity for the active dot */
@@ -82,9 +82,9 @@
 
 /* Hover effect on dots */
 .slick-dots li button:hover::before {
-  color: #333;
+  color: #183030;
   /* Dot color on hover */
-  opacity: 0.8;
+  opacity: 0.98;
   /* Increased opacity on hover */
 }
 

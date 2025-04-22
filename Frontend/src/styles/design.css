@@ -10,7 +10,7 @@
 /* Description text */
 .description-text {
   font-size: 18px;
-  color: #333;
+  color: #183030;
   font-family: "Roboto", sans-serif;
   line-height: 1.6;
   max-height: 100px; /* Limit height for collapsed state */
@@ -46,11 +46,11 @@
 /* See more button styling */
 .see-more-button {
   background: none;
-  color: #00bfa6; /* Text color */
+  color: #183030; /* Text color */
   border: none;
   padding: 0px 10px 0px 0px;
   font-size: 20px;
-  opacity: 0.7;
+  opacity: 0.9;
   cursor: pointer;
   border-radius: 5px;
   transition: background-color 0.3s ease, transform 0.3s ease; /* Smooth transition for button */
@@ -68,24 +68,24 @@
   font-size: 4vh;
   margin-bottom: 15px;
   font-weight: 550;
-  color: #333;
+  color: #183030;
 }
 
 .design-display h2 {
-  color: #333;
+  color: #183030;
   font-size: 5vh;
 }
 
 .design-display p {
   font-size: 18px;
-  color: #666;
+  color: #183030;
   font-family: "Roboto", sans-serif;
   line-height: 1.6;
 }
 
 .design-display ul {
   font-size: 18px;
-  color: #666;
+  color: #183030;
   font-family: "Roboto", sans-serif;
   line-height: 1.6;
 }
@@ -99,14 +99,14 @@
   bottom: -70px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #00bfa6;
-  color: white;
+  background-color: #183030;
+  color: #d5b697;
   padding: 10px 20px;
   font-family: "Roboto", sans-serif;
   border: none;
   cursor: pointer;
   font-size: 24px;
-  opacity: 0.8;
+  opacity: 0.99;
   transition: transform 0.3s ease, background-color 0.3s ease; /* Smooth transition for scaling and background color */
 }
 

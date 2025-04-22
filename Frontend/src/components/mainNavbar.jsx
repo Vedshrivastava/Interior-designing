@@ -52,7 +52,7 @@ const MainNavbar = ({ setShowLogin }) => {
                 <div className={`mainNavbar-links-container ${isOpen ? 'open' : ''}`}>
                     <ul className="mainNavbar-links">
                         <li><Link to="/">Home</Link></li>
-                        <li className='services' onClick={() => handleButtonClick('services')}>Services</li>
+                        <li><Link to="/services">Services</Link></li>
                         <li><Link to="/projects">Recent Projects</Link></li>
                         <li><Link to="/about">About</Link></li>
                         <li><Link to="/contact">Contact</Link></li>

@@ -2,7 +2,8 @@
 .design-display-main {
     margin: 20px auto; /* Center container with a max-width and auto margins */
     padding: 20px; /* Optional padding for better spacing */
-    margin-top: 40px !important;
+    margin-top: 60px !important;
+    padding-bottom: 50px;
   }
   
   .design-display-main h2 {
@@ -12,6 +13,7 @@
     text-align: center; /* Center the heading */
     margin-bottom: 20px; /* Space below the heading */
     margin-top: 20px;
+    color: #183030;
   }
 
   .design-display-main .main-para{
@@ -46,7 +48,7 @@
   
   .design-display-main .design-slider-bar p {
     font-size: 15px; /* Responsive font size for descriptions */
-    color: #00bfa6; /* Text color for readability */
+    color: #183030; /* Text color for readability */
     text-align: center; /* Center the text */
     margin-top: 10px; /* Space above the text */
     font-family: "Playfair Display", serif;
@@ -58,14 +60,14 @@
   }
 
   .selected-category {
-    color: #8b6f47 !important;
+    color: #d5b697 !important;
   }
   /* designDisplay.css */
 .category-select {
   width: 100%;
   padding: 10px;
   font-size: 16px;
-  border: 1px solid #00bfa6;
+  border: 1px solid #183030;
   border-radius: 4px;
   margin-top: 20px;
   margin-bottom: 20px;
@@ -75,6 +77,7 @@
   .design-display-main {
     margin: 0px; /* Center container with a max-width and auto margins */
     padding: 10px; /* Optional padding for better spacing */
+    padding-top: 40px;
   }
 
   .select-window{

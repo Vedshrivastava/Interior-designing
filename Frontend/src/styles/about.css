@@ -146,6 +146,7 @@
     .about-container h1 {
         font-size: 4vh;
         font-weight: 600;
+        padding-top: 40px;
     }
 
     .about-container h2 {

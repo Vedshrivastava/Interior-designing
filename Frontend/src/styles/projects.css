@@ -1,6 +1,6 @@
 .project-display{
     margin-bottom: 80px;
-    padding-top: 60px;
+    padding-top: 80px;
 }
 
 .project-heading {
@@ -10,6 +10,7 @@
     text-align: center;
     margin-bottom: 20px;
     margin-top: 20px;
+    color: #183030;
 }
 
 .project-main-para {
@@ -27,6 +28,7 @@
 .project-display .project-slider p:hover {
     opacity: 1;
 }
+
 
 @media (max-width: 480px) {
 

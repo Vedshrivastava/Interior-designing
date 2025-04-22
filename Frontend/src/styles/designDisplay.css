@@ -27,10 +27,10 @@
   gap: 20px;
 }
 
-.design-slide {
-  text-align: center;
-  width: 100%;
-}
+  .design-slide {
+    text-align: center; /* Center the image in the slide */
+    width: 100%; /* Ensure it takes full width within its container */
+  }
 
 .design-slider-bar {
   margin-top: 30px !important;
@@ -40,7 +40,6 @@
   background-color: #183030;
   border-radius: 12px;
   height: 70px;
-  overflow: hidden;
 }
 
 .design-slide img {
@@ -120,6 +119,7 @@
     background-color: #b48a60;
     color: #fff;
   }
+
   .category-slider {
     width: 100%;
     overflow-x: auto; /* Enable horizontal scrolling */

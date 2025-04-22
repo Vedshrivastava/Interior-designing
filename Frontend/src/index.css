@@ -75,6 +75,8 @@
   opacity: 0.98 !important;
 }
 
+
+
 /* Responsive tweaks */
 @media (max-width: 768px) {
   .slick-dots {

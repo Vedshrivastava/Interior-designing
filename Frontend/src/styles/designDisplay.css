@@ -38,6 +38,9 @@
     width: 80%;
     margin: auto;
     margin-bottom: 60px !important;
+    background-color: #183030;
+    border-radius: 12px;
+    height: 70px;
   }
   
   .design-slide img {
@@ -48,19 +51,19 @@
   
   .design-display-main .design-slider-bar p {
     font-size: 15px; /* Responsive font size for descriptions */
-    color: #183030; /* Text color for readability */
+    color: #d5b697; /* Text color for readability */
     text-align: center; /* Center the text */
-    margin-top: 10px; /* Space above the text */
+    margin-top: 22px; /* Space above the text */
     font-family: "Playfair Display", serif;
-    opacity: 0.7;
   }
-  
+
   .design-display-main .design-slider-bar p:hover{
-    opacity: 1;
+    cursor: pointer;
+    color: #b48a60;
   }
 
   .selected-category {
-    color: #d5b697 !important;
+    color: #b48a60 !important;
   }
   /* designDisplay.css */
 .category-select {

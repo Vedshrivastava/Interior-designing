@@ -67,7 +67,7 @@ const DesignDisplay = ({ setShowLogin, setConsultData, consultData }) => {
 
         <h2>{currentCategory}</h2>
         <p className='main-para'>
-          Check out popular modular {currentCategory} amongst our 100+ designs available.
+          Check out popular modular {currentCategory} amongst our various designs available.
         </p>
 
         {/* Conditional Rendering for Slider or Select */}

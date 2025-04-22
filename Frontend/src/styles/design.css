@@ -108,6 +108,7 @@
   font-size: 24px;
   opacity: 0.99;
   transition: transform 0.3s ease, background-color 0.3s ease; /* Smooth transition for scaling and background color */
+  border-radius: 4px;
 }
 
 .get-quote-button:hover {

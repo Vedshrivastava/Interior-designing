@@ -71,6 +71,7 @@
     padding: 10px; /* Padding inside input fields */
     border-radius: 12px; /* Rounded corners for inputs */
     background: #d5b697; /* Background color for inputs */
+    color: #183030;
 }
 
 .login-container input::placeholder {

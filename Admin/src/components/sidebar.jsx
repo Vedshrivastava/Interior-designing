@@ -1,9 +1,8 @@
 import React from 'react';
 import '../styles/sidebar.css';
-import { assets } from '../assets/admin_assets/assets';
 import { NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faIdBadge, faMessage } from '@fortawesome/free-regular-svg-icons'; // Correct import for faIdBadge
+import { faIdBadge, faMessage, faPlus, faList } from '@fortawesome/free-solid-svg-icons'; // Added faPlus and faList
 
 const Sidebar = () => {
     return (
@@ -11,19 +10,19 @@ const Sidebar = () => {
             <div className='sidebar'>
                 <div className="sidebar-options">
                     <NavLink to='/add' className="sidebar-option">
-                        <img src={assets.add_icon} alt="Add" />
+                        <FontAwesomeIcon icon={faPlus} size='2x' />
                         <p>Add Food Item</p>
                     </NavLink>
                     <NavLink to='/list' className="sidebar-option">
-                        <img src={assets.order_icon} alt="List" />
+                        <FontAwesomeIcon icon={faList} size='2x' />
                         <p>List Items</p>
                     </NavLink>
                     <NavLink to='/appointments' className="sidebar-option">
-                        <FontAwesomeIcon icon={faIdBadge} size='2x' /> {/* Using faIdBadge */}
+                        <FontAwesomeIcon icon={faIdBadge} size='2x' />
                         <p>Appointments</p>
                     </NavLink>
                     <NavLink to='/quotes' className="sidebar-option">
-                        <FontAwesomeIcon icon={faMessage} size='2x' /> {/* Using faIdBadge */}
+                        <FontAwesomeIcon icon={faMessage} size='2x' />
                         <p>Quotes</p>
                     </NavLink>
                 </div>

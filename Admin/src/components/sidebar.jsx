@@ -11,7 +11,7 @@ const Sidebar = () => {
                 <div className="sidebar-options">
                     <NavLink to='/add' className="sidebar-option">
                         <FontAwesomeIcon icon={faPlus} size='2x' />
-                        <p>Add Food Item</p>
+                        <p>Add new</p>
                     </NavLink>
                     <NavLink to='/list' className="sidebar-option">
                         <FontAwesomeIcon icon={faList} size='2x' />

@@ -104,11 +104,12 @@ const Quotes = ({ url }) => {
 
   return (
     <div className='order add'>
-      <h3>Quote Page</h3>
       <div className='order-list'>
+      <hr className="order-date-separator" />
         {Object.keys(groupedOrders).map((date) => (
           <div key={date} className='order-date-group'>
             <h4 className='order-date'>{moment(date).format('MMMM Do, YYYY')}</h4>
+            <hr className="order-date-separator" />
             {groupedOrders[date].map((order, index) => (
               <div key={index} className='order-item'>
                 {order.image ? (

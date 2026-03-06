@@ -4,6 +4,7 @@ import { assets } from '../assets/admin_assets/assets';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../index.css';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const Add = ({ url }) => {
     const [images, setImages] = useState([]); // Store multiple images
@@ -19,8 +20,8 @@ const Add = ({ url }) => {
 
     // Hardcoded categories
     const categories = [
-        'Kitchen Designs', 
-        'Bedroom Designs', 
+        'Kitchen Designs',
+        'Bedroom Designs',
         'Bathroom Designs',
         'Lounge area Designs',
         'Home Cinema Designs',
@@ -104,12 +105,12 @@ const Add = ({ url }) => {
         <div className='add'>
             <form className="flex-col" onSubmit={onSubmitHandler}>
                 <div className="add-img-upload flex-col">
-                    <p>Upload Images</p>
-                    <label htmlFor="image">
-                        <img src={assets.upload_area} alt="Upload Area" />
+                    <h2>Upload Image</h2>
+                    <label htmlFor="image" className="upload-icon">
+                        <i className="fa fa-upload"></i>
                     </label>
-                    <input onChange={onImageChangeHandler} type='file' id='image' multiple hidden /> {/* Allow multiple files */}
-                    {/* Display thumbnails of all selected images */}
+                    <input onChange={onImageChangeHandler} type='file' id='image' multiple hidden />
+
                     <div className="selected-images">
                         {images.length > 0 && images.map((img, index) => (
                             <div key={index} className="image-preview">
@@ -119,18 +120,19 @@ const Add = ({ url }) => {
                         ))}
                     </div>
                 </div>
+
                 <div className="add-product-name flex-col">
-                    <p>Product name</p>
+                    <h2>Name</h2>
                     <input onChange={onChangeHandler} value={data.name} type="text" name='name' placeholder='Type here' />
                 </div>
+
                 <div className="add-product-description flex-col">
-                    <p>Product Description</p>
+                    <h2>Description</h2>
                     <textarea onChange={onChangeHandler} value={data.description} name="description" rows="6" placeholder='Write about the item here.'></textarea>
                 </div>
 
-                {/* Points input section */}
                 <div className="add-product-points flex-col">
-                    <p>Points</p>
+                    <h2>Points</h2>
                     {points.map((point, index) => (
                         <div key={index} className="point-input">
                             <input
@@ -147,7 +149,7 @@ const Add = ({ url }) => {
 
                 <div className="add-category-price">
                     <div className="add-category flex-col">
-                        <p>Product Category</p>
+                        <h2>Category</h2>
                         <select onChange={onChangeHandler} name="category" value={data.category}>
                             {categories.map((cat, index) => (
                                 <option key={index} value={cat}>{cat}</option>
@@ -155,6 +157,7 @@ const Add = ({ url }) => {
                         </select>
                     </div>
                 </div>
+
                 <button type='submit' className='add-btn'>Add</button>
             </form>
         </div>

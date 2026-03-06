@@ -6,6 +6,10 @@
     font-size: max(1vw, 10px);
     padding-top: 50px;
     background-color: #d5b697;
+
+    position: fixed;
+    padding-left: 20px;
+    padding-top: 49.5px;
 }
 
 .sidebar-options{

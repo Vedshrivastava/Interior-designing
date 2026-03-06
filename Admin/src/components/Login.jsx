@@ -145,8 +145,7 @@ const Login = ({ setShowLogin }) => {
             <form onSubmit={onLogin} className='login-container'>
                 <div className="login-title">
                     <h2>{currState}</h2>
-                    <img onClick={() => setShowLogin(false)} src={assets_frontend.cross_icon} alt="Close" />
-                </div>
+                    <span onClick={() => setShowLogin(false)} className="close-btn">X</span>                </div>
                 <div className="login-inputs">
                     {currState === 'Sign Up' ? (
                         <>

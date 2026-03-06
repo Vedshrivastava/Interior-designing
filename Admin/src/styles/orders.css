@@ -1,6 +1,6 @@
 .order{
     background-color: #d5b697 !important;
-    padding-top: 98px !important;
+    padding-top: 90px !important;
 }
 .order-item {
     display: grid;
@@ -46,8 +46,10 @@
 .order-date {
     font-size: 18px;
     font-weight: bold;
-    color: #183030 !important; /* Tomato color to match the theme */
+    color: #fff !important; /* Tomato color to match the theme */
     margin-bottom: 10px;
+    background-color: #183030;
+    padding: 8px;
 }
 
 .order-date-separator {

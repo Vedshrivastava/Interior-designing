@@ -25,8 +25,7 @@ const Navbar = ({ setShowLogin }) => {
                 <button onClick={() => setShowLogin(true)}>Sign In</button> // Show Sign In button if not authenticated
             ) : (
                 <div className='navbar-profile'>
-                    <img src={assets.profile_image} alt="Profile" />
-                    <ul className="nav-profile-dropdown">
+                    <i className="fa fa-user profile-icon"></i>                    <ul className="nav-profile-dropdown">
                         <li onClick={logout}>Logout</li>
                     </ul>
                 </div>

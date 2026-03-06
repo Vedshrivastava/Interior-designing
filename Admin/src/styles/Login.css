@@ -12,8 +12,8 @@
 .login-container {
     place-self: center;
     width: max(23vw, 330px);
-    color: #808080;
-    background-color: white;
+    color: #fff;
+    background-color: #183030;
     display: flex;
     flex-direction: column;
     gap: 25px;
@@ -27,12 +27,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    color: black;
+    color: #fff;
 }
 
-.login-title img {
+.login-title span {
     width: 16px;
     cursor: pointer;
+    color: #fff;
 }
 
 .login-inputs {
@@ -43,19 +44,27 @@
 
 .login-inputs input {
     outline: none;
-    border: 1px solid #c9c9c9;
+    border: 1px solid #fff;
     padding: 10px;
     border-radius: 4px;
+    background: transparent;
+    color: #fff;
 }
 
 .login-container button {
     border: none;
     padding: 10px;
     border-radius: 4px;
-    color: white;
-    background-color: tomato;
+    color: #fff;
+    background: transparent;
+    border: 2px solid #fff;
+    border-radius: 12px;
     font-size: 15px;
     cursor: pointer;
+}
+
+.login-container button:hover{
+    background-color: #d5b697;
 }
 
 .login-condition {
@@ -70,13 +79,13 @@
 }
 
 .login p span {
-    color: tomato;
+    color: #fff;
     font-weight: 500;
     cursor: pointer;
 }
 
 .submitted-message {
-    color: rgb(211, 73, 48); /* Or any color you prefer */
+    color: #fff; /* Or any color you prefer */
     margin-top: 10px; /* Space from the buttons */
     font-weight: bold; /* Make it bold */
 }

@@ -1,15 +1,21 @@
 .list{
-    padding-top: 111px !important;
+    padding-top: 90px !important;
     background-color: #d5b697;
 }
 
+.list-table{
+    border: 6px solid #183030;
+    padding: 4x;
+}
+
 .list-table-format {
-    padding: 12px 15px;
-    border: 1px solid #183030;
-    font-size: 13px;
+    padding: 20px 15px;
+    border: 4px solid #183030;
+    font-size: 16px !important;
+    font-weight: 600 !important;
     display: grid;
-    grid-template-columns: 1fr 1.5fr 1fr 1fr; /* Define columns for images, name, category, and action */
-    align-items: center;
+    grid-template-columns: 1fr 1.5fr 1fr 0.4fr; /* Define columns for images, name, category, and action */
+    align-items: center !important;
     color: #183030;
     font-size: max(1vw, 12px);
     gap: 10px; /* Adds space between grid items */

@@ -30,7 +30,16 @@
     width: 130px;
     cursor: pointer;
     font-size: 60px;
-    color: #183030;
+    color: #fff;
+    border: 2px solid #fff;
+    padding: 4px;
+    background-color: #183030;
+    transition: 0.3s ease;
+}
+
+.add-img-upload i:hover {
+    color: #d5b697; /* darker shade */
+    transform: scale(1.1);
 }
 
 .add-product-name, .add-product-description, .add-category-price {
@@ -101,9 +110,11 @@
 
 .point-input input {
     padding: 8px;
-    border: 1px solid #ccc;
+    border: 1px solid #fff;
     border-radius: 5px;
     flex-grow: 1;
+    color: #fff;
+    background-color: #183030;
 }
 
 .point-input button {
@@ -114,6 +125,10 @@
     cursor: pointer;
     border-radius: 5px;
     border: 1px solid #183030 !important;
+}
+
+.point-input button:hover {
+    background-color: #183030;
 }
 
 .add-btn {

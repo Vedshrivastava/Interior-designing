@@ -2,7 +2,7 @@
 .mainNavbar-container {
     width: 100%;
     background: #183030;
-    padding: 5px 20px;
+    padding: 4px 20px;
     position: fixed; /* Stick the navbar at the top */
     top: 0;
     left: 0;
@@ -15,7 +15,7 @@
 }
 
 .mainNavbar-logo {
-    width: 150px; /* Adjust the width as needed */
+    width: 130px; /* Adjust the width as needed */
 }
 
 .mainNavbar-links-container {
@@ -24,6 +24,7 @@
 
 .mainNavbar-links {
     list-style: none;
+    padding-top: 8px !important;
     margin: 0;
     padding: 0;
     display: flex;
@@ -62,7 +63,7 @@
     padding: 8px 20px; /* Adjust padding to your liking */
     border: none;
     border-radius: 5px; /* Rounded corners */
-    margin-top: -6px;
+    margin-top: -9px;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth transition for hover effects */
 }

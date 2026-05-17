@@ -24,10 +24,12 @@ const Add = ({ url }) => {
         'Bedroom Designs',
         'Bathroom Designs',
         'Lounge area Designs',
-        'Home Cinema Designs',
+        'Kids Room Designs',
         'TV Unit Designs',
         'Commercial Designs',
-        'House Exterior',
+        'Mandir Designs',
+        'Garden Designs',
+        'House Exterior Designs',
         'PVC Louvers',
         'WPC Louvers',
         'Charcoal Louvers',
@@ -97,7 +99,7 @@ const Add = ({ url }) => {
                 toast.error(response.data.message);
             }
         } catch (error) {
-            toast.error('An error occurred while adding the food item.');
+            toast.error('An error occurred while adding the data.');
         }
     };
 

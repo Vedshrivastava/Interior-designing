@@ -148,7 +148,7 @@
   
   /* Service Image Styling */
   .service-image {
-    flex: 1;
+    flex: 0.6;
     padding: 20px;
   }
   
@@ -167,7 +167,7 @@
   
   .service-content h3 {
     font-size: 4vh;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     font-weight: 550;
     font-family: "Roboto", sans-serif;
     color: #183030;
@@ -178,6 +178,7 @@
     color: #183030;
     font-family: "Roboto", sans-serif;
     line-height: 1.6;
+    margin-bottom: 15px;
   }
   
   /* Responsive */

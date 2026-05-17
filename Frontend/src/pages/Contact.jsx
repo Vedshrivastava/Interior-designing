@@ -63,13 +63,13 @@ const Contact = ({ setShowLogin }) => {
                         At <strong>Shrivastavas Elevate</strong>, we are passionate about turning your dream spaces into reality. We offer a range of interior design services, including customized designs, project management, and high-quality materials like PVC louvers, panels, and marble sheets.
                     </p>
                     <p>
-                        <strong>Address:</strong> 123 Interior Avenue, Design City, DC 45678
+                        <strong>Address:</strong> Shree ganga Inn, Lakshmi bai marg, Gandhi chowk, Nagod (M.P.)
                     </p>
                     <p>
-                        <strong>Phone:</strong> (123) 456-7890
+                        <strong>Phone:</strong> +91 8109495257
                     </p>
                     <p>
-                        <strong>Email:</strong> contact@vsinteriors.com
+                        <strong>Email:</strong> shrivastavaselevatepvt.ltd@gmail.com
                     </p>
                     <p>
                         <strong>Office Hours:</strong> Mon-Fri, 9 AM - 5 PM

@@ -10,6 +10,8 @@ import Footer from '../components/Footer';
 import '../styles/footer.css';
 import logo from '../assets/logo.jpg'
 import { useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faChevronRight } from '@fortawesome/free-solid-svg-icons';
 
 const About = ({ setShowLogin }) => {
     const [data, setData] = useState(null);
@@ -67,7 +69,7 @@ const About = ({ setShowLogin }) => {
                     <p>- Professional design consultations to bring your vision to life.</p>
                     <p>- Refund of the design fee if you choose to proceed with our contract.</p>
                     <p>- Competitive pricing due to our minimal margin approach, providing you the best rates for interior design projects.</p>
-                    <button className='about-services' onClick={() => handleButtonClick('services')} >Services</button>
+                    <a href="/services" className="see-products">View Services<FontAwesomeIcon icon={faChevronRight} /></a>
                 </div>
             </section>
 

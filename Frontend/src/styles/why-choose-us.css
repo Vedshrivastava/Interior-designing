@@ -1,14 +1,14 @@
 .why-choose-us {
     text-align: center;
     margin: 50px 0;
-    background-color: #183030;
+    background-color: #d5b697;
     padding-bottom: 50px;
   }
   
   .why-choose-us h2 {
     font-size: 3rem;
     margin-bottom: 20px;
-    color: #d5b697;
+    color: #183030;
     font-weight: 600;
     font-family: "Roboto", sans-serif;
   }
@@ -33,7 +33,7 @@
   }
   
   .carousel .card {
-    background-color: #d5b697;
+    background-color: #183030;
     border: 1px solid #ddd;
     border-radius: 8px;
     width: 100%;
@@ -75,6 +75,7 @@
   .carousel .card p {
     font-size: 1rem;
     margin: 0;
+    color: #d5b697;
   }
   
   .card-image {

@@ -3,7 +3,7 @@ import '../styles/why-choose-us.css'; // Import the CSS file for styling
 import warranty from '../assets/warranty.avif'
 import quality from '../assets/quality.avif'
 import customer_satisfaction from '../assets/customer-satisfaction.avif'
-import designers from '../assets/designers.avif'
+import designers from '../assets/designer1.jpg'
 import budget from '../assets/budget.avif'
 
 // Array of message objects with image and description

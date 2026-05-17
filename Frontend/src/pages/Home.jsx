@@ -112,52 +112,6 @@ const Home = ({ setShowLogin }) => {
             description="Modern facades, landscaping designs, etc.."
           />
         </div>
-        <div className='contents' id='design-materials'>
-          <h1>Choose from our Design Materials</h1>
-          <p>You can customise your place by selecting through a number of quality products available here at best price.</p>
-        </div>
-        <div className='cards'>
-          <Card
-            image={pvc_louver}
-            heading="PVC Louvers"
-            description="PVC louvers, stylish, durable, and versatile."
-          />
-          <Card
-            image={wpc_louver}
-            heading="WPC Louvers"
-            description="WPC louvers, eco-friendly, sturdy, and elegant."
-          />
-          <Card
-            image={charcoal_louver}
-            heading="Charcoal Louvers"
-            description="Charcoal louvers, sleek, modern, and durable."
-          />
-          <Card
-            image=""
-            heading="Five G Louvers"
-            description="Efficient, innovative, and modern Louvers."
-          />
-          <Card
-            image={marble_sheet}
-            heading="Marble sheets"
-            description="Marble sheets, elegant, durable, and luxurious."
-          />
-          <Card
-            image={acrylic_sheet}
-            heading="Acrylic Sheets"
-            description="Lightweight, versatile, and durable."
-          />
-          <Card
-            image={flooring}
-            heading="Flooring"
-            description="Floor panels, Stylish, Efficient and durable."
-          />
-          <Card
-            image={pvc_panels}
-            heading="PVC Panels"
-            description="Lightweight, durable, and versatile Panels."
-          />
-        </div>
       </div>
 
       <WhyChooseUs />

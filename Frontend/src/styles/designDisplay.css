@@ -1,143 +1,318 @@
+/* ===== DESIGN DISPLAY PAGE ===== */
+
+:root {
+  --primary: #183030;
+  --secondary: #d5b697;
+  --accent: #b48a60;
+  --white: #ffffff;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  --transition: all 0.35s ease;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: hidden;
+  background: #faf8f5;
+}
+
+/* ===== MAIN SECTION ===== */
+
 .design-display-main {
-  margin: 20px auto;
-  padding: 20px;
-  margin-top: 60px !important;
-  padding-bottom: 50px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 80px auto 0;
+  padding: 30px 40px 70px;
+  position: relative;
 }
 
 .design-display-main h2 {
-  font-size: 6vh;
+  font-size: clamp(2.3rem, 5vw, 4.5rem);
   font-family: "Playfair Display", serif;
-  font-weight: 600;
+  font-weight: 700;
   text-align: center;
-  margin-bottom: 20px;
-  margin-top: 20px;
-  color: #183030;
+  line-height: 1.1;
+  color: var(--primary);
+  margin-bottom: 18px;
+  letter-spacing: 1px;
 }
 
 .design-display-main .main-para {
+  max-width: 750px;
+  margin: auto;
   text-align: center;
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: #5d6666;
 }
+
+/* ===== DESIGN LIST ===== */
 
 .design-display-list {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(320px, 850px);
   justify-content: center;
-  align-items: center;
-  gap: 20px;
+  gap: 55px;
+  margin-top: 60px;
 }
 
-  .design-slide {
-    text-align: center; /* Center the image in the slide */
-    width: 100%; /* Ensure it takes full width within its container */
-  }
+/* ===== DESIGN CARD ===== */
 
-.design-slider-bar {
-  margin-top: 30px !important;
-  width: 80%;
-  margin: auto;
-  margin-bottom: 60px !important;
-  background-color: #183030;
-  border-radius: 12px;
-  height: 70px;
+.design-slide {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  background: transparent;
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.design-slide:hover {
+  transform: translateY(-6px);
 }
 
 .design-slide img {
   width: 100%;
-  height: auto;
+  height: 100%;
+  aspect-ratio: 16/10;
+  object-fit: cover;
   display: block;
+  border-radius: 28px;
+  transition: transform 0.6s ease;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
 }
 
-.design-display-main .design-slider-bar p {
-  font-size: 15px;
-  color: #d5b697;
-  text-align: center;
-  margin-top: 22px;
+.design-slide:hover img {
+  transform: scale(1.02);
+}
+
+/* ===== LAPTOP CATEGORY SLIDER ===== */
+
+.design-slider-bar {
+  width: fit-content;
+  max-width: 88%;
+  margin: 50px auto 65px;
+  padding: 12px 22px;
+  background: rgba(24, 48, 48, 0.97);
+  border-radius: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.design-slider-bar p {
+  margin: 0;
+  min-height: 44px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+
+  color: rgba(213, 182, 151, 0.82);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  line-height: 1;
+
   font-family: "Playfair Display", serif;
+
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
 }
 
-.design-display-main .design-slider-bar p:hover {
-  cursor: pointer;
-  color: #b48a60;
+/* Elegant hover */
+
+.design-slider-bar p:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.05);
 }
+
+/* SELECTED CATEGORY */
 
 .selected-category {
-  color: #b48a60 !important;
+  color: white !important;
+  background: rgba(180, 138, 96, 0.18);
+  font-weight: 600;
 }
+
+.design-slider-bar .selected-category::after {
+  content: "";
+  position: absolute;
+  bottom: 6px;
+  left: 18%;
+  width: 64%;
+  height: 1.8px;
+  background: var(--accent);
+  border-radius: 50px;
+}
+
+/* ===== SELECT DROPDOWN ===== */
 
 .category-select {
   width: 100%;
-  padding: 10px;
-  font-size: 16px;
-  border: 1px solid #183030;
-  border-radius: 4px;
-  margin-top: 20px;
-  margin-bottom: 20px;
+  padding: 14px 18px;
+  font-size: 15px;
+  border: 1px solid rgba(24, 48, 48, 0.15);
+  border-radius: 12px;
+  background: white;
+  color: var(--primary);
+  margin: 24px 0;
+  outline: none;
+  transition: var(--transition);
 }
 
-/* 📱 Mobile View Styling */
-/* Prevent both horizontal and vertical scrollbars on the body */
-body, html {
-  overflow: hidden;
-  overflow-y: auto;
+.category-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(180, 138, 96, 0.12);
 }
 
-/* For mobile view styling */
+/* ===== MOBILE CATEGORY SLIDER ===== */
+
+.category-slider {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 12px;
+  background: var(--primary);
+  border-radius: 16px;
+  margin-top: 28px;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.category-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: max-content;
+}
+
+.slider-item {
+  min-width: 140px;
+  padding: 14px 20px;
+  background: rgba(213, 182, 151, 0.12);
+  border: 1px solid rgba(213, 182, 151, 0.15);
+  color: var(--secondary);
+  border-radius: 14px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  user-select: none;
+  backdrop-filter: blur(10px);
+}
+
+.slider-item:hover {
+  background: var(--accent);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.slider-item:active {
+  transform: scale(0.97);
+}
+
+/* FIXED SELECTED STATE */
+
+.slider-item:has(.selected-category) {
+  background: var(--accent);
+  border-color: transparent;
+}
+
+.slider-item:has(.selected-category) .selected-category {
+  color: white !important;
+}
+
+/* ===== TABLET ===== */
+
+@media (max-width: 1024px) {
+  .design-display-main {
+    padding: 25px;
+  }
+
+  .design-display-list {
+    grid-template-columns: minmax(280px, 1fr);
+    gap: 35px;
+  }
+
+  .design-slide img {
+    aspect-ratio: 16/11;
+  }
+}
+
+/* ===== MOBILE ===== */
+
 @media (max-width: 780px) {
   .design-display-main {
-    padding: 10px;
-    padding-top: 40px;
-    overflow: hidden; /* Prevent scrollbars in the main container */
+    padding: 20px 16px 60px;
+    margin-top: 65px;
   }
 
-  /* Scrollbar styling for elements that need to scroll without showing scrollbars */
-  .category-slider {
-    width: 100%;
-    overflow-x: auto; /* Allow horizontal scrolling */
-    overflow-y: hidden; /* Hide vertical scrollbar */
-    padding: 10px 10px;
-    background-color: #183030;
-    border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    margin-top: 20px;
+  .design-display-main h2 {
+    font-size: 2.2rem;
   }
 
-  /* Hide scrollbar for webkit browsers */
-  .category-slider::-webkit-scrollbar {
-    display: none; /* Hide the scrollbar */
+  .design-display-main .main-para {
+    font-size: 0.95rem;
+    line-height: 1.7;
   }
 
-  /* Style the category items */
-  .slider-container {
-    display: flex;
-    flex-wrap: nowrap;
-    justify-content: space-between;
-    gap: 12px;
+  .design-display-list {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    margin-top: 35px;
+  }
+
+  .design-slide {
+    border-radius: 18px;
+  }
+
+  .design-slide img {
+    aspect-ratio: 4/4.8;
+    border-radius: 18px;
+  }
+
+  /* Hide laptop slider */
+
+  .design-slider-bar {
+    display: none;
   }
 
   .slider-item {
-    padding: 12px 18px;
-    background-color: #d5b697;
-    color: #183030;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    width: 140px;
-    text-align: center;
+    min-width: 125px;
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+}
+
+/* ===== SMALL MOBILE ===== */
+
+@media (max-width: 480px) {
+  .design-display-main h2 {
+    font-size: 1.9rem;
   }
 
-  /* Hover effects and active states */
-  .slider-item:hover {
-    background-color: #b48a60;
-    transform: scale(1.05);
+  .design-display-main .main-para {
+    font-size: 0.9rem;
   }
 
-  .slider-item:active {
-    transform: scale(0.98);
-  }
-
-  /* Add smooth scrolling behavior */
-  .category-slider {
-    scroll-behavior: smooth;
+  .slider-item {
+    min-width: 110px;
+    font-size: 12px;
   }
 }

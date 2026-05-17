@@ -1,157 +1,285 @@
-/* Main Navbar Styles */
+/* ---------------- NAVBAR ---------------- */
+
 .mainNavbar-container {
     width: 100%;
-    background: #183030;
-    padding: 4px 20px;
-    position: fixed; /* Stick the navbar at the top */
+    background: rgba(24, 48, 48, 0.96);
+    backdrop-filter: blur(12px);
+    padding: 10px 5%;
+    position: fixed;
     top: 0;
     left: 0;
-    z-index: 10;
+    z-index: 1000;
+
     display: flex;
-    flex-direction: row;
-    align-items: center; /* Vertically center items */
-    justify-content: space-between; /* Space between logo and menu items */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    align-items: center;
+    justify-content: space-between;
+
+    box-sizing: border-box;
+    border-bottom: 1px solid rgba(213, 182, 151, 0.18);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+    transition: all 0.3s ease;
 }
 
+/* ---------------- LOGO ---------------- */
+
 .mainNavbar-logo {
-    width: 130px; /* Adjust the width as needed */
+    width: 125px;
+    height: auto;
+    object-fit: contain;
+    transition: transform 0.3s ease;
 }
+
+.mainNavbar-logo:hover {
+    transform: scale(1.03);
+}
+
+/* ---------------- NAV LINKS ---------------- */
 
 .mainNavbar-links-container {
     display: flex;
+    align-items: center;
 }
 
 .mainNavbar-links {
     list-style: none;
-    padding-top: 8px !important;
     margin: 0;
     padding: 0;
     display: flex;
+    align-items: center;
+    gap: 32px;
 }
 
 .mainNavbar-links li {
-    margin: 0 15px; /* Add some spacing between items */
+    position: relative;
 }
 
-.mainNavbar-links a {
-    color: #d5b697;
-    text-decoration: none;
-    font-size: 16px;
-}
-
-.mainNavbar-links a:hover {
-    text-decoration: underline;
-}
-
+.mainNavbar-links a,
 .mainNavbar-links .services {
     color: #d5b697;
     text-decoration: none;
-    font-size: 16px;
-}
-
-.mainNavbar-links .services:hover {
-    text-decoration: underline;
+    font-size: 0.97rem;
+    font-weight: 500;
+    letter-spacing: 0.4px;
+    transition: all 0.3s ease;
+    position: relative;
     cursor: pointer;
 }
+
+/* Smooth underline effect */
+
+.mainNavbar-links a::after,
+.mainNavbar-links .services::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -5px;
+    width: 0%;
+    height: 1.5px;
+    background-color: #d5b697;
+    transition: width 0.3s ease;
+}
+
+.mainNavbar-links a:hover::after,
+.mainNavbar-links .services:hover::after {
+    width: 100%;
+}
+
+.mainNavbar-links a:hover,
+.mainNavbar-links .services:hover {
+    color: #f0d7b8;
+}
+
+/* ---------------- BUTTON ---------------- */
 
 .consult-online {
     color: #183030;
     text-decoration: none;
-    font-size: 16px;
+    font-size: 0.92rem;
+    font-weight: 600;
     background-color: #d5b697;
-    padding: 8px 20px; /* Adjust padding to your liking */
+    padding: 10px 20px;
     border: none;
-    border-radius: 5px; /* Rounded corners */
-    margin-top: -9px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth transition for hover effects */
+
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .consult-online:hover {
-    background-color: #d5b697; /* Slightly darker shade on hover */
-    transform: scale(1.05); /* Slightly enlarge on hover */
+    background-color: #caa27c;
+    transform: translateY(-2px);
 }
 
 .consult-online:active {
-    background-color: #183030; /* Even darker shade on click */
-    transform: scale(0.95); /* Slightly shrink on click */
+    transform: scale(0.96);
 }
 
+/* ---------------- HAMBURGER ---------------- */
+
 .hamburger {
-    display: none; /* Hide hamburger menu by default */
+    display: none;
     flex-direction: column;
+    justify-content: center;
     cursor: pointer;
-    z-index: 11; /* Ensure it stays above the navbar */
+    z-index: 1100;
+    gap: 5px;
 }
 
 .mainNavbar-container .hamburger .bar {
     width: 25px;
-    height: 3px;
+    height: 2.5px;
     background-color: #d5b697;
-    margin: 3px 0;
-    transition: 0.3s ease;
+    border-radius: 10px;
+    transition: all 0.3s ease;
 }
 
-/* Transform bars to form a cross when isOpen is true */
+/* Animated hamburger */
+
 .bar1 {
     transform: rotate(45deg) translate(5px, 5px);
 }
 
 .bar2 {
-    opacity: 0; /* Hide the middle bar */
+    opacity: 0;
 }
 
 .bar3 {
-    transform: rotate(-45deg) translate(7.5px, -7.5px);
+    transform: rotate(-45deg) translate(5px, -5px);
 }
 
-/* Ensure the hamburger is visible on mobile screens */
-@media (max-width: 768px) {
-    .mainNavbar-container {
-        padding: 10px 15px; /* Adjust padding for smaller screens */
-    }
+/* ---------------- TABLET ---------------- */
 
-    .mainNavbar-links-container {
-        width: 100%;
-        background: #183030;
-        position: absolute;
-        top: 100px;
-        left: 0;
-        text-align: center;
-        flex-direction: column;
-        z-index: 9;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add shadow for better visibility */
-        display: none; /* Hide by default */
+@media (max-width: 992px) {
+
+    .mainNavbar-container {
+        padding: 10px 4%;
     }
 
     .mainNavbar-links {
-        flex-direction: column;
-        padding: 10px 0;
+        gap: 22px;
     }
 
-    .mainNavbar-links li {
-        margin: 10px 0; /* Add spacing for clarity */
+    .consult-online {
+        padding: 9px 16px;
+        font-size: 0.88rem;
+    }
+}
+
+/* ---------------- MOBILE ---------------- */
+
+@media (max-width: 768px) {
+
+    .mainNavbar-container {
+        padding: 12px 18px;
     }
 
-    .mainNavbar-links a {
-        font-size: 1rem;
-        padding: 0.5rem 0;
-    }
-
-    .mainNavbar-links-container.open {
-        display: flex; /* Show menu on toggle */
+    .mainNavbar-logo {
+        width: 105px;
     }
 
     .hamburger {
         display: flex;
     }
 
-    .mainNavbar-logo {
-        font-size: 1rem; /* Adjust for better fit */
+    .mainNavbar-links-container {
+        position: absolute;
+        top: 100%;
+        left: 0;
+
+        width: 100%;
+        background: rgba(24, 48, 48, 0.98);
+        backdrop-filter: blur(14px);
+
+        border-top: 1px solid rgba(213, 182, 151, 0.12);
+
+        display: flex;
+        flex-direction: column;
+
+        max-height: 0;
+        overflow: hidden;
+
+        opacity: 0;
+        visibility: hidden;
+
+        transition:
+            max-height 0.4s ease,
+            opacity 0.3s ease,
+            visibility 0.3s ease;
     }
-    .mainNavbar-links-container.open .mainNavbar-links .consult-online {
-        background: none;
-        color: #d5b697;
+
+    .mainNavbar-links-container.open {
+        max-height: 500px;
+        opacity: 1;
+        visibility: visible;
+        padding: 18px 0 24px;
+    }
+
+    .mainNavbar-links {
+        flex-direction: column;
+        width: 100%;
+        gap: 0;
+    }
+
+    .mainNavbar-links li {
+        width: 100%;
+        text-align: center;
+    }
+
+    .mainNavbar-links a,
+    .mainNavbar-links .services {
+        display: block;
+        width: 100%;
+        padding: 16px 0;
+        font-size: 1rem;
+    }
+
+    .mainNavbar-links a::after,
+    .mainNavbar-links .services::after {
+        display: none;
+    }
+
+    .mainNavbar-links a:hover,
+    .mainNavbar-links .services:hover {
+        background: rgba(213, 182, 151, 0.08);
+    }
+
+    .consult-online {
+        width: 88%;
+        max-width: 240px;
+        margin: 18px auto 0;
+        padding: 12px;
+        border-radius: 10px;
+        font-size: 0.95rem;
+    }
+}
+
+/* ---------------- SMALL MOBILE ---------------- */
+
+@media (max-width: 480px) {
+
+    .mainNavbar-container {
+        padding: 10px 14px;
+    }
+
+    .mainNavbar-logo {
+        width: 92px;
+    }
+
+    .mainNavbar-links a,
+    .mainNavbar-links .services {
+        font-size: 0.92rem;
+        padding: 14px 0;
+    }
+
+    .consult-online {
+        font-size: 0.88rem;
+        padding: 11px;
+    }
+
+    .mainNavbar-container .hamburger .bar {
+        width: 22px;
     }
 }

@@ -1,113 +1,301 @@
 import React from 'react';
 import '../styles/services.css';
-import rates from '../assets/rates.jpg';
+
+import rates from '../assets/rates.png';
 import design from '../assets/refund-design.jpg';
 import residence from '../assets/residence.webp';
 import commercial from '../assets/commercial.webp';
 import renovation from '../assets/renovation.webp';
+import bgimg from '../assets/home-img.webp';
+
 import MainNavbar from '../components/mainNavbar';
 import Footer from '../components/Footer';
 
-const Services = ({setShowLogin}) => {
-    return (
-        <div className="new-services-container">
-            <MainNavbar setShowLogin={setShowLogin} />
+const services = [
+  {
+    title: "Unbeatable Rates, Uncompromised Quality",
+    image: rates,
+    description:
+      "We combine affordability with premium craftsmanship to deliver elegant interiors without compromising quality.",
+    points: [
+      "Transparent pricing with no hidden costs",
+      "Premium materials & expert execution",
+      "Luxury finishes within your budget"
+    ]
+  },
 
-            <h1 className="new-services-title">Our Interior Design Services</h1>
+  {
+    title: "Design Consultation with Refund Option",
+    image: design,
+    description:
+      "Our consultation process helps us deeply understand your vision, lifestyle, and spatial requirements.",
+    points: [
+      "Professional planning & design guidance",
+      "Refundable consultation on project confirmation",
+      "Personalized interior recommendations"
+    ]
+  },
 
-            <div className="new-services-section">
-                <div className="new-services-text">
-                    <h2>Unbeatable Rates, Uncompromised Quality</h2>
-                    <p>
-                        We offer custom design and contracting services that are both cost-effective and high-quality, ensuring your project is completed on time and within budget. Our team is committed to delivering excellence in every detail, from initial design concepts to the final touches. We prioritize long-lasting solutions that not only fit your needs but also enhance the aesthetics and functionality of your space.
-                    </p>
-                    <p>
-                        By focusing on value, we help you get the best of both worlds: affordability and quality. Our relationships with trusted suppliers and contractors allow us to deliver top-tier results without breaking the bank, making exceptional design accessible for everyone.
-                    </p>
-                </div>
-                <img src={rates} alt="Affordable Rates" className="new-services-image" />
-            </div>
+  {
+    title: "Custom Residential Design & Contracting",
+    image: residence,
+    description:
+      "From apartments to luxury villas, we design homes that blend functionality, comfort, and timeless aesthetics.",
+    points: [
+      "Modern luxury interior concepts",
+      "End-to-end project execution",
+      "Tailored designs for your lifestyle"
+    ]
+  },
 
-            <div className="new-services-section">
-                <div className="new-services-text">
-                    <h2>Design Consultation with Refund Option</h2>
-                    <p>
-                        Pay for your design consultation and have it refunded once you proceed with the project. We believe in full transparency and value your commitment to creating something great. Our design consultation is more than just an hour-long meeting; it’s an opportunity for us to understand your vision, needs, and the specifics of your space, ensuring that we can offer the best solutions possible.
-                    </p>
-                    <p>
-                        We believe that building trust starts early in the process, which is why we offer this refund option. We want you to feel confident in your decision to move forward with us, knowing that we’re dedicated to bringing your ideas to life with professionalism and passion.
-                    </p>
-                </div>
-                <img src={design} alt="Refundable Design" className="new-services-image" />
-            </div>
+  {
+    title: "Innovative Commercial Design",
+    image: commercial,
+    description:
+      "We create inspiring commercial spaces that improve productivity, branding, and customer experience.",
+    points: [
+      "Office & retail interior solutions",
+      "Brand-focused design approach",
+      "Efficient layouts & elegant finishes"
+    ]
+  },
 
-            <div className="new-services-section">
-                <div className="new-services-text">
-                    <h2>Custom Residential Design & Contracting</h2>
-                    <p>
-                        Whether it's a cozy apartment or a sprawling estate, our residential design services are crafted to suit your vision. We blend comfort, functionality, and aesthetics to create spaces that feel like home. Our team takes into account not just the layout and style, but also the flow of space, light, and how it adapts to your lifestyle.
-                    </p>
-                    <p>
-                        From concept to construction, we’re with you every step of the way, providing detailed plans, material selections, and project management to ensure your vision is realized. Whether you're renovating or building from scratch, we create spaces that reflect your personal taste while maximizing comfort and efficiency.
-                    </p>
-                </div>
-                <img src={residence} alt="Residential Services" className="new-services-image" />
-            </div>
+  {
+    title: "Comprehensive Renovation Services",
+    image: renovation,
+    description:
+      "Whether it’s a minor makeover or complete transformation, we bring fresh life into outdated spaces.",
+    points: [
+      "Complete renovation planning",
+      "Structural & aesthetic upgrades",
+      "On-time project delivery"
+    ]
+  },
 
-            <div className="new-services-section">
-                <div className="new-services-text">
-                    <h2>Innovative Commercial Design</h2>
-                    <p>
-                        Your workspace should reflect your business’s personality and values. We specialize in creating commercial interiors that enhance your brand, boost employee productivity, and leave a lasting impression on clients. Whether it's a small office, a large retail space, or an expansive corporate headquarters, we ensure that your space supports your business objectives.
-                    </p>
-                    <p>
-                        Our commercial design services are focused on functionality, with a keen eye for brand identity and client experience. We integrate thoughtful design elements that foster collaboration, creativity, and comfort while aligning with your company's image and values. The right commercial space can elevate your business, and we are here to make that happen.
-                    </p>
-                </div>
-                <img src={commercial} alt="Commercial Spaces" className="new-services-image" />
-            </div>
+  {
+    title: "Space Planning & Layout Optimization",
+    image: residence,
+    description:
+      "We maximize every inch of your space with thoughtful layouts that improve functionality and flow.",
+    points: [
+      "Efficient space utilization",
+      "Furniture & lighting planning",
+      "Balanced aesthetics & usability"
+    ]
+  },
 
-            <div className="new-services-section">
-                <div className="new-services-text">
-                    <h2>Comprehensive Renovation Services</h2>
-                    <p>
-                        Whether it’s a minor update or a full renovation, our team is here to transform your space. We approach every project with creativity and precision to breathe new life into your property. Whether it’s updating outdated features, repurposing rooms, or changing the entire layout, we take the time to understand your goals and deliver exceptional results.
-                    </p>
-                    <p>
-                        Renovation projects require a blend of creative vision and technical expertise, and that’s exactly what our team brings. We handle everything from structural changes to the finishing touches, ensuring your renovation is completed on time, within budget, and to the highest standards of craftsmanship.
-                    </p>
-                </div>
-                <img src={renovation} alt="Renovation Work" className="new-services-image" />
-            </div>
+  {
+    title: "Lighting Design & Installation",
+    image: residence,
+    description:
+      "Lighting defines mood and atmosphere. We create elegant lighting setups tailored to your interiors.",
+    points: [
+      "Ambient, accent & task lighting",
+      "Luxury modern lighting concepts",
+      "Energy-efficient solutions"
+    ]
+  }
+];
 
-            <div className="new-services-section">
-                <div className="new-services-text">
-                    <h2>Space Planning & Layout Optimization</h2>
-                    <p>
-                        Effective space planning is the cornerstone of great interior design. Our experts analyze every inch of your space to ensure it’s being utilized to its fullest potential. We prioritize functionality, flow, and aesthetics, ensuring that your space is optimized for your lifestyle, whether you’re designing a home, office, or commercial space.
-                    </p>
-                    <p>
-                        We consider factors like traffic patterns, furniture arrangement, and lighting placement to create a cohesive layout that enhances the overall experience of your space. With our space planning services, we maximize the potential of every room to create functional and comfortable areas.
-                    </p>
-                </div>
-                <img src={residence} alt="Space Planning" className="new-services-image" />
-            </div>
+const Services = ({ setShowLogin }) => {
 
-            <div className="new-services-section">
-                <div className="new-services-text">
-                    <h2>Lighting Design & Installation</h2>
-                    <p>
-                        Lighting can transform the entire ambiance of a room, and it plays a key role in enhancing the functionality of your space. Our lighting design services focus on creating the right atmosphere while ensuring practical lighting solutions that meet your needs. Whether it’s accent lighting, ambient lighting, or task lighting, we carefully select and place each light fixture to complement your interior design.
-                    </p>
-                    <p>
-                        We also specialize in energy-efficient lighting solutions, so your space remains bright and welcoming without compromising sustainability. From modern LED setups to more traditional fixtures, we tailor the lighting design to fit your space’s style and your personal preferences.
-                    </p>
-                </div>
-                <img src={residence} alt="Lighting Design" className="new-services-image" />
-            </div>
-            <Footer/>
+  return (
+    <div className="services-page">
+
+      {/* HERO SECTION */}
+
+      <div className="services-hero">
+
+        <img
+          src={bgimg}
+          alt="Luxury Interior"
+          className="services-hero-bg"
+        />
+
+        <div className="services-overlay"></div>
+
+        <MainNavbar setShowLogin={setShowLogin} />
+
+        <div className="services-hero-content">
+
+          <span className="section-tag">
+            PREMIUM INTERIOR SERVICES
+          </span>
+
+          <h1>
+            Crafted Interiors
+            <br />
+            Designed To Elevate
+          </h1>
+
+          <p>
+            We deliver luxury interior design and contracting solutions
+            tailored to modern lifestyles, functionality, and timeless elegance.
+          </p>
+
         </div>
-    );
+      </div>
+
+      {/* TRUST STATS */}
+
+      <section className="services-stats">
+
+        <div className="services-stat-box">
+          <h2>150+</h2>
+          <p>Projects Completed</p>
+        </div>
+
+        <div className="services-stat-box">
+          <h2>10+</h2>
+          <p>Years Warranty</p>
+        </div>
+
+        <div className="services-stat-box">
+          <h2>100%</h2>
+          <p>Client Satisfaction</p>
+        </div>
+
+        <div className="services-stat-box">
+          <h2>Premium</h2>
+          <p>Materials & Finishes</p>
+        </div>
+
+      </section>
+
+      {/* SERVICES SECTION */}
+
+      <section className="services-main-section">
+
+        <div className="services-heading">
+
+          <span className="section-tag">
+            WHAT WE OFFER
+          </span>
+
+          <h1>
+            Interior Services
+            <br />
+            Tailored For You
+          </h1>
+
+        </div>
+
+        {services.map((service, index) => (
+
+          <div
+            className={`luxury-service-card ${
+              index % 2 !== 0 ? 'reverse' : ''
+            }`}
+            key={index}
+          >
+
+            <div className="luxury-service-image">
+
+              <img
+                src={service.image}
+                alt={service.title}
+              />
+
+            </div>
+
+            <div className="luxury-service-content">
+
+              <span className="service-number">
+                0{index + 1}
+              </span>
+
+              <h2>{service.title}</h2>
+
+              <p>{service.description}</p>
+
+              <ul>
+
+                {service.points.map((point, idx) => (
+                  <li key={idx}>{point}</li>
+                ))}
+
+              </ul>
+
+            </div>
+
+          </div>
+
+        ))}
+
+      </section>
+
+      {/* PROCESS SECTION */}
+
+      <section className="services-process-section">
+
+        <div className="services-heading">
+
+          <span className="section-tag">
+            OUR PROCESS
+          </span>
+
+          <h1>
+            How We Transform
+            <br />
+            Your Space
+          </h1>
+
+        </div>
+
+        <div className="services-process-grid">
+
+          <div className="process-box">
+            <h2>01</h2>
+            <p>Consultation & Planning</p>
+          </div>
+
+          <div className="process-box">
+            <h2>02</h2>
+            <p>Concept & 3D Design</p>
+          </div>
+
+          <div className="process-box">
+            <h2>03</h2>
+            <p>Execution & Supervision</p>
+          </div>
+
+          <div className="process-box">
+            <h2>04</h2>
+            <p>Final Styling & Delivery</p>
+          </div>
+
+        </div>
+
+      </section>
+
+      {/* CTA SECTION */}
+
+      <section className="services-cta">
+
+        <h1>
+          Let’s Create Your
+          <br />
+          Dream Interior
+        </h1>
+
+        <p>
+          Elegant spaces crafted with precision, premium materials,
+          and timeless modern aesthetics.
+        </p>
+
+        <button
+          className="services-cta-btn"
+          onClick={() => setShowLogin(true)}
+        >
+          Get Started
+        </button>
+
+      </section>
+
+      <Footer />
+
+    </div>
+  );
 };
 
 export default Services;

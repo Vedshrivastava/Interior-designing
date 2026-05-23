@@ -1,119 +1,225 @@
-.why-choose-us {
-    text-align: center;
-    margin: 50px 0;
-    background-color: #d5b697;
-    padding-bottom: 50px;
-  }
-  
-  .why-choose-us h2 {
-    font-size: 3rem;
-    margin-bottom: 20px;
-    color: #183030;
-    font-weight: 600;
-    font-family: "Roboto", sans-serif;
-  }
-  
-  .carousel {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-    grid-gap: 20px;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .carousel-item {
-    width: 200px;
-    height: 200px;
-    margin: 0 10px;
-    opacity: 0.5;
-  }
-  
-  .carousel-item.active {
-    opacity: 1;
-  }
-  
-  .carousel .card {
-    background-color: #183030;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    width: 100%;
-    max-width: 300px;
-    padding: 20px;
-    text-align: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border-radius: 20px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+/* ---------------- WHY CHOOSE US ---------------- */
+
+.why-choose-section {
+    padding: 100px 6%;
+    background: #102525;
     position: relative;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-  
-  .carousel .card::after {
+    overflow: hidden;
+}
+
+/* Optional subtle texture overlay */
+
+.why-choose-section::before {
     content: "";
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 0;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), transparent);
-    z-index: 1;
+    inset: 0;
+    background: radial-gradient(
+        circle at top right,
+        rgba(213, 182, 151, 0.06),
+        transparent 35%
+    );
+    pointer-events: none;
+}
+
+.why-choose-header {
+    text-align: center;
+    max-width: 850px;
+    margin: 0 auto 70px;
+}
+
+.why-choose-header h1 {
+    color: #f1dbc2;
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-family: "Playfair Display", serif;
+    line-height: 1.2;
+    margin-top: 12px;
+    margin-bottom: 22px;
+}
+
+.why-choose-header p {
+    color: #e8d8c7;
+    font-size: 1.05rem;
+    line-height: 1.9;
+}
+
+/* ---------------- GRID ---------------- */
+
+.why-choose-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 30px;
+  margin-top: 60px;
+}
+
+/* Top 3 cards */
+
+.why-card:nth-child(1),
+.why-card:nth-child(2),
+.why-card:nth-child(3) {
+  grid-column: span 2;
+}
+
+/* Bottom 2 centered cards */
+
+.why-card:nth-child(4) {
+  grid-column: 2 / span 2;
+}
+
+.why-card:nth-child(5) {
+  grid-column: 4 / span 2;
+}
+
+/* ---------------- CARD ---------------- */
+
+.why-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(213,182,151,0.12);
+    border-radius: 24px;
+    overflow: hidden;
+    transition: all 0.4s ease;
+    position: relative;
+
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+.why-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 14px 35px rgba(0,0,0,0.25);
+}
+
+/* ---------------- IMAGE ---------------- */
+
+.why-card-image-wrapper {
+    position: relative;
+    width: 100%;
+    height: 240px;
+    overflow: hidden;
+}
+
+.why-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.why-card:hover .why-card-image {
+    transform: scale(1.08);
+}
+
+/* Overlay */
+
+.why-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to top,
+        rgba(0,0,0,0.45),
+        rgba(0,0,0,0.08)
+    );
+}
+
+/* ---------------- CONTENT ---------------- */
+
+.why-card-content {
+    padding: 28px 24px 30px;
+    text-align: left;
+}
+
+.why-card-content h2 {
+    color: #f1dbc2;
+    font-size: 1.6rem;
+    margin-bottom: 14px;
+    font-family: "Playfair Display", serif;
+    font-weight: 600;
+}
+
+.why-card-content p {
+    color: #d7c4b0;
+    line-height: 1.8;
+    font-size: 0.97rem;
+}
+
+/* ---------------- TABLET ---------------- */
+
+@media (max-width: 992px) {
+
+  .why-choose-grid {
+      grid-template-columns: 1fr 1fr;
   }
-  
-  .carousel .card:hover {
-    transform: scale(1.005);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+
+  .why-card:nth-child(1),
+  .why-card:nth-child(2),
+  .why-card:nth-child(3),
+  .why-card:nth-child(4),
+  .why-card:nth-child(5) {
+      grid-column: auto;
   }
-  
-  .carousel .card h3 {
-    font-size: 1.5em;
-    margin-bottom: 10px;
-  }
-  
-  .carousel .card p {
-    font-size: 1rem;
-    margin: 0;
-    color: #d5b697;
-  }
-  
-  .card-image {
-    max-width: 60%;
-    height: auto;
-    border-radius: 8px;
-    margin-bottom: 20px;
-  }
-  
-  /* Responsive layout adjustments */
-  @media (max-width: 768px) {
-    .carousel {
-      grid-template-columns: repeat(auto-fit, 120px);
-      grid-gap: 15px;
-    }
-  
-    .why-choose-us h2 {
-      font-size: 2.5rem;
-    }
-  
-    .carousel .card {
-      padding: 15px;
-    }
-  
-    .card-image {
-      max-width: 80%;
-    }
-  
-    .carousel .card h3 {
-      font-size: 1.3em;
-    }
-  
-    .carousel .card p {
-      font-size: 0.9rem;
+}
+/* ---------------- MOBILE ---------------- */
+
+@media (max-width: 768px) {
+
+  .why-choose-grid {
+    grid-template-columns: 1fr;
+}
+
+    .why-choose-section {
+        padding: 70px 20px;
     }
 
-    .why-choose-us h2{
-        font-size: 3.5vh;
+    .why-choose-header {
+        margin-bottom: 50px;
     }
-  }
-  
+
+    .why-choose-header h1 {
+        font-size: 2.3rem;
+    }
+
+    .why-choose-header p {
+        font-size: 0.95rem;
+    }
+
+    .why-card-image-wrapper {
+        height: 210px;
+    }
+
+    .why-card-content h2 {
+        font-size: 1.4rem;
+    }
+
+    .why-card-content p {
+        font-size: 0.92rem;
+    }
+}
+
+/* ---------------- SMALL MOBILE ---------------- */
+
+@media (max-width: 480px) {
+
+    .why-choose-header h1 {
+        font-size: 2rem;
+    }
+
+    .why-card {
+        border-radius: 20px;
+    }
+
+    .why-card-image-wrapper {
+        height: 190px;
+    }
+
+    .why-card-content {
+        padding: 22px 18px 24px;
+    }
+
+    .why-card-content h2 {
+        font-size: 1.25rem;
+    }
+
+    .why-card-content p {
+        font-size: 0.9rem;
+        line-height: 1.7;
+    }
+}

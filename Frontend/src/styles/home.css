@@ -1,34 +1,58 @@
+/* ---------------- GLOBAL ---------------- */
+
+.home-page {
+  overflow-x: hidden;
+  background-color: #f8f5f0;
+}
+
+.section-tag {
+  color: #b99267;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+  display: inline-block;
+}
+
 /* ---------------- HERO SECTION ---------------- */
 
+/* 1. The Parent Wrapper */
 .home-container {
   position: relative;
   width: 100%;
   min-height: 100vh;
   overflow: hidden;
-  background-color: #183030;
 }
 
+/* 2. Bottom Layer: The Image */
 .background-image {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  z-index: -2;
+  z-index: 1; /* Lowest structural layer */
 }
 
-/* Dark overlay for better text readability */
-
-.home-container::after {
-  content: "";
+/* 3. Middle Layer: The Dark Tint Overlay */
+.overlay {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.35),
-      rgba(0, 0, 0, 0.45)
-  );
-  z-index: -1;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5); /* Adjust opacity so white text pops */
+  z-index: 2; /* Sits directly above the image */
+}
+
+/* 4. Top Layer: Your Content & Navbar */
+.hero-section,
+.home-page .home-container > :not(.background-image):not(.overlay) {
+  position: relative;
+  z-index: 10; /* Safely forces text, buttons, and navbar to the very top */
+  color: #ffffff; /* Ensures text color isn't defaulting to dark/invisible */
 }
 
 .hero-section {
@@ -46,55 +70,121 @@
   animation: fadeUp 1s ease;
 }
 
+.premium-tag {
+  color: #d5b697;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 .hero-content h1 {
   font-size: clamp(3rem, 7vw, 6rem);
   font-family: "Playfair Display", serif;
   font-weight: 600;
   line-height: 1.1;
-  margin-bottom: 20px;
+  margin: 22px 0;
   color: #f1dbc2;
   letter-spacing: 1px;
 }
 
-.underline {
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 6px;
-}
-
-.hero-content p {
-  font-size: clamp(1rem, 2vw, 1.45rem);
+.hero-description {
+  font-size: clamp(1rem, 2vw, 1.3rem);
   font-weight: 400;
   line-height: 1.9;
   margin: 0 auto;
   max-width: 760px;
-  color: #e7c9a6;
+  color: #f5e6d5;
 }
 
-.hero-button {
+.underline {
+  margin-top: 18px;
+  color: #d5b697;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+
+.hero-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 42px;
+  flex-wrap: wrap;
+}
+
+.hero-button,
+.secondary-hero-button,
+.view-project-btn {
   padding: 14px 34px;
-  background: rgba(213, 182, 151, 0.88);
-  color: #183030;
   border: none;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 40px;
   border-radius: 40px;
   text-transform: uppercase;
   font-family: "Roboto", sans-serif;
   font-weight: 600;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   letter-spacing: 1px;
-  backdrop-filter: blur(10px);
 }
 
-.hero-button:hover {
+.hero-button,
+.view-project-btn {
+  background: rgba(213, 182, 151, 0.92);
+  color: #183030;
+}
+
+.hero-button:hover,
+.view-project-btn:hover {
   background-color: #d5b697;
   transform: translateY(-3px);
 }
 
-.hero-button:active {
-  transform: scale(0.97);
+.secondary-hero-button {
+  background: transparent;
+  border: 1px solid #d5b697;
+  color: #f1dbc2;
+}
+
+.secondary-hero-button:hover {
+  background: rgba(213, 182, 151, 0.12);
+  transform: translateY(-3px);
+}
+
+/* ---------------- STATS SECTION ---------------- */
+
+.stats-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px;
+  padding: 70px 6%;
+  background: #102525;
+}
+
+.stat-box {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(213,182,151,0.15);
+  border-radius: 22px;
+  padding: 38px 20px;
+  text-align: center;
+  transition: 0.3s ease;
+}
+
+.stat-box:hover {
+  transform: translateY(-6px);
+}
+
+.stat-box h2 {
+  color: #d5b697;
+  font-size: 2.4rem;
+  margin-bottom: 10px;
+  font-family: "Playfair Display", serif;
+}
+
+.stat-box p {
+  color: #f1dbc2;
+  font-size: 1rem;
 }
 
 /* ---------------- CARD AREA ---------------- */
@@ -103,8 +193,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-color: #f4f4f4;
-  padding: 70px 5%;
+  background-color: #f8f5f0;
+  padding: 100px 5%;
 }
 
 .card-area .contents {
@@ -116,24 +206,22 @@
 }
 
 .card-area .contents h1 {
-  font-size: clamp(2rem, 5vw, 4rem);
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
   font-weight: 600;
-  font-family: "Roboto", sans-serif;
+  font-family: "Playfair Display", serif;
   color: #183030;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .card-area .contents p {
-  font-size: clamp(1rem, 2vw, 1.3rem);
-  font-weight: 400;
+  font-size: clamp(1rem, 2vw, 1.15rem);
   line-height: 1.9;
-  color: #183030;
-  width: 86%;
-  margin: 0 auto;
+  color: #4f4f4f;
+  width: 75%;
 }
 
 .card-area .cards {
-  margin-top: 50px;
+  margin-top: 60px;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -141,124 +229,316 @@
   width: 100%;
 }
 
-/* ---------------- SERVICES ---------------- */
+.view-more-container {
+  margin-top: 50px;
+}
 
-.services-section {
-  padding: 80px 6%;
-  background-color: #f9f9f9;
+
+/* ---------------- PROCESS SECTION ---------------- */
+
+.process-section {
+  padding: 100px 6%;
+  background: #102525;
   text-align: center;
 }
 
-.services-section h2 {
-  font-size: clamp(2rem, 5vw, 4rem);
-  font-weight: 600;
-  font-family: "Roboto", sans-serif;
-  margin-bottom: 60px;
-  color: #183030;
+.process-section .contents h1 {
+  color: #f1dbc2;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-family: "Playfair Display", serif;
+  margin-top: 12px;
 }
 
+.process-grid {
+  margin-top: 60px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 25px;
+}
+
+.process-card {
+  background: rgba(255,255,255,0.05);
+  border-radius: 20px;
+  padding: 40px 25px;
+  border: 1px solid rgba(213,182,151,0.12);
+}
+
+.process-card h2 {
+  font-size: 2.5rem;
+  color: #d5b697;
+  margin-bottom: 15px;
+  font-family: "Playfair Display", serif;
+}
+
+.process-card p {
+  color: #f1dbc2;
+  font-size: 1rem;
+}
+
+
+/* ---------------- SERVICES (UPGRADED DENSITY + STRUCTURE) ---------------- */
+.luxury-divider {
+  width: 100%;
+  height: 75px;
+  margin: 12px auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* pattern layer only */
+.luxury-divider::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background-image:
+    radial-gradient(circle at center, rgba(24, 48, 48, 0.45) 2px, transparent 2.6px),
+    repeating-linear-gradient(
+      45deg,
+      rgba(24, 48, 48, 0.18) 0px,
+      rgba(24, 48, 48, 0.18) 2px,
+      transparent 2px,
+      transparent 10px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(24, 48, 48, 0.14) 0px,
+      rgba(24, 48, 48, 0.14) 1px,
+      transparent 1px,
+      transparent 12px
+    );
+
+  background-size: 14px 14px, auto, auto;
+  opacity: 0.95;
+
+  border-radius: 12px;
+
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 5%,
+    black 95%,
+    transparent
+  );
+}
+/* =========================
+   OPTIONAL: PREMIUM HOVER DEPTH
+========================= */
+
+.service-item.luxury-frame {
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.service-item.luxury-frame:hover {
+  transform: translateY(-6px);
+}
+
+.service-item,
+.contents {
+  position: relative;
+  z-index: 1;
+}
+
+.services-section {
+  padding: 100px 6%;
+  background-color: #f8f5f0;
+}
+
+.services-section .contents {
+  text-align: center;
+  margin-bottom: 70px;
+}
+
+.services-section .contents h1 {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-family: "Playfair Display", serif;
+  color: #183030;
+  margin-top: 12px;
+}
+
+/* Better compact layout */
 .service-item {
   display: flex;
   align-items: center;
-  gap: 50px;
-  margin-bottom: 80px;
+  gap: 40px;
+  margin-bottom: 60px;
+  background: white;
+  padding: 22px;
+  border-radius: 22px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+  transition: 0.3s ease;
+}
+
+.service-item:hover {
+  transform: translateY(-6px);
 }
 
 .service-item.reverse {
   flex-direction: row-reverse;
 }
 
+/* image smaller for better balance */
 .service-image {
-  flex: 1;
+  flex: 0.9;
 }
 
 .service-image img {
   width: 100%;
   border-radius: 18px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
-  transition: transform 0.4s ease;
+  object-fit: cover;
 }
 
-.service-image img:hover {
-  transform: scale(1.02);
-}
-
+/* content more compact */
 .service-content {
-  flex: 1;
+  flex: 1.1;
   text-align: left;
 }
 
 .service-content h3 {
-  font-size: clamp(1.6rem, 3vw, 2.5rem);
-  margin-bottom: 20px;
+  font-size: 1.9rem;
+  margin-bottom: 12px;
   font-weight: 600;
   color: #183030;
+  font-family: "Playfair Display", serif;
 }
 
 .service-content p {
-  font-size: 1.05rem;
-  color: #183030;
-  line-height: 1.9;
-}
-
-/* ---------------- PROJECTS ---------------- */
-
-.projects-section {
-  padding: 80px 6%;
-  background-color: #f4f4f4;
-}
-
-.projects-section h2 {
-  font-size: clamp(2rem, 5vw, 4rem);
-  text-align: center;
-  font-weight: 600;
-  margin-bottom: 60px;
-  color: #183030;
-}
-
-.projects-content {
-  display: flex;
-  align-items: center;
-  gap: 50px;
-}
-
-.projects-image,
-.projects-text {
-  flex: 1;
-}
-
-.projects-image img {
-  width: 100%;
-  border-radius: 18px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
-}
-
-.projects-text {
-  text-align: left;
-}
-
-.projects-text p {
-  font-size: 1.05rem;
-  color: #555;
-  line-height: 1.9;
-  margin-bottom: 35px;
-}
-
-.view-projects-button {
-  background-color: #183030;
-  color: #fff;
-  padding: 14px 28px;
   font-size: 1rem;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
+  color: #555;
+  line-height: 1.8;
+  max-width: 600px;
 }
 
-.view-projects-button:hover {
-  background-color: #244545;
-  transform: translateY(-2px);
+/* ICON BADGE IMPROVEMENT */
+.service-content h3 svg {
+  color: #d5b697;
+  margin-right: 10px;
+}
+
+/* ---------------- TESTIMONIALS (UPGRADED) ---------------- */
+
+.testimonial-section {
+  padding: 100px 6%;
+  background: #102525;
+}
+
+.testimonial-section .contents {
+  text-align: center;
+}
+
+.testimonial-section .contents h1 {
+  color: #f1dbc2;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  margin-top: 12px;
+  font-family: "Playfair Display", serif;
+}
+
+.testimonial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 26px;
+  margin-top: 60px;
+}
+
+.testimonial-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(213, 182, 151, 0.15);
+  border-radius: 22px;
+  padding: 30px;
+  position: relative;
+  transition: all 0.35s ease;
+  backdrop-filter: blur(8px);
+}
+
+.testimonial-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(213, 182, 151, 0.4);
+}
+
+/* Quote styling */
+.testimonial-card p {
+  color: #f5e6d5;
+  line-height: 1.9;
+  font-size: 1rem;
+  margin-bottom: 18px;
+  position: relative;
+}
+
+/* Star rating */
+.testimonial-card::before {
+  content: "★★★★★";
+  color: #d5b697;
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+/* Client name */
+.testimonial-card h4 {
+  margin-top: 15px;
+  color: #d5b697;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+/* ---------------- BRANDS ---------------- */
+
+.brands-section {
+  padding: 100px 6%;
+  background: #f8f5f0;
+  text-align: center;
+}
+
+.brands-section h1 {
+  color: #183030;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  margin-top: 12px;
+  font-family: "Playfair Display", serif;
+}
+
+.brands-grid {
+  margin-top: 60px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 24px;
+}
+
+.brands-grid div {
+  background: white;
+  padding: 30px;
+  border-radius: 18px;
+  font-weight: 600;
+  color: #183030;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+}
+
+/* ---------------- CTA ---------------- */
+
+.cta-section {
+  padding: 120px 6%;
+  background: linear-gradient(
+    to right,
+    #183030,
+    #224242
+  );
+  text-align: center;
+}
+
+.cta-section h1 {
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  color: #f1dbc2;
+  font-family: "Playfair Display", serif;
+}
+
+.cta-section p {
+  margin: 24px auto 40px;
+  color: #f5e6d5;
+  max-width: 700px;
+  line-height: 1.9;
+  font-size: 1.05rem;
 }
 
 /* ---------------- TABLET ---------------- */
@@ -266,15 +546,17 @@
 @media (max-width: 992px) {
 
   .service-item,
-  .service-item.reverse,
-  .projects-content {
+  .service-item.reverse {
       flex-direction: column;
-      gap: 30px;
+      gap: 35px;
   }
 
-  .service-content,
-  .projects-text {
+  .service-content {
       text-align: center;
+  }
+
+  .service-content p {
+      max-width: 100%;
   }
 
   .card-area .contents {
@@ -298,60 +580,44 @@
       font-size: 3rem;
   }
 
-  .hero-content p {
+  .hero-description {
       font-size: 1rem;
       width: 100%;
       line-height: 1.8;
   }
 
-  .hero-button {
-      margin-top: 32px;
-      padding: 13px 28px;
-      font-size: 0.85rem;
+  .hero-buttons {
+      flex-direction: column;
+      align-items: center;
   }
 
-  .card-area {
-      padding: 55px 20px;
+  .hero-button,
+  .secondary-hero-button,
+  .view-project-btn {
+      width: 100%;
+      max-width: 260px;
+  }
+
+  .card-area,
+  .process-section,
+  .services-section,
+  .testimonial-section,
+  .brands-section,
+  .cta-section {
+      padding: 70px 20px;
   }
 
   .card-area .contents h1,
-  .services-section h2,
-  .projects-section h2 {
-      font-size: 2.2rem;
-  }
-
-  .card-area .contents p {
-      font-size: 0.95rem;
-      line-height: 1.8;
-  }
-
-  .services-section,
-  .projects-section {
-      padding: 55px 20px;
-  }
-
-  .service-item {
-      margin-bottom: 50px;
-  }
-
-  .service-image img,
-  .projects-image img {
-      border-radius: 14px;
+  .services-section .contents h1,
+  .process-section .contents h1,
+  .testimonial-section .contents h1,
+  .brands-section h1,
+  .cta-section h1 {
+      font-size: 2.3rem;
   }
 
   .service-content h3 {
-      font-size: 1.6rem;
-  }
-
-  .service-content p,
-  .projects-text p {
-      font-size: 0.95rem;
-      line-height: 1.8;
-  }
-
-  .view-projects-button {
-      width: 100%;
-      max-width: 240px;
+      font-size: 1.7rem;
   }
 }
 
@@ -360,54 +626,41 @@
 @media (max-width: 480px) {
 
   .hero-content h1 {
-      font-size: 2.3rem;
-      line-height: 1.2;
+      font-size: 2.4rem;
   }
 
-  .hero-content p {
-      font-size: 0.92rem;
-  }
-
-  .hero-button {
-      width: 100%;
-      max-width: 240px;
-      padding: 12px 20px;
-      font-size: 0.8rem;
+  .hero-description {
+      font-size: 0.95rem;
   }
 
   .card-area .contents h1,
-  .services-section h2,
-  .projects-section h2 {
-      font-size: 1.8rem;
+  .services-section .contents h1,
+  .process-section .contents h1,
+  .testimonial-section .contents h1,
+  .brands-section h1,
+  .cta-section h1 {
+      font-size: 2rem;
   }
 
   .service-content h3 {
-      font-size: 1.35rem;
+      font-size: 1.45rem;
   }
 
   .service-content p,
-  .projects-text p {
-      font-size: 0.9rem;
+  .testimonial-card p,
+  .cta-section p {
+      font-size: 0.92rem;
   }
 
   .card-area .cards {
       gap: 18px;
-      margin-top: 30px;
-  }
-
-  .services-section,
-  .projects-section {
-      padding: 45px 16px;
-  }
-
-  .projects-text {
-      text-align: center;
   }
 }
 
 /* ---------------- ANIMATION ---------------- */
 
 @keyframes fadeUp {
+
   from {
       opacity: 0;
       transform: translateY(35px);

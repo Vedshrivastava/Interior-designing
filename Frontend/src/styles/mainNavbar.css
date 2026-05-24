@@ -2,13 +2,13 @@
 
 .mainNavbar-container {
     width: 100%;
-    background: rgba(24, 48, 48, 0.96);
+    background: #183030;
     backdrop-filter: blur(12px);
     padding: 10px 5%;
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 1000;
+    z-index: 99999 !important;
 
     display: flex;
     align-items: center;

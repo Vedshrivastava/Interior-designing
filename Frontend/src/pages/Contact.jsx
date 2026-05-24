@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import '../styles/contact.css';
-import MainNavbar from '../components/mainNavbar';
 import Footer from '../components/Footer';
 import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
@@ -55,7 +54,6 @@ const Contact = ({ setShowLogin }) => {
     return (
         <div>
             <div className="contact-container">
-                <MainNavbar setShowLogin={setShowLogin} />
 
                 <div className="contact-details">
                     <h1>Contact Us</h1>

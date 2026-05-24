@@ -1,20 +1,25 @@
 .login {
-    position: fixed; /* Fixed to viewport */
+    position: fixed;
+    /* Fixed to viewport */
     z-index: 100;
     top: 0;
     left: 0;
     padding-top: 70px;
     width: 100%;
-    height: 100vh; /* Full viewport height */
-    background-color: rgba(0, 0, 0, 0.56); /* Slightly adjusted for better readability */
+    height: 100vh;
+    /* Full viewport height */
+    background-color: rgba(0, 0, 0, 0.56);
+    /* Slightly adjusted for better readability */
     display: grid;
     justify-content: center;
-    align-items: center; /* Centering the container */
+    align-items: center;
+    /* Centering the container */
 }
 
 .login-container {
     width: max(25vw, 350px);
-    height: max(60vh, 470px); /* Adjust the size as needed */
+    height: max(60vh, 470px);
+    /* Adjust the size as needed */
     background: #183030;
     color: #d5b697;
     display: flex;
@@ -23,7 +28,8 @@
     padding: 20px 15px;
     border-radius: 8px;
     font-size: 14px;
-    animation: fadeIn 0.5s; /* Ensure you define this animation if it's used */
+    animation: fadeIn 0.5s;
+    /* Ensure you define this animation if it's used */
     padding-top: 10px;
 }
 
@@ -38,14 +44,15 @@
     margin: auto;
     font-size: large;
     font-weight: 570;
-    font-family: "Roboto", sans-serif;
+    font-family: "Playfair Display", serif;
     margin: 0px 10px !important;
     color: #d5b697;
 }
 
 .login-title span {
     width: 16px;
-    cursor: pointer; /* Pointer cursor for close button */
+    cursor: pointer;
+    /* Pointer cursor for close button */
     margin-top: -85px;
     color: #d5b697;
 }
@@ -54,61 +61,86 @@
     width: 80px;
     margin: 0 auto;
     display: block;
-    margin-bottom: -20px; /* Optional: tweak spacing between logo and title */
+    margin-bottom: -20px;
+    /* Optional: tweak spacing between logo and title */
 }
 
 
 .login-inputs {
     display: flex;
     flex-direction: column;
-    gap: 15px; /* Space between input fields */
+    gap: 15px;
+    /* Space between input fields */
     margin: 0px 10px;
 }
 
 .login-inputs input {
-    outline: none; /* Removes the default outline */
-    border: 1px solid #183030; /* Light border for inputs */
-    padding: 10px; /* Padding inside input fields */
-    border-radius: 12px; /* Rounded corners for inputs */
-    background: #d5b697; /* Background color for inputs */
+    outline: none;
+    /* Removes the default outline */
+    border: 1px solid #183030;
+    /* Light border for inputs */
+    padding: 10px;
+    /* Padding inside input fields */
+    border-radius: 12px;
+    /* Rounded corners for inputs */
+    background: #d5b697;
+    /* Background color for inputs */
     color: #183030;
 }
 
 .login-container input::placeholder {
-    color: #183030; /* Change the color and opacity here */
-    opacity: 0.7; /* Ensures the color is applied correctly across browsers */
-  }
+    color: #183030;
+    /* Change the color and opacity here */
+    opacity: 0.7;
+    /* Ensures the color is applied correctly across browsers */
+}
 
 .login-container button {
-    border: none; /* Remove default border */
-    padding: 10px; /* Padding inside button */
-    border-radius: 12px; /* Rounded corners for button */
-    color: #183030; /* Text color */
-    background-color: #d5b697; /* Dark background color */
-    font-size: 15px; /* Font size */
-    cursor: pointer; /* Pointer cursor on hover */
-    margin-bottom: 5px; /* Margin below the button */
+    border: none;
+    /* Remove default border */
+    padding: 10px;
+    /* Padding inside button */
+    border-radius: 12px;
+    /* Rounded corners for button */
+    color: #183030;
+    /* Text color */
+    background-color: #d5b697;
+    /* Dark background color */
+    font-size: 15px;
+    /* Font size */
+    cursor: pointer;
+    /* Pointer cursor on hover */
+    margin-bottom: 5px;
+    /* Margin below the button */
     font-size: 300;
     font-weight: 500;
     margin: 40px 10px;
 }
 
 .login-condition {
-    display: flex; /* Flex container for checkbox and text */
-    align-items: start; /* Align checkbox to the start */
-    gap: 8px; /* Space between checkbox and text */
-    margin-top: -15px; /* Adjust vertical spacing */
+    display: flex;
+    /* Flex container for checkbox and text */
+    align-items: start;
+    /* Align checkbox to the start */
+    gap: 8px;
+    /* Space between checkbox and text */
+    margin-top: -15px;
+    /* Adjust vertical spacing */
     margin: 0px 10px;
 }
 
 .login-condition input {
-    margin-top: 5px; /* Space above checkbox */
+    margin-top: 5px;
+    /* Space above checkbox */
 }
 
 .login p span {
-    color: #183030; /* Red color for the span */
-    font-weight: 500; /* Semi-bold weight */
-    cursor: pointer; /* Pointer cursor on hover */
+    color: #183030;
+    /* Red color for the span */
+    font-weight: 500;
+    /* Semi-bold weight */
+    cursor: pointer;
+    /* Pointer cursor on hover */
 }
 
 /* Media query for responsiveness */
@@ -121,7 +153,8 @@
     }
 
     .login {
-        margin-top: 0px; /* Margin adjustment for login container */
+        margin-top: 0px;
+        /* Margin adjustment for login container */
     }
 
     .login-title span {
@@ -131,10 +164,11 @@
     }
 
     .login-container {
-        height: max(60vh, 480px); /* Adjust the size as needed */
+        height: max(60vh, 480px);
+        /* Adjust the size as needed */
     }
 
-    .login-condition{
+    .login-condition {
         margin-top: -18px !important;
     }
 }

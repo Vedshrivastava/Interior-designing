@@ -1,43 +1,21 @@
 import React from 'react';
 import '../styles/why-choose-us.css';
 
-import warranty from '../assets/warranty.avif';
-import quality from '../assets/quality.avif';
-import customer_satisfaction from '../assets/customer-satisfaction.avif';
-import designers from '../assets/designer1.jpg';
-import budget from '../assets/budget.avif';
+import img1 from '../assets/quality.avif';
+import img2 from '../assets/budget.avif';
+import img3 from '../assets/designer1.jpg';
+import img4 from '../assets/customer-satisfaction.avif';
+import img5 from '../assets/warranty.avif';
+import img6 from '../assets/quality.avif';
+import mainImage from '../assets/designer1.jpg';
 
-const messages = [
-  {
-    image: quality,
-    title: "Premium Quality",
-    description:
-      "Luxury finishes, premium materials, and attention to every small detail."
-  },
-  {
-    image: budget,
-    title: "Transparent Pricing",
-    description:
-      "Elegant interiors designed within your budget without compromising quality."
-  },
-  {
-    image: designers,
-    title: "Experienced Designers",
-    description:
-      "Creative experts who blend aesthetics, comfort, and functionality beautifully."
-  },
-  {
-    image: customer_satisfaction,
-    title: "Client Satisfaction",
-    description:
-      "We prioritize trust, communication, and long-term relationships with clients."
-  },
-  {
-    image: warranty,
-    title: "10+ Years Warranty",
-    description:
-      "Reliable craftsmanship backed by long-lasting warranty support and service."
-  }
+const smallImages = [
+  img1,
+  img2,
+  img3,
+  img4,
+  img5,
+  img6
 ];
 
 const WhyChooseUs = () => {
@@ -59,27 +37,32 @@ const WhyChooseUs = () => {
         </p>
       </div>
 
-      <div className="why-choose-grid">
-        {messages.map((message, index) => (
-          <div className="why-card" key={index}>
+      <div className="why-gallery-layout">
 
-            <div className="why-card-image-wrapper">
+        {/* LEFT SIDE - 6 IMAGES */}
+
+        <div className="why-gallery-grid">
+          {smallImages.map((image, index) => (
+            <div className="why-gallery-card" key={index}>
               <img
-                src={message.image}
-                alt={message.title}
-                className="why-card-image"
+                src={image}
+                alt={`Interior ${index + 1}`}
+                className="why-gallery-image"
               />
-
-              <div className="why-overlay"></div>
             </div>
+          ))}
+        </div>
 
-            <div className="why-card-content">
-              <h2>{message.title}</h2>
-              <p>{message.description}</p>
-            </div>
+        {/* RIGHT SIDE - BIG IMAGE */}
 
-          </div>
-        ))}
+        <div className="why-featured-image-wrapper">
+          <img
+            src={mainImage}
+            alt="Luxury Interior"
+            className="why-featured-image"
+          />
+        </div>
+
       </div>
 
     </section>

@@ -7,8 +7,6 @@ import residence from '../assets/residence.webp';
 import commercial from '../assets/commercial.webp';
 import renovation from '../assets/renovation.webp';
 import bgimg from '../assets/home-img.webp';
-
-import MainNavbar from '../components/mainNavbar';
 import Footer from '../components/Footer';
 
 const services = [
@@ -113,8 +111,6 @@ const Services = ({ setShowLogin }) => {
         />
 
         <div className="services-overlay"></div>
-
-        <MainNavbar setShowLogin={setShowLogin} />
 
         <div className="services-hero-content">
 

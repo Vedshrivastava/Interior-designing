@@ -6,7 +6,6 @@ import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css'; // Import slick-carousel CSS
 import '../styles/designDisplay.css';
 import Design from '../components/Design';
-import MainNavbar from '../components/mainNavbar';
 import Footer from '../components/Footer';
 
 const DesignDisplay = ({ setShowLogin, setConsultData, consultData }) => {
@@ -64,7 +63,6 @@ const DesignDisplay = ({ setShowLogin, setConsultData, consultData }) => {
       <div className='design-display-main' id='design-display'>
 
         {/* New Design Navbar */}
-        <MainNavbar setShowLogin={setShowLogin} />
 
         <h2>{currentCategory}</h2>
         <p className='main-para'>

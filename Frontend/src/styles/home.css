@@ -1,5 +1,13 @@
 /* ---------------- GLOBAL ---------------- */
 
+.overlay {
+  pointer-events: none;
+}
+
+.home-container {
+  isolation: isolate;
+}
+
 .home-page {
   overflow-x: hidden;
   background-color: #f8f5f0;
@@ -152,39 +160,77 @@
   transform: translateY(-3px);
 }
 
-/* ---------------- STATS SECTION ---------------- */
+/* =========================
+   IMAGE STATS SECTION (FULL IMAGE PREMIUM GRID)
+========================= */
 
 .stats-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 24px;
-  padding: 70px 6%;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 22px;
+  padding: 50px 6%;
   background: #102525;
 }
 
-.stat-box {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(213,182,151,0.15);
+/* card container */
+.stat-box.image-box {
+  position: relative;
+  height: 140px;              /* consistent strong visual block */
   border-radius: 22px;
-  padding: 38px 20px;
-  text-align: center;
-  transition: 0.3s ease;
+  overflow: hidden;
+  cursor: pointer;
+
+  box-shadow: 0 10px 28px rgba(0,0,0,0.25);
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
 }
 
-.stat-box:hover {
-  transform: translateY(-6px);
+/* hover lift */
+.stat-box.image-box:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.35);
 }
 
-.stat-box h2 {
-  color: #d5b697;
-  font-size: 2.4rem;
-  margin-bottom: 10px;
-  font-family: "Playfair Display", serif;
+/* image fills entire box */
+.stat-box.image-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;   /* IMPORTANT: perfect crop */
+  transition: transform 0.6s ease, filter 0.6s ease;
 }
 
-.stat-box p {
-  color: #f1dbc2;
-  font-size: 1rem;
+/* zoom effect */
+.stat-box.image-box:hover img {
+  transform: scale(1.08);
+  filter: brightness(0.85);
+}
+
+/* subtle luxury overlay for depth */
+.stat-box.image-box::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.55),
+    rgba(0, 0, 0, 0.05) 60%,
+    transparent
+  );
+  z-index: 1;
+}
+
+/* optional glow border on hover */
+.stat-box.image-box::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  border: 1px solid rgba(213, 182, 151, 0.15);
+  z-index: 2;
+  transition: border-color 0.3s ease;
+}
+
+.stat-box.image-box:hover::before {
+  border-color: rgba(213, 182, 151, 0.4);
 }
 
 /* ---------------- CARD AREA ---------------- */
@@ -194,15 +240,20 @@
   flex-direction: column;
   align-items: center;
   background-color: #f8f5f0;
-  padding: 100px 5%;
+
+  /* reduced top & bottom section spacing */
+  padding: 70px 5%;
 }
 
 .card-area .contents {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 85%;
+  width: 90%;
   text-align: center;
+
+  /* removes unnecessary internal spacing */
+  gap: 10px;
 }
 
 .card-area .contents h1 {
@@ -210,27 +261,44 @@
   font-weight: 600;
   font-family: "Playfair Display", serif;
   color: #183030;
-  margin-bottom: 20px;
+
+  /* reduced spacing below heading */
+  margin: 0;
+  line-height: 1.1;
 }
 
 .card-area .contents p {
   font-size: clamp(1rem, 2vw, 1.15rem);
-  line-height: 1.9;
+  line-height: 1.7;
   color: #4f4f4f;
   width: 75%;
+
+  /* removes default paragraph spacing */
+  margin: 0;
 }
 
 .card-area .cards {
-  margin-top: 60px;
+  /* reduced gap between heading content & cards */
+  margin-top: 40px;
+
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 28px;
+  gap: 24px;
   width: 100%;
 }
 
+/* EACH CARD */
+@media (min-width: 1100px) {
+  .card-area .cards > * {
+    flex: 0 1 calc(25% - 24px);
+    max-width: calc(25% - 24px);
+  }
+}
+
 .view-more-container {
-  margin-top: 50px;
+  /* reduced bottom spacing */
+  margin-top: 35px;
 }
 
 
@@ -279,42 +347,74 @@
 /* ---------------- SERVICES (UPGRADED DENSITY + STRUCTURE) ---------------- */
 .luxury-divider {
   width: 100%;
-  height: 75px;
+  height: 100px;
   margin: 12px auto;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  border-radius: 12px;
 }
 
-/* pattern layer only */
+/* PRIMARY DIAMOND LAYER (same as CTA) */
 .luxury-divider::before {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 0;
+  opacity: 0.18;
 
   background-image:
-    radial-gradient(circle at center, rgba(24, 48, 48, 0.45) 2px, transparent 2.6px),
     repeating-linear-gradient(
       45deg,
-      rgba(24, 48, 48, 0.18) 0px,
-      rgba(24, 48, 48, 0.18) 2px,
-      transparent 2px,
-      transparent 10px
+      #102525 0px,
+      #102525 3px,
+      transparent 3px,
+      transparent 28px
     ),
     repeating-linear-gradient(
       -45deg,
-      rgba(24, 48, 48, 0.14) 0px,
-      rgba(24, 48, 48, 0.14) 1px,
-      transparent 1px,
-      transparent 12px
+      #102525 0px,
+      #102525 3px,
+      transparent 3px,
+      transparent 28px
     );
+}
 
-  background-size: 14px 14px, auto, auto;
-  opacity: 0.95;
+/* SECONDARY FINE DETAIL LAYER (same as CTA) */
+.luxury-divider::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.10;
 
-  border-radius: 12px;
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      #102525 0px,
+      #102525 2px,
+      transparent 2px,
+      transparent 14px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      #102525 0px,
+      #102525 2px,
+      transparent 2px,
+      transparent 14px
+    );
+}
 
+/* content stays above */
+.luxury-divider > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* edge fade (optional but matches premium CTA feel) */
+.luxury-divider {
   mask-image: linear-gradient(
     to right,
     transparent,
@@ -322,6 +422,19 @@
     black 95%,
     transparent
   );
+}
+/* ---------------- TABLET & BELOW ---------------- */
+@media (max-width: 992px) {
+  .luxury-divider {
+    height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .luxury-divider::before {
+    content: none;
+  }
 }
 /* =========================
    OPTIONAL: PREMIUM HOVER DEPTH
@@ -342,13 +455,13 @@
 }
 
 .services-section {
-  padding: 100px 6%;
+  padding: 60px 6%;
   background-color: #f8f5f0;
 }
 
 .services-section .contents {
   text-align: center;
-  margin-bottom: 70px;
+  margin-bottom: 50px;
 }
 
 .services-section .contents h1 {
@@ -420,7 +533,7 @@
 /* ---------------- TESTIMONIALS (UPGRADED) ---------------- */
 
 .testimonial-section {
-  padding: 100px 6%;
+  padding: 80px 6% 100px 6%; /* Increased top padding to give room for popping out avatars */
   background: #102525;
 }
 
@@ -435,53 +548,95 @@
   font-family: "Playfair Display", serif;
 }
 
+/* Forces exactly 3 columns on desktop, drops to stack responsively on small screens */
 .testimonial-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 26px;
-  margin-top: 60px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 40px; 
+  margin-top: 80px;
 }
 
+/* Card container matching the image design */
 .testimonial-card {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(213, 182, 151, 0.15);
-  border-radius: 22px;
-  padding: 30px;
+  background: #f8f5f0; /* Light grey backdrop like the image */
+  border-radius: 28px;
+  padding: 40px 30px;
   position: relative;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
   transition: all 0.35s ease;
-  backdrop-filter: blur(8px);
+  margin-top: 40px; /* Gives room for the avatar to overlap top border */
 }
 
 .testimonial-card:hover {
   transform: translateY(-8px);
-  border-color: rgba(213, 182, 151, 0.4);
 }
 
-/* Quote styling */
-.testimonial-card p {
-  color: #f5e6d5;
-  line-height: 1.9;
-  font-size: 1rem;
-  margin-bottom: 18px;
-  position: relative;
+/* Floating Avatar Style */
+.avatar-container {
+  position: absolute;
+  top: -45px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  background: #eaeaea;
 }
 
-/* Star rating */
-.testimonial-card::before {
-  content: "★★★★★";
-  color: #d5b697;
-  font-size: 0.9rem;
-  letter-spacing: 2px;
-  display: block;
-  margin-bottom: 12px;
+.avatar-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-/* Client name */
+/* User identity section */
+.client-info {
+  margin-top: 35px;
+  margin-bottom: 20px;
+}
+
 .testimonial-card h4 {
-  margin-top: 15px;
-  color: #d5b697;
-  font-weight: 600;
-  letter-spacing: 1px;
+  color: #111111; /* Dark text for clarity against light card background */
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.client-company {
+  color: #666666;
+  font-size: 0.9rem;
+  display: block;
+  margin-top: 4px;
+}
+
+/* Centralized Quote Paragraph Style */
+.testimonial-card p {
+  color: #333333;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  margin: 0 auto 25px auto;
+  max-width: 90%;
+}
+
+/* Floating Green Checkmark Badge at the bottom center */
+.bottom-badge {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #183030; /* Green color match */
+  color: #ffffff;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px; /* Slightly rounded corners like the image icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
 /* ---------------- BRANDS ---------------- */
@@ -492,6 +647,12 @@
   text-align: center;
 }
 
+.brands-section .contents {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .brands-section h1 {
   color: #183030;
   font-size: clamp(2.5rem, 5vw, 4rem);
@@ -499,43 +660,126 @@
   font-family: "Playfair Display", serif;
 }
 
+/* GRID FOR LOGOS */
 .brands-grid {
   margin-top: 60px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 24px;
+  align-items: center;
+  justify-items: center;
 }
 
-.brands-grid div {
-  background: white;
-  padding: 30px;
-  border-radius: 18px;
-  font-weight: 600;
-  color: #183030;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+/* LOGO IMAGE BOX (FIXED SIZE CARD) */
+.brands-grid img {
+  width: 100%;
+  max-width: 250px;
+  height: 150px;
+
+  object-fit: contain;
+
+  background: #fff;          /* creates card box */
+  padding: 20px;
+  border-radius: 12px;
+
+  box-sizing: border-box;    /* IMPORTANT: prevents overflow */
+
+  opacity: 0.75;
+  transition: all 0.3s ease;
+
+  display: block;
+}
+
+/* HOVER EFFECT (SAFE - NO LEAKING) */
+.brands-grid img:hover {
+  filter: grayscale(0%);
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* OPTIONAL: subtle breathing space effect */
+.brands-grid img {
+  padding: 8px;
 }
 
 /* ---------------- CTA ---------------- */
 
 .cta-section {
+  position: relative;
   padding: 120px 6%;
-  background: linear-gradient(
-    to right,
-    #183030,
-    #224242
-  );
+  background: #f8f5f0;
   text-align: center;
+  overflow: hidden;
 }
 
+/* PRIMARY DIAMOND LAYER (stronger presence) */
+.cta-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.18;
+
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      #102525 0px,
+      #102525 3px,
+      transparent 3px,
+      transparent 28px
+    ),
+
+    repeating-linear-gradient(
+      -45deg,
+      #102525 0px,
+      #102525 3px,
+      transparent 3px,
+      transparent 28px
+    );
+}
+
+/* SECONDARY FINE DETAIL LAYER (slightly darker, tighter feel) */
+.cta-section::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.10;
+
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      #102525 0px,
+      #102525 2px,
+      transparent 2px,
+      transparent 14px
+    ),
+
+    repeating-linear-gradient(
+      -45deg,
+      #102525 0px,
+      #102525 2px,
+      transparent 2px,
+      transparent 14px
+    );
+}
+
+/* content above background */
+.cta-section > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* typography */
 .cta-section h1 {
   font-size: clamp(2.5rem, 5vw, 4.5rem);
-  color: #f1dbc2;
+  color: #102525;
   font-family: "Playfair Display", serif;
 }
 
 .cta-section p {
   margin: 24px auto 40px;
-  color: #f5e6d5;
+  color: rgba(16, 37, 37, 0.78);
   max-width: 700px;
   line-height: 1.9;
   font-size: 1.05rem;
@@ -653,8 +897,21 @@
   }
 
   .card-area .cards {
-      gap: 18px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
   }
+
+  .card-area .cards > * {
+    width: 96% !important;
+    max-width: 96% !important;
+    min-width: 0 !important;
+    justify-self: center;
+    transform: scale(0.97);
+    box-sizing: border-box;
+}
 }
 
 /* ---------------- ANIMATION ---------------- */

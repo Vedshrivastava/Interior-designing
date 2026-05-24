@@ -1,16 +1,23 @@
 import React from 'react';
 import '../styles/home.css';
 import '../styles/lux-pattern.css';
-
 import bgimg from '../assets/home-img.webp';
 import kitchen_img from '../assets/kitchen-img.jpg';
 import bathroom_img from '../assets/bathroom-img.jpg';
 import kids_img from '../assets/kids-room-img.jpg';
 import house_img from '../assets/house-exterior-img.png';
+import projects_50 from '../assets/50+projects.jpg';
+import experience_5 from '../assets/5+experience.png';
+import custom_100 from '../assets/100_custom.png';
+import turnkey from '../assets/turnkey.png';
 import TV_unit_img from '../assets/TV-unit-img.png';
 import lounge_img from '../assets/lounge-img.jpg';
 import bedroom_img from '../assets/bedroom-image.png';
 import shop_img from '../assets/shop-img.jpeg';
+import kajaria from '../assets/kajaria.png';
+import saint_gobain from '../assets/Saint-Gobain.jpg';
+import asian_paints from '../assets/asian-paints.jpeg';
+import centuryply from '../assets/centuryply.png';
 
 import residence from '../assets/residence.png';
 import commercial from '../assets/commercial.webp';
@@ -23,7 +30,6 @@ import rates from '../assets/rates.png';
 import Card from '../components/card';
 import WhyChooseUs from '../components/why-choose-us';
 import Footer from '../components/Footer';
-import MainNavbar from '../components/mainNavbar';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -52,6 +58,7 @@ import {
   faHome,
   faStore,
   faQuoteLeft,
+  faCheckCircle,
   faIndustry,
   faStar,
   faWandMagicSparkles
@@ -74,7 +81,6 @@ const Home = ({ setShowLogin }) => {
         <img src={bgimg} alt="Background" className="background-image" />
         <div className="overlay"></div>
 
-        <MainNavbar setShowLogin={setShowLogin} />
 
         <header className="hero-section">
 
@@ -85,7 +91,7 @@ const Home = ({ setShowLogin }) => {
             </span>
 
             <h1>
-             Shrivastavas Elevate
+              Shrivastavas Elevate
             </h1>
 
             <p className='hero-description'>
@@ -116,24 +122,20 @@ const Home = ({ setShowLogin }) => {
       {/* TRUST STATS */}
       <section className='stats-section'>
 
-        <div className='stat-box'>
-          <h2><FontAwesomeIcon icon={faRocket} /> 50+</h2>
-          <p>Projects Completed</p>
+        <div className='stat-box image-box'>
+          <img src={projects_50} />
         </div>
 
-        <div className='stat-box'>
-          <h2><FontAwesomeIcon icon={faClock} /> 5+</h2>
-          <p>Years Experience</p>
+        <div className='stat-box image-box'>
+          <img src={experience_5} />
         </div>
 
-        <div className='stat-box'>
-          <h2><FontAwesomeIcon icon={faCheck} /> 100%</h2>
-          <p>Custom Designs</p>
+        <div className='stat-box image-box'>
+          <img src={custom_100} />
         </div>
 
-        <div className='stat-box'>
-          <h2><FontAwesomeIcon icon={faCubes} /> Turnkey</h2>
-          <p>Execution Solutions</p>
+        <div className='stat-box image-box'>
+          <img src={turnkey} />
         </div>
 
       </section>
@@ -156,17 +158,47 @@ const Home = ({ setShowLogin }) => {
 
         <div className="cards">
 
-          <Card image={kitchen_img} heading={<><FontAwesomeIcon icon={faUtensils} /> Kitchen Designs</>} description="Modern modular kitchen concepts" />
+          <Card
+            image={kitchen_img}
+            category="Kitchen Designs"
+            heading={<><FontAwesomeIcon icon={faUtensils} /> Kitchen Designs</>}
+            description="Modern modular kitchen concepts"
+          />
 
-          <Card image={bedroom_img} heading={<><FontAwesomeIcon icon={faBed} /> Bedroom Designs</>} description="Elegant and luxurious bedroom interiors" />
+          <Card
+            image={bedroom_img}
+            category="Bedroom Designs"
+            heading={<><FontAwesomeIcon icon={faBed} /> Bedroom Designs</>}
+            description="Elegant and luxurious bedroom interiors"
+          />
 
-          <Card image={bathroom_img} heading={<><FontAwesomeIcon icon={faBath} /> Bathroom Designs</>} description="Minimal and premium bathroom aesthetics" />
+          <Card
+            image={bathroom_img}
+            category="Bathroom Designs"
+            heading={<><FontAwesomeIcon icon={faBath} /> Bathroom Designs</>}
+            description="Minimal and premium bathroom aesthetics"
+          />
 
-          <Card image={lounge_img} heading={<><FontAwesomeIcon icon={faCouch} /> Lounge Designs</>} description="Luxury lounge and living spaces" />
+          <Card
+            image={lounge_img}
+            category="Lounge area Designs"
+            heading={<><FontAwesomeIcon icon={faCouch} /> Lounge Designs</>}
+            description="Luxury lounge and living spaces"
+          />
 
-          <Card image={TV_unit_img} heading={<><FontAwesomeIcon icon={faTv} /> TV Unit Designs</>} description="Modern entertainment wall concepts" />
+          <Card
+            image={TV_unit_img}
+            category="TV Unit Designs"
+            heading={<><FontAwesomeIcon icon={faTv} /> TV Unit Designs</>}
+            description="Modern entertainment wall concepts"
+          />
 
-          <Card image={kids_img} heading={<><FontAwesomeIcon icon={faChild} /> Kids Room Designs</>} description="Creative and functional spaces" />
+          <Card
+            image={kids_img}
+            category="Kids Room Designs"
+            heading={<><FontAwesomeIcon icon={faChild} /> Kids Room Designs</>}
+            description="Creative and functional spaces"
+          />
 
         </div>
 
@@ -205,163 +237,181 @@ const Home = ({ setShowLogin }) => {
 
       </section>
 
-{/* SERVICES */}
-<section className='services-section'>
+      {/* SERVICES */}
+      <section className='services-section'>
 
-  <div className='contents'>
-    <span className='section-tag'>
-      <FontAwesomeIcon icon={faHome} /> Client Benefits
-    </span>
+        <div className='contents'>
+          <span className='section-tag'>
+            <FontAwesomeIcon icon={faHome} /> Client Benefits
+          </span>
 
-    <h1>Advantages Our Clients Get</h1>
-  </div>
+          <h1>Advantages Our Clients Get</h1>
+        </div>
 
-  {/* SERVICE 1 */}
-  <div className="service-item luxury-frame">
+        {/* SERVICE 1 */}
+        <div className="service-item luxury-frame">
 
-    <div className="service-image">
-      <div className="image-frame">
-        <div className="pattern-bar left"></div>
-        <img src={rates} alt="" />
-        <div className="pattern-bar right"></div>
-      </div>
-    </div>
+          <div className="service-image">
+            <div className="image-frame">
+              <div className="pattern-bar left"></div>
+              <img src={rates} alt="" />
+              <div className="pattern-bar right"></div>
+            </div>
+          </div>
 
-    <div className="service-content">
-      <div className="luxury-divider top"></div>
+          <div className="service-content">
+            <div className="luxury-divider top"></div>
 
-      <h3>
-        <FontAwesomeIcon icon={faCubes} /> Affordable Luxury
-      </h3>
+            <h3>
+              <FontAwesomeIcon icon={faCubes} /> Affordable Luxury
+            </h3>
 
-      <p>
-        Premium interiors with transparent pricing and zero hidden costs,
-        ensuring luxury stays accessible.
-      </p>
+            <p>
+              Premium interiors with transparent pricing and zero hidden costs,
+              ensuring luxury stays accessible.
+            </p>
 
-      <div className="luxury-divider bottom"></div>
-    </div>
+            <div className="luxury-divider bottom"></div>
+          </div>
 
-  </div>
+        </div>
 
-  {/* SERVICE 2 */}
-  <div className="service-item reverse luxury-frame">
+        {/* SERVICE 2 */}
+        <div className="service-item reverse luxury-frame">
 
-    <div className="service-image">
-      <div className="image-frame">
-        <div className="pattern-bar left"></div>
-        <img src={design} alt="" />
-        <div className="pattern-bar right"></div>
-      </div>
-    </div>
+          <div className="service-image">
+            <div className="image-frame">
+              <div className="pattern-bar left"></div>
+              <img src={design} alt="" />
+              <div className="pattern-bar right"></div>
+            </div>
+          </div>
 
-    <div className="service-content">
+          <div className="service-content">
 
-      <div className="luxury-divider top"></div>
+            <div className="luxury-divider top"></div>
 
-      <h3>
-        <FontAwesomeIcon icon={faCheck} /> Design Consultation Refund
-      </h3>
+            <h3>
+              <FontAwesomeIcon icon={faCheck} /> Design Consultation Refund
+            </h3>
 
-      <p>
-        Your consultation fee is fully adjusted when you proceed with execution,
-        making the design process risk-free.
-      </p>
+            <p>
+              Your consultation fee is fully adjusted when you proceed with execution,
+              making the design process risk-free.
+            </p>
 
-      <div className="luxury-divider bottom"></div>
+            <div className="luxury-divider bottom"></div>
 
-    </div>
+          </div>
 
-  </div>
+        </div>
 
-  {/* SERVICE 3 */}
-  <div className="service-item luxury-frame">
+        {/* SERVICE 3 */}
+        <div className="service-item luxury-frame">
 
-    <div className="service-image">
-      <div className="image-frame">
-        <div className="pattern-bar left"></div>
-        <img src={residence} alt="" />
-        <div className="pattern-bar right"></div>
-      </div>
-    </div>
+          <div className="service-image">
+            <div className="image-frame">
+              <div className="pattern-bar left"></div>
+              <img src={residence} alt="" />
+              <div className="pattern-bar right"></div>
+            </div>
+          </div>
 
-    <div className="service-content">
+          <div className="service-content">
 
-      <div className="luxury-divider top"></div>
+            <div className="luxury-divider top"></div>
 
-      <h3>
-        <FontAwesomeIcon icon={faHome} /> Custom Residential Interiors
-      </h3>
+            <h3>
+              <FontAwesomeIcon icon={faHome} /> Custom Residential Interiors
+            </h3>
 
-      <p>
-        Tailor-made home interiors designed around your lifestyle, comfort,
-        and daily functionality needs.
-      </p>
+            <p>
+              Tailor-made home interiors designed around your lifestyle, comfort,
+              and daily functionality needs.
+            </p>
 
-      <div className="luxury-divider bottom"></div>
+            <div className="luxury-divider bottom"></div>
 
-    </div>
+          </div>
 
-  </div>
+        </div>
 
-</section>
+      </section>
 
-{/* TESTIMONIALS */}
-<section className='testimonial-section'>
+      {/* TESTIMONIALS */}
+      <section className='testimonial-section'>
 
-  <div className='contents'>
-    <span className='section-tag'>
-      <FontAwesomeIcon icon={faQuoteLeft} /> Testimonials
-    </span>
+        <div className='contents'>
+          <span className='section-tag'>
+            <FontAwesomeIcon icon={faQuoteLeft} /> Testimonials
+          </span>
+          <h1>What Our Clients Say</h1>
+        </div>
 
-    <h1>What Our Clients Say</h1>
-  </div>
+        <div className='testimonial-grid'>
 
-  <div className='testimonial-grid'>
+          {/* Card 1 */}
+          <div className='testimonial-card'>
+            <div className='avatar-container'>
+              <img src="https://via.placeholder.com/100" alt="Rahul Mehta" />
+            </div>
 
-    <div className='testimonial-card'>
-      <p>
-        <FontAwesomeIcon icon={faQuoteLeft} />
-        “Exceptional execution and luxurious finishing. The team transformed our home beyond expectations.”
-      </p>
-      <h4>— Rahul Mehta</h4>
-    </div>
+            <div className='client-info'>
+              <h4>Rahul Mehta</h4>
+              <span className='client-company'>Mumbai, IN</span>
+            </div>
 
-    <div className='testimonial-card'>
-      <p>
-        <FontAwesomeIcon icon={faQuoteLeft} />
-        “Their design sense is outstanding. Every corner of our apartment feels premium and thoughtfully designed.”
-      </p>
-      <h4>— Priya Sharma</h4>
-    </div>
+            <p>
+              “Exceptional execution and luxurious finishing. The team transformed our home beyond expectations.”
+            </p>
 
-    <div className='testimonial-card'>
-      <p>
-        <FontAwesomeIcon icon={faQuoteLeft} />
-        “Professional, transparent, and highly skilled team. The 3D design matched the final output perfectly.”
-      </p>
-      <h4>— Aman Verma</h4>
-    </div>
+            <div className='bottom-badge'>
+              <FontAwesomeIcon icon={faCheckCircle} />
+            </div>
+          </div>
 
-    <div className='testimonial-card'>
-      <p>
-        <FontAwesomeIcon icon={faQuoteLeft} />
-        “From planning to execution, everything was smooth and well-managed. Highly recommended.”
-      </p>
-      <h4>— Neha Singh</h4>
-    </div>
+          {/* Card 2 */}
+          <div className='testimonial-card'>
+            <div className='avatar-container'>
+              <img src="https://via.placeholder.com/100" alt="Priya Sharma" />
+            </div>
 
-    <div className='testimonial-card'>
-      <p>
-        <FontAwesomeIcon icon={faQuoteLeft} />
-        “They completely redesigned our office space into a modern, productive environment.”
-      </p>
-      <h4>— Karan Malhotra</h4>
-    </div>
+            <div className='client-info'>
+              <h4>Priya Sharma</h4>
+              <span className='client-company'>Delhi, IN</span>
+            </div>
 
-  </div>
+            <p>
+              “Their design sense is outstanding. Every corner of our apartment feels premium and thoughtfully designed.”
+            </p>
 
-</section>
+            <div className='bottom-badge'>
+              <FontAwesomeIcon icon={faCheckCircle} />
+            </div>
+          </div>
+
+          {/* Card 3 */}
+          <div className='testimonial-card'>
+            <div className='avatar-container'>
+              <img src="https://via.placeholder.com/100" alt="Aman Verma" />
+            </div>
+
+            <div className='client-info'>
+              <h4>Aman Verma</h4>
+              <span className='client-company'>Bangalore, IN</span>
+            </div>
+
+            <p>
+              “Professional, transparent, and highly skilled team. The 3D design matched the final output perfectly.”
+            </p>
+
+            <div className='bottom-badge'>
+              <FontAwesomeIcon icon={faCheckCircle} />
+            </div>
+          </div>
+
+        </div>
+      </section>
 
       {/* BRANDS */}
       <section className='brands-section'>
@@ -375,10 +425,21 @@ const Home = ({ setShowLogin }) => {
         </div>
 
         <div className='brands-grid'>
-          <div><FontAwesomeIcon icon={faStar} /> CenturyPly</div>
-          <div><FontAwesomeIcon icon={faStar} /> Greenply</div>
-          <div><FontAwesomeIcon icon={faStar} /> Hafele</div>
-          <div><FontAwesomeIcon icon={faStar} /> Hettich</div>
+
+          <img src={kajaria} alt="CenturyPly" />
+          <img src={saint_gobain} alt="CenturyPly" />
+          <img src={asian_paints} alt="CenturyPly" />
+          <img src={centuryply} alt="CenturyPly" />
+          <img src="https://via.placeholder.com/100" alt="CenturyPly" />
+          <img src="https://via.placeholder.com/100" alt="CenturyPly" />
+          <img src="https://via.placeholder.com/100" alt="CenturyPly" />
+          <img src="https://via.placeholder.com/100" alt="CenturyPly" />
+          <img src="https://via.placeholder.com/100" alt="CenturyPly" />
+          <img src="https://via.placeholder.com/100" alt="CenturyPly" />
+          <img src="https://via.placeholder.com/100" alt="CenturyPly" />
+          <img src="https://via.placeholder.com/100" alt="CenturyPly" />
+          <img src="https://via.placeholder.com/100" alt="CenturyPly" />
+          <img src="https://via.placeholder.com/100" alt="CenturyPly" />
         </div>
 
       </section>

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../styles/projects.css';
 import Design from '../components/Design';
-import MainNavbar from '../components/mainNavbar';
 import Footer from '../components/Footer';
 
 
@@ -28,7 +27,6 @@ const Projects = ({ setShowLogin }) => {
       <div className='project-display' id='project-display'>
 
         {/* New Design Navbar */}
-        <MainNavbar setShowLogin={setShowLogin}/>
 
         <h2 className='project-heading'>Recent Projects</h2>
         <p className='project-main-para'>

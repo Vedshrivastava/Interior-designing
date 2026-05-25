@@ -1,19 +1,44 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import Slider from 'react-slick'; // Import react-slick
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css'; // Import slick-carousel CSS
 import '../styles/designDisplay.css';
 import Design from '../components/Design';
 import Footer from '../components/Footer';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPalette, faLayerGroup } from '@fortawesome/free-solid-svg-icons';
+
+const CATEGORIES = [
+  'Kitchen Designs',
+  'Bedroom Designs',
+  'Bathroom Designs',
+  'Lounge area Designs',
+  'TV Unit Designs',
+  'Kids Room Designs',
+  'Commercial Designs',
+  'House Exterior',
+  'Mandir Designs',
+  'Garden Designs',
+];
+
+const LABELS = {
+  'Kitchen Designs':    'Kitchen',
+  'Bedroom Designs':   'Bedroom',
+  'Bathroom Designs':  'Bathroom',
+  'Lounge area Designs':'Lounge',
+  'TV Unit Designs':   'TV Unit',
+  'Kids Room Designs': 'Kids Room',
+  'Commercial Designs':'Commercial',
+  'House Exterior':    'Exterior',
+  'Mandir Designs':    'Mandir',
+  'Garden Designs':    'Garden',
+};
 
 const DesignDisplay = ({ setShowLogin, setConsultData, consultData }) => {
   const url = "http://localhost:3000";
   const { category } = useParams();
   const [designList, setDesignList] = useState([]);
-  const [currentCategory, setCurrentCategory] = useState(category);
-  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 780);
+  const [currentCategory, setCurrentCategory] = useState(category || CATEGORIES[0]);
+  const mobileBarRef = useRef(null);
 
   useEffect(() => {
     const fetchDesignList = async () => {
@@ -25,127 +50,84 @@ const DesignDisplay = ({ setShowLogin, setConsultData, consultData }) => {
       }
     };
     fetchDesignList();
-  }, [currentCategory, url]);
+  }, [currentCategory]);
 
+  /* keep active mobile chip in view */
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobileView(window.innerWidth < 780);
-    };
+    if (!mobileBarRef.current) return;
+    const active = mobileBarRef.current.querySelector('.dd-cat-chip.active');
+    if (active) active.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  }, [currentCategory]);
 
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
+  const handleCategory = (cat) => setCurrentCategory(cat);
 
-  const handleSliderClick = (newCategory) => {
-    setCurrentCategory(newCategory);
-  };
+  const visibleDesigns = designList.filter(
+    item => currentCategory === 'All' || currentCategory === item.category
+  );
 
-  const handleSelectChange = (e) => {
-    const selectedCategory = e.target.value;
-    handleSliderClick(selectedCategory);
-  };
-
-  const sliderSettings = {
-    infinite: true,
-    speed: 500,
-    slidesToShow: 8,
-    slidesToScroll: 1,
-    autoplay: true,
-    autoplaySpeed: 2000,
-    draggable: true,
-  };
-
+  /* short display name for the header */
+  const displayName = LABELS[currentCategory] || currentCategory;
 
   return (
     <div>
-      <div className='design-display-main' id='design-display'>
+      <div className="design-display-main" id="design-display">
 
-        {/* New Design Navbar */}
+        {/* ── PAGE HEADER ── */}
+        <div className="dd-header">
+          <div className="dd-header-inner">
 
-        <h2>{currentCategory}</h2>
-        <p className='main-para'>
-          Check out popular modular {currentCategory} amongst our various designs available.
-        </p>
+            <div className="dd-header-left">
+              <div className="dd-overline">
+                <FontAwesomeIcon icon={faPalette} /> Our Designs
+              </div>
+              <h1>{displayName}</h1>
+            </div>
 
-        {/* Conditional Rendering for Slider or Select */}
-        <div className='select-window'>
-          {isMobileView ? (
-            <div className="category-slider">
-              <div className="slider-container">
-                <div className="slider-item" onClick={() => handleSliderClick('Kitchen Designs')}>
-                  <p className={currentCategory === 'Kitchen Designs' ? 'selected-category' : ''}>Kitchen Designs</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('Bedroom Designs')}>
-                  <p className={currentCategory === 'Bedroom Designs' ? 'selected-category' : ''}>Bedroom Designs</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('Bathroom Designs')}>
-                  <p className={currentCategory === 'Bathroom Designs' ? 'selected-category' : ''}>Bathroom Designs</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('Lounge area Designs')}>
-                  <p className={currentCategory === 'Lounge area Designs' ? 'selected-category' : ''}>Lounge area</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('Kids Room Designs')}>
-                  <p className={currentCategory === 'Kids Room Designs' ? 'selected-category' : ''}>Kids room</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('TV Unit Designs')}>
-                  <p className={currentCategory === 'TV Unit Designs' ? 'selected-category' : ''}>TV Unit</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('Commercial Designs')}>
-                  <p className={currentCategory === 'Commercial Designs' ? 'selected-category' : ''}>Commercial Designs</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('House Exterior')}>
-                  <p className={currentCategory === 'House Exterior' ? 'selected-category' : ''}>House Exterior</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('Mandir Designs')}>
-                  <p className={currentCategory === 'Mandir Designs' ? 'selected-category' : ''}>Mandir Designs</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('Garden Designs')}>
-                  <p className={currentCategory === 'Garden Designs' ? 'selected-category' : ''}>Garden Designs</p>
-                </div>
+            <div className="dd-header-right">
+              <p>
+                Explore our curated collection of {displayName.toLowerCase()} — each
+                crafted with premium materials, precision and timeless elegance.
+              </p>
+              <div className="dd-count-badge">
+                <FontAwesomeIcon icon={faLayerGroup} />
+                {visibleDesigns.length} design{visibleDesigns.length !== 1 ? 's' : ''}
               </div>
             </div>
-          ) : (
-            <Slider {...sliderSettings} className="design-slider-bar">
-              <div className="slider-item" onClick={() => handleSliderClick('Kitchen Designs')}>
-                  <p className={currentCategory === 'Kitchen Designs' ? 'selected-category' : ''}>Kitchen Designs</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('Bedroom Designs')}>
-                  <p className={currentCategory === 'Bedroom Designs' ? 'selected-category' : ''}>Bedroom Designs</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('Bathroom Designs')}>
-                  <p className={currentCategory === 'Bathroom Designs' ? 'selected-category' : ''}>Bathroom Designs</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('Lounge area Designs')}>
-                  <p className={currentCategory === 'Lounge area Designs' ? 'selected-category' : ''}>Lounge area</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('Kids Room Designs')}>
-                  <p className={currentCategory === 'Kids Room Designs' ? 'selected-category' : ''}>Kids room</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('TV Unit Designs')}>
-                  <p className={currentCategory === 'TV Unit Designs' ? 'selected-category' : ''}>TV Unit</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('Commercial Designs')}>
-                  <p className={currentCategory === 'Commercial Designs' ? 'selected-category' : ''}>Commercial Designs</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('House Exterior')}>
-                  <p className={currentCategory === 'House Exterior' ? 'selected-category' : ''}>House Exterior</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('Mandir Designs')}>
-                  <p className={currentCategory === 'Mandir Designs' ? 'selected-category' : ''}>Mandir</p>
-                </div>
-                <div className="slider-item" onClick={() => handleSliderClick('Garden Designs')}>
-                  <p className={currentCategory === 'Garden Designs' ? 'selected-category' : ''}>Garden</p>
-                </div>
-            </Slider>
-          )}
+
+          </div>
         </div>
 
-        <div className="design-display-list">
-          {designList.map((item) => {
-            if (currentCategory === "All" || currentCategory === item.category) {
-              return (
+        {/* ── DESKTOP STICKY CATEGORY BAR ── */}
+        <nav className="dd-category-bar" aria-label="Design categories">
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat}
+              className={`dd-cat-pill${currentCategory === cat ? ' active' : ''}`}
+              onClick={() => handleCategory(cat)}
+            >
+              {LABELS[cat]}
+            </button>
+          ))}
+        </nav>
+
+        {/* ── MOBILE SCROLL CHIPS ── */}
+        <div className="dd-cat-mobile" ref={mobileBarRef}>
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat}
+              className={`dd-cat-chip${currentCategory === cat ? ' active' : ''}`}
+              onClick={() => handleCategory(cat)}
+            >
+              {LABELS[cat]}
+            </button>
+          ))}
+        </div>
+
+        {/* ── DESIGN GRID ── */}
+        <div className="dd-body">
+          <div className="design-display-list">
+            {visibleDesigns.length > 0 ? (
+              visibleDesigns.map((item) => (
                 <Design
                   key={item._id}
                   id={item._id}
@@ -157,15 +139,23 @@ const DesignDisplay = ({ setShowLogin, setConsultData, consultData }) => {
                   setConsultData={setConsultData}
                   consultData={consultData}
                 />
-              );
-            }
-            return null;
-          })}
+              ))
+            ) : (
+              <div className="dd-empty">
+                <div className="dd-empty-icon">
+                  <FontAwesomeIcon icon={faPalette} />
+                </div>
+                <h3>No designs yet</h3>
+                <p>We're adding new {displayName.toLowerCase()} soon. Check back shortly.</p>
+              </div>
+            )}
+          </div>
         </div>
+
       </div>
       <Footer />
     </div>
   );
-}
+};
 
 export default DesignDisplay;

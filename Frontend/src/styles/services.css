@@ -226,6 +226,26 @@
   50%       { opacity: 1;   transform: scaleY(1.18); }
 }
 
+/* ── ALTERNATING (ZIGZAG) LAYOUT ── */
+.hp-adv-layout-alt {
+    grid-template-columns: 0.9fr 1.1fr; /* Flips the 60/40 ratio */
+  }
+  
+  /* Moves the tall feature card to the right */
+  .hp-adv-layout-alt .hp-adv-feature {
+    order: 2; 
+  }
+  
+  /* Moves the stacked cards to the left */
+  .hp-adv-layout-alt .hp-adv-stack {
+    order: 1; 
+  }
+  
+  /* Ensure mobile screens still stack correctly (Big card on top) */
+  @media (max-width: 900px) {
+    .hp-adv-layout-alt .hp-adv-feature { order: 1; }
+    .hp-adv-layout-alt .hp-adv-stack   { order: 2; }
+  }
 /* ════════════════════════════════════════════
    STATS BAR — identical to home hp-stats
 ════════════════════════════════════════════ */

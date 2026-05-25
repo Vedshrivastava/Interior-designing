@@ -132,7 +132,7 @@ const Home = ({ setShowLogin }) => {
         ))}
       </section>
 
-      {/* ══════════════════════════════
+{/* ══════════════════════════════
           DESIGNS — editorial card grid
       ══════════════════════════════ */}
       <section className='hp-designs'>
@@ -153,6 +153,7 @@ const Home = ({ setShowLogin }) => {
               comfort and enduring functionality.
             </p>
 
+            {/* ORIGINAL BUTTON KEPT HERE */}
             <button onClick={handleProjects} className='hp-text-btn'>
               View all projects <FontAwesomeIcon icon={faArrowRight} />
             </button>
@@ -199,6 +200,13 @@ const Home = ({ setShowLogin }) => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* NEW BUTTON ADDED AT THE BOTTOM */}
+        <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center' }}>
+          <button onClick={() => navigate('/design/Bedroom%20Designs')} className='hp-text-btn'>
+            View more designs <FontAwesomeIcon icon={faArrowRight} />
+          </button>
         </div>
       </section>
 

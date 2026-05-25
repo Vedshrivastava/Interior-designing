@@ -227,6 +227,7 @@
 }
 
 /* ── ALTERNATING (ZIGZAG) LAYOUT ── */
+/* ── ALTERNATING (ZIGZAG) LAYOUT (DESKTOP) ── */
 .hp-adv-layout-alt {
     grid-template-columns: 0.9fr 1.1fr; /* Flips the 60/40 ratio */
   }
@@ -241,10 +242,51 @@
     order: 1; 
   }
   
-  /* Ensure mobile screens still stack correctly (Big card on top) */
-  @media (max-width: 900px) {
-    .hp-adv-layout-alt .hp-adv-feature { order: 1; }
-    .hp-adv-layout-alt .hp-adv-stack   { order: 2; }
+  /* ── MOBILE/TABLET FIX ── */
+  /* Matches your existing 1100px breakpoint to prevent layout breaking */
+  @media (max-width: 1100px) {
+    .hp-adv-layout-alt { 
+      grid-template-columns: 1fr; 
+    }
+    
+    .hp-adv-layout-alt .hp-adv-feature { 
+      order: 1; /* Puts the big card back on top */
+    }
+    
+    .hp-adv-layout-alt .hp-adv-stack { 
+      order: 2; /* Puts the small cards on the bottom */
+    }
+  }
+  /* ── HIDE EXTRA BULLET POINTS ON MOBILE ── */
+@media (max-width: 768px) {
+    .hp-adv-feature-body ul {
+      display: none;
+    }
+    .hp-adv-feature-img { 
+        height: 160px; 
+      }
+      .hp-adv-feature-body h3 {
+        font-size: 1.2rem; /* Usually standard for h4. Adjust if yours is slightly different! */
+        margin-bottom: 12px; /* Ensures the gap under the title matches the other cards */
+      }
+      .hp-adv-feature, 
+  .hp-adv-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 250px; /* Guarantees they are all the exact same height */
+  }
+
+  /* 5. Sync the inner padding so the empty space matches perfectly */
+  .hp-adv-feature-body {
+    padding: 24px; /* 💡 Note: If your .hp-adv-card-body uses 20px, change this to 20px */
+    flex-grow: 1;  /* Allows the text area to fill the rest of the card evenly */
+  }
+  .hp-adv-feature-body p, 
+  .hp-adv-card-body p {
+    font-size: 0.9rem; /* Usually translates to 14px. Adjust if needed! */
+    line-height: 1.5;  /* Keeps the text breathable and easy to read */
+    margin: 0;         /* Prevents any default browser margins from throwing off the height */
+  }
   }
 /* ════════════════════════════════════════════
    STATS BAR — identical to home hp-stats

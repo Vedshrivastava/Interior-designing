@@ -23,29 +23,29 @@
 
 .design-display h2 {
   color: var(--primary);
-  font-size: clamp(2.2rem, 4vw, 4rem);
+  font-size: clamp(1.8rem, 3vw, 2.6rem); 
   font-family: "Playfair Display", serif;
   font-weight: 700;
-  line-height: 1.1;
-  margin-bottom: 14px;
-  letter-spacing: 0.5px;
+  line-height: 1.15;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
 }
 
 .design-display h3 {
-  font-size: clamp(1.4rem, 2.5vw, 2.3rem);
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
   font-weight: 600;
   color: var(--primary);
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   font-family: "Playfair Display", serif;
 }
 
 /* ===== DESCRIPTION ===== */
 
 .description-text {
-  font-size: 18px;
+  font-size: 0.95rem; 
   color: var(--text);
-  font-family: "Roboto", sans-serif;
-  line-height: 1.9;
+  font-family: "Inter", sans-serif;
+  line-height: 1.7;
   font-weight: 400;
 
   max-height: 105px;
@@ -57,12 +57,10 @@
     opacity 0.3s ease;
 
   padding-bottom: 14px;
-
   position: relative;
 }
 
 /* Elegant fade effect */
-
 .description-text::after {
   content: "";
   position: absolute;
@@ -79,7 +77,6 @@
 }
 
 /* Expanded state */
-
 .description-text.expanded {
   max-height: 1200px;
   padding-bottom: 10px;
@@ -94,8 +91,8 @@
 .design-points {
   list-style: none;
   padding-left: 0;
-  margin-top: 18px;
-  margin-bottom: 18px;
+  margin-top: 16px;
+  margin-bottom: 16px;
 
   opacity: 0;
   max-height: 0;
@@ -109,32 +106,29 @@
 
 .design-points li {
   position: relative;
-  padding-left: 26px;
-  margin-bottom: 14px;
+  padding-left: 24px;
+  margin-bottom: 12px;
 
   color: var(--text);
-  font-size: 17px;
-  line-height: 1.8;
-  font-family: "Roboto", sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  font-family: "Inter", sans-serif;
 }
 
 /* Premium bullet */
-
 .design-points li::before {
   content: "";
   position: absolute;
   left: 0;
-  top: 12px;
-
-  width: 8px;
-  height: 8px;
-
+  top: 10px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--accent);
+  opacity: 0.8;
 }
 
 /* Expanded points */
-
 .design-points.expanded {
   max-height: 1200px;
   opacity: 1;
@@ -144,35 +138,32 @@
 
 .see-more-button {
   background: none;
-  color: var(--primary);
+  color: var(--accent); 
   border: none;
-
   padding: 0;
-  margin-top: 6px;
+  margin-top: 4px;
 
-  font-size: 17px;
-  font-weight: 500;
-  letter-spacing: 0.3px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 
   cursor: pointer;
-
   transition: var(--transition);
-
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
 .see-more-button:hover {
-  color: var(--accent);
+  color: var(--primary);
   transform: translateX(3px);
 }
 
-/* Optional subtle arrow */
-
 .see-more-button::after {
   content: "→";
-  font-size: 18px;
+  font-size: 1.1rem;
   transition: transform 0.3s ease;
 }
 
@@ -184,10 +175,10 @@
 
 .design-display p,
 .design-display ul {
-  font-size: 18px;
+  font-size: 0.95rem;
   color: var(--text);
-  font-family: "Roboto", sans-serif;
-  line-height: 1.8;
+  font-family: "Inter", sans-serif;
+  line-height: 1.7;
 }
 
 /* ===== SLIDER SPACING ===== */
@@ -200,94 +191,106 @@
 
 .get-quote-button {
   position: absolute;
-  bottom: -75px;
+  bottom: -25px; /* Sits beautifully on the edge on desktop */
   left: 50%;
   transform: translateX(-50%);
 
   background: var(--primary);
   color: var(--secondary);
 
-  padding: 15px 34px;
-
-  font-family: "Roboto", sans-serif;
-  font-size: 19px;
-  font-weight: 500;
-  letter-spacing: 0.4px;
+  padding: 14px 36px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
 
   border: none;
-  border-radius: 14px;
+  border-radius: 40px; 
 
   cursor: pointer;
-
   transition: all 0.35s ease;
-
-  box-shadow: 0 12px 30px rgba(24, 48, 48, 0.15);
+  box-shadow: 0 10px 24px rgba(24, 48, 48, 0.12);
 }
 
 .get-quote-button:hover {
-  background: #214040;
+  background: #112222;
   transform: translateX(-50%) translateY(-3px);
-  box-shadow: 0 16px 35px rgba(24, 48, 48, 0.2);
+  box-shadow: 0 14px 32px rgba(24, 48, 48, 0.2);
 }
 
-/* ===== TABLET ===== */
 
+/* ==========================================================================
+   RESPONSIVE LAYOUT ENGINE (FIXES SPACE COLLISIONS)
+   ========================================================================== */
+
+/* ===== TABLET (< 900px) ===== */
 @media (max-width: 900px) {
   .design-display {
     max-width: 90%;
+    margin: 40px auto 60px; /* Reduced margin since button isn't absolute anymore */
   }
 
-  .description-text {
-    font-size: 17px;
-    line-height: 1.8;
+  .description-text,
+  .design-points li,
+  .design-display p {
+    font-size: 0.9rem;
+    line-height: 1.6;
   }
 
-  .design-points li {
-    font-size: 16px;
+  /* Safely drop absolute positioning to prevent overlap loops */
+  .get-quote-button {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    display: block;
+    margin: 35px auto 0; /* Creates an intentional, clean luxury gap below the text elements */
+    width: max-content;
+  }
+
+  .get-quote-button:hover {
+    transform: translateY(-3px); /* Fixed hover transform calculation for relative state */
   }
 }
 
-/* ===== MOBILE ===== */
-
+/* ===== MOBILE (< 480px) ===== */
 @media (max-width: 480px) {
   .design-display {
     max-width: 100%;
-    margin: 25px auto 80px;
-    padding: 0 14px;
+    margin: 25px auto 40px;
+    padding: 0 16px;
   }
 
   .design-display h2 {
-    font-size: 2rem;
-    margin-bottom: 10px;
+    font-size: 1.7rem;
+    margin-bottom: 8px;
+    letter-spacing: 0;
   }
 
   .design-display h3 {
-    font-size: 1.4rem;
+    font-size: 1.15rem;
     margin-bottom: 10px;
   }
 
   .description-text {
-    font-size: 15.5px;
-    line-height: 1.8;
+    font-size: 0.9rem;
     max-height: 95px;
     padding-bottom: 12px;
   }
 
   .design-points li {
-    font-size: 15px;
-    line-height: 1.7;
-    padding-left: 22px;
+    padding-left: 20px;
   }
 
   .see-more-button {
-    font-size: 15px;
-    margin-top: 2px;
+    font-size: 0.8rem;
   }
 
+  /* Fine-tuned for small screens */
   .get-quote-button {
-    font-size: 16px;
-    padding: 13px 24px;
-    bottom: -65px;
-    width: max-content;
+    font-size: 0.8rem;
+    padding: 12px 28px;
+    margin: 30px auto 0; 
   }
 }

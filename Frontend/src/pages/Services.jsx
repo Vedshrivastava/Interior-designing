@@ -6,6 +6,13 @@ import Footer from '../components/Footer';
 import residence from '../assets/residence.png';
 import design from '../assets/refund-design.png';
 import rates from '../assets/rates.png';
+import renovation from '../assets/renovation.jpeg';
+import commercial from '../assets/commercial.png';
+import space_planning from '../assets/space-planning.png';
+import lighting from '../assets/lighting.png';
+import materials from '../assets/materials.png';
+import Visualization_3D from '../assets/3D-visualization.png';
+
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -31,12 +38,12 @@ const services = [
     { icon: faStar, title: "Affordable Luxury", description: "Premium interiors with transparent pricing and zero hidden costs — luxury made genuinely accessible.", img: rates },
     { icon: faLock, title: "Refundable Consultation", description: "Your consultation fee is fully adjusted when you proceed with execution. Completely risk-free.", img: design },
     { icon: faHome, title: "Residential Interiors", description: "Custom home interiors for apartments and villas — designed around your lifestyle and comfort.", img: residence },
-    { icon: faBuilding, title: "Commercial Spaces", description: "Inspiring offices and retail interiors that boost productivity and reflect your brand identity." },
-    { icon: faWrench, title: "Renovation Services", description: "Complete makeovers or targeted upgrades — we breathe fresh life into any outdated space." },
-    { icon: faRulerCombined, title: "Space Planning", description: "Smart layouts that maximise every inch of your space for both function and visual flow." },
-    { icon: faLightbulb, title: "Lighting Design", description: "Ambient, accent, and task lighting concepts that define mood and elevate every room." },
-    { icon: faPalette, title: "Material Selection", description: "We source premium materials from trusted partners like Kajaria, Asian Paints & more." },
-    { icon: faLayerGroup, title: "3D Visualization", description: "Photo-realistic 3D renders so you see exactly how your space will look before execution begins." },
+    { icon: faBuilding, title: "Commercial Spaces", description: "Inspiring offices and retail interiors that boost productivity and reflect your brand identity.", img: commercial},
+    { icon: faWrench, title: "Renovation Services", description: "Complete makeovers or targeted upgrades — we breathe fresh life into any outdated space.", img: renovation },
+    { icon: faRulerCombined, title: "Space Planning", description: "Smart layouts that maximise every inch of your space for both function and visual flow.", img: space_planning },
+    { icon: faLightbulb, title: "Lighting Design", description: "Ambient, accent, and task lighting concepts that define mood and elevate every room.", img: lighting },
+    { icon: faPalette, title: "Material Selection", description: "We source premium materials from trusted partners like Kajaria, Asian Paints & more.", img: materials },
+    { icon: faLayerGroup, title: "3D Visualization", description: "Photo-realistic 3D renders so you see exactly how your space will look before execution begins.", img: Visualization_3D },
 ];
 
 const processSteps = [

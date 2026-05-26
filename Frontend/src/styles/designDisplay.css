@@ -6,6 +6,11 @@
    Fonts: Playfair Display (headings) | Inter (body)
 ================================================ */
 
+/* Add to the very top of your CSS file, right under the :root variables */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
@@ -27,13 +32,14 @@ html { scroll-behavior: smooth; }
 /* ════════════════════════════════════════════
    PAGE WRAPPER
 ════════════════════════════════════════════ */
+/* Update this existing rule */
 .design-display-main {
   width: 100%;
   background: var(--ivory);
   min-height: 100vh;
   font-family: "Inter", sans-serif;
   color: var(--text);
-  overflow-x: hidden;
+  overflow-x: clip; /* <--- Change this from hidden to clip */
 }
 
 /* ════════════════════════════════════════════
@@ -227,30 +233,56 @@ html { scroll-behavior: smooth; }
 /* ════════════════════════════════════════════
    DESIGN GRID — 2-column with rhythm
 ════════════════════════════════════════════ */
+/* ════════════════════════════════════════════
+   BODY & BACKGROUND DEPTH
+════════════════════════════════════════════ */
 .dd-body {
-  padding: 50px 6% 80px;
+  padding: 60px 6% 100px;
   position: relative;
   background: var(--ivory);
+  /* Adds a very soft shadow around the edges of the page */
+  box-shadow: inset 0 0 150px rgba(45, 74, 53, 0.03); 
 }
 
-/* same faint grid texture */
+/* Enhancing the architectural grid texture */
 .dd-body::before {
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.022;
+  opacity: 0.045; /* Bumped up from 0.022 so it's subtly visible */
   background-image:
     repeating-linear-gradient(0deg,  var(--forest) 0, var(--forest) 1px, transparent 0, transparent 40px),
     repeating-linear-gradient(90deg, var(--forest) 0, var(--forest) 1px, transparent 0, transparent 40px);
   pointer-events: none;
 }
 
+/* Adds a soft highlight to the center behind the cards */
+.dd-body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at top center, rgba(255,255,255,0.4) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ════════════════════════════════════════════
+   DESIGN GRID — Refined Spacing & Margins
+════════════════════════════════════════════ */
 .design-display-list {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
+  gap: 50px 30px; /* 50px vertical spacing, 30px horizontal */
   position: relative;
   z-index: 1;
+}
+
+/* Forcefully removes the 90px bottom margin from the individual cards 
+   and breaks the infinite scroll bug */
+.design-display-list > * {
+  margin: 0 !important; 
+  min-width: 0;
+  min-height: 0;
 }
 
 /* ════════════════════════════════════════════
@@ -360,7 +392,7 @@ html { scroll-behavior: smooth; }
   .dd-body { padding: 32px 16px 60px; }
   .design-display-list {
     grid-template-columns: 1fr;
-    gap: 18px;
+    gap: 35px; /* Tighter gap for mobile scrolling */
   }
 
   /* single column: uniform portrait ratio */

@@ -1,12 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import '../styles/home.css';
 import bgimg from '../assets/home-img.webp';
-import kitchen_img from '../assets/kitchen-img.jpg';
-import bathroom_img from '../assets/bathroom-img.jpg';
-import kids_img from '../assets/kids-room-img.jpg';
-import TV_unit_img from '../assets/TV-unit-img.png';
-import lounge_img from '../assets/lounge-img.jpg';
-import bedroom_img from '../assets/bedroom-image.png';
+import kitchen_img from '../assets/kitchen.png';
+import bathroom_img from '../assets/bathroom.png';
+import TV_unit_img from '../assets/TV-unit.png';
+import lounge_img from '../assets/lounge.png';
+import bedroom_img from '../assets/bedroom.png';
 import kajaria from '../assets/kajaria.png';
 import saint_gobain from '../assets/Saint-Gobain.jpg';
 import asian_paints from '../assets/asian-paints.jpeg';
@@ -167,7 +166,6 @@ const Home = ({ setShowLogin }) => {
             { img: bathroom_img, icon: faBath, label: 'Bathroom', desc: 'Minimal & premium', category: 'Bathroom Designs' },
             { img: lounge_img, icon: faCouch, label: 'Lounge', desc: 'Luxury living spaces', category: 'Lounge area Designs' },
             { img: TV_unit_img, icon: faTv, label: 'TV Unit', desc: 'Entertainment walls', category: 'TV Unit Designs' },
-            { img: kids_img, icon: faChild, label: 'Kids Room', desc: 'Creative & functional', category: 'Kids Room Designs' },
           ].map((d, i) => (
             <div
               className={`hp-design-card sr-item ${i === 0 ? 'hp-design-card--featured' : ''}`}

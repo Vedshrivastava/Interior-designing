@@ -18,8 +18,8 @@ function App() {
 
   return (
     <>
-      {/* ✅ GLOBAL NAVBAR (ONLY ONCE) */}
-      <MainNavbar />
+      {/* ✅ FIXED: Passed setShowLogin prop to MainNavbar */}
+      <MainNavbar setShowLogin={setShowLogin} />
 
       {/* ✅ MODAL (OVERLAY UI) */}
       {showLogin && (

@@ -297,7 +297,7 @@
 ════════════════════════════════════════════ */
 
 .abt-who {
-  padding: 90px 6%;
+  padding: 20px 6%;
   background: var(--ivory);
   position: relative;
   overflow: hidden;
@@ -953,7 +953,7 @@
 }
 
 .process-box {
-  background: var(--white);
+  background: var(--green);
   border: 1px solid rgba(16,37,37,0.07);
   border-radius: 22px;
   padding: 36px 26px 32px;
@@ -1017,7 +1017,7 @@
 .process-box-num {
   font-family: "Playfair Display", serif;
   font-size: 2.4rem;
-  color: rgba(201,168,124,0.18);
+  color: var(--blush);
   font-weight: 700;
   line-height: 1;
   letter-spacing: -1px;
@@ -1026,13 +1026,13 @@
 .process-box h3 {
   font-family: "Playfair Display", serif;
   font-size: 1.05rem;
-  color: var(--green);
+  color: var(--blush);
   font-weight: 700;
   margin: 0 0 10px;
   line-height: 1.3;
 }
 .process-box p {
-  color: var(--text-mid);
+  color: var(--blush);
   font-size: 0.87rem;
   line-height: 1.72;
   margin: 0;
@@ -1067,7 +1067,7 @@
 }
 
 .abt-pillar-card {
-  background: var(--white);
+  background: var(--blush);
   border: 1px solid rgba(16,37,37,0.06);
   border-radius: var(--radius);
   padding: 30px 28px;
@@ -1249,14 +1249,45 @@
   .about-main-section { padding: 0 20px 60px; }
   .about-process-section,
   .abt-pillars,
-  .about-cta { padding: 80px 20px; }
+  .about-cta { padding: 40px 20px; }
 
   .about-process-grid { grid-template-columns: 1fr 1fr; gap: 14px; }
   .abt-pillars-grid { grid-template-columns: 1fr; }
   .luxury-about-content { padding: 28px 24px 32px; }
+  .abt-section-head{
+    margin-bottom: 40px;
+  }
 
   .abt-cta-actions { flex-direction: column; align-items: center; }
   .about-cta-btn, .about-cta-btn-ghost { width: 100%; max-width: 280px; justify-content: center; }
+  .abt-pillars-grid { 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 16px; 
+  }
+
+  /* 2. Vanish the description text completely */
+  .abt-pillar-card p {
+    display: none;
+  }
+
+  /* 3. Re-align the card content so the icon sits cleanly above the title */
+  .abt-pillar-card {
+    flex-direction: column;   /* Changes layout from side-by-side to stacked */
+    align-items: center;      /* Centers the icon and text horizontally */
+    text-align: center;       /* Centers the title text */
+    padding: 24px 16px;       /* Tightens padding for smaller screens */
+    gap: 12px;                /* Reduces the gap between icon and title */
+  }
+
+  /* Adjust the title margin now that it is centered alone */
+  .abt-pillar-card h3 {
+    margin: 0;
+  }
+
+  .abt-who{
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
 }
 
 @media (max-width: 480px) {

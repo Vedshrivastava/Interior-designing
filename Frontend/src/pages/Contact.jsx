@@ -4,126 +4,206 @@ import Footer from '../components/Footer';
 import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faPhone, faEnvelope, faLocationDot, faClock,
+  faPaperPlane, faMessage,
+} from '@fortawesome/free-solid-svg-icons';
+
+const INFO_ITEMS = [
+  {
+    icon: faLocationDot,
+    label: 'Address',
+    value: 'Shree Ganga Inn, Lakshmi Bai Marg, Gandhi Chowk, Nagod (M.P.)',
+  },
+  {
+    icon: faPhone,
+    label: 'Phone',
+    value: '+91 81094 95257',
+  },
+  {
+    icon: faEnvelope,
+    label: 'Email',
+    value: 'shrivastavaselevatepvt.ltd@gmail.com',
+  },
+  {
+    icon: faClock,
+    label: 'Office Hours',
+    value: 'Mon – Sat, 9 AM – 6 PM',
+  },
+];
 
 const Contact = ({ setShowLogin }) => {
-    const [formData, setFormData] = useState({
-        name: "",
-        email: "",
-        phoneNumber: "",
-        message: "",
-    });
+  const [formData, setFormData] = useState({
+    name: '', email: '', phoneNumber: '', message: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const url = 'http://localhost:3000';
 
-    const url = "http://localhost:3000";
+  const onChange = e => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
-    // Handle input change
-    const onChangeHandler = (event) => {
-        const { name, value } = event.target;
-        setFormData((prevData) => ({
-            ...prevData,
-            [name]: value,
-        }));
-    };
+  const onSubmit = async e => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await axios.post(`${url}/api/appointment/add`, {
+        name: formData.name,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        message: formData.message,
+        address: 'No Address Provided',
+      });
+      toast.success('Message sent! We\'ll get back to you shortly.');
+      setFormData({ name: '', email: '', phoneNumber: '', message: '' });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to send. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Handle form submit
-    const onSubmitHandler = async (event) => {
-        event.preventDefault();
+  return (
+    <div className="contact-page">
 
-        try {
-            // Send form data to backend to add appointment
-            await axios.post(`${url}/api/appointment/add`, {
-                name: formData.name,
-                email: formData.email,
-                phoneNumber: formData.phoneNumber,
-                message: formData.message,
-                address: formData.address || "No Address Provided", // Use formData or a default
-            });
+      {/* ── HERO ── */}
+      <section className="contact-hero">
+        <div className="contact-hero-inner">
+          <div className="contact-eyebrow">
+            <span className="contact-eyebrow-line" />
+            <span>Get In Touch</span>
+            <span className="contact-eyebrow-line" />
+          </div>
 
-            toast.success('Appointment added successfully!');
-            setFormData({
-                name: "",
-                email: "",
-                phoneNumber: "",
-                message: "",
-            }); // Reset form data
-        } catch (error) {
-            console.error(error);
-            toast.error('Error adding appointment, please try again.');
-        }
-    };
+          <h1>
+            Let's Start Your<br />
+            <span>Dream Project</span>
+          </h1>
 
-    return (
-        <div>
-            <div className="contact-container">
-
-                <div className="contact-details">
-                    <h1>Contact Us</h1>
-                    <p>
-                        At <strong>Shrivastavas Elevate</strong>, we are passionate about turning your dream spaces into reality. We offer a range of interior design services, including customized designs, project management, and high-quality materials like PVC louvers, panels, and marble sheets.
-                    </p>
-                    <p>
-                        <strong>Address:</strong> Shree ganga Inn, Lakshmi bai marg, Gandhi chowk, Nagod (M.P.)
-                    </p>
-                    <p>
-                        <strong>Phone:</strong> +91 8109495257
-                    </p>
-                    <p>
-                        <strong>Email:</strong> shrivastavaselevatepvt.ltd@gmail.com
-                    </p>
-                    <p>
-                        <strong>Office Hours:</strong> Mon-Fri, 9 AM - 5 PM
-                    </p>
-                </div>
-
-                <div className="contact-form">
-                    <h2>Get in Touch</h2>
-                    <form onSubmit={onSubmitHandler}>
-                        <label htmlFor="name">Name:</label>
-                        <input
-                            type="text"
-                            id="name"
-                            name="name"
-                            value={formData.name}
-                            onChange={onChangeHandler}
-                            required
-                        />
-
-                        <label htmlFor="email">Email:</label>
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={onChangeHandler}
-                            required
-                        />
-
-                        <label htmlFor="phoneNumber">Phone Number:</label>
-                        <input
-                            type="tel"
-                            id="phoneNumber"
-                            name="phoneNumber"
-                            value={formData.phoneNumber}
-                            onChange={onChangeHandler}
-                            required
-                        />
-
-                        <label htmlFor="message">Message (Optional):</label>
-                        <textarea
-                            id="message"
-                            name="message"
-                            value={formData.message}
-                            onChange={onChangeHandler}
-                            rows="5"
-                        ></textarea>
-
-                        <button type="submit">Send Message</button>
-                    </form>
-                </div>
-            </div>
-            <Footer />
-            <ToastContainer /> {/* Toast notifications */}
+          <p>
+            Tell us about your space — we'll get back to you within 24 hours
+            with a tailored plan and transparent pricing.
+          </p>
         </div>
-    );
+      </section>
+
+      {/* ── BODY ── */}
+      <div className="contact-body">
+        <div className="contact-container">
+
+          {/* ── LEFT — info card ── */}
+          <div className="contact-details">
+            <div className="contact-details-rule" />
+            <div className="contact-details-inner">
+
+              <h1>Contact Us</h1>
+              <p className="contact-details-tagline">
+                Shrivastavas Elevate — luxury interior design and contracting,
+                crafted around your lifestyle and vision.
+              </p>
+
+              <div className="contact-info-list">
+                {INFO_ITEMS.map(({ icon, label, value }) => (
+                  <div className="contact-info-item" key={label}>
+                    <div className="contact-info-icon">
+                      <FontAwesomeIcon icon={icon} />
+                    </div>
+                    <div className="contact-info-text">
+                      <strong>{label}</strong>
+                      <span>{value}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+            </div>
+          </div>
+
+          {/* ── RIGHT — form card ── */}
+          <div className="contact-form-card">
+            <div className="contact-form-inner">
+
+              <h2>Send Us a Message</h2>
+              <p className="contact-form-subtitle">
+                Fill in your details and we'll reach out to discuss your project.
+              </p>
+
+              <form className="contact-form" onSubmit={onSubmit}>
+
+                {/* name + phone on same row */}
+                <div className="contact-field-row">
+                  <div className="contact-field">
+                    <label htmlFor="name">Full Name</label>
+                    <input
+                      id="name" name="name" type="text"
+                      placeholder="Your full name"
+                      value={formData.name}
+                      onChange={onChange} required
+                    />
+                  </div>
+                  <div className="contact-field">
+                    <label htmlFor="phoneNumber">Phone</label>
+                    <input
+                      id="phoneNumber" name="phoneNumber" type="tel"
+                      placeholder="+91 XXXXX XXXXX"
+                      value={formData.phoneNumber}
+                      onChange={onChange} required
+                    />
+                  </div>
+                </div>
+
+                <div className="contact-field">
+                  <label htmlFor="email">Email Address</label>
+                  <input
+                    id="email" name="email" type="email"
+                    placeholder="your@email.com"
+                    value={formData.email}
+                    onChange={onChange} required
+                  />
+                </div>
+
+                <div className="contact-field">
+                  <label htmlFor="message">Message <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional)</span></label>
+                  <textarea
+                    id="message" name="message"
+                    placeholder="Tell us about your project, space size, budget range…"
+                    value={formData.message}
+                    onChange={onChange}
+                    rows="5"
+                  />
+                </div>
+
+                <button type="submit" className="contact-submit" disabled={loading}>
+                  {loading
+                    ? 'Sending…'
+                    : <><FontAwesomeIcon icon={faPaperPlane} /> Send Message</>
+                  }
+                </button>
+
+              </form>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <Footer />
+
+      <ToastContainer
+        position="bottom-center"
+        autoClose={3000}
+        theme="dark"
+        toastStyle={{
+          background: '#102525',
+          color: '#f0e6d3',
+          border: '1px solid rgba(201,168,124,0.25)',
+        }}
+      />
+    </div>
+  );
 };
 
 export default Contact;

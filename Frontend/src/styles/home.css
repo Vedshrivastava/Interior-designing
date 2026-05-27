@@ -554,7 +554,7 @@
 }
 
 .hp-wc-card {
-  background: var(--blush);
+  background: var(--green);
   border: 1px solid rgba(16, 37, 37, 0.06);
   border-radius: var(--radius);
   padding: 30px 28px;
@@ -599,14 +599,14 @@
 .hp-wc-card h3 {
   font-family: "Playfair Display", serif;
   font-size: 1.18rem;
-  color: var(--text-mid);
+  color: var(--blush);
   margin: 2px 0 10px;
   font-weight: 700;
   line-height: 1.2;
 }
 
 .hp-wc-card p {
-  color: var(--text-mid);
+  color: var(--blush);
   font-size: 0.9rem;
   line-height: 1.7;
   margin: 0;

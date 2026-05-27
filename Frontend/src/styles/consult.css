@@ -1,174 +1,301 @@
+/* ================================================
+   CONSULT / LOGIN MODAL — HOME-MATCHED THEME
+   Backdrop · deep green card · gold accents
+   Same diagonal grid texture as footer + navbar
+================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --ivory:   #f8f4ee;
+  --blush:   #f0e6d3;
+  --green:   #102525;
+  --forest:  #2d4a35;
+  --gold:    #c9a87c;
+  --gold-lt: #e8d0a8;
+  --white:   #ffffff;
+}
+
+/* ════════════════════════════════════════════
+   BACKDROP
+════════════════════════════════════════════ */
 .login {
-    position: fixed;
-    /* Fixed to viewport */
-    z-index: 100;
-    top: 0;
-    left: 0;
-    padding-top: 70px;
-    width: 100%;
-    height: 100vh;
-    /* Full viewport height */
-    background-color: rgba(0, 0, 0, 0.56);
-    /* Slightly adjusted for better readability */
-    display: grid;
-    justify-content: center;
-    align-items: center;
-    /* Centering the container */
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+
+  background: rgba(10, 22, 22, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  animation: backdropIn 0.3s ease both;
 }
 
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ════════════════════════════════════════════
+   CARD
+════════════════════════════════════════════ */
 .login-container {
-    width: max(25vw, 350px);
-    height: max(60vh, 470px);
-    /* Adjust the size as needed */
-    background: #183030;
-    color: #d5b697;
-    display: flex;
-    flex-direction: column;
-    gap: 25px;
-    padding: 20px 15px;
-    border-radius: 8px;
-    font-size: 14px;
-    animation: fadeIn 0.5s;
-    /* Ensure you define this animation if it's used */
-    padding-top: 10px;
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+
+  background: var(--green);
+  border: 1px solid rgba(201,168,124,0.18);
+  border-radius: 24px;
+  overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+
+  box-shadow:
+    0 32px 80px rgba(0,0,0,0.45),
+    0 0 0 1px rgba(201,168,124,0.08);
+
+  animation: modalIn 0.4s cubic-bezier(.22,.61,.36,1) both;
 }
 
-.login-title {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: #333;
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
 }
 
-.login-title h2 {
-    margin: auto;
-    font-size: large;
-    font-weight: 570;
-    font-family: "Playfair Display", serif;
-    margin: 0px 10px !important;
-    color: #d5b697;
+/* diagonal gold grid texture — same as footer */
+.login-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.045;
+  background-image:
+    repeating-linear-gradient(45deg,  var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px),
+    repeating-linear-gradient(-45deg, var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px);
+  pointer-events: none;
+  z-index: 0;
 }
 
-.login-title span {
-    width: 16px;
-    cursor: pointer;
-    /* Pointer cursor for close button */
-    margin-top: -85px;
-    color: #d5b697;
+/* radial glow top-center */
+.login-container::after {
+  content: "";
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 320px;
+  height: 180px;
+  background: radial-gradient(ellipse at center, rgba(201,168,124,0.1) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── gold rule at top of card ── */
+.login-rule {
+  position: relative;
+  z-index: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), var(--gold-lt), var(--gold), transparent);
+  opacity: 0.65;
+  flex-shrink: 0;
+}
+
+/* ── inner padding wrapper ── */
+.login-inner {
+  position: relative;
+  z-index: 1;
+  padding: 28px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* ════════════════════════════════════════════
+   HEADER ROW — logo + title + close
+════════════════════════════════════════════ */
+.login-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .login-logo {
-    width: 80px;
-    margin: 0 auto;
-    display: block;
-    margin-bottom: -20px;
-    /* Optional: tweak spacing between logo and title */
+  width: 62px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(201,168,124,0.28);
+  flex-shrink: 0;
 }
 
+.login-header-text {
+  flex: 1;
+}
 
+.login-header-text h2 {
+  font-family: "Playfair Display", serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f5ede0;
+  margin: 0 0 3px;
+  line-height: 1.2;
+}
+
+.login-header-text p {
+  font-family: "Inter", sans-serif;
+  font-size: 0.75rem;
+  color: rgba(201,168,124,0.7);
+  margin: 0;
+  letter-spacing: 0.3px;
+}
+
+/* close button */
+.login-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(201,168,124,0.08);
+  border: 1px solid rgba(201,168,124,0.18);
+  color: rgba(240,230,211,0.6);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+  line-height: 1;
+}
+.login-close:hover {
+  background: rgba(201,168,124,0.18);
+  border-color: rgba(201,168,124,0.4);
+  color: #f5ede0;
+}
+
+/* ════════════════════════════════════════════
+   DIVIDER
+════════════════════════════════════════════ */
+.login-divider {
+  height: 1px;
+  background: rgba(201,168,124,0.12);
+}
+
+/* ════════════════════════════════════════════
+   INPUTS
+════════════════════════════════════════════ */
 .login-inputs {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    /* Space between input fields */
-    margin: 0px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.login-field label {
+  font-family: "Inter", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
 }
 
 .login-inputs input {
-    outline: none;
-    /* Removes the default outline */
-    border: 1px solid #183030;
-    /* Light border for inputs */
-    padding: 10px;
-    /* Padding inside input fields */
-    border-radius: 12px;
-    /* Rounded corners for inputs */
-    background: #d5b697;
-    /* Background color for inputs */
-    color: #183030;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(201,168,124,0.2);
+  border-radius: 12px;
+  color: #f0e6d3;
+  font-family: "Inter", sans-serif;
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
 }
 
-.login-container input::placeholder {
-    color: #183030;
-    /* Change the color and opacity here */
-    opacity: 0.7;
-    /* Ensures the color is applied correctly across browsers */
+.login-inputs input::placeholder {
+  color: rgba(201,168,124,0.4);
 }
 
-.login-container button {
-    border: none;
-    /* Remove default border */
-    padding: 10px;
-    /* Padding inside button */
-    border-radius: 12px;
-    /* Rounded corners for button */
-    color: #183030;
-    /* Text color */
-    background-color: #d5b697;
-    /* Dark background color */
-    font-size: 15px;
-    /* Font size */
-    cursor: pointer;
-    /* Pointer cursor on hover */
-    margin-bottom: 5px;
-    /* Margin below the button */
-    font-size: 300;
-    font-weight: 500;
-    margin: 40px 10px;
+.login-inputs input:focus {
+  border-color: rgba(201,168,124,0.55);
+  background: rgba(255,255,255,0.07);
+  box-shadow: 0 0 0 3px rgba(201,168,124,0.1);
 }
 
-.login-condition {
-    display: flex;
-    /* Flex container for checkbox and text */
-    align-items: start;
-    /* Align checkbox to the start */
-    gap: 8px;
-    /* Space between checkbox and text */
-    margin-top: -15px;
-    /* Adjust vertical spacing */
-    margin: 0px 10px;
+/* ════════════════════════════════════════════
+   SUBMIT BUTTON
+════════════════════════════════════════════ */
+.login-container button[type="submit"] {
+  width: 100%;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--green);
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
 }
 
-.login-condition input {
-    margin-top: 5px;
-    /* Space above checkbox */
+.login-container button[type="submit"]:hover {
+  background: var(--gold-lt);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(201,168,124,0.28);
 }
 
-.login p span {
-    color: #183030;
-    /* Red color for the span */
-    font-weight: 500;
-    /* Semi-bold weight */
-    cursor: pointer;
-    /* Pointer cursor on hover */
+.login-container button[type="submit"]:active {
+  transform: scale(0.98);
 }
 
-/* Media query for responsiveness */
-@media (max-width: 768px) {
+/* ── small note below button ── */
+.login-note {
+  text-align: center;
+  font-family: "Inter", sans-serif;
+  font-size: 0.72rem;
+  color: rgba(201,168,124,0.45);
+  margin-top: -8px;
+  line-height: 1.6;
+}
 
-    .login-container {
-        width: 90%;
-        margin: auto;
-        height: auto;
-    }
+/* ════════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .login { padding: 16px; align-items: flex-end; }
 
-    .login {
-        margin-top: 0px;
-        /* Margin adjustment for login container */
-    }
+  .login-container {
+    max-width: 100%;
+    border-radius: 22px 22px 0 0;
+    animation: sheetIn 0.4s cubic-bezier(.22,.61,.36,1) both;
+  }
 
-    .login-title span {
-        margin-top: -100px;
-        color: #d5b697;
-        font-size: large !important;
-    }
+  @keyframes sheetIn {
+    from { opacity: 0; transform: translateY(100%); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 
-    .login-container {
-        height: max(60vh, 480px);
-        /* Adjust the size as needed */
-    }
-
-    .login-condition {
-        margin-top: -18px !important;
-    }
+  .login-inner { padding: 24px 22px 28px; }
+  .login-header-text h2 { font-size: 1.05rem; }
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import '../styles/orders.css'; // Using the unified CSS file
+import '../styles/quotes.css'; // Using the unified CSS file
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import moment from 'moment';

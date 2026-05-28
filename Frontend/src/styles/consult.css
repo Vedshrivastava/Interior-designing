@@ -29,9 +29,15 @@
   padding: 20px;
   box-sizing: border-box;
 
-  background: rgba(10, 22, 22, 0.72);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  /* glass effect */
+  background: rgba(10, 22, 22, 0.55);
+
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+
+  /* helps prevent weird solid rendering in some browsers */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 
   animation: backdropIn 0.3s ease both;
 }
@@ -77,8 +83,8 @@
   inset: 0;
   opacity: 0.045;
   background-image:
-    repeating-linear-gradient(45deg,  var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px),
-    repeating-linear-gradient(-45deg, var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px);
+    repeating-linear-gradient(45deg,  var(--gold) 0, var(--gold) 2px, transparent 0, transparent 28px),
+    repeating-linear-gradient(-45deg, var(--gold) 0, var(--gold) 2px, transparent 0, transparent 28px);
   pointer-events: none;
   z-index: 0;
 }

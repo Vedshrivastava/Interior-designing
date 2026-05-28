@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import '../styles/services.css';
 
-import bgimg from '../assets/home-img.webp';
+import bgimg from '../assets/home-img.png';
 import Footer from '../components/Footer';
 import residence from '../assets/residence.png';
 import design from '../assets/refund-design.png';

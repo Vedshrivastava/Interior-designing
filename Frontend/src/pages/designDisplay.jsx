@@ -63,7 +63,7 @@ const DesignDisplay = ({ setShowLogin, setConsultData, consultData }) => {
 
   const visibleDesigns = designList.filter(
     item => currentCategory === 'All' || currentCategory === item.category
-  );
+  ).reverse();
 
   /* short display name for the header */
   const displayName = LABELS[currentCategory] || currentCategory;

@@ -7,7 +7,7 @@ import materials   from '../assets/materials-2.png';
 import services   from '../assets/services.png';
 import commitment from '../assets/commitment.png';
 import logo       from '../assets/logo.png';
-import bgimg      from '../assets/home-img.webp';
+import bgimg      from '../assets/home-img.png';
 
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';

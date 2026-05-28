@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import '../styles/home.css';
-import bgimg from '../assets/home-img.webp';
+import bgimg from '../assets/home-img.png';
 import kitchen_img from '../assets/kitchen.png';
 import bathroom_img from '../assets/bathroom.png';
 import TV_unit_img from '../assets/TV-unit.png';

@@ -3,6 +3,8 @@
    Strict 1:1 aesthetic match with Add Product Form
 ========================================================= */
 
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
+
 /* ── 1. THEME VARIABLES ── */
 :root {
     --green: #102525;
@@ -12,6 +14,7 @@
     --ivory: #f8f4ee;
     --white: #ffffff;
     --danger: #d93838;
+    --text-mid: #5a4e44;
 }
 
 /* Local Box-Sizing Protection */
@@ -21,7 +24,7 @@
 
 /* ── 2. MAIN LAYOUT ── */
 .list {
-    padding: 40px 40px 40px 40px !important; 
+    padding: 0 !important; /* Removed generic padding to allow full width header */
     background-color: var(--ivory);
     min-height: 100vh;
     display: flex;
@@ -30,27 +33,112 @@
     width: 100%;
 }
 
-/* ── 3. DATA TABLE (Matches Form Card Layout) ── */
+.admin-list-container {
+    width: 100%;
+    max-width: 940px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+/* ── NEW: EDITORIAL HEADER (Matched to Design Display) ── */
+.admin-header-split {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start; /* FIX: was flex-end */
+    border-bottom: 1px solid rgba(201,168,124,0.18);
+    padding-bottom: 24px;
+    margin-bottom: 24px;
+    gap: 20px;
+}
+
+.admin-header-split h1 {
+    font-family: "Playfair Display", serif;
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: var(--green);
+    margin: 0 0 8px 0;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+}
+
+.admin-subtitle {
+    color: var(--text-mid);
+    font-family: "Inter", sans-serif;
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+.admin-count-badge {
+    background: rgba(201,168,124,0.12);
+    border: 1px solid rgba(201,168,124,0.3);
+    border-radius: 30px;
+    padding: 6px 14px;
+    color: var(--gold);
+    font-family: "Inter", sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* ── NEW: CATEGORY FILTER BAR ── */
+.admin-category-scroll {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 24px;
+    margin-bottom: 10px;
+}
+.admin-category-scroll::-webkit-scrollbar { display: none; }
+
+.admin-cat-pill {
+    flex-shrink: 0;
+    padding: 10px 18px;
+    border-radius: 30px;
+    background: var(--white);
+    border: 1px solid rgba(201,168,124,0.2);
+    color: var(--text-mid);
+    font-size: 0.8rem;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-family: "Inter", sans-serif;
+}
+
+.admin-cat-pill:hover {
+    background: rgba(201,168,124,0.1);
+    color: var(--gold);
+}
+
+.admin-cat-pill.active {
+    background: var(--green);
+    border-color: var(--green);
+    color: var(--white);
+    font-weight: 600;
+}
+
+
+/* ── 3. DATA TABLE (Sophisticated Card Layout) ── */
 .list-table {
     background-color: var(--white);
     border-radius: 12px;
     overflow: hidden;
     width: 100%;
-    max-width: 940px; 
-    margin: 0 auto;
     border: 1px solid rgba(201, 168, 124, 0.25);
-    
-    box-shadow: 
-        0 4px 6px rgba(0, 0, 0, 0.02),
-        0 12px 32px rgba(16, 37, 37, 0.05);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02), 0 12px 32px rgba(16, 37, 37, 0.05);
 }
 
 .list-table-format {
     display: grid;
-    grid-template-columns: 1fr 2fr 1.2fr 1fr;
+    grid-template-columns: 80px 2fr 1.2fr 180px;
     align-items: center !important;
-    padding: 20px 32px; 
-    gap: 16px;
+    padding: 16px 32px; 
+    gap: 20px;
     border-bottom: 1px solid rgba(201, 168, 124, 0.15); 
     color: var(--green);
     font-size: 14px;
@@ -58,31 +146,29 @@
     transition: background-color 0.25s ease;
 }
 
-.list-table-format:last-child {
-    border-bottom: none;
-}
+.list-table-format:last-child { border-bottom: none; }
 
-.list-table-format:not(.title):hover {
-    background-color: rgba(248, 244, 238, 0.8); 
+.list-table-format.row-item:hover {
+    background-color: rgba(248, 244, 238, 0.6); 
 }
 
 /* ── 4. HEADER FORMATTING (Editorial Style) ── */
 .list-table-format.title {
     background-color: var(--white); 
-    color: var(--green);
-    font-family: "Inter", sans-serif;
-    font-size: 12px;
-    font-weight: 600;
+    color: var(--text-mid);
+    font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    border-bottom: 2px solid var(--gold); 
+    letter-spacing: 1.5px;
+    border-bottom: 2px solid rgba(201, 168, 124, 0.4); 
+    padding-top: 20px;
+    padding-bottom: 20px;
 }
 
 /* ── 5. IMAGE THUMBNAILS ── */
 .list-table-format .image-column {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    justify-content: flex-start;
 }
 
 .list-table-format .image-column img {
@@ -93,9 +179,42 @@
     border: 1px solid rgba(201, 168, 124, 0.35);
 }
 
+.placeholder-img {
+    width: 60px;
+    height: 60px;
+    background: rgba(201, 168, 124, 0.1);
+    border-radius: 8px;
+    border: 1px dashed rgba(201, 168, 124, 0.4);
+}
+
+.item-name {
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.item-category {
+    color: var(--text-mid);
+    font-size: 13px;
+    background: rgba(201,168,124,0.1);
+    padding: 4px 10px;
+    border-radius: 6px;
+    display: inline-block;
+    width: fit-content;
+}
+
+.admin-empty-state {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-mid);
+    font-family: "Inter", sans-serif;
+    font-size: 0.95rem;
+}
+
+
 /* ── 6. ROW ACTION BUTTONS (Premium Ghost Style) ── */
 .action-buttons {
     display: flex;
+    justify-content: flex-end;
     gap: 12px;
     align-items: center;
 }
@@ -140,6 +259,7 @@
 
 /* ════════════════════════════════════════════
    7. EDIT MODAL (Exact 1:1 Match to Add Form)
+   --- UNTOUCHED AS REQUESTED ---
 ════════════════════════════════════════════ */
 .edit-modal {
     background-color: var(--white) !important;
@@ -269,15 +389,14 @@
     background: rgba(201, 168, 124, 0.08);
 }
 
-/* 🔴 NEW: Centered Fixed Upload Button on Desktop */
 .edit-modal .upload-icon {
     display: flex;
-    justify-content: center; /* Forces the box to the center */
+    justify-content: center; 
     width: 100%;
 }
 
 .edit-modal .upload-icon i {
-    width: 220px !important; /* Small square box on desktop */
+    width: 220px !important; 
     height: 80px;
     display: flex;
     align-items: center;
@@ -298,7 +417,7 @@
 .edit-modal .selected-images {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center; /* Center images to match the layout */
+    justify-content: center; 
     gap: 16px;
     margin-top: 12px;
 }
@@ -344,7 +463,6 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-
     width: 100%;
     margin-top: 8px;
 }
@@ -394,22 +512,23 @@
 .edit-modal::-webkit-scrollbar-track { background: transparent; }
 .edit-modal::-webkit-scrollbar-thumb { background: rgba(201, 168, 124, 0.5); border-radius: 4px; }
 
+/* Fix: Right-align the "Action" header in the title row */
+/* Adjusted: Add padding so it's not flush against the right edge */
+.list-table-format.title b:last-child {
+    text-align: right;
+    padding-right: 30px; /* Adjust this number to pull it further left if needed */
+}
 
 /* ── 8. RESPONSIVE DESIGN (< 768px - Tablets) ── */
 @media (max-width: 768px) {
-    .list { padding: 40px 20px 40px 20px !important; }
-    
-    .list-table-format {
-        padding: 16px 20px;
-        gap: 12px;
-    }
+    .admin-header-split { flex-direction: column; align-items: flex-start; }
+    .list-table-format { grid-template-columns: 60px 2fr 1.2fr 140px; padding: 16px 20px; gap: 12px; }
 }
 
 /* ── 9. CRITICAL MOBILE RESTRUCTURE (< 480px) ── */
 @media (max-width: 480px) {
-    .list {
-        padding: 40px 16px 32px 16px !important; 
-    }
+    .admin-list-container { padding: 0 16px; margin: 24px auto; }
+    .admin-header-split h1 { font-size: 2rem; }
 
     .list-table {
         background-color: transparent !important;
@@ -417,9 +536,7 @@
         box-shadow: none !important;
     }
 
-    .list-table-format.title {
-        display: none !important; 
-    }
+    .list-table-format.title { display: none !important; }
 
     .list-table-format {
         background-color: var(--white) !important;
@@ -444,7 +561,7 @@
         border-radius: 8px;
     }
 
-    .list-table-format .image-column img {
+    .list-table-format .image-column img, .placeholder-img {
         width: 64px !important;
         height: 64px !important;
     }
@@ -465,15 +582,7 @@
         grid-row: 2 / 3 !important;
         align-self: start !important;
         font-size: 11px !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.5px !important;
-        color: var(--forest) !important;
-        background: rgba(201, 168, 124, 0.1) !important;
-        padding: 4px 8px !important;
-        border-radius: 4px !important;
-        width: max-content !important;
         margin: 0 !important;
-        border: 1px solid rgba(201, 168, 124, 0.2) !important;
     }
 
     .list-table-format .action-buttons {
@@ -485,6 +594,7 @@
         margin-top: 12px !important;
         padding-top: 16px !important;
         border-top: 1px dashed rgba(201, 168, 124, 0.3) !important;
+        justify-content: center !important;
     }
 
     .edit-action, .delete-action {
@@ -495,47 +605,19 @@
         border-radius: 8px !important;
     }
     
-    /* Edit Modal Fixes for Tiny Screens */
+    /* Edit Modal Fixes for Tiny Screens - UNTOUCHED */
     .edit-modal {
         padding: 32px 20px !important;
         width: calc(100% - 32px) !important;
         margin: 16px auto !important;
     }
-    
-    .edit-modal h2 {
-        font-size: 22px !important;
-        margin-bottom: 24px !important;
-    }
-
-    .edit-modal form {
-        gap: 24px !important;
-    }
-
-    /* 🔴 NEW: Stretches 100% equal to Cancel button on Mobile */
-    .edit-modal .upload-icon {
-        display: block !important;
-        width: 100% !important;
-    }
-
+    .edit-modal h2 { font-size: 22px !important; margin-bottom: 24px !important; }
+    .edit-modal form { gap: 24px !important; }
+    .edit-modal .upload-icon { display: block !important; width: 100% !important; }
     .edit-modal .upload-icon i {
-        width: 100% !important;
-        height: 60px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin-top: 30px;
+        width: 100% !important; height: 60px !important; display: flex !important;
+        align-items: center !important; justify-content: center !important; margin-top: 30px;
     }
-    
-    .edit-modal-actions {
-        flex-direction: column-reverse !important; 
-        gap: 12px !important;
-        margin-top: 12px !important;
-    }
-    
-    .edit-modal-actions button, 
-    .edit-modal-actions .cancel-btn {
-        width: 100% !important;
-        padding: 14px !important;
-        text-align: center !important;
-    }
+    .edit-modal-actions { flex-direction: column-reverse !important; gap: 12px !important; margin-top: 12px !important; }
+    .edit-modal-actions button, .edit-modal-actions .cancel-btn { width: 100% !important; padding: 14px !important; text-align: center !important; }
 }

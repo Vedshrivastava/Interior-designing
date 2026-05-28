@@ -7,7 +7,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPhone, faEnvelope, faLocationDot, faClock,
-  faPaperPlane, faMessage,
+  faPaperPlane, faMessage, faCopy // Add faCopy here
 } from '@fortawesome/free-solid-svg-icons';
 
 const INFO_ITEMS = [
@@ -20,11 +20,13 @@ const INFO_ITEMS = [
     icon: faPhone,
     label: 'Phone',
     value: '+91 81094 95257',
+    href: 'tel:+918109495257' // Added tel link
   },
   {
     icon: faEnvelope,
     label: 'Email',
     value: 'shrivastavaselevatepvt.ltd@gmail.com',
+    href: 'mailto:shrivastavaselevatepvt.ltd@gmail.com' // Added mailto link
   },
   {
     icon: faClock,
@@ -106,14 +108,38 @@ const Contact = ({ setShowLogin }) => {
               </p>
 
               <div className="contact-info-list">
-                {INFO_ITEMS.map(({ icon, label, value }) => (
+                {INFO_ITEMS.map(({ icon, label, value, href }) => (
                   <div className="contact-info-item" key={label}>
                     <div className="contact-info-icon">
                       <FontAwesomeIcon icon={icon} />
                     </div>
                     <div className="contact-info-text">
                       <strong>{label}</strong>
-                      <span>{value}</span>
+                      <div className="contact-info-action-row">
+                        
+                        {/* If it has an href, make it a clickable link; otherwise, normal text */}
+                        {href ? (
+                          <a href={href} className="contact-action-link">{value}</a>
+                        ) : (
+                          <span className="contact-action-text">{value}</span>
+                        )}
+                        
+                        {/* Render a Copy button for everything except Office Hours */}
+                        {label !== 'Office Hours' && (
+                          <button
+                            type="button"
+                            className="contact-copy-btn"
+                            title={`Copy ${label}`}
+                            onClick={() => {
+                              navigator.clipboard.writeText(value);
+                              toast.success(`${label} copied to clipboard!`);
+                            }}
+                          >
+                            <FontAwesomeIcon icon={faCopy} />
+                          </button>
+                        )}
+                        
+                      </div>
                     </div>
                   </div>
                 ))}

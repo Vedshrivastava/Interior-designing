@@ -1,94 +1,211 @@
-/* General Order Item Styling */
+/* =========================================================
+   QUOTES ONLY — PREMIUM SITE-MATCHED THEME
+   Deep green · gold accents · Luxurious Ivory Background
+========================================================= */
+
+:root {
+    --green:   #102525;
+    --forest:  #2d4a35;
+    --gold:    #c9a87c;
+    --gold-lt: #e8d0a8;
+    --white:   #ffffff;
+    --ivory:   #f8f4ee;
+}
+
+.order {
+    padding: 110px 40px 40px 40px !important;
+    background-color: var(--ivory) !important;
+    min-height: 100vh;
+}
+
+/* ── DATE GROUP HEADERS ── */
+.order-date-group {
+    margin-bottom: 40px;
+}
+
+.order-date {
+    font-family: "Playfair Display", serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--green) !important;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    background: transparent !important;
+    border-bottom: 2px solid rgba(201,168,124,0.4);
+}
+
+/* ── MAIN QUOTE CARD (4-COLUMN GRID) ── */
 .order-item {
     display: grid;
-    grid-template-columns: 0.5fr 1fr 1fr 1fr 0.5fr;
-    align-items: start;
-    gap: 30px;
-    border: 1px solid #183030;
-    padding: 20px;
-    margin: 30px 0;
-    font-size: 14px;
-    color: #505050;
-    transition: box-shadow 0.3s; /* Add transition for hover effect */
+    /* Clean 4 Columns: Design Image | Customer Details | Location Address | Action Select */
+    grid-template-columns: 80px 1.5fr 2.5fr 140px; 
+    align-items: center;
+    gap: 24px;
+    background-color: var(--white);
+    border: 1px solid rgba(201,168,124,0.3) !important;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px !important;
+    box-shadow: 0 4px 16px rgba(16, 37, 37, 0.04);
+    transition: all 0.25s ease;
 }
 
 .order-item:hover {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    transform: translateY(-2px) !important;
+    box-shadow: 0 10px 25px rgba(16, 37, 37, 0.08);
+    background-color: var(--white);
 }
 
-.order-item img {
-    max-width: 100%; /* Ensure images are responsive */
-    height: auto; /* Maintain aspect ratio */
+/* ── IMAGE & MEDIA PLACEHOLDER WRAPPER ── */
+.order-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 70px;
+    height: 70px;
+    background: rgba(201,168,124,0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(201,168,124,0.25);
+    color: var(--gold);
+    font-size: 24px;
+    overflow: hidden;
 }
 
-/* Order Item Text Styling */
-.order-item-name,
-.order-item-phone,
-.order-item-design-name {
-    font-weight: 600;
+.quote-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+/* ── CUSTOMER & DESIGN DATA TEXT FORMATTING ── */
+.order-item p {
+    margin: 0 0 6px 0;
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+    color: var(--green);
 }
 
 .order-item-name {
-    margin-top: 0;
-    margin-bottom: 10px;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    margin-bottom: 4px !important;
 }
 
-.order-item-address {
-    margin-bottom: 10px;
+.order-item-phone {
+    font-weight: 600;
+    color: var(--forest) !important;
 }
 
-/* Select Dropdown Styling */
-.order-item select {
-    background-color: #ffe8e4;
-    border: 1px solid tomato;
-    width: max(10vw, 120px);
-    padding: 10px;
-    outline: none;
-    transition: background-color 0.3s; /* Add transition for hover */
+.order-item-design-name {
+    margin-top: 6px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: var(--gold) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.order-item select:hover {
-    background-color: #ffdfd7; /* Lighter background on hover */
-}
-
-/* Date Separator Styling */
-.order-date {
-    font-size: 18px;
-    font-weight: bold;
-    color: #ff6347; /* Tomato color to match the theme */
-    margin-bottom: 10px;
-}
-
-.order-date-separator {
+/* ── STATUS CONTROL SELECTION DROPDOWN ── */
+.order-item-actions select {
+    background-color: var(--green) !important;
+    color: var(--gold-lt) !important;
+    border: 1px solid var(--gold) !important;
     width: 100%;
-    height: 5px; /* Height similar to the date size */
-    background: linear-gradient(to right, rgba(255, 99, 71, 0.7), rgba(0, 0, 0, 0.7)); /* Reddish-black gradient */
-    border-radius: 5px;
-    margin: 10px 0; /* Adds spacing around the separator */
+    padding: 12px 14px;
+    border-radius: 6px;
+    outline: none;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
-/* Responsive Adjustments */
+.order-item-actions select:hover {
+    background-color: var(--forest) !important;
+}
+
+/* Clear old legacy styles */
+.order-date-separator {
+    display: none !important;
+}
+
+
+/* ════════════════════════════════════════════
+   RESPONSIVE DESIGN (TABLET SCREEN SIZES)
+════════════════════════════════════════════ */
 @media (max-width: 1000px) {
+    .order {
+        padding: 95px 20px 20px 20px !important;
+    }
+    
     .order-item {
-        font-size: 12px;
-        grid-template-columns: 0.5fr 2fr 1fr;
-        padding: 15px 8px;
-    }
-    
-    .order-item select {
-        padding: 5px;
-        font-size: 12px;
-    }
-    
-    .order-item img {
-        width: 40px; /* Smaller images for mobile */
+        grid-template-columns: 70px 1.5fr 2fr 130px;
+        padding: 18px;
+        gap: 16px;
     }
 
+    .order-icon-wrapper {
+        width: 60px;
+        height: 60px;
+        font-size: 20px;
+    }
+}
+
+/* ════════════════════════════════════════════
+   CRITICAL MOBILE RESTRUCTURE (< 480px)
+   Converts Grid to Vertical Mobile Cards
+════════════════════════════════════════════ */
+@media (max-width: 480px) {
+    .order {
+        /* Matches exactly with List page padding to clear horizontal mobile header menu */
+        padding: 142px 12px 24px 12px !important; 
+    }
+
+    .order-date-group {
+        margin-bottom: 24px;
+    }
+    
     .order-date {
-        font-size: 16px;
+        font-size: 18px;
+        margin-bottom: 12px;
     }
 
-    .order-date-separator {
-        height: 3px; /* Smaller height for mobile */
+    /* Transform grid into layout stack */
+    .order-item {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        padding: 20px !important;
+        gap: 14px !important;
+        border-radius: 8px !important;
+    }
+
+    .order-icon-wrapper {
+        align-self: flex-start;
+        width: 65px;
+        height: 65px;
+        margin-bottom: -2px;
+    }
+
+    .order-item-main-details {
+        border-bottom: 1px solid rgba(201,168,124,0.2);
+        padding-bottom: 12px;
+        margin-bottom: 2px;
+    }
+
+    .order-item-address {
+        display: block; 
+        background: rgba(248, 244, 238, 0.6);
+        padding: 12px;
+        border-radius: 6px;
+        border: 1px solid rgba(201,168,124,0.15);
+    }
+
+    .order-item-actions select {
+        width: 100%;
+        text-align: center;
+        padding: 14px;
+        font-size: 14px;
     }
 }

@@ -22,8 +22,7 @@ const App = () => {
     <div>
       {showLogin && <Login setShowLogin={setShowLogin} />} {/* Conditionally show Login */}
 
-      <ToastContainer /> {/* Toast notifications */}
-      <Navbar setShowLogin={setShowLogin} /> {/* Pass setShowLogin to Navbar */}
+      <ToastContainer position="bottom-center" /> {/* Toast notifications */}      <Navbar setShowLogin={setShowLogin} /> {/* Pass setShowLogin to Navbar */}
 
       <div className="app-contents">
         <Sidebar />

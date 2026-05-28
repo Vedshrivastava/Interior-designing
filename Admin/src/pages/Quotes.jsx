@@ -1,35 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import '../styles/quotes.css';
+import '../styles/orders.css'; // Using the unified CSS file
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import moment from 'moment';
-import { assets } from '../assets/admin_assets/assets';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const Quotes = ({ url }) => {
   const [orders, setOrders] = useState([]);
   const token = localStorage.getItem('token');
 
-  // Fetch all quotes and sort by date
   const fetchAllOrders = async () => {
     try {
       const response = await axios.get(`${url}/api/appointment/list-quotes`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-
       if (response.data.success) {
-        setOrders(
-          response.data.appointments.sort((a, b) => new Date(b.date) - new Date(a.date))
-        );
+        setOrders(response.data.appointments.sort((a, b) => new Date(b.date) - new Date(a.date)));
       } else {
-        toast.error('Error fetching orders');
+        toast.error('Error fetching quotes');
       }
     } catch (error) {
-      toast.error('Failed to fetch orders');
-      console.error(error);
+      toast.error('Failed to fetch quotes');
     }
   };
 
-  // Group orders by date
   const groupOrdersByDate = (orders) => {
     return orders.reduce((groups, order) => {
       const date = moment(order.date).format('YYYY-MM-DD');
@@ -41,7 +35,6 @@ const Quotes = ({ url }) => {
     }, {});
   };
 
-  // Update the status of an order
   const statusHandler = async (event, orderId) => {
     const newStatus = event.target.value;
     try {
@@ -50,39 +43,30 @@ const Quotes = ({ url }) => {
         { orderId, status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       if (response.data.success) {
         fetchAllOrders();
       } else {
-        toast.error('Failed to update order status');
+        toast.error('Failed to update quote status');
       }
     } catch (error) {
-      toast.error('Failed to update order status');
-      console.error(error);
+      toast.error('Failed to update quote status');
     }
   };
 
   useEffect(() => {
     fetchAllOrders();
 
-    // WebSocket connection
-    const socket = new WebSocket('ws://localhost:3000'); // Update with your WebSocket URL
+    const socket = new WebSocket('ws://localhost:3000');
+    socket.addEventListener('open', () => console.log('WebSocket connection established.'));
 
-    socket.addEventListener('open', () => {
-      console.log('WebSocket connection established.');
-    });
-
-    // Listen for new messages
     socket.addEventListener('message', (event) => {
       const message = JSON.parse(event.data);
-
       switch (message.type) {
         case 'newQuote':
           setOrders((prevOrders) => 
             [message.data, ...prevOrders].sort((a, b) => new Date(b.date) - new Date(a.date))
           );
           break;
-
         case 'updateOrderStatus':
           setOrders((prevOrders) =>
             prevOrders
@@ -95,9 +79,7 @@ const Quotes = ({ url }) => {
       }
     });
 
-    return () => {
-      socket.close();
-    };
+    return () => socket.close();
   }, []);
 
   const groupedOrders = groupOrdersByDate(orders);
@@ -105,43 +87,46 @@ const Quotes = ({ url }) => {
   return (
     <div className='order add'>
       <div className='order-list'>
-      <hr className="order-date-separator" />
         {Object.keys(groupedOrders).map((date) => (
           <div key={date} className='order-date-group'>
             <h4 className='order-date'>{moment(date).format('MMMM Do, YYYY')}</h4>
-            <hr className="order-date-separator" />
+            
             {groupedOrders[date].map((order, index) => (
-              <div key={index} className='order-item'>
-                {order.image ? (
-                  <img src={order.image} alt={order.designName} />
-                ) : (
-                  <img src={assets.parcel_icon} alt="" />
-                )}
-                <div>
+              /* Notice the added "quote-item" class here */
+              <div key={index} className='order-item quote-item'>
+                
+                <div className="order-icon-wrapper quote-media">
+                  {order.image ? (
+                    <img src={order.image} alt={order.designName} />
+                  ) : (
+                    <i className="fa-solid fa-image"></i>
+                  )}
+                </div>
+                
+                <div className='order-item-main-details'>
                   <p className='order-item-name'>{order.name}</p>
                   <p className='order-item-phone'>{order.phoneNumber}</p>
-                  <p>{order.email}</p>
+                  <p className='order-item-email'>{order.email}</p>
                   <p className='order-item-design-name'>
                     {order.designName || 'No design name'}
                   </p>
                 </div>
+                
                 <div className='order-item-address'>
                   <p>{order.address}</p>
                 </div>
-                <p className='order-item-message'>
-                  {order.message || 'No additional message'}
-                </p>
 
-                <select
-                  onChange={(event) => statusHandler(event, order._id)}
-                  value={order.status}
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="Completed">Completed</option>
-                </select>
+                {/* Message Box has been entirely removed */}
+
+                <div className="order-item-actions">
+                  <select onChange={(event) => statusHandler(event, order._id)} value={order.status}>
+                    <option value="Pending">Pending</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+                
               </div>
             ))}
-            <hr className="order-date-separator" />
           </div>
         ))}
       </div>

@@ -1,97 +1,91 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
 
-*{
+:root {
+  --green:   #102525;
+  --forest:  #2d4a35;
+  --gold:    #c9a87c;
+  --gold-lt: #e8d0a8;
+  --ivory:   #f8f4ee;
+}
+
+* {
   margin: 0;
   box-sizing: border-box;
-  font-family: Outfit;
+  font-family: 'Inter', sans-serif;
 }
 
-.Toastify__toast-container--top-right {
-  top: 100px !important;
-  z-index: 9999;
-}
-
-body{
+body {
   min-height: 100vh;
-  background-color: #d5b697;
+  background-color: var(--ivory); /* Lighter background for the main content area */
+  color: var(--green);
 }
 
-a{
+a {
   text-decoration: none;
   color: inherit;
 }
 
-hr{
+hr {
   border: none;
   height: 1px;
-  background-color: #a9a9a9;
+  background-color: rgba(201,168,124,0.3);
 }
 
 .app-contents {
   display: flex;
 }
 
-.sidebar {
-  width: 18%;
-  min-height: 100vh;
-  border-top: 0;
-  font-size: max(1vw, 10px);
+/* ── TOASTIFY THEME OVERRIDES ── */
+.Toastify__toast {
+  background-color: var(--green) !important;
+  color: var(--ivory) !important;
+  border: 1px solid var(--gold) !important;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.Toastify__progress-bar {
+  background: var(--gold) !important;
+}
+
+.Toastify__close-button {
+  color: var(--gold) !important;
+  opacity: 0.8;
+}
+
+.Toastify__toast-icon svg {
+  fill: var(--gold) !important;
 }
 
 .main-content {
-  width: 82%; /* Adjust based on the sidebar width */
+  width: calc(100% - 220px); /* 100% minus the exact width of the 220px sidebar */
   min-height: 100vh;
-  margin-left: 18%;
+  margin-left: 220px;        /* Pushes content perfectly past the sidebar */
+  padding-top: 92px;         /* Clears the 62px fixed Navbar + 30px breathing room */
+  padding-bottom: 40px;
 }
 
-.flex-col {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* ════════════════════════════════════════════
+   RESPONSIVE LAYOUT FIXES
+════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 68px !important;
+    width: calc(100% - 68px) !important; 
+  }
 }
 
-.cursor{
-  cursor: pointer;
-}
-
-.Toastify__toast {
-  background-color: #183030;
-  color: #fff;
-  border-radius: 8px;
-  font-size: 15px;
-}
-
-.Toastify__progress-bar {
-  background: #d5b697;
-}
-
-.Toastify__close-button {
-  color: white;
-}
-
-
-/* Toast background */
-.Toastify__toast-theme--light {
-  background: #183030 !important;
-  color: white !important;
-}
-
-/* Toast body text */
-.Toastify__toast-body {
-  color: white !important;
-}
-
-/* Progress bar */
-.Toastify__progress-bar {
-  background: #d5b697 !important;
-}
-
-/* Close button */
-.Toastify__close-button {
-  color: white !important;
-}
-
-/* Error icon */
-.Toastify__toast-icon svg {
-  fill: #d5b697 !important; 
+@media (max-width: 480px) {
+  .app-contents { display: block !important; }
+  .sidebar { width: 100% !important; min-height: auto !important; }
+  .main-content {
+    margin-left: 0 !important;         
+    width: 100% !important;            
+    padding-top: 124px !important; 
+    padding-bottom: 24px;
+    padding-left: 16px !important;     
+    padding-right: 16px !important;
+  }
 }

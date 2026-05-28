@@ -1,44 +1,260 @@
-.sidebar{
-    width: 18%;
-    min-height: 100vh;
-    border: 1.5vh solid #183030 !important;
-    border-top: 0;
-    font-size: max(1vw, 10px);
-    padding-top: 50px;
-    background-color: #d5b697;
+/* ================================================
+   ADMIN SIDEBAR — HOME-MATCHED THEME
+   Deep green · gold accents · Inter font
+================================================ */
 
-    position: fixed;
-    padding-left: 20px;
-    padding-top: 49.5px;
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --green:   #102525;
+  --forest:  #2d4a35;
+  --gold:    #c9a87c;
+  --gold-lt: #e8d0a8;
+  --ivory:   #f8f4ee;
 }
 
-.sidebar-options{
-    padding-top: 50px;
-    padding-left: 20%;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+/* ════════════════════════════════════════════
+   SIDEBAR
+════════════════════════════════════════════ */
+.sidebar {
+  width: 220px;
+  min-height: 100vh;
+  background: var(--green);
+  position: fixed;
+  top: 62px; /* below navbar */
+  left: 0;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 0 32px;
+  border-right: 1px solid rgba(201,168,124,0.12);
+  box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+  box-sizing: border-box;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.sidebar::-webkit-scrollbar { display: none; }
+
+/* texture */
+.sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  background-image:
+    repeating-linear-gradient(45deg,  var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px),
+    repeating-linear-gradient(-45deg, var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px);
+  pointer-events: none;
 }
 
-.sidebar-option{
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background-color: #183030;
-    color: #d5b697;
-    border-right: 0;
-    padding: 8px 10px;
-    border-radius: 3px 0px 0px 3px;
-    cursor: pointer;
+/* section label */
+.sidebar-section-label {
+  font-family: "Inter", sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: rgba(201,168,124,0.45);
+  padding: 0 20px;
+  margin-bottom: 8px;
 }
 
-.sidebar-option.active{
-    background-color: #183030;
-    color: #b48a60;
+/* ── Options list ── */
+.sidebar-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 12px;
+  position: relative;
+  z-index: 1;
 }
 
+/* ── Individual option ── */
+.sidebar-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  color: rgba(240,230,211,0.58);
+  font-family: "Inter", sans-serif;
+  font-size: 0.87rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease;
+  position: relative;
+}
+
+.sidebar-option:hover {
+  background: rgba(201,168,124,0.08);
+  color: rgba(240,230,211,0.9);
+}
+
+/* active state */
+.sidebar-option.active {
+  background: rgba(201,168,124,0.12);
+  color: #f5ede0;
+  font-weight: 600;
+}
+
+/* gold left accent on active */
+.sidebar-option.active::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 20%; bottom: 20%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--gold);
+}
+
+/* icon badge */
+.sidebar-option-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: rgba(201,168,124,0.08);
+  border: 1px solid rgba(201,168,124,0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: var(--gold);
+  flex-shrink: 0;
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+
+.sidebar-option:hover .sidebar-option-icon,
+.sidebar-option.active .sidebar-option-icon {
+  background: rgba(201,168,124,0.18);
+  transform: scale(1.06);
+}
+
+/* divider */
+.sidebar-divider {
+  height: 1px;
+  background: rgba(201,168,124,0.1);
+  margin: 12px 20px;
+}
+
+/* ════════════════════════════════════════════
+   RESPONSIVE — collapse to icon-only < 900px
+════════════════════════════════════════════ */
+/* ════════════════════════════════════════════
+   RESPONSIVE — Icon-Only Left Sidebar
+════════════════════════════════════════════ */
 @media (max-width: 900px) {
-    .sidebar-option p{
-        display: none;
+    .sidebar {
+      width: 68px;
+      padding: 24px 0;
+      top: 62px;
     }
-}
+    .sidebar-options { 
+      padding: 0 8px; 
+      justify-content: flex-start; /* Forces items to stay at the top */
+    }
+    .sidebar-option  { 
+      justify-content: center; 
+      padding: 11px 8px; 
+    }
+    .sidebar-option p,
+    .sidebar-section-label,
+    .sidebar-divider { 
+      display: none; 
+    }
+    .sidebar-option-icon { 
+      margin: 0; 
+    }
+  
+    /* tooltip on hover (for tablets) */
+    .sidebar-option::after {
+      content: attr(data-label);
+      position: absolute;
+      left: calc(100% + 10px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--green);
+      border: 1px solid rgba(201,168,124,0.2);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      color: #f5ede0;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+    }
+    .sidebar-option:hover::after { opacity: 1; }
+  }
+  
+  /* Tablet & Mobile Transition */
+  @media (max-width: 768px) {
+    .sidebar {
+      top: 58px; /* Matches the navbar's smaller height */
+      height: calc(100vh - 58px); /* Prevents bottom icons from being cut off */
+      min-height: auto;
+      z-index: 900; /* Stays strictly under the navbar (which is 1000) */
+    }
+  }
+  
+  /* Strict Mobile Devices */
+/* ════════════════════════════════════════════
+   RESPONSIVE — Horizontal Sub-Nav < 480px
+════════════════════════════════════════════ */
+@media (max-width: 480px) {
+    .sidebar {
+      width: 100%;
+      height: 54px; /* Fixed height for horizontal bar */
+      min-height: auto;
+      top: 58px;    /* Sits directly underneath the mobile navbar */
+      left: 0;
+      flex-direction: row;
+      padding: 0;
+      border-right: none;
+      border-bottom: 1px solid rgba(201,168,124,0.14); /* Bottom border instead of right */
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      overflow-y: visible; /* Disable vertical scroll */
+    }
+  
+    .sidebar-options {
+      flex-direction: row; /* Layout links left-to-right */
+      width: 100%;
+      height: 100%;
+      justify-content: space-around; /* Distribute items across the screen width */
+      align-items: center;
+      gap: 0;
+      padding: 0;
+    }
+  
+    .sidebar-option {
+      padding: 0;
+      height: 100%;
+      flex: 1; /* Assigns equal width to every navigation link */
+      justify-content: center;
+      border-radius: 0;
+      background: transparent !important; /* Keeps row background uniform */
+    }
+  
+    /* Move the gold indicator line to the bottom edge of the active tab */
+    .sidebar-option.active::before {
+      left: 20%;
+      right: 20%;
+      bottom: 0;
+      top: auto;
+      width: auto;
+      height: 3px;
+      border-radius: 3px 3px 0 0;
+    }
+  
+    .sidebar-option-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+    }
+  
+    /* Completely strip touch tooltips out on mobile devices */
+    .sidebar-option::after {
+      display: none !important;
+    }
+  }

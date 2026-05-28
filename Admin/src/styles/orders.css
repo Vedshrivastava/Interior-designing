@@ -1,87 +1,197 @@
-.order{
-    background-color: #d5b697 !important;
-    padding-top: 90px !important;
+/* =========================================================
+   APPOINTMENTS PAGE ONLY — PREMIUM SITE-MATCHED THEME
+========================================================= */
+
+:root {
+    --green:   #102525;
+    --forest:  #2d4a35;
+    --gold:    #c9a87c;
+    --gold-lt: #e8d0a8;
+    --white:   #ffffff;
+    --ivory:   #f8f4ee;
 }
-.order-item {
+
+.appointments-container {
+    padding: 110px 40px 40px 40px !important;
+    background-color: var(--ivory) !important;
+    min-height: 100vh;
+}
+
+/* ── DATE GROUP HEADERS ── */
+.appointment-date-group {
+    margin-bottom: 40px;
+}
+
+.appointment-date {
+    font-family: "Playfair Display", serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--green) !important;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(201,168,124,0.4);
+}
+
+/* ── MAIN APPOINTMENT CARD (5-COLUMN GRID) ── */
+.appointment-item {
     display: grid;
-    grid-template-columns: 0.5fr 1fr 1fr 0.5fr; /* Adjusted for visual balance */
-    align-items: start;
-    gap: 30px;
-    border: 1px solid #183030 !important;
-    font-size: 14px;
-    color: #183030 !important;
-    margin: 5px !important;
+    /* 5 Columns: Icon | Details | Address | Message | Action */
+    grid-template-columns: 80px 1.5fr 1.5fr 1.5fr 140px; 
+    align-items: center;
+    gap: 20px;
+    background-color: var(--white);
+    border: 1px solid rgba(201,168,124,0.3) !important;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px !important;
+    box-shadow: 0 4px 16px rgba(16, 37, 37, 0.04);
     transition: all 0.25s ease;
 }
 
-.order-item-name,
-.order-item-phone {
+.appointment-item:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 10px 25px rgba(16, 37, 37, 0.08);
+}
+
+/* ── ICON WRAPPER ── */
+.appointment-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    background: rgba(201,168,124,0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(201,168,124,0.25);
+    color: var(--gold);
+    font-size: 24px;
+}
+
+/* ── TEXT FORMATTING ── */
+.appointment-item p {
+    margin: 0 0 6px 0;
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+    color: var(--green);
+}
+
+.appointment-name {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    margin-bottom: 4px !important;
+}
+
+.appointment-phone {
     font-weight: 600;
+    color: var(--forest) !important;
 }
 
-.order-item-name {
-    margin-top: 0px;
-    margin-bottom: 10px;
+.appointment-message {
+    font-style: italic;
+    color: rgba(16, 37, 37, 0.7) !important;
+    line-height: 1.4;
 }
 
-.order-item-address {
-    margin-bottom: 10px;
-}
-
-.order-item select {
-    background-color: #183030 !important;
-    border: 1px solid #fff !important;
-    width: max(10vw, 120px);
-    padding: 10px;
-    outline: none;
-    color: #fff !important;
-}
-
-.order-item:hover{
-    transform: scale(1.01);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-    background-color: #e0c2a4;
-}
-/* Date Separator */
-.order-date {
-    font-size: 18px;
-    font-weight: bold;
-    color: #fff !important; /* Tomato color to match the theme */
-    margin-bottom: 10px;
-    background-color: #183030;
-    padding: 8px;
-}
-
-.order-date-separator {
+/* ── SELECT STATUS DROPDOWN ── */
+.appointment-actions select {
+    background-color: var(--green) !important;
+    color: var(--gold-lt) !important;
+    border: 1px solid var(--gold) !important;
     width: 100%;
-    height: 5px; /* Height similar to the date size */
-    background: #183030 !important; /* Reddish-black gradient */
-    border-radius: 5px;
-    margin: 10px 0; /* Adds spacing around the separator */
+    padding: 12px 14px;
+    border-radius: 6px;
+    outline: none;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
-/* Responsive adjustments */
+.appointment-actions select:hover {
+    background-color: var(--forest) !important;
+}
+
+/* ════════════════════════════════════════════
+   RESPONSIVE DESIGN (TABLET)
+════════════════════════════════════════════ */
 @media (max-width: 1000px) {
-    .order-item {
-        font-size: 12px;
-        grid-template-columns: 0.5fr 2fr; /* Adjust for mobile */
-        padding: 15px 8px;
+    .appointments-container {
+        padding: 95px 20px 20px 20px !important;
     }
     
-    .order-item select {
-        padding: 5px;
-        font-size: 12px;
+    .appointment-item {
+        /* Drops to 4 columns on medium screens, hiding the message */
+        grid-template-columns: 60px 1.5fr 1.5fr 1fr;
+        padding: 16px;
+        gap: 16px;
+    }
+
+    .appointment-message-box {
+        display: none; 
+    }
+
+    .appointment-icon-wrapper {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+}
+
+/* ════════════════════════════════════════════
+   CRITICAL MOBILE RESTRUCTURE (< 480px)
+════════════════════════════════════════════ */
+@media (max-width: 480px) {
+    .appointments-container {
+        /* Padding to clear mobile header */
+        padding: 142px 12px 24px 12px !important; 
+    }
+
+    .appointment-date-group {
+        margin-bottom: 24px;
     }
     
-    .order-item img {
-        width: 40px; /* Adjust image size */
+    .appointment-date {
+        font-size: 18px;
+        margin-bottom: 12px;
     }
 
-    .order-date {
-        font-size: 16px; /* Smaller font for mobile */
+    /* Convert to vertical card */
+    .appointment-item {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        padding: 20px !important;
+        gap: 12px !important;
+        border-radius: 8px !important;
     }
 
-    .order-date-separator {
-        height: 3px; /* Smaller height for mobile */
+    .appointment-icon-wrapper {
+        align-self: flex-start;
+        margin-bottom: -4px;
+    }
+
+    .appointment-main-details {
+        border-bottom: 1px solid rgba(201,168,124,0.2);
+        padding-bottom: 12px;
+        margin-bottom: 4px;
+    }
+
+    .appointment-address, .appointment-message-box {
+        display: block; 
+        background: rgba(248, 244, 238, 0.6);
+        padding: 12px;
+        border-radius: 6px;
+        border: 1px solid rgba(201,168,124,0.15);
+    }
+    
+    .appointment-message-box {
+        margin-bottom: 8px;
+    }
+
+    .appointment-actions select {
+        width: 100%;
+        text-align: center;
+        padding: 14px;
+        font-size: 14px;
     }
 }

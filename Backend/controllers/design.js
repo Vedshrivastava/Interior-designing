@@ -101,8 +101,62 @@ const removeDesign = async (req, res) => {
     }
 };
 
+// --- ADD THIS NEW FUNCTION ---
+const updateDesign = async (req, res) => {
+    try {
+        const { _id, name, description, category, points, existingImages } = req.body;
+        const parsedPoints = points ? JSON.parse(points) : [];
+        const parsedExistingImages = existingImages ? JSON.parse(existingImages) : []; // Images user chose to KEEP
+
+        let updateData = {
+            name,
+            description,
+            category,
+            points: parsedPoints
+        };
+
+        const existingDesign = await Design.findById(_id);
+
+        // 1. Delete removed images from Cloudinary
+        const imagesToDelete = existingDesign.images.filter(img => !parsedExistingImages.includes(img));
+        
+        for (const imageUrl of imagesToDelete) {
+            try {
+                const publicId = imageUrl.split('/').pop().split('.')[0];
+                await cloudinary.uploader.destroy(`design_images/${publicId}`);
+                console.log(`Deleted removed image: ${publicId}`);
+            } catch (deleteError) {
+                console.error('Error deleting image from Cloudinary:', deleteError);
+            }
+        }
+
+        // 2. Upload brand new images (if any were added)
+        let newImageUrls = [];
+        if (req.files && req.files.length > 0) {
+            for (const file of req.files) {
+                try {
+                    const result = await cloudinary.uploader.upload(file.path, { folder: 'design_images' });
+                    newImageUrls.push(result.secure_url);
+                    fs.unlinkSync(file.path);
+                } catch (uploadError) {
+                    console.error('Upload Error:', uploadError);
+                }
+            }
+        }
+
+        // 3. Combine the kept existing images with the newly uploaded images
+        updateData.images = [...parsedExistingImages, ...newImageUrls];
+
+        await Design.findByIdAndUpdate(_id, updateData, { new: true });
+        res.json({ success: true, message: 'Design Updated Successfully' });
+    } catch (error) {
+        console.error('Error updating design:', error);
+        res.status(500).json({ success: false, message: 'Error updating design' });
+    }
+};
+
 const appointments = async (req, res) => {
 
 }
 
-export { addDesign, listDesigns, removeDesign, appointments };
+export { addDesign, listDesigns, removeDesign, appointments, updateDesign };

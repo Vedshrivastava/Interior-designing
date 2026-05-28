@@ -7,38 +7,25 @@ import '../index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const Add = ({ url }) => {
-    const [images, setImages] = useState([]); // Store multiple images
+    const [images, setImages] = useState([]); 
     const [data, setData] = useState({
         name: "",
         description: "",
         price: "",
-        category: "Kitchen Designs" // Set a default category
+        category: "Kitchen Designs" 
     });
-
-    const [points, setPoints] = useState([""]); // Initialize with one empty point
+    const [points, setPoints] = useState([""]); 
+    const [isLoading, setIsLoading] = useState(false); // Global page-freeze state
+    
     const token = localStorage.getItem('token');
 
-    // Hardcoded categories
     const categories = [
-        'Kitchen Designs',
-        'Bedroom Designs',
-        'Bathroom Designs',
-        'Lounge area Designs',
-        'Kids Room Designs',
-        'TV Unit Designs',
-        'Commercial Designs',
-        'Mandir Designs',
-        'Garden Designs',
-        'House Exterior Designs',
-        'PVC Louvers',
-        'WPC Louvers',
-        'Charcoal Louvers',
-        'Five G Louvers',
-        'Marble sheets',
-        'Acrylic Sheets',
-        'Flooring',
-        'PVC Panels',
-        'Projects'
+        'Kitchen Designs', 'Bedroom Designs', 'Bathroom Designs', 
+        'Lounge area Designs', 'Kids Room Designs', 'TV Unit Designs', 
+        'Commercial Designs', 'Mandir Designs', 'Garden Designs', 
+        'House Exterior Designs', 'PVC Louvers', 'WPC Louvers', 
+        'Charcoal Louvers', 'Five G Louvers', 'Marble sheets', 
+        'Acrylic Sheets', 'Flooring', 'PVC Panels', 'Projects'
     ];
 
     const onChangeHandler = (event) => {
@@ -52,59 +39,62 @@ const Add = ({ url }) => {
         setPoints(updatedPoints);
     };
 
-    const addPoint = () => {
-        setPoints([...points, ""]); // Add a new empty point input
-    };
-
-    const removePoint = (index) => {
-        const updatedPoints = points.filter((_, idx) => idx !== index);
-        setPoints(updatedPoints);
-    };
+    const addPoint = () => setPoints([...points, ""]);
+    const removePoint = (index) => setPoints(points.filter((_, idx) => idx !== index));
 
     const onImageChangeHandler = (event) => {
         const selectedFiles = Array.from(event.target.files);
-        setImages(prevImages => [...prevImages, ...selectedFiles]); // Add newly selected images to the existing ones
+        setImages(prevImages => [...prevImages, ...selectedFiles]); 
     };
 
     const removeImage = (indexToRemove) => {
-        setImages(images.filter((_, index) => index !== indexToRemove)); // Remove image by index
+        setImages(images.filter((_, index) => index !== indexToRemove)); 
     };
 
     const onSubmitHandler = async (event) => {
         event.preventDefault();
+        setIsLoading(true); // 1. Freeze the screen instantly
 
         const formData = new FormData();
         formData.append("name", data.name);
         formData.append("description", data.description);
         formData.append("category", data.category);
-        formData.append("points", JSON.stringify(points)); // Submit points as JSON
+        formData.append("points", JSON.stringify(points)); 
 
-        // Append each image file to the FormData object
         images.forEach((image) => {
-            formData.append("images", image); // No need for the array format
+            formData.append("images", image); 
         });
 
         try {
             const response = await axios.post(`${url}/api/design/add`, formData, { headers: { Authorization: `Bearer ${token}` } });
             if (response.data.success) {
-                setData({
-                    name: "",
-                    description: "",
-                    category: categories[0] // Reset to the first category
-                });
-                setPoints([""]); // Reset points
-                setImages([]); // Clear the images after successful submission
+                setData({ name: "", description: "", category: categories[0] });
+                setPoints([""]); 
+                setImages([]); 
                 toast.success(response.data.message);
             } else {
                 toast.error(response.data.message);
             }
         } catch (error) {
             toast.error('An error occurred while adding the data.');
+        } finally {
+            setIsLoading(false); // 2. Unfreeze the screen
         }
     };
 
     return (
         <div className='add'>
+            {/* 3. FULL SCREEN PORTAL LOADER BLOCK */}
+            {isLoading && (
+                <div className="submit-loader-overlay">
+                    <div className="loader-modal-box">
+                        <div className="loader-ring"></div>
+                        <p>Uploading Design...</p>
+                        <span>Please don't refresh the page</span>
+                    </div>
+                </div>
+            )}
+
             <form className="flex-col" onSubmit={onSubmitHandler}>
                 <div className="add-img-upload flex-col">
                     <h2>Upload Image</h2>
@@ -125,12 +115,12 @@ const Add = ({ url }) => {
 
                 <div className="add-product-name flex-col">
                     <h2>Name</h2>
-                    <input onChange={onChangeHandler} value={data.name} type="text" name='name' placeholder='Type here' />
+                    <input onChange={onChangeHandler} value={data.name} type="text" name='name' placeholder='Type here' required />
                 </div>
 
                 <div className="add-product-description flex-col">
                     <h2>Description</h2>
-                    <textarea onChange={onChangeHandler} value={data.description} name="description" rows="6" placeholder='Write about the item here.'></textarea>
+                    <textarea onChange={onChangeHandler} value={data.description} name="description" rows="6" placeholder='Write about the item here.' required></textarea>
                 </div>
 
                 <div className="add-product-points flex-col">
@@ -143,10 +133,10 @@ const Add = ({ url }) => {
                                 onChange={(e) => onPointChangeHandler(index, e.target.value)}
                                 placeholder={`Point ${index + 1}`}
                             />
-                            <button type="button" onClick={() => removePoint(index)}>Remove</button>
+                            <button type="button" onClick={() => removePoint(index)} className="remove-point-btn">Remove</button>
                         </div>
                     ))}
-                    <button className='add-btn' type="button" onClick={addPoint}>Add Point</button>
+                    <button className='add-point-btn' type="button" onClick={addPoint}>+ Add Point</button>
                 </div>
 
                 <div className="add-category-price">
@@ -160,7 +150,9 @@ const Add = ({ url }) => {
                     </div>
                 </div>
 
-                <button type='submit' className='add-btn'>Add</button>
+                <button type='submit' className='add-btn' disabled={isLoading}>
+                    {isLoading ? 'Adding...' : 'Add Design'}
+                </button>
             </form>
         </div>
     );

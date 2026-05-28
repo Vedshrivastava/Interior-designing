@@ -2,14 +2,13 @@ import React, { useEffect, useState } from 'react';
 import '../styles/orders.css';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { assets } from '../assets/admin_assets/assets';
-import moment from 'moment'; // Import moment.js for date formatting
+import moment from 'moment'; 
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const Orders = ({ url }) => {
   const [orders, setOrders] = useState([]);
   const token = localStorage.getItem('token');
 
-  // Fetch all orders (both paid and unpaid)
   const fetchAllOrders = async () => {
     try {
       const response = await axios.get(`${url}/api/appointment/list`, {
@@ -17,18 +16,15 @@ const Orders = ({ url }) => {
       });
 
       if (response.data.success) {
-        setOrders(response.data.appointments); // Set orders if response is successful
+        setOrders(response.data.appointments); 
       } else {
-        console.log(response);
-        toast.error('Error fetching orders');
+        toast.error('Error fetching appointments');
       }
     } catch (error) {
-      toast.error('Failed to fetch orders');
-      console.error(error);
+      toast.error('Failed to fetch appointments');
     }
   };
 
-  // Group orders by date
   const groupOrdersByDate = (orders) => {
     return orders.reduce((groups, order) => {
       const date = moment(order.date).format('YYYY-MM-DD');
@@ -40,52 +36,39 @@ const Orders = ({ url }) => {
     }, {});
   };
 
-  // Update the status of an order
   const statusHandler = async (event, orderId) => {
     const newStatus = event.target.value;
-
     try {
       const response = await axios.post(
         `${url}/api/appointment/status`,
         { orderId, status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       if (response.data.success) {
-        fetchAllOrders(); // Refresh orders after status update
+        fetchAllOrders(); 
       } else {
-        toast.error('Failed to update order status');
+        toast.error('Failed to update status');
       }
     } catch (error) {
-      toast.error('Failed to update order status');
-      console.error(error);
+      toast.error('Failed to update status');
     }
   };
 
   useEffect(() => {
-    fetchAllOrders(); // Fetch orders when component mounts
+    fetchAllOrders(); 
 
-    // Establish WebSocket connection
     const socket = new WebSocket('ws://localhost:3000');
+    socket.addEventListener('open', () => console.log('WebSocket connection established.'));
 
-    // Log when connection is opened
-    socket.addEventListener('open', () => {
-      console.log('WebSocket connection established.');
-    });
-
-    // Handle incoming WebSocket messages
     socket.addEventListener('message', (event) => {
       const message = JSON.parse(event.data);
-
       switch (message.type) {
         case 'newOrder':
-          console.log('New order received:', message.data);
           setOrders((prevOrders) => 
             [message.data, ...prevOrders].sort((a, b) => new Date(b.date) - new Date(a.date))
-          );          break;
-
+          );          
+          break;
         case 'updateOrderStatus':
-          console.log('Order status updated:', message.data);
           setOrders((prevOrders) =>
             prevOrders
               .map((order) => 
@@ -94,50 +77,49 @@ const Orders = ({ url }) => {
               .sort((a, b) => new Date(b.date) - new Date(a.date))
           );
           break;
-
-        // Add more cases as needed
       }
     });
 
-    // Clean up WebSocket connection on unmount
-    return () => {
-      socket.close();
-    };
+    return () => socket.close();
   }, []);
 
-  // Group orders by date
   const groupedOrders = groupOrdersByDate(orders);
 
   return (
-    <div className='order add'>
-      <div className='order-list'>
-      <hr className="order-date-separator" />
+    <div className='appointments-container'>
+      <div className='appointment-list'>
         {Object.keys(groupedOrders).map((date) => (
-          <div key={date} className='order-date-group'>
-            <h4 className='order-date'>{moment(date).format('MMMM Do, YYYY')}</h4>
-            <hr className="order-date-separator" />
+          <div key={date} className='appointment-date-group'>
+            <h4 className='appointment-date'>{moment(date).format('MMMM Do, YYYY')}</h4>
+            
             {groupedOrders[date].map((order, index) => (
-              <div key={index} className='order-item'>
-                <img src={assets.parcel_icon} alt="" />
-                <div>
-                  <p className='order-item-name'>{order.name}</p>
-                  <p className='order-item-phone'>{order.phoneNumber}</p>
-                  <p>{order.email}</p>
+              <div key={index} className='appointment-item'>
+                <div className="appointment-icon-wrapper">
+                   <i className="fa-solid fa-clipboard-list"></i>
                 </div>
-                <div className='order-item-address'>
+                
+                <div className='appointment-main-details'>
+                  <p className='appointment-name'>{order.name}</p>
+                  <p className='appointment-phone'>{order.phoneNumber}</p>
+                  <p className='appointment-email'>{order.email}</p>
+                </div>
+                
+                <div className='appointment-address'>
                   <p>{order.address}</p>
                 </div>
-                <p className='order-item-message'>{order.message || 'No additional message'}</p>
-                <select
-                  onChange={(event) => statusHandler(event, order._id)}
-                  value={order.status}
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="Completed">Completed</option>
-                </select>
+                
+                <div className='appointment-message-box'>
+                  <p className='appointment-message'>{order.message || 'No additional message'}</p>
+                </div>
+                
+                <div className="appointment-actions">
+                  <select onChange={(event) => statusHandler(event, order._id)} value={order.status}>
+                    <option value="Pending">Pending</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
               </div>
             ))}
-            <hr className="order-date-separator" />
           </div>
         ))}
       </div>

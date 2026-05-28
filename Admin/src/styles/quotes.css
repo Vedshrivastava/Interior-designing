@@ -13,7 +13,7 @@
 }
 
 .order {
-    padding: 110px 40px 40px 40px !important;
+    padding: 40px 40px 40px 40px !important;
     background-color: var(--ivory) !important;
     min-height: 100vh;
 }
@@ -154,12 +154,12 @@
 
 /* ════════════════════════════════════════════
    CRITICAL MOBILE RESTRUCTURE (< 480px)
-   Converts Grid to Vertical Mobile Cards
+   Matches the Appointment Page Grid Structure
 ════════════════════════════════════════════ */
 @media (max-width: 480px) {
     .order {
         /* Matches exactly with List page padding to clear horizontal mobile header menu */
-        padding: 142px 12px 24px 12px !important; 
+        padding: 30px 12px 24px 12px !important; 
     }
 
     .order-date-group {
@@ -171,27 +171,39 @@
         margin-bottom: 12px;
     }
 
-    /* Transform grid into layout stack */
+    /* Converted from Flexbox back to Grid to match Appointments */
     .order-item {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: stretch !important;
+        display: grid !important;
+        grid-template-columns: 1fr 65px !important; /* Details takes remaining space, icon takes 65px */
+        align-items: center !important;
         padding: 20px !important;
         gap: 14px !important;
         border-radius: 8px !important;
     }
 
-    .order-icon-wrapper {
-        align-self: flex-start;
-        width: 65px;
-        height: 65px;
-        margin-bottom: -2px;
+    /* LEFT SIDE */
+    .order-item-main-details {
+        grid-column: 1 / 2;
+        grid-row: 1; /* Fixes the gap issue */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 52px;
     }
 
-    .order-item-main-details {
-        border-bottom: 1px solid rgba(201,168,124,0.2);
-        padding-bottom: 12px;
-        margin-bottom: 2px;
+    /* RIGHT ICON/IMAGE */
+    .order-icon-wrapper {
+        grid-column: 2 / 3;
+        grid-row: 1; /* Fixes the gap issue */
+        justify-self: end;
+        width: 65px;
+        height: 65px;
+    }
+
+    /* FULL WIDTH BOXES */
+    .order-item-address,
+    .order-item-actions {
+        grid-column: 1 / -1;
     }
 
     .order-item-address {
@@ -200,6 +212,7 @@
         padding: 12px;
         border-radius: 6px;
         border: 1px solid rgba(201,168,124,0.15);
+        margin-top: 2px;
     }
 
     .order-item-actions select {

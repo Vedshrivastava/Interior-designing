@@ -21,7 +21,7 @@
 
 /* ── 2. MAIN LAYOUT ── */
 .list {
-    padding: 30px 40px 60px 40px !important; 
+    padding: 40px 40px 40px 40px !important; 
     background-color: var(--ivory);
     min-height: 100vh;
     display: flex;

@@ -1,3 +1,4 @@
+
 /* =========================================================
    ADD PRODUCT FORM — REFINED STRUCTURE & AESTHETICS
 ========================================================= */
@@ -22,11 +23,12 @@
     font-size: 16px;
     display: flex;
     flex-direction: column;
-    align-items: center; /* Centers the form block horizontally */
-    padding: 30px 40px; 
+    align-items: center; 
+    /* Matched top padding (110px) to your Orders/Appointments page to clear the top nav */
+    padding: 40px 40px 40px 40px; 
     background-color: var(--ivory);
     min-height: 100vh;
-    width: 100%; /* Ensures it spans its parent properly */
+    width: 100%; 
 }
 
 .add h2 {
@@ -35,24 +37,22 @@
     color: var(--green);
     font-weight: 700;
     width: 100%;
-    max-width: 940px; /* Anchors the heading to the new form width */
-    margin: 0 auto 24px auto; /* Fail-safe centering */
+    max-width: 940px; 
+    margin: 0 auto 20px auto; /* Tightened from 24px */
 }
 
 /* ── 3. FORM CARD CONTAINER ── */
 .add form {
     display: flex;
     flex-direction: column;
-    gap: 32px; 
-    padding: 40px;
+    gap: 24px; /* Reduced from 32px to eliminate unnecessary laptop gaps */
+    padding: 32px 40px; /* Tightened from 40px */
     background: var(--white);
     border: 1px solid rgba(201, 168, 124, 0.25);
     border-radius: 12px;
     width: 100%;
-    max-width: 940px; /* Increased from 800px to look better on 768px-1100px screens */
-    margin: 0 auto; /* Ensures it stays dead-center */
-    
-    /* Sophisticated, multi-layered shadow */
+    max-width: 940px; 
+    margin: 0 auto; 
     box-shadow: 
         0 4px 6px rgba(0, 0, 0, 0.02),
         0 12px 32px rgba(16, 37, 37, 0.05);
@@ -61,16 +61,25 @@
 /* ── 4. STANDARD INPUTS & TEXTAREAS ── */
 .add-product-name, 
 .add-product-description, 
-.add-category-price {
+.add-category-price > div { /* Targets the inner wrappers for category and price */
     display: flex;
     flex-direction: column;
     gap: 8px;
     width: 100%;
 }
 
+/* Place Category & Price side-by-side on Laptop/Desktop */
+.add-category-price {
+    display: flex;
+    flex-direction: row; 
+    gap: 24px;
+    width: 100%;
+}
+
 .add-product-name input, 
 .add-product-description textarea, 
 .add-category-price select,
+.add-category-price input,
 .point-input input {
     width: 100%;
     padding: 14px 16px;
@@ -86,6 +95,7 @@
 .add-product-name input:focus, 
 .add-product-description textarea:focus, 
 .add-category-price select:focus,
+.add-category-price input:focus,
 .point-input input:focus {
     outline: none;
     border-color: var(--gold);
@@ -311,7 +321,7 @@
 /* ── 9. RESPONSIVE DESIGN (< 768px - Tablets) ── */
 @media (max-width: 768px) {
     .add { 
-        padding: 40px 20px; 
+        padding: 95px 20px 20px 20px; 
     }
     
     .add form { 
@@ -319,7 +329,7 @@
     }
     
     .add-btn {
-        align-self: center; /* Centers button on mobile */
+        align-self: center; 
         width: 100%;
     }
 }
@@ -327,18 +337,22 @@
 /* ── 10. RESPONSIVE DESIGN (< 480px - Mobile Phones) ── */
 @media (max-width: 480px) {
     .add {
-        /* Removes massive side gaps so the container takes up most of the screen */
-        padding: 24px 12px; 
+        padding: 30px 12px 24px 12px; /* Matched exactly to Orders/Quotes mobile view */
     }
     
     .add h2 {
-        font-size: 20px; /* Slightly smaller text for tight spaces */
+        font-size: 20px; 
     }
 
     .add form {
-        /* Reclaims interior real estate so inputs can stretch out */
         padding: 24px 16px; 
-        gap: 24px; /* Slightly tighter gap on small screens */
+        gap: 20px; /* Tighter gap on small screens */
+    }
+
+    /* Convert Category & Price back to a stack on narrow screens */
+    .add-category-price {
+        flex-direction: column;
+        gap: 20px;
     }
 
     .add-product-points {

@@ -200,7 +200,7 @@
 .contact-details-inner {
   position: relative;
   z-index: 1;
-  padding: 40px 38px 44px;
+  padding: 44px 38px 48px;
 }
 
 .contact-details h1 {
@@ -223,7 +223,7 @@
 .contact-info-list {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 10px;
 }
 
 .contact-info-item {
@@ -487,5 +487,8 @@
   .contact-submit { font-size: 0.82rem; }
   .contact-details {
     height: 82vh;
+  }
+  .contact-info-list {
+    gap: 0;
   }
 }

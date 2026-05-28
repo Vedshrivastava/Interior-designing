@@ -1,87 +1,103 @@
+/* =========================================================
+   ADD PRODUCT FORM — REFINED STRUCTURE & AESTHETICS
+========================================================= */
+
+/* ── 1. THEME VARIABLES ── */
+:root {
+    --green: #102525;
+    --gold: #c9a87c;
+    --gold-lt: #e8d0a8;
+    --ivory: #f8f4ee;
+    --white: #ffffff;
+    --danger: #ff5252;
+}
+
+/* Apply box-sizing locally to prevent layout shifts */
+.add, .add * {
+    box-sizing: border-box;
+}
+
+/* ── 2. MAIN LAYOUT & ALIGNMENT ── */
 .add {
     font-size: 16px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    padding: 32px 40px; 
+    align-items: center; /* Centers the form block horizontally */
+    padding: 30px 40px; 
     background-color: var(--ivory);
+    min-height: 100vh;
+    width: 100%; /* Ensures it spans its parent properly */
 }
 
 .add h2 {
     font-family: "Playfair Display", serif;
-    font-size: 18px;
+    font-size: 24px; 
     color: var(--green);
     font-weight: 700;
+    width: 100%;
+    max-width: 940px; /* Anchors the heading to the new form width */
+    margin: 0 auto 24px auto; /* Fail-safe centering */
 }
 
+/* ── 3. FORM CARD CONTAINER ── */
 .add form {
     display: flex;
     flex-direction: column;
-    gap: 24px;
-    padding: 32px;
-    background: #ffffff;
-    border: 1px solid rgba(201,168,124,0.25);
+    gap: 32px; 
+    padding: 40px;
+    background: var(--white);
+    border: 1px solid rgba(201, 168, 124, 0.25);
     border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.03);
+    width: 100%;
+    max-width: 940px; /* Increased from 800px to look better on 768px-1100px screens */
+    margin: 0 auto; /* Ensures it stays dead-center */
+    
+    /* Sophisticated, multi-layered shadow */
+    box-shadow: 
+        0 4px 6px rgba(0, 0, 0, 0.02),
+        0 12px 32px rgba(16, 37, 37, 0.05);
 }
 
-/* ── BULLETPROOF FULL SCREEN LOADER ── */
-.submit-loader-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(16, 37, 37, 0.45); /* Dark matching dim backdrop */
-    backdrop-filter: blur(6px);         /* Blurs background content */
-    z-index: 99999;                     /* Ensures it sits higher than navbars/sidebars */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.loader-modal-box {
-    background: #ffffff;
-    padding: 35px 50px;
-    border-radius: 16px;
-    border: 1px solid var(--gold);
+/* ── 4. STANDARD INPUTS & TEXTAREAS ── */
+.add-product-name, 
+.add-product-description, 
+.add-category-price {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
-    text-align: center;
+    gap: 8px;
+    width: 100%;
 }
 
-.loader-modal-box p {
-    font-family: "Inter", sans-serif;
+.add-product-name input, 
+.add-product-description textarea, 
+.add-category-price select,
+.point-input input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid rgba(201, 168, 124, 0.35);
+    background-color: var(--white);
     color: var(--green);
-    font-weight: 700;
-    font-size: 16px;
-    margin-top: 8px;
-}
-
-.loader-modal-box span {
-    font-size: 12px;
-    color: rgba(16, 37, 37, 0.6);
+    border-radius: 8px;
+    font-size: 14px;
     font-family: "Inter", sans-serif;
+    transition: all 0.25s ease;
 }
 
-.loader-ring {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    border: 4px solid rgba(201,168,124,0.2);
-    border-top-color: var(--gold);
-    animation: spin 0.8s linear infinite;
+.add-product-name input:focus, 
+.add-product-description textarea:focus, 
+.add-category-price select:focus,
+.point-input input:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 4px rgba(201, 168, 124, 0.15);
 }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
+.add input::placeholder,
+.add textarea::placeholder {
+    color: rgba(16, 37, 37, 0.35);
 }
 
-/* ── Image Upload Elements ── */
+/* ── 5. IMAGE UPLOAD SECTION ── */
 .add-img-upload i {
     width: 80px;
     height: 80px;
@@ -93,20 +109,20 @@
     color: var(--gold);
     border: 2px dashed var(--gold);
     border-radius: 12px;
-    background-color: rgba(201,168,124,0.04);
+    background-color: rgba(201, 168, 124, 0.04);
     transition: all 0.3s ease;
 }
 
 .add-img-upload i:hover {
-    background-color: rgba(201,168,124,0.1);
+    background-color: rgba(201, 168, 124, 0.1);
     transform: translateY(-2px);
 }
 
 .selected-images {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 8px;
+    gap: 16px;
+    margin-top: 12px;
 }
 
 .image-preview {
@@ -120,18 +136,18 @@
     height: 90px;
     object-fit: cover;
     border-radius: 8px;
-    border: 1px solid rgba(201,168,124,0.25);
+    border: 1px solid rgba(201, 168, 124, 0.25);
 }
 
 .remove-btn {
     position: absolute;
-    top: -6px;
-    right: -6px;
-    background: #ff5252 !important;
-    color: #fff;
-    border: none;
-    width: 22px;
-    height: 22px;
+    top: -8px;
+    right: -8px;
+    background: var(--danger) !important;
+    color: var(--white);
+    border: 2px solid var(--white);
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     cursor: pointer;
     font-size: 10px;
@@ -139,57 +155,30 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s ease;
 }
 
-/* ── Inputs Layouts ── */
-.add-product-name, .add-product-description, .add-category-price {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    width: max(45%, 320px);
+.remove-btn:hover {
+    transform: scale(1.1);
 }
 
-.add-product-name input, 
-.add-product-description textarea, 
-.add-category-price select,
-.point-input input {
-    padding: 12px 14px;
-    border: 1px solid rgba(201,168,124,0.35);
-    background-color: #ffffff;
-    color: var(--green);
-    border-radius: 8px;
-    font-size: 14px;
-    font-family: "Inter", sans-serif;
-    transition: all 0.3s ease;
-}
-
-.add-product-name input:focus, 
-.add-product-description textarea:focus, 
-.add-category-price select:focus,
-.point-input input:focus {
-    outline: none;
-    border-color: var(--gold);
-    box-shadow: 0 0 0 3px rgba(201,168,124,0.12);
-}
-
-.add input::placeholder,
-.add textarea::placeholder {
-    color: rgba(16, 37, 37, 0.35);
-}
-
-/* ── Dynamic Points Block ── */
+/* ── 6. DYNAMIC POINTS BLOCK ── */
 .add-product-points {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
+    background: rgba(201, 168, 124, 0.03);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(201, 168, 124, 0.15);
 }
 
 .point-input {
     display: flex;
     align-items: center;
     gap: 12px;
-    width: 65%;
+    width: 100%;
 }
 
 .point-input input {
@@ -198,9 +187,9 @@
 
 .remove-point-btn {
     background-color: rgba(255, 82, 82, 0.08);
-    color: #ff5252;
+    color: var(--danger);
     border: 1px solid rgba(255, 82, 82, 0.25);
-    padding: 11px 14px;
+    padding: 13px 16px;
     cursor: pointer;
     border-radius: 8px;
     font-weight: 600;
@@ -209,8 +198,8 @@
 }
 
 .remove-point-btn:hover {
-    background-color: #ff5252;
-    color: white;
+    background-color: var(--danger);
+    color: var(--white);
 }
 
 .add-point-btn {
@@ -218,8 +207,8 @@
     background: transparent;
     color: var(--gold);
     border: 1px dashed var(--gold);
-    padding: 8px 16px;
-    border-radius: 6px;
+    padding: 10px 20px;
+    border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
     font-size: 13px;
@@ -227,12 +216,13 @@
 }
 
 .add-point-btn:hover {
-    background: rgba(201,168,124,0.08);
+    background: rgba(201, 168, 124, 0.08);
 }
 
-/* ── Primary Form Button ── */
+/* ── 7. PRIMARY SUBMIT BUTTON ── */
 .add-btn {
-    max-width: 160px;
+    align-self: flex-end;
+    min-width: 160px;
     border: none;
     padding: 14px 24px;
     background-color: var(--gold);
@@ -250,7 +240,7 @@
 .add-btn:hover:not(:disabled) {
     background-color: var(--gold-lt);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(201,168,124,0.25);
+    box-shadow: 0 6px 16px rgba(201, 168, 124, 0.25);
 }
 
 .add-btn:disabled {
@@ -261,11 +251,97 @@
     box-shadow: none;
 }
 
-/* ── Small Viewport Overrides ── */
+/* ── 8. BULLETPROOF FULL SCREEN LOADER ── */
+.submit-loader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(16, 37, 37, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loader-modal-box {
+    background: var(--white);
+    padding: 40px 60px;
+    border-radius: 16px;
+    border: 1px solid var(--gold);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    text-align: center;
+}
+
+.loader-modal-box p {
+    font-family: "Inter", sans-serif;
+    color: var(--green);
+    font-weight: 700;
+    font-size: 18px;
+    margin-top: 8px;
+}
+
+.loader-modal-box span {
+    font-size: 13px;
+    color: rgba(16, 37, 37, 0.6);
+    font-family: "Inter", sans-serif;
+}
+
+.loader-ring {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 4px solid rgba(201, 168, 124, 0.2);
+    border-top-color: var(--gold);
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── 9. RESPONSIVE DESIGN (< 768px - Tablets) ── */
 @media (max-width: 768px) {
-    .add { padding: 24px 16px; }
-    .add form { padding: 20px; }
-    .add-product-name, .add-product-description, .add-category-price, .point-input {
+    .add { 
+        padding: 40px 20px; 
+    }
+    
+    .add form { 
+        padding: 32px 24px; 
+    }
+    
+    .add-btn {
+        align-self: center; /* Centers button on mobile */
         width: 100%;
+    }
+}
+
+/* ── 10. RESPONSIVE DESIGN (< 480px - Mobile Phones) ── */
+@media (max-width: 480px) {
+    .add {
+        /* Removes massive side gaps so the container takes up most of the screen */
+        padding: 24px 12px; 
+    }
+    
+    .add h2 {
+        font-size: 20px; /* Slightly smaller text for tight spaces */
+    }
+
+    .add form {
+        /* Reclaims interior real estate so inputs can stretch out */
+        padding: 24px 16px; 
+        gap: 24px; /* Slightly tighter gap on small screens */
+    }
+
+    .add-product-points {
+        padding: 16px 12px;
     }
 }

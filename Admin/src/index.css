@@ -70,7 +70,7 @@ hr {
 /* ════════════════════════════════════════════
    RESPONSIVE LAYOUT FIXES
 ════════════════════════════════════════════ */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .main-content {
     margin-left: 68px !important;
     width: calc(100% - 68px) !important; 

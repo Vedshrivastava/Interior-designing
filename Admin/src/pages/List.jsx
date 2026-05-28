@@ -215,15 +215,15 @@ const List = ({ url }) => {
                               ))}
                           </div>
 
-                          <label htmlFor="edit-image" className="upload-icon" style={{ width: 'fit-content' }}>
+                          <label htmlFor="edit-image" className="upload-icon">
                               <i className="fa fa-upload" style={{ fontSize: '24px', width: '60px', height: '60px' }}></i>
                           </label>
                           <input onChange={handleEditImageChange} type='file' id='edit-image' multiple hidden />
                       </div>
 
                       <div className="edit-modal-actions">
-                          <button type="submit" className="add-btn">Save Changes</button>
                           <button type="button" className="add-btn cancel-btn" onClick={() => setIsEditModalOpen(false)}>Cancel</button>
+                          <button type="submit" className="add-btn">Save Changes</button>
                       </div>
                   </form>
               </div>

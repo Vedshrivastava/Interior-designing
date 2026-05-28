@@ -25,7 +25,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 const testimonials = [
-    { name: "Rahul Mehta", location: "Mumbai", text: "Exceptional execution and luxurious finishing. The team transformed our home beyond expectations.", rating: 5 },
+    { name: "Rahul Mehta", location: "Mumbai", text: "Exceptional execution and luxurious finishing. The team transformed our home beyond expectations.", rating: 5, image: design },
     { name: "Priya Sharma", location: "Delhi", text: "Their design sense is outstanding. Every corner of our apartment feels premium and thoughtfully designed.", rating: 5 },
     { name: "Aman Verma", location: "Bangalore", text: "Professional, transparent, and highly skilled. The 3D design matched the final output perfectly.", rating: 5 },
     { name: "Neha Joshi", location: "Pune", text: "From consultation to handover, the entire process was smooth and stress-free. Truly turnkey.", rating: 5 },
@@ -322,8 +322,13 @@ const Services = ({ setShowLogin }) => {
                                     </div>
                                     <p className="t-card-text">"{t.text}"</p>
                                     <div className="t-card-author">
-                                        <div className="t-card-avatar">{t.name.charAt(0)}</div>
-                                        <div><strong>{t.name}</strong><span>{t.location}</span></div>
+                                        <div className='t-card-avatar'>
+                                            {t.image ? (
+                                                <img src={t.image} alt={t.name} />
+                                            ) : (
+                                                t.name.charAt(0)
+                                            )}
+                                        </div>                                        <div><strong>{t.name}</strong><span>{t.location}</span></div>
                                     </div>
                                 </div>
                             ))}
@@ -338,8 +343,13 @@ const Services = ({ setShowLogin }) => {
                                     </div>
                                     <p className="t-card-text">"{t.text}"</p>
                                     <div className="t-card-author">
-                                        <div className="t-card-avatar">{t.name.charAt(0)}</div>
-                                        <div><strong>{t.name}</strong><span>{t.location}</span></div>
+                                        <div className='t-card-avatar'>
+                                            {t.image ? (
+                                                <img src={t.image} alt={t.name} />
+                                            ) : (
+                                                t.name.charAt(0)
+                                            )}
+                                        </div>                                        <div><strong>{t.name}</strong><span>{t.location}</span></div>
                                     </div>
                                 </div>
                             ))}

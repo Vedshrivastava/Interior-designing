@@ -1,7 +1,8 @@
+
 /* ================================================
-   CONSULT / LOGIN MODAL — HOME-MATCHED THEME
-   Backdrop · deep green card · gold accents
-   Same diagonal grid texture as footer + navbar
+   CONSULT / LOGIN MODAL — PROCESS SECTION THEME
+   Backdrop: Dark blurred overlay
+   Card: Blush base + Forest Diamond Grid
 ================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
@@ -14,10 +15,13 @@
   --gold:    #c9a87c;
   --gold-lt: #e8d0a8;
   --white:   #ffffff;
+  --text:    #2a201a;
+  --text-mid:#5a4e44;
+  --text-lt: #8a7e74;
 }
 
 /* ════════════════════════════════════════════
-   BACKDROP
+   BACKDROP — Clean dark overlay
 ════════════════════════════════════════════ */
 .login {
   position: fixed;
@@ -29,17 +33,28 @@
   padding: 20px;
   box-sizing: border-box;
 
-  /* glass effect */
+  /* Restored the dark overlay so the card pops */
   background: rgba(10, 22, 22, 0.55);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-
-  /* helps prevent weird solid rendering in some browsers */
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
 
   animation: backdropIn 0.3s ease both;
+}
+
+/* Faint large background grid for the dark backdrop */
+.login::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  opacity: 0.04;
+  background-image:
+    repeating-linear-gradient(45deg,  var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px),
+    repeating-linear-gradient(-45deg, var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px);
+  pointer-events: none;
+  z-index: 0;
 }
 
 @keyframes backdropIn {
@@ -48,27 +63,42 @@
 }
 
 /* ════════════════════════════════════════════
-   CARD
+   CARD — Matches .hp-process section exactly
 ════════════════════════════════════════════ */
 .login-container {
   position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 440px;
+  max-width: 460px;
 
-  background: var(--green);
-  border: 1px solid rgba(201,168,124,0.18);
+  /* Blush background just like the Process section */
+  background: var(--blush);
+  border: 1px solid rgba(16, 37, 37, 0.07);
   border-radius: 24px;
   overflow: hidden;
 
   display: flex;
   flex-direction: column;
-  gap: 0;
 
-  box-shadow:
-    0 32px 80px rgba(0,0,0,0.45),
-    0 0 0 1px rgba(201,168,124,0.08);
+  box-shadow: 
+    0 32px 80px rgba(0,0,0,0.15),
+    0 8px 32px rgba(16,37,37,0.08);
 
   animation: modalIn 0.4s cubic-bezier(.22,.61,.36,1) both;
+  
+  transition:
+    transform 0.35s ease,
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+.login-container:hover {
+  /* Lifts up and gets a golden border, retaining the blush background */
+  transform: translateY(-8px);
+  border-color: var(--gold);
+  box-shadow: 
+    0 40px 90px rgba(0,0,0,0.22),
+    0 20px 44px rgba(16, 37, 37, 0.12);
 }
 
 @keyframes modalIn {
@@ -76,55 +106,48 @@
   to   { opacity: 1; transform: translateY(0)    scale(1);    }
 }
 
-/* diagonal gold grid texture — same as footer */
+/* ── Gold Sweep Line at bottom ── */
 .login-container::before {
   content: "";
   position: absolute;
-  inset: 0;
-  opacity: 0.045;
-  background-image:
-    repeating-linear-gradient(45deg,  var(--gold) 0, var(--gold) 2px, transparent 0, transparent 28px),
-    repeating-linear-gradient(-45deg, var(--gold) 0, var(--gold) 2px, transparent 0, transparent 28px);
-  pointer-events: none;
-  z-index: 0;
+  bottom: 0; 
+  left: 0; 
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  transform: scaleX(0);
+  transition: transform 0.4s ease;
+  z-index: 2;
+}
+.login-container:hover::before { 
+  transform: scaleX(1); 
 }
 
-/* radial glow top-center */
+/* ── Process Section Diamond Grid Pattern directly on the Card ── */
 .login-container::after {
   content: "";
   position: absolute;
-  top: -40px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 320px;
-  height: 180px;
-  background: radial-gradient(ellipse at center, rgba(201,168,124,0.1) 0%, transparent 70%);
+  inset: 0;
+  opacity: 0.04;
+  background-image:
+    repeating-linear-gradient(45deg,  var(--forest) 0, var(--forest) 1.5px, transparent 0, transparent 20px),
+    repeating-linear-gradient(-45deg, var(--forest) 0, var(--forest) 1.5px, transparent 0, transparent 20px);
   pointer-events: none;
-  z-index: 0;
+  z-index: 0; /* Stays behind the content */
 }
 
-/* ── gold rule at top of card ── */
-.login-rule {
-  position: relative;
-  z-index: 1;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--gold), var(--gold-lt), var(--gold), transparent);
-  opacity: 0.65;
-  flex-shrink: 0;
-}
-
-/* ── inner padding wrapper ── */
+/* ── Inner padding wrapper ── */
 .login-inner {
   position: relative;
-  z-index: 1;
-  padding: 28px 32px 32px;
+  z-index: 1; /* Elevates content above the card's diamond grid */
+  padding: 32px 36px 36px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 24px;
 }
 
 /* ════════════════════════════════════════════
-   HEADER ROW — logo + title + close
+   HEADER ROW
 ════════════════════════════════════════════ */
 .login-header {
   display: flex;
@@ -134,11 +157,17 @@
 
 .login-logo {
   width: 62px;
-  height: 50px;
+  height: 48px;
   object-fit: cover;
-  border-radius: 12px;
-  border: 1px solid rgba(201,168,124,0.28);
+  border-radius: 14px;
+  background: var(--ivory);
+  border: 1px solid rgba(201,168,124,0.35);
   flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.login-container:hover .login-logo {
+  transform: scale(1.08) rotate(-5deg);
 }
 
 .login-header-text {
@@ -147,29 +176,30 @@
 
 .login-header-text h2 {
   font-family: "Playfair Display", serif;
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: #f5ede0;
+  color: var(--green); 
   margin: 0 0 3px;
   line-height: 1.2;
+  letter-spacing: -0.3px;
 }
 
 .login-header-text p {
   font-family: "Inter", sans-serif;
   font-size: 0.75rem;
-  color: rgba(201,168,124,0.7);
+  color: var(--text-mid);
   margin: 0;
   letter-spacing: 0.3px;
 }
 
-/* close button */
+/* Close button */
 .login-close {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: rgba(201,168,124,0.08);
-  border: 1px solid rgba(201,168,124,0.18);
-  color: rgba(240,230,211,0.6);
+  background: var(--ivory);
+  border: 1px solid rgba(16, 37, 37, 0.08);
+  color: var(--text-mid);
   font-size: 0.95rem;
   display: flex;
   align-items: center;
@@ -180,9 +210,9 @@
   line-height: 1;
 }
 .login-close:hover {
-  background: rgba(201,168,124,0.18);
-  border-color: rgba(201,168,124,0.4);
-  color: #f5ede0;
+  background: var(--white);
+  border-color: var(--gold);
+  color: var(--green);
 }
 
 /* ════════════════════════════════════════════
@@ -190,7 +220,8 @@
 ════════════════════════════════════════════ */
 .login-divider {
   height: 1px;
-  background: rgba(201,168,124,0.12);
+  background: rgba(16, 37, 37, 0.07);
+  margin: -4px 0;
 }
 
 /* ════════════════════════════════════════════
@@ -199,20 +230,20 @@
 .login-inputs {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .login-field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 
 .login-field label {
   font-family: "Inter", sans-serif;
   font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--gold);
+  font-weight: 700;
+  color: var(--forest);
   letter-spacing: 1.5px;
   text-transform: uppercase;
 }
@@ -220,25 +251,25 @@
 .login-inputs input {
   width: 100%;
   box-sizing: border-box;
-  padding: 12px 16px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(201,168,124,0.2);
+  padding: 13px 16px;
+  background: var(--ivory); /* Contrasts well against the blush card */
+  border: 1px solid rgba(16, 37, 37, 0.08);
   border-radius: 12px;
-  color: #f0e6d3;
+  color: var(--text);
   font-family: "Inter", sans-serif;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   outline: none;
   transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
 }
 
 .login-inputs input::placeholder {
-  color: rgba(201,168,124,0.4);
+  color: var(--text-lt);
 }
 
 .login-inputs input:focus {
-  border-color: rgba(201,168,124,0.55);
-  background: rgba(255,255,255,0.07);
-  box-shadow: 0 0 0 3px rgba(201,168,124,0.1);
+  border-color: var(--gold);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(201, 168, 124, 0.15);
 }
 
 /* ════════════════════════════════════════════
@@ -246,11 +277,11 @@
 ════════════════════════════════════════════ */
 .login-container button[type="submit"] {
   width: 100%;
-  padding: 14px 24px;
+  padding: 15px 24px;
   border: none;
   border-radius: 999px;
-  background: var(--gold);
-  color: var(--green);
+  background: var(--green);
+  color: var(--gold-lt);
   font-family: "Inter", sans-serif;
   font-size: 0.85rem;
   font-weight: 700;
@@ -266,21 +297,26 @@
 }
 
 .login-container button[type="submit"]:hover {
-  background: var(--gold-lt);
+  background: var(--forest);
   transform: translateY(-2px);
-  box-shadow: 0 10px 26px rgba(201,168,124,0.28);
+  box-shadow: 0 10px 26px rgba(16, 37, 37, 0.18);
 }
 
 .login-container button[type="submit"]:active {
   transform: scale(0.98);
 }
 
-/* ── small note below button ── */
+.login-container button[type="submit"]:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .login-note {
   text-align: center;
   font-family: "Inter", sans-serif;
   font-size: 0.72rem;
-  color: rgba(201,168,124,0.45);
+  color: var(--text-lt);
   margin-top: -8px;
   line-height: 1.6;
 }
@@ -289,12 +325,19 @@
    RESPONSIVE
 ════════════════════════════════════════════ */
 @media (max-width: 480px) {
-  .login { padding: 16px; align-items: flex-end; }
+  /* Changed from align-items: flex-end to center to float the card instead of docking it */
+  .login { padding: 16px; align-items: center; }
 
   .login-container {
     max-width: 100%;
-    border-radius: 22px 22px 0 0;
+    /* Reverted border-radius back to match desktop, giving it uniform rounded corners */
+    border-radius: 22px; 
     animation: sheetIn 0.4s cubic-bezier(.22,.61,.36,1) both;
+  }
+
+  /* Keep container stable on mobile so the lift hover doesn't trigger unexpectedly */
+  .login-container:hover {
+    transform: none;
   }
 
   @keyframes sheetIn {
@@ -302,6 +345,6 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  .login-inner { padding: 24px 22px 28px; }
-  .login-header-text h2 { font-size: 1.05rem; }
+  .login-inner { padding: 26px 24px 30px; }
+  .login-header-text h2 { font-size: 1.1rem; }
 }

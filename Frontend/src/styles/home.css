@@ -30,6 +30,19 @@
   font-family: "Inter", sans-serif;
 }
 
+/* ── Scroll reveal ── */
+.sr-item {
+  opacity: 0;
+  transform: translateY(36px);
+  transition: opacity 0.65s ease calc(var(--sr-delay, 0ms)),
+      transform 0.65s ease calc(var(--sr-delay, 0ms));
+}
+
+.sr-item.sr-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* REMOVE decorative background lines completely */
 .hp-grid-bg {
   background: none;

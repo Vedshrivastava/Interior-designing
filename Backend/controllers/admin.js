@@ -8,58 +8,72 @@ import { sendVerificationEmail } from "../middlewares/emails.js";
 const registerAdmin = async (req, res) => {
   const { name, password, email } = req.body;
   try {
-    const exists = await userModel.findOne({ email });
-    if (exists) {
-      return res.json({ success: false, message: "User Already Exists" });
-    }
-    console.log("Email:", email);
-
+    // ── Validations first (before any DB writes) ──
     if (!validator.isEmail(email)) {
-      return res.json({
+      return res.status(400).json({
         success: false,
-        message: "Please Enter a valid email",
+        message: "Please enter a valid email address.",
       });
     }
 
     if (password.length < 8) {
-      return res.json({
+      return res.status(400).json({
         success: false,
-        message: "The password must be at least 8 digits long.",
+        message: "Password must be at least 8 characters long.",
       });
     }
 
-    const verificationCode = generateVerificationCode();
+    const exists = await userModel.findOne({ email });
+    if (exists) {
+      return res.status(409).json({
+        success: false,
+        message: "An account with this email already exists.",
+      });
+    }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPass = await bcrypt.hash(password, salt);
+    console.log("Email:", email);
+
+    // ── Create user ──
+    const verificationCode = generateVerificationCode();
+    const salt             = await bcrypt.genSalt(10);
+    const hashedPass       = await bcrypt.hash(password, salt);
 
     const newUser = new userModel({
-      name: name,
-      email: email,
-      password: hashedPass,
-      verificationToken: verificationCode,
-      verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000
+      name,
+      email,
+      password:                    hashedPass,
+      verificationToken:           verificationCode,
+      verificationTokenExpiresAt:  Date.now() + 24 * 60 * 60 * 1000,
     });
 
     const user = await newUser.save();
 
-    await sendVerificationEmail(email, verificationCode);
+    // ── Send verification email (rollback if it fails) ──
+    try {
+      await sendVerificationEmail(email, verificationCode);
+    } catch (emailError) {
+      console.error("Verification email failed, rolling back user creation:", emailError);
+      await userModel.findByIdAndDelete(user._id);   // ← rollback
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send verification email. Please try again.",
+      });
+    }
 
-
-    return res.json({
+    return res.status(201).json({
       success: true,
-      userId: user._id,
-      message: "Account Created",
-      user:{
+      message: "Account created! Please verify your email.",
+      user: {
         ...user._doc,
-        password: undefined
+        password: undefined,
       },
     });
+
   } catch (error) {
-    console.log(error);
-    return res.json({
+    console.error("registerAdmin error:", error);
+    return res.status(500).json({
       success: false,
-      message: "Some Internal Error Occurred",
+      message: error.message || "Some internal error occurred.",
     });
   }
 };

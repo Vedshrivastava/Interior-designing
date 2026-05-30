@@ -1,3 +1,4 @@
+
 import React, { useState, useContext, useEffect } from 'react';
 import '../styles/Login.css';
 import { StoreContext } from '../context/StoreContext';
@@ -93,7 +94,7 @@ const Login = ({ setShowLogin }) => {
           return;
         }
         if (response.data.role !== 'ADMIN') {
-          toast.error('Access denied. Admin accounts only.');
+          toast.error('Access Denied. You need authentication as an admin.');
           return;
         }
 
@@ -123,7 +124,13 @@ const Login = ({ setShowLogin }) => {
       }
     } catch (err) {
       console.error(err);
-      toast.error(err?.message || 'Something went wrong. Please try again.');
+      
+      /* ── Intercept Admin Auth Failures ── */
+      if (currState === 'Login' && err.response && err.response.status === 400) {
+        toast.error('Access Denied. You need authentication as an admin.');
+      } else {
+        toast.error(err.response?.data?.message || err?.message || 'Something went wrong. Please try again.');
+      }
     } finally {
       setPageLoading(false);
     }

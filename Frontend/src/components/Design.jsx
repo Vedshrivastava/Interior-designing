@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import Slider from 'react-slick';
 import '../styles/design.css';
 import 'slick-carousel/slick/slick.css'; // Import slick-carousel CSS
@@ -67,36 +68,39 @@ const Design = ({ id, name, description, images, points, setShowLogin, setConsul
     console.log("Updated consultData:", consultData);
   }, [consultData]);
 
-  return (
-    <div className="design-display">
-      {/* ── LIGHTBOX ── */}
-      {lightbox.open && (
-        <div className="lb-overlay" onClick={closeLightbox}>
-          <button className="lb-close" onClick={closeLightbox} aria-label="Close">✕</button>
+  const lightboxPortal = lightbox.open && ReactDOM.createPortal(
+    <div className="lb-overlay" onClick={closeLightbox}>
+      <button className="lb-close" onClick={closeLightbox} aria-label="Close">✕</button>
 
+      {images.length > 1 && (
+        <button className="lb-arrow lb-arrow--prev" onClick={goPrev} aria-label="Previous">&#8249;</button>
+      )}
+
+      <div className="lb-img-wrap" onClick={(e) => e.stopPropagation()}>
+        <img
+          src={images[lightbox.index]}
+          alt={`${name} — ${lightbox.index + 1}`}
+          className="lb-img"
+        />
+        <div className="lb-caption">
+          <span className="lb-name">{name}</span>
           {images.length > 1 && (
-            <button className="lb-arrow lb-arrow--prev" onClick={goPrev} aria-label="Previous">&#8249;</button>
-          )}
-
-          <div className="lb-img-wrap" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={images[lightbox.index]}
-              alt={`${name} — ${lightbox.index + 1}`}
-              className="lb-img"
-            />
-            <div className="lb-caption">
-              <span className="lb-name">{name}</span>
-              {images.length > 1 && (
-                <span className="lb-counter">{lightbox.index + 1} / {images.length}</span>
-              )}
-            </div>
-          </div>
-
-          {images.length > 1 && (
-            <button className="lb-arrow lb-arrow--next" onClick={goNext} aria-label="Next">&#8250;</button>
+            <span className="lb-counter">{lightbox.index + 1} / {images.length}</span>
           )}
         </div>
+      </div>
+
+      {images.length > 1 && (
+        <button className="lb-arrow lb-arrow--next" onClick={goNext} aria-label="Next">&#8250;</button>
       )}
+    </div>,
+    document.body
+  );
+
+  return (
+    <div className="design-display">
+      {/* ── LIGHTBOX (portalled to document.body to escape all stacking contexts) ── */}
+      {lightboxPortal}
 
       <div className="design-slider">
         {hasMultipleImages ? (

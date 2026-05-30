@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Slider from 'react-slick';
 import '../styles/design.css';
 import 'slick-carousel/slick/slick.css'; // Import slick-carousel CSS
@@ -7,7 +7,8 @@ import Consult from './consult';
 
 const Design = ({ id, name, description, images, points, setShowLogin, setConsultData, consultData }) => {
   const [showMore, setShowMore] = useState(false);
-  const [buttonAtBottom, setButtonAtBottom] = useState(false); // New state
+  const [buttonAtBottom, setButtonAtBottom] = useState(false);
+  const [lightbox, setLightbox] = useState({ open: false, index: 0 });
   const hasMultipleImages = images.length > 1;
 
   const settings = {
@@ -24,32 +25,91 @@ const Design = ({ id, name, description, images, points, setShowLogin, setConsul
     setButtonAtBottom(!buttonAtBottom);
   };
 
-  // Adjusted handleGetQuote to accept name and image as parameters
   const handleGetQuote = (name, img) => {
     setShowLogin(true);
     setConsultData({ name, img });
-    console.log({ name, img }); // Log the data being set
+    console.log({ name, img });
   };
 
-  // Use effect to log consultData when it changes
+  const openLightbox = (index) => {
+    setLightbox({ open: true, index });
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeLightbox = useCallback(() => {
+    setLightbox({ open: false, index: 0 });
+    document.body.style.overflow = '';
+  }, []);
+
+  const goPrev = useCallback((e) => {
+    e.stopPropagation();
+    setLightbox(prev => ({ ...prev, index: (prev.index - 1 + images.length) % images.length }));
+  }, [images.length]);
+
+  const goNext = useCallback((e) => {
+    e.stopPropagation();
+    setLightbox(prev => ({ ...prev, index: (prev.index + 1) % images.length }));
+  }, [images.length]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!lightbox.open) return;
+    const handleKey = (e) => {
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft')  setLightbox(prev => ({ ...prev, index: (prev.index - 1 + images.length) % images.length }));
+      if (e.key === 'ArrowRight') setLightbox(prev => ({ ...prev, index: (prev.index + 1) % images.length }));
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [lightbox.open, images.length, closeLightbox]);
+
   useEffect(() => {
     console.log("Updated consultData:", consultData);
-  }, [consultData]); // Runs whenever consultData changes
+  }, [consultData]);
 
   return (
     <div className="design-display">
+      {/* ── LIGHTBOX ── */}
+      {lightbox.open && (
+        <div className="lb-overlay" onClick={closeLightbox}>
+          <button className="lb-close" onClick={closeLightbox} aria-label="Close">✕</button>
+
+          {images.length > 1 && (
+            <button className="lb-arrow lb-arrow--prev" onClick={goPrev} aria-label="Previous">&#8249;</button>
+          )}
+
+          <div className="lb-img-wrap" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={images[lightbox.index]}
+              alt={`${name} — ${lightbox.index + 1}`}
+              className="lb-img"
+            />
+            <div className="lb-caption">
+              <span className="lb-name">{name}</span>
+              {images.length > 1 && (
+                <span className="lb-counter">{lightbox.index + 1} / {images.length}</span>
+              )}
+            </div>
+          </div>
+
+          {images.length > 1 && (
+            <button className="lb-arrow lb-arrow--next" onClick={goNext} aria-label="Next">&#8250;</button>
+          )}
+        </div>
+      )}
+
       <div className="design-slider">
         {hasMultipleImages ? (
           <Slider {...settings}>
             {images.map((imageUrl, index) => (
-              <div key={index} className="design-slide">
-                <img src={imageUrl} alt={`Design ${index}`} />
+              <div key={index} className="design-slide" onClick={() => openLightbox(index)}>
+                <img src={imageUrl} alt={`Design ${index}`} className="lb-trigger" />
               </div>
             ))}
           </Slider>
         ) : (
-          <div className="design-slide">
-            <img src={images[0]} alt={`Design 0`} />
+          <div className="design-slide" onClick={() => openLightbox(0)}>
+            <img src={images[0]} alt={`Design 0`} className="lb-trigger" />
           </div>
         )}
       </div>
@@ -72,7 +132,6 @@ const Design = ({ id, name, description, images, points, setShowLogin, setConsul
             </ul>
           </>
         )}
-        {/* Pass the name and first image as arguments to handleGetQuote */}
         <button onClick={() => handleGetQuote(name, images[0])} className="get-quote-button">
           Get Quote
         </button>

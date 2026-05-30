@@ -33,7 +33,7 @@
   padding: 20px;
   box-sizing: border-box;
 
-  /* Restored the dark overlay so the card pops */
+  /* Dark overlay so the card pops */
   background: rgba(10, 22, 22, 0.55);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
@@ -166,8 +166,9 @@
   transition: transform 0.3s ease;
 }
 
+/* Scales up beautifully on hover without any tilting/rotation */
 .login-container:hover .login-logo {
-  transform: scale(1.08) rotate(-5deg);
+  transform: scale(1.06);
 }
 
 .login-header-text {
@@ -252,7 +253,7 @@
   width: 100%;
   box-sizing: border-box;
   padding: 13px 16px;
-  background: var(--ivory); /* Contrasts well against the blush card */
+  background: var(--ivory); 
   border: 1px solid rgba(16, 37, 37, 0.08);
   border-radius: 12px;
   color: var(--text);
@@ -325,17 +326,14 @@
    RESPONSIVE
 ════════════════════════════════════════════ */
 @media (max-width: 480px) {
-  /* Changed from align-items: flex-end to center to float the card instead of docking it */
   .login { padding: 16px; align-items: center; }
 
   .login-container {
     max-width: 100%;
-    /* Reverted border-radius back to match desktop, giving it uniform rounded corners */
     border-radius: 22px; 
     animation: sheetIn 0.4s cubic-bezier(.22,.61,.36,1) both;
   }
 
-  /* Keep container stable on mobile so the lift hover doesn't trigger unexpectedly */
   .login-container:hover {
     transform: none;
   }

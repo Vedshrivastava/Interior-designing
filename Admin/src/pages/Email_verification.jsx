@@ -51,8 +51,9 @@ const EmailVerificationPage = () => {
             await verifyEmail(verificationCode);
             navigate("/");
             toast.success("Email verified successfully");
-        } catch (error) {
-            console.log(error);
+        }    catch (error) {
+            // Extracts message from either Axios response or standard thrown Error
+            const errorMessage = error.response?.data?.message || error.message;
         }
     };
 

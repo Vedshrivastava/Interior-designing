@@ -14,9 +14,17 @@ export const useAuthStore = create((set) => ({
             isLoading: true,
             error: null
         });
-        console.log("isLoading (signup start):", true); // Log when isLoading is true
+        console.log("isLoading (signup start):", true); 
         try {
             const response = await axios.post(`http://localhost:3000/api/admin/register-admin`, { email, password, name });
+            
+            // 🚨 THE FIX: Catch backend failures disguised as 200 OK responses
+            if (response.data && response.data.success === false) {
+                set({ error: response.data.message, isLoading: false });
+                console.log("isLoading (signup error):", false);
+                throw new Error(response.data.message); // Forces execution to stop and jump to catch
+            }
+
             const { user } = response.data;
             
             localStorage.setItem('user', JSON.stringify(user));
@@ -24,13 +32,14 @@ export const useAuthStore = create((set) => ({
             
             set({ user, isAuthenticated: true, isLoading: false });
             console.log("Signup response :--->> ", response.data);
-            console.log("isLoading (signup end):", false); // Log when isLoading is false
+            console.log("isLoading (signup end):", false); 
 
             return response;
         } catch (error) {
-            set({ error: error.response.data.message || "Error signing up", isLoading: false });
-            console.log("isLoading (signup error):", false); // Log when isLoading becomes false due to an error
-            throw error;
+            // Handles both normal Axios errors and our manually thrown Error
+            const errorMessage = error.response?.data?.message || error.message || "Error signing up";
+            set({ error: errorMessage, isLoading: false });
+            throw error; // Passes the error up to your Signup.jsx component
         }
     },
 

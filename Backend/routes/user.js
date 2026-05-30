@@ -1,5 +1,5 @@
 import express from 'express'
-import { forgotPassword, resetPassword, verifyEmail, checkAuth } from '../controllers/user.js'
+import { forgotPassword, resetPassword, verifyEmail, checkAuth,verifyResetToken } from '../controllers/user.js'
 import { verifyToken } from '../middlewares/verifyToken.js';
 
 
@@ -9,5 +9,7 @@ user.post('/verify-email', verifyEmail);
 user.post('/forgot-password', forgotPassword)
 user.post('/reset-password/:token', resetPassword);
 user.get('/check-auth', verifyToken, checkAuth);
+user.get('/verify-reset-token/:token', verifyResetToken); // add this
+
 
 export default user;

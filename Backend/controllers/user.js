@@ -125,4 +125,27 @@ const checkAuth = async (req, res) => {
   }
 }
 
-export { verifyEmail, forgotPassword, resetPassword, checkAuth };
+// Add this controller to your user controller file (e.g. userController.js)
+// and register the route as:
+//   GET /api/user/verify-reset-token/:token
+
+const verifyResetToken = async (req, res) => {
+  const { token } = req.params;
+  try {
+    const user = await userModel.findOne({
+      resetPasswordToken: token,
+      resetPasswordTokenExpiresAt: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Link expired or invalid" });
+    }
+
+    return res.status(200).json({ success: true, message: "Token is valid" });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export { verifyEmail, forgotPassword, resetPassword, checkAuth, verifyResetToken };

@@ -15,11 +15,18 @@ import Email_verification from './pages/Email_verification';
 import ResetPassword from './pages/ResetPassword';
 import WelcomeScreen from './pages/Welcome';
 import Guest from './pages/guest';
+import { Navigate } from "react-router-dom";
 
 const App = () => {
   const [showLogin, setShowLogin] = useState(false); // For managing login modal visibility
   const [authType, setAuthType] = useState('Login'); // For managing 'Login' vs 'SignUp' view
   const url = "http://localhost:3000";
+  const storedUser = localStorage.getItem("user");
+  const user = storedUser ? JSON.parse(storedUser) : null;
+
+  const isAdmin =
+    localStorage.getItem("token") &&
+    user?.role === "ADMIN";
 
   return (
     <div>
@@ -37,9 +44,16 @@ const App = () => {
           <Routes>
             {/* 3. Passed both setters to Guest and Welcome screens so landing page buttons work */}
             <Route
-              path='/'
+              path="/"
               element={
-                <Guest setShowLogin={setShowLogin} setAuthType={setAuthType}/>
+                isAdmin ? (
+                  <Navigate to="/welcome" replace />
+                ) : (
+                  <Guest
+                    setShowLogin={setShowLogin}
+                    setAuthType={setAuthType}
+                  />
+                )
               }
             />
             <Route

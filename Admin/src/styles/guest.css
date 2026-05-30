@@ -1,0 +1,261 @@
+/* ════════════════════════════════════════════
+   WELCOME CONTAINER — Ivory base + diamond grid
+════════════════════════════════════════════ */
+.welcome-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: calc(100vh - 70px); /* Adjusts perfectly below your Navbar */
+    padding: 3rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  
+  /* Diamond grid texture layer */
+  .welcome-container::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.045;
+    background-image:
+      repeating-linear-gradient(45deg,  var(--forest) 0, var(--forest) 1.5px, transparent 0, transparent 24px),
+      repeating-linear-gradient(-45deg, var(--forest) 0, var(--forest) 1.5px, transparent 0, transparent 24px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  .welcome-container > * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* ════════════════════════════════════════════
+     BADGE
+  ════════════════════════════════════════════ */
+  .welcome-badge {
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--forest);
+    background: rgba(201, 168, 124, 0.14);
+    border: 0.5px solid rgba(201, 168, 124, 0.55);
+    padding: 6px 16px;
+    border-radius: 20px;
+    margin-bottom: 1.5rem;
+    display: inline-block;
+  }
+  
+  /* ════════════════════════════════════════════
+     HEADING & SUBTITLE
+  ════════════════════════════════════════════ */
+  .welcome-container h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--green);
+    margin: 0 0 1.2rem;
+    max-width: 580px;
+    letter-spacing: -0.5px;
+  }
+  
+  .welcome-container h1 em {
+    font-style: italic;
+    color: var(--gold);
+  }
+  
+  .welcome-container > p {
+    font-family: "Inter", sans-serif;
+    font-size: 0.95rem;
+    font-weight: 300;
+    color: var(--forest);
+    opacity: 0.85;
+    max-width: 420px;
+    line-height: 1.7;
+    margin: 0 0 2rem;
+  }
+  
+  /* ════════════════════════════════════════════
+     CALL TO ACTION BUTTONS
+  ════════════════════════════════════════════ */
+  .welcome-cta-group {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 2.5rem;
+    width: 100%;
+    max-width: 400px;
+    justify-content: center;
+  }
+  
+  .welcome-cta-group .btn {
+    font-family: "Inter", sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 12px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    border: none;
+    outline: none;
+  }
+  
+  .welcome-cta-group .btn-primary {
+    background-color: var(--green);
+    color: var(--ivory);
+    border: 1px solid var(--green);
+  }
+  
+  .welcome-cta-group .btn-primary:hover {
+    background-color: var(--forest);
+    border-color: var(--forest);
+    color: var(--gold-lt);
+    transform: translateY(-1px);
+  }
+  
+  .welcome-cta-group .btn-secondary {
+    background-color: transparent;
+    color: var(--forest);
+    border: 1px solid rgba(45, 74, 53, 0.3);
+  }
+  
+  .welcome-cta-group .btn-secondary:hover {
+    border-color: var(--gold);
+    color: var(--green);
+    background-color: rgba(201, 168, 124, 0.08);
+    transform: translateY(-1px);
+  }
+  
+  /* ════════════════════════════════════════════
+     DIVIDER
+  ════════════════════════════════════════════ */
+  .welcome-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 440px;
+    margin-bottom: 2.5rem;
+  }
+  
+  .welcome-divider span {
+    flex: 1;
+    height: 0.5px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  
+  .welcome-divider .divider-icon {
+    color: var(--gold);
+    font-size: 16px;
+  }
+  
+  /* ════════════════════════════════════════════
+     CARDS GRID (Dark Version Style Integration)
+  ════════════════════════════════════════════ */
+  .welcome-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    width: 100%;
+    max-width: 520px;
+  }
+  
+  .welcome-card {
+    background-color: var(--green);
+    border: 1px solid rgba(201, 168, 124, 0.22);
+    border-radius: 12px;
+    padding: 1.2rem;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .welcome-card::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    transform: scaleX(0);
+    transition: transform 0.35s ease;
+    border-radius: 0 0 12px 12px;
+  }
+  
+  .welcome-card:hover {
+    border-color: rgba(201, 168, 124, 0.55);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(16, 37, 37, 0.25);
+  }
+  
+  .welcome-card:hover::before {
+    transform: scaleX(1);
+  }
+  
+  .welcome-card-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: rgba(201, 168, 124, 0.12);
+    border: 1px solid rgba(201, 168, 124, 0.22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    transition: background 0.25s ease, transform 0.25s ease;
+    color: var(--gold);
+  }
+  
+  .welcome-card:hover .welcome-card-icon {
+    background: rgba(201, 168, 124, 0.2);
+    transform: scale(1.06);
+  }
+  
+  .welcome-card h3 {
+    font-family: "Inter", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 0 0 6px;
+    transition: color 0.25s ease;
+  }
+  
+  .welcome-card:hover h3 {
+    color: var(--ivory);
+  }
+  
+  .welcome-card p {
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ivory);
+    opacity: 0.7;
+    margin: 0;
+    line-height: 1.5;
+  }
+  
+  /* Responsive adjustment for small viewports */
+  @media (max-width: 500px) {
+    .welcome-cards {
+      grid-template-columns: 1fr;
+    }
+    .welcome-cta-group {
+      flex-direction: column;
+      width: 100%;
+    }
+    .welcome-container h1 {
+      font-size: 2.3rem;
+    }
+  }

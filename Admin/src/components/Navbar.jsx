@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; 
 import '../styles/navbar.css';
 import { assets } from '../assets/admin_assets/assets';
 import { StoreContext } from '../context/StoreContext';
@@ -40,26 +41,37 @@ export const PageLoader = ({ visible }) => {
 };
 
 /* ── Navbar ── */
-const Navbar = ({ setShowLogin }) => {
-  const { token, setToken, setUserId, setUserEmail, setUserName } = useContext(StoreContext);
+const Navbar = ({ setShowLogin, setAuthType }) => {
+  // 👇 Added setIsLoggedIn to ensure we clear every trace of the session in memory
+  const { token, setToken, setUserId, setUserEmail, setUserName, setIsLoggedIn } = useContext(StoreContext);
+  
+  const navigate = useNavigate(); 
 
+  /* ── BULLETPROOF ATOMIC LOGOUT ── */
   const logout = () => {
+    // 1. Wipe storage instantly
+    ['token', 'userId', 'userName', 'userEmail', 'user'].forEach(k => localStorage.removeItem(k));
+    
+    // 2. Clear state contexts completely
     setToken(null);
     setUserId(null);
     setUserEmail(null);
     setUserName(null);
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('token');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('user');
+    if (setIsLoggedIn) setIsLoggedIn(false); // Safety check in case it's missing from context
+    
+    // 3. Hard redirect: Wipes React DOM history trace and prevents returning via the "Back" button
+    window.location.replace('/');
   };
 
   return (
     <div className="navbar">
 
       {/* ── Brand ── */}
-      <div className="navbar-brand">
+      <div 
+        className="navbar-brand" 
+        onClick={() => navigate('/welcome')} 
+        style={{ cursor: 'pointer' }}
+      >
         <img className="logo" src={assets.logo} alt="Logo" />
         <div className="navbar-brand-text">
           <strong>Shrivastava's</strong>
@@ -72,7 +84,10 @@ const Navbar = ({ setShowLogin }) => {
         {!token ? (
           <button
             className="navbar-signin-btn"
-            onClick={() => setShowLogin(true)}
+            onClick={() => {
+              if (setAuthType) setAuthType('Login'); 
+              setShowLogin(true);
+            }}
           >
             <FontAwesomeIcon icon={faArrowRightToBracket} />
             Sign In
@@ -94,6 +109,7 @@ const Navbar = ({ setShowLogin }) => {
                   <FontAwesomeIcon icon={faUser} />
                   My Account
                 </li>
+                {/* 👇 Now triggers the secure atomic logout */}
                 <li className="logout-item" onClick={logout}>
                   <FontAwesomeIcon icon={faRightFromBracket} />
                   Logout

@@ -66,6 +66,17 @@ hr {
   padding-top: 92px;         /* Clears the 62px fixed Navbar + 30px breathing room */
   padding-bottom: 40px;
 }
+
+/* Ensures full stretch workspace scaling when sidebar is absent */
+.app-contents.guest-layout {
+  display: block; 
+}
+
+.app-contents.guest-layout .main-content {
+  width: 100%;
+  margin-left: 0;
+  padding: 0;
+}
 /* ════════════════════════════════════════════
    RESPONSIVE LAYOUT FIXES
 ════════════════════════════════════════════ */

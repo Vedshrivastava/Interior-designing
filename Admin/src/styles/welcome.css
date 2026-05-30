@@ -160,7 +160,7 @@
 
 .welcome-card:hover {
   border-color: rgba(201, 168, 124, 0.55);
-  background: #f3ede3;
+  opacity: 0.8;
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(16, 37, 37, 0.08);
 }
@@ -185,8 +185,8 @@
 }
 
 .welcome-card:hover .welcome-card-icon {
-  background: rgba(201, 168, 124, 0.22);
-  transform: scale(1.06);
+    background: rgba(201,168,124,0.12);
+    transform: scale(1.06);
 }
 
 .welcome-card-icon i {
@@ -196,32 +196,93 @@
 
 /* ── Card title ── */
 /* ════════════════════════════════════════════
-   INDIVIDUAL CARD — Updated to mirror Sidebar Section Labels
+   INDIVIDUAL CARD (DARK VERSION)
 ════════════════════════════════════════════ */
-
-/* ── Card title (Now matches .sidebar-section-label styling) ── */
-.welcome-card h3 {
+.welcome-card {
+    background-color: var(--green); /* Cleaned up to only use the dark background */
+    border: 1px solid rgba(201, 168, 124, 0.22);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.25s ease, background 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  /* Gold sweep line at the bottom on hover */
+  .welcome-card::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    transform: scaleX(0);
+    transition: transform 0.35s ease;
+    border-radius: 0 0 12px 12px;
+  }
+  
+  .welcome-card:hover {
+    border-color: rgba(201, 168, 124, 0.55);
+    /* Removed opacity: 0.8; to keep the card punchy */
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(16, 37, 37, 0.2); /* Slightly darker shadow for a dark card */
+  }
+  
+  .welcome-card:hover::before {
+    transform: scaleX(1);
+  }
+  
+  /* ── Card icon badge ── */
+  .welcome-card-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: rgba(201, 168, 124, 0.12);
+    border: 1px solid rgba(201, 168, 124, 0.22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    transition: background 0.25s ease, transform 0.25s ease;
+    color: var(--gold);
+  }
+  
+  .welcome-card:hover .welcome-card-icon {
+    background: rgba(201,168,124,0.12);
+    transform: scale(1.06);
+  }
+  
+  .welcome-card-icon i {
+    font-size: 15px;
+    color: var(--gold);
+  }
+  
+  /* ── Card title ── */
+  .welcome-card h3 {
     font-family: "Inter", sans-serif;
-    font-size: 0.68rem;                  /* Small uppercase label look */
-    font-weight: 700;                     /* Bold and structured */
-    letter-spacing: 2px;                  /* Tracked out letters */
-    text-transform: uppercase;            /* All caps styling */
-    color: var(--gold);                   /* Sidebar accent color */
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
     margin: 0 0 6px;
     transition: color 0.25s ease;
   }
   
-  /* Subtle color pop to deep green when the user hovers over the card */
+  /* Changed to --ivory so it pops brightly against the dark green card */
   .welcome-card:hover h3 {
-    color: var(--forest);
+    color: var(--ivory);
   }
   
   /* ── Card description ── */
   .welcome-card p {
     font-family: "Inter", sans-serif;
     font-size: 12px;
-    font-weight: 400;                     /* Increased slightly for better legibility at small scale */
-    color: var(--ivory);                  /* Uses high contrast green text */
+    font-weight: 400;
+    color: var(--ivory); /* Kept as ivory so you can read it on the dark background */
     opacity: 0.7;
     margin: 0;
     line-height: 1.5;

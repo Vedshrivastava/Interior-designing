@@ -1,4 +1,3 @@
-
 import React, { useState, useContext, useEffect } from 'react';
 import '../styles/Login.css';
 import { StoreContext } from '../context/StoreContext';
@@ -14,32 +13,35 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { PageLoader } from './Navbar';
 
-/* ─── helpers ─────────────────────────────── */
 const TITLES = {
   Login:            'Admin Login',
   'Sign Up':        'Create Account',
   'Forgot Password':'Reset Password',
 };
 
-const Login = ({ setShowLogin }) => {
+const Login = ({ setShowLogin, authType = 'Login' }) => {
   const { signup, isLoading, login, forgotPassword } = useAuthStore();
-  const { setToken, setUserId, setUserName, setUserEmail, setIsLoggedIn } = useContext(StoreContext);
+  const { token, setToken, setUserId, setUserName, setUserEmail, setIsLoggedIn } = useContext(StoreContext);
 
-  const [currState, setCurrState]     = useState('Login');
-  const [data, setData]               = useState({ name: '', email: '', password: '' });
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [currState, setCurrState]       = useState(authType); 
+  const [data, setData]                 = useState({ name: '', email: '', password: '' });
+  const [forgotEmail, setForgotEmail]   = useState('');
+  const [isSubmitted, setIsSubmitted]   = useState(false);
   const [resetMessage, setResetMessage] = useState('');
   const [pageLoading, setPageLoading]   = useState(false);
 
   const navigate = useNavigate();
 
+  useEffect(() => {
+    setCurrState(authType);
+  }, [authType]);
+
   /* ── token-expiry check on mount ── */
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    const activeToken = localStorage.getItem('token');
+    if (!activeToken) return;
     try {
-      const decoded = jwtDecode(token);
+      const decoded = jwtDecode(activeToken);
       const expiresIn = decoded.exp * 1000 - Date.now();
       if (expiresIn <= 0) {
         handleLogout();
@@ -52,14 +54,20 @@ const Login = ({ setShowLogin }) => {
 
   const onChange = e => setData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
-  /* ── logout ── */
+  /* ── BULLETPROOF ATOMIC LOGOUT ── */
   const handleLogout = () => {
-    setToken(null);
-    setUserId(null); setUserName(null); setUserEmail(null);
-    setIsLoggedIn(false);
+    // 1. Instantly clear storage first so route guards register the drop immediately
     ['token','userId','userName','userEmail','user'].forEach(k => localStorage.removeItem(k));
-    toast.info('Session expired. Please sign in again.');
-    navigate('/');
+    
+    // 2. Clear state contexts
+    setToken(null);
+    setUserId(null); 
+    setUserName(null); 
+    setUserEmail(null);
+    setIsLoggedIn(false);
+
+    // 3. Hard redirect: Wipes React DOM history trace, leaving NO chance for delayed layouts
+    window.location.replace('/');
   };
 
   /* ── submit ── */
@@ -93,22 +101,18 @@ const Login = ({ setShowLogin }) => {
           toast.error(response?.data?.message || 'Login failed.');
           return;
         }
-        if (response.data.role !== 'ADMIN') {
-          toast.error('Access Denied. You need authentication as an admin.');
-          return;
-        }
 
-        const token = response.data.token;
-        const decoded = jwtDecode(token);
+        const userToken = response.data.token;
+        const decoded = jwtDecode(userToken);
 
-        /* persist */
-        setToken(token);
+        /* Persist Session Data regardless of role so app detects login status */
+        setToken(userToken);
         setUserId(decoded.id);
         setUserName(decoded.name);
         setUserEmail(decoded.email);
         setIsLoggedIn(true);
 
-        localStorage.setItem('token',     token);
+        localStorage.setItem('token',     userToken);
         localStorage.setItem('userId',    decoded.id);
         localStorage.setItem('userName',  decoded.name);
         localStorage.setItem('userEmail', decoded.email);
@@ -118,14 +122,22 @@ const Login = ({ setShowLogin }) => {
         const expiresIn = decoded.exp * 1000 - Date.now();
         if (expiresIn > 0) setTimeout(handleLogout, expiresIn);
 
+        /* ── Role Redirection Verification ── */
+        if (response.data.role !== 'ADMIN') {
+          // Instantly kick non-admins before they render anything else
+          ['token','userId','userName','userEmail','user'].forEach(k => localStorage.removeItem(k));
+          setToken(null);
+          setIsLoggedIn(false);
+          window.location.replace('/'); 
+          return;
+        }
+
         toast.success('Logged in successfully!');
         setShowLogin(false);
-        navigate('/');
+        navigate('/welcome');
       }
     } catch (err) {
       console.error(err);
-      
-      /* ── Intercept Admin Auth Failures ── */
       if (currState === 'Login' && err.response && err.response.status === 400) {
         toast.error('Access Denied. You need authentication as an admin.');
       } else {
@@ -138,75 +150,49 @@ const Login = ({ setShowLogin }) => {
 
   return (
     <>
-      {/* buffering overlay */}
       <PageLoader visible={pageLoading} />
 
       <div className="login" onClick={e => e.target === e.currentTarget && setShowLogin(false)}>
         <form onSubmit={onLogin} className="login-container">
-
-          {/* gold rule */}
           <div className="login-rule" />
-
           <div className="login-inner">
 
-            {/* ── Title row ── */}
             <div className="login-title">
               <h2>{TITLES[currState]}</h2>
-              <span
-                className="close-btn"
-                onClick={() => setShowLogin(false)}
-                role="button"
-                aria-label="Close"
-              >
+              <span className="close-btn" onClick={() => setShowLogin(false)} role="button" aria-label="Close">
                 <FontAwesomeIcon icon={faXmark} />
               </span>
             </div>
 
             <div className="login-divider" />
 
-            {/* ── Inputs ── */}
             <div className="login-inputs">
-
               {currState === 'Sign Up' && (
                 <div className="login-field">
                   <label>Full Name</label>
-                  <input
-                    name="name" type="text" placeholder="Your full name"
-                    value={data.name} onChange={onChange} required
-                  />
+                  <input name="name" type="text" placeholder="Your full name" value={data.name} onChange={onChange} required />
                 </div>
               )}
 
               {currState === 'Forgot Password' ? (
                 <div className="login-field">
                   <label>Email Address</label>
-                  <input
-                    name="forgotEmail" type="email" placeholder="your@email.com"
-                    value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} required
-                  />
+                  <input name="forgotEmail" type="email" placeholder="your@email.com" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} required />
                 </div>
               ) : (
                 <>
                   <div className="login-field">
                     <label>Email Address</label>
-                    <input
-                      name="email" type="email" placeholder="your@email.com"
-                      value={data.email} onChange={onChange} required
-                    />
+                    <input name="email" type="email" placeholder="your@email.com" value={data.email} onChange={onChange} required />
                   </div>
                   <div className="login-field">
                     <label>Password</label>
-                    <input
-                      name="password" type="password" placeholder="Enter your password"
-                      value={data.password} onChange={onChange} required
-                    />
+                    <input name="password" type="password" placeholder="Enter your password" value={data.password} onChange={onChange} required />
                   </div>
                 </>
               )}
-
             </div>
 
-            {/* ── Submit ── */}
             <button type="submit" disabled={isLoading || pageLoading}>
               {isLoading || pageLoading ? (
                 'Please wait…'
@@ -219,26 +205,17 @@ const Login = ({ setShowLogin }) => {
               )}
             </button>
 
-            {/* ── Footer links ── */}
             {currState === 'Login' && (
               <>
-                <p>Forgot your password?{' '}
-                  <span onClick={() => setCurrState('Forgot Password')}>Reset it</span>
-                </p>
-                <p>Don't have an account?{' '}
-                  <span onClick={() => setCurrState('Sign Up')}>Sign Up</span>
-                </p>
+                <p>Forgot your password? <span onClick={() => setCurrState('Forgot Password')}>Reset it</span></p>
+                <p>Don't have an account? <span onClick={() => setCurrState('Sign Up')}>Sign Up</span></p>
               </>
             )}
             {currState === 'Forgot Password' && (
-              <p>Remembered it?{' '}
-                <span onClick={() => setCurrState('Login')}>Back to Login</span>
-              </p>
+              <p>Remembered it? <span onClick={() => setCurrState('Login')}>Back to Login</span></p>
             )}
             {currState === 'Sign Up' && (
-              <p>Already have an account?{' '}
-                <span onClick={() => setCurrState('Login')}>Login</span>
-              </p>
+              <p>Already have an account? <span onClick={() => setCurrState('Login')}>Login</span></p>
             )}
 
             {isSubmitted && resetMessage && (

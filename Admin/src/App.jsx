@@ -10,27 +10,48 @@ import './index.css';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 import Login from './components/Login';
-import ProtectedRoute from './components/ProtectedRoute'; // Importing ProtectedRoute
-import Email_verification from './pages/Email_verification'
+import ProtectedRoute from './components/ProtectedRoute';
+import Email_verification from './pages/Email_verification';
 import ResetPassword from './pages/ResetPassword';
 import WelcomeScreen from './pages/Welcome';
+import Guest from './pages/guest';
 
 const App = () => {
-  const [showLogin, setShowLogin] = useState(false); // For managing login modal
-  const url = "http://localhost:3000"; // Updated to match previous setup
+  const [showLogin, setShowLogin] = useState(false); // For managing login modal visibility
+  const [authType, setAuthType] = useState('Login'); // For managing 'Login' vs 'SignUp' view
+  const url = "http://localhost:3000";
 
   return (
     <div>
-      {showLogin && <Login setShowLogin={setShowLogin} />} {/* Conditionally show Login */}
+      {/* 1. Passed authType to Login modal so it knows which form to render */}
+      {showLogin && <Login setShowLogin={setShowLogin} authType={authType} />}
 
-      <ToastContainer position="bottom-center" /> {/* Toast notifications */}      <Navbar setShowLogin={setShowLogin} /> {/* Pass setShowLogin to Navbar */}
+      <ToastContainer position="bottom-center" />
+
+      {/* 2. Passed setAuthType to Navbar in case you have separate "Login"/"Sign Up" buttons there */}
+      <Navbar setShowLogin={setShowLogin} setAuthType={setAuthType} />
 
       <div className="app-contents">
         <Sidebar />
         <div className="main-content">
           <Routes>
-            {/* Protected routes with login handling */}
-            <Route path='/' element={<WelcomeScreen />} />
+            {/* 3. Passed both setters to Guest and Welcome screens so landing page buttons work */}
+            <Route
+              path='/'
+              element={
+                <Guest setShowLogin={setShowLogin} setAuthType={setAuthType}/>
+              }
+            />
+            <Route
+              path='/welcome'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <WelcomeScreen setShowLogin={setShowLogin} setAuthType={setAuthType} />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Protected routes */}
             <Route
               path='/add'
               element={
@@ -63,12 +84,11 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-            <Route path='/verify-email' element={
-              <Email_verification />
-            } />
-            <Route path='/reset-password/:token' element={
-              <ResetPassword setShowLogin={setShowLogin} />
-            } />
+            <Route path='/verify-email' element={<Email_verification />} />
+            <Route
+              path='/reset-password/:token'
+              element={<ResetPassword setShowLogin={setShowLogin} />}
+            />
           </Routes>
         </div>
       </div>

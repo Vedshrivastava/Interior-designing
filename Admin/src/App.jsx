@@ -13,6 +13,7 @@ import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute'; // Importing ProtectedRoute
 import Email_verification from './pages/Email_verification'
 import ResetPassword from './pages/ResetPassword';
+import WelcomeScreen from './pages/Welcome';
 
 const App = () => {
   const [showLogin, setShowLogin] = useState(false); // For managing login modal
@@ -29,6 +30,7 @@ const App = () => {
         <div className="main-content">
           <Routes>
             {/* Protected routes with login handling */}
+            <Route path='/' element={<WelcomeScreen />} />
             <Route
               path='/add'
               element={
@@ -62,7 +64,7 @@ const App = () => {
               }
             />
             <Route path='/verify-email' element={
-                <Email_verification />
+              <Email_verification />
             } />
             <Route path='/reset-password/:token' element={
               <ResetPassword setShowLogin={setShowLogin} />

@@ -1,0 +1,228 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --green:   #102525;
+  --forest:  #2d4a35;
+  --gold:    #c9a87c;
+  --gold-lt: #e8d0a8;
+  --ivory:   #f8f4ee;
+}
+
+/* ════════════════════════════════════════════
+   WELCOME CONTAINER — ivory base + diamond grid texture
+════════════════════════════════════════════ */
+.welcome-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  padding: 2rem;
+  text-align: center;
+
+  /* Ivory background with a faint forest diamond grid — same technique as sidebar & login card */
+  background-color: var(--ivory);
+  position: relative;
+}
+
+/* Diamond grid texture layer — forest green, very faint, just like sidebar::before */
+.welcome-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.045;
+  background-image:
+    repeating-linear-gradient(45deg,  var(--forest) 0, var(--forest) 1.5px, transparent 0, transparent 24px),
+    repeating-linear-gradient(-45deg, var(--forest) 0, var(--forest) 1.5px, transparent 0, transparent 24px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Ensure all direct children sit above the texture */
+.welcome-container > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ════════════════════════════════════════════
+   BADGE
+════════════════════════════════════════════ */
+.welcome-badge {
+  font-family: "Inter", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--forest);
+  background: rgba(201, 168, 124, 0.14);
+  border: 0.5px solid rgba(201, 168, 124, 0.55);
+  padding: 5px 14px;
+  border-radius: 20px;
+  margin-bottom: 2rem;
+}
+
+/* ════════════════════════════════════════════
+   HEADING
+════════════════════════════════════════════ */
+.welcome-container h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.8rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--green);
+  margin: 0 0 1rem;
+  max-width: 520px;
+  letter-spacing: -0.5px;
+}
+
+.welcome-container h1 em {
+  font-style: italic;
+  color: var(--gold);
+}
+
+/* ════════════════════════════════════════════
+   SUBTITLE
+════════════════════════════════════════════ */
+.welcome-container > p {
+  font-family: "Inter", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 300;
+  color: var(--forest);
+  opacity: 0.75;
+  max-width: 380px;
+  line-height: 1.7;
+  margin: 0 0 2.5rem;
+}
+
+/* ════════════════════════════════════════════
+   DIVIDER — gold tint to match sidebar accents
+════════════════════════════════════════════ */
+.welcome-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 2.5rem;
+}
+
+.welcome-divider span {
+  flex: 1;
+  height: 0.5px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+
+.welcome-divider i {
+  color: var(--gold);
+  font-size: 18px;
+}
+
+/* ════════════════════════════════════════════
+   CARDS GRID
+════════════════════════════════════════════ */
+.welcome-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: 480px;
+}
+
+/* ════════════════════════════════════════════
+   INDIVIDUAL CARD — mirrors sidebar-option style
+════════════════════════════════════════════ */
+.welcome-card {
+  background: var(--ivory);
+  border: 1px solid rgba(201, 168, 124, 0.22);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.25s ease, background 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--green);
+}
+
+/* Gold sweep line at the bottom on hover — same as login card */
+.welcome-card::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  transform: scaleX(0);
+  transition: transform 0.35s ease;
+  border-radius: 0 0 12px 12px;
+}
+
+.welcome-card:hover {
+  border-color: rgba(201, 168, 124, 0.55);
+  background: #f3ede3;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(16, 37, 37, 0.08);
+}
+
+.welcome-card:hover::before {
+  transform: scaleX(1);
+}
+
+/* ── Card icon badge — mirrors sidebar-option-icon ── */
+.welcome-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: rgba(201, 168, 124, 0.12);
+  border: 1px solid rgba(201, 168, 124, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  transition: background 0.25s ease, transform 0.25s ease;
+  color: var(--gold);
+}
+
+.welcome-card:hover .welcome-card-icon {
+  background: rgba(201, 168, 124, 0.22);
+  transform: scale(1.06);
+}
+
+.welcome-card-icon i {
+  font-size: 15px;
+  color: var(--gold);
+}
+
+/* ── Card title ── */
+/* ════════════════════════════════════════════
+   INDIVIDUAL CARD — Updated to mirror Sidebar Section Labels
+════════════════════════════════════════════ */
+
+/* ── Card title (Now matches .sidebar-section-label styling) ── */
+.welcome-card h3 {
+    font-family: "Inter", sans-serif;
+    font-size: 0.68rem;                  /* Small uppercase label look */
+    font-weight: 700;                     /* Bold and structured */
+    letter-spacing: 2px;                  /* Tracked out letters */
+    text-transform: uppercase;            /* All caps styling */
+    color: var(--gold);                   /* Sidebar accent color */
+    margin: 0 0 6px;
+    transition: color 0.25s ease;
+  }
+  
+  /* Subtle color pop to deep green when the user hovers over the card */
+  .welcome-card:hover h3 {
+    color: var(--forest);
+  }
+  
+  /* ── Card description ── */
+  .welcome-card p {
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    font-weight: 400;                     /* Increased slightly for better legibility at small scale */
+    color: var(--ivory);                  /* Uses high contrast green text */
+    opacity: 0.7;
+    margin: 0;
+    line-height: 1.5;
+  }

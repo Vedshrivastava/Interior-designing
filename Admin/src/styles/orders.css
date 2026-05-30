@@ -1,193 +1,371 @@
 /* =========================================================
-   APPOINTMENTS PAGE — PREMIUM SITE-MATCHED THEME
+   APPOINTMENTS — EXTRAORDINARY PREMIUM THEME
+   Deep Obsidian · Liquid Gold · Ivory Parchment
+   A private-members-club aesthetic for a luxury admin panel
 ========================================================= */
 
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap');
+
 :root {
-    /* 1. PLUG YOUR THEME COLORS IN HERE */
-    --color-primary:   #102525; /* Your dark green / main text */
-    --color-secondary: #2d4a35; /* Your forest green / secondary elements */
-    
-    /* 2. ACCENT COLORS */
-    --color-accent:       #c9a87c; /* Your gold */
-    --color-accent-rgb:   201, 168, 124; /* Exact same as above, but RGB for opacity */
-    --color-accent-light: #e8d0a8; 
-    
-    /* 3. BACKGROUNDS */
-    --bg-white: #ffffff;
-    --bg-ivory: #f8f4ee;
+    /* ── Palette ── */
+    --obsidian:       #0b1a1a;
+    --color-primary:  #102525;
+    --color-secondary:#1e3a2a;
+    --moss:           #2d4a35;
+
+    /* ── Accents ── */
+    --color-accent:       #c9a87c;
+    --color-accent-rgb:   201, 168, 124;
+    --color-accent-light: #e8d0a8;
+    --gold-dim:           rgba(201, 168, 124, 0.13);
+    --gold-line:          rgba(201, 168, 124, 0.24);
+
+    /* ── Surfaces ── */
+    --bg-white:     #ffffff;
+    --bg-ivory:     #f8f4ee;
+    --bg-parchment: #f2ece2;
+
+    /* ── Text ── */
+    --text-mid:  #5a4e44;
+    --text-lt:   #9a8e84;
+
+    /* ── Elevation ── */
+    --shadow-sm: 0 2px 8px rgba(11, 26, 26, 0.06);
+    --shadow-md: 0 8px 32px rgba(11, 26, 26, 0.09);
+
+    /* ── Shape ── */
+    --radius:    14px;
+    --radius-sm: 8px;
 }
 
+/* ══════════════════════════════════════════════
+   PAGE SHELL
+══════════════════════════════════════════════ */
 .appointments-container {
-    padding: 40px 40px 40px 40px;
+    padding: 44px 40px;
     background-color: var(--bg-ivory);
     min-height: 100vh;
+    background-image:
+        radial-gradient(ellipse at 85% 5%, rgba(201,168,124,0.07) 0%, transparent 50%),
+        radial-gradient(ellipse at 15% 95%, rgba(16,37,37,0.04) 0%, transparent 50%);
+    animation: fadeSlideUp 0.55s cubic-bezier(.22,.61,.36,1) both;
 }
 
-/* ── DATE GROUP HEADERS ── */
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════════════
+   DATE GROUP HEADERS
+══════════════════════════════════════════════ */
 .appointment-date-group {
-    margin-bottom: 40px;
+    margin-bottom: 44px;
 }
 
 .appointment-date {
-    font-family: "Playfair Display", serif; /* Update to your theme's heading font */
-    font-size: 22px;
-    font-weight: 700;
+    font-family: "Cormorant Garamond", serif;
+    font-size: 1.45rem;
+    font-weight: 600;
     color: var(--color-primary);
-    margin-bottom: 16px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid rgba(var(--color-accent-rgb), 0.4);
+    margin-bottom: 18px;
+    padding-bottom: 0;
+    border-bottom: none;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    letter-spacing: -0.2px;
 }
 
-/* ── MAIN APPOINTMENT CARD (5-COLUMN GRID) ── */
+/* Gold ornament + ruled line */
+.appointment-date::before {
+    content: "◆";
+    font-size: 7px;
+    color: var(--color-accent);
+    flex-shrink: 0;
+}
+.appointment-date::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(201,168,124,0.35), transparent);
+}
+
+/* ══════════════════════════════════════════════
+   APPOINTMENT CARD — 5-Column Premium Grid
+══════════════════════════════════════════════ */
 .appointment-item {
     display: grid;
-    /* 5 Columns: Icon | Details | Address | Message | Action */
-    grid-template-columns: 80px 1.5fr 1.5fr 1.5fr 140px; 
+    /* Icon | Details | Address | Message | Action */
+    grid-template-columns: 80px 1.5fr 1.5fr 1.5fr 148px;
     align-items: center;
     gap: 20px;
     background-color: var(--bg-white);
-    border: 1px solid rgba(var(--color-accent-rgb), 0.3);
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 16px;
-    box-shadow: 0 4px 16px rgba(16, 37, 37, 0.04);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    border: 1px solid var(--gold-line);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.28s cubic-bezier(.22,.61,.36,1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Left-edge shimmer bar */
+.appointment-item::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, var(--color-accent), transparent 80%);
+    opacity: 0;
+    transition: opacity 0.28s ease;
+    border-radius: var(--radius) 0 0 var(--radius);
+}
+/* Top highlight line */
+.appointment-item::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201,168,124,0.28), transparent);
+    opacity: 0;
+    transition: opacity 0.28s ease;
 }
 
 .appointment-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(16, 37, 37, 0.08);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: rgba(201,168,124,0.42);
 }
+.appointment-item:hover::before { opacity: 1; }
+.appointment-item:hover::after  { opacity: 1; }
 
 /* ── ICON WRAPPER ── */
 .appointment-icon-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 60px;
-    height: 60px;
-    background: rgba(var(--color-accent-rgb), 0.1);
-    border-radius: 8px;
-    border: 1px solid rgba(var(--color-accent-rgb), 0.25);
+    width: 64px;
+    height: 64px;
+    background: var(--gold-dim);
+    border-radius: 12px;
+    border: 1px solid var(--gold-line);
     color: var(--color-accent);
-    font-size: 24px;
+    font-size: 22px;
+    transition: transform 0.28s ease, box-shadow 0.28s ease;
+    flex-shrink: 0;
+}
+.appointment-item:hover .appointment-icon-wrapper {
+    transform: scale(1.06);
+    box-shadow: 0 6px 20px rgba(201,168,124,0.18);
 }
 
-/* ── TEXT FORMATTING ── */
+/* ── TEXT ── */
 .appointment-item p {
-    margin: 0 0 6px 0;
-    font-family: "Inter", sans-serif; /* Update to your theme's body font */
+    margin: 0 0 5px 0;
+    font-family: "DM Sans", sans-serif;
     font-size: 13px;
     color: var(--color-primary);
+    line-height: 1.45;
 }
 
 .appointment-name {
-    font-size: 15px;
-    font-weight: 700;
-    margin-bottom: 4px;
+    font-family: "Cormorant Garamond", serif !important;
+    font-size: 1.08rem !important;
+    font-weight: 600;
+    margin-bottom: 3px !important;
+    color: var(--color-primary);
+    letter-spacing: -0.2px;
+    line-height: 1.15;
 }
 
 .appointment-phone {
-    font-weight: 600;
-    color: var(--color-secondary);
+    font-family: "DM Sans", sans-serif !important;
+    font-weight: 500 !important;
+    font-size: 0.8rem !important;
+    color: var(--moss) !important;
 }
 
 .appointment-message {
-    font-style: italic;
-    color: rgba(16, 37, 37, 0.7);
-    line-height: 1.4;
+    font-family: "Cormorant Garamond", serif !important;
+    font-style: italic !important;
+    font-size: 0.92rem !important;
+    color: rgba(16,37,37,0.65) !important;
+    line-height: 1.5;
 }
 
-/* ── SELECT STATUS DROPDOWN ── */
+/* Address text */
+.appointment-address p {
+    font-size: 0.8rem !important;
+    color: var(--text-mid) !important;
+    line-height: 1.5;
+}
+
+/* ── SELECT DROPDOWN ── */
 .appointment-actions select {
     background-color: var(--color-primary);
     color: var(--color-accent-light);
-    border: 1px solid var(--color-accent);
+    border: 1px solid rgba(201,168,124,0.32);
     width: 100%;
-    padding: 12px 14px;
-    border-radius: 6px;
+    padding: 12px 32px 12px 14px;
+    border-radius: var(--radius-sm);
     outline: none;
+    font-family: "DM Sans", sans-serif;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 0.75rem;
+    letter-spacing: 0.4px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.22s ease, box-shadow 0.22s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    /* Custom chevron */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a87c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
 }
-
 .appointment-actions select:hover {
     background-color: var(--color-secondary);
+    box-shadow: 0 4px 14px rgba(16,37,37,0.16);
+}
+.appointment-actions select:focus {
+    box-shadow: 0 0 0 3px rgba(201,168,124,0.18);
 }
 
-/* ════════════════════════════════════════════
-   RESPONSIVE DESIGN (TABLET)
-════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════
+   LOADER OVERLAY
+══════════════════════════════════════════════ */
+.submit-loader-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(11,26,26,0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: backdropIn 0.3s ease both;
+}
+@keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+
+.loader-modal-box {
+    background: var(--bg-white);
+    padding: 44px 64px;
+    border-radius: 20px;
+    border-top: 2px solid var(--color-accent);
+    border-left: 1px solid var(--gold-line);
+    border-right: 1px solid var(--gold-line);
+    border-bottom: 1px solid var(--gold-line);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.22);
+    text-align: center;
+    animation: modalSlideIn 0.38s cubic-bezier(.22,.61,.36,1) both;
+}
+@keyframes modalSlideIn {
+    from { opacity: 0; transform: translateY(18px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.loader-modal-box p {
+    font-family: "Cormorant Garamond", serif;
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: 1.3rem;
+    margin: 4px 0 0;
+    letter-spacing: -0.2px;
+}
+.loader-modal-box span {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.78rem;
+    color: var(--text-lt);
+}
+
+/* Dual-ring spinner */
+.loader-ring {
+    position: relative;
+    width: 52px;
+    height: 52px;
+}
+.loader-ring::before,
+.loader-ring::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+}
+.loader-ring::before {
+    border: 3px solid rgba(201,168,124,0.12);
+}
+.loader-ring::after {
+    border: 3px solid transparent;
+    border-top-color: var(--color-accent);
+    border-right-color: rgba(201,168,124,0.3);
+    animation: elegantSpin 0.9s ease-in-out infinite;
+}
+@keyframes elegantSpin { to { transform: rotate(360deg); } }
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE — TABLET
+══════════════════════════════════════════════ */
 @media (max-width: 1000px) {
     .appointments-container {
         padding: 95px 20px 20px 20px;
     }
-    
     .appointment-item {
-        /* Drops to 4 columns, hiding the message */
-        grid-template-columns: 60px 1.5fr 1.5fr 1fr;
-        padding: 16px;
+        grid-template-columns: 64px 1.5fr 1.5fr 1fr;
+        padding: 18px 22px;
         gap: 16px;
     }
-
-    .appointment-message-box {
-        display: none; 
-    }
-
+    .appointment-message-box { display: none; }
     .appointment-icon-wrapper {
-        width: 50px;
-        height: 50px;
+        width: 54px;
+        height: 54px;
         font-size: 20px;
     }
 }
 
+/* ══════════════════════════════════════════════
+   RESPONSIVE — MOBILE (< 480px)
+══════════════════════════════════════════════ */
 @media (max-width: 480px) {
-
     .appointments-container {
-        padding: 30px 12px 24px 12px;
+        padding: 32px 14px 28px 14px;
     }
-
-    .appointment-date-group {
-        margin-bottom: 24px;
-    }
-
-    .appointment-date {
-        font-size: 18px;
-        margin-bottom: 12px;
-    }
+    .appointment-date-group { margin-bottom: 28px; }
+    .appointment-date { font-size: 1.2rem; margin-bottom: 14px; }
 
     .appointment-item {
         display: grid;
         grid-template-columns: 1fr 60px;
         align-items: center;
-    
-        padding: 20px;
-        gap: 14px;
+        padding: 18px;
+        gap: 12px;
+        border-radius: 12px;
     }
 
-    /* LEFT SIDE */
     .appointment-main-details {
         grid-column: 1 / 2;
-        grid-row: 1; /* <-- ADD THIS */
+        grid-row: 1;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        min-height: 52px;
+        min-height: 54px;
     }
 
-    /* RIGHT ICON */
     .appointment-icon-wrapper {
         grid-column: 2 / 3;
-        grid-row: 1; /* <-- ADD THIS */
+        grid-row: 1;
         justify-self: end;
-        width: 52px;
-        height: 52px;
+        width: 54px;
+        height: 54px;
         font-size: 20px;
     }
 
-    /* FULL WIDTH BOXES */
     .appointment-address,
     .appointment-message-box,
     .appointment-actions {
@@ -196,20 +374,19 @@
 
     .appointment-address,
     .appointment-message-box {
-        background: rgba(248, 244, 238, 0.6);
+        background: rgba(248,244,238,0.7);
         padding: 12px;
-        border-radius: 6px;
-        border: 1px solid rgba(var(--color-accent-rgb), 0.15);
+        border-radius: var(--radius-sm);
+        border: 1px solid rgba(201,168,124,0.12);
+        margin-top: 2px;
     }
+    .appointment-address p,
+    .appointment-message-box p { font-size: 0.75rem !important; }
 
     .appointment-actions select {
         width: 100%;
         text-align: center;
-        padding: 14px;
-        font-size: 14px;
+        padding: 14px 32px 14px 14px;
+        font-size: 0.8rem;
     }
-    .appointment-address,
-.appointment-message-box {
-    margin-top: 2px;
-}
 }

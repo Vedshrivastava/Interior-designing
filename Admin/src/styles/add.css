@@ -1,138 +1,240 @@
-
 /* =========================================================
-   ADD PRODUCT FORM — REFINED STRUCTURE & AESTHETICS
+   ADD PRODUCT FORM — EXTRAORDINARY PREMIUM THEME
+   Deep Obsidian · Liquid Gold · Ivory Parchment
+   Every input field a deliberate act of curation
 ========================================================= */
 
-/* ── 1. THEME VARIABLES ── */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap');
+
 :root {
-    --green: #102525;
-    --gold: #c9a87c;
-    --gold-lt: #e8d0a8;
-    --ivory: #f8f4ee;
-    --white: #ffffff;
-    --danger: #ff5252;
+    --obsidian:   #0b1a1a;
+    --green:      #102525;
+    --forest:     #1e3a2a;
+    --moss:       #2d4a35;
+    --gold:       #c9a87c;
+    --gold-lt:    #e8d0a8;
+    --gold-dim:   rgba(201, 168, 124, 0.12);
+    --gold-line:  rgba(201, 168, 124, 0.28);
+    --ivory:      #f8f4ee;
+    --parchment:  #f2ece2;
+    --white:      #ffffff;
+    --danger:     #c0392b;
+    --danger-dim: rgba(192, 57, 43, 0.08);
+    --text-dark:  #1a1208;
+    --text-mid:   #5a4e44;
+    --text-lt:    #9a8e84;
+    --shadow-sm:  0 2px 8px rgba(11, 26, 26, 0.06);
+    --shadow-md:  0 12px 40px rgba(11, 26, 26, 0.10);
+    --radius:     14px;
+    --radius-sm:  8px;
+    --radius-pill:999px;
 }
 
-/* Apply box-sizing locally to prevent layout shifts */
-.add, .add * {
-    box-sizing: border-box;
-}
+/* ── Local scope ── */
+.add, .add * { box-sizing: border-box; }
 
-/* ── 2. MAIN LAYOUT & ALIGNMENT ── */
+/* ══════════════════════════════════════════════
+   1. PAGE SHELL
+══════════════════════════════════════════════ */
 .add {
     font-size: 16px;
     display: flex;
     flex-direction: column;
-    align-items: center; 
-    /* Matched top padding (110px) to your Orders/Appointments page to clear the top nav */
-    padding: 40px 40px 40px 40px; 
+    align-items: center;
+    padding: 44px 40px;
     background-color: var(--ivory);
     min-height: 100vh;
-    width: 100%; 
-}
-
-.add h2 {
-    font-family: "Playfair Display", serif;
-    font-size: 24px; 
-    color: var(--green);
-    font-weight: 700;
     width: 100%;
-    max-width: 940px; 
-    margin: 0 auto 20px auto; /* Tightened from 24px */
+    background-image:
+        radial-gradient(ellipse at 85% 5%, rgba(201,168,124,0.07) 0%, transparent 50%),
+        radial-gradient(ellipse at 15% 95%, rgba(16,37,37,0.04) 0%, transparent 50%);
+    animation: fadeSlideUp 0.55s cubic-bezier(.22,.61,.36,1) both;
 }
 
-/* ── 3. FORM CARD CONTAINER ── */
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════════════
+   2. PAGE HEADING
+══════════════════════════════════════════════ */
+.add h2 {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: var(--green);
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto 22px auto;
+    letter-spacing: -0.4px;
+    line-height: 1.05;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+}
+
+/* Eyebrow accent before the heading */
+.add h2::before {
+    content: "◆";
+    font-size: 8px;
+    color: var(--gold);
+    display: inline-block;
+    vertical-align: middle;
+    transform: translateY(-2px);
+}
+
+/* ══════════════════════════════════════════════
+   3. FORM CARD
+══════════════════════════════════════════════ */
 .add form {
     display: flex;
     flex-direction: column;
-    gap: 24px; /* Reduced from 32px to eliminate unnecessary laptop gaps */
-    padding: 32px 40px; /* Tightened from 40px */
+    gap: 26px;
+    padding: 36px 44px;
     background: var(--white);
-    border: 1px solid rgba(201, 168, 124, 0.25);
-    border-radius: 12px;
+    border: 1px solid var(--gold-line);
+    border-radius: var(--radius);
     width: 100%;
-    max-width: 940px; 
-    margin: 0 auto; 
-    box-shadow: 
-        0 4px 6px rgba(0, 0, 0, 0.02),
-        0 12px 32px rgba(16, 37, 37, 0.05);
+    max-width: 960px;
+    margin: 0 auto;
+    box-shadow: var(--shadow-md);
+    /* Top accent bar */
+    border-top: 2px solid var(--gold);
+    position: relative;
+    overflow: hidden;
 }
 
-/* ── 4. STANDARD INPUTS & TEXTAREAS ── */
-.add-product-name, 
-.add-product-description, 
-.add-category-price > div { /* Targets the inner wrappers for category and price */
+/* Subtle warm glow from top */
+.add form::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 120px;
+    background: linear-gradient(to bottom, rgba(201,168,124,0.04), transparent);
+    pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════
+   4. FIELD WRAPPERS & LABELS
+══════════════════════════════════════════════ */
+.add-product-name,
+.add-product-description,
+.add-category-price > div {
     display: flex;
     flex-direction: column;
     gap: 8px;
     width: 100%;
 }
 
-/* Place Category & Price side-by-side on Laptop/Desktop */
+/* Field labels — refined micro-typography */
+.add-product-name > label,
+.add-product-description > label,
+.add-category-price > div > label,
+.add-product-points > label {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-lt);
+}
+
+/* Category & Price side-by-side */
 .add-category-price {
     display: flex;
-    flex-direction: row; 
+    flex-direction: row;
     gap: 24px;
     width: 100%;
 }
 
-.add-product-name input, 
-.add-product-description textarea, 
+/* ══════════════════════════════════════════════
+   5. INPUT FIELDS
+══════════════════════════════════════════════ */
+.add-product-name input,
+.add-product-description textarea,
 .add-category-price select,
 .add-category-price input,
 .point-input input {
     width: 100%;
     padding: 14px 16px;
-    border: 1px solid rgba(201, 168, 124, 0.35);
-    background-color: var(--white);
+    border: 1px solid rgba(201,168,124,0.28);
+    background-color: var(--ivory);
     color: var(--green);
-    border-radius: 8px;
-    font-size: 14px;
-    font-family: "Inter", sans-serif;
-    transition: all 0.25s ease;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-family: "DM Sans", sans-serif;
+    font-weight: 400;
+    transition: all 0.22s ease;
+    outline: none;
+    -webkit-appearance: none;
 }
 
-.add-product-name input:focus, 
-.add-product-description textarea:focus, 
+/* Textarea refinement */
+.add-product-description textarea {
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.6;
+}
+
+/* Select custom arrow */
+.add-category-price select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a8e84' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+    cursor: pointer;
+}
+
+/* Focus state — gold ring */
+.add-product-name input:focus,
+.add-product-description textarea:focus,
 .add-category-price select:focus,
 .add-category-price input:focus,
 .point-input input:focus {
-    outline: none;
     border-color: var(--gold);
-    box-shadow: 0 0 0 4px rgba(201, 168, 124, 0.15);
+    background-color: var(--white);
+    box-shadow: 0 0 0 4px rgba(201,168,124,0.12);
 }
 
+/* Placeholder */
 .add input::placeholder,
 .add textarea::placeholder {
-    color: rgba(16, 37, 37, 0.35);
+    color: rgba(16,37,37,0.28);
+    font-weight: 300;
 }
 
-/* ── 5. IMAGE UPLOAD SECTION ── */
+/* ══════════════════════════════════════════════
+   6. IMAGE UPLOAD
+══════════════════════════════════════════════ */
 .add-img-upload i {
-    width: 80px;
-    height: 80px;
+    width: 88px;
+    height: 88px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 28px;
+    font-size: 26px;
     color: var(--gold);
-    border: 2px dashed var(--gold);
-    border-radius: 12px;
-    background-color: rgba(201, 168, 124, 0.04);
-    transition: all 0.3s ease;
+    border: 1.5px dashed rgba(201,168,124,0.5);
+    border-radius: var(--radius);
+    background-color: var(--gold-dim);
+    transition: all 0.28s ease;
 }
-
 .add-img-upload i:hover {
-    background-color: rgba(201, 168, 124, 0.1);
+    background-color: rgba(201,168,124,0.1);
+    border-color: var(--gold);
     transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(201,168,124,0.18);
 }
 
 .selected-images {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
-    margin-top: 12px;
+    gap: 14px;
+    margin-top: 14px;
 }
 
 .image-preview {
@@ -140,48 +242,58 @@
     display: flex;
     flex-direction: column;
 }
-
 .image-preview img {
-    width: 90px;
-    height: 90px;
+    width: 92px;
+    height: 92px;
     object-fit: cover;
-    border-radius: 8px;
-    border: 1px solid rgba(201, 168, 124, 0.25);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--gold-line);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.25s ease;
 }
+.image-preview img:hover { transform: scale(1.04); }
 
 .remove-btn {
     position: absolute;
-    top: -8px;
-    right: -8px;
+    top: -9px; right: -9px;
     background: var(--danger) !important;
     color: var(--white);
     border: 2px solid var(--white);
-    width: 24px;
-    height: 24px;
+    width: 24px; height: 24px;
     border-radius: 50%;
     cursor: pointer;
     font-size: 10px;
-    font-weight: bold;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
     transition: transform 0.2s ease;
 }
+.remove-btn:hover { transform: scale(1.12); }
 
-.remove-btn:hover {
-    transform: scale(1.1);
-}
-
-/* ── 6. DYNAMIC POINTS BLOCK ── */
+/* ══════════════════════════════════════════════
+   7. DYNAMIC POINTS BLOCK
+══════════════════════════════════════════════ */
 .add-product-points {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    background: rgba(201, 168, 124, 0.03);
-    padding: 20px;
-    border-radius: 12px;
-    border: 1px solid rgba(201, 168, 124, 0.15);
+    gap: 14px;
+    background: rgba(201,168,124,0.04);
+    padding: 22px 24px;
+    border-radius: var(--radius);
+    border: 1px solid rgba(201,168,124,0.16);
+    position: relative;
+}
+
+/* Decorative corner */
+.add-product-points::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 40px;
+    background: linear-gradient(to bottom, var(--gold), transparent);
+    border-radius: var(--radius) 0 0 0;
 }
 
 .point-input {
@@ -190,172 +302,222 @@
     gap: 12px;
     width: 100%;
 }
-
-.point-input input {
-    flex-grow: 1;
-}
+.point-input input { flex-grow: 1; }
 
 .remove-point-btn {
-    background-color: rgba(255, 82, 82, 0.08);
+    background-color: var(--danger-dim);
     color: var(--danger);
-    border: 1px solid rgba(255, 82, 82, 0.25);
+    border: 1px solid rgba(192,57,43,0.22);
     padding: 13px 16px;
     cursor: pointer;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
+    font-family: "DM Sans", sans-serif;
     font-weight: 600;
     font-size: 13px;
     transition: all 0.2s ease;
+    white-space: nowrap;
 }
-
 .remove-point-btn:hover {
     background-color: var(--danger);
     color: var(--white);
+    box-shadow: 0 4px 12px rgba(192,57,43,0.2);
 }
 
 .add-point-btn {
     align-self: flex-start;
     background: transparent;
     color: var(--gold);
-    border: 1px dashed var(--gold);
-    padding: 10px 20px;
-    border-radius: 8px;
+    border: 1px dashed rgba(201,168,124,0.5);
+    padding: 10px 22px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
+    font-family: "DM Sans", sans-serif;
     font-weight: 600;
-    font-size: 13px;
-    transition: background 0.2s ease;
+    font-size: 0.78rem;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
 }
-
 .add-point-btn:hover {
-    background: rgba(201, 168, 124, 0.08);
+    background: rgba(201,168,124,0.08);
+    border-color: var(--gold);
 }
 
-/* ── 7. PRIMARY SUBMIT BUTTON ── */
+/* ══════════════════════════════════════════════
+   8. SUBMIT BUTTON
+══════════════════════════════════════════════ */
 .add-btn {
     align-self: flex-end;
-    min-width: 160px;
+    min-width: 168px;
     border: none;
-    padding: 14px 24px;
-    background-color: var(--gold);
+    padding: 14px 28px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-lt));
     color: var(--green);
+    font-family: "DM Sans", sans-serif;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-size: 13px;
+    letter-spacing: 1px;
+    font-size: 0.75rem;
     cursor: pointer;
-    border-radius: 8px;
-    margin-top: 8px;
-    transition: all 0.3s ease;
+    border-radius: var(--radius-sm);
+    margin-top: 6px;
+    transition: all 0.28s ease;
+    box-shadow: 0 4px 16px rgba(201,168,124,0.22);
+    position: relative;
+    overflow: hidden;
 }
 
+/* Shimmer sweep on hover */
+.add-btn::after {
+    content: "";
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+    transform: skewX(-20deg);
+    transition: left 0.5s ease;
+}
+.add-btn:hover:not(:disabled)::after { left: 150%; }
+
 .add-btn:hover:not(:disabled) {
-    background-color: var(--gold-lt);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(201, 168, 124, 0.25);
+    box-shadow: 0 10px 28px rgba(201,168,124,0.32);
+}
+.add-btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(201,168,124,0.2);
 }
 
 .add-btn:disabled {
-    background-color: #e5dfd5;
+    background: linear-gradient(135deg, #e5dfd5, #d8d2c8);
     color: #a5a098;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
 }
 
-/* ── 8. BULLETPROOF FULL SCREEN LOADER ── */
+/* ══════════════════════════════════════════════
+   9. FULLSCREEN LOADER OVERLAY
+══════════════════════════════════════════════ */
 .submit-loader-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(16, 37, 37, 0.45);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    inset: 0;
+    background: rgba(11,26,26,0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 99999;
     display: flex;
     align-items: center;
     justify-content: center;
+    animation: backdropIn 0.3s ease both;
 }
+@keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
 
 .loader-modal-box {
     background: var(--white);
-    padding: 40px 60px;
-    border-radius: 16px;
-    border: 1px solid var(--gold);
+    padding: 46px 64px;
+    border-radius: 20px;
+    border-top: 2px solid var(--gold);
+    border-left: 1px solid rgba(201,168,124,0.2);
+    border-right: 1px solid rgba(201,168,124,0.2);
+    border-bottom: 1px solid rgba(201,168,124,0.2);
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 16px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    gap: 18px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.22);
     text-align: center;
+    animation: modalSlideIn 0.38s cubic-bezier(.22,.61,.36,1) both;
+}
+
+@keyframes modalSlideIn {
+    from { opacity: 0; transform: translateY(18px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .loader-modal-box p {
-    font-family: "Inter", sans-serif;
+    font-family: "Cormorant Garamond", serif;
     color: var(--green);
-    font-weight: 700;
-    font-size: 18px;
-    margin-top: 8px;
+    font-weight: 600;
+    font-size: 1.3rem;
+    margin: 4px 0 0;
+    letter-spacing: -0.2px;
 }
-
 .loader-modal-box span {
-    font-size: 13px;
-    color: rgba(16, 37, 37, 0.6);
-    font-family: "Inter", sans-serif;
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.78rem;
+    color: var(--text-lt);
+    font-weight: 300;
+    letter-spacing: 0.3px;
 }
 
+/* Dual-ring spinner */
 .loader-ring {
+    position: relative;
     width: 52px;
     height: 52px;
+}
+.loader-ring::before,
+.loader-ring::after {
+    content: "";
+    position: absolute;
+    inset: 0;
     border-radius: 50%;
-    border: 4px solid rgba(201, 168, 124, 0.2);
+}
+.loader-ring::before {
+    border: 3px solid rgba(201,168,124,0.12);
+}
+.loader-ring::after {
+    border: 3px solid transparent;
     border-top-color: var(--gold);
-    animation: spin 0.8s linear infinite;
+    border-right-color: rgba(201,168,124,0.3);
+    animation: elegantSpin 0.9s ease-in-out infinite;
 }
+@keyframes elegantSpin { to { transform: rotate(360deg); } }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* ── 9. RESPONSIVE DESIGN (< 768px - Tablets) ── */
+/* ══════════════════════════════════════════════
+   10. RESPONSIVE — TABLET (< 768px)
+══════════════════════════════════════════════ */
 @media (max-width: 768px) {
-    .add { 
-        padding: 95px 20px 20px 20px; 
+    .add {
+        padding: 95px 20px 24px 20px;
     }
-    
-    .add form { 
-        padding: 32px 24px; 
+    .add form {
+        padding: 30px 28px;
     }
-    
     .add-btn {
-        align-self: center; 
+        align-self: center;
         width: 100%;
     }
 }
 
-/* ── 10. RESPONSIVE DESIGN (< 480px - Mobile Phones) ── */
+/* ══════════════════════════════════════════════
+   11. RESPONSIVE — MOBILE (< 480px)
+══════════════════════════════════════════════ */
 @media (max-width: 480px) {
     .add {
-        padding: 30px 12px 24px 12px; /* Matched exactly to Orders/Quotes mobile view */
+        padding: 32px 14px 28px 14px;
     }
-    
     .add h2 {
-        font-size: 20px; 
+        font-size: 1.75rem;
     }
-
     .add form {
-        padding: 24px 16px; 
-        gap: 20px; /* Tighter gap on small screens */
+        padding: 24px 18px;
+        gap: 22px;
+        border-radius: 12px;
     }
-
-    /* Convert Category & Price back to a stack on narrow screens */
     .add-category-price {
         flex-direction: column;
-        gap: 20px;
+        gap: 22px;
     }
-
     .add-product-points {
-        padding: 16px 12px;
+        padding: 18px 16px;
+    }
+    .image-preview img {
+        width: 82px;
+        height: 82px;
+    }
+    .add-btn {
+        align-self: stretch;
     }
 }

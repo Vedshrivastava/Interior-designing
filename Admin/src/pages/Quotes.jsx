@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import '../styles/quotes.css'; // Using the unified CSS file
+import '../styles/quotes.css';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import moment from 'moment';
@@ -7,9 +7,11 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const Quotes = ({ url }) => {
   const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const token = localStorage.getItem('token');
 
   const fetchAllOrders = async () => {
+    setIsLoading(true);
     try {
       const response = await axios.get(`${url}/api/appointment/list-quotes`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -21,6 +23,8 @@ const Quotes = ({ url }) => {
       }
     } catch (error) {
       toast.error('Failed to fetch quotes');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -37,6 +41,7 @@ const Quotes = ({ url }) => {
 
   const statusHandler = async (event, orderId) => {
     const newStatus = event.target.value;
+    setIsLoading(true); // Optional: Show loader while updating status
     try {
       const response = await axios.post(
         `${url}/api/appointment/status`,
@@ -44,12 +49,15 @@ const Quotes = ({ url }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.data.success) {
-        fetchAllOrders();
+        await fetchAllOrders();
+        toast.success('Status updated successfully');
       } else {
         toast.error('Failed to update quote status');
       }
     } catch (error) {
       toast.error('Failed to update quote status');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -76,59 +84,80 @@ const Quotes = ({ url }) => {
               .sort((a, b) => new Date(b.date) - new Date(a.date))
           );
           break;
+        default:
+          break;
       }
     });
 
     return () => socket.close();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const groupedOrders = groupOrdersByDate(orders);
 
   return (
-    <div className='order add'>
-      <div className='order-list'>
-        {Object.keys(groupedOrders).map((date) => (
-          <div key={date} className='order-date-group'>
-            <h4 className='order-date'>{moment(date).format('MMMM Do, YYYY')}</h4>
-            
-            {groupedOrders[date].map((order, index) => (
-              /* Notice the added "quote-item" class here */
-              <div key={index} className='order-item quote-item'>
-                
-                <div className="order-icon-wrapper quote-media">
-                  {order.image ? (
-                    <img src={order.image} alt={order.designName} />
-                  ) : (
-                    <i className="fa-solid fa-image"></i>
-                  )}
-                </div>
-                
-                <div className='order-item-main-details'>
-                  <p className='order-item-name'>{order.name}</p>
-                  <p className='order-item-phone'>{order.phoneNumber}</p>
-                  <p className='order-item-email'>{order.email}</p>
-                  <p className='order-item-design-name'>
-                    {order.designName || 'No design name'}
-                  </p>
-                </div>
-                
-                <div className='order-item-address'>
-                  <p>{order.address}</p>
-                </div>
-
-                {/* Message Box has been entirely removed */}
-
-                <div className="order-item-actions">
-                  <select onChange={(event) => statusHandler(event, order._id)} value={order.status}>
-                    <option value="Pending">Pending</option>
-                    <option value="Completed">Completed</option>
-                  </select>
-                </div>
-                
-              </div>
-            ))}
+    <div className="order">
+      {/* CSS Loader Overlay */}
+      {isLoading && (
+        <div className="submit-loader-overlay">
+          <div className="loader-modal-box">
+            <div className="loader-ring"></div>
+            <p>Curating Details</p>
+            <span>Please wait a moment...</span>
           </div>
-        ))}
+        </div>
+      )}
+
+      <div className="order-list">
+        {Object.keys(groupedOrders).length === 0 && !isLoading ? (
+          <div className="empty-state">
+            <p>No quotes available at this time.</p>
+          </div>
+        ) : (
+          Object.keys(groupedOrders).map((date) => (
+            <div key={date} className="order-date-group">
+              <h4 className="order-date">{moment(date).format('MMMM Do, YYYY')}</h4>
+              
+              {groupedOrders[date].map((order, index) => (
+                <div key={index} className="order-item quote-item">
+                  
+                  {/* Column 1: Media */}
+                  <div className="order-icon-wrapper quote-media">
+                    {order.image ? (
+                      <img src={order.image} alt={order.designName || 'Design'} />
+                    ) : (
+                      <i className="fa-solid fa-image"></i>
+                    )}
+                  </div>
+                  
+                  {/* Column 2: Main Details */}
+                  <div className="order-item-main-details">
+                    <p className="order-item-name">{order.name}</p>
+                    <p className="order-item-phone">{order.phoneNumber}</p>
+                    <p className="order-item-email">{order.email}</p>
+                    <p className="order-item-design-name">
+                      {order.designName || 'No design name'}
+                    </p>
+                  </div>
+                  
+                  {/* Column 3: Address */}
+                  <div className="order-item-address">
+                    <p>{order.address}</p>
+                  </div>
+
+                  {/* Column 4: Actions */}
+                  <div className="order-item-actions">
+                    <select onChange={(event) => statusHandler(event, order._id)} value={order.status}>
+                      <option value="Pending">Pending</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </div>
+                  
+                </div>
+              ))}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

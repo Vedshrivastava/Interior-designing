@@ -24,9 +24,17 @@ const App = () => {
   const storedUser = localStorage.getItem("user");
   const user = storedUser ? JSON.parse(storedUser) : null;
 
-  const isAdmin =
-    localStorage.getItem("token") &&
-    user?.role === "ADMIN";
+  let isAdmin = false;
+
+  try {
+    const user = JSON.parse(localStorage.getItem("user"));
+  
+    isAdmin =
+      !!localStorage.getItem("token") &&
+      user?.role === "ADMIN";
+  } catch (err) {
+    isAdmin = false;
+  }
 
   return (
     <div>

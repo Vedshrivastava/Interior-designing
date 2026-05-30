@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import '../styles/services.css';
-
+import { useNavigate } from 'react-router-dom';
 import bgimg from '../assets/home-img.png';
 import Footer from '../components/Footer';
 import residence from '../assets/residence.png';
@@ -77,6 +77,8 @@ const processSteps = [
 
 const Services = ({ setShowLogin }) => {
     const revealRefs = useRef([]);
+    const navigate = useNavigate();
+    const handleProjects = () => navigate('/projects');
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -120,7 +122,7 @@ const Services = ({ setShowLogin }) => {
                         <button className="svc-btn-primary" onClick={() => setShowLogin(true)}>
                             Book Consultation <FontAwesomeIcon icon={faCalendarCheck} />
                         </button>
-                        <button className="svc-btn-ghost">
+                        <button onClick={handleProjects} className="svc-btn-ghost">
                             View Projects <FontAwesomeIcon icon={faArrowRight} />
                         </button>
                     </div>

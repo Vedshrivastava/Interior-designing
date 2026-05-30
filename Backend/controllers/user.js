@@ -55,14 +55,14 @@ const forgotPassword = async (req, res) => {
 
     const resetToken = crypto.randomBytes(20).toString('hex');
     console.log("Reset Token : ", resetToken);
-    const resetTokenExpiresAt = Date.now() + 1 * 60 * 60 * 1000;
+    const resetTokenExpiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // ✅ always stored as Date
 
     user.resetPasswordToken = resetToken;
     user.resetPasswordTokenExpiresAt = resetTokenExpiresAt;
 
     await user.save();
 
-    await sendPasswordResetEmail(user.email, `http://localhost:5173/reset-password/${resetToken}`);
+    await sendPasswordResetEmail(user.email, `http://localhost:5174/reset-password/${resetToken}`);
     
     return res.status(200).json({ success: true, message: "Password reset email sent" });
   } catch (error) {

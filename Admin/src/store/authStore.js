@@ -107,19 +107,17 @@ export const useAuthStore = create((set) => ({
 
     forgotPassword: async (email) => {
         set({ isLoading: true, error: null });
-        console.log("isLoading (forgotPassword start):", true); // Log when isLoading is true
         try {
             const response = await axios.post(`http://localhost:3000/api/user/forgot-password`, { email });
             set({ message: response.data.message, isLoading: false });
-            console.log("isLoading (forgotPassword end):", false); // Log when isLoading is false
             return response;
         } catch (error) {
-            set({ isLoading: false, error: error.response.data.message || "Error sending reset password email" });
-            console.log("isLoading (forgotPassword error):", false); // Log when isLoading becomes false due to an error
+            const message = error.response?.data?.message  // server responded with error
+                || (error.request ? "Cannot reach server — is the backend running?" : "Error sending reset password email");
+            set({ isLoading: false, error: message });
             throw error;
         }
     },
-
     resetPassword: async (token, password) => {
         set({ isLoading: true, error: null });
         console.log("isLoading (resetPassword start):", true); // Log when isLoading is true
@@ -129,7 +127,7 @@ export const useAuthStore = create((set) => ({
             console.log("isLoading (resetPassword end):", false); // Log when isLoading is false
             return response;
         } catch (error) {
-            set({ error: error.response.data.message || "Error resetting password" });
+            set({ error: error.response?.data?.message || "Error resetting password" });
             console.log("isLoading (resetPassword error):", false); // Log when isLoading becomes false due to an error
             throw error;
         } finally {

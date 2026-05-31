@@ -90,7 +90,7 @@
 ══════════════════════════════════════════════ */
 .order-item {
     display: grid;
-    grid-template-columns: 80px 1.8fr 1.4fr 140px;
+    grid-template-columns: 84px minmax(0, 1.8fr) minmax(0, 1.4fr) 140px;
     align-items: center;
     gap: 24px;
     background-color: var(--white);
@@ -212,6 +212,10 @@
     opacity: 0.6;
     margin-right: 4px;
 }
+
+/* Desktop: show inline version, hide standalone */
+.design-name-desktop    { display: block; }
+.design-name-responsive { display: none; }
 
 /* Address column refinements */
 .order-item-address p {
@@ -351,21 +355,56 @@
 }
 
 /* ══════════════════════════════════════════════
-   RESPONSIVE — TABLET
+   RESPONSIVE — TABLET  (≤ 900px)
 ══════════════════════════════════════════════ */
-@media (max-width: 1000px) {
+@media (max-width: 900px) {
     .order {
-        padding: 95px 20px 20px 20px;
+        padding: 36px 20px 20px 20px;
     }
+
+    /* 3-column: image | details+address stacked | actions */
     .order-item {
-        grid-template-columns: 70px 1.5fr 2fr 132px;
-        padding: 18px 22px;
-        gap: 16px;
+        grid-template-columns: 72px minmax(0, 1fr) 130px;
+        grid-template-rows: auto auto auto;
+        grid-template-areas:
+            "img  details actions"
+            "img  address actions"
+            "design design design";
+        align-items: start;
+        padding: 20px 22px;
+        gap: 12px 18px;
     }
+
     .order-icon-wrapper {
-        width: 62px;
-        height: 62px;
+        grid-area: img;
+        align-self: center;
+        width: 72px;
+        height: 72px;
     }
+
+    .order-item-main-details {
+        grid-area: details;
+    }
+
+    .order-item-address {
+        grid-area: address;
+    }
+
+    .order-item-actions {
+        grid-area: actions;
+        align-self: center;
+    }
+
+    .order-item-design-name {
+        grid-area: design;
+        width: 100%;
+        border-radius: var(--radius-sm);
+        box-sizing: border-box;
+        margin-top: 0;
+    }
+
+    .design-name-desktop    { display: none; }
+    .design-name-responsive { display: block; }
 }
 
 /* ══════════════════════════════════════════════
@@ -383,58 +422,75 @@
         margin-bottom: 14px;
     }
 
+    /* 2-column: [details | img], then rows for design, address, actions */
     .order-item {
         display: grid;
-        grid-template-columns: 1fr 68px;
-        align-items: center;
-        padding: 18px;
-        gap: 12px;
+        grid-template-columns: minmax(0, 1fr) 64px;
+        grid-template-areas:
+            "details img"
+            "design  design"
+            "address address"
+            "actions actions";
+        align-items: start;
+        padding: 16px;
+        gap: 10px 12px;
         border-radius: 12px;
     }
 
-    .order-item-email {
-        color: var(--text-mid);
-        font-size: 12px;
-        word-break: break-word;
-    }
-
     .order-item-main-details {
+        grid-area: details;
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        gap: 6px;
+        gap: 4px;
     }
 
     .order-icon-wrapper {
-        grid-column: 2 / 3;
-        grid-row: 1;
+        grid-area: img;
         justify-self: end;
-        width: 64px;
-        height: 64px;
+        align-self: start;
+        width: 60px;
+        height: 60px;
     }
 
-    .order-item-address,
-    .order-item-actions {
-        grid-column: 1 / -1;
+    .order-item-design-name {
+        grid-area: design;
+        width: 100%;
+        border-radius: var(--radius-sm);
+        box-sizing: border-box;
+        margin-top: 0;
     }
+
+    .design-name-desktop    { display: none; }
+    .design-name-responsive { display: block; }
 
     .order-item-address {
+        grid-area: address;
         display: block;
         background: rgba(248,244,238,0.7);
-        padding: 12px;
+        padding: 10px 12px;
         border-radius: var(--radius-sm);
         border: 1px solid rgba(201,168,124,0.12);
-        margin-top: 2px;
     }
 
     .order-item-address p { 
-        font-size: 0.75rem; 
+        font-size: 0.75rem;
+        margin: 0;
+    }
+
+    .order-item-actions {
+        grid-area: actions;
     }
 
     .order-item-actions select {
         width: 100%;
         text-align: center;
-        padding: 14px 32px 14px 14px;
+        padding: 13px 32px 13px 14px;
         font-size: 0.8rem;
+    }
+
+    .order-item-email {
+        color: var(--text-mid);
+        font-size: 0.75rem;
+        word-break: break-word;
     }
 }

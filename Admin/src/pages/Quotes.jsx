@@ -135,10 +135,16 @@ const Quotes = ({ url }) => {
                     <p className="order-item-name">{order.name}</p>
                     <p className="order-item-phone">{order.phoneNumber}</p>
                     <p className="order-item-email">{order.email}</p>
-                    <p className="order-item-design-name">
+                    {/* Visible on desktop only */}
+                    <p className="order-item-design-name design-name-desktop">
                       {order.designName || 'No design name'}
                     </p>
                   </div>
+
+                  {/* Visible on small screens only — own grid child for full-width span */}
+                  <p className="order-item-design-name design-name-responsive">
+                    {order.designName || 'No design name'}
+                  </p>
                   
                   {/* Column 3: Address */}
                   <div className="order-item-address">

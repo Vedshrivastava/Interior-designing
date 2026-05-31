@@ -77,6 +77,90 @@ hr {
   margin-left: 0;
   padding: 0;
 }
+
+/* =========================================================
+   GLOBAL FULLSCREEN LOADER OVERLAY
+========================================================= */
+.submit-loader-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(11,26,26,0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 999999; /* Super high z-index to stay on top */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: none;
+  animation: backdropIn 0.3s ease both;
+}
+@keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+
+.loader-modal-box {
+  background: var(--white, #ffffff);
+  padding: 46px 64px;
+  border-radius: 20px;
+  border-top: 2px solid var(--gold, #c9a87c);
+  border-left: 1px solid rgba(201,168,124,0.2);
+  border-right: 1px solid rgba(201,168,124,0.2);
+  border-bottom: 1px solid rgba(201,168,124,0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.22);
+  text-align: center;
+  animation: modalSlideIn 0.38s cubic-bezier(.22,.61,.36,1) both;
+}
+
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: translateY(18px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.loader-modal-box p {
+  font-family: "Cormorant Garamond", serif;
+  color: var(--green, #102525);
+  font-weight: 600;
+  font-size: 1.3rem;
+  margin: 4px 0 0;
+  letter-spacing: -0.2px;
+}
+
+.loader-modal-box span {
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.78rem;
+  color: var(--text-lt, #9a8e84);
+  font-weight: 300;
+  letter-spacing: 0.3px;
+}
+
+/* Dual-ring spinner */
+.loader-ring {
+  position: relative;
+  width: 52px;
+  height: 52px;
+}
+.loader-ring::before,
+.loader-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+.loader-ring::before {
+  border: 3px solid rgba(201,168,124,0.12);
+}
+.loader-ring::after {
+  border: 3px solid transparent;
+  border-top-color: var(--gold, #c9a87c);
+  border-right-color: rgba(201,168,124,0.3);
+  animation: elegantSpin 0.9s ease-in-out infinite;
+}
+@keyframes elegantSpin { to { transform: rotate(360deg); } }
 /* ════════════════════════════════════════════
    RESPONSIVE LAYOUT FIXES
 ════════════════════════════════════════════ */

@@ -6,7 +6,8 @@ import { toast } from 'react-toastify';
 import '../index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
-const Add = ({ url }) => {
+// 1. Accept the prop here
+const Add = ({ url, setIsLoading, isLoading }) => {
     const [images, setImages] = useState([]); 
     const [data, setData] = useState({
         name: "",
@@ -15,7 +16,9 @@ const Add = ({ url }) => {
         category: "Kitchen Designs" 
     });
     const [points, setPoints] = useState([""]); 
-    const [isLoading, setIsLoading] = useState(false); // Global page-freeze state
+    
+    // 2. DELETE THIS LINE:
+    // const [isLoading, setIsLoading] = useState(false); 
     
     const token = localStorage.getItem('token');
 
@@ -84,17 +87,6 @@ const Add = ({ url }) => {
 
     return (
         <div className='add'>
-            {/* 3. FULL SCREEN PORTAL LOADER BLOCK */}
-            {isLoading && (
-                <div className="submit-loader-overlay">
-                    <div className="loader-modal-box">
-                        <div className="loader-ring"></div>
-                        <p>Uploading Design...</p>
-                        <span>Please don't refresh the page</span>
-                    </div>
-                </div>
-            )}
-
             <form className="flex-col" onSubmit={onSubmitHandler}>
                 <div className="add-img-upload flex-col">
                     <h2>Upload Image</h2>

@@ -18,8 +18,9 @@ import Guest from './pages/guest';
 import { Navigate } from "react-router-dom";
 
 const App = () => {
-  const [showLogin, setShowLogin] = useState(false); // For managing login modal visibility
-  const [authType, setAuthType] = useState('Login'); // For managing 'Login' vs 'SignUp' view
+  const [showLogin, setShowLogin] = useState(false);
+  const [authType, setAuthType] = useState('Login');
+  const [isLoading, setIsLoading] = useState(false); // Global loader — renders outside sidebar/main-content
   const url = "http://localhost:3000";
   const storedUser = localStorage.getItem("user");
   const user = storedUser ? JSON.parse(storedUser) : null;
@@ -38,19 +39,27 @@ const App = () => {
 
   return (
     <div>
-      {/* 1. Passed authType to Login modal so it knows which form to render */}
+      {/* Global loader — lives at root, outside sidebar & main-content, always true viewport center */}
+      {isLoading && (
+        <div className="submit-loader-overlay">
+          <div className="loader-modal-box">
+            <div className="loader-ring"></div>
+            <p>Curating Details</p>
+            <span>Please wait a moment...</span>
+          </div>
+        </div>
+      )}
+
       {showLogin && <Login setShowLogin={setShowLogin} authType={authType} />}
 
       <ToastContainer position="bottom-center" />
 
-      {/* 2. Passed setAuthType to Navbar in case you have separate "Login"/"Sign Up" buttons there */}
       <Navbar setShowLogin={setShowLogin} setAuthType={setAuthType} />
 
       <div className="app-contents">
         <Sidebar />
         <div className="main-content">
           <Routes>
-            {/* 3. Passed both setters to Guest and Welcome screens so landing page buttons work */}
             <Route
               path="/"
               element={
@@ -72,13 +81,11 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-
-            {/* Protected routes */}
             <Route
               path='/add'
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
-                  <Add url={url} />
+                  <Add url={url} setIsLoading={setIsLoading} isLoading={isLoading} />
                 </ProtectedRoute>
               }
             />
@@ -86,7 +93,7 @@ const App = () => {
               path='/list'
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
-                  <List url={url} />
+                  <List url={url} setIsLoading={setIsLoading} isLoading={isLoading} />
                 </ProtectedRoute>
               }
             />
@@ -94,7 +101,7 @@ const App = () => {
               path='/appointments'
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
-                  <Orders url={url} />
+                  <Orders url={url} setIsLoading={setIsLoading} />
                 </ProtectedRoute>
               }
             />
@@ -102,7 +109,7 @@ const App = () => {
               path='/quotes'
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
-                  <Quotes url={url} />
+                  <Quotes url={url} setIsLoading={setIsLoading} />
                 </ProtectedRoute>
               }
             />

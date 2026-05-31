@@ -4,9 +4,13 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../index.css';
 
-const List = ({ url }) => {
+// 1. Accept the prop here
+const List = ({ url, setIsLoading, isLoading }) => {
   const [list, setList] = useState([]);
-  const [isLoading, setIsLoading] = useState(false); 
+
+  // 2. DELETE THIS LINE:
+  // const [isLoading, setIsLoading] = useState(false); 
+
   const token = localStorage.getItem('token');
 
   // --- NEW: FILTERING STATES ---
@@ -16,9 +20,9 @@ const List = ({ url }) => {
   // --- EDIT MODAL STATES ---
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editData, setEditData] = useState({ _id: '', name: '', category: '', description: '', points: [] });
-  
-  const [keptImages, setKeptImages] = useState([]); 
-  const [editImages, setEditImages] = useState([]); 
+
+  const [keptImages, setKeptImages] = useState([]);
+  const [editImages, setEditImages] = useState([]);
 
   const formCategories = [
     'Kitchen Designs',
@@ -53,7 +57,7 @@ const List = ({ url }) => {
   }
 
   const removeFood = async (foodId) => {
-    setIsLoading(true); 
+    setIsLoading(true);
     try {
       const response = await axios.delete(`${url}/api/design/remove`, {
         data: { _id: foodId },
@@ -68,21 +72,21 @@ const List = ({ url }) => {
     } catch (error) {
       toast.error("An error occurred while removing the item");
     } finally {
-      setIsLoading(false); 
+      setIsLoading(false);
     }
   }
 
   // --- EDIT FUNCTIONS (UNTOUCHED) ---
   const openEditModal = (item) => {
     setEditData({
-        _id: item._id,
-        name: item.name,
-        category: item.category,
-        description: item.description,
-        points: item.points || []
+      _id: item._id,
+      name: item.name,
+      category: item.category,
+      description: item.description,
+      points: item.points || []
     });
-    setKeptImages(item.images || []); 
-    setEditImages([]);                
+    setKeptImages(item.images || []);
+    setEditImages([]);
     setIsEditModalOpen(true);
   }
 
@@ -98,7 +102,7 @@ const List = ({ url }) => {
   }
 
   const addEditPoint = () => setEditData(prev => ({ ...prev, points: [...prev.points, ""] }));
-  
+
   const removeEditPoint = (index) => {
     const newPoints = editData.points.filter((_, idx) => idx !== index);
     setEditData(prev => ({ ...prev, points: newPoints }));
@@ -118,8 +122,8 @@ const List = ({ url }) => {
 
   const submitEdit = async (e) => {
     e.preventDefault();
-    setIsEditModalOpen(false); 
-    setIsLoading(true); 
+    setIsEditModalOpen(false);
+    setIsLoading(true);
 
     const formData = new FormData();
     formData.append("_id", editData._id);
@@ -127,25 +131,25 @@ const List = ({ url }) => {
     formData.append("description", editData.description);
     formData.append("category", editData.category);
     formData.append("points", JSON.stringify(editData.points));
-    
+
     formData.append("existingImages", JSON.stringify(keptImages));
 
     editImages.forEach(img => {
-        formData.append("images", img);
+      formData.append("images", img);
     });
 
     try {
-       const response = await axios.post(`${url}/api/design/update`, formData, { headers: { Authorization: `Bearer ${token}` } });
-       if(response.data.success) {
-           toast.success("Design Updated Successfully");
-           await fetchList();
-       } else {
-           toast.error(response.data.message);
-       }
+      const response = await axios.post(`${url}/api/design/update`, formData, { headers: { Authorization: `Bearer ${token}` } });
+      if (response.data.success) {
+        toast.success("Design Updated Successfully");
+        await fetchList();
+      } else {
+        toast.error(response.data.message);
+      }
     } catch (error) {
-       toast.error("Error updating design");
+      toast.error("Error updating design");
     } finally {
-       setIsLoading(false); 
+      setIsLoading(false);
     }
   }
 
@@ -154,104 +158,95 @@ const List = ({ url }) => {
   }, [])
 
   // --- NEW: FILTER LOGIC ---
-  const visibleList = currentFilter === 'All' 
-    ? list 
+  const visibleList = currentFilter === 'All'
+    ? list
     : list.filter(item => item.category === currentFilter);
 
   return (
     <div className='list add flex-col'>
-      
-      {isLoading && (
-          <div className="submit-loader-overlay" style={{ zIndex: 999999 }}>
-              <div className="loader-modal-box">
-                  <div className="loader-ring"></div>
-                  <p>Processing...</p>
-                  <span>Please wait a moment</span>
-              </div>
-          </div>
-      )}
 
       {/* --- EDIT MODAL (UNTOUCHED) --- */}
       {isEditModalOpen && (
-          <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-              <div className="loader-modal-box edit-modal">
-                  <h2>Edit Design</h2>
-                  
-                  <form className="flex-col" onSubmit={submitEdit}>
-                      <div className="add-product-name flex-col">
-                          <p>Name</p>
-                          <input type="text" name="name" value={editData.name} onChange={handleEditChange} required />
-                      </div>
-                      
-                      <div className="add-product-description flex-col">
-                          <p>Description</p>
-                          <textarea name="description" rows="4" value={editData.description} onChange={handleEditChange} required></textarea>
-                      </div>
-                      
-                      <div className="add-category-price flex-col">
-                          <p>Category</p>
-                          <select name="category" value={editData.category} onChange={handleEditChange}>
-                              {formCategories.map((cat, index) => (
-                                  <option key={index} value={cat}>{cat}</option>
-                              ))}
-                          </select>
-                      </div>
+        <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+          <div className="loader-modal-box edit-modal">
+            <h2>Edit Design</h2>
 
-                      <div className="add-product-points flex-col">
-                          <p>Points</p>
-                          {editData.points.map((point, index) => (
-                              <div key={index} className="point-input">
-                                  <input type="text" value={point} onChange={(e) => handleEditPointChange(index, e.target.value)} />
-                                  <button type="button" onClick={() => removeEditPoint(index)} className="remove-point-btn">X</button>
-                              </div>
-                          ))}
-                          <button type="button" className="add-point-btn" onClick={addEditPoint}>+ Add Point</button>
-                      </div>
-
-                      <div className="add-img-upload flex-col" style={{ marginTop: '10px' }}>
-                          <p>Images (Existing & New)</p>
-                          
-                          <div className="selected-images" style={{ marginBottom: '10px' }}>
-                              {keptImages.map((imgUrl, index) => (
-                                  <div key={`kept-${index}`} className="image-preview">
-                                      <img src={imgUrl} alt={`Existing ${index}`} className="thumbnail" />
-                                      <button type="button" onClick={() => removeKeptImage(index)} className="remove-btn">X</button>
-                                  </div>
-                              ))}
-
-                              {editImages.map((img, index) => (
-                                  <div key={`new-${index}`} className="image-preview">
-                                      <img src={URL.createObjectURL(img)} alt={`New ${index}`} className="thumbnail" />
-                                      <button type="button" onClick={() => removeEditImage(index)} className="remove-btn">X</button>
-                                  </div>
-                              ))}
-                          </div>
-
-                          <label htmlFor="edit-image" className="upload-icon">
-                              <i className="fa fa-upload" style={{ fontSize: '24px', width: '60px', height: '60px' }}></i>
-                          </label>
-                          <input onChange={handleEditImageChange} type='file' id='edit-image' multiple hidden />
-                      </div>
-
-                      <div className="edit-modal-actions">
-                          <button type="button" className="add-btn cancel-btn" onClick={() => setIsEditModalOpen(false)}>Cancel</button>
-                          <button type="submit" className="add-btn">Save Changes</button>
-                      </div>
-                  </form>
+            <form className="flex-col" onSubmit={submitEdit}>
+              <div className="add-product-name flex-col">
+                <p>Name</p>
+                <input type="text" name="name" value={editData.name} onChange={handleEditChange} required />
               </div>
+
+              <div className="add-product-description flex-col">
+                <p>Description</p>
+                <textarea name="description" rows="4" value={editData.description} onChange={handleEditChange} required></textarea>
+              </div>
+
+              <div className="add-category-price flex-col">
+                <p>Category</p>
+                <select name="category" value={editData.category} onChange={handleEditChange}>
+                  {formCategories.map((cat, index) => (
+                    <option key={index} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="add-product-points flex-col">
+                <p>Points</p>
+                {editData.points.map((point, index) => (
+                  <div key={index} className="point-input">
+                    <input type="text" value={point} onChange={(e) => handleEditPointChange(index, e.target.value)} />
+                    <button type="button" onClick={() => removeEditPoint(index)} className="remove-point-btn">X</button>
+                  </div>
+                ))}
+                <button type="button" className="add-point-btn" onClick={addEditPoint}>+ Add Point</button>
+              </div>
+
+              <div className="add-img-upload flex-col" style={{ marginTop: '10px' }}>
+                <p>Images (Existing & New)</p>
+
+                <div className="selected-images" style={{ marginBottom: '10px' }}>
+                  {keptImages.map((imgUrl, index) => (
+                    <div key={`kept-${index}`} className="image-preview">
+                      <img src={imgUrl} alt={`Existing ${index}`} className="thumbnail" />
+                      <button type="button" onClick={() => removeKeptImage(index)} className="remove-btn">X</button>
+                    </div>
+                  ))}
+
+                  {editImages.map((img, index) => (
+                    <div key={`new-${index}`} className="image-preview">
+                      <img src={URL.createObjectURL(img)} alt={`New ${index}`} className="thumbnail" />
+                      <button type="button" onClick={() => removeEditImage(index)} className="remove-btn">X</button>
+                    </div>
+                  ))}
+                </div>
+
+                <label htmlFor="edit-image" className="upload-icon">
+                  <i className="fa fa-upload" style={{ fontSize: '24px', width: '60px', height: '60px' }}></i>
+                </label>
+                <input onChange={handleEditImageChange} type='file' id='edit-image' multiple hidden />
+              </div>
+
+              <div className="edit-modal-actions">
+                <button type="button" className="add-btn cancel-btn" onClick={() => setIsEditModalOpen(false)}>Cancel</button>
+                <button type="submit" className="add-btn" disabled={isLoading}>
+                  {isLoading ? 'Saving...' : 'Save Changes'}
+                </button>                      </div>
+            </form>
           </div>
+        </div>
       )}
 
       {/* --- NEW: EDITORIAL HEADER & FILTER BAR --- */}
       <div className="admin-list-container">
-        
+
         <div className="admin-header-split">
           <div>
             <h1>Manage Designs</h1>
             <p className="admin-subtitle">Select a category below to filter your database.</p>
           </div>
           <div className="admin-count-badge">
-             {visibleList.length} items found
+            {visibleList.length} items found
           </div>
         </div>
 
@@ -275,7 +270,7 @@ const List = ({ url }) => {
             <b>Category</b>
             <b>Action</b>
           </div>
-          
+
           {visibleList.length === 0 ? (
             <div className="admin-empty-state">
               <p>No designs found in this category.</p>
@@ -286,14 +281,14 @@ const List = ({ url }) => {
                 <div key={index} className="list-table-format row-item">
                   <div className="image-column">
                     {item.images && item.images.length > 0 ? (
-                        <img src={item.images[0]} alt="thumbnail" />
+                      <img src={item.images[0]} alt="thumbnail" />
                     ) : (
-                        <div className="placeholder-img"></div>
+                      <div className="placeholder-img"></div>
                     )}
                   </div>
                   <p className="item-name">{item.name}</p>
                   <p className="item-category">{item.category}</p>
-                  
+
                   <div className="action-buttons">
                     <p onClick={() => openEditModal(item)} className='cursor edit-action'>Edit</p>
                     <p onClick={() => { removeFood(item._id) }} className='cursor delete-action'>X</p>

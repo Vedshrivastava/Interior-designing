@@ -83,37 +83,38 @@ hr {
 ========================================================= */
 .submit-loader-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(11,26,26,0.55);
+  inset: 0;
+  z-index: 999999;
+  background: rgba(11, 26, 26, 0.55);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  z-index: 999999; /* Super high z-index to stay on top */
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: none;
-  animation: backdropIn 0.3s ease both;
+  animation: backdropIn 0.25s ease both;
 }
-@keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
 
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Modal card ─────────────────────────────────────────── */
 .loader-modal-box {
   background: var(--white, #ffffff);
-  padding: 46px 64px;
+  padding: 48px 64px;
   border-radius: 20px;
   border-top: 2px solid var(--gold, #c9a87c);
-  border-left: 1px solid rgba(201,168,124,0.2);
-  border-right: 1px solid rgba(201,168,124,0.2);
-  border-bottom: 1px solid rgba(201,168,124,0.2);
+  border-left: 1px solid rgba(201, 168, 124, 0.2);
+  border-right: 1px solid rgba(201, 168, 124, 0.2);
+  border-bottom: 1px solid rgba(201, 168, 124, 0.2);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
-  box-shadow: 0 32px 80px rgba(0,0,0,0.22);
+  gap: 20px;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.22);
   text-align: center;
-  animation: modalSlideIn 0.38s cubic-bezier(.22,.61,.36,1) both;
+  animation: modalSlideIn 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
 @keyframes modalSlideIn {
@@ -121,46 +122,131 @@ hr {
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.loader-modal-box p {
-  font-family: "Cormorant Garamond", serif;
-  color: var(--green, #102525);
-  font-weight: 600;
-  font-size: 1.3rem;
-  margin: 4px 0 0;
-  letter-spacing: -0.2px;
+/* ── Spinner ─────────────────────────────────────────────
+   ::before = outer static track  (56px)
+   ::after  = inner spinning arc  (42px, inset 7px)
+──────────────────────────────────────────────────────── */
+.loader-ring{
+  position:relative;
+  width:58px;
+  height:58px;
+  border-radius:50%;
+
+  background:
+    conic-gradient(
+      rgba(201,168,124,.08),
+      #f4dcb1,
+      #c9a87c,
+      #fff0d2,
+      rgba(201,168,124,.08)
+    );
+
+  animation:
+    luxurySpin 1.8s linear infinite,
+    ringBreath 2.6s ease-in-out infinite;
+
+  box-shadow:
+    0 0 0 1px rgba(201,168,124,.25),
+    0 0 24px rgba(201,168,124,.22),
+    0 0 50px rgba(201,168,124,.12);
 }
 
-.loader-modal-box span {
-  font-family: "DM Sans", sans-serif;
-  font-size: 0.78rem;
-  color: var(--text-lt, #9a8e84);
-  font-weight: 300;
+.loader-ring::before{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  border-radius:50%;
+
+  background:
+    conic-gradient(
+      transparent,
+      rgba(255,255,255,.95),
+      transparent 45deg
+    );
+
+  filter:blur(2px);
+
+  animation:
+    highlightSpin 1.2s linear infinite;
+}
+
+.loader-ring::after{
+  content:"";
+  position:absolute;
+  inset:5px;
+  border-radius:50%;
+  background:white;
+}
+
+@keyframes luxurySpin{
+  to{
+    transform:rotate(360deg);
+  }
+}
+
+@keyframes highlightSpin{
+  to{
+    transform:rotate(-360deg);
+  }
+}
+
+@keyframes ringBreath{
+  0%,100%{
+    scale:1;
+  }
+  50%{
+    scale:1.05;
+  }
+}
+/* ── Brand mark ─────────────────────────────────────────── */
+.loader-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.loader-brand strong {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--green, #102525);
   letter-spacing: 0.3px;
 }
 
-/* Dual-ring spinner */
-.loader-ring {
-  position: relative;
-  width: 52px;
-  height: 52px;
+.loader-brand span {
+  font-family: "Inter", sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--gold, #c9a87c);
+  letter-spacing: 3.5px;
+  text-transform: uppercase;
+  opacity: 0.75;
 }
-.loader-ring::before,
-.loader-ring::after {
-  content: "";
-  position: absolute;
-  inset: 0;
+
+/* ── Dot pulse ──────────────────────────────────────────── */
+.loader-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.loader-dot {
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
+  background: var(--gold, #c9a87c);
+  opacity: 0.25;
+  animation: dotPulse 1.2s ease infinite;
 }
-.loader-ring::before {
-  border: 3px solid rgba(201,168,124,0.12);
+
+.loader-dot:nth-child(2) { animation-delay: 0.2s; }
+.loader-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.2;  transform: scale(0.8); }
+  50%       { opacity: 0.9; transform: scale(1.2); }
 }
-.loader-ring::after {
-  border: 3px solid transparent;
-  border-top-color: var(--gold, #c9a87c);
-  border-right-color: rgba(201,168,124,0.3);
-  animation: elegantSpin 0.9s ease-in-out infinite;
-}
-@keyframes elegantSpin { to { transform: rotate(360deg); } }
+
 /* ════════════════════════════════════════════
    RESPONSIVE LAYOUT FIXES
 ════════════════════════════════════════════ */

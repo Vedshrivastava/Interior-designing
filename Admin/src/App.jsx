@@ -41,14 +41,23 @@ const App = () => {
     <div>
       {/* Global loader — lives at root, outside sidebar & main-content, always true viewport center */}
       {isLoading && (
-        <div className="submit-loader-overlay">
-          <div className="loader-modal-box">
-            <div className="loader-ring"></div>
-            <p>Curating Details</p>
-            <span>Please wait a moment...</span>
-          </div>
-        </div>
-      )}
+  <div className="submit-loader-overlay">
+    <div className="loader-modal-box">
+      <div className="loader-ring"></div>
+
+      <div className="loader-brand">
+        <strong>Curating Details</strong>
+        <span>Please wait</span>
+      </div>
+
+      <div className="loader-dots">
+        <div className="loader-dot"></div>
+        <div className="loader-dot"></div>
+        <div className="loader-dot"></div>
+      </div>
+    </div>
+  </div>
+)}
 
       {showLogin && <Login setShowLogin={setShowLogin} authType={authType} />}
 

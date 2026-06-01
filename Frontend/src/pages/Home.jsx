@@ -101,7 +101,7 @@ const Home = ({ setShowLogin }) => {
           </div>
 
           <p className='hp-hero-caption'>
-            <FontAwesomeIcon icon={faBuilding} /> Interior Designers &amp; Contractors · Indore
+            <FontAwesomeIcon icon={faBuilding} /> Interior Designers &amp; Contractors · Satna
           </p>
         </div>
 

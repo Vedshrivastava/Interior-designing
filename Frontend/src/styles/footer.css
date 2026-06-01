@@ -325,7 +325,7 @@
 .footer-copy-btn {
   background: none;
   border: none;
-  color: inherit;
+  color: var(--gold);
   cursor: pointer;
   opacity: 0.5;
   transition: opacity 0.2s ease, transform 0.1s ease;
@@ -390,6 +390,6 @@
   .footer-content-center { border-left: none; padding-left: 0; }
   .footer-content-right  { border-left: none; padding-left: 0; }
 
-  .footer-logo { width: 72px; height: 72px; }
+  .footer-logo { width: 92px; height: 72px; }
   .footer-bottom-links { gap: 16px; }
 }

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import './App.css';
 import { Route, Routes } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+// Note: Ensure you still have import 'react-toastify/dist/ReactToastify.css'; 
+// either at the top of this file or inside your index.css / main.jsx!
 
 import Home from './pages/Home';
 import About from './pages/About';
@@ -18,10 +21,9 @@ function App() {
 
   return (
     <>
-      {/* ✅ FIXED: Passed setShowLogin prop to MainNavbar */}
       <MainNavbar setShowLogin={setShowLogin} />
 
-      {/* ✅ MODAL (OVERLAY UI) */}
+      {/* MODAL (OVERLAY UI) */}
       {showLogin && (
         <Consult
           setShowLogin={setShowLogin}
@@ -30,7 +32,7 @@ function App() {
         />
       )}
 
-      {/* ✅ ROUTES */}
+      {/* ROUTES */}
       <Routes>
         <Route path='/' element={<Home setShowLogin={setShowLogin} />} />
 
@@ -50,6 +52,13 @@ function App() {
         <Route path='/projects' element={<Projects setShowLogin={setShowLogin} />} />
         <Route path='/services' element={<Services setShowLogin={setShowLogin} />} />
       </Routes>
+
+      {/* GLOBAL TOAST CONTAINER */}
+      <ToastContainer
+        position="bottom-center"
+        autoClose={3000}
+        theme="dark"
+      />
     </>
   );
 }

@@ -13,7 +13,6 @@ import centuryply from '../assets/centuryply.png';
 import residence from '../assets/residence.png';
 import design from '../assets/refund-design.png';
 import rates from '../assets/rates.png';
-
 import Footer from '../components/Footer';
 
 import { useNavigate } from 'react-router-dom';

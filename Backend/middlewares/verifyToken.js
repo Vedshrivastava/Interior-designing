@@ -1,22 +1,29 @@
-import jwt from "jsonwebtoken"; // Correct import
+import jwt from "jsonwebtoken"; 
 
 export const verifyToken = async (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
+  // Extract token from 'Bearer <token>'
+  const token = req.headers.authorization?.split(' ')[1];
+  
   if (!token) {
     return res.status(401).json({ success: false, message: "Unauthorized - no token provided" });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Using jwt.verify to verify the token
+    // Change 1: Fixed 'ify' to 'jwt.verify'
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (!decoded) {
-      return res.status(401).json({ success: false, message: "Invalid Token" });
-    }
-
+    // If verification succeeds, decoded is guaranteed to exist
     req.userId = decoded.userId;
-    next(); // Proceed to the next middleware if the token is valid
+    next(); 
   } catch (error) {
     console.error(`Error verifying token: `, error);
+    
+    // Change 2 & 3: Handle token errors gracefully with 401 instead of 500
+    if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
+      return res.status(401).json({ success: false, message: "Invalid or expired token" });
+    }
+    
+    // Genuine internal server errors still get a 500
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };

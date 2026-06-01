@@ -1,10 +1,26 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; 
+import React, { useContext, useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom'; // 1. Added useLocation
 import '../styles/navbar.css';
 import { assets } from '../assets/admin_assets/assets';
 import { StoreContext } from '../context/StoreContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faRightFromBracket, faShield, faArrowRightToBracket } from '@fortawesome/free-solid-svg-icons';
+
+/* ── JWT helpers (no library needed — JWTs are just base64) ── */
+const getTokenExpiry = (token) => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp ? payload.exp * 1000 : null; 
+  } catch {
+    return null;
+  }
+};
+
+const isTokenExpired = (token) => {
+  const expiry = getTokenExpiry(token);
+  if (!expiry) return true;
+  return Date.now() >= expiry;
+};
 
 /* ── Full-screen page loader ── */
 export const PageLoader = ({ visible }) => {
@@ -42,34 +58,63 @@ export const PageLoader = ({ visible }) => {
 
 /* ── Navbar ── */
 const Navbar = ({ setShowLogin, setAuthType }) => {
-  // 👇 Added setIsLoggedIn to ensure we clear every trace of the session in memory
   const { token, setToken, setUserId, setUserEmail, setUserName, setIsLoggedIn } = useContext(StoreContext);
-  
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
+  const location = useLocation(); // 2. Initialized location hook
 
-  /* ── BULLETPROOF ATOMIC LOGOUT ── */
-  const logout = () => {
-    // 1. Wipe storage instantly
+  /* ── Atomic logout — wrapped in useCallback so the effect can safely depend on it ── */
+  const logout = useCallback((reason = null) => {
+    // Wipe storage instantly
     ['token', 'userId', 'userName', 'userEmail', 'user'].forEach(k => localStorage.removeItem(k));
-    
-    // 2. Clear state contexts completely
+
+    // Clear all context state
     setToken(null);
     setUserId(null);
     setUserEmail(null);
     setUserName(null);
-    if (setIsLoggedIn) setIsLoggedIn(false); // Safety check in case it's missing from context
-    
-    // 3. Hard redirect: Wipes React DOM history trace and prevents returning via the "Back" button
-    window.location.replace('/');
-  };
+    if (setIsLoggedIn) setIsLoggedIn(false);
+
+    // Hard redirect — pass reason so Login can show "session expired" banner
+    const dest = reason ? `/?reason=${reason}` : '/';
+    window.location.replace(dest);
+  }, [setToken, setUserId, setUserEmail, setUserName, setIsLoggedIn]);
+
+  // 3. NEW EFFECT: Catch manual token deletions from DevTools on route navigation
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token');
+    if (token && !storedToken) {
+      logout('expired');
+    }
+  }, [location.pathname, token, logout]);
+
+  /* ── Auto-logout when JWT expires ── */
+  useEffect(() => {
+    if (!token) return;
+
+    if (isTokenExpired(token)) {
+      logout('expired');
+      return;
+    }
+
+    const expiry = getTokenExpiry(token);
+    const msUntilExpiry = expiry - Date.now();
+    const expiryTimer = setTimeout(() => logout('expired'), msUntilExpiry);
+
+    const pollInterval = setInterval(() => {
+      if (isTokenExpired(token)) logout('expired');
+    }, 60_000);
+
+    return () => {
+      clearTimeout(expiryTimer);
+      clearInterval(pollInterval);
+    };
+  }, [token, logout]);
 
   return (
     <div className="navbar">
-
-      {/* ── Brand ── */}
-      <div 
-        className="navbar-brand" 
-        onClick={() => navigate('/welcome')} 
+      <div
+        className="navbar-brand"
+        onClick={() => navigate('/welcome')}
         style={{ cursor: 'pointer' }}
       >
         <img className="logo" src={assets.logo} alt="Logo" />
@@ -79,13 +124,12 @@ const Navbar = ({ setShowLogin, setAuthType }) => {
         </div>
       </div>
 
-      {/* ── Right section ── */}
       <div className="navbar-right">
         {!token ? (
           <button
             className="navbar-signin-btn"
             onClick={() => {
-              if (setAuthType) setAuthType('Login'); 
+              if (setAuthType) setAuthType('Login');
               setShowLogin(true);
             }}
           >
@@ -109,8 +153,7 @@ const Navbar = ({ setShowLogin, setAuthType }) => {
                   <FontAwesomeIcon icon={faUser} />
                   My Account
                 </li>
-                {/* 👇 Now triggers the secure atomic logout */}
-                <li className="logout-item" onClick={logout}>
+                <li className="logout-item" onClick={() => logout()}>
                   <FontAwesomeIcon icon={faRightFromBracket} />
                   Logout
                 </li>
@@ -119,7 +162,6 @@ const Navbar = ({ setShowLogin, setAuthType }) => {
           </>
         )}
       </div>
-
     </div>
   );
 };

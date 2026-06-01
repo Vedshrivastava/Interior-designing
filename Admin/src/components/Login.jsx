@@ -23,7 +23,10 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
   const { signup, isLoading, login, forgotPassword } = useAuthStore();
   const { token, setToken, setUserId, setUserName, setUserEmail, setIsLoggedIn } = useContext(StoreContext);
 
-  const [currState, setCurrState]       = useState(authType); 
+  // Read ?reason=expired from URL — set once on mount, never changes
+  const sessionExpired = new URLSearchParams(window.location.search).get('reason') === 'expired';
+
+  const [currState, setCurrState]       = useState(authType);
   const [data, setData]                 = useState({ name: '', email: '', password: '' });
   const [forgotEmail, setForgotEmail]   = useState('');
   const [isSubmitted, setIsSubmitted]   = useState(false);
@@ -36,39 +39,11 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
     setCurrState(authType);
   }, [authType]);
 
-  /* ── token-expiry check on mount ── */
-  useEffect(() => {
-    const activeToken = localStorage.getItem('token');
-    if (!activeToken) return;
-    try {
-      const decoded = jwtDecode(activeToken);
-      const expiresIn = decoded.exp * 1000 - Date.now();
-      if (expiresIn <= 0) {
-        handleLogout();
-      } else {
-        const t = setTimeout(handleLogout, expiresIn);
-        return () => clearTimeout(t);
-      }
-    } catch { handleLogout(); }
-  }, []);
+  // NOTE: token-expiry check and handleLogout have been removed from here.
+  // The Navbar now owns all expiry logic (3-layer: mount check, setTimeout, setInterval).
+  // The axios interceptor in StoreContext handles backend 401s.
 
   const onChange = e => setData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-
-  /* ── BULLETPROOF ATOMIC LOGOUT ── */
-  const handleLogout = () => {
-    // 1. Instantly clear storage first so route guards register the drop immediately
-    ['token','userId','userName','userEmail','user'].forEach(k => localStorage.removeItem(k));
-    
-    // 2. Clear state contexts
-    setToken(null);
-    setUserId(null); 
-    setUserName(null); 
-    setUserEmail(null);
-    setIsLoggedIn(false);
-
-    // 3. Hard redirect: Wipes React DOM history trace, leaving NO chance for delayed layouts
-    window.location.replace('/');
-  };
 
   /* ── submit ── */
   const onLogin = async e => {
@@ -105,7 +80,7 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
         const userToken = response.data.token;
         const decoded = jwtDecode(userToken);
 
-        /* Persist Session Data regardless of role so app detects login status */
+        /* Persist session data */
         setToken(userToken);
         setUserId(decoded.id);
         setUserName(decoded.name);
@@ -118,17 +93,15 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
         localStorage.setItem('userEmail', decoded.email);
         localStorage.setItem('user',      JSON.stringify({ role: response.data.role }));
 
-        /* auto-logout on expiry */
-        const expiresIn = decoded.exp * 1000 - Date.now();
-        if (expiresIn > 0) setTimeout(handleLogout, expiresIn);
+        // NOTE: no setTimeout(handleLogout) here — Navbar's useEffect handles this
+        // automatically whenever token changes in context.
 
-        /* ── Role Redirection Verification ── */
+        /* ── Role check — kick non-admins immediately ── */
         if (response.data.role !== 'ADMIN') {
-          // Instantly kick non-admins before they render anything else
           ['token','userId','userName','userEmail','user'].forEach(k => localStorage.removeItem(k));
           setToken(null);
           setIsLoggedIn(false);
-          window.location.replace('/'); 
+          window.location.replace('/');
           return;
         }
 
@@ -156,6 +129,13 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
         <form onSubmit={onLogin} className="login-container">
           <div className="login-rule" />
           <div className="login-inner">
+
+            {/* ── Session expired banner ── */}
+            {sessionExpired && (
+              <div className="session-expired-banner">
+                ⏱ Your session has expired. Please sign in again.
+              </div>
+            )}
 
             <div className="login-title">
               <h2>{TITLES[currState]}</h2>

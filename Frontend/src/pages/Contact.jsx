@@ -19,8 +19,8 @@ const INFO_ITEMS = [
   {
     icon: faPhone,
     label: 'Phone',
-    value: '+91 81094 95257',
-    href: 'tel:+918109495257' // Added tel link
+    value: '+91 89620 53372',
+    href: 'tel:+918962053372' // Added tel link
   },
   {
     icon: faEnvelope,

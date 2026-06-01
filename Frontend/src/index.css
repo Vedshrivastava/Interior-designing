@@ -82,6 +82,89 @@
   background-color: #ffffff !important; 
 }
 
+/* ================================================
+   TOASTIFY — REFINED LUXURY THEME
+================================================ */
+
+.Toastify__toast {
+  background: #102525 !important; /* var(--green) */
+  color: #f8f4ee !important;      /* var(--ivory) */
+  border: 1px solid rgba(201, 168, 124, 0.25) !important; /* Subtly stronger gold border */
+  border-radius: 20px !important; /* Matched to --radius in home.css */
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25) !important;
+  backdrop-filter: blur(10px);
+  font-family: "Inter", sans-serif;
+  padding: 16px 20px !important;
+}
+
+.Toastify__toast-body {
+  color: #f8f4ee !important;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  padding: 0;
+}
+
+/* ── Icon Overrides (Fixes the bright green clash) ── */
+.Toastify__toast-icon svg {
+  fill: #c9a87c !important; /* var(--gold) */
+}
+
+/* ── Close Button ── */
+.Toastify__close-button {
+  color: rgba(248, 244, 238, 0.4) !important; /* Faded ivory */
+  opacity: 1 !important;
+  transition: color 0.3s ease, transform 0.3s ease;
+  align-self: center;
+}
+
+.Toastify__close-button:hover {
+  color: #c9a87c !important; /* var(--gold) */
+  transform: scale(1.1);
+}
+
+/* ── Progress Bar (Matched to .hp-pc-line gold sweep) ── */
+.Toastify__progress-bar {
+  background: linear-gradient(
+    90deg, 
+    transparent, 
+    #c9a87c, 
+    #e8d0a8, 
+    #c9a87c
+  ) !important;
+  height: 2px !important; /* Thinner, more editorial line */
+  opacity: 0.8;
+}
+
+/* ── Success Specific ── */
+.Toastify__toast--success {
+  background: #102525 !important;
+}
+.Toastify__toast--success .Toastify__progress-bar {
+  background: linear-gradient(90deg, transparent, #c9a87c, #e8d0a8) !important;
+}
+
+/* ── Error Specific ── */
+.Toastify__toast--error {
+  background: #1c1313 !important; /* Very dark, subtle red-tinted brown */
+  border-color: rgba(220, 90, 90, 0.2) !important;
+}
+.Toastify__toast--error .Toastify__toast-icon svg {
+  fill: #d88a8a !important; /* Muted luxury red */
+}
+.Toastify__toast--error .Toastify__progress-bar {
+  background: linear-gradient(90deg, transparent, #d88a8a, transparent) !important;
+}
+
+/* ── Warning/Info Specific ── */
+.Toastify__toast--warning {
+  background: #1a1612 !important; 
+  border-color: rgba(201, 168, 124, 0.3) !important;
+}
+.Toastify__toast--warning .Toastify__toast-icon svg {
+  fill: #e8d0a8 !important; /* var(--gold-lt) */
+}
+
 /* ── Responsive tweaks ── */
 @media (max-width: 768px) {
   .slick-prev { left: 12px !important; }

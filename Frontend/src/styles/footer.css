@@ -292,6 +292,50 @@
 }
 .footer-bottom-links a:hover { color: var(--gold); }
 
+.footer-contact-list {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-contact-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 15px; /* Adds breathing room between the text and copy button */
+}
+
+.footer-contact-details {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.footer-contact-link {
+  color: inherit;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.footer-contact-link:hover {
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
+.footer-copy-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s ease, transform 0.1s ease;
+  padding: 4px; /* Makes the click area a bit larger */
+}
+
+.footer-copy-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
 /* ════════════════════════════════════════════
    RESPONSIVE
 ════════════════════════════════════════════ */

@@ -6,7 +6,11 @@ import 'slick-carousel/slick/slick.css'; // Import slick-carousel CSS
 import 'slick-carousel/slick/slick-theme.css'; // Import slick-carousel theme CSS
 import Consult from './consult';
 
-const Design = ({ id, name, description, images, points, setShowLogin, setConsultData, consultData }) => {
+// ... existing imports
+// NOTE: Remove the Consult import if it was in this file, as it's no longer used here.
+
+// 1. Swap 'setShowLogin' for 'setShowQuotePopup' in the props
+const Design = ({ id, name, description, images, points, setShowQuotePopup, setConsultData, consultData, category }) => {
   const [showMore, setShowMore] = useState(false);
   const [buttonAtBottom, setButtonAtBottom] = useState(false);
   const [lightbox, setLightbox] = useState({ open: false, index: 0 });
@@ -27,9 +31,8 @@ const Design = ({ id, name, description, images, points, setShowLogin, setConsul
   };
 
   const handleGetQuote = (name, img) => {
-    setShowLogin(true);
-    setConsultData({ name, img });
-    console.log({ name, img });
+    setConsultData({ name, img, category }); 
+    setShowQuotePopup(true);
   };
 
   const openLightbox = (index) => {

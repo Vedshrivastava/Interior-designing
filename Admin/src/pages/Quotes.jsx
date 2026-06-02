@@ -41,7 +41,7 @@ const Quotes = ({ url }) => {
 
   const statusHandler = async (event, orderId) => {
     const newStatus = event.target.value;
-    setIsLoading(true); // Optional: Show loader while updating status
+    setIsLoading(true);
     try {
       const response = await axios.post(
         `${url}/api/appointment/status`,
@@ -71,14 +71,14 @@ const Quotes = ({ url }) => {
       const message = JSON.parse(event.data);
       switch (message.type) {
         case 'newQuote':
-          setOrders((prevOrders) => 
+          setOrders((prevOrders) =>
             [message.data, ...prevOrders].sort((a, b) => new Date(b.date) - new Date(a.date))
           );
           break;
         case 'updateOrderStatus':
           setOrders((prevOrders) =>
             prevOrders
-              .map((order) => 
+              .map((order) =>
                 order._id === message.data._id ? { ...order, status: message.data.status } : order
               )
               .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -90,7 +90,7 @@ const Quotes = ({ url }) => {
     });
 
     return () => socket.close();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const groupedOrders = groupOrdersByDate(orders);
@@ -117,48 +117,59 @@ const Quotes = ({ url }) => {
           Object.keys(groupedOrders).map((date) => (
             <div key={date} className="order-date-group">
               <h4 className="order-date">{moment(date).format('MMMM Do, YYYY')}</h4>
-              
               {groupedOrders[date].map((order, index) => (
-                <div key={index} className="order-item quote-item">
-                  
-                  {/* Column 1: Media */}
-                  <div className="order-icon-wrapper quote-media">
+                <div key={index} className="order-item">
+                  <div className="order-icon-wrapper">
                     {order.image ? (
-                      <img src={order.image} alt={order.designName || 'Design'} />
+                      <img
+                        src={order.image}
+                        alt="Design"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} // <-- ADD THIS STYLE
+                      />
                     ) : (
                       <i className="fa-solid fa-image"></i>
                     )}
                   </div>
-                  
-                  {/* Column 2: Main Details */}
-                  <div className="order-item-main-details">
-                    <p className="order-item-name">{order.name}</p>
-                    <p className="order-item-phone">{order.phoneNumber}</p>
-                    <p className="order-item-email">{order.email}</p>
-                    {/* Visible on desktop only */}
-                    <p className="order-item-design-name design-name-desktop">
-                      {order.designName || 'No design name'}
-                    </p>
+
+                  {/* Column 2: Consolidated Info */}
+                  <div className="order-content-wrapper">
+                    <div className="order-header-block">
+                      <strong className="order-customer-name">{order.name}</strong>
+                      <div className="order-contact-row">
+                        <span className="contact-item">
+                          <i className="fa-solid fa-phone"></i> {order.phoneNumber}
+                        </span>
+                        <span className="contact-dot">•</span>
+                        <span className="contact-item">
+                          <i className="fa-solid fa-envelope"></i> {order.email}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="order-info-row">
+                      <div className="info-chip design-chip">
+                        <strong>Design:</strong> <span>{order.designName || 'N/A'}</span>
+                      </div>
+                      <div className="info-chip">
+                        <strong>Cat:</strong> <span>{order.category || 'N/A'}</span>
+                      </div>
+                      <div className="info-chip">
+                        <strong>Size:</strong> <span>{order.measurements || 'N/A'}</span>
+                      </div>
+                      <div className="info-chip address-chip">
+                        <i className="fa-solid fa-location-dot"></i> <span>{order.address}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Visible on small screens only — own grid child for full-width span */}
-                  <p className="order-item-design-name design-name-responsive">
-                    {order.designName || 'No design name'}
-                  </p>
-                  
-                  {/* Column 3: Address */}
-                  <div className="order-item-address">
-                    <p>{order.address}</p>
-                  </div>
-
-                  {/* Column 4: Actions */}
+                  {/* Column 3: Actions */}
                   <div className="order-item-actions">
-                    <select onChange={(event) => statusHandler(event, order._id)} value={order.status}>
+                    <select onChange={(e) => statusHandler(e, order._id)} value={order.status}>
                       <option value="Pending">Pending</option>
                       <option value="Completed">Completed</option>
                     </select>
                   </div>
-                  
+
                 </div>
               ))}
             </div>

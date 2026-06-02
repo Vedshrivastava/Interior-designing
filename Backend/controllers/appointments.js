@@ -90,36 +90,35 @@ const updateStatus = async(req, res) => {
 
 const addQuote = async (req, res) => {
     try {
-        const { name, phoneNumber, message, address, email, consultData } = req.body;
+        // 1. Grab 'measurements' from req.body alongside standard details
+        const { name, phoneNumber, message, address, email, consultData, measurements } = req.body;
 
-        // Validation: Check if required fields are provided
         if (!name || !phoneNumber || !address || !email) {
             return res.status(400).json({ message: 'Name, phone number, and address are required.' });
         }
 
-        // Create new appointment object
+        // 2. Map fields to the schema model
         const newAppointment = new appointmentModel({
             name,
             phoneNumber,
-            message: message || "", // Optional message, defaults to empty string if not provided
+            message: message || "", 
             address: address || "",
             email,
             designName: consultData.name,
-            image: consultData.img
+            image: consultData.img,
+            category: consultData.category,   // Pulled seamlessly from Design component tracking
+            measurements: measurements || "" // Inputted by user in the conditional field
         });
 
-        // Save appointment to the database
         await newAppointment.save();
 
         broadcast({ type: 'newQuote', data: newAppointment });
 
-        // Send success response
         res.status(201).json({
             message: 'Appointment created successfully!',
             appointment: newAppointment,
         });
     } catch (error) {
-        // Handle any errors
         console.error(error);
         res.status(500).json({ message: 'Server error. Please try again later.' });
     }

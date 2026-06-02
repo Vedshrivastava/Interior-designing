@@ -21,19 +21,20 @@ const CATEGORIES = [
 ];
 
 const LABELS = {
-  'Kitchen Designs':    'Kitchen',
-  'Bedroom Designs':   'Bedroom',
-  'Bathroom Designs':  'Bathroom',
-  'Lounge area Designs':'Lounge',
-  'TV Unit Designs':   'TV Unit',
+  'Kitchen Designs': 'Kitchen',
+  'Bedroom Designs': 'Bedroom',
+  'Bathroom Designs': 'Bathroom',
+  'Lounge area Designs': 'Lounge',
+  'TV Unit Designs': 'TV Unit',
   'Kids Room Designs': 'Kids Room',
-  'Commercial Designs':'Commercial',
-  'House Exterior':    'Exterior',
-  'Mandir Designs':    'Mandir',
-  'Garden Designs':    'Garden',
+  'Commercial Designs': 'Commercial',
+  'House Exterior': 'Exterior',
+  'Mandir Designs': 'Mandir',
+  'Garden Designs': 'Garden',
 };
 
-const DesignDisplay = ({ setShowLogin, setConsultData, consultData }) => {
+// 1. ADDED setShowQuotePopup TO THE PROPS HERE
+const DesignDisplay = ({ setShowLogin, setShowQuotePopup, setConsultData, consultData }) => {
   const url = "http://localhost:3000";
   const { category } = useParams();
   const [designList, setDesignList] = useState([]);
@@ -128,6 +129,7 @@ const DesignDisplay = ({ setShowLogin, setConsultData, consultData }) => {
           <div className="design-display-list">
             {visibleDesigns.length > 0 ? (
               visibleDesigns.map((item) => (
+                // In designDisplay.jsx
                 <Design
                   key={item._id}
                   id={item._id}
@@ -138,6 +140,8 @@ const DesignDisplay = ({ setShowLogin, setConsultData, consultData }) => {
                   setShowLogin={setShowLogin}
                   setConsultData={setConsultData}
                   consultData={consultData}
+                  setShowQuotePopup={setShowQuotePopup}
+                  category={item.category} // <-- ADD THIS LINE
                 />
               ))
             ) : (

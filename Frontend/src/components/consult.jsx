@@ -14,7 +14,7 @@ const FIELDS = [
   { name: 'address', label: 'Address',      type: 'text',   placeholder: 'Your city / address',   icon: faLocationDot },
 ];
 
-const Consult = ({ setShowLogin, consultData, setConsultData }) => {
+const Consult = ({ setShowLogin }) => {
   const [data, setData] = useState({ name: '', email: '', phone: '', address: '' });
   const [loading, setLoading] = useState(false);
   const url = 'http://localhost:3000';
@@ -28,22 +28,12 @@ const Consult = ({ setShowLogin, consultData, setConsultData }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      if (consultData) {
-        await axios.post(`${url}/api/appointment/quote`, {
-          name: data.name, email: data.email,
-          phoneNumber: data.phone, address: data.address,
-          consultData,
-        });
-        toast.success('Quote requested successfully!');
-        setConsultData(null);
-      } else {
-        await axios.post(`${url}/api/appointment/add`, {
-          name: data.name, email: data.email,
-          phoneNumber: data.phone, address: data.address,
-          message: '',
-        });
-        toast.success('Appointment created successfully!');
-      }
+      await axios.post(`${url}/api/appointment/add`, {
+        name: data.name, email: data.email,
+        phoneNumber: data.phone, address: data.address,
+        message: '',
+      });
+      toast.success('Consultation booked successfully!');
       setTimeout(() => setShowLogin(false), 2000);
     } catch (err) {
       console.error(err);
@@ -55,76 +45,42 @@ const Consult = ({ setShowLogin, consultData, setConsultData }) => {
 
   return (
     <div className="login" onClick={e => e.target === e.currentTarget && setShowLogin(false)}>
-
       <form onSubmit={onSubmit} className="login-container">
-
-        {/* top gold rule */}
         <div className="login-rule" />
-
         <div className="login-inner">
-
-          {/* ── Header ── */}
+          
           <div className="login-header">
             <img src={logo} alt="Shrivastava's Elevate" className="login-logo" />
-
             <div className="login-header-text">
-              <h2>{consultData ? 'Request a Quote' : 'Free Consultation'}</h2>
+              <h2>Free Consultation</h2>
               <p>We'll get back to you within 24 hours</p>
             </div>
-
-            <button
-              type="button"
-              className="login-close"
-              onClick={() => setShowLogin(false)}
-              aria-label="Close"
-            >
+            <button type="button" className="login-close" onClick={() => setShowLogin(false)} aria-label="Close">
               <FontAwesomeIcon icon={faXmark} />
             </button>
           </div>
 
-          {/* ── Divider ── */}
           <div className="login-divider" />
 
-          {/* ── Fields ── */}
           <div className="login-inputs">
             {FIELDS.map(({ name, label, type, placeholder }) => (
               <div className="login-field" key={name}>
                 <label htmlFor={`consult-${name}`}>{label}</label>
                 <input
-                  id={`consult-${name}`}
-                  name={name}
-                  type={type}
-                  placeholder={placeholder}
-                  value={data[name]}
-                  onChange={onChange}
-                  required
-                  autoComplete="off"
+                  id={`consult-${name}`} name={name} type={type} placeholder={placeholder}
+                  value={data[name]} onChange={onChange} required autoComplete="off"
                 />
               </div>
             ))}
           </div>
 
-          {/* ── Submit ── */}
           <button type="submit" disabled={loading}>
-            {loading
-              ? 'Submitting…'
-              : <><FontAwesomeIcon icon={faCalendarCheck} /> {consultData ? 'Request Quote' : 'Book Consultation'}</>
-            }
+            {loading ? 'Submitting…' : <><FontAwesomeIcon icon={faCalendarCheck} /> Book Consultation</>}
           </button>
-
-          <p className="login-note">
-            No commitment required · Consultation fee refunded on project confirmation
-          </p>
-
+          <p className="login-note">No commitment required · Consultation fee refunded on project confirmation</p>
         </div>
       </form>
-
-      <ToastContainer
-        position="bottom-center"
-        autoClose={2500}
-        theme="dark"
-        toastStyle={{ background: '#102525', color: '#f0e6d3', border: '1px solid rgba(201,168,124,0.25)' }}
-      />
+      <ToastContainer position="bottom-center" autoClose={2500} theme="dark" toastStyle={{ background: '#102525', color: '#f0e6d3', border: '1px solid rgba(201,168,124,0.25)' }} />
     </div>
   );
 };

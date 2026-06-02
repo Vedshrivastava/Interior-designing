@@ -1,3 +1,4 @@
+
 /* =========================================================
    QUOTES — EXTRAORDINARY PREMIUM THEME
    Deep Obsidian · Liquid Gold · Ivory Parchment
@@ -181,6 +182,24 @@
     color: var(--green);
 }
 
+.order-customer-name {
+    font-family: "Cormorant Garamond", serif;
+}
+
+.contact-item {
+    font-family: "DM Sans", sans-serif;
+}
+
+.contact-dot {
+    font-family: "DM Sans", sans-serif;
+}
+
+.info-chip, 
+.info-chip strong, 
+.info-chip span {
+    font-family: "DM Sans", sans-serif;
+}
+
 .order-item-name {
     font-family: "Cormorant Garamond", serif;
     font-size: 1.05rem;
@@ -270,6 +289,107 @@
     font-style: italic;
 }
 
+/* Update the order-item to a tighter 3-column layout */
+.order-item {
+    display: grid;
+    grid-template-columns: 80px 1fr 150px; /* Icon, Content, Actions */
+    align-items: start;
+    gap: 20px;
+    background-color: var(--white);
+    padding: 20px;
+    border-radius: var(--radius);
+    border: 1px solid var(--gold-line);
+    margin-bottom: 12px;
+}
+
+/* Container for all text information */
+.order-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* This replaces the large floating box with a clean, row-based layout */
+.order-info-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    background: var(--gold-dim);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+}
+
+.order-info-row span {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.85rem;
+    color: var(--text-mid);
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.contact-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.4;
+
+    color: var(--text-mid);
+
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.contact-item i {
+    font-size: 0.75rem;
+    color: var(--gold);
+    flex-shrink: 0;
+}
+
+.contact-dot {
+    color: rgba(201, 168, 124, 0.6);
+    font-size: 0.75rem;
+    margin: 0 4px;
+    user-select: none;
+}
+
+.info-chip {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: var(--text-mid);
+}
+
+.info-chip strong {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--green);
+    letter-spacing: 0.02em;
+}
+
+.info-chip span {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.84rem;
+    font-weight: 500;
+    color: var(--text-mid);
+}
+
+.address-chip {
+    font-family: "DM Sans", sans-serif;
+}
+
+.address-chip i {
+    color: var(--gold);
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
 /* ══════════════════════════════════════════════
    RESPONSIVE — TABLET  (≤ 900px)
 ══════════════════════════════════════════════ */
@@ -328,7 +448,8 @@
 ══════════════════════════════════════════════ */
 @media (max-width: 480px) {
     .order {
-        padding: 32px 14px 28px 14px;
+        /* Increased whole card width by dropping outer padding from 14px to 8px */
+        padding: 32px 8px 28px 8px;
     }
     .order-date-group { 
         margin-bottom: 28px; 
@@ -338,28 +459,66 @@
         margin-bottom: 14px;
     }
 
-    /* 2-column: [details | img], then rows for design, address, actions */
+    /* 3-Row Clean Grid layout matching your JSX elements */
     .order-item {
         display: grid;
         grid-template-columns: minmax(0, 1fr) 64px;
         grid-template-areas:
-            "details img"
-            "design  design"
-            "address address"
+            "header img"
+            "info   info"
             "actions actions";
         align-items: start;
         padding: 16px;
-        gap: 10px 12px;
+        gap: 14px 12px;
         border-radius: 12px;
     }
 
-    .order-item-main-details {
-        grid-area: details;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
+    /* Unpacks the wrapper container so inner sections obey the parent grid areas */
+    .order-content-wrapper {
+        display: contents; 
     }
 
+    .order-header-block {
+        grid-area: header;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+        padding-right: 4px;
+    }
+
+    .order-customer-name {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--green);
+        line-height: 1.2;
+    }
+
+    /* Changes layout to a column to keep phone and email cleanly separated */
+    .order-contact-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: flex-start;
+    }
+
+    /* REMOVE THE DOT BETWEEN MOBILE AND MAIL */
+    .contact-dot {
+        display: none !important;
+    }
+
+    /* Keeps the Gmail/Phone icon strictly locked to the left of its text string */
+    .contact-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        color: var(--text-mid);
+        word-break: break-all; /* Prevents long emails from breaking the layout container */
+        overflow-wrap: anywhere;
+    }
+
+    /* Position Image Wrapper */
     .order-icon-wrapper {
         grid-area: img;
         justify-self: end;
@@ -368,45 +527,37 @@
         height: 60px;
     }
 
-    .order-item-design-name {
-        grid-area: design;
+    /* Extends the blush bg completely wider across the bottom section under the image */
+    .order-info-row {
+        grid-area: info;
         width: 100%;
-        border-radius: var(--radius-sm);
         box-sizing: border-box;
-        margin-top: 0;
-    }
-
-    .design-name-desktop    { display: none; }
-    .design-name-responsive { display: block; }
-
-    .order-item-address {
-        grid-area: address;
-        display: block;
-        background: rgba(248,244,238,0.7);
-        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 2px;
+        background: var(--gold-dim);
+        padding: 12px;
         border-radius: var(--radius-sm);
-        border: 1px solid rgba(201,168,124,0.12);
     }
 
-    .order-item-address p { 
-        font-size: 0.75rem;
-        margin: 0;
+    .info-chip {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        font-size: 0.85rem;
     }
 
+    /* Position Actions Dropdown */
     .order-item-actions {
         grid-area: actions;
+        margin-top: 4px;
     }
 
     .order-item-actions select {
         width: 100%;
-        text-align: center;
+        text-align: left;
         padding: 13px 32px 13px 14px;
         font-size: 0.8rem;
-    }
-
-    .order-item-email {
-        color: var(--text-mid);
-        font-size: 0.75rem;
-        word-break: break-word;
     }
 }

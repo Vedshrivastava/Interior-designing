@@ -13,20 +13,32 @@ import Services from './pages/Services';
 import DesignDisplay from './pages/designDisplay';
 
 import Consult from './components/consult';
+import QuotePopup from './components/quote-popup'; // NEW: Imported the new Quote popup
 import MainNavbar from './components/mainNavbar';
 
 function App() {
-  const [showLogin, setShowLogin] = useState(false);
-  const [consultData, setConsultData] = useState({ name: '', img: '' });
+  // Separate states for the two different popups
+  const [showLogin, setShowLogin] = useState(false); 
+  const [showQuotePopup, setShowQuotePopup] = useState(false); 
+  
+  // Changed initial state to null so conditional rendering works cleanly
+  const [consultData, setConsultData] = useState(null); 
 
   return (
     <>
       <MainNavbar setShowLogin={setShowLogin} />
 
-      {/* MODAL (OVERLAY UI) */}
+      {/* MODAL 1: Standard Free Consultation */}
       {showLogin && (
         <Consult
           setShowLogin={setShowLogin}
+        />
+      )}
+
+      {/* MODAL 2: Specific Design Quote */}
+      {showQuotePopup && (
+        <QuotePopup
+          setShowQuotePopup={setShowQuotePopup}
           consultData={consultData}
           setConsultData={setConsultData}
         />
@@ -40,7 +52,8 @@ function App() {
           path="/design/:category"
           element={
             <DesignDisplay
-              setShowLogin={setShowLogin}
+              setShowLogin={setShowLogin} // Kept in case you have generic consult buttons there
+              setShowQuotePopup={setShowQuotePopup} // NEW: Passed to handle "Get Quote" clicks
               setConsultData={setConsultData}
               consultData={consultData}
             />

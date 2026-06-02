@@ -388,6 +388,7 @@
     color: var(--gold);
     font-size: 0.8rem;
     flex-shrink: 0;
+    margin-top: 7px;
 }
 
 /* ══════════════════════════════════════════════
@@ -441,6 +442,19 @@
 
     .design-name-desktop    { display: none; }
     .design-name-responsive { display: block; }
+
+    .address-chip {
+        display: flex;
+        flex-direction: row !important;
+        align-items: center;
+        gap: 8px;
+    }
+    .address-chip i {
+        color: var(--gold);
+        font-size: 0.8rem;
+        flex-shrink: 0;
+        margin-top: 0px;
+    }
 }
 
 /* ══════════════════════════════════════════════

@@ -6,10 +6,6 @@ import 'slick-carousel/slick/slick.css'; // Import slick-carousel CSS
 import 'slick-carousel/slick/slick-theme.css'; // Import slick-carousel theme CSS
 import Consult from './consult';
 
-// ... existing imports
-// NOTE: Remove the Consult import if it was in this file, as it's no longer used here.
-
-// 1. Swap 'setShowLogin' for 'setShowQuotePopup' in the props
 const Design = ({ id, name, description, images, points, setShowQuotePopup, setConsultData, consultData, category }) => {
   const [showMore, setShowMore] = useState(false);
   const [buttonAtBottom, setButtonAtBottom] = useState(false);
@@ -30,8 +26,9 @@ const Design = ({ id, name, description, images, points, setShowQuotePopup, setC
     setButtonAtBottom(!buttonAtBottom);
   };
 
+  // ─── FIXED HERE: Included the full 'images' array in consultData state ───
   const handleGetQuote = (name, img) => {
-    setConsultData({ name, img, category }); 
+    setConsultData({ name, img, images, category }); 
     setShowQuotePopup(true);
   };
 

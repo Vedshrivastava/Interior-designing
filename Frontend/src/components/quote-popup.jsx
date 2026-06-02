@@ -10,7 +10,7 @@ import { faXmark, faCalendarCheck, faUser, faEnvelope, faPhone, faLocationDot } 
 const FIELDS = [
     { name: 'name', label: 'Full Name', type: 'text', placeholder: 'Your full name', icon: faUser },
     { name: 'email', label: 'Email', type: 'email', placeholder: 'your@email.com', icon: faEnvelope },
-    { name: 'phone', label: 'Phone Number', type: 'number', placeholder: '+91 XXXXX XXXXX', icon: faPhone },
+    { name: 'phone', label: 'Phone Number', type: 'tel', placeholder: '+91 XXXXX XXXXX', icon: faPhone },
     { name: 'address', label: 'Address', type: 'text', placeholder: 'Your city / address', icon: faLocationDot },
 ];
 

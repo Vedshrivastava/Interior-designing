@@ -105,9 +105,13 @@ const addQuote = async (req, res) => {
             address: address || "",
             email,
             designName: consultData.name,
-            image: consultData.img,
-            category: consultData.category,   // Pulled seamlessly from Design component tracking
-            measurements: measurements || "" // Inputted by user in the conditional field
+            image: consultData.img, // Retains single thumbnail compatibility
+            
+            // ─── ADD THIS EXACT LINE TO SAVE THE ARRAY ───
+            images: consultData.images || (consultData.img ? [consultData.img] : []),
+            
+            category: consultData.category,   
+            measurements: measurements || "" 
         });
 
         await newAppointment.save();

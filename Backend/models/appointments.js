@@ -8,8 +8,8 @@ const appointmentSchema = new mongoose.Schema({
     address: { type: String, required: true }, // Address is required
     status: { type: String, default: "pending" }, // Status defaults to "pending"
     date: { type: Date, default: Date.now }, // Date defaults to now
-    image: { type: String }, // Image is optional
-    designName: { type: String }, // Design name is optional
+// Add this inside your mongoose.Schema configuration fields
+images: { type: [String], default: [] },    designName: { type: String }, // Design name is optional
     
     // --- NEW FIELDS FOR QUOTES ---
     category: { type: String }, // Project category (Residential, Commercial, etc.)

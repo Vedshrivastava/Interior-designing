@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import '../styles/services.css';
 import { useNavigate } from 'react-router-dom';
 import bgimg from '../assets/home-img.png';
@@ -40,7 +40,7 @@ const services = [
         icon: faStar, title: "Affordable Luxury",
         description: "Premium interiors with transparent pricing and zero hidden costs — luxury made genuinely accessible.",
         img: rates,
-        features: ["Transparent Pricing", "Zero Hidden Costs"] // Add this!
+        features: ["Transparent Pricing", "Zero Hidden Costs"]
     },
     { icon: faLock, title: "Refundable Consultation", description: "Your consultation fee is fully adjusted when you proceed with execution. Completely risk-free.", img: design },
     { icon: faHome, title: "Residential Interiors", description: "Custom home interiors for apartments and villas — designed around your lifestyle and comfort.", img: residence },
@@ -50,7 +50,7 @@ const services = [
         icon: faBuilding, title: "Commercial Spaces",
         description: "Inspiring offices and retail interiors that boost productivity and reflect your brand identity.",
         img: commercial,
-        features: ["Brand-Centric Design", "Ergonomic Layouts"] // Add this!
+        features: ["Brand-Centric Design", "Ergonomic Layouts"]
     },
     { icon: faWrench, title: "Renovation Services", description: "Complete makeovers or targeted upgrades — we breathe fresh life into any outdated space.", img: renovation },
     { icon: faRulerCombined, title: "Space Planning", description: "Smart layouts that maximise every inch of your space for both function and visual flow.", img: space_planning },
@@ -60,7 +60,7 @@ const services = [
         icon: faLightbulb, title: "Lighting Design",
         description: "Ambient, accent, and task lighting concepts that define mood and elevate every room.",
         img: lighting,
-        features: ["Mood-Enhancing Concepts", "Energy-Efficient Solutions"] // Add this!
+        features: ["Mood-Enhancing Concepts", "Energy-Efficient Solutions"]
     },
     { icon: faPalette, title: "Material Selection", description: "We source premium materials from trusted partners like Kajaria, Asian Paints & more.", img: materials },
     { icon: faLayerGroup, title: "3D Visualization", description: "Photo-realistic 3D renders so you see exactly how your space will look before execution begins.", img: Visualization_3D },
@@ -74,6 +74,58 @@ const processSteps = [
     { num: '05', icon: faHammer, title: 'Execution', desc: 'Expert craftsmen bring your design to life with precision and care.' },
     { num: '06', icon: faHandshake, title: 'Final Handover', desc: 'A complete walkthrough and handover of your transformed dream space.' },
 ];
+
+// Reusable CountUp Component for numbers
+const CountUp = ({ endValue, duration = 1500 }) => {
+  const [count, setCount] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
+
+  const match = String(endValue).match(/^(\D*)(\d+(?:\.\d+)?)(\D*)$/);
+  const prefix = match ? match[1] : '';
+  const targetNumber = match ? parseFloat(match[2]) : null;
+  const suffix = match ? match[3] : '';
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible || targetNumber === null) return;
+
+    let startTimestamp = null;
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      
+      setCount(progress * targetNumber);
+
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      } else {
+        setCount(targetNumber);
+      }
+    };
+    window.requestAnimationFrame(step);
+  }, [isVisible, targetNumber, duration]);
+
+  if (targetNumber === null) return <span ref={ref}>{endValue}</span>;
+
+  const displayCount = Number.isInteger(targetNumber) ? Math.round(count) : count.toFixed(1);
+
+  return <span ref={ref}>{prefix}<span className="hp-prof-num">{displayCount}</span>{suffix}</span>;
+};
+
 
 const Services = ({ setShowLogin }) => {
     const revealRefs = useRef([]);
@@ -143,7 +195,7 @@ const Services = ({ setShowLogin }) => {
                     { val: '5★', label: 'Average Rating', sub: 'Consistently top rated' },
                 ].map((s, i) => (
                     <div className="services-stat-box" key={i}>
-                        <h2>{s.val}</h2>
+                        <h2><CountUp endValue={s.val} /></h2>
                         <p>{s.label}</p>
                     </div>
                 ))}
@@ -264,7 +316,7 @@ const Services = ({ setShowLogin }) => {
                     ].map((s, i) => (
                         <div className='hp-adv-stat' key={i}>
                             <div className='hp-adv-stat-icon'><FontAwesomeIcon icon={s.icon} /></div>
-                            <span className='hp-adv-stat-val'>{s.val}</span>
+                            <span className='hp-adv-stat-val'><CountUp endValue={s.val} /></span>
                             <span className='hp-adv-stat-lbl'>{s.label}</span>
                         </div>
                     ))}
@@ -292,7 +344,7 @@ const Services = ({ setShowLogin }) => {
                                 <div className="process-icon-badge">
                                     <FontAwesomeIcon icon={s.icon} />
                                 </div>
-                                <span className="process-num">{s.num}</span>
+                                <span className="process-num hp-prof-num">{s.num}</span>
                             </div>
                             <h3>{s.title}</h3>
                             <p>{s.desc}</p>

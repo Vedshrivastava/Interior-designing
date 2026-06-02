@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import '../styles/home.css';
 import bgimg from '../assets/home-img.png';
 import kitchen_img from '../assets/kitchen.png';
@@ -58,6 +58,60 @@ const Home = ({ setShowLogin }) => {
     return () => io.disconnect();
   }, []);
   const sr = el => { if (el && !revealRefs.current.includes(el)) revealRefs.current.push(el); };
+
+  const CountUp = ({ endValue, duration = 1500 }) => {
+    const [count, setCount] = useState(0);
+    const [isVisible, setIsVisible] = useState(false);
+    const ref = useRef(null);
+  
+    // Separate prefix, number, and suffix (e.g., "50+" -> "", "50", "+")
+    const match = String(endValue).match(/^(\D*)(\d+(?:\.\d+)?)(\D*)$/);
+    const prefix = match ? match[1] : '';
+    const targetNumber = match ? parseFloat(match[2]) : null;
+    const suffix = match ? match[3] : '';
+  
+    useEffect(() => {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.disconnect();
+          }
+        },
+        { threshold: 0.1 }
+      );
+      if (ref.current) observer.observe(ref.current);
+      return () => observer.disconnect();
+    }, []);
+  
+    useEffect(() => {
+      if (!isVisible || targetNumber === null) return;
+  
+      let startTimestamp = null;
+      const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        
+        // easeOut function for smooth deceleration
+        setCount(progress * targetNumber);
+  
+        if (progress < 1) {
+          window.requestAnimationFrame(step);
+        } else {
+          setCount(targetNumber);
+        }
+      };
+      window.requestAnimationFrame(step);
+    }, [isVisible, targetNumber, duration]);
+  
+    // Fallback if the string contains no numbers
+    if (targetNumber === null) return <span ref={ref}>{endValue}</span>;
+  
+    // Render integer or keep 1 decimal based on the target value
+    const displayCount = Number.isInteger(targetNumber) ? Math.round(count) : count.toFixed(1);
+  
+    return <span ref={ref}>{prefix}<span className="hp-prof-num">{displayCount}</span>{suffix}</span>;
+  };
 
   return (
     <div className='home-page'>
@@ -123,7 +177,7 @@ const Home = ({ setShowLogin }) => {
         ].map((s, i) => (
           <div className='hp-stat-item' key={i} ref={sr} style={{ '--sr-delay': `${i * 80}ms` }}>
             <span className='hp-stat-rule' />
-            <h2>{s.num}</h2>
+            <h2><CountUp endValue={s.num} /></h2>
             <p className='hp-stat-label'>{s.label}</p>
             <p className='hp-stat-sub'>{s.sub}</p>
           </div>
@@ -300,7 +354,7 @@ const Home = ({ setShowLogin }) => {
             <div className='hp-process-card sr-item' key={i} ref={sr} style={{ '--sr-delay': `${i * 80}ms` }}>
               <div className='hp-pc-top'>
                 <div className='hp-pc-icon'><FontAwesomeIcon icon={s.icon} /></div>
-                <span className='hp-pc-num'>{s.num}</span>
+                <span className='hp-pc-num hp-prof-num'>{s.num}</span>
               </div>
               <h4>{s.title}</h4>
               <p>{s.desc}</p>
@@ -389,7 +443,7 @@ const Home = ({ setShowLogin }) => {
           ].map((s, i) => (
             <div className='hp-adv-stat' key={i}>
               <div className='hp-adv-stat-icon'><FontAwesomeIcon icon={s.icon} /></div>
-              <span className='hp-adv-stat-val'>{s.val}</span>
+              <span className='hp-adv-stat-val'><CountUp endValue={s.val} /></span>
               <span className='hp-adv-stat-lbl'>{s.label}</span>
             </div>
           ))}

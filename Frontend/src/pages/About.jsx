@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import '../styles/about.css';
 
 import Footer from '../components/Footer';
@@ -33,6 +33,57 @@ const processSteps = [
   { num: '03', icon: faCubes,           title: 'Execution',           desc: 'Expert craftsmen bring your design to life with precision and care.' },
   { num: '04', icon: faHandshake,       title: 'Final Handover',      desc: 'A complete walkthrough and handover of your transformed dream space.' },
 ];
+
+// Reusable CountUp Component for numbers
+const CountUp = ({ endValue, duration = 1500 }) => {
+  const [count, setCount] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
+
+  const match = String(endValue).match(/^(\D*)(\d+(?:\.\d+)?)(\D*)$/);
+  const prefix = match ? match[1] : '';
+  const targetNumber = match ? parseFloat(match[2]) : null;
+  const suffix = match ? match[3] : '';
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible || targetNumber === null) return;
+
+    let startTimestamp = null;
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      
+      setCount(progress * targetNumber);
+
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      } else {
+        setCount(targetNumber);
+      }
+    };
+    window.requestAnimationFrame(step);
+  }, [isVisible, targetNumber, duration]);
+
+  if (targetNumber === null) return <span ref={ref}>{endValue}</span>;
+
+  const displayCount = Number.isInteger(targetNumber) ? Math.round(count) : count.toFixed(1);
+
+  return <span ref={ref}>{prefix}<span className="hp-prof-num">{displayCount}</span>{suffix}</span>;
+};
 
 const About = ({ setShowLogin }) => {
   const navigate = useNavigate();
@@ -113,7 +164,7 @@ const About = ({ setShowLogin }) => {
           { val: '100%',    label: 'Client Satisfaction' },
         ].map((s, i) => (
           <div className="about-stat-box" key={i}>
-            <h2>{s.val}</h2>
+            <h2><CountUp endValue={s.val} /></h2>
             <p>{s.label}</p>
           </div>
         ))}
@@ -122,154 +173,154 @@ const About = ({ setShowLogin }) => {
       {/* ══════════════════════════════
           WHO WE ARE — editorial intro
       ══════════════════════════════ */}
- <section className="abt-who">
+      <section className="abt-who">
 
-{/* ── Section header ── */}
-<div className="abt-who-head abt-reveal" ref={sr}>
-  <div className="abt-who-head-left">
-    <span className="section-tag">
-      <FontAwesomeIcon icon={faCrown} /> Who We Are
-    </span>
-    <h2>Elevating Spaces<br />With Purpose</h2>
-  </div>
+        {/* ── Section header ── */}
+        <div className="abt-who-head abt-reveal" ref={sr}>
+          <div className="abt-who-head-left">
+            <span className="section-tag">
+              <FontAwesomeIcon icon={faCrown} /> Who We Are
+            </span>
+            <h2>Elevating Spaces<br />With Purpose</h2>
+          </div>
 
-  <div className="abt-who-head-right">
-    <p>
-      Shrivastavas Elevate is a premium interior design and contracting
-      firm founded on one belief — that every home deserves to feel
-      extraordinary. We unite elite artistry with completely transparent
-      project execution.
-    </p>
-    <div className="abt-founders">
-      <div className="abt-founder-pill">
-        <span className="abt-founder-pill-avatar">V</span>
-        Ved Shrivastava
-      </div>
-      <div className="abt-founder-pill">
-        <span className="abt-founder-pill-avatar">S</span>
-        Shubh Shrivastava
-      </div>
-    </div>
-  </div>
-</div>
-
-{/* ── Asymmetric card layout ── */}
-<div className="abt-who-layout">
-
-  {/* LEFT — tall featured card */}
-  <div className="abt-feat-card abt-reveal" ref={sr}>
-    <div className="abt-feat-img">
-      <img src={logo} alt="Shrivastavas Elevate" />
-      <div className="abt-feat-img-overlay" />
-      <div className="abt-feat-tag">
-        <FontAwesomeIcon icon={faCrown} /> Our Story
-      </div>
-    </div>
-
-    <div className="abt-feat-body">
-      <h3>Welcome to Shrivastavas Elevate</h3>
-      <p>
-        A premium interior design and contracting firm focused on creating
-        elegant, functional, and timeless spaces — built entirely around
-        the way you live.
-      </p>
-      <ul className="abt-card-list">
-        <li><span className="abt-card-dot" />Led by Ved &amp; Shubh Shrivastava</li>
-        <li><span className="abt-card-dot" />Residential &amp; commercial expertise</li>
-        <li><span className="abt-card-dot" />Luxury-focused, fully turnkey execution</li>
-        <li><span className="abt-card-dot" />Based in Indore, serving pan-India</li>
-      </ul>
-    </div>
-  </div>
-
-  {/* RIGHT — 3 stacked horizontal cards */}
-  <div className="abt-stack">
-
-    {/* Card 2 — Services */}
-    <div className="abt-stack-card abt-reveal" ref={sr} style={{ '--abt-delay': '80ms', cursor: 'pointer' }} onClick={() => navigate('/services')}>
-      <div className="abt-stack-img">
-        <img src={services} alt="Interior Services" />
-        <div className="abt-stack-img-overlay" />
-        <div className="abt-stack-tag">
-          <FontAwesomeIcon icon={faHome} /> Services
+          <div className="abt-who-head-right">
+            <p>
+              Shrivastavas Elevate is a premium interior design and contracting
+              firm founded on one belief — that every home deserves to feel
+              extraordinary. We unite elite artistry with completely transparent
+              project execution.
+            </p>
+            <div className="abt-founders">
+              <div className="abt-founder-pill">
+                <span className="abt-founder-pill-avatar">V</span>
+                Ved Shrivastava
+              </div>
+              <div className="abt-founder-pill">
+                <span className="abt-founder-pill-avatar">S</span>
+                Shubh Shrivastava
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div className="abt-stack-body">
-        <h4>Premium Interior Services</h4>
-        <p>
-          Complete interior solutions — from a single room to an entire home —
-          tailored to your lifestyle, aesthetics and budget.
-        </p>
-        <ul className="abt-card-list">
-          <li><span className="abt-card-dot" />Customised residential interiors</li>
-          <li><span className="abt-card-dot" />Consultation with refundable fee</li>
-        </ul>
-      </div>
-    </div>
 
-    {/* Card 3 — Materials */}
-    <div className="abt-stack-card abt-reveal" ref={sr} style={{ '--abt-delay': '140ms', cursor: 'pointer' }} onClick={() => navigate('/design/Bedroom%20Designs')}>
-      <div className="abt-stack-img">
-        <img src={materials} alt="Premium Materials" />
-        <div className="abt-stack-img-overlay" />
-        <div className="abt-stack-tag">
-          <FontAwesomeIcon icon={faCubes} /> Materials
+        {/* ── Asymmetric card layout ── */}
+        <div className="abt-who-layout">
+
+          {/* LEFT — tall featured card */}
+          <div className="abt-feat-card abt-reveal" ref={sr}>
+            <div className="abt-feat-img">
+              <img src={logo} alt="Shrivastavas Elevate" />
+              <div className="abt-feat-img-overlay" />
+              <div className="abt-feat-tag">
+                <FontAwesomeIcon icon={faCrown} /> Our Story
+              </div>
+            </div>
+
+            <div className="abt-feat-body">
+              <h3>Welcome to Shrivastavas Elevate</h3>
+              <p>
+                A premium interior design and contracting firm focused on creating
+                elegant, functional, and timeless spaces — built entirely around
+                the way you live.
+              </p>
+              <ul className="abt-card-list">
+                <li><span className="abt-card-dot" />Led by Ved &amp; Shubh Shrivastava</li>
+                <li><span className="abt-card-dot" />Residential &amp; commercial expertise</li>
+                <li><span className="abt-card-dot" />Luxury-focused, fully turnkey execution</li>
+                <li><span className="abt-card-dot" />Based in Indore, serving pan-India</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* RIGHT — 3 stacked horizontal cards */}
+          <div className="abt-stack">
+
+            {/* Card 2 — Services */}
+            <div className="abt-stack-card abt-reveal" ref={sr} style={{ '--abt-delay': '80ms', cursor: 'pointer' }} onClick={() => navigate('/services')}>
+              <div className="abt-stack-img">
+                <img src={services} alt="Interior Services" />
+                <div className="abt-stack-img-overlay" />
+                <div className="abt-stack-tag">
+                  <FontAwesomeIcon icon={faHome} /> Services
+                </div>
+              </div>
+              <div className="abt-stack-body">
+                <h4>Premium Interior Services</h4>
+                <p>
+                  Complete interior solutions — from a single room to an entire home —
+                  tailored to your lifestyle, aesthetics and budget.
+                </p>
+                <ul className="abt-card-list">
+                  <li><span className="abt-card-dot" />Customised residential interiors</li>
+                  <li><span className="abt-card-dot" />Consultation with refundable fee</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Card 3 — Materials */}
+            <div className="abt-stack-card abt-reveal" ref={sr} style={{ '--abt-delay': '140ms', cursor: 'pointer' }} onClick={() => navigate('/design/Bedroom%20Designs')}>
+              <div className="abt-stack-img">
+                <img src={materials} alt="Premium Materials" />
+                <div className="abt-stack-img-overlay" />
+                <div className="abt-stack-tag">
+                  <FontAwesomeIcon icon={faCubes} /> Materials
+                </div>
+              </div>
+              <div className="abt-stack-body">
+                <h4>Premium Materials &amp; Designs</h4>
+                <p>
+                  Carefully selected materials from India's most trusted brands —
+                  ensuring durability, luxury and long-term value.
+                </p>
+                <ul className="abt-card-list">
+                  <li><span className="abt-card-dot" />PVC &amp; WPC louvers, marble sheets...</li>
+                  <li><span className="abt-card-dot" />Kajaria, Asian Paints, CenturyPly...</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Card 4 — Commitment */}
+            <div className="abt-stack-card abt-reveal" ref={sr} style={{ '--abt-delay': '200ms' }}>
+              <div className="abt-stack-img">
+                <img src={commitment} alt="Our Commitment" />
+                <div className="abt-stack-img-overlay" />
+                <div className="abt-stack-tag">
+                  <FontAwesomeIcon icon={faHandshake} /> Commitment
+                </div>
+              </div>
+              <div className="abt-stack-body">
+                <h4>Our Commitment To Quality</h4>
+                <p>
+                  Every project executed with precision, transparency and
+                  uncompromised attention to detail — from first sketch to final nail.
+                </p>
+                <ul className="abt-card-list">
+                  <li><span className="abt-card-dot" />Premium craftsmanship standards</li>
+                  <li><span className="abt-card-dot" />Long-lasting client relationships</li>
+                </ul>
+              </div>
+            </div>
+
+          </div>
         </div>
-      </div>
-      <div className="abt-stack-body">
-        <h4>Premium Materials &amp; Designs</h4>
-        <p>
-          Carefully selected materials from India's most trusted brands —
-          ensuring durability, luxury and long-term value.
-        </p>
-        <ul className="abt-card-list">
-          <li><span className="abt-card-dot" />PVC &amp; WPC louvers, marble sheets...</li>
-          <li><span className="abt-card-dot" />Kajaria, Asian Paints, CenturyPly...</li>
-        </ul>
-      </div>
-    </div>
 
-    {/* Card 4 — Commitment */}
-    <div className="abt-stack-card abt-reveal" ref={sr} style={{ '--abt-delay': '200ms' }}>
-      <div className="abt-stack-img">
-        <img src={commitment} alt="Our Commitment" />
-        <div className="abt-stack-img-overlay" />
-        <div className="abt-stack-tag">
-          <FontAwesomeIcon icon={faHandshake} /> Commitment
+        {/* ── Mini stat strip ── */}
+        <div className="abt-who-stats abt-reveal" ref={sr}>
+          {[
+            { icon: faStar,      val: '50+',  lbl: 'Projects Delivered' },
+            { icon: faHandshake, val: '100%', lbl: 'Turnkey Execution'  },
+            { icon: faClock,     val: '5★',   lbl: 'Average Rating'     },
+          ].map((s, i) => (
+            <div className="abt-who-stat" key={i}>
+              <div className="abt-who-stat-icon"><FontAwesomeIcon icon={s.icon} /></div>
+              <span className="abt-who-stat-val"><CountUp endValue={s.val} /></span>
+              <span className="abt-who-stat-lbl">{s.lbl}</span>
+            </div>
+          ))}
         </div>
-      </div>
-      <div className="abt-stack-body">
-        <h4>Our Commitment To Quality</h4>
-        <p>
-          Every project executed with precision, transparency and
-          uncompromised attention to detail — from first sketch to final nail.
-        </p>
-        <ul className="abt-card-list">
-          <li><span className="abt-card-dot" />Premium craftsmanship standards</li>
-          <li><span className="abt-card-dot" />Long-lasting client relationships</li>
-        </ul>
-      </div>
-    </div>
 
-  </div>
-</div>
-
-{/* ── Mini stat strip ── */}
-<div className="abt-who-stats abt-reveal" ref={sr}>
-  {[
-    { icon: faStar,      val: '50+',  lbl: 'Projects Delivered' },
-    { icon: faHandshake, val: '100%', lbl: 'Turnkey Execution'  },
-    { icon: faClock,     val: '5★',   lbl: 'Average Rating'     },
-  ].map((s, i) => (
-    <div className="abt-who-stat" key={i}>
-      <div className="abt-who-stat-icon"><FontAwesomeIcon icon={s.icon} /></div>
-      <span className="abt-who-stat-val">{s.val}</span>
-      <span className="abt-who-stat-lbl">{s.lbl}</span>
-    </div>
-  ))}
-</div>
-
-</section>
+      </section>
 
       {/* ══════════════════════════════
           PROCESS — blush bg
@@ -290,8 +341,8 @@ const About = ({ setShowLogin }) => {
                 <div className="process-box-icon">
                   <FontAwesomeIcon icon={s.icon} />
                 </div>
-                <span className="process-box-num">{s.num}</span>
-              </div>
+                <span className="process-num hp-prof-num">{s.num}</span>
+                              </div>
               <h3>{s.title}</h3>
               <p>{s.desc}</p>
             </div>

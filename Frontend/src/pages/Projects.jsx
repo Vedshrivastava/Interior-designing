@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import '../styles/projects.css';
 import Design from '../components/Design';
@@ -7,6 +7,58 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faBuilding, faLayerGroup, faCalendarCheck, faWandMagicSparkles,
 } from '@fortawesome/free-solid-svg-icons';
+
+// Reusable CountUp Component for numbers
+const CountUp = ({ endValue, duration = 1500 }) => {
+  const [count, setCount] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
+
+  const match = String(endValue).match(/^(\D*)(\d+(?:\.\d+)?)(\D*)$/);
+  const prefix = match ? match[1] : '';
+  const targetNumber = match ? parseFloat(match[2]) : null;
+  const suffix = match ? match[3] : '';
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible || targetNumber === null) return;
+
+    let startTimestamp = null;
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      
+      setCount(progress * targetNumber);
+
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      } else {
+        setCount(targetNumber);
+      }
+    };
+    window.requestAnimationFrame(step);
+  }, [isVisible, targetNumber, duration]);
+
+  if (targetNumber === null) return <span ref={ref}>{endValue}</span>;
+
+  const displayCount = Number.isInteger(targetNumber) ? Math.round(count) : count.toFixed(1);
+
+  return <span ref={ref}>{prefix}<span className="hp-prof-num">{displayCount}</span>{suffix}</span>;
+};
+
 
 const Projects = ({ setShowLogin }) => {
   // 1. UPDATE THIS to your computer's local IP for mobile testing
@@ -63,7 +115,7 @@ const Projects = ({ setShowLogin }) => {
           { val: '100%', label: 'Client Satisfaction' },
         ].map((s, i) => (
           <div className="proj-stat-item" key={i}>
-            <h3>{s.val}</h3>
+            <h3><CountUp endValue={s.val} /></h3>
             <p>{s.label}</p>
           </div>
         ))}

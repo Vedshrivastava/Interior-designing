@@ -24,6 +24,12 @@
     --radius: 20px;
 }
 
+.hp-prof-num {
+    font-family: "Playfair Display", serif !important; /* Matches the exact high-contrast style of your screenshot */
+    font-weight: 400;                                  /* Keeps the elegant, clean line weight */
+    font-variant-numeric: lining-nums;                 /* Forces all numbers to stay flat on the baseline */
+    letter-spacing: -0.02em;                           /* Replicates the beautifully tight professional spacing */
+  }
 /* ── Base ── */
 .services-page {
     background: var(--ivory);

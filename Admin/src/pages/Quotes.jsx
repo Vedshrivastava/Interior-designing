@@ -95,6 +95,11 @@ const Quotes = ({ url }) => {
 
   const groupedOrders = groupOrdersByDate(orders);
 
+  const handleCopy = (text, type) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${type} copied to clipboard`);
+  };
+
   return (
     <div className="order">
       {/* CSS Loader Overlay */}
@@ -136,14 +141,28 @@ const Quotes = ({ url }) => {
                     <div className="order-header-block">
                       <strong className="order-customer-name">{order.name}</strong>
                       <div className="order-contact-row">
-                        <span className="contact-item">
-                          <i className="fa-solid fa-phone"></i> {order.phoneNumber}
-                        </span>
-                        <span className="contact-dot">•</span>
-                        <span className="contact-item">
-                          <i className="fa-solid fa-envelope"></i> {order.email}
-                        </span>
-                      </div>
+  <span className="contact-item">
+    <a href={`tel:${order.phoneNumber}`} className="contact-link" title="Call Customer">
+      <i className="fa-solid fa-phone"></i> {order.phoneNumber}
+    </a>
+    <i 
+      className="fa-regular fa-copy copy-icon" 
+      onClick={() => handleCopy(order.phoneNumber, 'Phone number')}
+      title="Copy Phone"
+    ></i>
+  </span>
+  <span className="contact-dot">•</span>
+  <span className="contact-item">
+    <a href={`mailto:${order.email}`} className="contact-link" title="Email Customer">
+      <i className="fa-solid fa-envelope"></i> {order.email}
+    </a>
+    <i 
+      className="fa-regular fa-copy copy-icon" 
+      onClick={() => handleCopy(order.email, 'Email address')}
+      title="Copy Email"
+    ></i>
+  </span>
+</div>
                     </div>
 
                     <div className="order-info-row">

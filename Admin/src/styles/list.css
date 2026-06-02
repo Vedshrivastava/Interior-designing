@@ -720,3 +720,155 @@
     .edit-modal-actions button,
     .edit-modal-actions .cancel-btn { width: 100% !important; text-align: center !important; }
 }
+
+/* ══════════════════════════════════════════════
+   8. THUMBNAIL LIGHTBOX TRIGGER
+══════════════════════════════════════════════ */
+.list-table-format .image-column img.lb-trigger {
+    cursor: zoom-in;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.list-table-format .image-column img.lb-trigger:hover {
+    transform: scale(1.07);
+    box-shadow: 0 6px 20px rgba(16,37,37,0.18);
+}
+
+/* ══════════════════════════════════════════════
+   9. LIGHTBOX OVERLAY (portalled to body)
+   Reuses the same lb-* class names as Design.jsx
+   so if they ever share a global CSS file, no
+   duplication is needed. Scoped here for safety.
+══════════════════════════════════════════════ */
+.lb-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(11, 26, 26, 0.92);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: lbFadeIn 0.22s ease both;
+}
+
+@keyframes lbFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Close button */
+.lb-close {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(201,168,124,0.12);
+    border: 1px solid rgba(201,168,124,0.3);
+    color: var(--gold-lt, #e8d0a8);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+    z-index: 10;
+}
+.lb-close:hover {
+    background: rgba(201,168,124,0.25);
+    transform: rotate(90deg);
+}
+
+/* Prev / Next arrows */
+.lb-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(201,168,124,0.1);
+    border: 1px solid rgba(201,168,124,0.25);
+    color: var(--gold-lt, #e8d0a8);
+    font-size: 2rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+    z-index: 10;
+    padding-bottom: 3px;
+}
+.lb-arrow:hover {
+    background: rgba(201,168,124,0.22);
+    transform: translateY(-50%) scale(1.08);
+}
+.lb-arrow--prev { left: 24px; }
+.lb-arrow--next { right: 24px; }
+
+/* Image wrapper + image */
+.lb-img-wrap {
+    max-width: min(88vw, 1000px);
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 40px 100px rgba(11,26,26,0.5);
+    border: 1px solid rgba(201,168,124,0.15);
+    animation: lbSlideUp 0.28s cubic-bezier(.22,.61,.36,1) both;
+}
+
+@keyframes lbSlideUp {
+    from { opacity: 0; transform: translateY(18px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+.lb-img {
+    display: block;
+    max-width: 100%;
+    max-height: calc(88vh - 52px);
+    object-fit: contain;
+    background: var(--obsidian, #0b1a1a);
+}
+
+/* Caption bar */
+.lb-caption {
+    width: 100%;
+    background: rgba(16,37,37,0.95);
+    border-top: 1px solid rgba(201,168,124,0.15);
+    padding: 14px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.lb-name {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gold-lt, #e8d0a8);
+    letter-spacing: 0.3px;
+}
+.lb-counter {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(201,168,124,0.55);
+    white-space: nowrap;
+}
+
+/* Mobile lightbox adjustments */
+@media (max-width: 600px) {
+    .lb-arrow--prev { left: 10px; width: 40px; height: 40px; font-size: 1.6rem; }
+    .lb-arrow--next { right: 10px; width: 40px; height: 40px; font-size: 1.6rem; }
+    .lb-img-wrap { max-width: 96vw; border-radius: 12px; }
+    .lb-close { top: 14px; right: 14px; width: 38px; height: 38px; font-size: 0.95rem; }
+}

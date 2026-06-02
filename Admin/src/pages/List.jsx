@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import '../styles/list.css';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -16,6 +17,40 @@ const List = ({ url, setIsLoading, isLoading }) => {
   // --- NEW: FILTERING STATES ---
   const [currentFilter, setCurrentFilter] = useState('All');
   const mobileBarRef = useRef(null);
+
+  // --- LIGHTBOX STATES ---
+  const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0, name: '' });
+
+  const openLightbox = (images, index, name) => {
+    setLightbox({ open: true, images, index, name });
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeLightbox = useCallback(() => {
+    setLightbox({ open: false, images: [], index: 0, name: '' });
+    document.body.style.overflow = '';
+  }, []);
+
+  const lbGoPrev = useCallback((e) => {
+    e.stopPropagation();
+    setLightbox(prev => ({ ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }));
+  }, []);
+
+  const lbGoNext = useCallback((e) => {
+    e.stopPropagation();
+    setLightbox(prev => ({ ...prev, index: (prev.index + 1) % prev.images.length }));
+  }, []);
+
+  useEffect(() => {
+    if (!lightbox.open) return;
+    const handleKey = (e) => {
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft')  setLightbox(prev => ({ ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }));
+      if (e.key === 'ArrowRight') setLightbox(prev => ({ ...prev, index: (prev.index + 1) % prev.images.length }));
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [lightbox.open, closeLightbox]);
 
   // --- EDIT MODAL STATES ---
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -165,6 +200,36 @@ const List = ({ url, setIsLoading, isLoading }) => {
   return (
     <div className='list add flex-col'>
 
+      {/* --- LIGHTBOX PORTAL --- */}
+      {lightbox.open && ReactDOM.createPortal(
+        <div className="lb-overlay" onClick={closeLightbox}>
+          <button className="lb-close" onClick={closeLightbox} aria-label="Close">✕</button>
+
+          {lightbox.images.length > 1 && (
+            <button className="lb-arrow lb-arrow--prev" onClick={lbGoPrev} aria-label="Previous">&#8249;</button>
+          )}
+
+          <div className="lb-img-wrap" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={lightbox.images[lightbox.index]}
+              alt={`${lightbox.name} — ${lightbox.index + 1}`}
+              className="lb-img"
+            />
+            <div className="lb-caption">
+              <span className="lb-name">{lightbox.name}</span>
+              {lightbox.images.length > 1 && (
+                <span className="lb-counter">{lightbox.index + 1} / {lightbox.images.length}</span>
+              )}
+            </div>
+          </div>
+
+          {lightbox.images.length > 1 && (
+            <button className="lb-arrow lb-arrow--next" onClick={lbGoNext} aria-label="Next">&#8250;</button>
+          )}
+        </div>,
+        document.body
+      )}
+
       {/* --- EDIT MODAL (UNTOUCHED) --- */}
       {isEditModalOpen && (
         <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
@@ -281,7 +346,13 @@ const List = ({ url, setIsLoading, isLoading }) => {
                 <div key={index} className="list-table-format row-item">
                   <div className="image-column">
                     {item.images && item.images.length > 0 ? (
-                      <img src={item.images[0]} alt="thumbnail" />
+                      <img
+                        src={item.images[0]}
+                        alt="thumbnail"
+                        className="lb-trigger"
+                        onClick={() => openLightbox(item.images, 0, item.name)}
+                        title="Click to view images"
+                      />
                     ) : (
                       <div className="placeholder-img"></div>
                     )}

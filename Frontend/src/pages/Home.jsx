@@ -59,17 +59,17 @@ const Home = ({ setShowLogin }) => {
   }, []);
   const sr = el => { if (el && !revealRefs.current.includes(el)) revealRefs.current.push(el); };
 
-  const CountUp = ({ endValue, duration = 1500 }) => {
+  const CountUp = ({ endValue, duration = 3000 }) => {
     const [count, setCount] = useState(0);
     const [isVisible, setIsVisible] = useState(false);
     const ref = useRef(null);
-  
+
     // Separate prefix, number, and suffix (e.g., "50+" -> "", "50", "+")
     const match = String(endValue).match(/^(\D*)(\d+(?:\.\d+)?)(\D*)$/);
     const prefix = match ? match[1] : '';
     const targetNumber = match ? parseFloat(match[2]) : null;
     const suffix = match ? match[3] : '';
-  
+
     useEffect(() => {
       const observer = new IntersectionObserver(
         ([entry]) => {
@@ -83,18 +83,19 @@ const Home = ({ setShowLogin }) => {
       if (ref.current) observer.observe(ref.current);
       return () => observer.disconnect();
     }, []);
-  
+
     useEffect(() => {
       if (!isVisible || targetNumber === null) return;
-  
+
       let startTimestamp = null;
       const step = (timestamp) => {
         if (!startTimestamp) startTimestamp = timestamp;
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        
+
         // easeOut function for smooth deceleration
-        setCount(progress * targetNumber);
-  
+        const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+        setCount(easeProgress * targetNumber);
+
         if (progress < 1) {
           window.requestAnimationFrame(step);
         } else {
@@ -103,13 +104,13 @@ const Home = ({ setShowLogin }) => {
       };
       window.requestAnimationFrame(step);
     }, [isVisible, targetNumber, duration]);
-  
+
     // Fallback if the string contains no numbers
     if (targetNumber === null) return <span ref={ref}>{endValue}</span>;
-  
+
     // Render integer or keep 1 decimal based on the target value
     const displayCount = Number.isInteger(targetNumber) ? Math.round(count) : count.toFixed(1);
-  
+
     return <span ref={ref}>{prefix}<span className="hp-prof-num">{displayCount}</span>{suffix}</span>;
   };
 

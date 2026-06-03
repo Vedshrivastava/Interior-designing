@@ -9,7 +9,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 // Reusable CountUp Component for numbers
-const CountUp = ({ endValue, duration = 1500 }) => {
+const CountUp = ({ endValue, duration = 3000 }) => {
   const [count, setCount] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef(null);
@@ -40,8 +40,9 @@ const CountUp = ({ endValue, duration = 1500 }) => {
     const step = (timestamp) => {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      
-      setCount(progress * targetNumber);
+
+      const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      setCount(easeProgress * targetNumber);
 
       if (progress < 1) {
         window.requestAnimationFrame(step);
@@ -63,7 +64,7 @@ const CountUp = ({ endValue, duration = 1500 }) => {
 const Projects = ({ setShowLogin }) => {
   // 1. UPDATE THIS to your computer's local IP for mobile testing
   // e.g., "http://192.168.1.X:3000"
-  const url = "http://localhost:3000"; 
+  const url = "http://localhost:3000";
   const [designList, setDesignList] = useState([]);
 
   useEffect(() => {
@@ -110,8 +111,8 @@ const Projects = ({ setShowLogin }) => {
       {/* ── STATS STRIP ── */}
       <div className="proj-stats">
         {[
-          { val: '50+',  label: 'Projects Completed' },
-          { val: '5+',   label: 'Years Experience'   },
+          { val: '50+', label: 'Projects Completed' },
+          { val: '5+', label: 'Years Experience' },
           { val: '100%', label: 'Client Satisfaction' },
         ].map((s, i) => (
           <div className="proj-stat-item" key={i}>

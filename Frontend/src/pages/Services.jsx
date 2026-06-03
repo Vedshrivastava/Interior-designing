@@ -76,54 +76,55 @@ const processSteps = [
 ];
 
 // Reusable CountUp Component for numbers
-const CountUp = ({ endValue, duration = 1500 }) => {
-  const [count, setCount] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
-  const ref = useRef(null);
+const CountUp = ({ endValue, duration = 3000 }) => {
+    const [count, setCount] = useState(0);
+    const [isVisible, setIsVisible] = useState(false);
+    const ref = useRef(null);
 
-  const match = String(endValue).match(/^(\D*)(\d+(?:\.\d+)?)(\D*)$/);
-  const prefix = match ? match[1] : '';
-  const targetNumber = match ? parseFloat(match[2]) : null;
-  const suffix = match ? match[3] : '';
+    const match = String(endValue).match(/^(\D*)(\d+(?:\.\d+)?)(\D*)$/);
+    const prefix = match ? match[1] : '';
+    const targetNumber = match ? parseFloat(match[2]) : null;
+    const suffix = match ? match[3] : '';
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true);
+                    observer.disconnect();
+                }
+            },
+            { threshold: 0.1 }
+        );
+        if (ref.current) observer.observe(ref.current);
+        return () => observer.disconnect();
+    }, []);
 
-  useEffect(() => {
-    if (!isVisible || targetNumber === null) return;
+    useEffect(() => {
+        if (!isVisible || targetNumber === null) return;
 
-    let startTimestamp = null;
-    const step = (timestamp) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      
-      setCount(progress * targetNumber);
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
 
-      if (progress < 1) {
+            const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+            setCount(easeProgress * targetNumber);
+
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            } else {
+                setCount(targetNumber);
+            }
+        };
         window.requestAnimationFrame(step);
-      } else {
-        setCount(targetNumber);
-      }
-    };
-    window.requestAnimationFrame(step);
-  }, [isVisible, targetNumber, duration]);
+    }, [isVisible, targetNumber, duration]);
 
-  if (targetNumber === null) return <span ref={ref}>{endValue}</span>;
+    if (targetNumber === null) return <span ref={ref}>{endValue}</span>;
 
-  const displayCount = Number.isInteger(targetNumber) ? Math.round(count) : count.toFixed(1);
+    const displayCount = Number.isInteger(targetNumber) ? Math.round(count) : count.toFixed(1);
 
-  return <span ref={ref}>{prefix}<span className="hp-prof-num">{displayCount}</span>{suffix}</span>;
+    return <span ref={ref}>{prefix}<span className="hp-prof-num">{displayCount}</span>{suffix}</span>;
 };
 
 

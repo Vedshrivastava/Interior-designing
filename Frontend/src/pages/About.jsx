@@ -3,11 +3,11 @@ import '../styles/about.css';
 
 import Footer from '../components/Footer';
 
-import materials   from '../assets/materials-2.png';
-import services   from '../assets/services.png';
+import materials from '../assets/materials-2.png';
+import services from '../assets/services.png';
 import commitment from '../assets/commitment.png';
-import logo       from '../assets/logo.png';
-import bgimg      from '../assets/home-img.png';
+import logo from '../assets/logo.png';
+import bgimg from '../assets/home-img.png';
 
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -19,23 +19,23 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 const pillars = [
-  { icon: faMedal,        title: "Premium Quality",       desc: "We source only top-tier materials from India's most trusted brands — no shortcuts, ever." },
-  { icon: faRulerCombined,title: "100% Custom Design",    desc: "Every project is built around your lifestyle, not a template. Truly bespoke interiors." },
-  { icon: faShieldAlt,    title: "Risk-Free Start",       desc: "Your consultation fee is fully refunded when you proceed. Zero financial risk to get started." },
-  { icon: faCube,         title: "3D Before Execution",   desc: "See a photorealistic render of your space before a single wall is touched." },
-  { icon: faHandshake,    title: "Turnkey Delivery",      desc: "We handle everything — design, sourcing, execution, handover. One team, zero stress." },
-  { icon: faStar,         title: "5★ Satisfaction",       desc: "Consistently rated 5 stars for quality, transparency and on-time delivery." },
+  { icon: faMedal, title: "Premium Quality", desc: "We source only top-tier materials from India's most trusted brands — no shortcuts, ever." },
+  { icon: faRulerCombined, title: "100% Custom Design", desc: "Every project is built around your lifestyle, not a template. Truly bespoke interiors." },
+  { icon: faShieldAlt, title: "Risk-Free Start", desc: "Your consultation fee is fully refunded when you proceed. Zero financial risk to get started." },
+  { icon: faCube, title: "3D Before Execution", desc: "See a photorealistic render of your space before a single wall is touched." },
+  { icon: faHandshake, title: "Turnkey Delivery", desc: "We handle everything — design, sourcing, execution, handover. One team, zero stress." },
+  { icon: faStar, title: "5★ Satisfaction", desc: "Consistently rated 5 stars for quality, transparency and on-time delivery." },
 ];
 
 const processSteps = [
-  { num: '01', icon: faDraftingCompass, title: 'Consultation',       desc: 'We understand your vision, budget and lifestyle before anything else.' },
-  { num: '02', icon: faCube,            title: 'Concept & 3D Design', desc: 'Smart space planning plus photo-realistic renders for your approval.' },
-  { num: '03', icon: faCubes,           title: 'Execution',           desc: 'Expert craftsmen bring your design to life with precision and care.' },
-  { num: '04', icon: faHandshake,       title: 'Final Handover',      desc: 'A complete walkthrough and handover of your transformed dream space.' },
+  { num: '01', icon: faDraftingCompass, title: 'Consultation', desc: 'We understand your vision, budget and lifestyle before anything else.' },
+  { num: '02', icon: faCube, title: 'Concept & 3D Design', desc: 'Smart space planning plus photo-realistic renders for your approval.' },
+  { num: '03', icon: faCubes, title: 'Execution', desc: 'Expert craftsmen bring your design to life with precision and care.' },
+  { num: '04', icon: faHandshake, title: 'Final Handover', desc: 'A complete walkthrough and handover of your transformed dream space.' },
 ];
 
 // Reusable CountUp Component for numbers
-const CountUp = ({ endValue, duration = 1500 }) => {
+const CountUp = ({ endValue, duration = 3000 }) => {
   const [count, setCount] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef(null);
@@ -66,8 +66,9 @@ const CountUp = ({ endValue, duration = 1500 }) => {
     const step = (timestamp) => {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      
-      setCount(progress * targetNumber);
+
+      const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      setCount(easeProgress * targetNumber);
 
       if (progress < 1) {
         window.requestAnimationFrame(step);
@@ -158,10 +159,10 @@ const About = ({ setShowLogin }) => {
       ══════════════════════════════ */}
       <section className="about-stats">
         {[
-          { val: '50+',     label: 'Projects Completed'  },
-          { val: '5+',      label: 'Years Experience'    },
+          { val: '50+', label: 'Projects Completed' },
+          { val: '5+', label: 'Years Experience' },
           { val: 'Turnkey', label: 'End-to-End Delivery' },
-          { val: '100%',    label: 'Client Satisfaction' },
+          { val: '100%', label: 'Client Satisfaction' },
         ].map((s, i) => (
           <div className="about-stat-box" key={i}>
             <h2><CountUp endValue={s.val} /></h2>
@@ -308,9 +309,9 @@ const About = ({ setShowLogin }) => {
         {/* ── Mini stat strip ── */}
         <div className="abt-who-stats abt-reveal" ref={sr}>
           {[
-            { icon: faStar,      val: '50+',  lbl: 'Projects Delivered' },
-            { icon: faHandshake, val: '100%', lbl: 'Turnkey Execution'  },
-            { icon: faClock,     val: '5★',   lbl: 'Average Rating'     },
+            { icon: faStar, val: '50+', lbl: 'Projects Delivered' },
+            { icon: faHandshake, val: '100%', lbl: 'Turnkey Execution' },
+            { icon: faClock, val: '5★', lbl: 'Average Rating' },
           ].map((s, i) => (
             <div className="abt-who-stat" key={i}>
               <div className="abt-who-stat-icon"><FontAwesomeIcon icon={s.icon} /></div>
@@ -342,7 +343,7 @@ const About = ({ setShowLogin }) => {
                   <FontAwesomeIcon icon={s.icon} />
                 </div>
                 <span className="process-num hp-prof-num">{s.num}</span>
-                              </div>
+              </div>
               <h3>{s.title}</h3>
               <p>{s.desc}</p>
             </div>

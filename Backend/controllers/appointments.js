@@ -44,13 +44,15 @@ const addAppointment = async (req, res) => {
 
 const listAppointments = async (req, res) => {
     try {
-        // Fetch all appointments where the image field is empty or null
+        // Fetch appointments that are NOT quotes:
+        // quotes have a non-empty images array and/or a non-empty image string.
+        // Plain appointments have neither.
         const appointments = await appointmentModel.find({
-            $or: [
-                { image: { $exists: false } },  // Image field doesn't exist
-                { image: '' }                   // Image field is an empty string
+            $and: [
+                { $or: [{ image: { $exists: false } }, { image: '' }, { image: null }] },
+                { $or: [{ images: { $exists: false } }, { images: { $size: 0 } }] }
             ]
-        }).sort({date: -1});
+        }).sort({ date: -1 });
 
         // Send success response with the list of appointments
         res.status(200).json({
@@ -98,20 +100,27 @@ const addQuote = async (req, res) => {
         }
 
         // 2. Map fields to the schema model
+        // Derive a reliable thumbnail: prefer explicit img, fall back to first image in array
+        const thumbImg = consultData.img
+            || (Array.isArray(consultData.images) && consultData.images.length > 0
+                ? consultData.images[0]
+                : undefined);
+
+        const imagesArr = Array.isArray(consultData.images) && consultData.images.length > 0
+            ? consultData.images
+            : (thumbImg ? [thumbImg] : []);
+
         const newAppointment = new appointmentModel({
             name,
             phoneNumber,
-            message: message || "", 
+            message: message || "",
             address: address || "",
             email,
             designName: consultData.name,
-            image: consultData.img, // Retains single thumbnail compatibility
-            
-            // ─── ADD THIS EXACT LINE TO SAVE THE ARRAY ───
-            images: consultData.images || (consultData.img ? [consultData.img] : []),
-            
-            category: consultData.category,   
-            measurements: measurements || "" 
+            image: thumbImg,   // always a real string, never undefined
+            images: imagesArr, // always a populated array
+            category: consultData.category,
+            measurements: measurements || ""
         });
 
         await newAppointment.save();
@@ -130,12 +139,14 @@ const addQuote = async (req, res) => {
 
 const listQuotes = async (req, res) => {
     try {
-        // Fetch all appointments from the database where productImage is not empty, null, or undefined
+        // Fetch all quotes — documents that have either a non-empty images array
+        // OR a non-empty legacy image string (covers old + new submissions)
         const appointments = await appointmentModel.find({
-            image: { $nin: [null, "", undefined] } // Exclude null, empty string, and undefined
-        }).sort({date: -1});
-
-        console.log(appointments);
+            $or: [
+                { images: { $exists: true, $not: { $size: 0 } } }, // new: has at least one image in array
+                { image: { $nin: [null, "", undefined] } }          // legacy: had a single image string
+            ]
+        }).sort({ date: -1 });
 
         // Send success response with the list of appointments
         res.status(200).json({

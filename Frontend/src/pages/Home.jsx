@@ -59,7 +59,7 @@ const Home = ({ setShowLogin }) => {
   }, []);
   const sr = el => { if (el && !revealRefs.current.includes(el)) revealRefs.current.push(el); };
 
-  const CountUp = ({ endValue, duration = 3000 }) => {
+  const CountUp = ({ endValue, duration = 2300 }) => {
     const [count, setCount] = useState(0);
     const [isVisible, setIsVisible] = useState(false);
     const ref = useRef(null);

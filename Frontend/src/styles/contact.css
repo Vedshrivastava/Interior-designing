@@ -161,7 +161,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  height: 78.7vh;
+  height: 82vh;
 }
 
 /* texture on info card */
@@ -223,7 +223,7 @@
 .contact-info-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0px;
 }
 
 .contact-info-item {
@@ -281,6 +281,7 @@
   overflow: hidden;
   position: relative;
   transition: box-shadow 0.38s ease, border-color 0.38s ease;
+  height: 82vh;
 }
 .contact-form-card:hover {
   border-color: rgba(201,168,124,0.25);
@@ -463,6 +464,10 @@
   transform: scale(0.95);
 }
 
+.whatsapp-icon svg {
+  font-size: 1.5rem;
+}
+
 /* ════════════════════════════════════════════
    RESPONSIVE
 ════════════════════════════════════════════ */
@@ -486,7 +491,7 @@
   .contact-form-inner { padding: 26px 20px 30px; }
   .contact-submit { font-size: 0.82rem; }
   .contact-details {
-    height: 82vh;
+    height: 98vh;
   }
   .contact-info-list {
     gap: 0;

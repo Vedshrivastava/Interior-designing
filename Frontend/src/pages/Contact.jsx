@@ -7,8 +7,9 @@ import 'react-toastify/dist/ReactToastify.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPhone, faEnvelope, faLocationDot, faClock,
-  faPaperPlane, faMessage, faCopy // Add faCopy here
+  faPaperPlane, faMessage, faCopy
 } from '@fortawesome/free-solid-svg-icons';
+import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 
 const INFO_ITEMS = [
   {
@@ -20,7 +21,13 @@ const INFO_ITEMS = [
     icon: faPhone,
     label: 'Phone',
     value: '+91 89620 53372',
-    href: 'tel:+918962053372' // Added tel link
+    href: 'tel:+918962053372'
+  },
+  {
+    icon: faWhatsapp,
+    label: 'WhatsApp',
+    value: '+91 89620 53372',
+    href: 'https://wa.me/918962053372',
   },
   {
     icon: faEnvelope,
@@ -110,20 +117,23 @@ const Contact = ({ setShowLogin }) => {
               <div className="contact-info-list">
                 {INFO_ITEMS.map(({ icon, label, value, href }) => (
                   <div className="contact-info-item" key={label}>
-                    <div className="contact-info-icon">
+                    <div
+                      className={`contact-info-icon ${label === 'WhatsApp' ? 'whatsapp-icon' : ''
+                        }`}
+                    >
                       <FontAwesomeIcon icon={icon} />
                     </div>
                     <div className="contact-info-text">
                       <strong>{label}</strong>
                       <div className="contact-info-action-row">
-                        
+
                         {/* If it has an href, make it a clickable link; otherwise, normal text */}
                         {href ? (
                           <a href={href} className="contact-action-link">{value}</a>
                         ) : (
                           <span className="contact-action-text">{value}</span>
                         )}
-                        
+
                         {/* Render a Copy button for everything except Office Hours */}
                         {label !== 'Office Hours' && (
                           <button
@@ -138,7 +148,7 @@ const Contact = ({ setShowLogin }) => {
                             <FontAwesomeIcon icon={faCopy} />
                           </button>
                         )}
-                        
+
                       </div>
                     </div>
                   </div>

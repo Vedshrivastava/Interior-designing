@@ -2,6 +2,8 @@ import { useState } from 'react';
 import './App.css';
 import { Route, Routes } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 // Note: Ensure you still have import 'react-toastify/dist/ReactToastify.css'; 
 // either at the top of this file or inside your index.css / main.jsx!
 
@@ -65,6 +67,19 @@ function App() {
         <Route path='/projects' element={<Projects setShowLogin={setShowLogin} />} />
         <Route path='/services' element={<Services setShowLogin={setShowLogin} />} />
       </Routes>
+
+      {/* GLOBAL FLOATING WHATSAPP BUTTON */}
+      <a
+        href="https://wa.me/918962053372"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="wa-fab"
+        aria-label="Chat with us on WhatsApp"
+      >
+        <span className="wa-fab-pulse" />
+        <FontAwesomeIcon icon={faWhatsapp} className="wa-fab-icon" />
+        <span className="wa-fab-label">Chat with us</span>
+      </a>
 
       {/* GLOBAL TOAST CONTAINER */}
       <ToastContainer

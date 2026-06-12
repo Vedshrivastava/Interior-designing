@@ -216,3 +216,90 @@
     bottom: -20px;
   }
 }
+
+/* ================================================
+   GLOBAL FLOATING WHATSAPP BUTTON
+   Fixed across all pages — lives in App.jsx
+================================================ */
+.wa-fab {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  z-index: 9999;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 14px 22px 14px 18px;
+  border-radius: 999px;
+
+  background: #102525;
+  border: 1px solid rgba(201, 168, 124, 0.35);
+
+  color: #e8d0a8;
+  text-decoration: none;
+
+  font-family: "Inter", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+
+  box-shadow: 0 8px 28px rgba(16, 37, 37, 0.32), 0 2px 8px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(10px);
+
+  transition: transform 0.3s ease, box-shadow 0.3s ease,
+              border-color 0.3s ease, background 0.3s ease;
+  overflow: visible;
+}
+
+/* gold shimmer ring pulse */
+.wa-fab-pulse {
+  position: absolute;
+  inset: -1px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(201, 168, 124, 0.5);
+  animation: waPulse 2.4s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes waPulse {
+  0%   { transform: scale(1);    opacity: 0.7; }
+  60%  { transform: scale(1.18); opacity: 0; }
+  100% { transform: scale(1.18); opacity: 0; }
+}
+
+.wa-fab-icon {
+  font-size: 1.25rem;
+  color: #c9a87c;
+  flex-shrink: 0;
+  transition: color 0.3s ease;
+}
+
+.wa-fab-label {
+  white-space: nowrap;
+}
+
+.wa-fab:hover {
+  transform: translateY(-3px);
+  background: #1a3535;
+  border-color: rgba(201, 168, 124, 0.65);
+  box-shadow: 0 16px 42px rgba(16, 37, 37, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.wa-fab:hover .wa-fab-icon {
+  color: #e8d0a8;
+}
+
+/* collapse to icon-only on small screens */
+@media (max-width: 480px) {
+  .wa-fab {
+    bottom: 24px;
+    right: 20px;
+    padding: 14px;
+    gap: 0;
+  }
+  .wa-fab-label { display: none; }
+  .wa-fab-icon  { font-size: 1.4rem; }
+}

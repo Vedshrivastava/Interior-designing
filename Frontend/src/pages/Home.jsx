@@ -25,6 +25,7 @@ import {
   faWandMagicSparkles, faMedal, faRulerCombined, faShieldAlt
 } from '@fortawesome/free-solid-svg-icons';
 
+
 /* ── data ── */
 const testimonials = [
   { name: "Rahul Mehta", location: "Mumbai", text: "Exceptional execution and luxurious finishing. The team transformed our home beyond expectations.", rating: 5, image: design },

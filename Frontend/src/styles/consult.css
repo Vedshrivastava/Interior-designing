@@ -1,4 +1,3 @@
-
 /* ================================================
    CONSULT / LOGIN MODAL — PROCESS SECTION THEME
    Backdrop: Dark blurred overlay
@@ -326,11 +325,18 @@
    RESPONSIVE
 ════════════════════════════════════════════ */
 @media (max-width: 480px) {
-  .login { padding: 16px; align-items: center; }
+  .login {
+    padding: 16px;
+    align-items: flex-end;        /* Sheet slides up from bottom */
+    overflow-y: auto;
+  }
 
   .login-container {
     max-width: 100%;
-    border-radius: 22px; 
+    border-radius: 22px 22px 16px 16px;
+    max-height: calc(100dvh - 32px); /* Never taller than the viewport */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     animation: sheetIn 0.4s cubic-bezier(.22,.61,.36,1) both;
   }
 
@@ -343,6 +349,28 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  .login-inner { padding: 26px 24px 30px; }
+  .login-inner {
+    padding: 22px 20px 26px;
+    gap: 16px;                    /* Tighter vertical rhythm */
+  }
+
+  .login-inputs {
+    gap: 12px;                    /* Less space between fields on mobile */
+  }
+
+  .login-field label {
+    font-size: 0.68rem;           /* Slightly smaller labels */
+  }
+
+  .login-inputs input {
+    padding: 11px 14px;           /* Slimmer inputs */
+    font-size: 0.875rem;
+  }
+
   .login-header-text h2 { font-size: 1.1rem; }
+
+  /* quote-popup: tighten the L×W row on narrow screens */
+  .quote-popup-container .login-inputs > div[style] {
+    gap: 10px !important;
+  }
 }

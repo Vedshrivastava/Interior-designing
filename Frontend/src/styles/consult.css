@@ -158,9 +158,6 @@
   width: 62px;
   height: 48px;
   object-fit: cover;
-  border-radius: 14px;
-  background: var(--ivory);
-  border: 1px solid rgba(201,168,124,0.35);
   flex-shrink: 0;
   transition: transform 0.3s ease;
 }

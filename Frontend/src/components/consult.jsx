@@ -3,7 +3,7 @@ import '../styles/consult.css';
 import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import logo from '../assets/logo.jpg';
+import logo from '../assets/logo.png';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark, faCalendarCheck, faUser, faEnvelope, faPhone, faLocationDot } from '@fortawesome/free-solid-svg-icons';
 

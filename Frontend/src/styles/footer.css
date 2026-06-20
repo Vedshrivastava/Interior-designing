@@ -102,8 +102,6 @@
   width: 130px;
   height: 100px;
   object-fit: cover;
-  border-radius: 18px;
-  border: 1px solid rgba(201,168,124,0.22);
   margin-bottom: 22px;
   flex-shrink: 0;
 }

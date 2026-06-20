@@ -1,6 +1,6 @@
 import React from 'react';
 import '../styles/footer.css';
-import logo from '../assets/logo.jpg';
+import logo from '../assets/logo.png';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify'; // Imported toast
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';

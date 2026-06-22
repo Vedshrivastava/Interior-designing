@@ -271,69 +271,22 @@ html { scroll-behavior: smooth; }
 ════════════════════════════════════════════ */
 .design-display-list {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 50px 30px; /* 50px vertical spacing, 30px horizontal */
   position: relative;
   z-index: 1;
 }
 
-/* Forcefully removes the 90px bottom margin from the individual cards 
-   and breaks the infinite scroll bug */
 .design-display-list > * {
-  margin: 0 !important; 
   min-width: 0;
   min-height: 0;
 }
 
 /* ════════════════════════════════════════════
    DESIGN CARD
+   Rendered by Design.jsx as .dc-card
+   All card styles live in design.css
 ════════════════════════════════════════════ */
-.design-slide {
-  position: relative;
-  overflow: hidden;
-  border-radius: 22px;
-  background: var(--white);
-  border: 1px solid rgba(201,168,124,0.1);
-  cursor: pointer;
-  transition: transform 0.38s ease, box-shadow 0.38s ease, border-color 0.38s ease;
-}
-
-.design-slide:hover {
-  transform: translateY(-6px);
-  border-color: rgba(201,168,124,0.35);
-  box-shadow: 0 22px 50px rgba(16,37,37,0.1);
-}
-
-/* alternate aspect ratios for visual rhythm */
-.design-slide:nth-child(odd)  img { aspect-ratio: 4/3; }
-.design-slide:nth-child(even) img { aspect-ratio: 16/10; }
-
-.design-slide img {
-  width: 100%;
-  object-fit: cover;
-  display: block;
-  border-radius: 22px 22px 0 0;
-  transition: transform 0.55s ease;
-}
-.design-slide:hover img { transform: scale(1.04); }
-
-/* gold sweep line on hover — bottom edge */
-.design-slide::after {
-  content: "";
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--gold), transparent);
-  transform: scaleX(0);
-  transition: transform 0.4s ease;
-}
-.design-slide:hover::after { transform: scaleX(1); }
-
-/* card info area (rendered by the Design component) */
-.design-slide .design-info,
-.design-slide > div:last-child {
-  padding: 20px 22px 22px;
-}
 
 /* ════════════════════════════════════════════
    EMPTY STATE

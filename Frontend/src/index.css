@@ -5,6 +5,23 @@
 @import "slick-carousel/slick/slick.css";
 @import "slick-carousel/slick/slick-theme.css";
 
+/* ================================================
+   GLOBAL SCROLLBAR REMOVAL
+================================================ */
+
+/* 1. For Chrome, Safari, Edge, and Opera */
+::-webkit-scrollbar {
+  display: none;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* 2. For Firefox, IE, and older Edge */
+html, body, * {
+  scrollbar-width: none;     /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
 /* Arrow container style */
 /* ================================================
    SLIDER ARROWS - SOPHISTICATED THEME

@@ -74,16 +74,6 @@ const Design = ({ id, name, description, images, points, setShowQuotePopup, setC
             View Images
           </span>
         </div>
-
-        {window.innerWidth <= 820 && (
-          <button
-            className="dc-modal-close"
-            onClick={closeModal}
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        )}
       </div>
 
       <div className="dc-card-body">

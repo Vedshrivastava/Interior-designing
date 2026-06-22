@@ -1,7 +1,7 @@
 /* ================================================
-   CONSULT / LOGIN MODAL — PROCESS SECTION THEME
+   CONSULT / LOGIN MODAL — FOOTER MATCHED THEME
    Backdrop: Dark blurred overlay
-   Card: Blush base + Forest Diamond Grid
+   Card: Deep Green base + Gold Diamond Grid + Gold Accents
 ================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
@@ -33,7 +33,7 @@
   box-sizing: border-box;
 
   /* Dark overlay so the card pops */
-  background: rgba(10, 22, 22, 0.55);
+  background: rgba(10, 22, 22, 0.75); /* Darkened slightly for better contrast with the green card */
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 
@@ -43,26 +43,13 @@
   animation: backdropIn 0.3s ease both;
 }
 
-/* Faint large background grid for the dark backdrop */
-.login::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  opacity: 0.04;
-  background-image:
-    repeating-linear-gradient(45deg,  var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px),
-    repeating-linear-gradient(-45deg, var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px);
-  pointer-events: none;
-  z-index: 0;
-}
-
 @keyframes backdropIn {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
 
 /* ════════════════════════════════════════════
-   CARD — Matches .hp-process section exactly
+   CARD — Matches .footer section exactly
 ════════════════════════════════════════════ */
 .login-container {
   position: relative;
@@ -70,9 +57,12 @@
   width: 100%;
   max-width: 460px;
 
-  /* Blush background just like the Process section */
-  background: var(--blush);
-  border: 1px solid rgba(16, 37, 37, 0.07);
+  /* Deep green background matching footer */
+  background: var(--green);
+  /* Added subtle radial glow matching the footer top */
+  background-image: radial-gradient(ellipse at top center, rgba(201,168,124,0.08) 0%, transparent 70%);
+  
+  border: 1px solid rgba(201, 168, 124, 0.15); /* Gold border instead of dark */
   border-radius: 24px;
   overflow: hidden;
 
@@ -80,8 +70,8 @@
   flex-direction: column;
 
   box-shadow: 
-    0 32px 80px rgba(0,0,0,0.15),
-    0 8px 32px rgba(16,37,37,0.08);
+    0 32px 80px rgba(0,0,0,0.4),
+    0 8px 32px rgba(0,0,0,0.2);
 
   animation: modalIn 0.4s cubic-bezier(.22,.61,.36,1) both;
   
@@ -92,12 +82,10 @@
 }
 
 .login-container:hover {
-  /* Lifts up and gets a golden border, retaining the blush background */
   transform: translateY(-8px);
-  border-color: var(--gold);
   box-shadow: 
-    0 40px 90px rgba(0,0,0,0.22),
-    0 20px 44px rgba(16, 37, 37, 0.12);
+    0 40px 90px rgba(0,0,0,0.5),
+    0 20px 44px rgba(0,0,0,0.3);
 }
 
 @keyframes modalIn {
@@ -122,15 +110,15 @@
   transform: scaleX(1); 
 }
 
-/* ── Process Section Diamond Grid Pattern directly on the Card ── */
+/* ── Footer Section Gold Grid Pattern directly on the Card ── */
 .login-container::after {
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.04;
+  opacity: 0.055;
   background-image:
-    repeating-linear-gradient(45deg,  var(--forest) 0, var(--forest) 1.5px, transparent 0, transparent 20px),
-    repeating-linear-gradient(-45deg, var(--forest) 0, var(--forest) 1.5px, transparent 0, transparent 20px);
+    repeating-linear-gradient(45deg,  var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px),
+    repeating-linear-gradient(-45deg, var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px);
   pointer-events: none;
   z-index: 0; /* Stays behind the content */
 }
@@ -175,7 +163,7 @@
   font-family: "Playfair Display", serif;
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--green); 
+  color: #f5ede0; /* Ivory header matching footer */
   margin: 0 0 3px;
   line-height: 1.2;
   letter-spacing: -0.3px;
@@ -184,32 +172,33 @@
 .login-header-text p {
   font-family: "Inter", sans-serif;
   font-size: 0.75rem;
-  color: var(--text-mid);
+  color: rgba(240, 230, 211, 0.6); /* Muted ivory matching footer text */
   margin: 0;
   letter-spacing: 0.3px;
 }
 
-/* Close button */
+/* Close button - Styled like footer social icons */
 .login-close {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: var(--ivory);
-  border: 1px solid rgba(16, 37, 37, 0.08);
-  color: var(--text-mid);
+  background: rgba(201,168,124,0.08);
+  border: 1px solid rgba(201,168,124,0.18);
+  color: var(--gold);
   font-size: 0.95rem;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
   line-height: 1;
 }
 .login-close:hover {
-  background: var(--white);
-  border-color: var(--gold);
-  color: var(--green);
+  background: rgba(201,168,124,0.18);
+  border-color: rgba(201,168,124,0.4);
+  color: var(--gold-lt);
+  transform: translateY(-2px);
 }
 
 /* ════════════════════════════════════════════
@@ -217,7 +206,7 @@
 ════════════════════════════════════════════ */
 .login-divider {
   height: 1px;
-  background: rgba(16, 37, 37, 0.07);
+  background: rgba(201, 168, 124, 0.15); /* Gold divider */
   margin: -4px 0;
 }
 
@@ -240,7 +229,7 @@
   font-family: "Inter", sans-serif;
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--forest);
+  color: var(--gold-lt); /* Gold labels */
   letter-spacing: 1.5px;
   text-transform: uppercase;
 }
@@ -249,10 +238,10 @@
   width: 100%;
   box-sizing: border-box;
   padding: 13px 16px;
-  background: var(--ivory); 
-  border: 1px solid rgba(16, 37, 37, 0.08);
+  background: rgba(0, 0, 0, 0.15); /* Dark transparent input background */
+  border: 1px solid rgba(201, 168, 124, 0.2); /* Faint gold border */
   border-radius: 12px;
-  color: var(--text);
+  color: var(--ivory); /* Light text when typing */
   font-family: "Inter", sans-serif;
   font-size: 0.9rem;
   outline: none;
@@ -260,12 +249,12 @@
 }
 
 .login-inputs input::placeholder {
-  color: var(--text-lt);
+  color: rgba(240, 230, 211, 0.35); /* Muted placeholder */
 }
 
 .login-inputs input:focus {
   border-color: var(--gold);
-  background: var(--white);
+  background: rgba(0, 0, 0, 0.25);
   box-shadow: 0 0 0 3px rgba(201, 168, 124, 0.15);
 }
 
@@ -277,8 +266,8 @@
   padding: 15px 24px;
   border: none;
   border-radius: 999px;
-  background: var(--green);
-  color: var(--gold-lt);
+  background: var(--gold); /* Gold button to stand out on dark background */
+  color: var(--green); /* Dark text for contrast */
   font-family: "Inter", sans-serif;
   font-size: 0.85rem;
   font-weight: 700;
@@ -294,9 +283,9 @@
 }
 
 .login-container button[type="submit"]:hover {
-  background: var(--forest);
+  background: var(--gold-lt);
   transform: translateY(-2px);
-  box-shadow: 0 10px 26px rgba(16, 37, 37, 0.18);
+  box-shadow: 0 10px 26px rgba(201, 168, 124, 0.2); /* Gold glow on hover */
 }
 
 .login-container button[type="submit"]:active {
@@ -313,7 +302,7 @@
   text-align: center;
   font-family: "Inter", sans-serif;
   font-size: 0.72rem;
-  color: var(--text-lt);
+  color: rgba(240, 230, 211, 0.5); /* Muted ivory note */
   margin-top: -8px;
   line-height: 1.6;
 }

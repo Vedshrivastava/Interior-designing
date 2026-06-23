@@ -8,32 +8,36 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 
 // 1. Accept the prop here
 const Add = ({ url, setIsLoading, isLoading }) => {
-    const [images, setImages] = useState([]); 
+    const [images, setImages] = useState([]);
     const [data, setData] = useState({
         name: "",
         description: "",
         price: "",
-        category: "Kitchen Designs" 
+        category: "Kitchen Designs",
+        isFeatured: false // Add this
     });
-    const [points, setPoints] = useState([""]); 
-    
+    const [points, setPoints] = useState([""]);
+
     // 2. DELETE THIS LINE:
     // const [isLoading, setIsLoading] = useState(false); 
-    
+
     const token = localStorage.getItem('token');
 
     const categories = [
-        'Kitchen Designs', 'Bedroom Designs', 'Bathroom Designs', 
-        'Lounge area Designs', 'Kids Room Designs', 'TV Unit Designs', 
-        'Commercial Designs', 'Mandir Designs', 'Garden Designs', 
-        'House Exterior Designs', 'PVC Louvers', 'WPC Louvers', 
-        'Charcoal Louvers', 'Five G Louvers', 'Marble sheets', 
+        'Kitchen Designs', 'Bedroom Designs', 'Bathroom Designs',
+        'Lounge area Designs', 'Kids Room Designs', 'TV Unit Designs',
+        'Commercial Designs', 'Mandir Designs', 'Garden Designs',
+        'House Exterior Designs', 'PVC Louvers', 'WPC Louvers',
+        'Charcoal Louvers', 'Five G Louvers', 'Marble sheets',
         'Acrylic Sheets', 'Flooring', 'PVC Panels', 'Projects'
     ];
 
     const onChangeHandler = (event) => {
-        const { name, value } = event.target;
-        setData(prevData => ({ ...prevData, [name]: value }));
+        const { name, value, type, checked } = event.target;
+        setData(prevData => ({
+            ...prevData,
+            [name]: type === 'checkbox' ? checked : value
+        }));
     };
 
     const onPointChangeHandler = (index, value) => {
@@ -47,11 +51,11 @@ const Add = ({ url, setIsLoading, isLoading }) => {
 
     const onImageChangeHandler = (event) => {
         const selectedFiles = Array.from(event.target.files);
-        setImages(prevImages => [...prevImages, ...selectedFiles]); 
+        setImages(prevImages => [...prevImages, ...selectedFiles]);
     };
 
     const removeImage = (indexToRemove) => {
-        setImages(images.filter((_, index) => index !== indexToRemove)); 
+        setImages(images.filter((_, index) => index !== indexToRemove));
     };
 
     const onSubmitHandler = async (event) => {
@@ -62,18 +66,18 @@ const Add = ({ url, setIsLoading, isLoading }) => {
         formData.append("name", data.name);
         formData.append("description", data.description);
         formData.append("category", data.category);
-        formData.append("points", JSON.stringify(points)); 
-
+        formData.append("points", JSON.stringify(points));
+        formData.append("isFeatured", data.isFeatured);
         images.forEach((image) => {
-            formData.append("images", image); 
+            formData.append("images", image);
         });
 
         try {
             const response = await axios.post(`${url}/api/design/add`, formData, { headers: { Authorization: `Bearer ${token}` } });
             if (response.data.success) {
                 setData({ name: "", description: "", category: categories[0] });
-                setPoints([""]); 
-                setImages([]); 
+                setPoints([""]);
+                setImages([]);
                 toast.success(response.data.message);
             } else {
                 toast.error(response.data.message);
@@ -139,6 +143,20 @@ const Add = ({ url, setIsLoading, isLoading }) => {
                                 <option key={index} value={cat}>{cat}</option>
                             ))}
                         </select>
+                    </div>
+
+                    <div className="add-featured flex-col">
+                        <h2>Visibility</h2>
+                        <label className="featured-toggle">
+                            <input
+                                type="checkbox"
+                                name="isFeatured"
+                                checked={data.isFeatured}
+                                onChange={onChangeHandler}
+                            />
+                            <span className="toggle-slider"></span>
+                            <span className="toggle-label">Feature on Homepage</span>
+                        </label>
                     </div>
                 </div>
 

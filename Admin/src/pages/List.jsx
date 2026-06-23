@@ -45,7 +45,7 @@ const List = ({ url, setIsLoading, isLoading }) => {
     if (!lightbox.open) return;
     const handleKey = (e) => {
       if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowLeft')  setLightbox(prev => ({ ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }));
+      if (e.key === 'ArrowLeft') setLightbox(prev => ({ ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }));
       if (e.key === 'ArrowRight') setLightbox(prev => ({ ...prev, index: (prev.index + 1) % prev.images.length }));
     };
     window.addEventListener('keydown', handleKey);
@@ -54,8 +54,9 @@ const List = ({ url, setIsLoading, isLoading }) => {
 
   // --- EDIT MODAL STATES ---
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editData, setEditData] = useState({ _id: '', name: '', category: '', description: '', points: [] });
-
+  const [editData, setEditData] = useState({
+    _id: '', name: '', category: '', description: '', points: [], isFeatured: false
+  });
   const [keptImages, setKeptImages] = useState([]);
   const [editImages, setEditImages] = useState([]);
 
@@ -118,7 +119,8 @@ const List = ({ url, setIsLoading, isLoading }) => {
       name: item.name,
       category: item.category,
       description: item.description,
-      points: item.points || []
+      points: item.points || [],
+      isFeatured: item.isFeatured || false // Add this
     });
     setKeptImages(item.images || []);
     setEditImages([]);
@@ -126,8 +128,11 @@ const List = ({ url, setIsLoading, isLoading }) => {
   }
 
   const handleEditChange = (e) => {
-    const { name, value } = e.target;
-    setEditData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setEditData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   }
 
   const handleEditPointChange = (index, value) => {
@@ -166,7 +171,7 @@ const List = ({ url, setIsLoading, isLoading }) => {
     formData.append("description", editData.description);
     formData.append("category", editData.category);
     formData.append("points", JSON.stringify(editData.points));
-
+    formData.append("isFeatured", editData.isFeatured);
     formData.append("existingImages", JSON.stringify(keptImages));
 
     editImages.forEach(img => {
@@ -254,6 +259,19 @@ const List = ({ url, setIsLoading, isLoading }) => {
                     <option key={index} value={cat}>{cat}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className="add-featured flex-col" style={{ marginTop: '10px' }}>
+                <label className="featured-toggle">
+                  <input
+                    type="checkbox"
+                    name="isFeatured"
+                    checked={editData.isFeatured}
+                    onChange={handleEditChange}
+                  />
+                  <span className="toggle-slider"></span>
+                  <span className="toggle-label">Feature on Homepage</span>
+                </label>
               </div>
 
               <div className="add-product-points flex-col">

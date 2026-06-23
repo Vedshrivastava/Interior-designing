@@ -5,7 +5,7 @@ import '../styles/designDisplay.css';
 import Design from '../components/Design';
 import Footer from '../components/Footer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPalette, faLayerGroup } from '@fortawesome/free-solid-svg-icons';
+import { faPalette, faLayerGroup, faStar } from '@fortawesome/free-solid-svg-icons';
 
 const CATEGORIES = [
   'Kitchen Designs',
@@ -33,7 +33,6 @@ const LABELS = {
   'Garden Designs': 'Garden',
 };
 
-// 1. ADDED setShowQuotePopup TO THE PROPS HERE
 const DesignDisplay = ({ setShowLogin, setShowQuotePopup, setConsultData, consultData }) => {
   const url = "http://localhost:3000";
   const { category } = useParams();
@@ -62,12 +61,14 @@ const DesignDisplay = ({ setShowLogin, setShowQuotePopup, setConsultData, consul
 
   const handleCategory = (cat) => setCurrentCategory(cat);
 
-  const visibleDesigns = designList.filter(
-    item => currentCategory === 'All' || currentCategory === item.category
-  ).reverse();
-
-  /* short display name for the header */
   const displayName = LABELS[currentCategory] || currentCategory;
+
+  const categoryDesigns = designList
+    .filter(item => item.category === currentCategory)
+    .reverse();
+
+  const featuredDesigns = categoryDesigns.filter(item => item.isFeatured);
+  const regularDesigns = categoryDesigns.filter(item => !item.isFeatured);
 
   return (
     <div>
@@ -76,14 +77,12 @@ const DesignDisplay = ({ setShowLogin, setShowQuotePopup, setConsultData, consul
         {/* ── PAGE HEADER ── */}
         <div className="dd-header">
           <div className="dd-header-inner">
-
             <div className="dd-header-left">
               <div className="dd-overline">
                 <FontAwesomeIcon icon={faPalette} /> Our Designs
               </div>
               <h1>{displayName}</h1>
             </div>
-
             <div className="dd-header-right">
               <p>
                 Explore our curated collection of {displayName.toLowerCase()} — each
@@ -91,10 +90,9 @@ const DesignDisplay = ({ setShowLogin, setShowQuotePopup, setConsultData, consul
               </p>
               <div className="dd-count-badge">
                 <FontAwesomeIcon icon={faLayerGroup} />
-                {visibleDesigns.length} design{visibleDesigns.length !== 1 ? 's' : ''}
+                {categoryDesigns.length} design{categoryDesigns.length !== 1 ? 's' : ''}
               </div>
             </div>
-
           </div>
         </div>
 
@@ -124,12 +122,61 @@ const DesignDisplay = ({ setShowLogin, setShowQuotePopup, setConsultData, consul
           ))}
         </div>
 
+        {/* ── FEATURED SECTION ── */}
+        {featuredDesigns.length > 0 && (
+          <section className="dd-featured-section">
+
+            {/* Section header */}
+            <div className="dd-featured-header">
+              <div className="dd-featured-header-left">
+                <span className="dd-featured-overline">
+                  <FontAwesomeIcon icon={faStar} /> Featured Picks
+                </span>
+                <h2 className="dd-featured-heading">Handpicked for You</h2>
+              </div>
+              <p className="dd-featured-subtext">
+                Our team's top selections — standout designs with exceptional detailing and finish.
+              </p>
+            </div>
+
+            {/* Featured card grid — same structure as regular grid */}
+            <div className="dd-featured-grid">
+              {featuredDesigns.map((item) => (
+                <div key={item._id} className="dd-featured-card-wrap">
+                  {/* Featured ribbon */}
+                  <div className="dd-featured-ribbon">
+                    <FontAwesomeIcon icon={faStar} />
+                    Featured
+                  </div>
+                  <Design
+                    id={item._id}
+                    name={item.name}
+                    description={item.description}
+                    images={item.images}
+                    points={item.points}
+                    setShowLogin={setShowLogin}
+                    setConsultData={setConsultData}
+                    consultData={consultData}
+                    setShowQuotePopup={setShowQuotePopup}
+                    category={item.category}
+                  />
+                </div>
+              ))}
+            </div>
+
+          </section>
+        )}
+
         {/* ── DESIGN GRID ── */}
         <div className="dd-body">
+          {regularDesigns.length > 0 && featuredDesigns.length > 0 && (
+            <div className="dd-section-label">
+              All Designs
+            </div>
+          )}
           <div className="design-display-list">
-            {visibleDesigns.length > 0 ? (
-              visibleDesigns.map((item) => (
-                // In designDisplay.jsx
+            {categoryDesigns.length > 0 ? (
+              regularDesigns.map((item) => (
                 <Design
                   key={item._id}
                   id={item._id}
@@ -141,7 +188,7 @@ const DesignDisplay = ({ setShowLogin, setShowQuotePopup, setConsultData, consul
                   setConsultData={setConsultData}
                   consultData={consultData}
                   setShowQuotePopup={setShowQuotePopup}
-                  category={item.category} // <-- ADD THIS LINE
+                  category={item.category}
                 />
               ))
             ) : (

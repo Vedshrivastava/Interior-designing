@@ -21,7 +21,7 @@ const addDesign = async (req, res) => {
         if (req.files && req.files.length > 0) {
             for (const file of req.files) {
                 try {
-                    const result = await cloudinary.uploader.upload(file.path, { 
+                    const result = await cloudinary.uploader.upload(file.path, {
                         folder: 'design_images'
                     });
                     imageUrls.push(result.secure_url);
@@ -41,7 +41,9 @@ const addDesign = async (req, res) => {
             description: req.body.description,
             category: req.body.category,
             images: imageUrls,
-            points: points // Save the points field
+            points: points,
+            // Add this new line:
+            isFeatured: req.body.isFeatured === 'true'
         });
 
         await design.save();
@@ -54,15 +56,15 @@ const addDesign = async (req, res) => {
 
 const listDesigns = async (req, res) => {
     try {
-        const { category } = req.query; 
+        const { category } = req.query;
         let filter = {};
 
         if (category) {
             filter.category = category;
         }
-        
+
         const designs = await Design.find(filter);
-        
+
         res.json({ success: true, data: designs });
     } catch (error) {
         console.error('Error fetching design list:', error);
@@ -108,18 +110,21 @@ const updateDesign = async (req, res) => {
         const parsedPoints = points ? JSON.parse(points) : [];
         const parsedExistingImages = existingImages ? JSON.parse(existingImages) : []; // Images user chose to KEEP
 
-        let updateData = {
-            name,
-            description,
-            category,
-            points: parsedPoints
-        };
+// Find this block in updateDesign
+let updateData = {
+    name,
+    description,
+    category,
+    points: parsedPoints,
+    // Add this new line:
+    isFeatured: req.body.isFeatured === 'true'
+};
 
         const existingDesign = await Design.findById(_id);
 
         // 1. Delete removed images from Cloudinary
         const imagesToDelete = existingDesign.images.filter(img => !parsedExistingImages.includes(img));
-        
+
         for (const imageUrl of imagesToDelete) {
             try {
                 const publicId = imageUrl.split('/').pop().split('.')[0];

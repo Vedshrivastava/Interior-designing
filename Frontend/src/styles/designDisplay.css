@@ -358,3 +358,191 @@ html { scroll-behavior: smooth; }
   .dd-cat-chip { padding: 9px 14px; font-size: 0.75rem; }
   .design-slide img { aspect-ratio: 4/3 !important; }
 }
+
+/* ════════════════════════════════════════════
+   FEATURED SECTION — card grid with crosshatch bg
+   Mirrors testimonial section pattern from services.css
+════════════════════════════════════════════ */
+
+.dd-featured-section {
+  position: relative;
+  padding: 60px 6% 64px;
+  background: var(--blush);
+  overflow: hidden;
+}
+
+/* Diagonal crosshatch — same as testimonial section */
+.dd-featured-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  background-image:
+    repeating-linear-gradient(45deg,  var(--forest) 0, var(--forest) 1.5px, transparent 0, transparent 20px),
+    repeating-linear-gradient(-45deg, var(--forest) 0, var(--forest) 1.5px, transparent 0, transparent 20px);
+  pointer-events: none;
+}
+
+/* Soft radial highlight in center */
+.dd-featured-section::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 40%, rgba(201,168,124,0.07) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+/* ── Section header ── */
+.dd-featured-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  margin-bottom: 44px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid rgba(201,168,124,0.15);
+}
+
+.dd-featured-header-left {
+  flex: 1;
+}
+
+.dd-featured-overline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+
+.dd-featured-heading {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  font-weight: 700;
+  color: var(--green);
+  margin: 0;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+
+.dd-featured-subtext {
+  max-width: 340px;
+  text-align: right;
+  font-family: "Inter", sans-serif;
+  font-size: 0.91rem;
+  color: var(--text-mid);
+  line-height: 1.75;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* ── Featured card grid — same columns as regular grid ── */
+.dd-featured-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 50px 30px;
+}
+
+.dd-featured-grid > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ── Wrapper that adds the ribbon without touching Design.jsx ── */
+.dd-featured-card-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Make the inner dc-card fill the wrapper fully */
+.dd-featured-card-wrap > .dc-card {
+  flex: 1;
+}
+
+/* Gold ribbon tag in top-left corner of card image */
+.dd-featured-ribbon {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  background: var(--green);
+  color: var(--gold);
+  border: 1px solid rgba(201,168,124,0.35);
+  border-radius: 20px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(16,37,37,0.25);
+}
+
+/* ── "All Designs" section label ── */
+.dd-section-label {
+  font-family: "Inter", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.dd-section-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(201,168,124,0.25), transparent);
+}
+
+/* ════════════════════════════════════════════
+   FEATURED — RESPONSIVE
+════════════════════════════════════════════ */
+@media (max-width: 1100px) {
+  .dd-featured-section { padding: 50px 5% 54px; }
+  .dd-featured-grid { gap: 20px; }
+}
+
+@media (max-width: 900px) {
+  .dd-featured-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .dd-featured-subtext {
+    text-align: left;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 780px) {
+  .dd-featured-section { padding: 40px 16px 48px; }
+  .dd-featured-grid {
+    grid-template-columns: 1fr;
+    gap: 35px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dd-featured-heading { font-size: 1.7rem; }
+}

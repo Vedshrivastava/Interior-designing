@@ -383,6 +383,21 @@
 /* ══════════════════════════════════════════════
    5. EDIT MODAL — Elevated Overlay Form
 ══════════════════════════════════════════════ */
+
+/* Fix: overlay must be fixed to the viewport, not scrolling with the page */
+.list .submit-loader-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 99999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(11, 26, 26, 0.6) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    overflow-y: auto !important;
+    padding: 24px !important;
+}
 .edit-modal {
     background-color: var(--white) !important;
     border: 1px solid rgba(201,168,124,0.22) !important;

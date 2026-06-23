@@ -236,7 +236,7 @@ const List = ({ url, setIsLoading, isLoading }) => {
       )}
 
       {/* --- EDIT MODAL (UNTOUCHED) --- */}
-      {isEditModalOpen && (
+      {isEditModalOpen && ReactDOM.createPortal(
         <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
           <div className="loader-modal-box edit-modal">
             <h2>Edit Design</h2>
@@ -317,7 +317,8 @@ const List = ({ url, setIsLoading, isLoading }) => {
                 </button>                      </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- NEW: EDITORIAL HEADER & FILTER BAR --- */}

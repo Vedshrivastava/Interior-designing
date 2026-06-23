@@ -384,8 +384,8 @@
    5. EDIT MODAL — Elevated Overlay Form
 ══════════════════════════════════════════════ */
 
-/* Fix: overlay must be fixed to the viewport, not scrolling with the page */
-.list .submit-loader-overlay {
+/* Portalled to document.body — must be fixed to the viewport */
+.submit-loader-overlay {
     position: fixed !important;
     inset: 0 !important;
     z-index: 99999 !important;

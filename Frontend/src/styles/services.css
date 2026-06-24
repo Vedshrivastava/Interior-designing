@@ -616,6 +616,239 @@
 }
 
 /* ════════════════════════════════════════════
+   FILTER BAR
+════════════════════════════════════════════ */
+.svc-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid rgba(201,168,124,0.14);
+    position: relative;
+    z-index: 1;
+}
+
+.svc-filter-btn {
+    padding: 9px 22px;
+    border-radius: 30px;
+    border: 1px solid rgba(201,168,124,0.3);
+    background: var(--white);
+    color: var(--text-mid);
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.22s ease;
+}
+
+.svc-filter-btn:hover {
+    border-color: var(--gold);
+    color: var(--green);
+    background: rgba(201,168,124,0.07);
+    transform: translateY(-1px);
+}
+
+.svc-filter-btn.active {
+    background: var(--green);
+    border-color: var(--green);
+    color: var(--gold-lt);
+    font-weight: 700;
+    box-shadow: 0 4px 14px rgba(16,37,37,0.18);
+}
+
+.svc-filter-count {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.75rem;
+    color: var(--text-lt);
+    font-weight: 500;
+    margin-left: auto;
+}
+
+/* ════════════════════════════════════════════
+   GET STARTED — 3 steps (replaces 6-step process)
+════════════════════════════════════════════ */
+.svc-start-section {
+    padding: 90px 6%;
+    background: var(--green);
+    position: relative;
+    overflow: hidden;
+}
+
+.svc-start-section::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.06;
+    background-image:
+        repeating-linear-gradient(45deg,  var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px),
+        repeating-linear-gradient(-45deg, var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px);
+    pointer-events: none;
+}
+
+.svc-start-section::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(201,168,124,0.08) 0%, transparent 65%);
+    pointer-events: none;
+}
+
+.svc-start-head {
+    text-align: center;
+    max-width: 560px;
+    margin: 0 auto 64px;
+    position: relative;
+    z-index: 1;
+}
+
+.svc-start-head h2 {
+    font-family: "Playfair Display", serif;
+    font-size: clamp(2.4rem, 5vw, 3.6rem);
+    color: #f5ede0;
+    margin: 8px 0 16px;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+}
+
+.svc-start-head p {
+    color: rgba(240,230,211,0.65);
+    font-size: 0.97rem;
+    line-height: 1.8;
+    margin: 0;
+}
+
+.svc-start-head .svc-section-tag { color: var(--gold); }
+
+/* 3-column grid */
+.svc-start-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Step card */
+.svc-start-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(201,168,124,0.18);
+    border-radius: 22px;
+    padding: 36px 30px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.35s ease, border-color 0.35s ease, background 0.35s ease;
+}
+
+.svc-start-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(201,168,124,0.42);
+    background: rgba(255,255,255,0.08);
+}
+
+.svc-start-card::after {
+    content: "";
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    transform: scaleX(0);
+    transition: transform 0.4s ease;
+}
+.svc-start-card:hover::after { transform: scaleX(1); }
+
+.svc-start-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.svc-start-num {
+    font-family: "Playfair Display", serif;
+    font-size: 2.6rem;
+    color: rgba(201,168,124,0.25);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -2px;
+}
+
+.svc-start-icon {
+    width: 48px; height: 48px;
+    border-radius: 14px;
+    background: rgba(201,168,124,0.1);
+    border: 1px solid rgba(201,168,124,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    color: var(--gold);
+    transition: background 0.3s ease, transform 0.3s ease;
+}
+.svc-start-card:hover .svc-start-icon {
+    background: rgba(201,168,124,0.2);
+    transform: scale(1.08) rotate(-5deg);
+}
+
+.svc-start-card h3 {
+    font-family: "Playfair Display", serif;
+    font-size: 1.15rem;
+    color: #f5ede0;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.25;
+}
+
+.svc-start-card p {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.88rem;
+    color: rgba(240,230,211,0.65);
+    line-height: 1.72;
+    margin: 0;
+    flex: 1;
+}
+
+.svc-start-cta {
+    align-self: flex-start;
+    margin-top: 4px;
+    padding: 11px 22px;
+    background: var(--gold);
+    color: var(--green);
+    border: none;
+    border-radius: 30px;
+    font-family: "DM Sans", sans-serif;
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.25s ease;
+}
+.svc-start-cta:hover {
+    background: var(--gold-lt);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(201,168,124,0.3);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .svc-start-grid { grid-template-columns: 1fr; gap: 16px; }
+    .svc-start-section { padding: 70px 5%; }
+    .svc-filter-count { display: none; }
+}
+
+@media (max-width: 768px) {
+    .svc-filter-bar { margin-bottom: 32px; }
+    .svc-start-section { padding: 56px 20px; }
+    .svc-start-head { margin-bottom: 40px; }
+    .svc-start-card { padding: 28px 22px; }
+}
+
+/* ════════════════════════════════════════════
    PROCESS SECTION — blush bg, matches hp-process
 ════════════════════════════════════════════ */
 .process-section {

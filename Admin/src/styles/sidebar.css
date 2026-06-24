@@ -28,7 +28,7 @@
   flex-direction: column;
   padding: 28px 0 32px;
   border-right: 1px solid rgba(201,168,124,0.12);
-  box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+  box-shadow: none;
   box-sizing: border-box;
   overflow-y: auto;
   scrollbar-width: none;
@@ -200,61 +200,94 @@
   
   /* Strict Mobile Devices */
 /* ════════════════════════════════════════════
-   RESPONSIVE — Horizontal Sub-Nav < 480px
+   RESPONSIVE — Hide sticky bar < 480px
+   Navigation is handled by the slide-in panel
+   triggered from the navbar hamburger button.
 ════════════════════════════════════════════ */
 @media (max-width: 480px) {
+    .sidebar { display: none !important; }
+}
+
+/* Keep this block only as dead code reference — not used */
+@media (max-width: 0px) {
     .sidebar {
       width: 100%;
-      height: 54px; /* Fixed height for horizontal bar */
+      height: auto;          /* grows to fit 2 rows */
       min-height: auto;
-      top: 58px;    /* Sits directly underneath the mobile navbar */
+      top: 58px;
       left: 0;
       flex-direction: row;
+      flex-wrap: wrap;       /* key: allows 2nd row */
       padding: 0;
       border-right: none;
-      border-bottom: 1px solid rgba(201,168,124,0.14); /* Bottom border instead of right */
+      border-bottom: 1px solid rgba(201,168,124,0.14);
       box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-      overflow-y: visible; /* Disable vertical scroll */
+      overflow-y: visible;
     }
-  
+
+    /* Each section group becomes transparent — its children
+       flow directly into the sidebar's flex context */
     .sidebar-options {
-      flex-direction: row; /* Layout links left-to-right */
-      width: 100%;
-      height: 100%;
-      justify-content: space-around; /* Distribute items across the screen width */
-      align-items: center;
-      gap: 0;
-      padding: 0;
+      display: contents;
     }
-  
+
+    /* 4 items per row = 25% each */
     .sidebar-option {
-      padding: 0;
-      height: 100%;
-      flex: 1; /* Assigns equal width to every navigation link */
+      flex: 0 0 25%;
+      max-width: 25%;
+      min-height: 58px;
+      height: auto;
+      padding: 7px 2px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       justify-content: center;
+      gap: 3px;
       border-radius: 0;
-      background: transparent !important; /* Keeps row background uniform */
+      background: transparent !important;
+      border-right: 1px solid rgba(201,168,124,0.07);
+      border-bottom: 1px solid rgba(201,168,124,0.07);
     }
-  
-    /* Move the gold indicator line to the bottom edge of the active tab */
+
+    .sidebar-option:nth-child(4n) { border-right: none; }
+
+    /* Gold indicator at bottom of active tab */
     .sidebar-option.active::before {
-      left: 20%;
-      right: 20%;
+      left: 15%;
+      right: 15%;
       bottom: 0;
       top: auto;
       width: auto;
-      height: 3px;
-      border-radius: 3px 3px 0 0;
+      height: 2px;
+      border-radius: 2px 2px 0 0;
     }
-  
+
     .sidebar-option-icon {
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       border-radius: 8px;
+      font-size: 0.78rem;
     }
-  
-    /* Completely strip touch tooltips out on mobile devices */
-    .sidebar-option::after {
-      display: none !important;
+
+    /* Show tiny label below icon — allow wrapping for longer names */
+    .sidebar-option p {
+      display: block;
+      font-size: 0.5rem;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      color: inherit;
+      text-align: center;
+      line-height: 1.25;
+      white-space: normal;
+      word-break: break-word;
+      max-width: 95%;
+      padding: 0 2px;
     }
+
+    /* Hide section labels and dividers */
+    .sidebar-section-label,
+    .sidebar-divider { display: none !important; }
+
+    /* No tooltips */
+    .sidebar-option::after { display: none !important; }
   }

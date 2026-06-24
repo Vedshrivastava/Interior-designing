@@ -18,11 +18,11 @@ import Footer from '../components/Footer';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faCrown, faPalette, faBuilding, faArrowRight, faCalendarCheck,
+  faCrown, faLayerGroup, faBuilding, faArrowRight, faCalendarCheck,
   faCheck, faCubes, faUtensils, faBed, faBath, faCouch, faTv,
   faChild, faDraftingCompass, faCube, faBoxes, faHammer, faHandshake,
-  faHome, faQuoteLeft, faIndustry, faStar, faClock,
-  faWandMagicSparkles, faMedal, faRulerCombined, faShieldAlt
+  faHome, faQuoteLeft, faIndustry, faStar, faClock, faTag,
+  faMedal, faRulerCombined, faShieldAlt
 } from '@fortawesome/free-solid-svg-icons';
 
 
@@ -193,7 +193,7 @@ const Home = ({ setShowLogin }) => {
         <div className='hp-section-head sr-item' ref={sr}>
           <div className='hp-sh-left'>
             <span className='hp-overline'>
-              <FontAwesomeIcon icon={faPalette} /> Our Expertise
+              <FontAwesomeIcon icon={faLayerGroup} /> Our Expertise
             </span>
 
             <h2>
@@ -379,7 +379,7 @@ const Home = ({ setShowLogin }) => {
               <img src={rates} alt="Affordable Rates" />
               <div className='hp-adv-feature-overlay' />
               <div className='hp-adv-feature-tag'>
-                <FontAwesomeIcon icon={faCubes} /> Pricing
+                <FontAwesomeIcon icon={faTag} /> Pricing
               </div>
             </div>
             <div className='hp-adv-feature-body'>
@@ -529,7 +529,7 @@ const Home = ({ setShowLogin }) => {
       <section className='hp-cta'>
         <div className='hp-cta-grid-texture' />
         <div className='hp-cta-inner sr-item' ref={sr}>
-          <span className='hp-overline light'><FontAwesomeIcon icon={faWandMagicSparkles} /> Begin Your Journey</span>
+          <span className='hp-overline light'><FontAwesomeIcon icon={faCrown} /> Begin Your Journey</span>
           <h2>Ready to Transform<br />Your Space?</h2>
           <p>Let's craft an interior that reflects your personality, lifestyle and aspirations.</p>
           <div className='hp-cta-actions'>

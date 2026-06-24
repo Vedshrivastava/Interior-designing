@@ -26,9 +26,10 @@ const signTokenForConsumer = async (user) => {
 const signTokenForAdmin = async (user) => {
   return JWT.sign(
     {
-      id: user._id,
-      name: user.name,
+      id:    (user._id ?? user.id)?.toString(),
+      name:  user.name,
       email: user.email,
+      role:  user.role,
     },
     process.env.JWT_KEY_ADMIN,
     {

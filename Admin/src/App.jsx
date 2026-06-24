@@ -8,6 +8,8 @@ import Orders from './pages/Orders';
 import Quotes from './pages/Quotes';
 import AddProject from './pages/AddProject';
 import ListProjects from './pages/ListProjects';
+import MyAccount      from './pages/MyAccount';
+import AdminRequests  from './pages/AdminRequests';
 import AddProduct from './pages/AddProduct';
 import ListProducts from './pages/ListProducts';
 import './index.css';
@@ -36,7 +38,7 @@ const App = () => {
   
     isAdmin =
       !!localStorage.getItem("token") &&
-      user?.role === "ADMIN";
+      (user?.role === "ADMIN" || user?.role === "MASTER");
   } catch (err) {
     isAdmin = false;
   }
@@ -139,6 +141,22 @@ const App = () => {
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
                   <ListProducts url={url} setIsLoading={setIsLoading} isLoading={isLoading} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/admin-requests'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <AdminRequests url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/my-account'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <MyAccount url={url} />
                 </ProtectedRoute>
               }
             />

@@ -6,11 +6,11 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import Footer from '../components/Footer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faCubes, faLayerGroup, faCalendarCheck, faWandMagicSparkles,
+  faStore, faLayerGroup, faCalendarCheck, faCrown,
   faChevronLeft, faChevronRight, faStar, faCircleInfo,
   faDroplet, faSun, faFire, faCloudRain, faLeaf, faWrench,
   faShieldHalved, faVolumeXmark, faTemperatureHalf, faShield,
-  faPen, faHeartPulse, faCheck, faLayerGroup as faLayer,
+  faPen, faCheck, faLayerGroup as faLayer,
 } from '@fortawesome/free-solid-svg-icons';
 
 /* ─── Constants ──────────────────────────────────────────────── */
@@ -34,7 +34,7 @@ const SPEC_META = {
   'Scratch Resistant':  { icon: faShield,         color: '#64748b' },
   'Fade Resistant':     { icon: faSun,            color: '#a78bfa' },
   'Customizable':       { icon: faPen,            color: '#c9a87c' },
-  'Non-Toxic':          { icon: faHeartPulse,     color: '#10b981' },
+  'Non-Toxic':          { icon: faLeaf,           color: '#10b981' },
   'Rust Resistant':     { icon: faShieldHalved,   color: '#78716c' },
 };
 
@@ -114,6 +114,9 @@ const ProductCard = ({ product, setShowLogin }) => {
     <div className="prod-modal-backdrop" onClick={closeModal} role="dialog" aria-modal="true" aria-label={name}>
       <div className="prod-modal" onClick={e => e.stopPropagation()}>
 
+        {/* Close — on modal container so it never scrolls away */}
+        <button className="prod-modal-close" onClick={closeModal} aria-label="Close">✕</button>
+
         {/* Left — gallery */}
         <div className="prod-modal-gallery">
           <div className="prod-modal-main-img-wrap" onClick={() => openLb(activeThumb)}>
@@ -139,8 +142,6 @@ const ProductCard = ({ product, setShowLogin }) => {
 
         {/* Right — content */}
         <div className="prod-modal-content">
-          <button className="prod-modal-close" onClick={closeModal} aria-label="Close">✕</button>
-
           <div className="prod-modal-tag-row">
             <span className="prod-modal-tag">{category}</span>
             {subcategory && <span className="prod-modal-tag prod-modal-tag--sub">{subcategory}</span>}
@@ -224,6 +225,7 @@ const ProductCard = ({ product, setShowLogin }) => {
               Get Free Consultation <FontAwesomeIcon icon={faCalendarCheck} />
             </button>
             <p className="prod-modal-cta-note">Our team will help you choose and source the right products for your project.</p>
+            <button className="prod-modal-close-btn" onClick={closeModal}>Close</button>
           </div>
         </div>
       </div>
@@ -297,7 +299,7 @@ const Products = ({ setShowLogin }) => {
         <div className="products-header-inner">
           <div className="products-header-left">
             <div className="prod-overline">
-              <FontAwesomeIcon icon={faCubes} /> Our Products
+              <FontAwesomeIcon icon={faStore} /> Our Products
             </div>
             <h2 className="products-heading">Product Catalogue</h2>
           </div>
@@ -366,7 +368,7 @@ const Products = ({ setShowLogin }) => {
         <div className="products-grid">
           {loading ? (
             <div className="prod-empty">
-              <div className="prod-empty-icon"><FontAwesomeIcon icon={faCubes} /></div>
+              <div className="prod-empty-icon"><FontAwesomeIcon icon={faStore} /></div>
               <h3>Loading products…</h3>
             </div>
           ) : filtered.length > 0 ? (
@@ -375,7 +377,7 @@ const Products = ({ setShowLogin }) => {
             ))
           ) : (
             <div className="prod-empty">
-              <div className="prod-empty-icon"><FontAwesomeIcon icon={faCubes} /></div>
+              <div className="prod-empty-icon"><FontAwesomeIcon icon={faStore} /></div>
               <h3>No products here yet</h3>
               <p>We're adding products to this section. Check back shortly.</p>
             </div>
@@ -387,7 +389,7 @@ const Products = ({ setShowLogin }) => {
       <div className="prod-cta">
         <div className="prod-cta-inner">
           <div className="prod-cta-overline">
-            <FontAwesomeIcon icon={faWandMagicSparkles} /> Work With Us
+            <FontAwesomeIcon icon={faCrown} /> Work With Us
           </div>
           <h2>Need Help Choosing?</h2>
           <p>

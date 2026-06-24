@@ -6,7 +6,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import Footer from '../components/Footer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faBuilding, faHome, faLayerGroup, faCalendarCheck, faWandMagicSparkles,
+  faBuilding, faHome, faLayerGroup, faCalendarCheck, faCrown,
   faLocationDot, faRulerCombined, faClock, faCalendarDays, faQuoteLeft,
   faChevronLeft, faChevronRight, faStar,
 } from '@fortawesome/free-solid-svg-icons';
@@ -364,7 +364,7 @@ const Projects = ({ setShowLogin }) => {
       <div className="proj-cta">
         <div className="proj-cta-inner">
           <div className="proj-cta-overline">
-            <FontAwesomeIcon icon={faWandMagicSparkles} /> Begin Your Journey
+            <FontAwesomeIcon icon={faCrown} /> Begin Your Journey
           </div>
           <h2>Love What You See?</h2>
           <p>

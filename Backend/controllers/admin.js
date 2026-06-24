@@ -86,8 +86,8 @@ const loginAdmin = async (req, res) => {
     const admin = await userModel.findOne({ email });
     console.log("Admin existence check result:", admin);
 
-    if (!admin || admin.role !== "ADMIN") {
-      console.log("Admin not found or not an ADMIN:", email);
+    if (!admin || (admin.role !== "ADMIN" && admin.role !== "MASTER")) {
+      console.log("Admin not found or not an ADMIN/MASTER:", email);
       return res.status(400).json({
         success: false,
         message: "Admin does not exist with provided email",
@@ -106,9 +106,10 @@ const loginAdmin = async (req, res) => {
     }
 
     const tokenData = {
-      id: admin._id,
+      id:   admin._id,
       name: admin.name,
       email: admin.email,
+      role: admin.role,          // include role so middleware can check without a DB hit
     };
 
     const token = await signTokenForAdmin(tokenData);
@@ -145,4 +146,54 @@ const loginAdmin = async (req, res) => {
   }
 };
 
-export { registerAdmin, loginAdmin };
+const changeEmail = async (req, res) => {
+  const { newEmail, password } = req.body;
+  try {
+    if (!validator.isEmail(newEmail))
+      return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
+
+    const user = await userModel.findById(req.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      return res.status(400).json({ success: false, message: 'Incorrect password.' });
+
+    const exists = await userModel.findOne({ email: newEmail });
+    if (exists && String(exists._id) !== String(req.userId))
+      return res.status(409).json({ success: false, message: 'This email is already in use.' });
+
+    user.email      = newEmail;
+    user.isVerified = false;
+    await user.save();
+
+    return res.json({ success: true, message: 'Email updated. Please verify your new email.' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+};
+
+const changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  try {
+    const user = await userModel.findById(req.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) return res.status(400).json({ success: false, message: 'Current password is incorrect' });
+
+    if (newPassword.length < 8)
+      return res.status(400).json({ success: false, message: 'New password must be at least 8 characters' });
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    return res.json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+export { registerAdmin, loginAdmin, changePassword, changeEmail };

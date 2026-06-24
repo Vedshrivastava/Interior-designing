@@ -1,0 +1,387 @@
+/* ================================================
+   MY ACCOUNT PAGE
+   Deep Obsidian · Liquid Gold · Ivory Parchment
+================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --obsidian:  #0b1a1a;
+  --green:     #102525;
+  --moss:      #2d4a35;
+  --gold:      #c9a87c;
+  --gold-lt:   #e8d0a8;
+  --gold-line: rgba(201,168,124,0.28);
+  --gold-dim:  rgba(201,168,124,0.1);
+  --ivory:     #f8f4ee;
+  --white:     #ffffff;
+  --danger:    #c0392b;
+  --text-dark: #1a1208;
+  --text-mid:  #5a4e44;
+  --text-lt:   #9a8e84;
+  --shadow-sm: 0 2px 8px rgba(11,26,26,0.06);
+  --shadow-md: 0 12px 40px rgba(11,26,26,0.10);
+  --radius:    14px;
+}
+
+.account-page {
+  padding: 44px 40px;
+  background: var(--ivory);
+  min-height: 100vh;
+  font-family: "DM Sans", sans-serif;
+  animation: fadeSlideUp 0.55s cubic-bezier(.22,.61,.36,1) both;
+  background-image:
+    radial-gradient(ellipse at 85% 5%,  rgba(201,168,124,0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 15% 95%, rgba(16,37,37,0.04) 0%, transparent 50%);
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.account-inner {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* ── Section heading ── */
+.account-section-title {
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.account-section-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(201,168,124,0.3), transparent);
+}
+
+/* ════════════════════════════════════════════
+   PROFILE CARD
+════════════════════════════════════════════ */
+.account-profile-card {
+  background: var(--white);
+  border: 1px solid var(--gold-line);
+  border-top: 2px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 36px 40px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+/* Avatar circle */
+.account-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--green), var(--moss));
+  border: 3px solid rgba(201,168,124,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 8px 24px rgba(16,37,37,0.2);
+}
+
+.account-avatar-initials {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--gold-lt);
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+/* Info block */
+.account-profile-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.account-profile-name {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--green);
+  margin: 0;
+  line-height: 1.1;
+  letter-spacing: -0.3px;
+}
+
+.account-profile-email {
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.88rem;
+  color: var(--text-mid);
+  margin: 0;
+}
+
+.account-profile-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.account-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.account-badge--role {
+  background: var(--green);
+  color: var(--gold-lt);
+}
+
+.account-badge--verified {
+  background: rgba(34,197,94,0.1);
+  border: 1px solid rgba(34,197,94,0.3);
+  color: #16a34a;
+}
+
+.account-badge--unverified {
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.25);
+  color: #dc2626;
+}
+
+/* ════════════════════════════════════════════
+   CHANGE PASSWORD CARD
+════════════════════════════════════════════ */
+.account-form-card {
+  background: var(--white);
+  border: 1px solid var(--gold-line);
+  border-top: 2px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 36px 40px;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.account-form-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 100px;
+  background: linear-gradient(to bottom, rgba(201,168,124,0.04), transparent);
+  pointer-events: none;
+}
+
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  position: relative;
+  z-index: 1;
+}
+
+.account-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.account-field label {
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.63rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-lt);
+}
+
+.account-field input {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1px solid rgba(201,168,124,0.28);
+  background: var(--ivory);
+  color: var(--green);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: "DM Sans", sans-serif;
+  outline: none;
+  transition: border-color 0.22s ease, background 0.22s ease, box-shadow 0.22s ease;
+  box-sizing: border-box;
+}
+
+.account-field input:focus {
+  border-color: var(--gold);
+  background: var(--white);
+  box-shadow: 0 0 0 4px rgba(201,168,124,0.12);
+}
+
+.account-field input::placeholder {
+  color: rgba(16,37,37,0.28);
+  font-weight: 300;
+}
+
+.account-submit {
+  align-self: flex-end;
+  min-width: 168px;
+  padding: 13px 28px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-lt));
+  color: var(--green);
+  border: none;
+  border-radius: 8px;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.28s ease;
+  box-shadow: 0 4px 16px rgba(201,168,124,0.22);
+  position: relative;
+  overflow: hidden;
+}
+
+.account-submit::after {
+  content: "";
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.5s ease;
+}
+.account-submit:hover:not(:disabled)::after { left: 150%; }
+
+.account-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(201,168,124,0.32);
+}
+
+.account-submit:disabled {
+  background: linear-gradient(135deg, #e5dfd5, #d8d2c8);
+  color: #a5a098;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ════════════════════════════════════════════
+   FORGOT PASSWORD SECTION
+════════════════════════════════════════════ */
+.account-forgot-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.account-forgot-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.account-forgot-title {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--green);
+  margin: 0 0 6px;
+}
+
+.account-forgot-desc {
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.85rem;
+  color: var(--text-mid);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.account-forgot-desc strong {
+  color: var(--green);
+  font-weight: 600;
+}
+
+.account-reset-btn {
+  flex-shrink: 0;
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--green);
+  border: 1.5px solid var(--gold-line);
+  border-radius: 8px;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.account-reset-btn:hover:not(:disabled) {
+  background: var(--gold-dim);
+  border-color: var(--gold);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(201,168,124,0.18);
+}
+
+.account-reset-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.account-forgot-sent {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  background: rgba(34,197,94,0.08);
+  border: 1px solid rgba(34,197,94,0.25);
+  border-radius: 8px;
+  color: #16a34a;
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .account-page { padding: 24px 20px; }
+  .account-profile-card,
+  .account-form-card  { padding: 28px 24px; }
+}
+
+@media (max-width: 480px) {
+  .account-page { padding: 20px 0; }
+  .account-profile-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 24px 20px;
+  }
+  .account-form-card { padding: 24px 20px; }
+  .account-submit { align-self: stretch; width: 100%; }
+}

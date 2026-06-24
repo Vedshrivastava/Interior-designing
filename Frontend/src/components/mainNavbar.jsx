@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faCalendarCheck, faCompass, faCircleInfo,
+  faCalendarCheck, faGem, faMedal,
   faEnvelope, faChevronRight,
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -13,12 +13,12 @@ import {
 // matchPath        → use startsWith() for active detection instead of exact match
 // icon / desc      → mobile hamburger card only (mobileHide:true items never render them)
 const NAV_LINKS = [
-  { label: 'Services', to: '/services',                 matchPath: null,     mobileHide: false, icon: faCompass,    desc: 'What we offer'   },
-  { label: 'Designs',  to: '/design/Kitchen%20Designs', matchPath: '/design',mobileHide: true,  icon: null,         desc: null              },
-  { label: 'Products', to: '/products',                 matchPath: null,     mobileHide: true,  icon: null,         desc: null              },
-  { label: 'Projects', to: '/projects',                 matchPath: null,     mobileHide: true,  icon: null,         desc: null              },
-  { label: 'About',    to: '/about',                    matchPath: null,     mobileHide: false, icon: faCircleInfo, desc: 'Our story & team'},
-  { label: 'Contact',  to: '/contact',                  matchPath: null,     mobileHide: false, icon: faEnvelope,   desc: 'Get in touch'    },
+  { label: 'Services', to: '/services',                 matchPath: null,     mobileHide: false, icon: faGem,     desc: 'What we offer'   },
+  { label: 'Designs',  to: '/design/Kitchen%20Designs', matchPath: '/design',mobileHide: true,  icon: null,      desc: null              },
+  { label: 'Products', to: '/products',                 matchPath: null,     mobileHide: true,  icon: null,      desc: null              },
+  { label: 'Projects', to: '/projects',                 matchPath: null,     mobileHide: true,  icon: null,      desc: null              },
+  { label: 'About',    to: '/about',                    matchPath: null,     mobileHide: false, icon: faMedal,   desc: 'Our story & team'},
+  { label: 'Contact',  to: '/contact',                  matchPath: null,     mobileHide: false, icon: faEnvelope,desc: 'Get in touch'    },
 ];
 
 const MainNavbar = ({ setShowLogin }) => {

@@ -50,7 +50,7 @@
     text-decoration: none;
     padding: 8px 0 6px;
 
-    color: rgba(240,230,211,0.72);   /* matches mainNavbar inactive link colour */
+    color: #f0e6d3;   /* matches mainNavbar inactive link colour */
     transition: color 0.22s ease;
     position: relative;
   }
@@ -83,9 +83,9 @@
   /* Label */
   .bn-label {
     font-family: "Inter", sans-serif;
-    font-size: 0.62rem;
-    font-weight: 600;
-    letter-spacing: 0.4px;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 1.4px;
     text-transform: uppercase;
     line-height: 1;
   }

@@ -525,7 +525,7 @@
 .lb-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 200000;        /* must be above modal (100000) so lightbox appears on top */
   background: rgba(10,20,20,0.93);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -603,7 +603,7 @@
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.2s ease;
-  z-index: 10001;
+  z-index: 200001;
   backdrop-filter: blur(8px);
 }
 
@@ -626,7 +626,7 @@
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.2s ease;
-  z-index: 10001;
+  z-index: 200001;
   backdrop-filter: blur(8px);
   padding-bottom: 2px;
 }

@@ -91,13 +91,16 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
         localStorage.setItem('userId',    decoded.id);
         localStorage.setItem('userName',  decoded.name);
         localStorage.setItem('userEmail', decoded.email);
-        localStorage.setItem('user',      JSON.stringify({ role: response.data.role }));
+        localStorage.setItem('user',      JSON.stringify({
+          role:       response.data.role,
+          name:       response.data.name,
+          email:      response.data.email,
+          isVerified: response.data.user?.isVerified ?? false,
+        }));
 
-        // NOTE: no setTimeout(handleLogout) here — Navbar's useEffect handles this
-        // automatically whenever token changes in context.
-
-        /* ── Role check — kick non-admins immediately ── */
-        if (response.data.role !== 'ADMIN') {
+        /* ── Role check — allow ADMIN and MASTER, kick everyone else ── */
+        const allowedRoles = ['ADMIN', 'MASTER'];
+        if (!allowedRoles.includes(response.data.role)) {
           ['token','userId','userName','userEmail','user'].forEach(k => localStorage.removeItem(k));
           setToken(null);
           setIsLoggedIn(false);

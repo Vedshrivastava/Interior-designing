@@ -22,7 +22,7 @@ const ProtectedRoute = ({ children, setShowLogin }) => {
 
     useEffect(() => {
         // 4. This will now run on EVERY single page navigation
-        if (!storedToken || userRole !== 'ADMIN') {
+        if (!storedToken || (userRole !== 'ADMIN' && userRole !== 'MASTER')) {
             setShowLogin(true);
             navigate('/');
             return;
@@ -50,7 +50,7 @@ const ProtectedRoute = ({ children, setShowLogin }) => {
         }
     }
 
-    if (!storedToken || userRole !== 'ADMIN' || isExpired) {
+    if (!storedToken || (userRole !== 'ADMIN' && userRole !== 'MASTER') || isExpired) {
         return null; 
     }
 

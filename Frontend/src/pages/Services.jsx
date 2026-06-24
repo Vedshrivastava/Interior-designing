@@ -19,9 +19,9 @@ import {
     faCrown, faArrowRight, faCalendarCheck,
     faDraftingCompass, faCube, faCubes, faHandshake,
     faLightbulb, faHome, faBuilding, faWrench,
-    faStar, faLock, faRulerCombined, faPalette,
+    faStar, faLock, faRulerCombined,
     faLayerGroup, faQuoteLeft, faBoxes, faHammer,
-    faWandMagicSparkles, faClock,
+    faClock,
 } from '@fortawesome/free-solid-svg-icons';
 
 const testimonials = [
@@ -34,36 +34,34 @@ const testimonials = [
 ];
 const marqueeItems = [...testimonials, ...testimonials];
 
+// type: 'residential' | 'commercial' | 'both'
 const services = [
-    // CARD 1 (Row 1 Feature)
     {
-        icon: faStar, title: "Affordable Luxury",
+        icon: faStar, title: "Affordable Luxury", type: 'both',
         description: "Premium interiors with transparent pricing and zero hidden costs — luxury made genuinely accessible.",
         img: rates,
         features: ["Transparent Pricing", "Zero Hidden Costs", "Luxury aesthetic within budget"]
     },
-    { icon: faLock, title: "Refundable Consultation", description: "Your consultation fee is fully adjusted when you proceed with execution. Completely risk-free.", img: design, features: ["Fee adjusted on project confirmation", "No obligation to proceed"] },
-    { icon: faHome, title: "Residential Interiors", description: "Custom home interiors for apartments and villas — designed around your lifestyle and comfort.", img: residence, features: ["100% bespoke, no templates", "Apartment & villa specialists"] },
+    { icon: faLock, title: "Refundable Consultation", type: 'both', description: "Your consultation fee is fully adjusted when you proceed with execution. Completely risk-free.", img: design, features: ["Fee adjusted on project confirmation", "No obligation to proceed"] },
+    { icon: faHome, title: "Residential Interiors", type: 'residential', description: "Custom home interiors for apartments and villas — designed around your lifestyle and comfort.", img: residence, features: ["100% bespoke, no templates", "Apartment & villa specialists"] },
 
-    // CARD 4 (Row 2 Feature)
     {
-        icon: faBuilding, title: "Commercial Spaces",
+        icon: faBuilding, title: "Commercial Spaces", type: 'commercial',
         description: "Inspiring offices and retail interiors that boost productivity and reflect your brand identity.",
         img: commercial,
         features: ["Brand-Centric Design", "Ergonomic Layouts", "Turnkey office & retail execution"]
     },
-    { icon: faWrench, title: "Renovation Services", description: "Complete makeovers or targeted upgrades — we breathe fresh life into any outdated space.", img: renovation, features: ["Partial or full space overhauls", "Minimal disruption approach"] },
-    { icon: faRulerCombined, title: "Space Planning", description: "Smart layouts that maximise every inch of your space for both function and visual flow.", img: space_planning, features: ["Floor plan optimisation", "Flow & functionality focused"] },
+    { icon: faWrench, title: "Renovation Services", type: 'both', description: "Complete makeovers or targeted upgrades — we breathe fresh life into any outdated space.", img: renovation, features: ["Partial or full space overhauls", "Minimal disruption approach"] },
+    { icon: faRulerCombined, title: "Space Planning", type: 'both', description: "Smart layouts that maximise every inch of your space for both function and visual flow.", img: space_planning, features: ["Floor plan optimisation", "Flow & functionality focused"] },
 
-    // CARD 7 (Row 3 Feature)
     {
-        icon: faLightbulb, title: "Lighting Design",
+        icon: faLightbulb, title: "Lighting Design", type: 'both',
         description: "Ambient, accent, and task lighting concepts that define mood and elevate every room.",
         img: lighting,
         features: ["Mood-Enhancing Concepts", "Energy-Efficient Solutions", "Natural & artificial light balance"]
     },
-    { icon: faPalette, title: "Material Selection", description: "We source premium materials from trusted partners like Kajaria, Asian Paints & more.", img: materials, features: ["Trusted brands, curated choices", "Budget-conscious premium picks"] },
-    { icon: faLayerGroup, title: "3D Visualization", description: "Photo-realistic 3D renders so you see exactly how your space will look before execution begins.", img: Visualization_3D, features: ["Photo-realistic renders", "Approved before execution begins"] },
+    { icon: faLayerGroup, title: "Material Selection", type: 'both', description: "We source premium materials from trusted partners like Kajaria, Asian Paints & more.", img: materials, features: ["Trusted brands, curated choices", "Budget-conscious premium picks"] },
+    { icon: faLayerGroup, title: "3D Visualization", type: 'both', description: "Photo-realistic 3D renders so you see exactly how your space will look before execution begins.", img: Visualization_3D, features: ["Photo-realistic renders", "Approved before execution begins"] },
 ];
 
 const processSteps = [
@@ -132,6 +130,7 @@ const Services = ({ setShowLogin }) => {
     const revealRefs = useRef([]);
     const navigate = useNavigate();
     const handleProjects = () => navigate('/projects');
+    const [activeFilter, setActiveFilter] = useState('all');
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -221,15 +220,38 @@ const Services = ({ setShowLogin }) => {
                     </div>
                 </div>
 
+                {/* ── Filter bar ── */}
+                <div className="svc-filter-bar reveal-item" ref={addRef}>
+                    {[
+                        { key: 'all',         label: 'All Services'   },
+                        { key: 'residential', label: 'Residential'    },
+                        { key: 'commercial',  label: 'Commercial'     },
+                    ].map(f => (
+                        <button
+                            key={f.key}
+                            className={`svc-filter-btn${activeFilter === f.key ? ' active' : ''}`}
+                            onClick={() => setActiveFilter(f.key)}
+                        >
+                            {f.label}
+                        </button>
+                    ))}
+                    <span className="svc-filter-count">
+                        {activeFilter === 'all' ? services.length : services.filter(s => s.type === activeFilter || s.type === 'both').length} services
+                    </span>
+                </div>
+
                 {/* This loops through your 9 services in groups of 3.
   Row 1: Services 1, 2, 3
   Row 2: Services 4, 5, 6
   Row 3: Services 7, 8, 9
 */}
-                {/* Safely chunk the services array into groups of 3 */}
-                {Array.from({ length: Math.ceil(services.length / 3) }).map((_, rowIndex) => {
-                    // Get the 3 items for the current row
-                    const chunk = services.slice(rowIndex * 3, rowIndex * 3 + 3);
+                {/* Safely chunk the filtered services array into groups of 3 */}
+                {(() => {
+                    const filtered = activeFilter === 'all'
+                        ? services
+                        : services.filter(s => s.type === activeFilter || s.type === 'both');
+                    return Array.from({ length: Math.ceil(filtered.length / 3) }).map((_, rowIndex) => {
+                    const chunk = filtered.slice(rowIndex * 3, rowIndex * 3 + 3);
 
                     return (
                         /* DYNAMIC CLASS LOGIC:
@@ -320,7 +342,9 @@ const Services = ({ setShowLogin }) => {
                             </div>
                         </div>
                     );
-                })}
+                    });
+                    })()
+                }
 
                 {/* Bottom Stat Strip */}
                 <div className='hp-adv-stats reveal-item' ref={addRef}>
@@ -339,35 +363,58 @@ const Services = ({ setShowLogin }) => {
 
             </section >
 
-            {/* ── PROCESS ── */}
-            < section className="process-section" >
-
-                <div className="process-header">
+            {/* ── GET STARTED — replaces the repeated 6-step process ── */}
+            <section className="svc-start-section">
+                <div className="svc-start-head reveal-item" ref={addRef}>
                     <span className="svc-section-tag">
-                        <FontAwesomeIcon icon={faDraftingCompass} /> Our Process
+                        <FontAwesomeIcon icon={faDraftingCompass} /> How It Works
                     </span>
-                    <h1>How We Transform<br />Your Space</h1>
-                    <p className="process-subtitle">
-                        Six seamless steps — from your first idea to a finished, furnished dream home.
-                    </p>
+                    <h2>Get Started in<br />3 Simple Steps</h2>
+                    <p>From your first message to a fully transformed space — here's the journey.</p>
                 </div>
 
-                <div className="process-grid">
-                    {processSteps.map((s, i) => (
-                        <div className="process-card" key={i}>
-                            <div className="process-card-top">
-                                <div className="process-icon-badge">
+                <div className="svc-start-grid">
+                    {[
+                        {
+                            num: '01',
+                            icon: faCalendarCheck,
+                            title: 'Book a Free Consultation',
+                            desc: 'Tell us about your space, vision and budget. Our team listens — no obligation, no pressure.',
+                            cta: true,
+                        },
+                        {
+                            num: '02',
+                            icon: faCube,
+                            title: 'Approve Your 3D Design',
+                            desc: 'We create a photorealistic render of your space for your approval before a single nail is hammered.',
+                            cta: false,
+                        },
+                        {
+                            num: '03',
+                            icon: faHandshake,
+                            title: 'Move Into Your Dream Space',
+                            desc: 'Our team handles everything — sourcing, execution, quality checks and final handover. You just arrive.',
+                            cta: false,
+                        },
+                    ].map((s, i) => (
+                        <div className="svc-start-card reveal-item" key={i} ref={addRef} style={{ '--delay': `${i * 100}ms` }}>
+                            <div className="svc-start-card-top">
+                                <span className="svc-start-num hp-prof-num">{s.num}</span>
+                                <div className="svc-start-icon">
                                     <FontAwesomeIcon icon={s.icon} />
                                 </div>
-                                <span className="process-num hp-prof-num">{s.num}</span>
                             </div>
                             <h3>{s.title}</h3>
                             <p>{s.desc}</p>
+                            {s.cta && (
+                                <button className="svc-start-cta" onClick={() => setShowLogin(true)}>
+                                    Book Now <FontAwesomeIcon icon={faArrowRight} />
+                                </button>
+                            )}
                         </div>
                     ))}
                 </div>
-
-            </section >
+            </section>
 
             {/* ── TESTIMONIALS ── */}
             < section className="svc-testimonial-section" >
@@ -433,7 +480,7 @@ const Services = ({ setShowLogin }) => {
             < section className="services-cta reveal-item" ref={addRef} >
                 <div className="cta-inner">
                     <span className="svc-section-tag">
-                        <FontAwesomeIcon icon={faWandMagicSparkles} /> Begin Your Journey
+                        <FontAwesomeIcon icon={faCrown} /> Begin Your Journey
                     </span>
                     <h1>Let's Create Your<br />Dream Interior</h1>
                     <p>

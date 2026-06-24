@@ -1465,6 +1465,13 @@
 
   .hp-adv-card { flex-direction: column; }
   .hp-adv-card-img { width: 100%; height: 160px; }
+
+  /* Hide bullet lists on mobile — description text is enough at this size */
+  .hp-adv-feature-body ul, .hp-adv-card-body ul { display: none; }
+  /* Remove the bottom margin on description paragraphs now that there's no list below */
+  .hp-adv-feature-body > p { margin-bottom: 0; }
+  .hp-adv-card-body > p { margin-bottom: 0; }
+
   .hp-adv-stats { grid-template-columns: 1fr; border-radius: 18px; }
   .hp-adv-stat { border-right: none; border-bottom: 1px solid rgba(201,168,124,0.1); padding: 24px; }
   .hp-adv-stat:last-child { border-bottom: none; }

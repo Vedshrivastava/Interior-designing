@@ -2,7 +2,11 @@ import React from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faHouse, faPalette, faCubes, faBuilding, faCalendarCheck,
+  faHouse, 
+  faPenRuler, 
+  faCubes, 
+  faDiagramProject, 
+  faHandshake 
 } from '@fortawesome/free-solid-svg-icons';
 import '../styles/bottomNavbar.css';
 
@@ -25,7 +29,7 @@ const BottomNavbar = ({ setShowLogin }) => {
         onClick={() => navigate('/design/Kitchen%20Designs')}
         aria-label="Designs"
       >
-        <span className="bn-icon"><FontAwesomeIcon icon={faPalette} /></span>
+        <span className="bn-icon"><FontAwesomeIcon icon={faPenRuler} /></span>
         <span className="bn-label">Designs</span>
       </button>
 
@@ -35,7 +39,7 @@ const BottomNavbar = ({ setShowLogin }) => {
       </NavLink>
 
       <NavLink to="/projects" className={({ isActive }) => `bn-item${isActive ? ' active' : ''}`}>
-        <span className="bn-icon"><FontAwesomeIcon icon={faBuilding} /></span>
+        <span className="bn-icon"><FontAwesomeIcon icon={faDiagramProject} /></span>
         <span className="bn-label">Projects</span>
       </NavLink>
 
@@ -44,7 +48,7 @@ const BottomNavbar = ({ setShowLogin }) => {
         onClick={() => setShowLogin(true)}
         aria-label="Book consultation"
       >
-        <span className="bn-icon"><FontAwesomeIcon icon={faCalendarCheck} /></span>
+        <span className="bn-icon"><FontAwesomeIcon icon={faHandshake} /></span>
         <span className="bn-label">Consult</span>
       </button>
 

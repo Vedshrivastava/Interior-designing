@@ -6,7 +6,7 @@ import '../styles/designDisplay.css';
 import Design from '../components/Design';
 import Footer from '../components/Footer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPalette, faLayerGroup, faStar, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { faLayerGroup, faStar, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 
 const CATEGORIES = [
   'Kitchen Designs',
@@ -120,7 +120,7 @@ const DesignDisplay = ({ setShowLogin, setShowQuotePopup, setConsultData, consul
           <div className="dd-header-inner">
             <div className="dd-header-left">
               <div className="dd-overline">
-                <FontAwesomeIcon icon={faPalette} /> Our Designs
+                <FontAwesomeIcon icon={faLayerGroup} /> Our Designs
               </div>
               <h1>{displayName}</h1>
             </div>
@@ -283,7 +283,7 @@ const DesignDisplay = ({ setShowLogin, setShowQuotePopup, setConsultData, consul
             ) : (
               <div className="dd-empty">
                 <div className="dd-empty-icon">
-                  <FontAwesomeIcon icon={faPalette} />
+                  <FontAwesomeIcon icon={faLayerGroup} />
                 </div>
                 <h3>No designs yet</h3>
                 <p>We're adding new {displayName.toLowerCase()} soon. Check back shortly.</p>

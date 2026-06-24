@@ -15,34 +15,34 @@ import {
 
 /* ─── Constants ──────────────────────────────────────────────── */
 const SUBCATEGORIES = {
-  'Interior':               ['Ceilings', 'Wall Features', 'Flooring', 'Lighting', 'Furniture'],
-  'Exterior':               ['Facades', 'Cladding', 'Landscaping', 'Pergolas'],
-  'Functional Architecture':['Breeze Blocks', 'Jaali Walls', 'Decorative Screens', 'Feature Walls', 'Privacy Screens'],
+  'Interior': ['Ceilings', 'Wall Features', 'Flooring', 'Lighting', 'Furniture'],
+  'Exterior': ['Facades', 'Cladding', 'Landscaping', 'Pergolas'],
+  'Functional Architecture': ['Breeze Blocks', 'Jaali Walls', 'Decorative Screens', 'Feature Walls', 'Privacy Screens'],
 };
 const CATEGORIES = Object.keys(SUBCATEGORIES);
 
 const SPEC_META = {
-  'Waterproof':         { icon: faDroplet,        color: '#3b82f6' },
-  'UV Protection':      { icon: faSun,            color: '#f59e0b' },
-  'Fire Resistant':     { icon: faFire,           color: '#ef4444' },
-  'Weather Resistant':  { icon: faCloudRain,      color: '#6366f1' },
-  'Eco-Friendly':       { icon: faLeaf,           color: '#22c55e' },
-  'Low Maintenance':    { icon: faWrench,         color: '#8b5cf6' },
-  'Anti-Fungal':        { icon: faShieldHalved,   color: '#14b8a6' },
-  'Sound Insulation':   { icon: faVolumeXmark,    color: '#ec4899' },
-  'Thermal Insulation': { icon: faTemperatureHalf,color: '#f97316' },
-  'Scratch Resistant':  { icon: faShield,         color: '#64748b' },
-  'Fade Resistant':     { icon: faSun,            color: '#a78bfa' },
-  'Customizable':       { icon: faPen,            color: '#c9a87c' },
-  'Non-Toxic':          { icon: faLeaf,           color: '#10b981' },
-  'Rust Resistant':     { icon: faShieldHalved,   color: '#78716c' },
+  'Waterproof': { icon: faDroplet, color: '#3b82f6' },
+  'UV Protection': { icon: faSun, color: '#f59e0b' },
+  'Fire Resistant': { icon: faFire, color: '#ef4444' },
+  'Weather Resistant': { icon: faCloudRain, color: '#6366f1' },
+  'Eco-Friendly': { icon: faLeaf, color: '#22c55e' },
+  'Low Maintenance': { icon: faWrench, color: '#8b5cf6' },
+  'Anti-Fungal': { icon: faShieldHalved, color: '#14b8a6' },
+  'Sound Insulation': { icon: faVolumeXmark, color: '#ec4899' },
+  'Thermal Insulation': { icon: faTemperatureHalf, color: '#f97316' },
+  'Scratch Resistant': { icon: faShield, color: '#64748b' },
+  'Fade Resistant': { icon: faSun, color: '#a78bfa' },
+  'Customizable': { icon: faPen, color: '#c9a87c' },
+  'Non-Toxic': { icon: faLeaf, color: '#10b981' },
+  'Rust Resistant': { icon: faShieldHalved, color: '#78716c' },
 };
 
 /* ─── ProductCard ─────────────────────────────────────────────── */
 const ProductCard = ({ product, setShowLogin }) => {
-  const [modalOpen,   setModalOpen]   = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [activeThumb, setActiveThumb] = useState(0);
-  const [lbIdx,       setLbIdx]       = useState(null);
+  const [lbIdx, setLbIdx] = useState(null);
 
   const {
     name, description, images = [], category, subcategory,
@@ -50,23 +50,23 @@ const ProductCard = ({ product, setShowLogin }) => {
     points = [], isFeatured,
   } = product;
 
-  const openModal  = () => { setModalOpen(true);  document.body.style.overflow = 'hidden'; };
+  const openModal = () => { setModalOpen(true); document.body.style.overflow = 'hidden'; };
   const closeModal = useCallback(() => {
     setModalOpen(false); setActiveThumb(0); setLbIdx(null);
     document.body.style.overflow = '';
   }, []);
 
-  const openLb  = (i) => setLbIdx(i);
+  const openLb = (i) => setLbIdx(i);
   const closeLb = useCallback(() => setLbIdx(null), []);
-  const lbPrev  = useCallback((e) => { e.stopPropagation(); setLbIdx(i => (i - 1 + images.length) % images.length); }, [images.length]);
-  const lbNext  = useCallback((e) => { e.stopPropagation(); setLbIdx(i => (i + 1) % images.length); }, [images.length]);
+  const lbPrev = useCallback((e) => { e.stopPropagation(); setLbIdx(i => (i - 1 + images.length) % images.length); }, [images.length]);
+  const lbNext = useCallback((e) => { e.stopPropagation(); setLbIdx(i => (i + 1) % images.length); }, [images.length]);
 
   useEffect(() => {
     if (lbIdx === null && !modalOpen) return;
     const handler = (e) => {
-      if (e.key === 'Escape')     { lbIdx !== null ? closeLb() : closeModal(); }
+      if (e.key === 'Escape') { lbIdx !== null ? closeLb() : closeModal(); }
       if (lbIdx !== null) {
-        if (e.key === 'ArrowLeft')  setLbIdx(i => (i - 1 + images.length) % images.length);
+        if (e.key === 'ArrowLeft') setLbIdx(i => (i - 1 + images.length) % images.length);
         if (e.key === 'ArrowRight') setLbIdx(i => (i + 1) % images.length);
       }
     };
@@ -100,7 +100,7 @@ const ProductCard = ({ product, setShowLogin }) => {
         {(material || finish) && (
           <div className="prod-card-chips">
             {material && <span className="prod-chip"><FontAwesomeIcon icon={faLayerGroup} />{material}</span>}
-            {finish   && <span className="prod-chip"><FontAwesomeIcon icon={faStar} />{finish}</span>}
+            {finish && <span className="prod-chip"><FontAwesomeIcon icon={faStar} />{finish}</span>}
           </div>
         )}
 
@@ -123,8 +123,8 @@ const ProductCard = ({ product, setShowLogin }) => {
             <img src={images[activeThumb]} alt={`${name} — ${activeThumb + 1}`} className="prod-modal-main-img" />
             <div className="prod-modal-img-hint">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                <line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" />
               </svg>
             </div>
           </div>
@@ -224,8 +224,10 @@ const ProductCard = ({ product, setShowLogin }) => {
             <button className="prod-modal-cta-btn" onClick={() => { closeModal(); setShowLogin(true); }}>
               Get Free Consultation <FontAwesomeIcon icon={faCalendarCheck} />
             </button>
-            <p className="prod-modal-cta-note">Our team will help you choose and source the right products for your project.</p>
             <button className="prod-modal-close-btn" onClick={closeModal}>Close</button>
+
+            <p className="prod-modal-cta-note">Our team will help you choose and source the right products for your project.</p>
+
           </div>
         </div>
       </div>
@@ -256,9 +258,9 @@ const ProductCard = ({ product, setShowLogin }) => {
 /* ─── Products page ───────────────────────────────────────────── */
 const Products = ({ setShowLogin }) => {
   const url = 'http://localhost:3000';
-  const [products,          setProducts]          = useState([]);
-  const [loading,           setLoading]           = useState(true);
-  const [activeCategory,    setActiveCategory]    = useState('All');
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState('All');
   const [activeSubcategory, setActiveSubcategory] = useState('All');
 
   const fetchProducts = useCallback(async () => {

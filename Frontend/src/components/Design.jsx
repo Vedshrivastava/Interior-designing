@@ -58,35 +58,22 @@ const Design = ({ id, name, description, images, points, setShowQuotePopup, setC
   const card = (
     <div className="dc-card">
 
-<div
-  className="dc-card-img-wrap"
-  onClick={() => openLightbox(0)}
->
-  <img
-    src={images[0]}
-    alt={name}
-    className="dc-card-img"
-    loading="lazy"
-  />
-
-  {images.length > 1 && (
-    <div className="dc-img-count">
-      +{images.length - 1}
-    </div>
-  )}
-
-  <div className="dc-card-img-overlay">
-    <span className="dc-view-label">
-      View Images
-    </span>
-  </div>
-
+      <div
+        className="dc-card-img-wrap"
+        onClick={() => openLightbox(0)}
+      >
         <img
           src={images[0]}
           alt={name}
           className="dc-card-img"
           loading="lazy"
         />
+
+        {images.length > 1 && (
+          <div className="dc-img-count">
+            +{images.length - 1}
+          </div>
+        )}
 
         <div className="dc-card-img-overlay">
           <span className="dc-view-label">

@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/designDisplay.css';
 import Design from '../components/Design';
 import Footer from '../components/Footer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPalette, faLayerGroup, faStar } from '@fortawesome/free-solid-svg-icons';
+import { faPalette, faLayerGroup, faStar, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 
 const CATEGORIES = [
   'Kitchen Designs',
@@ -40,6 +40,35 @@ const DesignDisplay = ({ setShowLogin, setShowQuotePopup, setConsultData, consul
   const [currentCategory, setCurrentCategory] = useState(category || CATEGORIES[0]);
   const mobileBarRef = useRef(null);
 
+  // Responsive cards per view — 2 on tablet, 3 on desktop
+  const [cardsPerView, setCardsPerView] = useState(
+    window.innerWidth < 900 ? 2 : 3
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setCardsPerView(window.innerWidth < 900 ? 2 : 3);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Slider state
+  const [sliderIndex, setSliderIndex] = useState(0);
+
+  const slidePrev = useCallback(() => {
+    setSliderIndex(i => Math.max(0, i - 1));
+  }, []);
+
+  const slideNext = useCallback((total) => {
+    setSliderIndex(i => Math.min(total - cardsPerView, i + 1));
+  }, [cardsPerView]);
+
+  // Reset slider when category or cardsPerView changes
+  useEffect(() => {
+    setSliderIndex(0);
+  }, [currentCategory, cardsPerView]);
+
   useEffect(() => {
     const fetchDesignList = async () => {
       try {
@@ -69,6 +98,13 @@ const DesignDisplay = ({ setShowLogin, setShowQuotePopup, setConsultData, consul
 
   const featuredDesigns = categoryDesigns.filter(item => item.isFeatured);
   const regularDesigns = categoryDesigns.filter(item => !item.isFeatured);
+
+  const canSlidePrev = sliderIndex > 0;
+  const canSlideNext = sliderIndex < featuredDesigns.length - cardsPerView;
+  const hasMoreThanView = featuredDesigns.length > cardsPerView;
+
+  // Gap between cards in px — must match CSS
+  const CARD_GAP = 30;
 
   return (
     <div>
@@ -122,7 +158,7 @@ const DesignDisplay = ({ setShowLogin, setShowQuotePopup, setConsultData, consul
           ))}
         </div>
 
-        {/* ── FEATURED SECTION ── */}
+        {/* ── FEATURED SLIDER SECTION ── */}
         {featuredDesigns.length > 0 && (
           <section className="dd-featured-section">
 
@@ -134,35 +170,83 @@ const DesignDisplay = ({ setShowLogin, setShowQuotePopup, setConsultData, consul
                 </span>
                 <h2 className="dd-featured-heading">Handpicked for You</h2>
               </div>
-              <p className="dd-featured-subtext">
-                Our team's top selections — standout designs with exceptional detailing and finish.
-              </p>
+              <div className="dd-featured-header-right">
+                <p className="dd-featured-subtext">
+                  Our team's top selections — standout designs with exceptional detailing and finish.
+                </p>
+                {/* Arrow controls — only shown when there are more cards than the current view */}
+                {hasMoreThanView && (
+                  <div className="dd-slider-controls">
+                    <button
+                      className={`dd-slider-arrow${!canSlidePrev ? ' disabled' : ''}`}
+                      onClick={slidePrev}
+                      aria-label="Previous featured designs"
+                      disabled={!canSlidePrev}
+                    >
+                      <FontAwesomeIcon icon={faChevronLeft} />
+                    </button>
+                    <span className="dd-slider-counter">
+                      {sliderIndex + 1}–{Math.min(sliderIndex + cardsPerView, featuredDesigns.length)}
+                      <span className="dd-slider-counter-total"> of {featuredDesigns.length}</span>
+                    </span>
+                    <button
+                      className={`dd-slider-arrow${!canSlideNext ? ' disabled' : ''}`}
+                      onClick={() => slideNext(featuredDesigns.length)}
+                      aria-label="Next featured designs"
+                      disabled={!canSlideNext}
+                    >
+                      <FontAwesomeIcon icon={faChevronRight} />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Featured card grid — same structure as regular grid */}
-            <div className="dd-featured-grid">
-              {featuredDesigns.map((item) => (
-                <div key={item._id} className="dd-featured-card-wrap">
-                  {/* Featured ribbon */}
-                  <div className="dd-featured-ribbon">
-                    <FontAwesomeIcon icon={faStar} />
-                    Featured
+            {/* Slider viewport */}
+            <div className="dd-slider-viewport">
+              <div
+                className="dd-slider-track"
+                style={{ '--slide-index': sliderIndex }}
+              >
+                {featuredDesigns.map((item) => (
+                  <div
+  key={item._id}
+  className="dd-featured-card-wrap"
+>
+                    <div className="dd-featured-ribbon">
+                      <FontAwesomeIcon icon={faStar} />
+                      Featured
+                    </div>
+                    <Design
+                      id={item._id}
+                      name={item.name}
+                      description={item.description}
+                      images={item.images}
+                      points={item.points}
+                      setShowLogin={setShowLogin}
+                      setConsultData={setConsultData}
+                      consultData={consultData}
+                      setShowQuotePopup={setShowQuotePopup}
+                      category={item.category}
+                    />
                   </div>
-                  <Design
-                    id={item._id}
-                    name={item.name}
-                    description={item.description}
-                    images={item.images}
-                    points={item.points}
-                    setShowLogin={setShowLogin}
-                    setConsultData={setConsultData}
-                    consultData={consultData}
-                    setShowQuotePopup={setShowQuotePopup}
-                    category={item.category}
-                  />
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
+
+            {/* Dot indicators */}
+            {hasMoreThanView && (
+              <div className="dd-slider-dots">
+                {Array.from({ length: featuredDesigns.length - cardsPerView + 1 }).map((_, i) => (
+                  <button
+                    key={i}
+                    className={`dd-slider-dot${sliderIndex === i ? ' active' : ''}`}
+                    onClick={() => setSliderIndex(i)}
+                    aria-label={`Go to slide ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
 
           </section>
         )}

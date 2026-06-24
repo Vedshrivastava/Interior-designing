@@ -42,7 +42,10 @@
 
   height: 68px;
 
-  background: rgba(16,37,37,0.82);
+  /* Updated background to match the footer's base */
+  background: var(--green); 
+  position: relative; /* Added to contain absolute pseudo-elements */
+  
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 
@@ -50,6 +53,33 @@
   box-shadow: 0 4px 24px rgba(0,0,0,0.14);
 
   transition: background 0.35s ease, box-shadow 0.35s ease, height 0.35s ease;
+}
+
+/* Diagonal gold grid texture — matched from footer */
+.mainNavbar-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.055;
+  background-image:
+    repeating-linear-gradient(45deg,  var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px),
+    repeating-linear-gradient(-45deg, var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px);
+  pointer-events: none;
+  z-index: -1; /* Keeps the pattern behind your logo and links */
+}
+
+/* Radial glow at center — matched from footer */
+.mainNavbar-container::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 700px;
+  height: 100%; /* Bounded to navbar height */
+  background: radial-gradient(ellipse at center, rgba(201,168,124,0.09) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: -1; /* Keeps the glow behind your logo and links */
 }
 
 /* scrolled — fully opaque, slightly shorter */

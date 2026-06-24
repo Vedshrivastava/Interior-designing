@@ -238,7 +238,8 @@
 ══════════════════════════════════════════════ */
 @media (max-width: 1000px) {
     .appointments-container {
-        padding: 95px 20px 20px 20px;
+        /* main-content already clears the navbar; just keep breathing room */
+        padding: 24px 20px 20px 20px;
     }
     .appointment-item {
         grid-template-columns: 64px 1.5fr 1.5fr 1fr;
@@ -258,7 +259,8 @@
 ══════════════════════════════════════════════ */
 @media (max-width: 480px) {
     .appointments-container {
-        padding: 32px 14px 28px 14px;
+        /* main-content provides 16px sides — no extra side padding here */
+        padding: 20px 0 24px;
     }
     .appointment-date-group { margin-bottom: 28px; }
     .appointment-date { font-size: 1.2rem; margin-bottom: 14px; }

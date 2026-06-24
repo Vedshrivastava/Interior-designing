@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import { useWebSocket } from '../hooks/useWebSocket';
 import '../styles/designDisplay.css';
 import Design from '../components/Design';
 import Footer from '../components/Footer';
@@ -69,17 +70,21 @@ const DesignDisplay = ({ setShowLogin, setShowQuotePopup, setConsultData, consul
     setSliderIndex(0);
   }, [currentCategory, cardsPerView]);
 
-  useEffect(() => {
-    const fetchDesignList = async () => {
-      try {
-        const response = await axios.get(`${url}/api/design/list?category=${currentCategory}`);
-        setDesignList(response.data.data);
-      } catch (error) {
-        console.error("Error fetching design list:", error);
-      }
-    };
-    fetchDesignList();
-  }, [currentCategory]);
+  const fetchDesignList = useCallback(async () => {
+    try {
+      const response = await axios.get(`${url}/api/design/list?category=${currentCategory}`);
+      setDesignList(response.data.data);
+    } catch (error) {
+      console.error("Error fetching design list:", error);
+    }
+  }, [currentCategory, url]);
+
+  useEffect(() => { fetchDesignList(); }, [fetchDesignList]);
+
+  // Refetch silently when admin changes designs
+  useWebSocket(useCallback((msg) => {
+    if (msg.type === 'designsChanged') fetchDesignList();
+  }, [fetchDesignList]));
 
   /* keep active mobile chip in view */
   useEffect(() => {

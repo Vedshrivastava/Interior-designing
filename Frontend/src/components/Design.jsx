@@ -128,22 +128,20 @@ const Design = ({ id, name, description, images, points, setShowQuotePopup, setC
   /* ── MODAL ── */
   const modal = modalOpen && ReactDOM.createPortal(
     <div className="dc-modal-backdrop" onClick={closeModal} role="dialog" aria-modal="true" aria-label={name}>
-      <div
-        className={`dc-modal ${window.innerWidth > 820 ? 'desktop-modal' : ''}`}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="dc-modal" onClick={(e) => e.stopPropagation()}>
 
         {/* Left: Image gallery */}
         <div className="dc-modal-gallery">
-          {/* Main image */}
           <div className="dc-modal-main-img-wrap" onClick={() => openLightbox(activeThumb)}>
             <img src={images[activeThumb]} alt={`${name} — view ${activeThumb + 1}`} className="dc-modal-main-img" />
             <div className="dc-modal-img-overlay">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+              </svg>
             </div>
           </div>
 
-          {/* Thumbnails */}
           {images.length > 1 && (
             <div className="dc-modal-thumbs">
               {images.map((src, i) => (
@@ -162,13 +160,20 @@ const Design = ({ id, name, description, images, points, setShowQuotePopup, setC
 
         {/* Right: Content */}
         <div className="dc-modal-content">
-          <span className="dc-modal-category">{category}</span>
+          <button className="dc-modal-close" onClick={closeModal} aria-label="Close">✕</button>
+
+          <div className="dc-modal-tags">
+            <span className="dc-modal-tag">{category}</span>
+          </div>
+
           <h2 className="dc-modal-title">{name}</h2>
 
-          <div className="dc-modal-section">
-            <h4 className="dc-modal-section-label">About this design</h4>
-            <p className="dc-modal-desc">{description}</p>
-          </div>
+          {description && (
+            <div className="dc-modal-section">
+              <h4 className="dc-modal-section-label">About this design</h4>
+              <p className="dc-modal-desc">{description}</p>
+            </div>
+          )}
 
           {points && points.length > 0 && (
             <div className="dc-modal-section">
@@ -184,31 +189,15 @@ const Design = ({ id, name, description, images, points, setShowQuotePopup, setC
             </div>
           )}
 
-          {/* CTA */}
           <div className="dc-modal-cta">
-
             <div className="dc-modal-actions">
-              <button
-                className="dc-quote-btn"
-                onClick={handleGetQuote}
-              >
-                Get Free Quote
-              </button>
-
-              <button
-                className="dc-close-btn"
-                onClick={closeModal}
-              >
-                Close
-              </button>
+              <button className="dc-quote-btn" onClick={handleGetQuote}>Get Free Quote</button>
+              <button className="dc-close-btn" onClick={closeModal}>Close</button>
             </div>
-
-            <p className="dc-cta-note">
-              Our design consultants will reach out within 24 hours.
-            </p>
-
+            <p className="dc-cta-note">Our design consultants will reach out within 24 hours.</p>
           </div>
         </div>
+
       </div>
     </div>,
     document.body

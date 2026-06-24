@@ -6,6 +6,10 @@ import Add from './pages/Add';
 import List from './pages/List';
 import Orders from './pages/Orders';
 import Quotes from './pages/Quotes';
+import AddProject from './pages/AddProject';
+import ListProjects from './pages/ListProjects';
+import AddProduct from './pages/AddProduct';
+import ListProducts from './pages/ListProducts';
 import './index.css';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
@@ -103,6 +107,38 @@ const App = () => {
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
                   <List url={url} setIsLoading={setIsLoading} isLoading={isLoading} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/add-project'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <AddProject url={url} setIsLoading={setIsLoading} isLoading={isLoading} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/list-projects'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <ListProjects url={url} setIsLoading={setIsLoading} isLoading={isLoading} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/add-product'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <AddProduct url={url} setIsLoading={setIsLoading} isLoading={isLoading} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/list-products'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <ListProducts url={url} setIsLoading={setIsLoading} isLoading={isLoading} />
                 </ProtectedRoute>
               }
             />

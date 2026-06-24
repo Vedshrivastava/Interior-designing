@@ -206,11 +206,6 @@ const Home = ({ setShowLogin }) => {
               Explore thoughtfully crafted interiors designed for luxury,
               comfort and enduring functionality.
             </p>
-
-            {/* ORIGINAL BUTTON KEPT HERE */}
-            <button onClick={handleProjects} className='hp-text-btn'>
-              View all projects <FontAwesomeIcon icon={faArrowRight} />
-            </button>
           </div>
         </div>
 
@@ -257,7 +252,7 @@ const Home = ({ setShowLogin }) => {
 
         {/* NEW BUTTON ADDED AT THE BOTTOM */}
         <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center' }}>
-          <button onClick={() => navigate('/design/Bedroom%20Designs')} className='hp-text-btn'>
+          <button onClick={() => navigate('/design/Kitchen%20Designs')} className='hp-text-btn'>
             View more designs <FontAwesomeIcon icon={faArrowRight} />
           </button>
         </div>
@@ -467,16 +462,19 @@ const Home = ({ setShowLogin }) => {
             <div className='marquee-inner scroll-left'>
               {marqueeItems.map((t, i) => (
                 <div className='t-card' key={`a${i}`}>
-                  <div className='t-card-stars'>{Array.from({ length: t.rating }).map((_, s) => <FontAwesomeIcon icon={faStar} key={s} />)}</div>
-                  <p className='t-card-text'>"{t.text}"</p>
+                  <div className='t-card-top'>
+                    <div className='t-card-quote-icon'><FontAwesomeIcon icon={faQuoteLeft} /></div>
+                    <div className='t-card-stars'>{Array.from({ length: t.rating }).map((_, s) => <FontAwesomeIcon icon={faStar} key={s} />)}</div>
+                  </div>
+                  <p className='t-card-text'>{t.text}</p>
                   <div className='t-card-author'>
                     <div className='t-card-avatar'>
-                      {t.image ? (
-                        <img src={t.image} alt={t.name} />
-                      ) : (
-                        t.name.charAt(0)
-                      )}
-                    </div>                    <div><strong>{t.name}</strong><span>{t.location}</span></div>
+                      {t.image ? <img src={t.image} alt={t.name} /> : t.name.charAt(0)}
+                    </div>
+                    <div className='t-card-author-info'>
+                      <strong>{t.name}</strong>
+                      <span>{t.location}</span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -486,16 +484,19 @@ const Home = ({ setShowLogin }) => {
             <div className='marquee-inner scroll-right'>
               {[...marqueeItems].reverse().map((t, i) => (
                 <div className='t-card' key={`b${i}`}>
-                  <div className='t-card-stars'>{Array.from({ length: t.rating }).map((_, s) => <FontAwesomeIcon icon={faStar} key={s} />)}</div>
-                  <p className='t-card-text'>"{t.text}"</p>
+                  <div className='t-card-top'>
+                    <div className='t-card-quote-icon'><FontAwesomeIcon icon={faQuoteLeft} /></div>
+                    <div className='t-card-stars'>{Array.from({ length: t.rating }).map((_, s) => <FontAwesomeIcon icon={faStar} key={s} />)}</div>
+                  </div>
+                  <p className='t-card-text'>{t.text}</p>
                   <div className='t-card-author'>
                     <div className='t-card-avatar'>
-                      {t.image ? (
-                        <img src={t.image} alt={t.name} />
-                      ) : (
-                        t.name.charAt(0)
-                      )}
-                    </div>                    <div><strong>{t.name}</strong><span>{t.location}</span></div>
+                      {t.image ? <img src={t.image} alt={t.name} /> : t.name.charAt(0)}
+                    </div>
+                    <div className='t-card-author-info'>
+                      <strong>{t.name}</strong>
+                      <span>{t.location}</span>
+                    </div>
                   </div>
                 </div>
               ))}

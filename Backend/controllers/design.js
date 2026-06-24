@@ -1,5 +1,6 @@
 import Design from "../models/design.js";
 import { v2 as cloudinary } from 'cloudinary';
+import { broadcast } from '../middlewares/webSocket.js';
 import fs from 'fs';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -47,6 +48,7 @@ const addDesign = async (req, res) => {
         });
 
         await design.save();
+        broadcast({ type: 'designsChanged' });
         res.json({ success: true, message: 'Design Added' });
     } catch (error) {
         console.error('Error adding design:', error);
@@ -96,6 +98,7 @@ const removeDesign = async (req, res) => {
         }
 
         await Design.findByIdAndDelete(_id);
+        broadcast({ type: 'designsChanged' });
         res.json({ success: true, message: 'Design Removed' });
     } catch (error) {
         console.error('Error removing design:', error);
@@ -153,6 +156,7 @@ let updateData = {
         updateData.images = [...parsedExistingImages, ...newImageUrls];
 
         await Design.findByIdAndUpdate(_id, updateData, { new: true });
+        broadcast({ type: 'designsChanged' });
         res.json({ success: true, message: 'Design Updated Successfully' });
     } catch (error) {
         console.error('Error updating design:', error);

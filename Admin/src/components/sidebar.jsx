@@ -3,42 +3,64 @@ import '../styles/sidebar.css';
 import { NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faPlus, faList, faIdBadge, faMessage,
+  faPlus, faList, faIdBadge, faMessage, faFolderPlus, faFolderOpen,
+  faCubes, faBoxesStacked,
 } from '@fortawesome/free-solid-svg-icons';
 
-const NAV_ITEMS = [
-  { to: '/add',          icon: faPlus,    label: 'Add New'      },
-  { to: '/list',         icon: faList,    label: 'List Items'   },
-  { to: '/appointments', icon: faIdBadge, label: 'Appointments' },
-  { to: '/quotes',       icon: faMessage, label: 'Quotes'       },
+const NAV_SECTIONS = [
+  {
+    label: 'Designs',
+    items: [
+      { to: '/add',  icon: faPlus, label: 'Add Design' },
+      { to: '/list', icon: faList, label: 'Designs'    },
+    ],
+  },
+  {
+    label: 'Projects',
+    items: [
+      { to: '/add-project',   icon: faFolderPlus, label: 'Add Project' },
+      { to: '/list-projects', icon: faFolderOpen, label: 'Projects'    },
+    ],
+  },
+  {
+    label: 'Products',
+    items: [
+      { to: '/add-product',   icon: faCubes,        label: 'Add Product' },
+      { to: '/list-products', icon: faBoxesStacked, label: 'Products'    },
+    ],
+  },
+  {
+    label: 'Clients',
+    items: [
+      { to: '/appointments', icon: faIdBadge, label: 'Appointments' },
+      { to: '/quotes',       icon: faMessage, label: 'Quotes'       },
+    ],
+  },
 ];
 
-const Sidebar = () => {
-  return (
-    <div className="sidebar">
+const Sidebar = () => (
+  <div className="sidebar">
+    {NAV_SECTIONS.map(({ label, items }, si) => (
+      <div key={label} className="sidebar-options">
+        {si > 0 && <div className="sidebar-divider" />}
+        <p className="sidebar-section-label">{label}</p>
 
-      <div className="sidebar-options">
-        <p className="sidebar-section-label">Menu</p>
-
-        {NAV_ITEMS.map(({ to, icon, label }) => (
+        {items.map(({ to, icon, label: itemLabel }) => (
           <NavLink
             key={to}
             to={to}
-            data-label={label}
-            className={({ isActive }) =>
-              `sidebar-option${isActive ? ' active' : ''}`
-            }
+            data-label={itemLabel}
+            className={({ isActive }) => `sidebar-option${isActive ? ' active' : ''}`}
           >
             <span className="sidebar-option-icon">
               <FontAwesomeIcon icon={icon} />
             </span>
-            <p>{label}</p>
+            <p>{itemLabel}</p>
           </NavLink>
         ))}
-
       </div>
-    </div>
-  );
-};
+    ))}
+  </div>
+);
 
 export default Sidebar;

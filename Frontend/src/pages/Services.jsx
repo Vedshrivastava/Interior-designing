@@ -40,30 +40,30 @@ const services = [
         icon: faStar, title: "Affordable Luxury",
         description: "Premium interiors with transparent pricing and zero hidden costs — luxury made genuinely accessible.",
         img: rates,
-        features: ["Transparent Pricing", "Zero Hidden Costs"]
+        features: ["Transparent Pricing", "Zero Hidden Costs", "Luxury aesthetic within budget"]
     },
-    { icon: faLock, title: "Refundable Consultation", description: "Your consultation fee is fully adjusted when you proceed with execution. Completely risk-free.", img: design },
-    { icon: faHome, title: "Residential Interiors", description: "Custom home interiors for apartments and villas — designed around your lifestyle and comfort.", img: residence },
+    { icon: faLock, title: "Refundable Consultation", description: "Your consultation fee is fully adjusted when you proceed with execution. Completely risk-free.", img: design, features: ["Fee adjusted on project confirmation", "No obligation to proceed"] },
+    { icon: faHome, title: "Residential Interiors", description: "Custom home interiors for apartments and villas — designed around your lifestyle and comfort.", img: residence, features: ["100% bespoke, no templates", "Apartment & villa specialists"] },
 
     // CARD 4 (Row 2 Feature)
     {
         icon: faBuilding, title: "Commercial Spaces",
         description: "Inspiring offices and retail interiors that boost productivity and reflect your brand identity.",
         img: commercial,
-        features: ["Brand-Centric Design", "Ergonomic Layouts"]
+        features: ["Brand-Centric Design", "Ergonomic Layouts", "Turnkey office & retail execution"]
     },
-    { icon: faWrench, title: "Renovation Services", description: "Complete makeovers or targeted upgrades — we breathe fresh life into any outdated space.", img: renovation },
-    { icon: faRulerCombined, title: "Space Planning", description: "Smart layouts that maximise every inch of your space for both function and visual flow.", img: space_planning },
+    { icon: faWrench, title: "Renovation Services", description: "Complete makeovers or targeted upgrades — we breathe fresh life into any outdated space.", img: renovation, features: ["Partial or full space overhauls", "Minimal disruption approach"] },
+    { icon: faRulerCombined, title: "Space Planning", description: "Smart layouts that maximise every inch of your space for both function and visual flow.", img: space_planning, features: ["Floor plan optimisation", "Flow & functionality focused"] },
 
     // CARD 7 (Row 3 Feature)
     {
         icon: faLightbulb, title: "Lighting Design",
         description: "Ambient, accent, and task lighting concepts that define mood and elevate every room.",
         img: lighting,
-        features: ["Mood-Enhancing Concepts", "Energy-Efficient Solutions"]
+        features: ["Mood-Enhancing Concepts", "Energy-Efficient Solutions", "Natural & artificial light balance"]
     },
-    { icon: faPalette, title: "Material Selection", description: "We source premium materials from trusted partners like Kajaria, Asian Paints & more.", img: materials },
-    { icon: faLayerGroup, title: "3D Visualization", description: "Photo-realistic 3D renders so you see exactly how your space will look before execution begins.", img: Visualization_3D },
+    { icon: faPalette, title: "Material Selection", description: "We source premium materials from trusted partners like Kajaria, Asian Paints & more.", img: materials, features: ["Trusted brands, curated choices", "Budget-conscious premium picks"] },
+    { icon: faLayerGroup, title: "3D Visualization", description: "Photo-realistic 3D renders so you see exactly how your space will look before execution begins.", img: Visualization_3D, features: ["Photo-realistic renders", "Approved before execution begins"] },
 ];
 
 const processSteps = [
@@ -282,6 +282,13 @@ const Services = ({ setShowLogin }) => {
                                         <div className='hp-adv-card-body'>
                                             <h4>{chunk[1].title}</h4>
                                             <p>{chunk[1].description}</p>
+                                            {chunk[1].features && (
+                                                <ul>
+                                                    {chunk[1].features.map((featureText, idx) => (
+                                                        <li key={idx}><span className='hp-adv-dot' />{featureText}</li>
+                                                    ))}
+                                                </ul>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -299,6 +306,13 @@ const Services = ({ setShowLogin }) => {
                                         <div className='hp-adv-card-body'>
                                             <h4>{chunk[2].title}</h4>
                                             <p>{chunk[2].description}</p>
+                                            {chunk[2].features && (
+                                                <ul>
+                                                    {chunk[2].features.map((featureText, idx) => (
+                                                        <li key={idx}><span className='hp-adv-dot' />{featureText}</li>
+                                                    ))}
+                                                </ul>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -372,18 +386,19 @@ const Services = ({ setShowLogin }) => {
                         <div className="marquee-inner scroll-left">
                             {marqueeItems.map((t, i) => (
                                 <div className="t-card" key={`a${i}`}>
-                                    <div className="t-card-stars">
-                                        {Array.from({ length: t.rating }).map((_, s) => <FontAwesomeIcon icon={faStar} key={s} />)}
+                                    <div className="t-card-top">
+                                        <div className="t-card-quote-icon"><FontAwesomeIcon icon={faQuoteLeft} /></div>
+                                        <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <FontAwesomeIcon icon={faStar} key={s} />)}</div>
                                     </div>
-                                    <p className="t-card-text">"{t.text}"</p>
+                                    <p className="t-card-text">{t.text}</p>
                                     <div className="t-card-author">
-                                        <div className='t-card-avatar'>
-                                            {t.image ? (
-                                                <img src={t.image} alt={t.name} />
-                                            ) : (
-                                                t.name.charAt(0)
-                                            )}
-                                        </div>                                        <div><strong>{t.name}</strong><span>{t.location}</span></div>
+                                        <div className="t-card-avatar">
+                                            {t.image ? <img src={t.image} alt={t.name} /> : t.name.charAt(0)}
+                                        </div>
+                                        <div className="t-card-author-info">
+                                            <strong>{t.name}</strong>
+                                            <span>{t.location}</span>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -393,18 +408,19 @@ const Services = ({ setShowLogin }) => {
                         <div className="marquee-inner scroll-right">
                             {[...marqueeItems].reverse().map((t, i) => (
                                 <div className="t-card" key={`b${i}`}>
-                                    <div className="t-card-stars">
-                                        {Array.from({ length: t.rating }).map((_, s) => <FontAwesomeIcon icon={faStar} key={s} />)}
+                                    <div className="t-card-top">
+                                        <div className="t-card-quote-icon"><FontAwesomeIcon icon={faQuoteLeft} /></div>
+                                        <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <FontAwesomeIcon icon={faStar} key={s} />)}</div>
                                     </div>
-                                    <p className="t-card-text">"{t.text}"</p>
+                                    <p className="t-card-text">{t.text}</p>
                                     <div className="t-card-author">
-                                        <div className='t-card-avatar'>
-                                            {t.image ? (
-                                                <img src={t.image} alt={t.name} />
-                                            ) : (
-                                                t.name.charAt(0)
-                                            )}
-                                        </div>                                        <div><strong>{t.name}</strong><span>{t.location}</span></div>
+                                        <div className="t-card-avatar">
+                                            {t.image ? <img src={t.image} alt={t.name} /> : t.name.charAt(0)}
+                                        </div>
+                                        <div className="t-card-author-info">
+                                            <strong>{t.name}</strong>
+                                            <span>{t.location}</span>
+                                        </div>
                                     </div>
                                 </div>
                             ))}

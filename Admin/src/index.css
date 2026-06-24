@@ -261,11 +261,34 @@ hr {
   .app-contents { display: block !important; }
   .sidebar { width: 100% !important; min-height: auto !important; }
   .main-content {
-    margin-left: 0 !important;         
-    width: 100% !important;            
-    padding-top: 124px !important; 
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding-top: 124px !important;
     padding-bottom: 24px;
-    padding-left: 16px !important;     
+    padding-left: 16px !important;
     padding-right: 16px !important;
+  }
+}
+
+/* ════════════════════════════════════════════
+   TOAST — centre within main content, not full viewport
+   Sidebar is 220px desktop → shift centre by 110px
+   Sidebar is  68px tablet  → shift centre by  34px
+   Sidebar is   0px mobile  → no shift
+════════════════════════════════════════════ */
+.Toastify__toast-container--bottom-center {
+  /* left: 50% + half-sidebar-width centres in the content area */
+  left: calc(50% + 110px) !important;
+}
+
+@media (max-width: 900px) {
+  .Toastify__toast-container--bottom-center {
+    left: calc(50% + 34px) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .Toastify__toast-container--bottom-center {
+    left: 50% !important;
   }
 }

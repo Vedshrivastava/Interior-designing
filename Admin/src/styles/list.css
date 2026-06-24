@@ -696,7 +696,8 @@
 }
 
 @media (max-width: 480px) {
-    .admin-list-container { padding: 0 16px; margin: 20px auto; }
+    /* main-content provides 16px sides — no extra side padding here */
+    .admin-list-container { padding: 0; margin: 20px auto; }
     .admin-header-split h1 { font-size: 2.1rem; }
     .admin-list-container { animation-duration: 0.4s; }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import '../styles/add.css';
 import { assets } from '../assets/admin_assets/assets';
 import axios from 'axios';
@@ -16,20 +16,25 @@ const Add = ({ url, setIsLoading, isLoading }) => {
         category: "Kitchen Designs",
         isFeatured: false // Add this
     });
-    const [points, setPoints] = useState([""]);
-
-    // 2. DELETE THIS LINE:
-    // const [isLoading, setIsLoading] = useState(false); 
+    const [points,  setPoints]  = useState([""]);
+    const [catOpen, setCatOpen] = useState(false);
+    const catRef = useRef(null);
 
     const token = localStorage.getItem('token');
+
+    useEffect(() => {
+        const handleOutside = (e) => {
+            if (catRef.current && !catRef.current.contains(e.target)) setCatOpen(false);
+        };
+        document.addEventListener('mousedown', handleOutside);
+        return () => document.removeEventListener('mousedown', handleOutside);
+    }, []);
 
     const categories = [
         'Kitchen Designs', 'Bedroom Designs', 'Bathroom Designs',
         'Lounge area Designs', 'Kids Room Designs', 'TV Unit Designs',
         'Commercial Designs', 'Mandir Designs', 'Garden Designs',
-        'House Exterior Designs', 'PVC Louvers', 'WPC Louvers',
-        'Charcoal Louvers', 'Five G Louvers', 'Marble sheets',
-        'Acrylic Sheets', 'Flooring', 'PVC Panels', 'Projects'
+        'House Exterior Designs',
     ];
 
     const onChangeHandler = (event) => {
@@ -135,30 +140,60 @@ const Add = ({ url, setIsLoading, isLoading }) => {
                     <button className='add-point-btn' type="button" onClick={addPoint}>+ Add Point</button>
                 </div>
 
-                <div className="add-category-price">
-                    <div className="add-category flex-col">
-                        <h2>Category</h2>
-                        <select onChange={onChangeHandler} name="category" value={data.category}>
-                            {categories.map((cat, index) => (
-                                <option key={index} value={cat}>{cat}</option>
-                            ))}
-                        </select>
-                    </div>
+                <div className="add-cat-dropdown-wrap flex-col">
+                    <h2>Category</h2>
+                    <div className="add-cat-dropdown" ref={catRef}>
+                        <button
+                            type="button"
+                            className={`add-cat-trigger${catOpen ? ' open' : ''}`}
+                            onClick={() => setCatOpen(o => !o)}
+                        >
+                            <span>{data.category}</span>
+                            <i className="fa fa-chevron-down" />
+                        </button>
 
-                    <div className="add-featured flex-col">
-                        <h2>Visibility</h2>
-                        <label className="featured-toggle">
-                            <input
-                                type="checkbox"
-                                name="isFeatured"
-                                checked={data.isFeatured}
-                                onChange={onChangeHandler}
-                            />
-                            <span className="toggle-slider"></span>
-                            <span className="toggle-label">Feature on Homepage</span>
-                        </label>
+                        {catOpen && (
+                            <ul className="add-cat-list">
+                                {categories.map((cat, i) => (
+                                    <li
+                                        key={i}
+                                        className={`add-cat-option${data.category === cat ? ' active' : ''}`}
+                                        onClick={() => {
+                                            setData(prev => ({ ...prev, category: cat }));
+                                            setCatOpen(false);
+                                        }}
+                                    >
+                                        <span>{cat}</span>
+                                        {data.category === cat && <i className="fa fa-check" />}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
                 </div>
+
+                {/* ── Featured card ── */}
+                <label className={`add-feature-card${data.isFeatured ? ' active' : ''}`}>
+                    <div className="add-feature-left">
+                        <div className="add-feature-icon">
+                            <i className="fa fa-star" />
+                        </div>
+                        <div className="add-feature-text">
+                            <span className="add-feature-title">Feature on Homepage</span>
+                            <span className="add-feature-desc">
+                                Mark as featured — this design will appear in the Featured Picks slider on the design display page.
+                            </span>
+                        </div>
+                    </div>
+                    <input
+                        type="checkbox"
+                        name="isFeatured"
+                        checked={data.isFeatured}
+                        onChange={onChangeHandler}
+                        style={{ display: 'none' }}
+                    />
+                    <span className="toggle-slider" />
+                </label>
 
                 <button type='submit' className='add-btn' disabled={isLoading}>
                     {isLoading ? 'Adding...' : 'Add Design'}

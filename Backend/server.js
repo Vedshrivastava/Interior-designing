@@ -3,6 +3,8 @@ import cors from "cors";
 import http from "http"; // Import http to create the server
 import { connectDB } from './config/db.js';
 import designRouter from "./routes/design.js";
+import projectRouter from "./routes/project.js";
+import productRouter from "./routes/product.js";
 import router from "./routes/appointments.js";
 import admin from "./routes/admin.js";
 import user from "./routes/user.js";
@@ -22,6 +24,8 @@ connectDB(process.env.MONGO_URI);
 
 // Routes
 app.use('/api/design', designRouter);
+app.use('/api/project', projectRouter);
+app.use('/api/product', productRouter);
 app.use('/api/appointment', router);
 app.use('/api/admin', admin);
 app.use('/api/user', user);

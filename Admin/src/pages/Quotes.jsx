@@ -111,6 +111,7 @@ const Quotes = ({ url }) => {
           setOrders((prevOrders) =>
             [message.data, ...prevOrders].sort((a, b) => new Date(b.date) - new Date(a.date))
           );
+          toast.info(`💬 New quote request from ${message.data.name}`);
           break;
         case 'updateOrderStatus':
           setOrders((prevOrders) =>

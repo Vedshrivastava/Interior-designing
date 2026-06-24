@@ -64,9 +64,10 @@ const Orders = ({ url }) => {
       const message = JSON.parse(event.data);
       switch (message.type) {
         case 'newOrder':
-          setOrders((prevOrders) => 
+          setOrders((prevOrders) =>
             [message.data, ...prevOrders].sort((a, b) => new Date(b.date) - new Date(a.date))
-          );          
+          );
+          toast.info(`📋 New appointment from ${message.data.name}`);
           break;
         case 'updateOrderStatus':
           setOrders((prevOrders) =>

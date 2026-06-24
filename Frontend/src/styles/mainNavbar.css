@@ -319,35 +319,87 @@
 
   .mainNavbar-links li { width: 100%; }
 
-  .mainNavbar-links a,
-  .mainNavbar-links .nav-text-btn {
-    width: 100%;
-    padding: 13px 16px;
-    font-size: 0.92rem;
-    border-radius: 10px;
-    justify-content: flex-start;
+  .mainNavbar-links {
+    gap: 8px;
+    padding: 0 16px;
   }
 
-  /* remove active dot on mobile */
+  /* ── Mobile link card ── */
+  .mainNavbar-links a {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 14px;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 14px;
+    background: rgba(201,168,124,0.06);
+    border: 1px solid rgba(201,168,124,0.1);
+    transition: background 0.22s ease, border-color 0.22s ease;
+  }
+
+  .mainNavbar-links a:hover {
+    background: rgba(201,168,124,0.13);
+    border-color: rgba(201,168,124,0.28);
+  }
+
+  /* remove active dot, add card highlight instead */
   .mainNavbar-links a.active-link::after { display: none; }
   .mainNavbar-links a.active-link {
-    background: rgba(201,168,124,0.1);
+    background: rgba(201,168,124,0.15);
+    border-color: rgba(201,168,124,0.35);
   }
 
-  /* divider before CTA */
-  .mainNavbar-links li:last-child {
-    margin-top: 10px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(201,168,124,0.12);
-  }
-
-  .consult-online {
-    width: 100%;
-    margin: 0;
-    padding: 13px 22px;
-    border-radius: 12px;
-    font-size: 0.88rem;
+  /* ── Icon badge ── */
+  .nav-link-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(201,168,124,0.12);
+    border: 1px solid rgba(201,168,124,0.2);
+    display: flex;
+    align-items: center;
     justify-content: center;
+    color: #c9a87c;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+  }
+
+  /* ── Text block ── */
+  .nav-link-text-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .nav-link-label {
+    font-family: "Playfair Display", serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #f5ede0;
+    line-height: 1.2;
+  }
+
+  .nav-link-desc {
+    font-family: "Inter", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: rgba(201,168,124,0.6);
+    line-height: 1.3;
+  }
+
+  /* ── Chevron ── */
+  .nav-link-chevron {
+    color: rgba(201,168,124,0.35);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease, color 0.2s ease;
+  }
+
+  .mainNavbar-links a:hover .nav-link-chevron {
+    color: rgba(201,168,124,0.7);
+    transform: translateX(3px);
   }
 }
 
@@ -366,4 +418,27 @@
   .mainNavbar-container { padding: 0 14px; }
   .mainNavbar-logo-text strong { font-size: 0.88rem; }
   .mainNavbar-logo-text span   { display: none; }
+}
+
+/* ── Mobile-only link anatomy — hidden on desktop ── */
+.nav-link-icon-wrap,
+.nav-link-desc,
+.nav-link-chevron { display: none; }
+
+/* ── Desktop: keep label inline, no extra wrapper styling ── */
+.nav-link-text-wrap { display: contents; }
+.nav-link-label     { display: inline; }
+
+/* ── Links already in bottom navbar — hide from hamburger on mobile ── */
+@media (max-width: 768px) {
+  .nav-mobile-hidden { display: none !important; }
+
+  /* Reveal mobile-only elements */
+  .nav-link-icon-wrap { display: flex; }
+  .nav-link-desc      { display: block; }
+  .nav-link-chevron   { display: block; }
+
+  /* Text wrapper becomes a proper column block on mobile */
+  .nav-link-text-wrap { display: flex; }
+  .nav-link-label     { display: block; }
 }

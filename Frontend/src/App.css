@@ -1,0 +1,16 @@
+/* ════════════════════════════════════════════
+   BOTTOM NAVBAR CLEARANCE — mobile only
+   body padding pushes page content up;
+   fixed-position elements (FAB, modals) are
+   unaffected by body padding.
+════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  body {
+    padding-bottom: 62px;
+  }
+
+  /* WhatsApp FAB: lift above the bottom nav */
+  .wa-fab {
+    bottom: calc(62px + 16px) !important;
+  }
+}

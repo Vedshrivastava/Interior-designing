@@ -462,8 +462,8 @@
 ══════════════════════════════════════════════ */
 @media (max-width: 480px) {
     .order {
-        /* Increased whole card width by dropping outer padding from 14px to 8px */
-        padding: 32px 8px 28px 8px;
+        /* main-content provides 16px sides — no extra side padding here */
+        padding: 20px 0 28px;
     }
     .order-date-group { 
         margin-bottom: 28px; 

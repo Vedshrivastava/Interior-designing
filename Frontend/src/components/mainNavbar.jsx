@@ -4,14 +4,21 @@ import '../styles/mainNavbar.css';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCalendarCheck } from '@fortawesome/free-solid-svg-icons';
+import {
+  faCalendarCheck, faCompass, faCircleInfo,
+  faEnvelope, faChevronRight,
+} from '@fortawesome/free-solid-svg-icons';
 
+// mobileHide: true  → in bottom navbar already; hidden from hamburger on mobile
+// matchPath        → use startsWith() for active detection instead of exact match
+// icon / desc      → mobile hamburger card only (mobileHide:true items never render them)
 const NAV_LINKS = [
-  { label: 'Home',            to: '/'        },
-  { label: 'Services',        to: '/services' },
-  { label: 'Recent Projects', to: '/projects' },
-  { label: 'About',           to: '/about'   },
-  { label: 'Contact',         to: '/contact' },
+  { label: 'Services', to: '/services',                 matchPath: null,     mobileHide: false, icon: faCompass,    desc: 'What we offer'   },
+  { label: 'Designs',  to: '/design/Kitchen%20Designs', matchPath: '/design',mobileHide: true,  icon: null,         desc: null              },
+  { label: 'Products', to: '/products',                 matchPath: null,     mobileHide: true,  icon: null,         desc: null              },
+  { label: 'Projects', to: '/projects',                 matchPath: null,     mobileHide: true,  icon: null,         desc: null              },
+  { label: 'About',    to: '/about',                    matchPath: null,     mobileHide: false, icon: faCircleInfo, desc: 'Our story & team'},
+  { label: 'Contact',  to: '/contact',                  matchPath: null,     mobileHide: false, icon: faEnvelope,   desc: 'Get in touch'    },
 ];
 
 const MainNavbar = ({ setShowLogin }) => {
@@ -58,19 +65,40 @@ const MainNavbar = ({ setShowLogin }) => {
         <div className={`mainNavbar-links-container${menuOpen ? ' open' : ''}`}>
           <ul className="mainNavbar-links">
 
-            {NAV_LINKS.map(({ label, to }) => (
-              <li key={to}>
+            {NAV_LINKS.map(({ label, to, matchPath, mobileHide, icon, desc }) => {
+              const isActive = matchPath
+                ? location.pathname.startsWith(matchPath)
+                : location.pathname === to;
+              return (
+              <li key={to} className={mobileHide ? 'nav-mobile-hidden' : ''}>
                 <Link
                   to={to}
-                  className={location.pathname === to ? 'active-link' : ''}
+                  className={isActive ? 'active-link' : ''}
                 >
-                  {label}
+                  {/* Icon badge — mobile only (hidden via CSS on desktop) */}
+                  {icon && (
+                    <span className="nav-link-icon-wrap">
+                      <FontAwesomeIcon icon={icon} />
+                    </span>
+                  )}
+
+                  {/* Text — on desktop just the label; on mobile label + desc stacked */}
+                  <span className="nav-link-text-wrap">
+                    <span className="nav-link-label">{label}</span>
+                    {desc && <span className="nav-link-desc">{desc}</span>}
+                  </span>
+
+                  {/* Chevron — mobile only */}
+                  {icon && (
+                    <FontAwesomeIcon icon={faChevronRight} className="nav-link-chevron" />
+                  )}
                 </Link>
               </li>
-            ))}
+              );
+            })}
 
-            {/* CTA */}
-            <li>
+            {/* CTA — hidden on mobile since bottom nav has Consult tab */}
+            <li className="nav-mobile-hidden">
               <button
                 className="consult-online"
                 onClick={() => { setShowLogin(true); setMenuOpen(false); }}

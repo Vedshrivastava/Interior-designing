@@ -13,10 +13,12 @@ import Contact from './pages/Contact';
 import Projects from './pages/Projects';
 import Services from './pages/Services';
 import DesignDisplay from './pages/designDisplay';
+import Products from './pages/Products';
 
 import Consult from './components/consult';
-import QuotePopup from './components/quote-popup'; // NEW: Imported the new Quote popup
+import QuotePopup from './components/quote-popup';
 import MainNavbar from './components/mainNavbar';
+import BottomNavbar from './components/BottomNavbar';
 
 function App() {
   // Separate states for the two different popups
@@ -29,6 +31,7 @@ function App() {
   return (
     <>
       <MainNavbar setShowLogin={setShowLogin} />
+      <BottomNavbar setShowLogin={setShowLogin} />
 
       {/* MODAL 1: Standard Free Consultation */}
       {showLogin && (
@@ -62,10 +65,11 @@ function App() {
           }
         />
 
-        <Route path='/about' element={<About setShowLogin={setShowLogin} />} />
-        <Route path='/contact' element={<Contact setShowLogin={setShowLogin} />} />
+        <Route path='/about'    element={<About    setShowLogin={setShowLogin} />} />
+        <Route path='/contact'  element={<Contact  setShowLogin={setShowLogin} />} />
         <Route path='/projects' element={<Projects setShowLogin={setShowLogin} />} />
         <Route path='/services' element={<Services setShowLogin={setShowLogin} />} />
+        <Route path='/products' element={<Products setShowLogin={setShowLogin} />} />
       </Routes>
 
       {/* GLOBAL FLOATING WHATSAPP BUTTON */}

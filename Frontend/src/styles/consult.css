@@ -49,7 +49,7 @@
 }
 
 /* ════════════════════════════════════════════
-   CARD — Matches .footer section exactly
+   CARD — Updated to match Featured Section
 ════════════════════════════════════════════ */
 .login-container {
   position: relative;
@@ -57,12 +57,13 @@
   width: 100%;
   max-width: 460px;
 
-  /* Deep green background matching footer */
-  background: var(--green);
-  /* Added subtle radial glow matching the footer top */
-  background-image: radial-gradient(ellipse at top center, rgba(201,168,124,0.08) 0%, transparent 70%);
+  /* Blush background matching featured section */
+  background: var(--blush); /*[cite: 1] */
   
-  border: 1px solid rgba(201, 168, 124, 0.15); /* Gold border instead of dark */
+  /* Subtle radial glow matching the featured section */
+  background-image: radial-gradient(ellipse at 50% 40%, rgba(201,168,124,0.15) 0%, transparent 65%); /*[cite: 1] */
+  
+  border: 1px solid rgba(201, 168, 124, 0.25);
   border-radius: 24px;
   overflow: hidden;
 
@@ -70,8 +71,8 @@
   flex-direction: column;
 
   box-shadow: 
-    0 32px 80px rgba(0,0,0,0.4),
-    0 8px 32px rgba(0,0,0,0.2);
+    0 32px 80px rgba(0,0,0,0.15),
+    0 8px 32px rgba(0,0,0,0.08);
 
   animation: modalIn 0.4s cubic-bezier(.22,.61,.36,1) both;
   
@@ -84,8 +85,8 @@
 .login-container:hover {
   transform: translateY(-8px);
   box-shadow: 
-    0 40px 90px rgba(0,0,0,0.5),
-    0 20px 44px rgba(0,0,0,0.3);
+    0 40px 90px rgba(0,0,0,0.2),
+    0 20px 44px rgba(0,0,0,0.12);
 }
 
 @keyframes modalIn {
@@ -110,23 +111,23 @@
   transform: scaleX(1); 
 }
 
-/* ── Footer Section Gold Grid Pattern directly on the Card ── */
+/* ── Featured Section Diagonal Crosshatch Pattern ── */
 .login-container::after {
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.055;
+  opacity: 0.035; /*[cite: 1] */
   background-image:
-    repeating-linear-gradient(45deg,  var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px),
-    repeating-linear-gradient(-45deg, var(--gold) 0, var(--gold) 1px, transparent 0, transparent 28px);
+    repeating-linear-gradient(45deg,  var(--forest) 0, var(--forest) 1.5px, transparent 0, transparent 20px),
+    repeating-linear-gradient(-45deg, var(--forest) 0, var(--forest) 1.5px, transparent 0, transparent 20px); /*[cite: 1] */
   pointer-events: none;
-  z-index: 0; /* Stays behind the content */
+  z-index: 0; 
 }
 
 /* ── Inner padding wrapper ── */
 .login-inner {
   position: relative;
-  z-index: 1; /* Elevates content above the card's diamond grid */
+  z-index: 1; 
   padding: 32px 36px 36px;
   display: flex;
   flex-direction: column;
@@ -150,7 +151,6 @@
   transition: transform 0.3s ease;
 }
 
-/* Scales up beautifully on hover without any tilting/rotation */
 .login-container:hover .login-logo {
   transform: scale(1.06);
 }
@@ -163,7 +163,7 @@
   font-family: "Playfair Display", serif;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #f5ede0; /* Ivory header matching footer */
+  color: var(--green); /* Inverted for light background */
   margin: 0 0 3px;
   line-height: 1.2;
   letter-spacing: -0.3px;
@@ -172,18 +172,18 @@
 .login-header-text p {
   font-family: "Inter", sans-serif;
   font-size: 0.75rem;
-  color: rgba(240, 230, 211, 0.6); /* Muted ivory matching footer text */
+  color: var(--text-mid); /* Inverted for light background */
   margin: 0;
   letter-spacing: 0.3px;
 }
 
-/* Close button - Styled like footer social icons */
+/* Close button */
 .login-close {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: rgba(201,168,124,0.08);
-  border: 1px solid rgba(201,168,124,0.18);
+  background: rgba(201,168,124,0.12);
+  border: 1px solid rgba(201,168,124,0.3);
   color: var(--gold);
   font-size: 0.95rem;
   display: flex;
@@ -195,9 +195,9 @@
   line-height: 1;
 }
 .login-close:hover {
-  background: rgba(201,168,124,0.18);
-  border-color: rgba(201,168,124,0.4);
-  color: var(--gold-lt);
+  background: rgba(201,168,124,0.25);
+  border-color: var(--gold);
+  color: var(--green);
   transform: translateY(-2px);
 }
 
@@ -206,7 +206,7 @@
 ════════════════════════════════════════════ */
 .login-divider {
   height: 1px;
-  background: rgba(201, 168, 124, 0.15); /* Gold divider */
+  background: rgba(201, 168, 124, 0.25); 
   margin: -4px 0;
 }
 
@@ -229,7 +229,7 @@
   font-family: "Inter", sans-serif;
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--gold-lt); /* Gold labels */
+  color: var(--green); /* Inverted for visibility on blush */
   letter-spacing: 1.5px;
   text-transform: uppercase;
 }
@@ -238,10 +238,10 @@
   width: 100%;
   box-sizing: border-box;
   padding: 13px 16px;
-  background: rgba(0, 0, 0, 0.15); /* Dark transparent input background */
-  border: 1px solid rgba(201, 168, 124, 0.2); /* Faint gold border */
+  background: rgba(255, 255, 255, 0.55); /* Lightened for blush background */
+  border: 1px solid rgba(201, 168, 124, 0.35); 
   border-radius: 12px;
-  color: var(--ivory); /* Light text when typing */
+  color: var(--text); /* Dark text */
   font-family: "Inter", sans-serif;
   font-size: 0.9rem;
   outline: none;
@@ -249,12 +249,12 @@
 }
 
 .login-inputs input::placeholder {
-  color: rgba(240, 230, 211, 0.35); /* Muted placeholder */
+  color: var(--text-lt); /* Darker placeholder */
 }
 
 .login-inputs input:focus {
   border-color: var(--gold);
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--white);
   box-shadow: 0 0 0 3px rgba(201, 168, 124, 0.15);
 }
 
@@ -266,8 +266,8 @@
   padding: 15px 24px;
   border: none;
   border-radius: 999px;
-  background: var(--gold); /* Gold button to stand out on dark background */
-  color: var(--green); /* Dark text for contrast */
+  background: var(--green); /* Changed to green to contrast with blush background */
+  color: var(--gold); /* Changed to gold text */
   font-family: "Inter", sans-serif;
   font-size: 0.85rem;
   font-weight: 700;
@@ -283,9 +283,9 @@
 }
 
 .login-container button[type="submit"]:hover {
-  background: var(--gold-lt);
+  background: var(--forest);
   transform: translateY(-2px);
-  box-shadow: 0 10px 26px rgba(201, 168, 124, 0.2); /* Gold glow on hover */
+  box-shadow: 0 10px 26px rgba(16, 37, 37, 0.15); 
 }
 
 .login-container button[type="submit"]:active {
@@ -302,11 +302,10 @@
   text-align: center;
   font-family: "Inter", sans-serif;
   font-size: 0.72rem;
-  color: rgba(240, 230, 211, 0.5); /* Muted ivory note */
+  color: var(--text-mid); /* Darker text to read on blush */
   margin-top: -8px;
   line-height: 1.6;
 }
-
 /* ════════════════════════════════════════════
    RESPONSIVE
 ════════════════════════════════════════════ */

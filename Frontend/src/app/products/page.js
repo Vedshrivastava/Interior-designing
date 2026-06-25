@@ -24,12 +24,12 @@ export const metadata = {
     description:
       'Breeze blocks, jaali walls, louvers, WPC panels & more — premium architectural products used in interior projects across Satna, MP.',
     url: `${SITE_URL}/products`,
-    images: [{ url: `${SITE_URL}/og-image.jpg`, width: 1200, height: 630, alt: 'Interior Products — Shrivastavas Elevate, Satna MP' }],
+    images: [{ url: `${SITE_URL}/og-image.png`, width: 1200, height: 630, alt: 'Interior Products — Shrivastavas Elevate, Satna MP' }],
   },
   twitter: {
     title: 'Interior Products & Materials Satna MP | Shrivastavas Elevate',
     description: 'Breeze blocks, louvers, WPC panels & more. Premium architectural products in Satna, MP.',
-    images: [`${SITE_URL}/og-image.jpg`],
+    images: [`${SITE_URL}/og-image.png`],
   },
 };
 

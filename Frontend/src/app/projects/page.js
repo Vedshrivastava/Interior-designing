@@ -23,12 +23,12 @@ export const metadata = {
     title: 'Interior Design Portfolio Satna MP | 50+ Projects | Shrivastavas Elevate',
     description: '50+ completed interior design projects in Satna, MP — kitchens, bedrooms, living rooms, commercial spaces. View our portfolio.',
     url: `${SITE_URL}/projects`,
-    images: [{ url: `${SITE_URL}/og-image.jpg`, width: 1200, height: 630, alt: 'Interior Design Projects Portfolio — Shrivastavas Elevate, Satna MP' }],
+    images: [{ url: `${SITE_URL}/og-image.png`, width: 1200, height: 630, alt: 'Interior Design Projects Portfolio — Shrivastavas Elevate, Satna MP' }],
   },
   twitter: {
     title: 'Interior Design Portfolio Satna MP | 50+ Projects',
     description: '50+ completed interior projects in Satna, Madhya Pradesh. View our portfolio.',
-    images: [`${SITE_URL}/og-image.jpg`],
+    images: [`${SITE_URL}/og-image.png`],
   },
 };
 

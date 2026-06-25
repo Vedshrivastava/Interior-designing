@@ -14,7 +14,7 @@ export const metadata = {
     url: SITE_URL,
     images: [
       {
-        url: `${SITE_URL}/og-image.jpg`,
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: 'Shrivastavas Elevate — Interior Designer in Satna, Madhya Pradesh',
@@ -24,7 +24,7 @@ export const metadata = {
   twitter: {
     title: 'Best Interior Designer in Satna MP | Shrivastavas Elevate',
     description: 'Premium modular kitchens, bedrooms & commercial interiors in Satna MP. Free consultation.',
-    images: [`${SITE_URL}/og-image.jpg`],
+    images: [`${SITE_URL}/og-image.png`],
   },
 };
 

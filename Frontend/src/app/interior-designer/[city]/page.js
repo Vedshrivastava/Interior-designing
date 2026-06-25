@@ -50,12 +50,12 @@ export async function generateMetadata({ params }) {
       title,
       description,
       url: `${SITE_URL}/interior-designer/${slug}`,
-      images: [{ url: `${SITE_URL}/og-image.jpg`, width: 1200, height: 630, alt: `Interior Designer in ${city.name} — Shrivastavas Elevate` }],
+      images: [{ url: `${SITE_URL}/og-image.png`, width: 1200, height: 630, alt: `Interior Designer in ${city.name} — Shrivastavas Elevate` }],
     },
     twitter: {
       title,
       description,
-      images: [`${SITE_URL}/og-image.jpg`],
+      images: [`${SITE_URL}/og-image.png`],
     },
   };
 }

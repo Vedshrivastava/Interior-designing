@@ -65,7 +65,8 @@
       "Bash(sed -i '' -e 's/{CATEGORIES\\\\.map\\(cat =>/{CATEGORY_SLUGS.map\\(cat =>/g' -e 's/router\\\\.push\\(`\\\\/design\\\\/${encodeURIComponent\\(cat\\)}`\\)/router.push\\(`\\\\/design\\\\/${cat}`\\)/g' -e 's/{LABELS\\\\[cat\\\\]}/{SLUG_LABELS[cat]}/g' /Users/vedshrivastava/interior-site-project/Frontend/src/components/pages/DesignDisplayPage.jsx)",
       "Bash(sed -i '' \\\\ *)",
       "Bash(node -e ' *)",
-      "Bash(mkdir -p /Users/vedshrivastava/interior-site-project/Frontend/src/app/interior-designer/\\\\[city\\\\])"
+      "Bash(mkdir -p /Users/vedshrivastava/interior-site-project/Frontend/src/app/interior-designer/\\\\[city\\\\])",
+      "Bash(xargs sed -i '' 's/og-image\\\\.jpg/og-image.png/g')"
     ],
     "additionalDirectories": [
       "/tmp",

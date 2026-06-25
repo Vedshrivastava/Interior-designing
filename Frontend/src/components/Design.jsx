@@ -7,7 +7,8 @@ import { useModal } from '@/context/ModalContext';
 
 // Cloudinary transform: serve compressed thumbnails for card/modal thumbnails
 function cloudinaryThumb(url, width = 600) {
-  if (!url || !url.includes('res.cloudinary.com')) return url;
+  if (!url) return null;
+  if (!url.includes('res.cloudinary.com')) return url;
   return url.replace('/upload/', `/upload/w_${width},c_fill,f_auto,q_auto/`);
 }
 
@@ -59,16 +60,20 @@ export default function Design({ id, name, description, images, points, category
 
   const card = (
     <div className="dc-card">
-      <div className="dc-card-img-wrap" onClick={() => openLightbox(0)}>
+      <div className="dc-card-img-wrap" onClick={() => images?.length > 0 && openLightbox(0)}>
         <div className="dc-card-img-container">
-          <Image
-            src={cloudinaryThumb(images[0], 600)}
-            alt={name}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="dc-card-img"
-            loading="lazy"
-          />
+          {images?.[0] ? (
+            <Image
+              src={cloudinaryThumb(images[0], 600)}
+              alt={name}
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="dc-card-img"
+              loading="lazy"
+            />
+          ) : (
+            <div className="dc-card-img-placeholder" />
+          )}
         </div>
         {images.length > 1 && <div className="dc-img-count">+{images.length - 1}</div>}
         <div className="dc-card-img-overlay"><span className="dc-view-label">View Images</span></div>
@@ -98,15 +103,19 @@ export default function Design({ id, name, description, images, points, category
       <div className="dc-modal" onClick={e => e.stopPropagation()}>
 
         <div className="dc-modal-gallery">
-          <div className="dc-modal-main-img-wrap" onClick={() => openLightbox(activeThumb)}>
+          <div className="dc-modal-main-img-wrap" onClick={() => images?.[activeThumb] && openLightbox(activeThumb)}>
             <div className="dc-modal-main-img-container">
-              <Image
-                src={cloudinaryThumb(images[activeThumb], 900)}
-                alt={`${name} — view ${activeThumb + 1}`}
-                fill
-                sizes="(max-width: 768px) 100vw, 60vw"
-                className="dc-modal-main-img"
-              />
+              {images?.[activeThumb] ? (
+                <Image
+                  src={cloudinaryThumb(images[activeThumb], 900)}
+                  alt={`${name} — view ${activeThumb + 1}`}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 60vw"
+                  className="dc-modal-main-img"
+                />
+              ) : (
+                <div className="dc-card-img-placeholder" />
+              )}
             </div>
             <div className="dc-modal-img-overlay">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">

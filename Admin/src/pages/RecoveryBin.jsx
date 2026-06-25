@@ -131,7 +131,7 @@ const RecoveryBin = ({ url }) => {
                         <b>Name</b>
                         <b>Category</b>
                         <b>Deleted By</b>
-                        <b>Deleted On</b>
+                        <b>When</b>
                         <b>Actions</b>
                     </div>
 
@@ -148,30 +148,40 @@ const RecoveryBin = ({ url }) => {
                                 {/* Thumbnail */}
                                 <div className="image-column">
                                     {item.images?.[0]
-                                        ? <img src={item.images[0]} alt={item.name} className="thumbnail" style={{ opacity: 0.65, filter: 'grayscale(40%)' }} />
-                                        : <div className="placeholder-img" />
+                                        ? <img src={item.images[0]} alt={item.name} className="bin-thumb" />
+                                        : <div className="placeholder-img bin-thumb-placeholder" />
                                     }
                                 </div>
 
-                                {/* Name */}
-                                <p className="item-name" style={{ opacity: 0.7 }}>{item.name}</p>
+                                {/* Name + type badge */}
+                                <div style={{ minWidth: 0 }}>
+                                    <p className="item-name bin-item-name">{item.name}</p>
+                                    <span className="bin-type-badge">{TYPE_LABEL[item._type] || item._type}</span>
+                                </div>
 
                                 {/* Category */}
-                                <p style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.8rem', color: 'var(--text-mid)', margin: 0 }}>
+                                <span className="item-category">
                                     {Array.isArray(item.categories) && item.categories.length
                                         ? item.categories.join(', ')
                                         : item.category || '—'}
-                                </p>
+                                </span>
 
                                 {/* Deleted by */}
-                                <p style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.78rem', color: 'var(--text-lt)', margin: 0 }}>
-                                    {item.deletedBy || '—'}
-                                </p>
+                                <div style={{ minWidth: 0 }}>
+                                    <p className="bin-meta-label">Deleted by</p>
+                                    <p className="bin-meta-value">{item.deletedBy || '—'}</p>
+                                </div>
 
                                 {/* Deleted on */}
-                                <p style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.78rem', color: 'var(--text-lt)', margin: 0 }}>
-                                    {item.deletedAt ? moment(item.deletedAt).format('DD MMM YYYY, HH:mm') : '—'}
-                                </p>
+                                <div style={{ minWidth: 0 }}>
+                                    <p className="bin-meta-label">When</p>
+                                    <p
+                                        className="bin-meta-value"
+                                        title={item.deletedAt ? moment(item.deletedAt).format('DD MMM YYYY, HH:mm') : ''}
+                                    >
+                                        {item.deletedAt ? moment(item.deletedAt).fromNow() : '—'}
+                                    </p>
+                                </div>
 
                                 {/* Actions */}
                                 <div className="action-buttons">
@@ -234,10 +244,79 @@ const RecoveryBin = ({ url }) => {
 
             <style>{`
                 .bin-grid {
-                    grid-template-columns: 72px 1.6fr 1fr 0.9fr 1.1fr 180px !important;
+                    grid-template-columns: 96px 1.6fr 1fr 1fr 1fr 190px !important;
+                    gap: 24px !important;
+                    padding: 16px 28px !important;
+                    align-items: center !important;
                 }
                 @media (max-width: 900px) {
-                    .bin-grid { grid-template-columns: 56px 1fr auto !important; }
+                    .bin-grid { grid-template-columns: 64px 1fr auto !important; gap: 16px !important; padding: 14px 18px !important; }
+                }
+
+                /* Thumbnail — greyed-out deleted treatment */
+                .bin-thumb {
+                    width: 76px;
+                    height: 76px;
+                    object-fit: cover;
+                    border-radius: 10px;
+                    border: 1px solid var(--gold-line, rgba(201,168,124,0.25));
+                    opacity: 0.6;
+                    filter: grayscale(50%);
+                    transition: opacity 0.2s, filter 0.2s;
+                    display: block;
+                }
+                .list-table-format.row-item:hover .bin-thumb {
+                    opacity: 0.8;
+                    filter: grayscale(20%);
+                }
+                .bin-thumb-placeholder {
+                    width: 76px !important;
+                    height: 76px !important;
+                }
+
+                /* Name — less washed out, truncate if needed */
+                .bin-item-name {
+                    opacity: 0.85 !important;
+                    margin: 0 0 5px 0 !important;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
+                /* Type badge — small pill under the name */
+                .bin-type-badge {
+                    display: inline-block;
+                    font-family: 'DM Sans', sans-serif;
+                    font-size: 0.62rem;
+                    font-weight: 700;
+                    letter-spacing: 1.2px;
+                    text-transform: uppercase;
+                    color: var(--gold, #c9a87c);
+                    background: rgba(201,168,124,0.1);
+                    border: 1px solid rgba(201,168,124,0.25);
+                    border-radius: 20px;
+                    padding: 2px 9px;
+                }
+
+                /* Deleted by / When — two-line cells */
+                .bin-meta-label {
+                    font-family: 'DM Sans', sans-serif;
+                    font-size: 0.6rem;
+                    font-weight: 700;
+                    letter-spacing: 1.5px;
+                    text-transform: uppercase;
+                    color: var(--text-lt, #9a8e84);
+                    margin: 0 0 3px 0;
+                }
+                .bin-meta-value {
+                    font-family: 'DM Sans', sans-serif;
+                    font-size: 0.82rem;
+                    font-weight: 500;
+                    color: var(--text-mid, #5a4e44);
+                    margin: 0;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
                 }
 
                 /* Permanent-delete confirmation modal */

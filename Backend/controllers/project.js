@@ -60,7 +60,7 @@ const listProjects = async (req, res) => {
         if (projectType) filter.projectType = projectType;
         filter.deleted = { $ne: true };
 
-        const projects = await Project.find(filter).sort({ completedAt: -1 });
+        const projects = await Project.find(filter).sort({ _id: -1 });
         res.json({ success: true, data: projects });
     } catch (error) {
         console.error('Error fetching projects:', error);

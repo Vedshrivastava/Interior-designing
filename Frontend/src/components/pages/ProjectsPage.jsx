@@ -73,9 +73,12 @@ const ProjectCard = ({ project, openConsult }) => {
 
   const card = (
     <div className="proj-card">
-      <div className="proj-card-img-wrap" onClick={() => openLb(0)}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={images[0]} alt={name} loading="lazy" />
+      <div className="proj-card-img-wrap" onClick={() => images?.length > 0 && openLb(0)}>
+        {images?.[0]
+          ? /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={images[0]} alt={name} loading="lazy" />
+          : <div className="proj-card-img-placeholder" />
+        }
         {images.length > 1 && <div className="proj-card-img-count">+{images.length - 1}</div>}
         <div className="proj-card-img-overlay"><span>View Images</span></div>
         {projectType && (

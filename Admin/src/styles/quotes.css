@@ -293,13 +293,17 @@
 .order-item {
     display: grid;
     grid-template-columns: 80px 1fr 150px; /* Icon, Content, Actions */
-    align-items: start;
+    align-items: center;
     gap: 20px;
     background-color: var(--white);
     padding: 20px;
     border-radius: var(--radius);
     border: 1px solid var(--gold-line);
     margin-bottom: 12px;
+}
+
+.order-content-wrapper {
+    align-self: start;
 }
 
 /* Container for all text information */

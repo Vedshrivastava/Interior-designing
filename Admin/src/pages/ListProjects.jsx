@@ -61,7 +61,7 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
             const res = await axios.get(`${url}/api/project/list`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            if (res.data.success) setList([...res.data.data].reverse());
+            if (res.data.success) setList(res.data.data);
             else toast.error(res.data.message);
         } catch {
             toast.error('Error fetching projects');

@@ -84,7 +84,7 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
     try {
       const response = await axios.get(`${url}/api/design/list`, { headers: { Authorization: `Bearer ${token}` } });
       if (response.data.success) {
-        setList(response.data.data.reverse()); // Reverse to show newest first
+        setList([...response.data.data]);
       } else {
         toast.error(response.data.message);
       }

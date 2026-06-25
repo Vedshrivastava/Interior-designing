@@ -56,7 +56,7 @@ const Quotes = ({ url }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data.success) {
-        setOrders(response.data.appointments.sort((a, b) => new Date(b.date) - new Date(a.date)));
+        setOrders(response.data.appointments);
       } else {
         toast.error('Error fetching quotes');
       }
@@ -105,13 +105,12 @@ const Quotes = ({ url }) => {
   useWebSocket(useCallback((message) => {
     switch (message.type) {
       case 'newQuote':
-        setOrders(prev => [message.data, ...prev].sort((a, b) => new Date(b.date) - new Date(a.date)));
+        setOrders(prev => [message.data, ...prev]);
         toast.info(`💬 New quote request from ${message.data.name}`);
         break;
       case 'updateOrderStatus':
         setOrders(prev =>
           prev.map(o => o._id === message.data._id ? { ...o, status: message.data.status } : o)
-              .sort((a, b) => new Date(b.date) - new Date(a.date))
         );
         break;
       default: break;

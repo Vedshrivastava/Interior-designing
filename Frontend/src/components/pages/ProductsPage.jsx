@@ -66,8 +66,11 @@ const ProductCard = ({ product, openConsult }) => {
 
   const card = (
     <div className="prod-card">
-      <div className="prod-card-img-wrap" onClick={() => openLb(0)}>
-        <img src={images[0]} alt={name} loading="lazy" />
+      <div className="prod-card-img-wrap" onClick={() => images?.length > 0 && openLb(0)}>
+        {images?.[0]
+          ? <img src={images[0]} alt={name} loading="lazy" />
+          : <div className="prod-card-img-placeholder" />
+        }
         {images.length > 1 && <div className="prod-card-img-count">+{images.length - 1}</div>}
         <div className="prod-card-img-overlay"><span>View Images</span></div>
         {isFeatured && <div className="prod-card-featured-ribbon"><IconStar /> Featured</div>}

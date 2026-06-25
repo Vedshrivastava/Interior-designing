@@ -8,7 +8,7 @@ import {
   faUser, faRightFromBracket, faShield, faArrowRightToBracket,
   faBars, faXmark,
   faPlus, faList, faIdBadge, faMessage, faFolderPlus, faFolderOpen,
-  faCubes, faBoxesStacked, faUsers,
+  faCubes, faBoxesStacked, faUsers, faTrash,
 } from '@fortawesome/free-solid-svg-icons';
 
 const NAV_SECTIONS = [
@@ -95,7 +95,10 @@ export const PageLoader = ({ visible }) => {
 /* ── Navbar ── */
 const MASTER_SECTION = {
   label: 'Master',
-  items: [{ to: '/admin-requests', icon: faUsers, label: 'Requests' }],
+  items: [
+    { to: '/admin-requests', icon: faUsers, label: 'Requests'     },
+    { to: '/recovery-bin',   icon: faTrash, label: 'Recovery Bin' },
+  ],
 };
 
 const Navbar = ({ setShowLogin, setAuthType }) => {

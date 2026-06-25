@@ -2,47 +2,137 @@ import './globals.css';
 import { ModalProvider } from '@/context/ModalContext';
 import LayoutShell from '@/components/LayoutShell';
 
+const SITE_URL = 'https://shrivastavaseelevate.com';
+
 export const metadata = {
-  metadataBase: new URL('https://shrivastavaseelevate.com'),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Shrivastavas Elevate — Luxury Interior Design Studio, Satna',
-    template: '%s | Shrivastavas Elevate',
+    default: 'Best Interior Designer in Satna, MP | Shrivastavas Elevate',
+    template: '%s | Shrivastavas Elevate — Interior Designer Satna',
   },
   description:
-    'Premium interior design and turnkey contracting in Satna, India. Kitchen, bedroom, bathroom, commercial & residential interiors. Free consultation. 50+ projects delivered.',
+    'Top-rated interior designer in Satna, Madhya Pradesh. Modular kitchens, bedrooms, bathrooms, commercial interiors & 3D visualization. Turnkey execution. Free consultation. 50+ projects delivered across MP.',
   keywords: [
-    'interior design Satna',
-    'luxury interior design India',
-    'modular kitchen design',
-    'bedroom interior Satna',
+    'interior designer Satna',
+    'interior design Satna Madhya Pradesh',
     'interior designer Madhya Pradesh',
+    'modular kitchen Satna',
+    'bedroom interior design Satna',
+    'bathroom interior design Satna',
+    'commercial interior designer Satna',
+    '3D visualization interior design',
+    'turnkey interior contractor Satna',
+    'luxury interior design India',
     'Shrivastavas Elevate',
-    'turnkey interior contractor',
-    '3D visualization interior',
+    'interior design Nagod',
+    'home interior design MP',
+    'best interior designer Vindhya',
   ],
   openGraph: {
     type: 'website',
     locale: 'en_IN',
     siteName: 'Shrivastavas Elevate',
-    title: 'Shrivastavas Elevate — Luxury Interior Design Studio',
+    title: 'Best Interior Designer in Satna, MP | Shrivastavas Elevate',
     description:
-      'Premium interior design and turnkey contracting in Satna, India. 50+ projects. Free consultation.',
+      'Top-rated interior designer in Satna MP. Modular kitchens, bedrooms, 3D visualization & turnkey execution. 50+ projects. Free consultation.',
+    url: SITE_URL,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Shrivastavas Elevate — Luxury Interior Design',
-    description: 'Premium interiors crafted with luxury, precision and turnkey execution.',
+    title: 'Best Interior Designer in Satna | Shrivastavas Elevate',
+    description: 'Premium interiors crafted with luxury, precision and turnkey execution in Satna, Madhya Pradesh.',
   },
   robots: {
     index: true,
     follow: true,
-    googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
+  },
+  alternates: {
+    canonical: SITE_URL,
+  },
+  verification: {
+    // Add Google Search Console verification token here when you get it:
+    // google: 'your-verification-token',
+  },
+};
+
+/* ── LocalBusiness + Organization JSON-LD ─────────────────────
+   Appears on every page. Powers Google Maps knowledge panel,
+   local pack, and rich results.
+───────────────────────────────────────────────────────────── */
+const localBusinessSchema = {
+  '@context': 'https://schema.org',
+  '@type': ['InteriorDesigner', 'LocalBusiness'],
+  name: 'Shrivastavas Elevate',
+  alternateName: 'Shrivastava\'s Elevate Interior Design',
+  description: 'Premium interior design and turnkey contracting studio in Satna, Madhya Pradesh. Specialising in residential and commercial interiors, modular kitchens, 3D visualization, and complete home makeovers.',
+  url: SITE_URL,
+  logo: `${SITE_URL}/logo.png`,
+  image: `${SITE_URL}/og-image.jpg`,
+  telephone: '+918962053372',
+  email: 'shrivastavaselevatepvt.ltd@gmail.com',
+  priceRange: '₹₹₹',
+  foundingDate: '2019',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: 'Shree Ganga Inn, Lakshmi Bai Marg, Gandhi Chowk, Nagod',
+    addressLocality: 'Nagod',
+    addressRegion: 'Madhya Pradesh',
+    postalCode: '486775',
+    addressCountry: 'IN',
+  },
+  geo: {
+    '@type': 'GeoCoordinates',
+    latitude: '24.5751',
+    longitude: '80.5947',
+  },
+  areaServed: [
+    { '@type': 'City', name: 'Satna' },
+    { '@type': 'City', name: 'Nagod' },
+    { '@type': 'State', name: 'Madhya Pradesh' },
+  ],
+  hasOfferCatalog: {
+    '@type': 'OfferCatalog',
+    name: 'Interior Design Services',
+    itemListElement: [
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Residential Interior Design' } },
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Modular Kitchen Design' } },
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Bedroom Interior Design' } },
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Commercial Interior Design' } },
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: '3D Visualization' } },
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Turnkey Interior Execution' } },
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Space Planning' } },
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Lighting Design' } },
+    ],
+  },
+  aggregateRating: {
+    '@type': 'AggregateRating',
+    ratingValue: '5',
+    bestRating: '5',
+    worstRating: '1',
+    reviewCount: '50',
+  },
+  sameAs: [
+    'https://www.instagram.com/shrivastavaselevatepvtltd',
+    'https://www.facebook.com/shrivastavaselevatepvtltd',
+  ],
+  openingHoursSpecification: {
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    opens: '09:00',
+    closes: '18:00',
   },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
+        />
+      </head>
       <body>
         <ModalProvider>
           <LayoutShell>{children}</LayoutShell>

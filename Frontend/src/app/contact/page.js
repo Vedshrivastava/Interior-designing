@@ -1,9 +1,10 @@
 import ContactPage from '@/components/pages/ContactPage';
 
 export const metadata = {
-  title: 'Contact Us — Get a Free Interior Design Consultation',
+  title: 'Contact Interior Designer in Satna | Free Consultation | +91 89620 53372',
   description:
-    'Get in touch with Shrivastavas Elevate. Book a free consultation, call us, or send a message. Based in Satna, Madhya Pradesh. We respond within 24 hours.',
+    'Contact Shrivastavas Elevate — interior designer in Satna, Madhya Pradesh. Book a free consultation, call +91 89620 53372, or send a message. We respond within 24 hours. Office: Mon–Sat 9AM–6PM.',
+  alternates: { canonical: 'https://shrivastavaseelevate.com/contact' },
 };
 
 export default function Page() {

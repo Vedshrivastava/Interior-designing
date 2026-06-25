@@ -176,21 +176,21 @@ export default function HomePage() {
 
         <div className="hp-designs-grid">
           {[
-            { img: kitchen_img,  Icon: IconUtensils, label: 'Kitchen',  desc: 'Modern modular concepts', category: 'Kitchen Designs'     },
-            { img: bedroom_img,  Icon: IconBed,      label: 'Bedroom',  desc: 'Elegant & luxurious',     category: 'Bedroom Designs'     },
-            { img: bathroom_img, Icon: IconBath,     label: 'Bathroom', desc: 'Minimal & premium',       category: 'Bathroom Designs'    },
-            { img: lounge_img,   Icon: IconCouch,    label: 'Lounge',   desc: 'Luxury living spaces',    category: 'Lounge area Designs' },
-            { img: TV_unit_img,  Icon: IconTv,       label: 'TV Unit',  desc: 'Entertainment walls',     category: 'TV Unit Designs'     },
+            { img: kitchen_img,  Icon: IconUtensils, label: 'Kitchen',  desc: 'Modern modular concepts', slug: 'kitchen-designs'     },
+            { img: bedroom_img,  Icon: IconBed,      label: 'Bedroom',  desc: 'Elegant & luxurious',     slug: 'bedroom-designs'     },
+            { img: bathroom_img, Icon: IconBath,     label: 'Bathroom', desc: 'Minimal & premium',       slug: 'bathroom-designs'    },
+            { img: lounge_img,   Icon: IconCouch,    label: 'Lounge',   desc: 'Luxury living spaces',    slug: 'lounge-area-designs' },
+            { img: TV_unit_img,  Icon: IconTv,       label: 'TV Unit',  desc: 'Entertainment walls',     slug: 'tv-unit-designs'     },
           ].map((d, i) => (
             <div
               className={`hp-design-card sr-item${i === 0 ? ' hp-design-card--featured' : ''}`}
               key={i}
               ref={sr}
               style={{ '--sr-delay': `${i * 60}ms` }}
-              onClick={() => router.push(`/design/${encodeURIComponent(d.category)}`)}
+              onClick={() => router.push(`/design/${d.slug}`)}
               role="button"
               tabIndex={0}
-              onKeyDown={e => e.key === 'Enter' && router.push(`/design/${encodeURIComponent(d.category)}`)}
+              onKeyDown={e => e.key === 'Enter' && router.push(`/design/${d.slug}`)}
             >
               <div className="hp-dc-img">
                 {/* eslint-disable-next-line @next/next/no-img-element */}

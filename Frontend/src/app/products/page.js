@@ -1,9 +1,10 @@
 import ProductsPage from '@/components/pages/ProductsPage';
 
 export const metadata = {
-  title: 'Products Catalogue — Architectural & Design Materials',
+  title: 'Interior Products & Materials in Satna MP | Breeze Blocks, Louvers, WPC',
   description:
-    'Explore our curated range of architectural products: breeze blocks, louvers, jaali walls, PVC panels, WPC, flooring, and more. Premium quality. Satna, India.',
+    'Premium architectural products and materials in Satna, Madhya Pradesh — breeze blocks, jaali walls, louvers, WPC panels, PVC panels, flooring and more. Used by Shrivastavas Elevate in all projects.',
+  alternates: { canonical: 'https://shrivastavaseelevate.com/products' },
 };
 
 export const revalidate = 60;

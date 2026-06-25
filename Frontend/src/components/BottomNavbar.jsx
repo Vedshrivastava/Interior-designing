@@ -50,7 +50,7 @@ export default function BottomNavbar() {
 
       <button
         className={`bn-item${isDesignActive ? ' active' : ''}`}
-        onClick={() => router.push('/design/Kitchen%20Designs')}
+        onClick={() => router.push('/design/kitchen-designs')}
         aria-label="Designs"
       >
         <span className="bn-icon"><IconDesigns /></span>

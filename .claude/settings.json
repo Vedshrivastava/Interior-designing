@@ -60,10 +60,14 @@
       "Bash(sed -i '' '/^\\\\.hp-stat-sub/,/^}/ s/font-size: 0\\\\.75rem;/font-family: \"Cormorant Garamond\", serif;\\\\n  font-size: 0.88rem;/' home.css)",
       "Bash(sed -i '' '/^\\\\.about-stat-box p/,/^}/ s/font-size: 0\\\\.88rem;/font-family: \"Cormorant Garamond\", serif;\\\\n  font-size: 1rem;/' about.css)",
       "Bash(sed -i '' '/^\\\\.services-stat-box p/,/^}/ s/font-size: 0\\\\.9rem;/font-family: \"Cormorant Garamond\", serif;\\\\n    font-size: 1rem;/' services.css)",
-      "Bash(sed -i '' '/^\\\\.proj-stat-item p/,/^}/ s/font-family: \"Inter\", sans-serif;/font-family: \"Cormorant Garamond\", serif;/' projects.css)"
+      "Bash(sed -i '' '/^\\\\.proj-stat-item p/,/^}/ s/font-family: \"Inter\", sans-serif;/font-family: \"Cormorant Garamond\", serif;/' projects.css)",
+      "Bash(sed -i '' -e 's/const displayName     = LABELS\\\\[category\\\\] || category;/const displayName = SLUG_LABELS[slug] || category;/' -e 's/className={`dd-cat-pill${category === cat ? .active. : ..}`}/className={`dd-cat-pill${slug === cat ? \" active\" : \"\"}`}/g' -e 's/className={`dd-cat-chip${category === cat ? .active. : ..}`}/className={`dd-cat-chip${slug === cat ? \" active\" : \"\"}`}/g' /Users/vedshrivastava/interior-site-project/Frontend/src/components/pages/DesignDisplayPage.jsx)",
+      "Bash(sed -i '' -e 's/{CATEGORIES\\\\.map\\(cat =>/{CATEGORY_SLUGS.map\\(cat =>/g' -e 's/router\\\\.push\\(`\\\\/design\\\\/${encodeURIComponent\\(cat\\)}`\\)/router.push\\(`\\\\/design\\\\/${cat}`\\)/g' -e 's/{LABELS\\\\[cat\\\\]}/{SLUG_LABELS[cat]}/g' /Users/vedshrivastava/interior-site-project/Frontend/src/components/pages/DesignDisplayPage.jsx)",
+      "Bash(sed -i '' \\\\ *)"
     ],
     "additionalDirectories": [
-      "/tmp"
+      "/tmp",
+      "/Users/vedshrivastava/interior-site-project/s/className={`dd-cat-chip${category === cat ? .* : ..}`}/className={`dd-cat-chip${slug === cat ? \" active\" : \"\"}`}"
     ]
   }
 }

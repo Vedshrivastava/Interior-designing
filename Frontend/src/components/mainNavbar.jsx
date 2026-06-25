@@ -19,7 +19,7 @@ const IconMedal = () => (
 
 const NAV_LINKS = [
   { label: 'Services', to: '/services',                 matchPath: null,      mobileHide: false, Icon: IconGem,     desc: 'What we offer'    },
-  { label: 'Designs',  to: '/design/Kitchen%20Designs', matchPath: '/design', mobileHide: true,  Icon: null,        desc: null               },
+  { label: 'Designs',  to: '/design/kitchen-designs', matchPath: '/design', mobileHide: true,  Icon: null,        desc: null               },
   { label: 'Products', to: '/products',                 matchPath: null,      mobileHide: true,  Icon: null,        desc: null               },
   { label: 'Projects', to: '/projects',                 matchPath: null,      mobileHide: true,  Icon: null,        desc: null               },
   { label: 'About',    to: '/about',                    matchPath: null,      mobileHide: false, Icon: IconMedal,   desc: 'Our story & team' },

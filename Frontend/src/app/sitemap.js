@@ -1,25 +1,21 @@
-const BASE_URL = 'https://shrivastavaseelevate.com';
+import { CATEGORY_SLUGS } from '@/lib/categories';
 
-const DESIGN_CATEGORIES = [
-  'Kitchen Designs', 'Bedroom Designs', 'Bathroom Designs',
-  'Lounge area Designs', 'TV Unit Designs', 'Kids Room Designs',
-  'Commercial Designs', 'House Exterior', 'Mandir Designs', 'Garden Designs',
-];
+const BASE_URL = 'https://shrivastavaseelevate.com';
 
 export default function sitemap() {
   const staticRoutes = [
     { url: BASE_URL,                  lastModified: new Date(), priority: 1.0,  changeFrequency: 'weekly'  },
-    { url: `${BASE_URL}/about`,       lastModified: new Date(), priority: 0.8,  changeFrequency: 'monthly' },
-    { url: `${BASE_URL}/services`,    lastModified: new Date(), priority: 0.8,  changeFrequency: 'monthly' },
+    { url: `${BASE_URL}/services`,    lastModified: new Date(), priority: 0.95, changeFrequency: 'monthly' },
     { url: `${BASE_URL}/projects`,    lastModified: new Date(), priority: 0.9,  changeFrequency: 'weekly'  },
-    { url: `${BASE_URL}/products`,    lastModified: new Date(), priority: 0.8,  changeFrequency: 'weekly'  },
-    { url: `${BASE_URL}/contact`,     lastModified: new Date(), priority: 0.7,  changeFrequency: 'yearly'  },
+    { url: `${BASE_URL}/products`,    lastModified: new Date(), priority: 0.85, changeFrequency: 'weekly'  },
+    { url: `${BASE_URL}/about`,       lastModified: new Date(), priority: 0.8,  changeFrequency: 'monthly' },
+    { url: `${BASE_URL}/contact`,     lastModified: new Date(), priority: 0.75, changeFrequency: 'yearly'  },
   ];
 
-  const designRoutes = DESIGN_CATEGORIES.map(cat => ({
-    url: `${BASE_URL}/design/${encodeURIComponent(cat)}`,
+  const designRoutes = CATEGORY_SLUGS.map(slug => ({
+    url: `${BASE_URL}/design/${slug}`,
     lastModified: new Date(),
-    priority: 0.9,
+    priority: slug === 'kitchen-designs' || slug === 'bedroom-designs' ? 0.95 : 0.9,
     changeFrequency: 'weekly',
   }));
 

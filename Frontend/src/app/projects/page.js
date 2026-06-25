@@ -1,9 +1,10 @@
 import ProjectsPage from '@/components/pages/ProjectsPage';
 
 export const metadata = {
-  title: 'Projects Portfolio — Completed Interior Design Work',
+  title: 'Interior Design Projects in Satna MP | Portfolio | Shrivastavas Elevate',
   description:
-    'Browse 50+ completed residential and commercial interior design projects by Shrivastavas Elevate. Kitchens, bedrooms, living rooms, and full-home makeovers.',
+    '50+ completed interior design projects in Satna and Madhya Pradesh — modular kitchens, luxury bedrooms, living rooms, commercial spaces and full-home makeovers. View our portfolio.',
+  alternates: { canonical: 'https://shrivastavaseelevate.com/projects' },
 };
 
 export const revalidate = 60;

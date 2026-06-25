@@ -9,36 +9,18 @@ import Design from '@/components/Design';
 import Footer from '@/components/Footer';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { IconLayerGroup, IconStar, IconStarFilled, IconChevronLeft, IconChevronRight } from '@/components/Icons';
-
-const CATEGORIES = [
-  'Kitchen Designs', 'Bedroom Designs', 'Bathroom Designs',
-  'Lounge area Designs', 'TV Unit Designs', 'Kids Room Designs',
-  'Commercial Designs', 'House Exterior', 'Mandir Designs', 'Garden Designs',
-];
-
-const LABELS = {
-  'Kitchen Designs':      'Kitchen',
-  'Bedroom Designs':      'Bedroom',
-  'Bathroom Designs':     'Bathroom',
-  'Lounge area Designs':  'Lounge',
-  'TV Unit Designs':      'TV Unit',
-  'Kids Room Designs':    'Kids Room',
-  'Commercial Designs':   'Commercial',
-  'House Exterior':       'Exterior',
-  'Mandir Designs':       'Mandir',
-  'Garden Designs':       'Garden',
-};
+import { CATEGORY_SLUGS, SLUG_LABELS, SLUG_TO_CATEGORY } from '@/lib/categories';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export default function DesignDisplayPage({
-  category: rawCategory,
+  slug,
   initialDesigns = [],
   initialTotal   = 0,
   pageLimit      = 20,
 }) {
   const router       = useRouter();
-  const category     = decodeURIComponent(rawCategory);
+  const category     = SLUG_TO_CATEGORY[slug] || slug; // DB category name
   const mobileBarRef = useRef(null);
 
   const [designList,  setDesignList]  = useState(initialDesigns);
@@ -97,7 +79,7 @@ export default function DesignDisplayPage({
     if (active) active.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
   }, [category]);
 
-  const displayName     = LABELS[category] || category;
+  const displayName = SLUG_LABELS[slug] || category;
   const featuredDesigns = designList.filter(item => item.isFeatured);
   const regularDesigns  = designList.filter(item => !item.isFeatured);
 
@@ -132,25 +114,25 @@ export default function DesignDisplayPage({
         </div>
 
         <nav className="dd-category-bar" aria-label="Design categories">
-          {CATEGORIES.map(cat => (
+          {CATEGORY_SLUGS.map(cat => (
             <button
               key={cat}
-              className={`dd-cat-pill${category === cat ? ' active' : ''}`}
-              onClick={() => router.push(`/design/${encodeURIComponent(cat)}`)}
+              className={`dd-cat-pill${slug === cat ? ' active' : ''}`}
+              onClick={() => router.push(`/design/${cat}`)}
             >
-              {LABELS[cat]}
+              {SLUG_LABELS[cat]}
             </button>
           ))}
         </nav>
 
         <div className="dd-cat-mobile" ref={mobileBarRef}>
-          {CATEGORIES.map(cat => (
+          {CATEGORY_SLUGS.map(cat => (
             <button
               key={cat}
-              className={`dd-cat-chip${category === cat ? ' active' : ''}`}
-              onClick={() => router.push(`/design/${encodeURIComponent(cat)}`)}
+              className={`dd-cat-chip${slug === cat ? ' active' : ''}`}
+              onClick={() => router.push(`/design/${cat}`)}
             >
-              {LABELS[cat]}
+              {SLUG_LABELS[cat]}
             </button>
           ))}
         </div>

@@ -1,9 +1,10 @@
 import AboutPage from '@/components/pages/AboutPage';
 
 export const metadata = {
-  title: 'About Us — Luxury Interior Design Studio',
+  title: 'About Us | Interior Designers in Satna MP | Shrivastavas Elevate',
   description:
-    'Meet the founders of Shrivastavas Elevate — Ved & Shubh Shrivastava. 5+ years of premium residential and commercial interior design in Satna, India.',
+    'Meet Ved & Shubh Shrivastava — founders of Shrivastavas Elevate, Satna\'s premium interior design studio. 5+ years experience, 50+ projects in Madhya Pradesh. Luxury interiors, turnkey execution, free consultation.',
+  alternates: { canonical: 'https://shrivastavaseelevate.com/about' },
 };
 
 export default function Page() {

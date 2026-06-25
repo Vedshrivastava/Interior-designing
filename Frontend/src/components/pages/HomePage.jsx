@@ -103,7 +103,7 @@ export default function HomePage() {
       ══════════════════════════════ */}
       <section className="hp-hero">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={bgimg.src} alt="" className="hp-hero-bg" />
+        <img src={bgimg.src} alt="" className="hp-hero-bg" fetchPriority="high" loading="eager" />
         <div className="hp-hero-overlay" />
         <div className="hp-hero-grid-lines"><span /><span /><span /><span /></div>
 
@@ -176,11 +176,11 @@ export default function HomePage() {
 
         <div className="hp-designs-grid">
           {[
-            { img: kitchen_img,  Icon: IconUtensils, label: 'Kitchen',  desc: 'Modern modular concepts', slug: 'kitchen-designs'     },
-            { img: bedroom_img,  Icon: IconBed,      label: 'Bedroom',  desc: 'Elegant & luxurious',     slug: 'bedroom-designs'     },
-            { img: bathroom_img, Icon: IconBath,     label: 'Bathroom', desc: 'Minimal & premium',       slug: 'bathroom-designs'    },
-            { img: lounge_img,   Icon: IconCouch,    label: 'Lounge',   desc: 'Luxury living spaces',    slug: 'lounge-area-designs' },
-            { img: TV_unit_img,  Icon: IconTv,       label: 'TV Unit',  desc: 'Entertainment walls',     slug: 'tv-unit-designs'     },
+            { img: kitchen_img,  Icon: IconUtensils, label: 'Kitchen',  desc: 'Modern modular concepts', slug: 'kitchen-designs',     alt: 'Modular kitchen interior design in Satna, Madhya Pradesh'          },
+            { img: bedroom_img,  Icon: IconBed,      label: 'Bedroom',  desc: 'Elegant & luxurious',     slug: 'bedroom-designs',     alt: 'Luxury bedroom interior design in Satna, MP'                        },
+            { img: bathroom_img, Icon: IconBath,     label: 'Bathroom', desc: 'Minimal & premium',       slug: 'bathroom-designs',    alt: 'Premium bathroom interior design in Satna, Madhya Pradesh'          },
+            { img: lounge_img,   Icon: IconCouch,    label: 'Lounge',   desc: 'Luxury living spaces',    slug: 'lounge-area-designs', alt: 'Luxury lounge and living room interior design in Satna, MP'         },
+            { img: TV_unit_img,  Icon: IconTv,       label: 'TV Unit',  desc: 'Entertainment walls',     slug: 'tv-unit-designs',     alt: 'Modern TV unit and entertainment wall design in Satna, Madhya Pradesh' },
           ].map((d, i) => (
             <div
               className={`hp-design-card sr-item${i === 0 ? ' hp-design-card--featured' : ''}`}
@@ -194,7 +194,7 @@ export default function HomePage() {
             >
               <div className="hp-dc-img">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={d.img.src} alt={d.label} />
+                <img src={d.img.src} alt={d.alt} />
                 <div className="hp-dc-overlay" />
               </div>
               <div className="hp-dc-info">
@@ -260,7 +260,7 @@ export default function HomePage() {
           <div className="hp-adv-feature sr-item" ref={sr}>
             <div className="hp-adv-feature-img">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={rates.src} alt="Affordable Rates" />
+              <img src={rates.src} alt="Affordable luxury interior design pricing in Satna, Madhya Pradesh — Shrivastavas Elevate" />
               <div className="hp-adv-feature-overlay" />
               <div className="hp-adv-feature-tag"><IconTag /> Pricing</div>
             </div>
@@ -279,7 +279,7 @@ export default function HomePage() {
             <div className="hp-adv-card sr-item" ref={sr} style={{ '--sr-delay': '80ms' }}>
               <div className="hp-adv-card-img">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={design.src} alt="Consultation Refund" />
+                <img src={design.src} alt="Refundable interior design consultation fee — Shrivastavas Elevate, Satna MP" />
                 <div className="hp-adv-card-img-overlay" />
                 <div className="hp-adv-card-tag"><IconShield /> Risk-Free</div>
               </div>
@@ -296,7 +296,7 @@ export default function HomePage() {
             <div className="hp-adv-card sr-item" ref={sr} style={{ '--sr-delay': '160ms' }}>
               <div className="hp-adv-card-img">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={visualization3D.src} alt="3D Visualization" />
+                <img src={visualization3D.src} alt="3D interior visualization and rendering service by Shrivastavas Elevate, Satna MP" />
                 <div className="hp-adv-card-img-overlay" />
                 <div className="hp-adv-card-tag"><IconEye /> 3D Design</div>
               </div>

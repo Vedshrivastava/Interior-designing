@@ -1,5 +1,6 @@
 'use client';
 import '@/styles/services.css';
+import Link from 'next/link';
 import { IconCalendar, IconArrowRight, IconCrown, IconComments, IconEye, IconKey, IconLightbulb, IconHouseChimney, IconBuilding, IconScrewdriverWrench, IconRuler, IconStar, IconStarFilled, IconLayerGroup, IconClock, IconShield, IconPenRuler, IconGem, IconQuoteLeft, IconHandshake } from '@/components/Icons';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -21,12 +22,12 @@ const testimonials = [
 const marqueeItems = [...testimonials, ...testimonials];
 
 const services = [
-  { Icon: IconHouseChimney,     title: 'Residential Interiors', description: 'Bespoke home interiors for apartments and villas — designed around how you actually live.',                 features: ['100% custom, no templates', 'Apartment & villa specialists']     },
-  { Icon: IconBuilding,         title: 'Commercial Spaces',     description: 'Offices and retail interiors that reflect your brand and keep your team performing at their best.',          features: ['Brand-centric design', 'Ergonomic, turnkey execution']           },
-  { Icon: IconEye,              title: '3D Visualization',      description: 'Photorealistic renders of your space — see and approve every detail before execution begins.',              features: ['Photo-realistic accuracy', 'Approved before a nail is hammered'] },
-  { Icon: IconRuler,            title: 'Space Planning',        description: 'Smart layouts that extract every usable inch from your space without sacrificing flow or comfort.',          features: ['Floor plan optimisation', 'Flow & functionality focused']         },
-  { Icon: IconLightbulb,        title: 'Lighting Design',       description: 'Ambient, accent and task lighting that defines the mood and character of every room.',                      features: ['Mood-enhancing concepts', 'Natural & artificial balance']         },
-  { Icon: IconScrewdriverWrench,title: 'Renovation Services',   description: 'Complete makeovers or targeted upgrades — we breathe fresh life into any tired space.',                     features: ['Partial or full overhauls', 'Minimal disruption approach']       },
+  { Icon: IconHouseChimney,     title: 'Residential Interiors', description: 'Bespoke home interiors for apartments and villas — designed around how you actually live.',                 features: ['100% custom, no templates', 'Apartment & villa specialists'],     link: '/design/bedroom-designs'  },
+  { Icon: IconBuilding,         title: 'Commercial Spaces',     description: 'Offices and retail interiors that reflect your brand and keep your team performing at their best.',          features: ['Brand-centric design', 'Ergonomic, turnkey execution'],           link: '/design/commercial-designs' },
+  { Icon: IconEye,              title: '3D Visualization',      description: 'Photorealistic renders of your space — see and approve every detail before execution begins.',              features: ['Photo-realistic accuracy', 'Approved before a nail is hammered'], link: null                       },
+  { Icon: IconRuler,            title: 'Space Planning',        description: 'Smart layouts that extract every usable inch from your space without sacrificing flow or comfort.',          features: ['Floor plan optimisation', 'Flow & functionality focused'],         link: '/design/kitchen-designs'  },
+  { Icon: IconLightbulb,        title: 'Lighting Design',       description: 'Ambient, accent and task lighting that defines the mood and character of every room.',                      features: ['Mood-enhancing concepts', 'Natural & artificial balance'],         link: '/design/lounge-area-designs' },
+  { Icon: IconScrewdriverWrench,title: 'Renovation Services',   description: 'Complete makeovers or targeted upgrades — we breathe fresh life into any tired space.',                     features: ['Partial or full overhauls', 'Minimal disruption approach'],       link: '/projects'                },
 ];
 
 const CountUp = ({ endValue, duration = 2300 }) => {
@@ -68,7 +69,7 @@ export default function ServicesPage() {
     <div className="services-page">
       <section className="services-hero">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={bgimg.src} alt="Luxury Interior" className="services-hero-bg" />
+        <img src={bgimg.src} alt="Luxury interior design services in Satna, Madhya Pradesh — Shrivastavas Elevate" className="services-hero-bg" />
         <div className="services-overlay" />
         <div className="services-hero-content">
           <div className="svc-hero-eyebrow">
@@ -116,6 +117,11 @@ export default function ServicesPage() {
                 <ul className="svc-card-features">
                   {svc.features.map((f, idx) => <li key={idx}><span className="svc-feat-dot" />{f}</li>)}
                 </ul>
+                {svc.link && (
+                  <Link href={svc.link} className="svc-card-link">
+                    View designs <IconArrowRight />
+                  </Link>
+                )}
               </div>
             </div>
           ))}
@@ -183,7 +189,7 @@ export default function ServicesPage() {
       <section className="svc-testimonial-section">
         <div className="svc-t-heading reveal-item" ref={addRef}>
           <span className="svc-section-tag"><IconQuoteLeft /> Testimonials</span>
-          <h1>What Our Clients Say</h1>
+          <h2>What Our Clients Say</h2>
           <p className="testimonial-subtitle">Trusted by homeowners across India for luxury interiors and seamless execution.</p>
         </div>
         <div className="marquee-track-wrapper">
@@ -227,7 +233,7 @@ export default function ServicesPage() {
       <section className="services-cta reveal-item" ref={addRef}>
         <div className="cta-inner">
           <span className="svc-section-tag"><IconCrown /> Begin Your Journey</span>
-          <h1>Let&apos;s Create Your<br />Dream Interior</h1>
+          <h2>Let&apos;s Create Your<br />Dream Interior</h2>
           <p>Elegant spaces crafted with precision, premium materials and timeless modern aesthetics.</p>
           <button className="services-cta-btn" onClick={openConsult}>Book Free Consultation <IconCalendar /></button>
         </div>

@@ -65,7 +65,7 @@ export default function Design({ id, name, description, images, points, category
           {images?.[0] ? (
             <Image
               src={cloudinaryThumb(images[0], 600)}
-              alt={name}
+              alt={`${name} — ${category || 'interior'} design by Shrivastavas Elevate, Satna MP`}
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="dc-card-img"
@@ -108,7 +108,7 @@ export default function Design({ id, name, description, images, points, category
               {images?.[activeThumb] ? (
                 <Image
                   src={cloudinaryThumb(images[activeThumb], 900)}
-                  alt={`${name} — view ${activeThumb + 1}`}
+                  alt={`${name} — ${category || 'interior'} design, image ${activeThumb + 1} | Shrivastavas Elevate, Satna MP`}
                   fill
                   sizes="(max-width: 768px) 100vw, 60vw"
                   className="dc-modal-main-img"
@@ -132,7 +132,7 @@ export default function Design({ id, name, description, images, points, category
                   <div className="dc-thumb-img-container">
                     <Image
                       src={cloudinaryThumb(src, 200)}
-                      alt={`Thumbnail ${i + 1}`}
+                      alt={`${name} — ${category || 'interior'} design thumbnail ${i + 1}`}
                       fill
                       sizes="80px"
                     />
@@ -186,7 +186,7 @@ export default function Design({ id, name, description, images, points, category
       {images.length > 1 && <button className="lb-arrow lb-arrow--prev" onClick={goPrev} aria-label="Previous">&#8249;</button>}
       <div className="lb-img-wrap" onClick={e => e.stopPropagation()}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={images[lightboxIndex]} alt={`${name} — ${lightboxIndex + 1}`} className="lb-img" />
+        <img src={images[lightboxIndex]} alt={`${name} — ${category || 'interior'} design, image ${lightboxIndex + 1} | Shrivastavas Elevate`} className="lb-img" />
         <div className="lb-caption">
           <span className="lb-name">{name}</span>
           {images.length > 1 && <span className="lb-counter">{lightboxIndex + 1} / {images.length}</span>}

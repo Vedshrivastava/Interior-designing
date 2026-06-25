@@ -8,7 +8,7 @@ export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: 'Best Interior Designer in Satna, MP | Shrivastavas Elevate',
-    template: '%s | Shrivastavas Elevate — Interior Designer Satna',
+    template: '%s | Shrivastavas Elevate',
   },
   description:
     'Top-rated interior designer in Satna, Madhya Pradesh. Modular kitchens, bedrooms, bathrooms, commercial interiors & 3D visualization. Turnkey execution. Free consultation. 50+ projects delivered across MP.',
@@ -27,6 +27,8 @@ export const metadata = {
     'interior design Nagod',
     'home interior design MP',
     'best interior designer Vindhya',
+    'interior designer near me Satna',
+    'home renovation Satna MP',
   ],
   openGraph: {
     type: 'website',
@@ -36,11 +38,20 @@ export const metadata = {
     description:
       'Top-rated interior designer in Satna MP. Modular kitchens, bedrooms, 3D visualization & turnkey execution. 50+ projects. Free consultation.',
     url: SITE_URL,
+    images: [
+      {
+        url: `${SITE_URL}/og-image.jpg`,
+        width: 1200,
+        height: 630,
+        alt: 'Shrivastavas Elevate — Premium Interior Designer in Satna, Madhya Pradesh',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Best Interior Designer in Satna | Shrivastavas Elevate',
     description: 'Premium interiors crafted with luxury, precision and turnkey execution in Satna, Madhya Pradesh.',
+    images: [`${SITE_URL}/og-image.jpg`],
   },
   robots: {
     index: true,
@@ -124,6 +135,30 @@ const localBusinessSchema = {
   },
 };
 
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Shrivastavas Elevate',
+  url: SITE_URL,
+  description: 'Premium interior design studio in Satna, Madhya Pradesh — modular kitchens, bedrooms, commercial spaces, 3D visualization and turnkey execution.',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: `${SITE_URL}/design/kitchen-designs`,
+    },
+    'query-input': 'required name=search_term_string',
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: 'Shrivastavas Elevate',
+    logo: {
+      '@type': 'ImageObject',
+      url: `${SITE_URL}/logo.png`,
+    },
+  },
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
@@ -131,6 +166,10 @@ export default function RootLayout({ children }) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
       </head>
       <body>

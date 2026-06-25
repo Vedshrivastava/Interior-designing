@@ -1,5 +1,6 @@
 'use client';
 import '@/styles/contact.css';
+import Link from 'next/link';
 import { IconPhone, IconEnvelope, IconLocation, IconClock, IconCopy, IconPaperPlane, IconWhatsApp } from '@/components/Icons';
 import { useState } from 'react';
 import axios from 'axios';
@@ -55,6 +56,9 @@ export default function ContactPage() {
           </div>
           <h1>Let&apos;s Start Your<br /><span>Dream Project</span></h1>
           <p>Tell us about your space — we&apos;ll get back to you within 24 hours with a tailored plan and transparent pricing.</p>
+          <p className="contact-hero-links">
+            Explore our <Link href="/services">interior design services</Link> or <Link href="/projects">view completed projects</Link> across Satna, MP.
+          </p>
         </div>
       </section>
 
@@ -63,7 +67,7 @@ export default function ContactPage() {
           <div className="contact-details">
             <div className="contact-details-rule" />
             <div className="contact-details-inner">
-              <h1>Contact Us</h1>
+              <h2>Contact Us</h2>
               <p className="contact-details-tagline">
                 Shrivastavas Elevate — luxury interior design and contracting, crafted around your lifestyle and vision.
               </p>

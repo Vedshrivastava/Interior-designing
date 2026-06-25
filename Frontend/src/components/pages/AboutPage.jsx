@@ -68,7 +68,7 @@ export default function AboutPage() {
     <div className="about-page">
       <section className="about-hero">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={bgimg.src} alt="Luxury Interior" className="about-hero-bg" />
+        <img src={bgimg.src} alt="Luxury interior design by Shrivastavas Elevate — premium interior designers in Satna, Madhya Pradesh" className="about-hero-bg" />
         <div className="about-overlay" />
         <div className="about-hero-content">
           <div className="abt-eyebrow">
@@ -111,7 +111,7 @@ export default function AboutPage() {
           <div className="abt-feat-card abt-reveal" ref={sr}>
             <div className="abt-feat-img">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={storyImg.src} alt="Our Story" />
+              <img src={storyImg.src} alt="Shrivastavas Elevate interior design studio — founded by Ved and Shubh Shrivastava in Satna, MP" />
               <div className="abt-feat-img-overlay" />
               <div className="abt-feat-tag"><IconCrown /> Our Story</div>
             </div>
@@ -129,9 +129,9 @@ export default function AboutPage() {
 
           <div className="abt-stack">
             {[
-              { src: services,   alt: 'Interior Services', Tag: IconHouseChimney, tagLabel: 'Services',  href: '/services', title: 'Premium Interior Services',   desc: 'Complete interior solutions from a single room to an entire home.', points: ['Customised residential interiors', 'Refundable consultation fee'] },
-              { src: materials,  alt: 'Premium Materials', Tag: IconSwatchbook,   tagLabel: 'Products',  href: '/products', title: 'Premium Products & Materials', desc: 'Architectural products selected from India\'s most trusted brands.',  points: ['Breeze blocks, jaali walls, louvers…', 'Kajaria, Asian Paints, CenturyPly…'] },
-              { src: commitment, alt: 'Our Commitment',    Tag: IconShield, tagLabel: 'Commitment', href: null,       title: 'Our Commitment To Quality',    desc: 'Every project executed with precision, transparency and uncompromised detail.', points: ['Premium craftsmanship standards', 'Long-lasting client relationships'] },
+              { src: services,   alt: 'Interior design services by Shrivastavas Elevate in Satna, Madhya Pradesh', Tag: IconHouseChimney, tagLabel: 'Services',  href: '/services', title: 'Premium Interior Services',   desc: 'Complete interior solutions from a single room to an entire home.', points: ['Customised residential interiors', 'Refundable consultation fee'] },
+              { src: materials,  alt: 'Premium architectural materials and products used in interior design projects in Satna, MP', Tag: IconSwatchbook, tagLabel: 'Products', href: '/products', title: 'Premium Products & Materials', desc: 'Architectural products selected from India\'s most trusted brands.',  points: ['Breeze blocks, jaali walls, louvers…', 'Kajaria, Asian Paints, CenturyPly…'] },
+              { src: commitment, alt: 'Quality commitment by Shrivastavas Elevate interior designers in Satna, Madhya Pradesh', Tag: IconShield, tagLabel: 'Commitment', href: null, title: 'Our Commitment To Quality', desc: 'Every project executed with precision, transparency and uncompromised detail.', points: ['Premium craftsmanship standards', 'Long-lasting client relationships'] },
             ].map((c, i) => (
               <div key={i} className="abt-stack-card abt-reveal" ref={sr} style={{ '--abt-delay': `${(i + 1) * 60}ms`, cursor: c.href ? 'pointer' : 'default' }} onClick={c.href ? () => router.push(c.href) : undefined}>
                 <div className="abt-stack-img">

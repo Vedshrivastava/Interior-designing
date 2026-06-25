@@ -7,7 +7,6 @@
    Fonts: Cormorant Garamond (hero h1) | Playfair Display (section h2) | Inter (body)
 ================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
 
 /* ── Variables ── */
 :root {
@@ -41,8 +40,8 @@
 /* ── Shared overline tag ── */
 .svc-section-tag {
     color: var(--gold);
-    text-transform: uppercase;
-    letter-spacing: 3px;
+  
+    letter-spacing: 0.4px;
     font-size: 0.78rem;
     font-weight: 700;
     display: inline-flex;
@@ -125,8 +124,8 @@
     color: rgba(255, 255, 255, 0.75);
     font-size: 0.72rem;
     font-weight: 600;
-    letter-spacing: 4px;
-    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  
 }
 
 .svc-eyebrow-line {
@@ -154,9 +153,10 @@
 .services-hero-content>p {
     max-width: 640px;
     margin: 0 auto 42px;
-    font-size: clamp(1rem, 1.4vw, 1.08rem);
+    font-family: "Cormorant Garamond", serif;
+    font-size: clamp(1.15rem, 1.6vw, 1.25rem);
     font-weight: 400;
-    line-height: 1.8;
+    line-height: 1.85;
     color: rgba(255, 255, 255, 0.78);
 }
 
@@ -176,8 +176,8 @@
     font-family: "Inter", sans-serif;
     font-size: 0.82rem;
     font-weight: 600;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  
     cursor: pointer;
     transition: all 0.3s ease;
     display: inline-flex;
@@ -201,8 +201,8 @@
     font-family: "Inter", sans-serif;
     font-size: 0.82rem;
     font-weight: 500;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  
     cursor: pointer;
     transition: all 0.3s ease;
     display: inline-flex;
@@ -229,8 +229,8 @@
     color: rgba(255, 255, 255, 0.5);
     font-size: 0.62rem;
     font-weight: 500;
-    letter-spacing: 3px;
-    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  
 }
 
 .svc-scroll-line {
@@ -322,7 +322,7 @@
 
 .services-stat-box h2 {
     font-family: "Playfair Display", serif;
-    font-size: clamp(1.8rem, 3vw, 2.8rem);
+    font-size: clamp(2.1rem, 3.5vw, 3.2rem);
     color: var(--gold);
     margin: 0 0 8px;
     letter-spacing: -0.5px;
@@ -331,7 +331,8 @@
 
 .services-stat-box p {
     color: #f0e6d3;
-    font-size: 0.9rem;
+    font-family: "Cormorant Garamond", serif;
+    font-size: 1rem;
     font-weight: 600;
     margin: 0;
     letter-spacing: 0.5px;
@@ -375,7 +376,7 @@
 
 .services-heading-left h2 {
     font-family: "Playfair Display", serif;
-    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-size: clamp(2.8rem, 5.5vw, 4.5rem);
     color: var(--green);
     margin: 8px 0 0;
     line-height: 1.1;
@@ -521,7 +522,7 @@
     color: var(--gold-lt);
     font-family: "Inter", sans-serif;
     font-size: 0.68rem; font-weight: 700;
-    letter-spacing: 1px; text-transform: uppercase;
+    letter-spacing: 0.3px;
     padding: 5px 12px; border-radius: 20px;
     display: inline-flex; align-items: center; gap: 6px;
     backdrop-filter: blur(6px);
@@ -646,8 +647,8 @@
     color: var(--gold);
     font-size: 0.78rem;
     font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -751,7 +752,7 @@
 
 .svc-why-head h2 {
     font-family: "Playfair Display", serif;
-    font-size: clamp(2.2rem, 4.5vw, 3.4rem);
+    font-size: clamp(2.5rem, 5vw, 3.8rem);
     color: #f5ede0;
     margin: 8px 0 0;
     line-height: 1.1;
@@ -883,7 +884,7 @@
 
 .svc-start-head h2 {
     font-family: "Playfair Display", serif;
-    font-size: clamp(2.4rem, 5vw, 3.6rem);
+    font-size: clamp(2.7rem, 5.5vw, 4rem);
     color: #f5ede0;
     margin: 8px 0 16px;
     line-height: 1.1;
@@ -1056,7 +1057,7 @@
 
 .process-header h1 {
     font-family: "Playfair Display", serif;
-    font-size: clamp(2.4rem, 5vw, 3.8rem);
+    font-size: clamp(2.7rem, 5.5vw, 4.2rem);
     color: var(--green);
     margin: 8px 0 16px;
     line-height: 1.1;
@@ -1338,7 +1339,7 @@
 }
 
 .t-card-text {
-    font-family: "Playfair Display", serif;
+    font-family: "Cormorant Garamond", serif;
     font-style: italic;
     font-size: 0.97rem;
     color: var(--text);
@@ -1468,8 +1469,8 @@
     border-radius: 40px;
     font-weight: 700;
     font-size: 0.88rem;
-    letter-spacing: 1px;
-    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  
     cursor: pointer;
     transition: all 0.3s ease;
     display: inline-flex;

@@ -1,35 +1,49 @@
+'use client';
 import { useEffect, useRef } from 'react';
 
-const WS_URL = 'ws://localhost:3000';
+const WS_URL = (() => {
+  const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  return base.replace(/^http/, 'ws');
+})();
 
 /**
- * Connects to the backend WebSocket and calls onMessage(parsedData)
- * for every incoming message. Reconnects automatically after 3 s if
- * the connection drops.
+ * Connects to the backend WebSocket, calls onMessage(data) for every
+ * message, and auto-reconnects with exponential backoff (500ms → 10s max).
+ *
+ * Safe for React 18 Strict Mode (double-invocation) and Next.js App Router.
  */
 export const useWebSocket = (onMessage) => {
-  const onMsgRef  = useRef(onMessage);
-  const unmounted = useRef(false);
+  const cbRef      = useRef(onMessage);
+  const wsRef      = useRef(null);
+  const aliveRef   = useRef(true);
+  const delayRef   = useRef(500);
 
-  // Keep callback ref fresh without re-running the effect
-  useEffect(() => { onMsgRef.current = onMessage; }, [onMessage]);
+  // Keep callback ref fresh without re-running the connection effect
+  useEffect(() => { cbRef.current = onMessage; }, [onMessage]);
 
   useEffect(() => {
-    unmounted.current = false;
-    let ws;
+    aliveRef.current = true;
+    delayRef.current = 500;
 
     const connect = () => {
-      if (unmounted.current) return;
-      ws = new WebSocket(WS_URL);
+      if (!aliveRef.current) return;
+
+      const ws = new WebSocket(WS_URL);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        delayRef.current = 500; // reset backoff on successful open
+      };
 
       ws.onmessage = (e) => {
-        try {
-          onMsgRef.current(JSON.parse(e.data));
-        } catch {}
+        try { cbRef.current(JSON.parse(e.data)); } catch {}
       };
 
       ws.onclose = () => {
-        if (!unmounted.current) setTimeout(connect, 3000);
+        if (!aliveRef.current) return;
+        const wait = delayRef.current;
+        delayRef.current = Math.min(wait * 2, 10000); // cap at 10 s
+        setTimeout(connect, wait);
       };
 
       ws.onerror = () => ws.close();
@@ -38,9 +52,13 @@ export const useWebSocket = (onMessage) => {
     connect();
 
     return () => {
-      unmounted.current = true;
+      aliveRef.current = false;
+      const ws = wsRef.current;
       if (ws) {
-        ws.onclose = null; // prevent reconnect loop on intentional unmount
+        ws.onopen    = null;
+        ws.onmessage = null;
+        ws.onclose   = null;
+        ws.onerror   = null;
         ws.close();
       }
     };

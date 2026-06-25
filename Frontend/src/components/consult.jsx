@@ -1,23 +1,29 @@
-import React, { useState } from 'react';
-import '../styles/consult.css';
+'use client';
+import '@/styles/consult.css';
+import { useState } from 'react';
 import axios from 'axios';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import logo from '../assets/logo.png';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faXmark, faCalendarCheck, faUser, faEnvelope, faPhone, faLocationDot, faCommentDots } from '@fortawesome/free-solid-svg-icons';
+import { toast } from 'react-toastify';
+
+import {
+  IconXMark, IconCalendar, IconUser, IconEnvelope,
+  IconPhone, IconLocation, IconCommentDots,
+} from '@/components/Icons';
+import { useModal } from '@/context/ModalContext';
+import logo from '@/assets/logo.png';
 
 const FIELDS = [
-  { name: 'name',    label: 'Full Name',    type: 'text',   placeholder: 'Your full name',       icon: faUser        },
-  { name: 'email',   label: 'Email',        type: 'email',  placeholder: 'your@email.com',        icon: faEnvelope    },
-  { name: 'phone',   label: 'Phone Number', type: 'tel',    placeholder: '+91 XXXXX XXXXX',       icon: faPhone       },
-  { name: 'address', label: 'Address',      type: 'text',   placeholder: 'Your city / address',   icon: faLocationDot },
+  { name: 'name',    label: 'Full Name',    type: 'text',  placeholder: 'Your full name',     Icon: IconUser        },
+  { name: 'email',   label: 'Email',        type: 'email', placeholder: 'your@email.com',      Icon: IconEnvelope    },
+  { name: 'phone',   label: 'Phone Number', type: 'tel',   placeholder: '+91 XXXXX XXXXX',     Icon: IconPhone       },
+  { name: 'address', label: 'Address',      type: 'text',  placeholder: 'Your city / address', Icon: IconLocation },
 ];
 
-const Consult = ({ setShowLogin }) => {
-  const [data, setData] = useState({ name: '', email: '', phone: '', address: '', message: '' });
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+export default function Consult() {
+  const { closeConsult } = useModal();
+  const [data, setData]     = useState({ name: '', email: '', phone: '', address: '', message: '' });
   const [loading, setLoading] = useState(false);
-  const url = 'http://localhost:3000';
 
   const onChange = e => {
     const { name, value } = e.target;
@@ -28,15 +34,14 @@ const Consult = ({ setShowLogin }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post(`${url}/api/appointment/add`, {
+      await axios.post(`${API_URL}/api/appointment/add`, {
         name: data.name, email: data.email,
         phoneNumber: data.phone, address: data.address,
         message: data.message,
       });
       toast.success('Consultation booked successfully!');
-      setTimeout(() => setShowLogin(false), 2000);
+      setTimeout(() => closeConsult(), 2000);
     } catch (err) {
-      console.error(err);
       toast.error('Failed to submit. Please try again.');
     } finally {
       setLoading(false);
@@ -44,30 +49,31 @@ const Consult = ({ setShowLogin }) => {
   };
 
   return (
-    <div className="login" onClick={e => e.target === e.currentTarget && setShowLogin(false)}>
+    <div className="login" onClick={e => e.target === e.currentTarget && closeConsult()}>
       <form onSubmit={onSubmit} className="login-container">
         <div className="login-rule" />
         <div className="login-inner">
-          
+
           <div className="login-header">
-            <img src={logo} alt="Shrivastava's Elevate" className="login-logo" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={logo.src} alt="Shrivastava's Elevate" className="login-logo" />
             <div className="login-header-text">
               <h2>Free Consultation</h2>
-              <p>We'll get back to you within 24 hours</p>
+              <p>We&apos;ll get back to you within 24 hours</p>
             </div>
-            <button type="button" className="login-close" onClick={() => setShowLogin(false)} aria-label="Close">
-              <FontAwesomeIcon icon={faXmark} />
+            <button type="button" className="login-close" onClick={closeConsult} aria-label="Close">
+              <IconXMark />
             </button>
           </div>
 
           <div className="login-divider" />
 
           <div className="login-inputs">
-            {FIELDS.map(({ name, label, type, placeholder, icon }) => (
+            {FIELDS.map(({ name, label, type, placeholder, Icon }) => (
               <div className="login-field" key={name}>
                 <label htmlFor={`consult-${name}`}>{label}</label>
                 <div className="login-input-wrap">
-                  <span className="login-input-icon"><FontAwesomeIcon icon={icon} /></span>
+                  <span className="login-input-icon"><Icon /></span>
                   <input
                     id={`consult-${name}`} name={name} type={type} placeholder={placeholder}
                     value={data[name]} onChange={onChange} required autoComplete="off"
@@ -80,7 +86,9 @@ const Consult = ({ setShowLogin }) => {
                 Message <span className="login-field-opt">optional</span>
               </label>
               <div className="login-input-wrap">
-                <span className="login-input-icon login-input-icon--top"><FontAwesomeIcon icon={faCommentDots} /></span>
+                <span className="login-input-icon login-input-icon--top">
+                  <IconCommentDots />
+                </span>
                 <textarea
                   id="consult-message"
                   name="message"
@@ -95,14 +103,11 @@ const Consult = ({ setShowLogin }) => {
           </div>
 
           <button type="submit" disabled={loading}>
-            {loading ? 'Submitting…' : <><FontAwesomeIcon icon={faCalendarCheck} /> Book Consultation</>}
+            {loading ? 'Submitting…' : <><IconCalendar /> Book Consultation</>}
           </button>
           <p className="login-note">No commitment required · Consultation fee refunded on project confirmation</p>
         </div>
       </form>
-      <ToastContainer position="bottom-center" autoClose={2500} theme="dark" toastStyle={{ background: '#102525', color: '#f0e6d3', border: '1px solid rgba(201,168,124,0.25)' }} />
     </div>
   );
-};
-
-export default Consult;
+}

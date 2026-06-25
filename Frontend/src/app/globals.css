@@ -1,0 +1,278 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ================================================
+   STAT STAR — filled gold star rendered inline
+   with CountUp numbers in all stats sections
+================================================ */
+.stat-star {
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  color: var(--gold, #c9a87c);
+  vertical-align: middle;
+  margin-left: 0.1em;
+  position: relative;
+  top: -0.05em;
+}
+
+/* ================================================
+   DESIGN SYSTEM — TAG / OVERLINE / BADGE TOKENS
+   Single source of truth for all small labels.
+   Mirrors the bottom-navbar aesthetic: Inter 500,
+   no uppercase, minimal tracking.
+================================================ */
+
+/* Section overlines — appear above h2 headings */
+.hp-overline,
+.svc-section-tag,
+.section-tag,
+.dd-overline,
+.dd-featured-overline,
+.proj-overline,
+.prod-overline,
+.proj-cta-overline,
+.prod-cta-overline {
+  font-family: "Inter", sans-serif !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: none !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Card-level category tags */
+.dc-category-tag,
+.proj-card-category,
+.proj-modal-tag,
+.prod-card-cat-tag,
+.prod-card-subcat-tag,
+.prod-modal-tag,
+.prod-modal-tag--sub,
+.proj-modal-tag--type,
+.dd-section-label {
+  font-family: "Inter", sans-serif !important;
+  font-size: 0.73rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px !important;
+  text-transform: none !important;
+}
+
+/* Featured / type badge ribbons */
+.dd-featured-ribbon,
+.proj-card-featured-ribbon,
+.prod-card-featured-ribbon,
+.hp-adv-card-tag,
+.hp-adv-feature-tag,
+.abt-feat-tag,
+.abt-stack-tag {
+  font-family: "Inter", sans-serif !important;
+  font-size: 0.73rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px !important;
+  text-transform: none !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Project card type badge — handled separately to preserve position:absolute */
+.proj-card-type-badge {
+  font-family: "Inter", sans-serif !important;
+  font-size: 0.72rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px !important;
+  text-transform: none !important;
+}
+
+/* Count / result badges */
+.dd-count-badge,
+.prod-count-badge,
+.proj-count-badge {
+  font-family: "Inter", sans-serif !important;
+  font-size: 0.73rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px !important;
+  text-transform: none !important;
+}
+
+/* ================================================
+   GLOBAL SCROLLBAR REMOVAL
+================================================ */
+::-webkit-scrollbar {
+  display: none;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+html, body, * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ================================================
+   TOASTIFY — LUXURY THEME
+================================================ */
+.Toastify__toast {
+  background: #102525 !important;
+  color: #f8f4ee !important;
+  border: 1px solid rgba(201, 168, 124, 0.25) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25) !important;
+  backdrop-filter: blur(10px);
+  font-family: "Inter", sans-serif;
+  padding: 16px 20px !important;
+}
+
+.Toastify__toast-body {
+  color: #f8f4ee !important;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  padding: 0;
+}
+
+.Toastify__toast-icon svg {
+  fill: #c9a87c !important;
+}
+
+.Toastify__close-button {
+  color: rgba(248, 244, 238, 0.4) !important;
+  opacity: 1 !important;
+  transition: color 0.3s ease, transform 0.3s ease;
+  align-self: center;
+}
+
+.Toastify__close-button:hover {
+  color: #c9a87c !important;
+  transform: scale(1.1);
+}
+
+.Toastify__progress-bar {
+  background: linear-gradient(90deg, transparent, #c9a87c, #e8d0a8, #c9a87c) !important;
+  height: 2px !important;
+  opacity: 0.8;
+}
+
+.Toastify__toast--success {
+  background: #102525 !important;
+}
+.Toastify__toast--success .Toastify__progress-bar {
+  background: linear-gradient(90deg, transparent, #c9a87c, #e8d0a8) !important;
+}
+
+.Toastify__toast--error {
+  background: #1c1313 !important;
+  border-color: rgba(220, 90, 90, 0.2) !important;
+}
+.Toastify__toast--error .Toastify__toast-icon svg {
+  fill: #d88a8a !important;
+}
+.Toastify__toast--error .Toastify__progress-bar {
+  background: linear-gradient(90deg, transparent, #d88a8a, transparent) !important;
+}
+
+/* ================================================
+   GLOBAL FLOATING WHATSAPP BUTTON
+================================================ */
+.wa-fab {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px 14px 18px;
+  border-radius: 999px;
+  background: #102525;
+  border: 1px solid rgba(201, 168, 124, 0.35);
+  color: #e8d0a8;
+  text-decoration: none;
+  font-family: "Inter", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  box-shadow: 0 8px 28px rgba(16, 37, 37, 0.32), 0 2px 8px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s ease, box-shadow 0.3s ease,
+              border-color 0.3s ease, background 0.3s ease;
+  overflow: visible;
+}
+
+.wa-fab-pulse {
+  position: absolute;
+  inset: -1px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(201, 168, 124, 0.5);
+  animation: waPulse 2.4s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes waPulse {
+  0%   { transform: scale(1);    opacity: 0.7; }
+  60%  { transform: scale(1.18); opacity: 0; }
+  100% { transform: scale(1.18); opacity: 0; }
+}
+
+.wa-fab-icon {
+  font-size: 1.25rem;
+  color: #c9a87c;
+  flex-shrink: 0;
+  transition: color 0.3s ease;
+}
+
+.wa-fab-label { white-space: nowrap; }
+
+.wa-fab:hover {
+  transform: translateY(-3px);
+  background: #1a3535;
+  border-color: rgba(201, 168, 124, 0.65);
+  box-shadow: 0 16px 42px rgba(16, 37, 37, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.wa-fab:hover .wa-fab-icon { color: #e8d0a8; }
+
+@media (max-width: 480px) {
+  .wa-fab {
+    bottom: 24px;
+    right: 20px;
+    padding: 14px;
+    gap: 0;
+  }
+  .wa-fab-label { display: none; }
+  .wa-fab-icon  { font-size: 1.4rem; }
+}
+
+/* ================================================
+   BOTTOM NAVBAR CLEARANCE — mobile only
+   body padding pushes page content above the fixed
+   bottom nav; fixed elements (FAB, modals) unaffected.
+================================================ */
+@media (max-width: 768px) {
+  body {
+    padding-bottom: 62px;
+  }
+
+  .wa-fab {
+    bottom: calc(62px + 16px) !important;
+  }
+}

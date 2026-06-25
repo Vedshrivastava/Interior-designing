@@ -5,7 +5,6 @@
 ════════════════════════════════════════════════════════ */
 
 /* ── Import Premium Fonts ── */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
 /* ── CSS Variables ── */
 :root {
@@ -129,8 +128,8 @@
 
   font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 4px;
-  text-transform: uppercase;
+  letter-spacing: 0.4px;
+
 
   font-family: "Inter", sans-serif;
 }
@@ -169,8 +168,8 @@
     color: var(--gold);
     font-size: 0.82rem;
     font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -183,15 +182,11 @@
 .hp-hero-sub {
   max-width: 640px;
   margin: 0 auto 42px;
-
-  font-family: "Inter", sans-serif;
-
-  font-size: clamp(1rem, 1.4vw, 1.08rem);
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(1.15rem, 1.6vw, 1.25rem);
   font-weight: 400;
-
-  line-height: 1.8;
+  line-height: 1.85;
   letter-spacing: 0.2px;
-
   color: rgba(255,255,255,0.78);
 }
 
@@ -215,8 +210,8 @@
   font-family: "Inter", sans-serif;
   font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+  letter-spacing: 0.3px;
+
 
   cursor: pointer;
 
@@ -249,8 +244,8 @@
   font-family: "Inter", sans-serif;
   font-size: 0.82rem;
   font-weight: 500;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+  letter-spacing: 0.3px;
+
 
   cursor: pointer;
 
@@ -276,8 +271,8 @@
 
   font-size: 0.7rem;
   font-weight: 500;
-  letter-spacing: 3px;
-  text-transform: uppercase;
+  letter-spacing: 0.4px;
+
 }
 
 .hp-scroll-hint {
@@ -299,8 +294,8 @@
   font-family: "Inter", sans-serif;
   font-weight: 500;
 
-  letter-spacing: 3px;
-  text-transform: uppercase;
+  letter-spacing: 0.4px;
+
 }
 
 .hp-scroll-line {
@@ -371,7 +366,7 @@
 
 .hp-stats h2 {
   font-family: "Playfair Display", serif;
-  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  font-size: clamp(2.1rem, 3.5vw, 3.2rem);
   color: var(--gold);
   margin: 0 0 8px;
   letter-spacing: -0.5px;
@@ -380,7 +375,8 @@
 
 .hp-stat-label {
   color: #f0e6d3;
-  font-size: 0.9rem;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.15rem;
   font-weight: 600;
   margin: 0 0 6px;
   letter-spacing: 0.5px;
@@ -388,7 +384,8 @@
 
 .hp-stat-sub {
   color: rgba(201,168,124,0.55);
-  font-size: 0.75rem;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 0.88rem;
   margin: 0;
   letter-spacing: 0.5px;
   line-height: 1.5;
@@ -428,7 +425,7 @@
 
 .hp-sh-left h2 {
   font-family: "Playfair Display", serif;
-  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-size: clamp(2.8rem, 5.5vw, 4.5rem);
   color: var(--green);
   margin: 0;
   line-height: 1.1;
@@ -452,8 +449,8 @@
   color: var(--gold);
   font-size: 0.82rem;
   font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+  letter-spacing: 0.3px;
+
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -528,7 +525,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  font-size: 1.3rem;
   color: var(--gold);
   flex-shrink: 0;
 }
@@ -629,7 +626,7 @@
 
 .hp-wc-card p {
   color: var(--blush);
-  font-size: 0.9rem;
+  font-size: 1.3rem;
   line-height: 1.7;
   margin: 0;
 }
@@ -665,7 +662,7 @@
 }
 .hp-process-head h2 {
   font-family: "Playfair Display", serif;
-  font-size: clamp(2.4rem, 5vw, 3.8rem);
+  font-size: clamp(2.7rem, 5.5vw, 4.2rem);
   color: var(--green); /* Changed from forest to premium dark green */
   margin: 0 0 16px;
   line-height: 1.1;
@@ -820,7 +817,7 @@
 }
 .hp-advantages-head h2 {
   font-family: "Playfair Display", serif;
-  font-size: clamp(2.4rem, 5vw, 3.8rem);
+  font-size: clamp(2.7rem, 5.5vw, 4.2rem);
   color: var(--green);
   margin: 0 0 16px;
   line-height: 1.1;
@@ -892,8 +889,8 @@
   color: var(--gold);
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+  letter-spacing: 0.3px;
+
   display: flex; align-items: center; gap: 6px;
 }
 
@@ -986,8 +983,8 @@
   color: var(--gold);
   font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+  letter-spacing: 0.3px;
+
   display: flex; align-items: center; gap: 5px;
 }
 
@@ -1052,8 +1049,8 @@
 .hp-adv-stat-lbl {
   color: rgba(240,230,211,0.65);
   font-size: 0.75rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+  letter-spacing: 0.3px;
+
   text-align: center;
 }
 
@@ -1169,7 +1166,7 @@
 
 /* Quote text */
 .t-card-text {
-  font-family: "Playfair Display", serif;
+  font-family: "Cormorant Garamond", serif;
   font-style: italic;
   font-size: 0.97rem;
   color: var(--text);
@@ -1248,7 +1245,7 @@
 }
 .hp-brands-head h2 {
   font-family: "Playfair Display", serif;
-  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-size: clamp(2.3rem, 4.5vw, 3.6rem);
   color: var(--green);
   margin: 0 0 12px;
   letter-spacing: -0.5px;
@@ -1348,8 +1345,8 @@
   border-radius: 40px;
   font-weight: 700;
   font-size: 0.88rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+  letter-spacing: 0.3px;
+
   cursor: pointer;
   transition: all 0.3s ease;
   display: inline-flex; align-items: center; gap: 9px;
@@ -1364,8 +1361,8 @@
   border-radius: 40px;
   font-weight: 600;
   font-size: 0.88rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+  letter-spacing: 0.3px;
+
   cursor: pointer;
   transition: all 0.3s ease;
   display: inline-flex; align-items: center; gap: 9px;
@@ -1451,7 +1448,7 @@
   left: 10px;
   padding: 4px 10px;
   font-size: 0.7rem;
-  letter-spacing: 1px;
+  letter-spacing: 0.3px;
   border-radius: 20px;
   gap: 5px;
 }

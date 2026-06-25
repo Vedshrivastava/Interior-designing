@@ -8,9 +8,9 @@ A full-stack business website for a luxury interior design studio based in Satna
 
 ```
 interior-site-project/
-├── Frontend/          # Public-facing customer website (Vite + React, port 5173)
-├── Admin/             # Owner dashboard (Vite + React, port 5174)
-└── Backend/           # REST API + WebSocket server (Node/Express, port 3000)
+├── Frontend/    # Public-facing customer website (Next.js 16, App Router, port 3000)
+├── Admin/       # Owner dashboard (Vite + React, port 5174)
+└── Backend/     # REST API + WebSocket server (Node/Express, port 3000)
 ```
 
 ---
@@ -19,51 +19,75 @@ interior-site-project/
 
 | Layer | Technology |
 |---|---|
-| Frontend & Admin | React 18, Vite, React Router v6 |
+| Frontend | Next.js 16 (App Router, JS), ISR + SSG |
+| Admin | React 18, Vite, React Router v6 |
 | HTTP client | Axios |
 | Notifications | React Toastify |
-| Icons | FontAwesome (free-solid + free-brands) |
+| Icons | Custom inline SVG library (`Frontend/src/components/Icons.jsx`) — Heroicons outline style, strokeWidth 1.5 |
+| Fonts | Cormorant Garamond, Playfair Display, Inter — loaded via CSS `@import` in `globals.css` |
 | Backend | Node.js, Express 5 (ESM modules) |
 | Database | MongoDB Atlas via Mongoose 8 |
 | Auth | JWT (signed on backend), bcrypt, email verification codes |
 | Image storage | Cloudinary (multer handles temp upload, then deleted) |
 | Email | Nodemailer + Mailtrap (verification, welcome, password reset) |
-| Real-time | WebSocket (`ws` library) — broadcasts new leads to admin |
-| Styling | Per-component plain CSS files; Tailwind config exists at root but is not actively used |
+| Real-time | WebSocket (`ws` library) — broadcasts design/product/project changes and new leads |
+| Styling | Per-component plain CSS files; global design tokens in `Frontend/src/app/globals.css` |
 
 ---
 
-## Frontend (`/Frontend`)
+## Frontend (`/Frontend`) — Next.js 16
+
+Migrated from Vite + React SPA to Next.js 16 App Router. All pages are server-rendered or ISR; no empty HTML shells.
+
+### Rendering Strategy
+| Route | Strategy | Revalidate |
+|---|---|---|
+| `/` | ISR | 60 s |
+| `/about`, `/services`, `/contact` | Static (SSG) | — |
+| `/projects`, `/products` | ISR | 60 s |
+| `/design/[category]` | ISR + `generateStaticParams` | 60 s |
+| `/sitemap.xml`, `/robots.txt` | Static | — |
 
 ### Pages
 | File | Route | Purpose |
 |---|---|---|
-| [Home.jsx](Frontend/src/pages/Home.jsx) | `/` | Hero, stats, design category cards, process, testimonials marquee, brand logos, CTA |
-| [About.jsx](Frontend/src/pages/About.jsx) | `/about` | Studio story and team |
-| [Services.jsx](Frontend/src/pages/Services.jsx) | `/services` | Service offerings |
-| [Projects.jsx](Frontend/src/pages/Projects.jsx) | `/projects` | Portfolio gallery |
-| [Contact.jsx](Frontend/src/pages/Contact.jsx) | `/contact` | Contact form |
-| [designDisplay.jsx](Frontend/src/pages/designDisplay.jsx) | `/design/:category` | Design gallery filtered by category |
+| [HomePage.jsx](Frontend/src/components/pages/HomePage.jsx) | `/` | Hero, stats, design category cards, process, testimonials, brand logos, CTA |
+| [AboutPage.jsx](Frontend/src/components/pages/AboutPage.jsx) | `/about` | Studio story and founders |
+| [ServicesPage.jsx](Frontend/src/components/pages/ServicesPage.jsx) | `/services` | Service offerings |
+| [ProjectsPage.jsx](Frontend/src/components/pages/ProjectsPage.jsx) | `/projects` | Portfolio gallery, real-time via WebSocket |
+| [ContactPage.jsx](Frontend/src/components/pages/ContactPage.jsx) | `/contact` | Contact form |
+| [DesignDisplayPage.jsx](Frontend/src/components/pages/DesignDisplayPage.jsx) | `/design/[category]` | Design gallery with ISR + on-mount fresh fetch + real-time WebSocket |
+| [ProductsPage.jsx](Frontend/src/components/pages/ProductsPage.jsx) | `/products` | Architectural products catalogue |
 
 ### Key Components
-- **`mainNavbar.jsx`** — top-level nav, triggers consultation modal
-- **`consult.jsx`** — free consultation modal; posts to `/api/appointment/add`
-- **`quote-popup.jsx`** — design-specific quote modal; posts to `/api/appointment/addquote` with design images/category pre-filled
-- **`Design.jsx`** — design card component used inside `designDisplay`
-- **`Footer.jsx`** — site footer
+- **`LayoutShell.jsx`** — client shell: navbar, bottom nav, modals, WhatsApp FAB, ToastContainer
+- **`ModalContext.jsx`** — context replacing prop-drilled modal state; any component calls `useModal()` to open consultation/quote modals
+- **`MainNavbar.jsx`** — top-level nav with logo, scroll-aware bg, hamburger menu
+- **`BottomNavbar.jsx`** — mobile-only bottom tab bar with dot-indicator active state
+- **`Consult.jsx`** — free consultation modal; posts to `/api/appointment/add`
+- **`QuotePopup.jsx`** — design-specific quote modal; posts to `/api/appointment/quote`
+- **`Design.jsx`** — design card with lightbox + modal; used in `DesignDisplayPage`
+- **`Footer.jsx`** — site footer with contact info and social links
+- **`Icons.jsx`** — central SVG icon library (~50 icons, Heroicons outline style)
 
 ### Global Features
-- Floating WhatsApp button (links to `wa.me/918962053372`) in `App.jsx`
-- Scroll-reveal animations using `IntersectionObserver` (CSS class `sr-visible`)
-- Animated count-up component on stats (`CountUp` in `Home.jsx`)
-- Two modal types managed via state lifted into `App.jsx`: `showLogin` (consultation) and `showQuotePopup` (quote)
+- Floating WhatsApp FAB (`wa.me/918962053372`) in `LayoutShell.jsx`
+- Scroll-reveal animations via `IntersectionObserver` (CSS class `sr-visible`)
+- Animated `CountUp` component on stats sections
+- Real-time design/product/project updates via `hooks/useWebSocket.js` with exponential backoff reconnect
 
-### Design Categories (used in `/design/:category` route)
-Kitchen Designs, Bedroom Designs, Bathroom Designs, Lounge area Designs, Kids Room Designs, TV Unit Designs, Commercial Designs, Mandir Designs, Garden Designs, House Exterior Designs, PVC Louvers, WPC Louvers, Charcoal Louvers, Five G Louvers, Marble Sheets, Acrylic Sheets, Flooring, PVC Panels, Projects
+### Design Categories (used in `/design/[category]`)
+Kitchen Designs, Bedroom Designs, Bathroom Designs, Lounge area Designs, Kids Room Designs, TV Unit Designs, Commercial Designs, Mandir Designs, Garden Designs, House Exterior
+
+### Environment
+`Frontend/.env.local`:
+```
+NEXT_PUBLIC_API_URL=http://localhost:3000
+```
 
 ---
 
-## Admin (`/Admin`)
+## Admin (`/Admin`) — Vite + React
 
 Role-gated: only users with `role === "ADMIN"` in MongoDB can access protected routes. Auth state is stored in `localStorage` (`token`, `user`).
 
@@ -71,16 +95,20 @@ Role-gated: only users with `role === "ADMIN"` in MongoDB can access protected r
 | File | Route | Purpose |
 |---|---|---|
 | [Welcome.jsx](Admin/src/pages/Welcome.jsx) | `/welcome` | Dashboard landing after login |
-| [Add.jsx](Admin/src/pages/Add.jsx) | `/add` | Upload designs: images → Cloudinary, name, description, bullet points, category, "Feature on Homepage" toggle |
-| [List.jsx](Admin/src/pages/List.jsx) | `/list` | View/edit/delete all designs; includes lightbox image viewer |
-| [Orders.jsx](Admin/src/pages/Orders.jsx) | `/appointments` | Consultation appointment requests, grouped by date, status dropdown |
-| [Quotes.jsx](Admin/src/pages/Quotes.jsx) | `/quotes` | Quote requests linked to specific designs; lightbox, status management |
+| [Add.jsx](Admin/src/pages/Add.jsx) | Upload designs → Cloudinary, with name, description, bullet points, category, "Feature on Homepage" toggle |
+| [ListDesigns.jsx](Admin/src/pages/ListDesigns.jsx) | `/list` | View/edit/delete designs; newest first |
+| [ListProjects.jsx](Admin/src/pages/ListProjects.jsx) | `/projects` | View/edit/delete projects; newest first |
+| [ListProducts.jsx](Admin/src/pages/ListProducts.jsx) | `/products` | View/edit/delete products; newest first |
+| [Appointments.jsx](Admin/src/pages/Appointments.jsx) | `/appointments` | Consultation requests; newest first; real-time via WebSocket |
+| [Quotes.jsx](Admin/src/pages/Quotes.jsx) | `/quotes` | Quote requests; newest first; real-time via WebSocket |
 | [Email_verification.jsx](Admin/src/pages/Email_verification.jsx) | `/verify-email` | 6-digit code entry after registration |
 | [ResetPassword.jsx](Admin/src/pages/ResetPassword.jsx) | `/reset-password/:token` | Password reset form |
-| [guest.jsx](Admin/src/pages/guest.jsx) | `/` | Shown to non-admin visitors with login prompt |
 
 ### Auth Store
 [Admin/src/store/authStore.js](Admin/src/store/authStore.js) — manages login/logout state, persists to `localStorage`.
+
+### WebSocket
+`Admin/src/hooks/useWebSocket.js` — exponential backoff reconnect (same implementation as frontend). Listens for `newOrder`, `newQuote`, `designsChanged`, `projectsChanged`, `productsChanged`.
 
 ---
 
@@ -92,11 +120,22 @@ Entry point: [server.js](Backend/server.js) — Express app wrapped in an `http.
 
 | Prefix | Router file | Key endpoints |
 |---|---|---|
-| `/api/design` | [routes/design.js](Backend/routes/design.js) | `POST /add`, `GET /list?category=`, `POST /remove`, `POST /update` |
-| `/api/appointment` | [routes/appointments.js](Backend/routes/appointments.js) | `POST /add`, `GET /list`, `POST /addquote`, `GET /listquotes`, `POST /status` |
+| `/api/design` | [routes/design.js](Backend/routes/design.js) | `POST /add`, `GET /list?category=&page=&limit=`, `POST /remove`, `POST /update` |
+| `/api/project` | [routes/project.js](Backend/routes/project.js) | `GET /list`, `POST /add`, `POST /remove`, `POST /update` — WebSocket fires `projectsChanged` |
+| `/api/product` | [routes/product.js](Backend/routes/product.js) | `GET /list`, `POST /add`, `POST /remove`, `POST /update` — WebSocket fires `productsChanged` |
+| `/api/appointment` | [routes/appointments.js](Backend/routes/appointments.js) | `POST /add`, `GET /list`, `POST /quote`, `GET /listquotes`, `POST /status` |
 | `/api/admin` | [routes/admin.js](Backend/routes/admin.js) | `POST /register`, `POST /login` |
 | `/api/user` | [routes/user.js](Backend/routes/user.js) | `POST /verify-email`, `POST /forgot-password`, `POST /reset-password/:token`, `GET /check-auth`, `GET /verify-reset-token/:token` |
 | `/images` | static | Serves `uploads/` directory |
+
+### WebSocket Broadcasts
+| Event | Triggered by | Listeners |
+|---|---|---|
+| `designsChanged` | design add/update/remove | `DesignDisplayPage` |
+| `projectsChanged` | project add/update/remove | `ProjectsPage` |
+| `productsChanged` | product add/update/remove | `ProductsPage` |
+| `newOrder` | consultation form submit | Admin `Appointments` |
+| `newQuote` | quote form submit | Admin `Quotes` |
 
 ### Data Models
 
@@ -106,7 +145,7 @@ Entry point: [server.js](Backend/server.js) — Express app wrapped in an `http.
 ```
 
 **`appointment`** ([models/appointments.js](Backend/models/appointments.js))
-Dual-purpose model — plain consultations vs. design quotes are distinguished by whether `images[]` is populated.
+Dual-purpose — consultations vs. quotes distinguished by whether `images[]` is populated.
 ```js
 { name, email, phoneNumber, message, address, status, date, images: [String], designName, category, measurements }
 ```
@@ -118,8 +157,8 @@ Dual-purpose model — plain consultations vs. design quotes are distinguished b
 
 ### Middleware
 - [middlewares/auth.js](Backend/middlewares/auth.js) — JWT verification for protected routes
-- [middlewares/webSocket.js](Backend/middlewares/webSocket.js) — WebSocket server + `broadcast()` helper; fires on new appointment or quote
-- [middlewares/emails.js](Backend/middlewares/emails.js) — sends verification, welcome, and password reset emails
+- [middlewares/webSocket.js](Backend/middlewares/webSocket.js) — WebSocket server + `broadcast()` helper
+- [middlewares/emails.js](Backend/middlewares/emails.js) — sends verification, welcome, and password-reset emails
 - [middlewares/emailTemplates.js](Backend/middlewares/emailTemplates.js) — HTML email templates
 - [middlewares/mailtrap.js](Backend/middlewares/mailtrap.js) — Nodemailer transport config
 
@@ -142,14 +181,15 @@ MAILTRAP_TOKEN (or SMTP credentials)
 # Backend
 cd Backend && npm run server    # nodemon server.js on port 3000
 
-# Frontend
-cd Frontend && npm run dev      # Vite dev server on port 5173
+# Frontend (Next.js)
+cd Frontend && npm run dev      # Next.js dev server (defaults to port 3001 if 3000 is taken)
 
 # Admin
 cd Admin && npm run dev         # Vite dev server on port 5174
 ```
 
-The Admin app hardcodes the backend URL as `http://localhost:3000` in `App.jsx`.
+`Frontend` reads `NEXT_PUBLIC_API_URL` from `.env.local` — defaults to `http://localhost:3000`.  
+The Admin app hardcodes the backend URL as `http://localhost:3000`.
 
 ---
 

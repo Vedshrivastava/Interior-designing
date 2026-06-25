@@ -1,14 +1,14 @@
 /* ================================================
    BOTTOM NAVBAR — mobile only (≤ 768px)
-   Hidden on desktop; overlays page on mobile.
-   Palette matches mainNavbar: --green / --gold
+   Palette & texture match main navbar exactly
 ================================================ */
 
 .bottom-nav {
-  display: none; /* hidden on desktop */
+  display: none;
 }
 
 @media (max-width: 768px) {
+
   .bottom-nav {
     display: flex;
     align-items: stretch;
@@ -18,20 +18,32 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 62px;
+    height: 68px;
     z-index: 9500;
 
+    /* Exact same base as mainNavbar-container */
     background: #102525;
-    border-top: 1px solid rgba(201,168,124,0.18);
-    box-shadow: 0 -4px 24px rgba(0,0,0,0.22);
+    border-top: 1px solid rgba(201,168,124,0.14);
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.14);
+    padding-bottom: env(safe-area-inset-bottom);
 
-    /* diagonal texture — matches main navbar */
+    /* same diagonal gold grid texture as navbar */
     background-image:
-      repeating-linear-gradient(45deg,  rgba(201,168,124,0.035) 0, rgba(201,168,124,0.035) 1px, transparent 0, transparent 28px),
-      repeating-linear-gradient(-45deg, rgba(201,168,124,0.035) 0, rgba(201,168,124,0.035) 1px, transparent 0, transparent 28px);
+      repeating-linear-gradient(45deg,  rgba(201,168,124,0.06) 0, rgba(201,168,124,0.06) 1px, transparent 0, transparent 28px),
+      repeating-linear-gradient(-45deg, rgba(201,168,124,0.06) 0, rgba(201,168,124,0.06) 1px, transparent 0, transparent 28px);
+  }
 
-    /* gold top rule */
-    outline: none;
+  /* Radial center glow — matches navbar ::after */
+  .bottom-nav::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at center, rgba(201,168,124,0.09) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
   }
 
   /* ── Individual tab ── */
@@ -41,57 +53,76 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 5px;
 
     background: none;
     border: none;
     outline: none;
     cursor: pointer;
     text-decoration: none;
-    padding: 8px 0 6px;
+    padding: 10px 4px 8px;
 
-    color: #f0e6d3;   /* matches mainNavbar inactive link colour */
-    transition: color 0.22s ease;
+    color: rgba(240, 230, 211, 0.45);
+    transition: color 0.2s ease;
     position: relative;
+    z-index: 1;
   }
 
-  .bn-item:hover { color: rgba(240,230,211,0.95); }
+  .bn-item:active { opacity: 0.7; }
 
-  /* Active indicator — gold bar at the top edge */
+  /* ── Active state ── */
   .bn-item.active {
     color: #c9a87c;
   }
 
+  /* small dot indicator at top */
   .bn-item.active::before {
     content: "";
     position: absolute;
-    top: 0; left: 20%; right: 20%;
-    height: 2px;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
     background: #c9a87c;
-    border-radius: 0 0 3px 3px;
   }
 
-  /* Icon */
+  /* ── SVG icon wrapper ── */
   .bn-icon {
-    font-size: 1.15rem;
-    line-height: 1;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: transform 0.2s ease;
   }
 
-  .bn-item.active .bn-icon { transform: translateY(-1px); }
+  .bn-icon svg {
+    width: 22px;
+    height: 22px;
+  }
 
-  /* Label */
+  .bn-item.active .bn-icon {
+    transform: translateY(-1px);
+  }
+
+  /* ── Label ── */
   .bn-label {
     font-family: "Inter", sans-serif;
-    font-size: 0.58rem;
-    font-weight: 700;
-    letter-spacing: 1.4px;
-    text-transform: uppercase;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.2px;
     line-height: 1;
   }
 
-  /* ── Consult CTA tab — gold accent ── */
-  .bn-item--cta { color: #c9a87c; }
-  .bn-item--cta .bn-icon { font-size: 1.2rem; }
-  .bn-item--cta:hover { color: #e8d0a8; }
+  /* ── Consult CTA — gold tint at rest ── */
+  .bn-item--cta {
+    color: rgba(201, 168, 124, 0.65);
+  }
+
+  .bn-item--cta.active,
+  .bn-item--cta:hover {
+    color: #c9a87c;
+  }
 }

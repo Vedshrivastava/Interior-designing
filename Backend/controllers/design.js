@@ -58,16 +58,32 @@ const addDesign = async (req, res) => {
 
 const listDesigns = async (req, res) => {
     try {
-        const { category } = req.query;
-        let filter = {};
+        const { category, page, limit } = req.query;
+        const filter = { deleted: { $ne: true } };
+        if (category) filter.category = category;
 
-        if (category) {
-            filter.category = category;
+        if (page || limit) {
+            const pageNum  = Math.max(1, parseInt(page,  10) || 1);
+            const limitNum = Math.max(1, parseInt(limit, 10) || 20);
+            const skip     = (pageNum - 1) * limitNum;
+
+            const [designs, total] = await Promise.all([
+                Design.find(filter).sort({ _id: -1 }).skip(skip).limit(limitNum),
+                Design.countDocuments(filter),
+            ]);
+
+            return res.json({
+                success: true,
+                data: designs,
+                total,
+                page: pageNum,
+                totalPages: Math.ceil(total / limitNum),
+                hasMore: pageNum * limitNum < total,
+            });
         }
 
-        filter.deleted = { $ne: true };
-        const designs = await Design.find(filter);
-
+        // Legacy: no pagination params → return all (keeps Admin panel working)
+        const designs = await Design.find(filter).sort({ _id: -1 });
         res.json({ success: true, data: designs });
     } catch (error) {
         console.error('Error fetching design list:', error);

@@ -4,7 +4,6 @@
    Matches footer / navbar / consult modal language
 ================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
   --ivory:   #f8f4ee;
@@ -89,7 +88,7 @@
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 4px;
-  text-transform: uppercase;
+
 }
 .contact-eyebrow-line {
   width: 36px;
@@ -114,7 +113,9 @@
 
 .contact-hero-inner p {
   color: rgba(255,255,255,0.65);
-  font-size: 0.97rem;
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(1.15rem, 1.6vw, 1.25rem);
+  font-weight: 400;
   line-height: 1.8;
   max-width: 480px;
   margin: 0 auto;
@@ -261,7 +262,7 @@
   font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 1px;
-  text-transform: uppercase;
+
   margin-bottom: 4px;
 }
 .contact-info-text span {
@@ -338,7 +339,7 @@
   font-weight: 700;
   color: var(--gold);
   letter-spacing: 1.5px;
-  text-transform: uppercase;
+
 }
 
 .contact-field input,
@@ -393,7 +394,7 @@
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 1px;
-  text-transform: uppercase;
+
   cursor: pointer;
   display: flex;
   align-items: center;

@@ -1,25 +1,29 @@
-import React, { useState, useEffect, useCallback } from 'react';
+'use client';
+import '@/styles/design.css';
+import { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
-import '../styles/design.css';
+import Image from 'next/image';
+import { useModal } from '@/context/ModalContext';
 
-const Design = ({ id, name, description, images, points, setShowQuotePopup, setConsultData, consultData, category }) => {
-  const [modalOpen, setModalOpen] = useState(false);
+// Cloudinary transform: serve compressed thumbnails for card/modal thumbnails
+function cloudinaryThumb(url, width = 600) {
+  if (!url || !url.includes('res.cloudinary.com')) return url;
+  return url.replace('/upload/', `/upload/w_${width},c_fill,f_auto,q_auto/`);
+}
+
+export default function Design({ id, name, description, images, points, category }) {
+  const { openQuote } = useModal();
+  const [modalOpen,     setModalOpen]     = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
-  const [activeThumb, setActiveThumb] = useState(0);
+  const [activeThumb,   setActiveThumb]   = useState(0);
 
-  const openModal = () => {
-    setModalOpen(true);
-    document.body.style.overflow = 'hidden';
-  };
-
+  const openModal  = () => { setModalOpen(true); document.body.style.overflow = 'hidden'; };
   const closeModal = useCallback(() => {
-    setModalOpen(false);
-    setLightboxIndex(null);
-    setActiveThumb(0);
+    setModalOpen(false); setLightboxIndex(null); setActiveThumb(0);
     document.body.style.overflow = '';
   }, []);
 
-  const openLightbox = (index) => setLightboxIndex(index);
+  const openLightbox  = (index) => setLightboxIndex(index);
   const closeLightbox = () => setLightboxIndex(null);
 
   const goPrev = useCallback((e) => {
@@ -40,7 +44,7 @@ const Design = ({ id, name, description, images, points, setShowQuotePopup, setC
         else closeModal();
       }
       if (lightboxIndex !== null) {
-        if (e.key === 'ArrowLeft') setLightboxIndex(prev => (prev - 1 + images.length) % images.length);
+        if (e.key === 'ArrowLeft')  setLightboxIndex(prev => (prev - 1 + images.length) % images.length);
         if (e.key === 'ArrowRight') setLightboxIndex(prev => (prev + 1) % images.length);
       }
     };
@@ -49,91 +53,61 @@ const Design = ({ id, name, description, images, points, setShowQuotePopup, setC
   }, [lightboxIndex, modalOpen, images.length, closeModal]);
 
   const handleGetQuote = () => {
-    setConsultData({ name, img: images[0], images, category });
-    setShowQuotePopup(true);
+    openQuote({ name, img: images[0], images, category });
     closeModal();
   };
 
-  /* ── CARD (shown in grid) ── */
   const card = (
     <div className="dc-card">
-
-      <div
-        className="dc-card-img-wrap"
-        onClick={() => openLightbox(0)}
-      >
-        <img
-          src={images[0]}
-          alt={name}
-          className="dc-card-img"
-          loading="lazy"
-        />
-
-        {images.length > 1 && (
-          <div className="dc-img-count">
-            +{images.length - 1}
-          </div>
-        )}
-
-        <div className="dc-card-img-overlay">
-          <span className="dc-view-label">
-            View Images
-          </span>
+      <div className="dc-card-img-wrap" onClick={() => openLightbox(0)}>
+        <div className="dc-card-img-container">
+          <Image
+            src={cloudinaryThumb(images[0], 600)}
+            alt={name}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="dc-card-img"
+            loading="lazy"
+          />
         </div>
+        {images.length > 1 && <div className="dc-img-count">+{images.length - 1}</div>}
+        <div className="dc-card-img-overlay"><span className="dc-view-label">View Images</span></div>
       </div>
 
       <div className="dc-card-body">
-
         <span className="dc-category-tag">
           {category?.replace(' Designs', '').replace(' Design', '') || 'Design'}
         </span>
-
-        <h3 className="dc-card-title">
-          {name}
-        </h3>
-
-        <p className="dc-card-desc">
-          {description}
-        </p>
+        <h3 className="dc-card-title">{name}</h3>
+        <p className="dc-card-desc">{description}</p>
 
         <div className="dc-card-footer">
-
-          <button
-            className="dc-card-quote-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleGetQuote();
-            }}
-          >
+          <button className="dc-card-quote-btn" onClick={e => { e.stopPropagation(); handleGetQuote(); }}>
             Get Quote
           </button>
-
-          <button
-            className="dc-see-details-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              openModal();
-            }}
-          >
+          <button className="dc-see-details-btn" onClick={e => { e.stopPropagation(); openModal(); }}>
             See Details →
           </button>
-
         </div>
-
       </div>
-
     </div>
   );
 
-  /* ── MODAL ── */
   const modal = modalOpen && ReactDOM.createPortal(
     <div className="dc-modal-backdrop" onClick={closeModal} role="dialog" aria-modal="true" aria-label={name}>
-      <div className="dc-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="dc-modal" onClick={e => e.stopPropagation()}>
 
-        {/* Left: Image gallery */}
         <div className="dc-modal-gallery">
           <div className="dc-modal-main-img-wrap" onClick={() => openLightbox(activeThumb)}>
-            <img src={images[activeThumb]} alt={`${name} — view ${activeThumb + 1}`} className="dc-modal-main-img" />
+            <div className="dc-modal-main-img-container">
+              <Image
+                src={cloudinaryThumb(images[activeThumb], 900)}
+                alt={`${name} — view ${activeThumb + 1}`}
+                fill
+                sizes="(max-width: 768px) 100vw, 60vw"
+                className="dc-modal-main-img"
+              />
+            </div>
             <div className="dc-modal-img-overlay">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -141,40 +115,35 @@ const Design = ({ id, name, description, images, points, setShowQuotePopup, setC
               </svg>
             </div>
           </div>
-
           {images.length > 1 && (
             <div className="dc-modal-thumbs">
               {images.map((src, i) => (
-                <button
-                  key={i}
-                  className={`dc-thumb${i === activeThumb ? ' active' : ''}`}
-                  onClick={() => setActiveThumb(i)}
-                  aria-label={`Image ${i + 1}`}
-                >
-                  <img src={src} alt={`Thumbnail ${i + 1}`} />
+                <button key={i} className={`dc-thumb${i === activeThumb ? ' active' : ''}`}
+                  onClick={() => setActiveThumb(i)} aria-label={`Image ${i + 1}`}>
+                  <div className="dc-thumb-img-container">
+                    <Image
+                      src={cloudinaryThumb(src, 200)}
+                      alt={`Thumbnail ${i + 1}`}
+                      fill
+                      sizes="80px"
+                    />
+                  </div>
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Right: Content */}
         <div className="dc-modal-content">
           <button className="dc-modal-close" onClick={closeModal} aria-label="Close">✕</button>
-
-          <div className="dc-modal-tags">
-            <span className="dc-modal-tag">{category}</span>
-          </div>
-
+          <div className="dc-modal-tags"><span className="dc-modal-tag">{category}</span></div>
           <h2 className="dc-modal-title">{name}</h2>
-
           {description && (
             <div className="dc-modal-section">
               <h4 className="dc-modal-section-label">About this design</h4>
               <p className="dc-modal-desc">{description}</p>
             </div>
           )}
-
           {points && points.length > 0 && (
             <div className="dc-modal-section">
               <h4 className="dc-modal-section-label">Key features</h4>
@@ -188,7 +157,6 @@ const Design = ({ id, name, description, images, points, setShowQuotePopup, setC
               </ul>
             </div>
           )}
-
           <div className="dc-modal-cta">
             <div className="dc-modal-actions">
               <button className="dc-quote-btn" onClick={handleGetQuote}>Get Free Quote</button>
@@ -197,42 +165,28 @@ const Design = ({ id, name, description, images, points, setShowQuotePopup, setC
             <p className="dc-cta-note">Our design consultants will reach out within 24 hours.</p>
           </div>
         </div>
-
       </div>
     </div>,
     document.body
   );
 
-  /* ── LIGHTBOX (inside modal) ── */
+  // Lightbox uses full-res — plain <img> intentional (no fixed container dimensions)
   const lightbox = lightboxIndex !== null && ReactDOM.createPortal(
     <div className="lb-overlay" onClick={closeLightbox}>
       <button className="lb-close" onClick={closeLightbox} aria-label="Close">✕</button>
-      {images.length > 1 && (
-        <button className="lb-arrow lb-arrow--prev" onClick={goPrev} aria-label="Previous">&#8249;</button>
-      )}
-      <div className="lb-img-wrap" onClick={(e) => e.stopPropagation()}>
+      {images.length > 1 && <button className="lb-arrow lb-arrow--prev" onClick={goPrev} aria-label="Previous">&#8249;</button>}
+      <div className="lb-img-wrap" onClick={e => e.stopPropagation()}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={images[lightboxIndex]} alt={`${name} — ${lightboxIndex + 1}`} className="lb-img" />
         <div className="lb-caption">
           <span className="lb-name">{name}</span>
-          {images.length > 1 && (
-            <span className="lb-counter">{lightboxIndex + 1} / {images.length}</span>
-          )}
+          {images.length > 1 && <span className="lb-counter">{lightboxIndex + 1} / {images.length}</span>}
         </div>
       </div>
-      {images.length > 1 && (
-        <button className="lb-arrow lb-arrow--next" onClick={goNext} aria-label="Next">&#8250;</button>
-      )}
+      {images.length > 1 && <button className="lb-arrow lb-arrow--next" onClick={goNext} aria-label="Next">&#8250;</button>}
     </div>,
     document.body
   );
 
-  return (
-    <>
-      {card}
-      {modal}
-      {lightbox}
-    </>
-  );
-};
-
-export default Design;
+  return <>{card}{modal}{lightbox}</>;
+}

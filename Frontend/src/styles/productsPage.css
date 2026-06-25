@@ -5,7 +5,6 @@
    Fonts: Playfair Display (headings) | Inter (body)
 ================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -70,8 +69,8 @@
   color: var(--gold);
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 3px;
-  text-transform: uppercase;
+  letter-spacing: 0.4px;
+
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -80,7 +79,7 @@
 
 .products-heading {
   font-family: "Playfair Display", serif;
-  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-size: clamp(2.8rem, 5.5vw, 4.5rem);
   font-weight: 700;
   color: var(--green);
   margin: 0;
@@ -158,8 +157,8 @@
   color: var(--gold);
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+  letter-spacing: 0.3px;
+
 }
 
 /* ════════════════════════════════════════════
@@ -326,7 +325,7 @@
 .prod-card-img-wrap:hover .prod-card-img-overlay { opacity: 1; }
 .prod-card-img-overlay span {
   color: #fff; font-size: 0.8rem; font-weight: 600;
-  letter-spacing: 1.5px; text-transform: uppercase;
+  letter-spacing: 0.3px;
   font-family: "Inter", sans-serif;
 }
 
@@ -348,7 +347,7 @@
   font-size: 0.65rem; font-weight: 700;
   padding: 5px 10px; border-radius: 20px;
   display: inline-flex; align-items: center; gap: 5px;
-  letter-spacing: 0.8px; text-transform: uppercase;
+  letter-spacing: 0.3px;
   font-family: "Inter", sans-serif;
   box-shadow: 0 2px 8px rgba(201,168,124,0.35);
 }
@@ -370,7 +369,7 @@
 
 .prod-card-cat-tag {
   font-size: 0.65rem; font-weight: 700;
-  letter-spacing: 1.8px; text-transform: uppercase;
+  letter-spacing: 0.3px;
   color: var(--gold);
   background: rgba(201,168,124,0.1);
   border: 1px solid rgba(201,168,124,0.22);
@@ -380,7 +379,7 @@
 
 .prod-card-subcat-tag {
   font-size: 0.65rem; font-weight: 600;
-  letter-spacing: 1px; text-transform: uppercase;
+  letter-spacing: 0.3px;
   color: var(--text-lt);
   background: rgba(90,78,68,0.07);
   border: 1px solid rgba(90,78,68,0.12);
@@ -575,7 +574,7 @@
   border-radius: 20px;
   background: rgba(201,168,124,0.1); border: 1px solid rgba(201,168,124,0.25);
   color: var(--gold); font-family: "Inter", sans-serif;
-  font-size: 0.68rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.3px;
 }
 .prod-modal-tag--sub {
   background: rgba(90,78,68,0.07); border-color: rgba(90,78,68,0.14);
@@ -606,7 +605,7 @@
 .prod-modal-section-label {
   font-family: "Inter", sans-serif;
   font-size: 0.68rem; font-weight: 700;
-  letter-spacing: 2px; text-transform: uppercase;
+  letter-spacing: 0.3px;
   color: var(--gold); margin: 0;
 }
 
@@ -756,13 +755,13 @@
 .prod-cta-inner { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; }
 .prod-cta-overline {
   color: var(--gold); font-size: 0.78rem; font-weight: 700;
-  letter-spacing: 3px; text-transform: uppercase;
+  letter-spacing: 0.4px;
   display: inline-flex; align-items: center; gap: 8px;
   margin-bottom: 16px; font-family: "Inter", sans-serif;
 }
 .prod-cta-inner h2 {
   font-family: "Playfair Display", serif;
-  font-size: clamp(2.4rem, 5vw, 4rem); color: #f5ede0;
+  font-size: clamp(2.8rem, 5.5vw, 4.5rem); color: #f5ede0;
   margin: 0 0 18px; line-height: 1.1; letter-spacing: -1px;
 }
 .prod-cta-inner p {
@@ -773,7 +772,7 @@
 .prod-cta-btn {
   padding: 15px 40px; background: var(--gold); color: var(--green);
   border: none; border-radius: 40px; font-weight: 700; font-size: 0.85rem;
-  letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+  letter-spacing: 0.3px; cursor: pointer;
   transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 9px;
   font-family: "Inter", sans-serif;
 }

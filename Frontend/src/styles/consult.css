@@ -4,7 +4,6 @@
    Card: Deep Green base + Gold Diamond Grid + Gold Accents
 ================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
   --ivory:   #f8f4ee;
@@ -231,7 +230,7 @@
   font-weight: 700;
   color: var(--green);
   letter-spacing: 1.5px;
-  text-transform: uppercase;
+
   display: flex;
   align-items: center;
   gap: 6px;
@@ -333,7 +332,7 @@
   font-weight: 700;
   color: var(--green);
   letter-spacing: 1.5px;
-  text-transform: uppercase;
+
   margin: 0;
   display: flex;
   align-items: center;
@@ -392,7 +391,7 @@
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 2px;
-  text-transform: uppercase;
+
   color: var(--gold);
 }
 
@@ -419,7 +418,7 @@
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 1px;
-  text-transform: uppercase;
+
   cursor: pointer;
   transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
   display: flex;

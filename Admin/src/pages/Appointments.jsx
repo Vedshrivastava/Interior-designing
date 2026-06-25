@@ -19,7 +19,7 @@ const Appointments = ({ url }) => {
       });
 
       if (response.data.success) {
-        setOrders(response.data.appointments); 
+        setOrders([...response.data.appointments].sort((a, b) => new Date(b.date) - new Date(a.date)));
       } else {
         toast.error('Error fetching appointments');
       }

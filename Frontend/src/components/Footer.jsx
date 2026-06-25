@@ -59,7 +59,20 @@ export default function Footer() {
             <li><Link href="/about">About Us</Link></li>
             <li><Link href="/services">Services</Link></li>
             <li><Link href="/projects">Projects</Link></li>
+            <li><Link href="/products">Products</Link></li>
             <li><Link href="/contact">Contact</Link></li>
+          </ul>
+        </div>
+
+        <div className="footer-content-cities">
+          <h2>Cities We Serve</h2>
+          <ul>
+            <li><Link href="/interior-designer/satna">Interior Designer Satna</Link></li>
+            <li><Link href="/interior-designer/indore">Interior Designer Indore</Link></li>
+            <li><Link href="/interior-designer/mumbai">Interior Designer Mumbai</Link></li>
+            <li><Link href="/interior-designer/bhopal">Interior Designer Bhopal</Link></li>
+            <li><Link href="/interior-designer/jabalpur">Interior Designer Jabalpur</Link></li>
+            <li><Link href="/interior-designer/nagod">Interior Designer Nagod</Link></li>
           </ul>
         </div>
 

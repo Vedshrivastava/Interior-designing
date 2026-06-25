@@ -1,4 +1,5 @@
 import { CATEGORY_SLUGS, SLUG_TO_CATEGORY, CATEGORY_TO_SLUG } from '@/lib/categories';
+import { CITY_SLUGS, locationToSlug, matchesCity } from '@/lib/cities';
 
 const BASE_URL = 'https://shrivastavaseelevate.com';
 const API_URL  = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -90,5 +91,29 @@ export default async function sitemap() {
     };
   });
 
-  return [...staticRoutes, projectsRoute, productsRoute, ...designRoutes];
+  // ── City service area pages ───────────────────────────────────
+  // Always include core cities; also discover any new cities from project locations
+  const citySlugSet = new Set(CITY_SLUGS);
+  for (const project of allProjects) {
+    const slug = locationToSlug(project.location);
+    if (slug) citySlugSet.add(slug);
+  }
+
+  const cityRoutes = [...citySlugSet].map(slug => {
+    const cityProjects = allProjects.filter(p => matchesCity(p.location, slug));
+    return {
+      url: `${BASE_URL}/interior-designer/${slug}`,
+      lastModified: new Date(),
+      priority: slug === 'indore' || slug === 'mumbai' ? 0.9 : 0.85,
+      changeFrequency: 'weekly',
+      images: cityProjects
+        .flatMap(p => (p.images || []).map(imgUrl => ({
+          url: imgUrl,
+          title: `${p.name} — interior design project by Shrivastavas Elevate`,
+          caption: p.description || p.name,
+        }))),
+    };
+  });
+
+  return [...staticRoutes, projectsRoute, productsRoute, ...designRoutes, ...cityRoutes];
 }

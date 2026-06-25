@@ -64,11 +64,13 @@
       "Bash(sed -i '' -e 's/const displayName     = LABELS\\\\[category\\\\] || category;/const displayName = SLUG_LABELS[slug] || category;/' -e 's/className={`dd-cat-pill${category === cat ? .active. : ..}`}/className={`dd-cat-pill${slug === cat ? \" active\" : \"\"}`}/g' -e 's/className={`dd-cat-chip${category === cat ? .active. : ..}`}/className={`dd-cat-chip${slug === cat ? \" active\" : \"\"}`}/g' /Users/vedshrivastava/interior-site-project/Frontend/src/components/pages/DesignDisplayPage.jsx)",
       "Bash(sed -i '' -e 's/{CATEGORIES\\\\.map\\(cat =>/{CATEGORY_SLUGS.map\\(cat =>/g' -e 's/router\\\\.push\\(`\\\\/design\\\\/${encodeURIComponent\\(cat\\)}`\\)/router.push\\(`\\\\/design\\\\/${cat}`\\)/g' -e 's/{LABELS\\\\[cat\\\\]}/{SLUG_LABELS[cat]}/g' /Users/vedshrivastava/interior-site-project/Frontend/src/components/pages/DesignDisplayPage.jsx)",
       "Bash(sed -i '' \\\\ *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(mkdir -p /Users/vedshrivastava/interior-site-project/Frontend/src/app/interior-designer/\\\\[city\\\\])"
     ],
     "additionalDirectories": [
       "/tmp",
-      "/Users/vedshrivastava/interior-site-project/s/className={`dd-cat-chip${category === cat ? .* : ..}`}/className={`dd-cat-chip${slug === cat ? \" active\" : \"\"}`}"
+      "/Users/vedshrivastava/interior-site-project/s/className={`dd-cat-chip${category === cat ? .* : ..}`}/className={`dd-cat-chip${slug === cat ? \" active\" : \"\"}`}",
+      "/Users/vedshrivastava/interior-site-project/Frontend/src/app/interior-designer"
     ]
   }
 }

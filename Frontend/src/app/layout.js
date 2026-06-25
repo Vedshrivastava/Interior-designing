@@ -116,13 +116,8 @@ const localBusinessSchema = {
       { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Lighting Design' } },
     ],
   },
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: '5',
-    bestRating: '5',
-    worstRating: '1',
-    reviewCount: '50',
-  },
+  // aggregateRating: add this back once you have verified Google Business Profile reviews
+  // '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '<actual count>'
   sameAs: [
     'https://www.instagram.com/shrivastavaselevatepvtltd',
     'https://www.facebook.com/shrivastavaselevatepvtltd',
@@ -163,6 +158,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
+        {/* Preconnect to external origins used on every page */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://res.cloudinary.com" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}

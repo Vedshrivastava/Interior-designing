@@ -121,6 +121,25 @@
   margin: 0 auto;
 }
 
+.contact-hero-links {
+  margin-top: 14px !important;
+  font-size: clamp(0.9rem, 1.2vw, 1rem) !important;
+  color: rgba(255,255,255,0.5) !important;
+}
+
+.contact-hero-links a {
+  color: #f1d5aa;
+  text-decoration: underline;
+  text-decoration-color: rgba(241,213,170,0.4);
+  text-underline-offset: 3px;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
+}
+
+.contact-hero-links a:hover {
+  color: #ffffff;
+  text-decoration-color: rgba(255,255,255,0.6);
+}
+
 /* ════════════════════════════════════════════
    BODY — two-column layout
 ════════════════════════════════════════════ */
@@ -204,7 +223,8 @@
   padding: 44px 38px 48px;
 }
 
-.contact-details h1 {
+.contact-details h1,
+.contact-details h2 {
   font-family: "Playfair Display", serif;
   font-size: clamp(1.9rem, 3.5vw, 2.8rem);
   color: #f5ede0;

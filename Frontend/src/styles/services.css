@@ -1233,7 +1233,8 @@
     z-index: 1;
 }
 
-.svc-t-heading h1 {
+.svc-t-heading h1,
+.svc-t-heading h2 {
     font-family: "Playfair Display", serif;
     font-size: clamp(2.3rem, 4.5vw, 3.8rem);
     color: var(--forest);
@@ -1444,7 +1445,8 @@
     margin: 0 auto;
 }
 
-.services-cta h1 {
+.services-cta h1,
+.services-cta h2 {
     font-family: "Playfair Display", serif;
     font-size: clamp(2.8rem, 6vw, 5rem);
     color: #f5ede0;
@@ -1588,7 +1590,8 @@
         gap: 14px;
     }
 
-    .services-cta h1 {
+    .services-cta h1,
+    .services-cta h2 {
         font-size: 2.4rem;
     }
 
@@ -1691,7 +1694,8 @@
         padding: 20px;
     }
 
-    .services-cta h1 {
+    .services-cta h1,
+    .services-cta h2 {
         font-size: 2rem;
     }
 

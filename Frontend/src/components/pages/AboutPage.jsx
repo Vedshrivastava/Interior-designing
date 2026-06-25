@@ -99,7 +99,7 @@ export default function AboutPage() {
             <h2>Elevating Spaces<br />With Purpose</h2>
           </div>
           <div className="abt-who-head-right">
-            <p>Shrivastavas Elevate is a premium interior design and contracting firm founded on one belief — that every home deserves to feel extraordinary. We unite elite artistry with completely transparent project execution.</p>
+            <p>Shrivastavas Elevate is a premium interior design and contracting studio based in Satna, Madhya Pradesh — founded on one belief: that every home deserves to feel extraordinary. Serving residential and commercial clients across Satna, Nagod and Madhya Pradesh, we unite elite artistry with completely transparent project execution.</p>
             <div className="abt-founders">
               <div className="abt-founder-pill"><span className="abt-founder-pill-avatar">V</span>Ved Shrivastava</div>
               <div className="abt-founder-pill"><span className="abt-founder-pill-avatar">S</span>Shubh Shrivastava</div>
@@ -117,7 +117,7 @@ export default function AboutPage() {
             </div>
             <div className="abt-feat-body">
               <h3>Welcome to Shrivastavas Elevate</h3>
-              <p>A premium interior design and contracting firm focused on creating elegant, functional, and timeless spaces — built entirely around the way you live.</p>
+              <p>A premium interior design and contracting studio in Satna, Madhya Pradesh — focused on creating elegant, functional, and timeless spaces built entirely around the way you live. From modular kitchens to full-home makeovers, we bring luxury interiors to homes across MP.</p>
               <ul className="abt-card-list">
                 <li><span className="abt-card-dot" />Led by Ved &amp; Shubh Shrivastava</li>
                 <li><span className="abt-card-dot" />Residential &amp; commercial expertise</li>
@@ -155,7 +155,7 @@ export default function AboutPage() {
         <div className="abt-founders-head abt-reveal" ref={sr}>
           <span className="section-tag"><IconCrown /> The People Behind It</span>
           <h2>Meet Our Founders</h2>
-          <p>Two brothers united by a shared passion for luxury design and a commitment to making every space extraordinary.</p>
+          <p>Two brothers based in Satna, MP — united by a shared passion for luxury design and a commitment to making every residential and commercial space extraordinary.</p>
         </div>
         <div className="abt-founders-grid">
           {founders.map((f, i) => (

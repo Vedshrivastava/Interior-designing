@@ -22,12 +22,12 @@ const testimonials = [
 const marqueeItems = [...testimonials, ...testimonials];
 
 const services = [
-  { Icon: IconHouseChimney,     title: 'Residential Interiors', description: 'Bespoke home interiors for apartments and villas — designed around how you actually live.',                 features: ['100% custom, no templates', 'Apartment & villa specialists'],     link: '/design/bedroom-designs'  },
-  { Icon: IconBuilding,         title: 'Commercial Spaces',     description: 'Offices and retail interiors that reflect your brand and keep your team performing at their best.',          features: ['Brand-centric design', 'Ergonomic, turnkey execution'],           link: '/design/commercial-designs' },
-  { Icon: IconEye,              title: '3D Visualization',      description: 'Photorealistic renders of your space — see and approve every detail before execution begins.',              features: ['Photo-realistic accuracy', 'Approved before a nail is hammered'], link: null                       },
-  { Icon: IconRuler,            title: 'Space Planning',        description: 'Smart layouts that extract every usable inch from your space without sacrificing flow or comfort.',          features: ['Floor plan optimisation', 'Flow & functionality focused'],         link: '/design/kitchen-designs'  },
-  { Icon: IconLightbulb,        title: 'Lighting Design',       description: 'Ambient, accent and task lighting that defines the mood and character of every room.',                      features: ['Mood-enhancing concepts', 'Natural & artificial balance'],         link: '/design/lounge-area-designs' },
-  { Icon: IconScrewdriverWrench,title: 'Renovation Services',   description: 'Complete makeovers or targeted upgrades — we breathe fresh life into any tired space.',                     features: ['Partial or full overhauls', 'Minimal disruption approach'],       link: '/projects'                },
+  { Icon: IconHouseChimney,     title: 'Residential Interiors', description: 'Bespoke home interiors for apartments and villas in Satna, Madhya Pradesh — designed around how you actually live.',                   features: ['100% custom, no templates', 'Apartment & villa specialists'],     link: '/design/bedroom-designs'    },
+  { Icon: IconBuilding,         title: 'Commercial Spaces',     description: 'Office and retail interiors in Satna, MP that reflect your brand and keep your team performing at their best.',                         features: ['Brand-centric design', 'Ergonomic, turnkey execution'],           link: '/design/commercial-designs' },
+  { Icon: IconEye,              title: '3D Visualization',      description: 'Photorealistic 3D renders of your space in Satna — see and approve every detail before a single nail is hammered.',                    features: ['Photo-realistic accuracy', 'Approved before a nail is hammered'], link: null                         },
+  { Icon: IconRuler,            title: 'Space Planning',        description: 'Smart layouts that extract every usable inch from your Satna home or office without sacrificing flow or comfort.',                      features: ['Floor plan optimisation', 'Flow & functionality focused'],         link: '/design/kitchen-designs'    },
+  { Icon: IconLightbulb,        title: 'Lighting Design',       description: 'Ambient, accent and task lighting design for homes and commercial spaces in Satna, Madhya Pradesh — defining mood and character.',      features: ['Mood-enhancing concepts', 'Natural & artificial balance'],         link: '/design/lounge-area-designs'},
+  { Icon: IconScrewdriverWrench,title: 'Renovation Services',   description: 'Complete home and office makeovers in Satna, MP — targeted upgrades or full interior renovations with minimal disruption.',             features: ['Partial or full overhauls', 'Minimal disruption approach'],       link: '/projects'                  },
 ];
 
 const CountUp = ({ endValue, duration = 2300 }) => {
@@ -103,7 +103,7 @@ export default function ServicesPage() {
             <h2>Every Service.<br />One Vision.</h2>
           </div>
           <div className="services-heading-right">
-            <p>Residential retreats to commercial landmarks — every brief handled from the first sketch to the final handover.</p>
+            <p>From residential retreats to commercial landmarks in Satna, Madhya Pradesh — every interior design brief handled from the first sketch to the final handover.</p>
           </div>
         </div>
         <div className="svc-grid">

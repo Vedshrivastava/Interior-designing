@@ -66,7 +66,9 @@
       "Bash(sed -i '' \\\\ *)",
       "Bash(node -e ' *)",
       "Bash(mkdir -p /Users/vedshrivastava/interior-site-project/Frontend/src/app/interior-designer/\\\\[city\\\\])",
-      "Bash(xargs sed -i '' 's/og-image\\\\.jpg/og-image.png/g')"
+      "Bash(xargs sed -i '' 's/og-image\\\\.jpg/og-image.png/g')",
+      "Bash(node -e \"require\\('fs'\\).readFileSync\\('/Users/vedshrivastava/interior-site-project/Frontend/src/components/pages/ServicesPage.jsx'\\)\")",
+      "Bash(node -e \"require\\('fs'\\).readFileSync\\('/Users/vedshrivastava/interior-site-project/Frontend/src/styles/services.css'\\)\")"
     ],
     "additionalDirectories": [
       "/tmp",

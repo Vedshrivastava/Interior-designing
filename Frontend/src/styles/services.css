@@ -641,24 +641,56 @@
 
 /* learn more — matches hp-text-btn */
 .svc-card-link {
-    background: none;
-    border: none;
-    padding: 0;
-    color: var(--gold);
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-  
-    cursor: pointer;
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 8px;
-    transition: gap 0.3s ease, color 0.3s ease;
+    justify-content: space-between;
+    margin-top: auto;
+    padding: 16px 0 2px;
+    border-top: 1px solid rgba(201,168,124,0.2);
+    text-decoration: none;
+    color: var(--gold);
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.25s ease;
+}
+
+/* green underline sweep left → right on hover */
+.svc-card-link::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 1.5px;
+    background: var(--green);
+    border-radius: 2px;
+    transition: width 0.35s cubic-bezier(.22,.61,.36,1);
 }
 
 .svc-card-link:hover {
-    gap: 13px;
-    color: var(--forest);
+    color: var(--green);
+}
+
+.svc-card-link:hover::after {
+    width: 100%;
+}
+
+/* arrow icon — slides right on hover */
+.svc-card-link-arrow {
+    display: flex;
+    align-items: center;
+    transition: transform 0.25s ease, color 0.25s ease;
+    color: var(--gold);
+    font-size: 0.9rem;
+}
+
+.svc-card-link:hover .svc-card-link-arrow {
+    transform: translateX(5px);
+    color: var(--green);
 }
 
 /* ════════════════════════════════════════════

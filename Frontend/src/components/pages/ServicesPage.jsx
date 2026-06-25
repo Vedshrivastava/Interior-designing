@@ -119,7 +119,8 @@ export default function ServicesPage() {
                 </ul>
                 {svc.link && (
                   <Link href={svc.link} className="svc-card-link">
-                    View designs <IconArrowRight />
+                    <span>View designs</span>
+                    <span className="svc-card-link-arrow"><IconArrowRight /></span>
                   </Link>
                 )}
               </div>

@@ -1,7 +1,7 @@
 import express from "express";
-import { registerAdmin, loginAdmin, changePassword, changeEmail } from "../controllers/admin.js";
+import { registerAdmin, loginAdmin, changePassword, changeEmail, listAdmins, removeAdmin } from "../controllers/admin.js";
 import { forgotPassword, resetPassword, verifyEmail, checkAuth, verifyResetToken } from '../controllers/user.js';
-import { adminAuthMiddleware } from '../middlewares/auth.js';
+import { adminAuthMiddleware, masterAuthMiddleware } from '../middlewares/auth.js';
 import { verifyToken } from '../middlewares/verifyToken.js';
 
 
@@ -16,6 +16,7 @@ admin.get('/check-auth', verifyToken, checkAuth);
 admin.get('/verify-reset-token/:token', verifyResetToken);
 admin.post('/change-password', adminAuthMiddleware, changePassword);
 admin.post('/change-email',    adminAuthMiddleware, changeEmail);
-
+admin.get('/list-admins',      masterAuthMiddleware, listAdmins);
+admin.post('/remove-admin',    masterAuthMiddleware, removeAdmin);
 
 export default admin;

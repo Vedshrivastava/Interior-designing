@@ -391,6 +391,28 @@
     margin-top: 7px;
 }
 
+/* ── Message row ── */
+.order-message-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 9px 14px;
+    background: rgba(201,168,124,0.06);
+    border: 1px solid rgba(201,168,124,0.18);
+    border-radius: var(--radius-sm);
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.83rem;
+    color: var(--text-mid);
+    line-height: 1.55;
+}
+
+.order-message-row i {
+    color: var(--gold);
+    font-size: 0.78rem;
+    flex-shrink: 0;
+    margin-top: 3px;
+}
+
 /* ══════════════════════════════════════════════
    RESPONSIVE — TABLET  (≤ 900px)
 ══════════════════════════════════════════════ */
@@ -478,13 +500,21 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr) 64px;
         grid-template-areas:
-            "header img"
-            "info   info"
+            "header  img"
+            "info    info"
+            "msg     msg"
             "actions actions";
         align-items: start;
         padding: 16px;
         gap: 14px 12px;
         border-radius: 12px;
+    }
+
+    .order-message-row {
+        grid-area: msg;
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: -4px;
     }
 
     /* Unpacks the wrapper container so inner sections obey the parent grid areas */

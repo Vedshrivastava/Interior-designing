@@ -12,7 +12,10 @@
   margin: 0;
   box-sizing: border-box;
   font-family: 'Inter', sans-serif;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+*::-webkit-scrollbar { display: none; }
 
 body {
   min-height: 100vh;

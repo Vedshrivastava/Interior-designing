@@ -101,4 +101,17 @@ const rejectRequest = async (req, res) => {
     }
 };
 
-export { submitRequest, listRequests, approveRequest, rejectRequest };
+/* ── MASTER: delete a request record ── */
+const deleteRequest = async (req, res) => {
+    const { requestId } = req.body;
+    try {
+        const request = await AdminRequest.findByIdAndDelete(requestId);
+        if (!request) return res.status(404).json({ success: false, message: 'Request not found.' });
+        return res.json({ success: true, message: 'Request deleted.' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+export { submitRequest, listRequests, approveRequest, rejectRequest, deleteRequest };

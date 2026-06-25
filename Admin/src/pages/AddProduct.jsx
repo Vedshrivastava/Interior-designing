@@ -30,8 +30,8 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
     const [data, setData] = useState({
         name:         '',
         description:  '',
-        category:     CATEGORIES[0],
-        subcategory:  SUBCATEGORIES[CATEGORIES[0]][0],
+        categories:   [],
+        subcategory:  '',
         material:     '',
         finish:       '',
         specialities: [],
@@ -40,26 +40,37 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
     });
     const [points, setPoints] = useState(['']);
 
-    // Category dropdown
-    const [catOpen,    setCatOpen]    = useState(false);
     const [subCatOpen, setSubCatOpen] = useState(false);
-    const catRef    = useRef(null);
     const subCatRef = useRef(null);
 
     const token = localStorage.getItem('token');
 
+    // Merge subcategories from all selected categories
+    const availableSubcats = data.categories.length > 0
+        ? [...new Set(data.categories.flatMap(cat => SUBCATEGORIES[cat] || []))]
+        : [];
+
     useEffect(() => {
         const handler = (e) => {
-            if (catRef.current    && !catRef.current.contains(e.target))    setCatOpen(false);
             if (subCatRef.current && !subCatRef.current.contains(e.target)) setSubCatOpen(false);
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    const handleCategorySelect = (cat) => {
-        setData(prev => ({ ...prev, category: cat, subcategory: SUBCATEGORIES[cat][0] }));
-        setCatOpen(false);
+    const toggleCategory = (cat) => {
+        setData(prev => {
+            const next = prev.categories.includes(cat)
+                ? prev.categories.filter(c => c !== cat)
+                : [...prev.categories, cat];
+            // Reset subcategory if it no longer belongs to selected cats
+            const nextSubcats = [...new Set(next.flatMap(c => SUBCATEGORIES[c] || []))];
+            return {
+                ...prev,
+                categories: next,
+                subcategory: nextSubcats.includes(prev.subcategory) ? prev.subcategory : (nextSubcats[0] || ''),
+            };
+        });
     };
 
     const onChange = (e) => {
@@ -89,7 +100,7 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
         const fd = new FormData();
         fd.append('name',         data.name);
         fd.append('description',  data.description);
-        fd.append('category',     data.category);
+        fd.append('categories',   JSON.stringify(data.categories));
         fd.append('subcategory',  data.subcategory);
         fd.append('material',     data.material);
         fd.append('finish',       data.finish);
@@ -105,8 +116,7 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
             });
             if (res.data.success) {
                 setData({
-                    name: '', description: '', category: CATEGORIES[0],
-                    subcategory: SUBCATEGORIES[CATEGORIES[0]][0],
+                    name: '', description: '', categories: [], subcategory: '',
                     material: '', finish: '', specialities: [], applications: [], isFeatured: false,
                 });
                 setPoints(['']);
@@ -155,38 +165,32 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
                     <textarea name="description" value={data.description} onChange={onChange} rows="5" placeholder="Describe the product — its look, function, and unique qualities…" required />
                 </div>
 
-                {/* ── Category + Subcategory ── */}
-                <div className="add-category-price">
-                    <div className="add-cat-dropdown-wrap flex-col">
-                        <h2>Category</h2>
-                        <div className="add-cat-dropdown" ref={catRef}>
-                            <button type="button" className={`add-cat-trigger${catOpen ? ' open' : ''}`} onClick={() => setCatOpen(o => !o)}>
-                                <span>{data.category}</span>
-                                <i className="fa fa-chevron-down" />
+                {/* ── Categories (multi-select) ── */}
+                <div className="add-multi-section flex-col">
+                    <h2>Categories <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#888' }}>(select all that apply)</span></h2>
+                    <div className="add-multi-grid">
+                        {CATEGORIES.map(cat => (
+                            <button key={cat} type="button"
+                                className={`add-multi-chip${data.categories.includes(cat) ? ' active' : ''}`}
+                                onClick={() => toggleCategory(cat)}>
+                                {cat}
                             </button>
-                            {catOpen && (
-                                <ul className="add-cat-list">
-                                    {CATEGORIES.map((cat, i) => (
-                                        <li key={i} className={`add-cat-option${data.category === cat ? ' active' : ''}`} onClick={() => handleCategorySelect(cat)}>
-                                            <span>{cat}</span>
-                                            {data.category === cat && <i className="fa fa-check" />}
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
+                        ))}
                     </div>
+                </div>
 
+                {/* ── Subcategory ── */}
+                {availableSubcats.length > 0 && (
                     <div className="add-cat-dropdown-wrap flex-col">
                         <h2>Subcategory</h2>
                         <div className="add-cat-dropdown" ref={subCatRef}>
                             <button type="button" className={`add-cat-trigger${subCatOpen ? ' open' : ''}`} onClick={() => setSubCatOpen(o => !o)}>
-                                <span>{data.subcategory}</span>
+                                <span>{data.subcategory || 'Select subcategory'}</span>
                                 <i className="fa fa-chevron-down" />
                             </button>
                             {subCatOpen && (
                                 <ul className="add-cat-list">
-                                    {SUBCATEGORIES[data.category].map((sub, i) => (
+                                    {availableSubcats.map((sub, i) => (
                                         <li key={i} className={`add-cat-option${data.subcategory === sub ? ' active' : ''}`}
                                             onClick={() => { setData(prev => ({ ...prev, subcategory: sub })); setSubCatOpen(false); }}>
                                             <span>{sub}</span>
@@ -197,7 +201,7 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
                             )}
                         </div>
                     </div>
-                </div>
+                )}
 
                 {/* ── Material + Finish ── */}
                 <div className="add-category-price">

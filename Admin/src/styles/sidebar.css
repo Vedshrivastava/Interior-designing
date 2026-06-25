@@ -18,7 +18,7 @@
 ════════════════════════════════════════════ */
 .sidebar {
   width: 220px;
-  min-height: 100vh;
+  height: calc(100vh - 62px);
   background: var(--green);
   position: fixed;
   top: 62px; /* below navbar */

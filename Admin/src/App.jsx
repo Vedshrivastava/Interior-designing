@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import Navbar from './components/Navbar';
 import Sidebar from './components/sidebar';
 import { Routes, Route } from 'react-router-dom';
-import Add from './pages/Add';
-import List from './pages/List';
-import Orders from './pages/Orders';
+import AddDesign    from './pages/AddDesign';
+import ListDesigns  from './pages/ListDesigns';
+import Appointments from './pages/Appointments';
 import Quotes from './pages/Quotes';
 import AddProject from './pages/AddProject';
 import ListProjects from './pages/ListProjects';
 import MyAccount      from './pages/MyAccount';
 import AdminRequests  from './pages/AdminRequests';
+import RecoveryBin    from './pages/RecoveryBin';
 import AddProduct from './pages/AddProduct';
 import ListProducts from './pages/ListProducts';
 import './index.css';
@@ -25,6 +27,21 @@ import { Navigate } from "react-router-dom";
 
 const App = () => {
   const [showLogin, setShowLogin] = useState(false);
+
+  // Global 401 interceptor — catches token expiry mid-session on any API call
+  useEffect(() => {
+    const id = axios.interceptors.response.use(
+      res => res,
+      err => {
+        if (err.response?.status === 401) {
+          ['token', 'userId', 'userName', 'userEmail', 'user'].forEach(k => localStorage.removeItem(k));
+          window.location.replace('/?reason=expired');
+        }
+        return Promise.reject(err);
+      }
+    );
+    return () => axios.interceptors.response.eject(id);
+  }, []);
   const [authType, setAuthType] = useState('Login');
   const [isLoading, setIsLoading] = useState(false); // Global loader — renders outside sidebar/main-content
   const url = "http://localhost:3000";
@@ -100,7 +117,7 @@ const App = () => {
               path='/add'
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
-                  <Add url={url} setIsLoading={setIsLoading} isLoading={isLoading} />
+                  <AddDesign url={url} setIsLoading={setIsLoading} isLoading={isLoading} />
                 </ProtectedRoute>
               }
             />
@@ -108,7 +125,7 @@ const App = () => {
               path='/list'
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
-                  <List url={url} setIsLoading={setIsLoading} isLoading={isLoading} />
+                  <ListDesigns url={url} setIsLoading={setIsLoading} isLoading={isLoading} />
                 </ProtectedRoute>
               }
             />
@@ -153,6 +170,14 @@ const App = () => {
               }
             />
             <Route
+              path='/recovery-bin'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <RecoveryBin url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path='/my-account'
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
@@ -164,7 +189,7 @@ const App = () => {
               path='/appointments'
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
-                  <Orders url={url} setIsLoading={setIsLoading} />
+                  <Appointments url={url} setIsLoading={setIsLoading} />
                 </ProtectedRoute>
               }
             />

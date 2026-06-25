@@ -29,6 +29,9 @@ const APPLICATIONS = [
 const ListProducts = ({ url, setIsLoading, isLoading }) => {
     const [list,         setList]         = useState([]);
     const [activeFilter, setActiveFilter] = useState('All');
+    const [query, setQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 20;
     const mobileBarRef = useRef(null);
     const token = localStorage.getItem('token');
 
@@ -52,8 +55,8 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
 
     /* ── Edit modal ── */
     const blankEdit = {
-        _id: '', name: '', description: '', category: CATEGORIES[0],
-        subcategory: SUBCATEGORIES[CATEGORIES[0]][0], material: '', finish: '',
+        _id: '', name: '', description: '', categories: [],
+        subcategory: '', material: '', finish: '',
         specialities: [], applications: [], points: [], isFeatured: false,
     };
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -61,20 +64,20 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
     const [keptImages, setKeptImages] = useState([]);
     const [editImages, setEditImages] = useState([]);
 
-    // Dropdowns in edit modal
-    const [editCatOpen,    setEditCatOpen]    = useState(false);
     const [editSubCatOpen, setEditSubCatOpen] = useState(false);
-    const editCatRef    = useRef(null);
     const editSubCatRef = useRef(null);
 
     useEffect(() => {
         const handler = (e) => {
-            if (editCatRef.current    && !editCatRef.current.contains(e.target))    setEditCatOpen(false);
             if (editSubCatRef.current && !editSubCatRef.current.contains(e.target)) setEditSubCatOpen(false);
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, []);
+
+    const editAvailableSubcats = editData.categories.length > 0
+        ? [...new Set(editData.categories.flatMap(cat => SUBCATEGORIES[cat] || []))]
+        : [];
 
     /* ── Fetch ── */
     const fetchList = async () => {
@@ -107,12 +110,13 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
 
     /* ── Edit helpers ── */
     const openEdit = (item) => {
+        const cats = item.categories?.length ? item.categories : (item.category ? [item.category] : []);
         setEditData({
             _id:          item._id,
             name:         item.name          || '',
             description:  item.description   || '',
-            category:     item.category      || CATEGORIES[0],
-            subcategory:  item.subcategory   || SUBCATEGORIES[item.category || CATEGORIES[0]][0],
+            categories:   cats,
+            subcategory:  item.subcategory   || '',
             material:     item.material      || '',
             finish:       item.finish        || '',
             specialities: item.specialities  || [],
@@ -130,9 +134,18 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
         setEditData(p => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
     };
 
-    const handleEditCategorySelect = (cat) => {
-        setEditData(prev => ({ ...prev, category: cat, subcategory: SUBCATEGORIES[cat][0] }));
-        setEditCatOpen(false);
+    const toggleEditCategory = (cat) => {
+        setEditData(prev => {
+            const next = prev.categories.includes(cat)
+                ? prev.categories.filter(c => c !== cat)
+                : [...prev.categories, cat];
+            const nextSubcats = [...new Set(next.flatMap(c => SUBCATEGORIES[c] || []))];
+            return {
+                ...prev,
+                categories: next,
+                subcategory: nextSubcats.includes(prev.subcategory) ? prev.subcategory : (nextSubcats[0] || ''),
+            };
+        });
     };
 
     const toggleEditChip = (field, val) => {
@@ -160,7 +173,7 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
         fd.append('_id',          editData._id);
         fd.append('name',         editData.name);
         fd.append('description',  editData.description);
-        fd.append('category',     editData.category);
+        fd.append('categories',   JSON.stringify(editData.categories));
         fd.append('subcategory',  editData.subcategory);
         fd.append('material',     editData.material);
         fd.append('finish',       editData.finish);
@@ -183,7 +196,22 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
 
     /* ── Filter ── */
     const filters     = ['All', ...CATEGORIES];
-    const visibleList = activeFilter === 'All' ? list : list.filter(p => p.category === activeFilter);
+    const getCategories = (p) => p.categories?.length ? p.categories : (p.category ? [p.category] : []);
+    const visibleList = list
+        .filter(p => activeFilter === 'All' || getCategories(p).includes(activeFilter))
+        .filter(p => !query || p.name.toLowerCase().includes(query.toLowerCase()));
+
+    const totalPages    = Math.ceil(visibleList.length / ITEMS_PER_PAGE);
+    const paginatedList = visibleList.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+    useEffect(() => { setCurrentPage(1); }, [activeFilter, query]);
+
+    const getPageRange = (cur, total) => {
+        if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+        if (cur <= 4)         return [1, 2, 3, 4, 5, '…', total];
+        if (cur >= total - 3) return [1, '…', total - 4, total - 3, total - 2, total - 1, total];
+        return [1, '…', cur - 1, cur, cur + 1, '…', total];
+    };
 
     return (
         <div className="list add flex-col">
@@ -222,38 +250,32 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                                 <textarea name="description" rows="4" value={editData.description} onChange={onEditChange} required />
                             </div>
 
-                            {/* Category + Subcategory */}
-                            <div className="add-category-price">
-                                <div className="add-cat-dropdown-wrap flex-col">
-                                    <p>Category</p>
-                                    <div className="add-cat-dropdown" ref={editCatRef}>
-                                        <button type="button" className={`add-cat-trigger${editCatOpen ? ' open' : ''}`} onClick={() => setEditCatOpen(o => !o)}>
-                                            <span>{editData.category}</span>
-                                            <i className="fa fa-chevron-down" />
+                            {/* Categories (multi-select chips) */}
+                            <div className="add-multi-section flex-col">
+                                <p>Categories <span style={{ fontSize: '0.72rem', fontWeight: 400, color: '#888' }}>(select all that apply)</span></p>
+                                <div className="add-multi-grid">
+                                    {CATEGORIES.map(cat => (
+                                        <button key={cat} type="button"
+                                            className={`add-multi-chip${editData.categories.includes(cat) ? ' active' : ''}`}
+                                            onClick={() => toggleEditCategory(cat)}>
+                                            {cat}
                                         </button>
-                                        {editCatOpen && (
-                                            <ul className="add-cat-list">
-                                                {CATEGORIES.map((cat, i) => (
-                                                    <li key={i} className={`add-cat-option${editData.category === cat ? ' active' : ''}`} onClick={() => handleEditCategorySelect(cat)}>
-                                                        <span>{cat}</span>
-                                                        {editData.category === cat && <i className="fa fa-check" />}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                    </div>
+                                    ))}
                                 </div>
+                            </div>
 
+                            {/* Subcategory — only shown when categories selected */}
+                            {editAvailableSubcats.length > 0 && (
                                 <div className="add-cat-dropdown-wrap flex-col">
                                     <p>Subcategory</p>
                                     <div className="add-cat-dropdown" ref={editSubCatRef}>
                                         <button type="button" className={`add-cat-trigger${editSubCatOpen ? ' open' : ''}`} onClick={() => setEditSubCatOpen(o => !o)}>
-                                            <span>{editData.subcategory}</span>
+                                            <span>{editData.subcategory || 'Select subcategory'}</span>
                                             <i className="fa fa-chevron-down" />
                                         </button>
                                         {editSubCatOpen && (
                                             <ul className="add-cat-list">
-                                                {SUBCATEGORIES[editData.category].map((sub, i) => (
+                                                {editAvailableSubcats.map((sub, i) => (
                                                     <li key={i} className={`add-cat-option${editData.subcategory === sub ? ' active' : ''}`}
                                                         onClick={() => { setEditData(prev => ({ ...prev, subcategory: sub })); setEditSubCatOpen(false); }}>
                                                         <span>{sub}</span>
@@ -264,7 +286,7 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                                         )}
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Material + Finish */}
                             <div className="add-category-price">
@@ -367,14 +389,26 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                         <h1>Manage Products</h1>
                         <p className="admin-subtitle">Browse and manage all product catalogue entries.</p>
                     </div>
-                    <div className="admin-count-badge">{visibleList.length} products</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <div className="admin-search-wrap">
+                            <i className="fa-solid fa-magnifying-glass" />
+                            <input
+                                type="text"
+                                placeholder="Search by name…"
+                                value={query}
+                                onChange={e => setQuery(e.target.value)}
+                            />
+                            {query && <button className="admin-search-clear" onClick={() => setQuery('')}>×</button>}
+                        </div>
+                        <div className="admin-count-badge">{visibleList.length} found</div>
+                    </div>
                 </div>
 
                 {/* Filter pills */}
                 <div className="admin-category-scroll" ref={mobileBarRef}>
                     {filters.map(f => (
                         <button key={f} className={`admin-cat-pill${activeFilter === f ? ' active' : ''}`} onClick={() => setActiveFilter(f)}>
-                            {f}{f !== 'All' && ` (${list.filter(p => p.category === f).length})`}
+                            {f}{f !== 'All' && ` (${list.filter(p => getCategories(p).includes(f)).length})`}
                         </button>
                     ))}
                 </div>
@@ -390,7 +424,7 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                     {visibleList.length === 0 ? (
                         <div className="admin-empty-state">No products found.</div>
                     ) : (
-                        visibleList.map((item, i) => (
+                        paginatedList.map((item, i) => (
                             <div key={i} className="list-table-format row-item">
                                 <div className="image-column">
                                     {item.images && item.images.length > 0 ? (
@@ -406,7 +440,7 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                                         </p>
                                     )}
                                 </div>
-                                <p className="item-category">{item.category}</p>
+                                <p className="item-category">{getCategories(item).join(', ') || '—'}</p>
                                 <div className="action-buttons">
                                     <p onClick={() => openEdit(item)} className="cursor edit-action">Edit</p>
                                     <p onClick={() => removeProduct(item._id)} className="cursor delete-action">X</p>
@@ -415,6 +449,19 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                         ))
                     )}
                 </div>
+
+                {totalPages > 1 && (
+                    <div className="admin-pagination">
+                        <button className="admin-page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>‹</button>
+                        {getPageRange(currentPage, totalPages).map((p, i) =>
+                            p === '…'
+                                ? <span key={`e${i}`} className="admin-page-ellipsis">…</span>
+                                : <button key={p} className={`admin-page-btn${p === currentPage ? ' active' : ''}`} onClick={() => setCurrentPage(p)}>{p}</button>
+                        )}
+                        <button className="admin-page-btn" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>›</button>
+                    </div>
+                )}
+
             </div>
         </div>
     );

@@ -15,9 +15,12 @@ const projectSchema = new mongoose.Schema({
     area:        { type: String },                          // e.g. "1500 sq.ft" or "3BHK"
     duration:    { type: String },                          // e.g. "6 weeks"
     completedAt: { type: Date },                            // handover date
-    clientTestimonial: { type: String },                    // optional client quote
+    clientTestimonial: { type: String },
+    deleted:           { type: Boolean, default: false },
+    deletedAt:         { type: Date },
+    deletedBy:         { type: String },
 }, {
-    timestamps: true                                        // createdAt + updatedAt
+    timestamps: true,
 });
 
 const Project = mongoose.models.project || mongoose.model("project", projectSchema);

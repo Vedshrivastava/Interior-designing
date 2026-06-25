@@ -5,17 +5,17 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import logo from '../assets/logo.png';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faXmark, faCalendarCheck, faUser, faEnvelope, faPhone, faLocationDot } from '@fortawesome/free-solid-svg-icons';
+import { faXmark, faCalendarCheck, faUser, faEnvelope, faPhone, faLocationDot, faCommentDots } from '@fortawesome/free-solid-svg-icons';
 
 const FIELDS = [
   { name: 'name',    label: 'Full Name',    type: 'text',   placeholder: 'Your full name',       icon: faUser        },
   { name: 'email',   label: 'Email',        type: 'email',  placeholder: 'your@email.com',        icon: faEnvelope    },
-  { name: 'phone',   label: 'Phone Number', type: 'number', placeholder: '+91 XXXXX XXXXX',       icon: faPhone       },
+  { name: 'phone',   label: 'Phone Number', type: 'tel',    placeholder: '+91 XXXXX XXXXX',       icon: faPhone       },
   { name: 'address', label: 'Address',      type: 'text',   placeholder: 'Your city / address',   icon: faLocationDot },
 ];
 
 const Consult = ({ setShowLogin }) => {
-  const [data, setData] = useState({ name: '', email: '', phone: '', address: '' });
+  const [data, setData] = useState({ name: '', email: '', phone: '', address: '', message: '' });
   const [loading, setLoading] = useState(false);
   const url = 'http://localhost:3000';
 
@@ -31,7 +31,7 @@ const Consult = ({ setShowLogin }) => {
       await axios.post(`${url}/api/appointment/add`, {
         name: data.name, email: data.email,
         phoneNumber: data.phone, address: data.address,
-        message: '',
+        message: data.message,
       });
       toast.success('Consultation booked successfully!');
       setTimeout(() => setShowLogin(false), 2000);
@@ -63,15 +63,35 @@ const Consult = ({ setShowLogin }) => {
           <div className="login-divider" />
 
           <div className="login-inputs">
-            {FIELDS.map(({ name, label, type, placeholder }) => (
+            {FIELDS.map(({ name, label, type, placeholder, icon }) => (
               <div className="login-field" key={name}>
                 <label htmlFor={`consult-${name}`}>{label}</label>
-                <input
-                  id={`consult-${name}`} name={name} type={type} placeholder={placeholder}
-                  value={data[name]} onChange={onChange} required autoComplete="off"
-                />
+                <div className="login-input-wrap">
+                  <span className="login-input-icon"><FontAwesomeIcon icon={icon} /></span>
+                  <input
+                    id={`consult-${name}`} name={name} type={type} placeholder={placeholder}
+                    value={data[name]} onChange={onChange} required autoComplete="off"
+                  />
+                </div>
               </div>
             ))}
+            <div className="login-field">
+              <label htmlFor="consult-message">
+                Message <span className="login-field-opt">optional</span>
+              </label>
+              <div className="login-input-wrap">
+                <span className="login-input-icon login-input-icon--top"><FontAwesomeIcon icon={faCommentDots} /></span>
+                <textarea
+                  id="consult-message"
+                  name="message"
+                  placeholder="Tell us about your project — room type, budget, timeline..."
+                  value={data.message}
+                  onChange={onChange}
+                  rows={3}
+                  autoComplete="off"
+                />
+              </div>
+            </div>
           </div>
 
           <button type="submit" disabled={loading}>

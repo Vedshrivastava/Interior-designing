@@ -8,6 +8,7 @@ import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 // either at the top of this file or inside your index.css / main.jsx!
 
 import Home from './pages/Home';
+import NotFound from './pages/NotFound';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Projects from './pages/Projects';
@@ -70,6 +71,7 @@ function App() {
         <Route path='/projects' element={<Projects setShowLogin={setShowLogin} />} />
         <Route path='/services' element={<Services setShowLogin={setShowLogin} />} />
         <Route path='/products' element={<Products setShowLogin={setShowLogin} />} />
+        <Route path='*' element={<NotFound />} />
       </Routes>
 
       {/* GLOBAL FLOATING WHATSAPP BUTTON */}

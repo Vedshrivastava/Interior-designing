@@ -3,25 +3,16 @@ import '../styles/services.css';
 import { useNavigate } from 'react-router-dom';
 import bgimg from '../assets/home-img.png';
 import Footer from '../components/Footer';
-import residence from '../assets/residence.png';
 import design from '../assets/refund-design.png';
-import rates from '../assets/rates.png';
-import renovation from '../assets/renovation.jpeg';
-import commercial from '../assets/commercial.png';
-import space_planning from '../assets/space-planning.png';
-import lighting from '../assets/lighting.png';
-import materials from '../assets/materials.png';
-import Visualization_3D from '../assets/3D-visualization.png';
 
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faCrown, faArrowRight, faCalendarCheck,
-    faDraftingCompass, faCube, faCubes, faHandshake,
+    faDraftingCompass, faCube, faHandshake,
     faLightbulb, faHome, faBuilding, faWrench,
-    faStar, faLock, faRulerCombined,
-    faLayerGroup, faQuoteLeft, faBoxes, faHammer,
-    faClock,
+    faStar, faRulerCombined,
+    faQuoteLeft, faClock,
 } from '@fortawesome/free-solid-svg-icons';
 
 const testimonials = [
@@ -34,44 +25,39 @@ const testimonials = [
 ];
 const marqueeItems = [...testimonials, ...testimonials];
 
-// type: 'residential' | 'commercial' | 'both'
 const services = [
     {
-        icon: faStar, title: "Affordable Luxury", type: 'both',
-        description: "Premium interiors with transparent pricing and zero hidden costs — luxury made genuinely accessible.",
-        img: rates,
-        features: ["Transparent Pricing", "Zero Hidden Costs", "Luxury aesthetic within budget"]
+        icon: faHome, title: "Residential Interiors",
+        description: "Bespoke home interiors for apartments and villas — designed around how you actually live.",
+        features: ["100% custom, no templates", "Apartment & villa specialists"]
     },
-    { icon: faLock, title: "Refundable Consultation", type: 'both', description: "Your consultation fee is fully adjusted when you proceed with execution. Completely risk-free.", img: design, features: ["Fee adjusted on project confirmation", "No obligation to proceed"] },
-    { icon: faHome, title: "Residential Interiors", type: 'residential', description: "Custom home interiors for apartments and villas — designed around your lifestyle and comfort.", img: residence, features: ["100% bespoke, no templates", "Apartment & villa specialists"] },
-
     {
-        icon: faBuilding, title: "Commercial Spaces", type: 'commercial',
-        description: "Inspiring offices and retail interiors that boost productivity and reflect your brand identity.",
-        img: commercial,
-        features: ["Brand-Centric Design", "Ergonomic Layouts", "Turnkey office & retail execution"]
+        icon: faBuilding, title: "Commercial Spaces",
+        description: "Offices and retail interiors that reflect your brand and keep your team performing at their best.",
+        features: ["Brand-centric design", "Ergonomic, turnkey execution"]
     },
-    { icon: faWrench, title: "Renovation Services", type: 'both', description: "Complete makeovers or targeted upgrades — we breathe fresh life into any outdated space.", img: renovation, features: ["Partial or full space overhauls", "Minimal disruption approach"] },
-    { icon: faRulerCombined, title: "Space Planning", type: 'both', description: "Smart layouts that maximise every inch of your space for both function and visual flow.", img: space_planning, features: ["Floor plan optimisation", "Flow & functionality focused"] },
-
     {
-        icon: faLightbulb, title: "Lighting Design", type: 'both',
-        description: "Ambient, accent, and task lighting concepts that define mood and elevate every room.",
-        img: lighting,
-        features: ["Mood-Enhancing Concepts", "Energy-Efficient Solutions", "Natural & artificial light balance"]
+        icon: faCube, title: "3D Visualization",
+        description: "Photorealistic renders of your space — see and approve every detail before execution begins.",
+        features: ["Photo-realistic accuracy", "Approved before a nail is hammered"]
     },
-    { icon: faLayerGroup, title: "Material Selection", type: 'both', description: "We source premium materials from trusted partners like Kajaria, Asian Paints & more.", img: materials, features: ["Trusted brands, curated choices", "Budget-conscious premium picks"] },
-    { icon: faLayerGroup, title: "3D Visualization", type: 'both', description: "Photo-realistic 3D renders so you see exactly how your space will look before execution begins.", img: Visualization_3D, features: ["Photo-realistic renders", "Approved before execution begins"] },
+    {
+        icon: faRulerCombined, title: "Space Planning",
+        description: "Smart layouts that extract every usable inch from your space without sacrificing flow or comfort.",
+        features: ["Floor plan optimisation", "Flow & functionality focused"]
+    },
+    {
+        icon: faLightbulb, title: "Lighting Design",
+        description: "Ambient, accent and task lighting that defines the mood and character of every room.",
+        features: ["Mood-enhancing concepts", "Natural & artificial balance"]
+    },
+    {
+        icon: faWrench, title: "Renovation Services",
+        description: "Complete makeovers or targeted upgrades — we breathe fresh life into any tired space.",
+        features: ["Partial or full overhauls", "Minimal disruption approach"]
+    },
 ];
 
-const processSteps = [
-    { num: '01', icon: faDraftingCompass, title: 'Consultation', desc: 'We understand your vision, budget, and lifestyle before anything else.' },
-    { num: '02', icon: faCube, title: 'Space Planning', desc: 'Smart layouts designed to maximise every square foot of your space.' },
-    { num: '03', icon: faCubes, title: '3D Visualization', desc: 'Photo-realistic renders so you approve the look before execution begins.' },
-    { num: '04', icon: faBoxes, title: 'Material Selection', desc: 'Premium materials curated from trusted partners within your budget.' },
-    { num: '05', icon: faHammer, title: 'Execution', desc: 'Expert craftsmen bring your design to life with precision and care.' },
-    { num: '06', icon: faHandshake, title: 'Final Handover', desc: 'A complete walkthrough and handover of your transformed dream space.' },
-];
 
 // Reusable CountUp Component for numbers
 const CountUp = ({ endValue, duration = 2300 }) => {
@@ -130,7 +116,6 @@ const Services = ({ setShowLogin }) => {
     const revealRefs = useRef([]);
     const navigate = useNavigate();
     const handleProjects = () => navigate('/projects');
-    const [activeFilter, setActiveFilter] = useState('all');
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -208,160 +193,110 @@ const Services = ({ setShowLogin }) => {
                 <div className="services-heading reveal-item" ref={addRef}>
                     <div className="services-heading-left">
                         <span className="svc-section-tag">
-                            <FontAwesomeIcon icon={faCrown} /> What We Offer
+                            <FontAwesomeIcon icon={faCrown} /> Our Craft
                         </span>
-                        <h2>Interior Services<br />Tailored For You</h2>
+                        <h2>Every Service.<br />One Vision.</h2>
                     </div>
                     <div className="services-heading-right">
                         <p>
-                            From concept to completion — every service crafted with
-                            precision, premium materials and a luxury finish.
+                            Residential retreats to commercial landmarks — every brief
+                            handled from the first sketch to the final handover.
                         </p>
                     </div>
                 </div>
 
-                {/* ── Filter bar ── */}
-                <div className="svc-filter-bar reveal-item" ref={addRef}>
-                    {[
-                        { key: 'all',         label: 'All Services'   },
-                        { key: 'residential', label: 'Residential'    },
-                        { key: 'commercial',  label: 'Commercial'     },
-                    ].map(f => (
-                        <button
-                            key={f.key}
-                            className={`svc-filter-btn${activeFilter === f.key ? ' active' : ''}`}
-                            onClick={() => setActiveFilter(f.key)}
-                        >
-                            {f.label}
-                        </button>
-                    ))}
-                    <span className="svc-filter-count">
-                        {activeFilter === 'all' ? services.length : services.filter(s => s.type === activeFilter || s.type === 'both').length} services
-                    </span>
-                </div>
-
-                {/* This loops through your 9 services in groups of 3.
-  Row 1: Services 1, 2, 3
-  Row 2: Services 4, 5, 6
-  Row 3: Services 7, 8, 9
-*/}
-                {/* Safely chunk the filtered services array into groups of 3 */}
-                {(() => {
-                    const filtered = activeFilter === 'all'
-                        ? services
-                        : services.filter(s => s.type === activeFilter || s.type === 'both');
-                    return Array.from({ length: Math.ceil(filtered.length / 3) }).map((_, rowIndex) => {
-                    const chunk = filtered.slice(rowIndex * 3, rowIndex * 3 + 3);
-
-                    return (
-                        /* DYNAMIC CLASS LOGIC:
-                           If rowIndex is 1 (the middle 3 cards), it adds 'hp-adv-layout-alt' to flip the grid. 
-                        */
+                {/* 6-card service grid */}
+                <div className="svc-grid">
+                    {services.map((svc, i) => (
                         <div
-                            className={`hp-adv-layout ${rowIndex % 2 !== 0 ? 'hp-adv-layout-alt' : ''}`}
-                            key={rowIndex}
+                            className="svc-grid-card reveal-item"
+                            ref={addRef}
+                            key={i}
+                            data-num={String(i + 1).padStart(2, '0')}
+                            style={{ '--delay': `${i * 80}ms` }}
                         >
-
-                            {/* CARD 1 (TALL FEATURE) — Will sit Left on Even rows, Right on Odd rows */}
-                            {chunk[0] && (
-                                <div className='hp-adv-feature reveal-item' ref={addRef}>
-                                    <div className='hp-adv-feature-img'>
-                                        <img src={chunk[0].img} alt={chunk[0].title} />
-                                        <div className='hp-adv-feature-overlay' />
-                                        <div className='hp-adv-feature-tag'>
-                                            <FontAwesomeIcon icon={chunk[0].icon} /> {chunk[0].title}
-                                        </div>
-                                    </div>
-                                    <div className='hp-adv-feature-body'>
-                                        <h3>{chunk[0].title}</h3>
-                                        <p>{chunk[0].description}</p>
-
-                                        {/* Check if the card has features, then map them */}
-                                        {chunk[0].features && (
-                                            <ul>
-                                                {chunk[0].features.map((featureText, idx) => (
-                                                    <li key={idx}><span className='hp-adv-dot' />{featureText}</li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                    </div>
+                            <div className="svc-card-accent" />
+                            <div className="svc-card-body">
+                                <div className="svc-icon-wrap">
+                                    <FontAwesomeIcon icon={svc.icon} />
                                 </div>
-                            )}
-
-                            {/* STACKED CARDS (Contains Card 2 & 3) — Will sit Right on Even rows, Left on Odd rows */}
-                            <div className='hp-adv-stack'>
-
-                                {/* CARD 2 (TOP) */}
-                                {chunk[1] && (
-                                    <div className='hp-adv-card reveal-item' ref={addRef} style={{ '--delay': '80ms' }}>
-                                        <div className='hp-adv-card-img'>
-                                            <img src={chunk[1].img} alt={chunk[1].title} />
-                                            <div className='hp-adv-card-img-overlay' />
-                                            <div className='hp-adv-card-tag'>
-                                                <FontAwesomeIcon icon={chunk[1].icon} /> {chunk[1].title}
-                                            </div>
-                                        </div>
-                                        <div className='hp-adv-card-body'>
-                                            <h4>{chunk[1].title}</h4>
-                                            <p>{chunk[1].description}</p>
-                                            {chunk[1].features && (
-                                                <ul>
-                                                    {chunk[1].features.map((featureText, idx) => (
-                                                        <li key={idx}><span className='hp-adv-dot' />{featureText}</li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                        </div>
-                                    </div>
+                                <h3>{svc.title}</h3>
+                                <p>{svc.description}</p>
+                                {svc.features && (
+                                    <ul className="svc-card-features">
+                                        {svc.features.map((f, idx) => (
+                                            <li key={idx}>
+                                                <span className="svc-feat-dot" />
+                                                {f}
+                                            </li>
+                                        ))}
+                                    </ul>
                                 )}
-
-                                {/* CARD 3 (BOTTOM) */}
-                                {chunk[2] && (
-                                    <div className='hp-adv-card reveal-item' ref={addRef} style={{ '--delay': '160ms' }}>
-                                        <div className='hp-adv-card-img'>
-                                            <img src={chunk[2].img} alt={chunk[2].title} />
-                                            <div className='hp-adv-card-img-overlay' />
-                                            <div className='hp-adv-card-tag'>
-                                                <FontAwesomeIcon icon={chunk[2].icon} /> {chunk[2].title}
-                                            </div>
-                                        </div>
-                                        <div className='hp-adv-card-body'>
-                                            <h4>{chunk[2].title}</h4>
-                                            <p>{chunk[2].description}</p>
-                                            {chunk[2].features && (
-                                                <ul>
-                                                    {chunk[2].features.map((featureText, idx) => (
-                                                        <li key={idx}><span className='hp-adv-dot' />{featureText}</li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
                             </div>
                         </div>
-                    );
-                    });
-                    })()
-                }
+                    ))}
+                </div>
 
-                {/* Bottom Stat Strip */}
-                <div className='hp-adv-stats reveal-item' ref={addRef}>
+            </section>
+
+            {/* ── WHY US ── */}
+            <section className="svc-why-section">
+                <div className="svc-why-head reveal-item" ref={addRef}>
+                    <span className="svc-section-tag">
+                        <FontAwesomeIcon icon={faHandshake} /> Why Choose Us
+                    </span>
+                    <h2>The Advantages<br />Our Clients Get</h2>
+                </div>
+                <div className="svc-why-grid">
+                    {[
+                        {
+                            icon: faCrown,
+                            title: "Affordable Luxury",
+                            desc: "Premium interiors at transparent pricing — no hidden costs, ever.",
+                        },
+                        {
+                            icon: faCalendarCheck,
+                            title: "Consultation Refund",
+                            desc: "Your consultation fee is fully adjusted against the final project cost.",
+                        },
+                        {
+                            icon: faDraftingCompass,
+                            title: "100% Bespoke",
+                            desc: "Every design built from scratch around your life — never from a catalogue.",
+                        },
+                        {
+                            icon: faHandshake,
+                            title: "Turnkey Execution",
+                            desc: "We handle sourcing, build and handover. You just walk in.",
+                        },
+                    ].map((item, i) => (
+                        <div className="svc-why-card reveal-item" ref={addRef} key={i} style={{ '--delay': `${i * 80}ms` }}>
+                            <div className="svc-why-icon">
+                                <FontAwesomeIcon icon={item.icon} />
+                            </div>
+                            <h3>{item.title}</h3>
+                            <p>{item.desc}</p>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* ── STAT STRIP ── */}
+            <section className="svc-stats-section">
+                <div className="svc-stats-strip reveal-item" ref={addRef}>
                     {[
                         { icon: faStar, val: '50+', label: 'Projects Delivered' },
                         { icon: faHandshake, val: '100%', label: 'Turnkey Execution' },
                         { icon: faClock, val: '5★', label: 'Average Rating' },
                     ].map((s, i) => (
-                        <div className='hp-adv-stat' key={i}>
-                            <div className='hp-adv-stat-icon'><FontAwesomeIcon icon={s.icon} /></div>
-                            <span className='hp-adv-stat-val'><CountUp endValue={s.val} /></span>
-                            <span className='hp-adv-stat-lbl'>{s.label}</span>
+                        <div className="svc-stat-item" key={i}>
+                            <div className="svc-stat-icon"><FontAwesomeIcon icon={s.icon} /></div>
+                            <span className="svc-stat-val"><CountUp endValue={s.val} /></span>
+                            <span className="svc-stat-lbl">{s.label}</span>
                         </div>
                     ))}
                 </div>
-
-            </section >
+            </section>
 
             {/* ── GET STARTED — replaces the repeated 6-step process ── */}
             <section className="svc-start-section">

@@ -10,9 +10,9 @@ import kajaria from '../assets/kajaria.png';
 import saint_gobain from '../assets/Saint-Gobain.jpg';
 import asian_paints from '../assets/asian-paints.jpeg';
 import centuryply from '../assets/centuryply.png';
-import residence from '../assets/residence.png';
 import design from '../assets/refund-design.png';
 import rates from '../assets/rates.png';
+import visualization3D from '../assets/3D-visualization.png';
 import Footer from '../components/Footer';
 
 import { useNavigate } from 'react-router-dom';
@@ -20,9 +20,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faCrown, faLayerGroup, faBuilding, faArrowRight, faCalendarCheck,
   faCheck, faCubes, faUtensils, faBed, faBath, faCouch, faTv,
-  faChild, faDraftingCompass, faCube, faBoxes, faHammer, faHandshake,
-  faHome, faQuoteLeft, faIndustry, faStar, faClock, faTag,
-  faMedal, faRulerCombined, faShieldAlt
+  faDraftingCompass, faCube, faBoxes, faHammer, faHandshake,
+  faHome, faQuoteLeft, faIndustry, faStar, faClock, faTag
 } from '@fortawesome/free-solid-svg-icons';
 
 
@@ -175,7 +174,7 @@ const Home = ({ setShowLogin }) => {
           { num: '50+', label: 'Projects Completed', sub: 'Across residential & commercial' },
           { num: '5+', label: 'Years Experience', sub: 'Serving discerning clients' },
           { num: '100%', label: 'Custom Design', sub: 'No templates, ever' },
-          { num: 'Turnkey', label: 'Execution', sub: 'Design to handover, one team' },
+          { num: '5★', label: 'Average Rating', sub: 'Consistently top-rated' },
         ].map((s, i) => (
           <div className='hp-stat-item' key={i} ref={sr} style={{ '--sr-delay': `${i * 80}ms` }}>
             <span className='hp-stat-rule' />
@@ -252,80 +251,9 @@ const Home = ({ setShowLogin }) => {
 
         {/* NEW BUTTON ADDED AT THE BOTTOM */}
         <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center' }}>
-          <button onClick={() => navigate('/design/Kitchen%20Designs')} className='hp-text-btn'>
+          <button onClick={() => navigate('/projects')} className='hp-text-btn'>
             View more designs <FontAwesomeIcon icon={faArrowRight} />
           </button>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════
-          WHY CHOOSE US — REDESIGNED SERVICES SECTION
-      ══════════════════════════════ */}
-      <section className='hp-why-choose'>
-        <div className='hp-section-head sr-item' ref={sr}>
-          <div className='hp-sh-left'>
-            <span className='hp-overline'>
-              <FontAwesomeIcon icon={faCrown} /> Why Shrivastavas
-            </span>
-            <h2>Our Pillars Of<br />Excellence</h2>
-          </div>
-          <div className='hp-sh-right'>
-            <p>
-              We eliminate the stress of residential construction by uniting elite
-              artistry with completely transparent project execution management.
-            </p>
-          </div>
-        </div>
-
-        <div className='hp-why-choose-grid'>
-          {[
-            {
-              icon: faMedal,
-              title: "Premium Quality",
-              desc: "We source only top-tier materials from India's most trusted brands — no shortcuts, ever.",
-            },
-            {
-              icon: faRulerCombined,
-              title: "100% Custom",
-              desc: "Every design is built around your lifestyle, not a template. Truly bespoke interiors.",
-            },
-            {
-              icon: faShieldAlt,
-              title: "Risk-Free Consultation",
-              desc: "Your consultation fee is fully refunded when you proceed. Zero risk to get started.",
-            },
-            {
-              icon: faCube,
-              title: "3D Before Execution",
-              desc: "See a photorealistic 3D render of your space before a single wall is touched.",
-            },
-            {
-              icon: faHandshake,
-              title: "Turnkey Delivery",
-              desc: "We handle everything — design, sourcing, execution, and final handover. One team, zero stress.",
-            },
-            {
-              icon: faStar,
-              title: "5★ Client Satisfaction",
-              desc: "Consistently rated 5 stars by our clients for quality, transparency and on-time delivery.",
-            },
-          ].map((item, i) => (
-            <div
-              className='hp-wc-card sr-item'
-              key={i}
-              ref={sr}
-              style={{ '--sr-delay': `${i * 80}ms` }}
-            >
-              <div className='hp-wc-icon'>
-                <FontAwesomeIcon icon={item.icon} />
-              </div>
-
-              <div className='hp-wc-content'>
-                <h3>{item.title}</h3>
-                <p>{item.desc}</p>
-              </div>
-            </div>
-          ))}
         </div>
       </section>
 
@@ -414,36 +342,21 @@ const Home = ({ setShowLogin }) => {
 
             <div className='hp-adv-card sr-item' ref={sr} style={{ '--sr-delay': '160ms' }}>
               <div className='hp-adv-card-img'>
-                <img src={residence} alt="Custom Residential" />
+                <img src={visualization3D} alt="3D Visualization" />
                 <div className='hp-adv-card-img-overlay' />
-                <div className='hp-adv-card-tag'><FontAwesomeIcon icon={faHome} /> Residential</div>
+                <div className='hp-adv-card-tag'><FontAwesomeIcon icon={faCube} /> 3D Design</div>
               </div>
               <div className='hp-adv-card-body'>
-                <h4>Custom Residential</h4>
-                <p>Every home is designed from scratch around your lifestyle — not from a catalogue.</p>
+                <h4>See It In 3D First</h4>
+                <p>We render your exact space in photorealistic 3D — you approve every detail before we build.</p>
                 <ul>
-                  <li><span className='hp-adv-dot' />100% bespoke designs</li>
-                  <li><span className='hp-adv-dot' />End-to-end execution</li>
+                  <li><span className='hp-adv-dot' />No surprises on execution day</li>
+                  <li><span className='hp-adv-dot' />Changes made before costs are locked</li>
                 </ul>
               </div>
             </div>
 
           </div>
-        </div>
-
-        {/* mini stat strip */}
-        <div className='hp-adv-stats sr-item' ref={sr}>
-          {[
-            { icon: faStar, val: '50+', label: 'Projects Delivered' },
-            { icon: faHandshake, val: '100%', label: 'Turnkey Execution' },
-            { icon: faClock, val: '5★', label: 'Average Rating' },
-          ].map((s, i) => (
-            <div className='hp-adv-stat' key={i}>
-              <div className='hp-adv-stat-icon'><FontAwesomeIcon icon={s.icon} /></div>
-              <span className='hp-adv-stat-val'><CountUp endValue={s.val} /></span>
-              <span className='hp-adv-stat-lbl'>{s.label}</span>
-            </div>
-          ))}
         </div>
       </section>
 

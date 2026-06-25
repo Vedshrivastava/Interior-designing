@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 import http from "http"; // Import http to create the server
 import { connectDB } from './config/db.js';
 import designRouter from "./routes/design.js";
@@ -9,6 +10,7 @@ import requestsRouter  from "./routes/requests.js";
 import router from "./routes/appointments.js";
 import admin from "./routes/admin.js";
 import user from "./routes/user.js";
+import recoveryRouter from "./routes/recovery.js";
 import dotenv from 'dotenv';
 import { wss } from './middlewares/webSocket.js'; // Import WebSocket server setup
 
@@ -23,6 +25,18 @@ app.use(cors());
 // Connect to the database
 connectDB(process.env.MONGO_URI);
 
+// Rate limiting — public submission endpoints only
+const submissionLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,  // 15 minutes
+    max: 10,                     // max 10 submissions per IP per window
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, message: 'Too many requests. Please try again in 15 minutes.' },
+});
+app.use('/api/appointment/add',      submissionLimiter);
+app.use('/api/appointment/quote',    submissionLimiter);
+app.use('/api/requests/submit',      submissionLimiter);
+
 // Routes
 app.use('/api/design', designRouter);
 app.use('/api/project', projectRouter);
@@ -31,6 +45,7 @@ app.use('/api/requests',  requestsRouter);
 app.use('/api/appointment', router);
 app.use('/api/admin', admin);
 app.use('/api/user', user);
+app.use('/api/recovery', recoveryRouter);
 
 // Serve static files
 app.use('/images', express.static('uploads'));

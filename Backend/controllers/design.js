@@ -65,6 +65,7 @@ const listDesigns = async (req, res) => {
             filter.category = category;
         }
 
+        filter.deleted = { $ne: true };
         const designs = await Design.find(filter);
 
         res.json({ success: true, data: designs });
@@ -85,21 +86,12 @@ const removeDesign = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Design not found' });
         }
 
-        if (design.images && design.images.length > 0) {
-            for (const imageUrl of design.images) {
-                try {
-                    const publicId = imageUrl.split('/').pop().split('.')[0];
-                    await cloudinary.uploader.destroy(`design_images/${publicId}`);
-                    console.log(`Deleted image with public ID: ${publicId}`);
-                } catch (deleteError) {
-                    console.error(`Error deleting image with public ID ${publicId}:`, deleteError);
-                }
-            }
-        }
-
-        await Design.findByIdAndDelete(_id);
+        design.deleted   = true;
+        design.deletedAt = new Date();
+        design.deletedBy = req.userName || 'Admin';
+        await design.save();
         broadcast({ type: 'designsChanged' });
-        res.json({ success: true, message: 'Design Removed' });
+        res.json({ success: true, message: 'Design moved to Recovery Bin' });
     } catch (error) {
         console.error('Error removing design:', error);
         res.status(500).json({ success: false, message: 'Error removing design' });

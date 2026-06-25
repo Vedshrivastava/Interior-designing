@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useWebSocket } from '../hooks/useWebSocket';
 import ReactDOM from 'react-dom'; // <-- Added for multi-image portal view tracking
 import '../styles/quotes.css';
 import '../styles/list.css'; // <-- Added to inherit premium lightbox overlay styles
@@ -10,6 +11,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 const Quotes = ({ url }) => {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [query, setQuery] = useState('');
   const token = localStorage.getItem('token');
 
   // --- LIGHTBOX PORTAL STATES (Ported from List.jsx) ---
@@ -47,7 +49,7 @@ const Quotes = ({ url }) => {
     return () => window.removeEventListener('keydown', handleKey);
   }, [lightbox.open, closeLightbox]);
 
-  const fetchAllOrders = async () => {
+  const fetchAllQuotes = async () => {
     setIsLoading(true);
     try {
       const response = await axios.get(`${url}/api/appointment/list-quotes`, {
@@ -86,7 +88,7 @@ const Quotes = ({ url }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.data.success) {
-        await fetchAllOrders();
+        await fetchAllQuotes();
         toast.success('Status updated successfully');
       } else {
         toast.error('Failed to update quote status');
@@ -98,40 +100,32 @@ const Quotes = ({ url }) => {
     }
   };
 
-  useEffect(() => {
-    fetchAllOrders();
+  useEffect(() => { fetchAllQuotes(); }, []);
 
-    const socket = new WebSocket('ws://localhost:3000');
-    socket.addEventListener('open', () => console.log('WebSocket connection established.'));
-
-    socket.addEventListener('message', (event) => {
-      const message = JSON.parse(event.data);
-      switch (message.type) {
-        case 'newQuote':
-          setOrders((prevOrders) =>
-            [message.data, ...prevOrders].sort((a, b) => new Date(b.date) - new Date(a.date))
-          );
-          toast.info(`💬 New quote request from ${message.data.name}`);
-          break;
-        case 'updateOrderStatus':
-          setOrders((prevOrders) =>
-            prevOrders
-              .map((order) =>
-                order._id === message.data._id ? { ...order, status: message.data.status } : order
-              )
+  useWebSocket(useCallback((message) => {
+    switch (message.type) {
+      case 'newQuote':
+        setOrders(prev => [message.data, ...prev].sort((a, b) => new Date(b.date) - new Date(a.date)));
+        toast.info(`💬 New quote request from ${message.data.name}`);
+        break;
+      case 'updateOrderStatus':
+        setOrders(prev =>
+          prev.map(o => o._id === message.data._id ? { ...o, status: message.data.status } : o)
               .sort((a, b) => new Date(b.date) - new Date(a.date))
-          );
-          break;
-        default:
-          break;
-      }
-    });
+        );
+        break;
+      default: break;
+    }
+  }, []));
 
-    return () => socket.close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const groupedOrders = groupOrdersByDate(orders);
+  const filteredOrders = !query ? orders : orders.filter(o => {
+    const q = query.toLowerCase();
+    return (o.name?.toLowerCase().includes(q) ||
+            o.phoneNumber?.toLowerCase().includes(q) ||
+            o.email?.toLowerCase().includes(q) ||
+            o.designName?.toLowerCase().includes(q));
+  });
+  const groupedOrders = groupOrdersByDate(filteredOrders);
 
   const handleCopy = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -181,6 +175,22 @@ const Quotes = ({ url }) => {
         document.body
       )}
 
+      <div className="admin-search-header">
+        <div>
+          <h2 className="admin-search-title">Quotes</h2>
+          <p className="admin-search-sub">{filteredOrders.length} quote{filteredOrders.length !== 1 ? 's' : ''}</p>
+        </div>
+        <div className="admin-search-wrap">
+          <i className="fa-solid fa-magnifying-glass" />
+          <input
+            type="text"
+            placeholder="Search by name, phone, email or design…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+          />
+          {query && <button className="admin-search-clear" onClick={() => setQuery('')}>×</button>}
+        </div>
+      </div>
       <div className="order-list">
         {Object.keys(groupedOrders).length === 0 && !isLoading ? (
           <div className="empty-state">
@@ -260,6 +270,13 @@ const Quotes = ({ url }) => {
                           <i className="fa-solid fa-location-dot"></i> <span>{order.address}</span>
                         </div>
                       </div>
+
+                      {order.message && (
+                        <div className="order-message-row">
+                          <i className="fa-solid fa-comment-dots"></i>
+                          <span>{order.message}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Column 3: Actions */}

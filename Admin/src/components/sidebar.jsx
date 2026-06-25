@@ -4,7 +4,7 @@ import { NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPlus, faList, faIdBadge, faMessage, faFolderPlus, faFolderOpen,
-  faCubes, faBoxesStacked, faUsers,
+  faCubes, faBoxesStacked, faUsers, faTrash,
 } from '@fortawesome/free-solid-svg-icons';
 
 const NAV_SECTIONS = [
@@ -41,7 +41,8 @@ const NAV_SECTIONS = [
 const MASTER_SECTION = {
   label: 'Master',
   items: [
-    { to: '/admin-requests', icon: faUsers, label: 'Requests' },
+    { to: '/admin-requests', icon: faUsers, label: 'Requests'     },
+    { to: '/recovery-bin',   icon: faTrash, label: 'Recovery Bin' },
   ],
 };
 

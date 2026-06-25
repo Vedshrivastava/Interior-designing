@@ -229,33 +229,180 @@
   font-family: "Inter", sans-serif;
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--green); /* Inverted for visibility on blush */
+  color: var(--green);
   letter-spacing: 1.5px;
   text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.login-inputs input {
+.login-field-opt {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-lt);
+  letter-spacing: 0.5px;
+  text-transform: lowercase;
+}
+
+/* ── Icon-wrapped input ── */
+.login-input-wrap {
+  position: relative;
+}
+
+.login-input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gold);
+  font-size: 0.82rem;
+  pointer-events: none;
+  opacity: 0.75;
+  transition: opacity 0.25s ease;
+  z-index: 1;
+}
+
+.login-input-icon--top {
+  top: 14px;
+  transform: none;
+}
+
+.login-input-wrap:focus-within .login-input-icon {
+  opacity: 1;
+}
+
+.login-inputs input,
+.login-inputs textarea {
   width: 100%;
   box-sizing: border-box;
-  padding: 13px 16px;
-  background: rgba(255, 255, 255, 0.55); /* Lightened for blush background */
-  border: 1px solid rgba(201, 168, 124, 0.35); 
+  padding: 13px 16px 13px 42px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(201, 168, 124, 0.35);
   border-radius: 12px;
-  color: var(--text); /* Dark text */
+  color: var(--text);
   font-family: "Inter", sans-serif;
   font-size: 0.9rem;
   outline: none;
   transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
 }
 
-.login-inputs input::placeholder {
-  color: var(--text-lt); /* Darker placeholder */
+.login-inputs textarea {
+  resize: vertical;
+  min-height: 82px;
+  line-height: 1.6;
 }
 
-.login-inputs input:focus {
+.login-inputs input::placeholder,
+.login-inputs textarea::placeholder {
+  color: var(--text-lt);
+}
+
+.login-inputs input:focus,
+.login-inputs textarea:focus {
   border-color: var(--gold);
   background: var(--white);
   box-shadow: 0 0 0 3px rgba(201, 168, 124, 0.15);
+}
+
+/* ── Dimensions group (quote form) ── */
+.quote-dimensions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(201, 168, 124, 0.07);
+  border: 1px solid rgba(201, 168, 124, 0.25);
+  border-radius: 14px;
+  position: relative;
+}
+
+.quote-dimensions-group::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 16px; right: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201,168,124,0.45), transparent);
+  top: -1px;
+  display: none;
+}
+
+.quote-dimensions-heading {
+  font-family: "Inter", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--green);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(201, 168, 124, 0.2);
+}
+
+/* ── Measurement row (quote form) ── */
+.quote-measure-row {
+  display: flex;
+  gap: 12px;
+}
+
+.quote-measure-row .login-field {
+  flex: 1;
+}
+
+.quote-measure-row input {
+  padding-left: 16px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* ── Quote preview banner ── */
+.quote-preview-banner {
+  position: relative;
+  height: 96px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.quote-preview-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: brightness(0.82);
+}
+
+.quote-preview-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(16,37,37,0.45) 0%, rgba(16,37,37,0.78) 100%);
+}
+
+.quote-preview-info {
+  position: absolute;
+  bottom: 14px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.quote-preview-cat {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.quote-preview-name {
+  font-family: "Playfair Display", serif;
+  font-size: 0.92rem;
+  color: #f5ede0;
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 /* ════════════════════════════════════════════
@@ -347,15 +494,24 @@
     font-size: 0.68rem;           /* Slightly smaller labels */
   }
 
-  .login-inputs input {
-    padding: 11px 14px;           /* Slimmer inputs */
+  .login-inputs input,
+  .login-inputs textarea {
+    padding: 11px 14px 11px 42px; /* keep left gap for icon */
     font-size: 0.875rem;
+  }
+
+  .quote-measure-row input {
+    padding: 11px 14px;           /* no icon — normal padding */
   }
 
   .login-header-text h2 { font-size: 1.1rem; }
 
-  /* quote-popup: tighten the L×W row on narrow screens */
-  .quote-popup-container .login-inputs > div[style] {
-    gap: 10px !important;
+  /* quote-popup: tighten the measurement row on narrow screens */
+  .quote-measure-row {
+    gap: 10px;
+  }
+
+  .login-inputs textarea {
+    min-height: 70px;
   }
 }

@@ -9,7 +9,7 @@ import { jwtDecode } from 'jwt-decode';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faXmark, faArrowRightToBracket, faPaperPlane,
-  faEnvelope, faLock, faUser,
+  faEnvelope, faLock, faUser, faEye, faEyeSlash,
 } from '@fortawesome/free-solid-svg-icons';
 import { PageLoader } from './Navbar';
 
@@ -32,6 +32,7 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
   const [isSubmitted, setIsSubmitted]   = useState(false);
   const [resetMessage, setResetMessage] = useState('');
   const [pageLoading, setPageLoading]   = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
 
@@ -170,7 +171,12 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
                   </div>
                   <div className="login-field">
                     <label>Password</label>
-                    <input name="password" type="password" placeholder="Enter your password" value={data.password} onChange={onChange} required />
+                    <div className="login-password-wrap">
+                      <input name="password" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" value={data.password} onChange={onChange} required />
+                      <button type="button" className="login-password-toggle" onClick={() => setShowPassword(p => !p)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                        <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                      </button>
+                    </div>
                   </div>
                 </>
               )}

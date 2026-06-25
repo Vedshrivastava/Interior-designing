@@ -31,8 +31,6 @@ const registerAdmin = async (req, res) => {
       });
     }
 
-    console.log("Email:", email);
-
     // ── Create user ──
     const verificationCode = generateVerificationCode();
     const salt             = await bcrypt.genSalt(10);
@@ -80,14 +78,11 @@ const registerAdmin = async (req, res) => {
 
 const loginAdmin = async (req, res) => {
   const { email, password } = req.body;
-  console.log("Login Admin Request Data:", { email, password });
 
   try {
     const admin = await userModel.findOne({ email });
-    console.log("Admin existence check result:", admin);
 
     if (!admin || (admin.role !== "ADMIN" && admin.role !== "MASTER")) {
-      console.log("Admin not found or not an ADMIN/MASTER:", email);
       return res.status(400).json({
         success: false,
         message: "Admin does not exist with provided email",
@@ -95,10 +90,8 @@ const loginAdmin = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, admin.password);
-    console.log("Password match result:", isMatch);
 
     if (!isMatch) {
-      console.log("Incorrect password provided");
       return res.status(400).json({
         success: false,
         message: "Incorrect password",
@@ -106,17 +99,15 @@ const loginAdmin = async (req, res) => {
     }
 
     const tokenData = {
-      id:   admin._id,
-      name: admin.name,
+      id:    admin._id,
+      name:  admin.name,
       email: admin.email,
-      role: admin.role,          // include role so middleware can check without a DB hit
+      role:  admin.role,
     };
 
     const token = await signTokenForAdmin(tokenData);
-    console.log("Generated token:", token);
 
     if (token) {
-      console.log("Login successful for:", email);
       return res.status(200).json({
         success: true,
         token,
@@ -131,7 +122,6 @@ const loginAdmin = async (req, res) => {
         },
       });
     } else {
-      console.log("Error generating token for:", email);
       return res.status(500).json({
         success: false,
         message: "Error generating token",
@@ -196,4 +186,36 @@ const changePassword = async (req, res) => {
   }
 };
 
-export { registerAdmin, loginAdmin, changePassword, changeEmail };
+/* ── MASTER: list all admins ── */
+const listAdmins = async (req, res) => {
+    try {
+        const admins = await userModel.find(
+            { role: 'ADMIN' },
+            'name email createdAt'
+        ).sort({ createdAt: -1 });
+        return res.json({ success: true, data: admins });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+/* ── MASTER: revoke admin access ── */
+const removeAdmin = async (req, res) => {
+    const { userId } = req.body;
+    try {
+        const user = await userModel.findById(userId);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+        if (user.role !== 'ADMIN')
+            return res.status(400).json({ success: false, message: 'User is not an admin.' });
+
+        user.role = 'USER';
+        await user.save();
+        return res.json({ success: true, message: `${user.name}'s admin access has been revoked.` });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+export { registerAdmin, loginAdmin, changePassword, changeEmail, listAdmins, removeAdmin };

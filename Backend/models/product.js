@@ -4,11 +4,7 @@ const productSchema = new mongoose.Schema({
     name:          { type: String, required: true },
     description:   { type: String, required: true },
     images:        [{ type: String, required: true }],
-    category:      {
-        type: String,
-        enum: ['Interior', 'Exterior', 'Functional Architecture'],
-        required: true,
-    },
+    categories:    [{ type: String, enum: ['Interior', 'Exterior', 'Functional Architecture'] }],
     subcategory:   { type: String, required: true },
     material:      { type: String },
     finish:        { type: String },
@@ -16,6 +12,9 @@ const productSchema = new mongoose.Schema({
     applications:  [{ type: String }],
     points:        [{ type: String }],
     isFeatured:    { type: Boolean, default: false },
+    deleted:       { type: Boolean, default: false },
+    deletedAt:     { type: Date },
+    deletedBy:     { type: String },
 }, {
     timestamps: true,
 });

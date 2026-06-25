@@ -10,7 +10,7 @@ import {
   faChevronLeft, faChevronRight, faStar, faCircleInfo,
   faDroplet, faSun, faFire, faCloudRain, faLeaf, faWrench,
   faShieldHalved, faVolumeXmark, faTemperatureHalf, faShield,
-  faPen, faCheck, faLayerGroup as faLayer,
+  faPen, faCheck, faLayerGroup as faLayer, faMagnifyingGlass,
 } from '@fortawesome/free-solid-svg-icons';
 
 /* ─── Constants ──────────────────────────────────────────────── */
@@ -45,10 +45,12 @@ const ProductCard = ({ product, setShowLogin }) => {
   const [lbIdx, setLbIdx] = useState(null);
 
   const {
-    name, description, images = [], category, subcategory,
-    material, finish, specialities = [], applications = [],
+    name, description, images = [], categories, category,
+    subcategory, material, finish, specialities = [], applications = [],
     points = [], isFeatured,
   } = product;
+
+  const categoryList = categories?.length ? categories : (category ? [category] : []);
 
   const openModal = () => { setModalOpen(true); document.body.style.overflow = 'hidden'; };
   const closeModal = useCallback(() => {
@@ -90,7 +92,9 @@ const ProductCard = ({ product, setShowLogin }) => {
 
       <div className="prod-card-body">
         <div className="prod-card-tags">
-          <span className="prod-card-cat-tag">{category}</span>
+          {categoryList.map(cat => (
+            <span key={cat} className="prod-card-cat-tag">{cat}</span>
+          ))}
           {subcategory && <span className="prod-card-subcat-tag">{subcategory}</span>}
         </div>
 
@@ -143,7 +147,9 @@ const ProductCard = ({ product, setShowLogin }) => {
         {/* Right — content */}
         <div className="prod-modal-content">
           <div className="prod-modal-tag-row">
-            <span className="prod-modal-tag">{category}</span>
+            {categoryList.map(cat => (
+              <span key={cat} className="prod-modal-tag">{cat}</span>
+            ))}
             {subcategory && <span className="prod-modal-tag prod-modal-tag--sub">{subcategory}</span>}
           </div>
 
@@ -260,8 +266,12 @@ const Products = ({ setShowLogin }) => {
   const url = 'http://localhost:3000';
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeSubcategory, setActiveSubcategory] = useState('All');
+  const [query, setQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 12;
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -269,6 +279,7 @@ const Products = ({ setShowLogin }) => {
       if (res.data.success) setProducts(res.data.data);
     } catch (err) {
       console.error('Error fetching products:', err);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -286,10 +297,25 @@ const Products = ({ setShowLogin }) => {
     setActiveSubcategory('All');
   };
 
+  const getCategories = (p) => p.categories?.length ? p.categories : (p.category ? [p.category] : []);
+
   const filtered = products
-    .filter(p => activeCategory === 'All' || p.category === activeCategory)
+    .filter(p => activeCategory === 'All' || getCategories(p).includes(activeCategory))
     .filter(p => activeSubcategory === 'All' || p.subcategory === activeSubcategory)
+    .filter(p => !query || p.name.toLowerCase().includes(query.toLowerCase()) || (p.material || '').toLowerCase().includes(query.toLowerCase()))
     .sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
+
+  const totalPages    = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginated     = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  useEffect(() => { setCurrentPage(1); }, [activeCategory, activeSubcategory, query]);
+
+  const getPageRange = (cur, total) => {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    if (cur <= 4)          return [1, 2, 3, 4, 5, '…', total];
+    if (cur >= total - 3)  return [1, '…', total - 4, total - 3, total - 2, total - 1, total];
+    return [1, '…', cur - 1, cur, cur + 1, '…', total];
+  };
 
   const subcats = activeCategory !== 'All' ? SUBCATEGORIES[activeCategory] || [] : [];
 
@@ -310,9 +336,22 @@ const Products = ({ setShowLogin }) => {
               Explore our curated range of architectural and design products — each one
               selected for beauty, durability, and real-world performance.
             </p>
-            <div className="prod-count-badge">
-              <FontAwesomeIcon icon={faLayerGroup} />
-              {products.length} product{products.length !== 1 ? 's' : ''}
+            <div className="prod-header-bottom">
+              <div className="prod-search-wrap">
+                <FontAwesomeIcon icon={faMagnifyingGlass} className="prod-search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search by name or material…"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  className="prod-search-input"
+                />
+                {query && <button className="prod-search-clear" onClick={() => setQuery('')}>×</button>}
+              </div>
+              <div className="prod-count-badge">
+                <FontAwesomeIcon icon={faLayerGroup} />
+                {filtered.length} product{filtered.length !== 1 ? 's' : ''}
+              </div>
             </div>
           </div>
         </div>
@@ -373,8 +412,14 @@ const Products = ({ setShowLogin }) => {
               <div className="prod-empty-icon"><FontAwesomeIcon icon={faStore} /></div>
               <h3>Loading products…</h3>
             </div>
+          ) : error ? (
+            <div className="prod-empty">
+              <div className="prod-empty-icon"><FontAwesomeIcon icon={faStore} /></div>
+              <h3>Couldn't load products</h3>
+              <p>Please check your connection and try refreshing the page.</p>
+            </div>
           ) : filtered.length > 0 ? (
-            filtered.map(product => (
+            paginated.map(product => (
               <ProductCard key={product._id} product={product} setShowLogin={setShowLogin} />
             ))
           ) : (
@@ -386,6 +431,19 @@ const Products = ({ setShowLogin }) => {
           )}
         </div>
       </div>
+
+      {/* ── Pagination ── */}
+      {totalPages > 1 && (
+        <div className="prod-pagination">
+          <button className="prod-page-btn" disabled={currentPage === 1} onClick={() => { setCurrentPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>‹</button>
+          {getPageRange(currentPage, totalPages).map((p, i) =>
+            p === '…'
+              ? <span key={`e${i}`} className="prod-page-ellipsis">…</span>
+              : <button key={p} className={`prod-page-btn${p === currentPage ? ' active' : ''}`} onClick={() => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{p}</button>
+          )}
+          <button className="prod-page-btn" disabled={currentPage === totalPages} onClick={() => { setCurrentPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>›</button>
+        </div>
+      )}
 
       {/* ── CTA ── */}
       <div className="prod-cta">

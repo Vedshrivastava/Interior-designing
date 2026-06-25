@@ -258,6 +258,7 @@ const Projects = ({ setShowLogin }) => {
   const [projects,       setProjects]       = useState([]);
   const [activeFilter,   setActiveFilter]   = useState('All');
   const [loading,        setLoading]        = useState(true);
+  const [error,          setError]          = useState(false);
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -265,6 +266,7 @@ const Projects = ({ setShowLogin }) => {
       if (response.data.success) setProjects(response.data.data);
     } catch (error) {
       console.error("Error fetching projects:", error);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -345,6 +347,12 @@ const Projects = ({ setShowLogin }) => {
             <div className="proj-empty">
               <div className="proj-empty-icon"><FontAwesomeIcon icon={faBuilding} /></div>
               <h3>Loading projects…</h3>
+            </div>
+          ) : error ? (
+            <div className="proj-empty">
+              <div className="proj-empty-icon"><FontAwesomeIcon icon={faBuilding} /></div>
+              <h3>Couldn't load projects</h3>
+              <p>Please check your connection and try refreshing the page.</p>
             </div>
           ) : filtered.length > 0 ? (
             filtered.map(project => (

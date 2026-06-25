@@ -1,6 +1,6 @@
 import express from 'express';
 import { masterAuthMiddleware } from '../middlewares/auth.js';
-import { submitRequest, listRequests, approveRequest, rejectRequest } from '../controllers/requests.js';
+import { submitRequest, listRequests, approveRequest, rejectRequest, deleteRequest } from '../controllers/requests.js';
 
 const requestsRouter = express.Router();
 
@@ -11,5 +11,6 @@ requestsRouter.post('/submit', submitRequest);
 requestsRouter.get('/list',    masterAuthMiddleware, listRequests);
 requestsRouter.post('/approve', masterAuthMiddleware, approveRequest);
 requestsRouter.post('/reject',  masterAuthMiddleware, rejectRequest);
+requestsRouter.delete('/delete', masterAuthMiddleware, deleteRequest);
 
 export default requestsRouter;

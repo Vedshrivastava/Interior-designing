@@ -29,7 +29,7 @@ const addProduct = async (req, res) => {
         const product = new Product({
             name:         req.body.name,
             description:  req.body.description,
-            category:     req.body.category,
+            categories:   req.body.categories   ? JSON.parse(req.body.categories)   : [],
             subcategory:  req.body.subcategory,
             material:     req.body.material     || '',
             finish:       req.body.finish        || '',
@@ -53,8 +53,9 @@ const listProducts = async (req, res) => {
     try {
         const { category, subcategory } = req.query;
         const filter = {};
-        if (category)    filter.category    = category;
+        if (category)    filter.categories  = { $in: [category] };
         if (subcategory) filter.subcategory = subcategory;
+        filter.deleted = { $ne: true };
 
         const products = await Product.find(filter).sort({ createdAt: -1 });
         res.json({ success: true, data: products });
@@ -70,18 +71,12 @@ const removeProduct = async (req, res) => {
         const product = await Product.findById(_id);
         if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
 
-        for (const url of product.images) {
-            try {
-                const publicId = url.split('/').pop().split('.')[0];
-                await cloudinary.uploader.destroy(`product_images/${publicId}`);
-            } catch (err) {
-                console.error(`Error deleting image ${url}:`, err);
-            }
-        }
-
-        await Product.findByIdAndDelete(_id);
+        product.deleted   = true;
+        product.deletedAt = new Date();
+        product.deletedBy = req.userName || 'Admin';
+        await product.save();
         broadcast({ type: 'productsChanged' });
-        res.json({ success: true, message: 'Product Removed' });
+        res.json({ success: true, message: 'Product moved to Recovery Bin' });
     } catch (error) {
         console.error('Error removing product:', error);
         res.status(500).json({ success: false, message: 'Error removing product' });
@@ -91,7 +86,7 @@ const removeProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
     try {
         const {
-            _id, name, description, category, subcategory,
+            _id, name, description, categories, subcategory,
             material, finish, specialities, applications,
             points, existingImages,
         } = req.body;
@@ -128,8 +123,9 @@ const updateProduct = async (req, res) => {
             }
         }
 
+        const parsedCategories = categories ? JSON.parse(categories) : [];
         const updated = await Product.findByIdAndUpdate(_id, {
-            name, description, category, subcategory,
+            name, description, categories: parsedCategories, subcategory,
             material:     material     || '',
             finish:       finish       || '',
             specialities: parsedSpecialities,

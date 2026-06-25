@@ -58,6 +58,7 @@ const listProjects = async (req, res) => {
 
         if (category)    filter.category    = category;
         if (projectType) filter.projectType = projectType;
+        filter.deleted = { $ne: true };
 
         const projects = await Project.find(filter).sort({ completedAt: -1 });
         res.json({ success: true, data: projects });
@@ -77,18 +78,12 @@ const removeProject = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Project not found' });
         }
 
-        for (const imageUrl of project.images) {
-            try {
-                const publicId = imageUrl.split('/').pop().split('.')[0];
-                await cloudinary.uploader.destroy(`project_images/${publicId}`);
-            } catch (deleteError) {
-                console.error(`Error deleting image ${publicId} from Cloudinary:`, deleteError);
-            }
-        }
-
-        await Project.findByIdAndDelete(_id);
+        project.deleted   = true;
+        project.deletedAt = new Date();
+        project.deletedBy = req.userName || 'Admin';
+        await project.save();
         broadcast({ type: 'projectsChanged' });
-        res.json({ success: true, message: 'Project Removed' });
+        res.json({ success: true, message: 'Project moved to Recovery Bin' });
     } catch (error) {
         console.error('Error removing project:', error);
         res.status(500).json({ success: false, message: 'Error removing project' });

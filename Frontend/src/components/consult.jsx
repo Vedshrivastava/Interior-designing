@@ -3,32 +3,18 @@ import '@/styles/consult.css';
 import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-
-import {
-  IconXMark, IconCalendar, IconUser, IconEnvelope,
-  IconPhone, IconLocation, IconCommentDots,
-} from '@/components/Icons';
+import { IconXMark, IconCalendar } from '@/components/Icons';
 import { useModal } from '@/context/ModalContext';
-import logo from '@/assets/logo.png';
-
-const FIELDS = [
-  { name: 'name',    label: 'Full Name',    type: 'text',  placeholder: 'Your full name',     Icon: IconUser        },
-  { name: 'email',   label: 'Email',        type: 'email', placeholder: 'your@email.com',      Icon: IconEnvelope    },
-  { name: 'phone',   label: 'Phone Number', type: 'tel',   placeholder: '+91 XXXXX XXXXX',     Icon: IconPhone       },
-  { name: 'address', label: 'Address',      type: 'text',  placeholder: 'Your city / address', Icon: IconLocation },
-];
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export default function Consult() {
   const { closeConsult } = useModal();
-  const [data, setData]     = useState({ name: '', email: '', phone: '', address: '', message: '' });
-  const [loading, setLoading] = useState(false);
+  const [data, setData]         = useState({ name: '', email: '', phone: '', address: '', message: '' });
+  const [loading, setLoading]   = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-  const onChange = e => {
-    const { name, value } = e.target;
-    setData(prev => ({ ...prev, [name]: value }));
-  };
+  const onChange = e => setData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
   const onSubmit = async e => {
     e.preventDefault();
@@ -39,9 +25,8 @@ export default function Consult() {
         phoneNumber: data.phone, address: data.address,
         message: data.message,
       });
-      toast.success('Consultation booked successfully!');
-      setTimeout(() => closeConsult(), 2000);
-    } catch (err) {
+      setSubmitted(true);
+    } catch {
       toast.error('Failed to submit. Please try again.');
     } finally {
       setLoading(false);
@@ -49,65 +34,102 @@ export default function Consult() {
   };
 
   return (
-    <div className="login" onClick={e => e.target === e.currentTarget && closeConsult()}>
-      <form onSubmit={onSubmit} className="login-container">
-        <div className="login-rule" />
-        <div className="login-inner">
+    <div className="cm-backdrop" onClick={e => e.target === e.currentTarget && closeConsult()}>
+      <div className="cm-modal">
 
-          <div className="login-header">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logo.src} alt="Shrivastava's Elevate" className="login-logo" />
-            <div className="login-header-text">
-              <h2>Free Consultation</h2>
-              <p>We&apos;ll get back to you within 24 hours</p>
-            </div>
-            <button type="button" className="login-close" onClick={closeConsult} aria-label="Close">
-              <IconXMark />
-            </button>
+        {submitted ? (
+          /* ── Success state ── */
+          <div className="cm-success">
+            <div className="cm-success-icon">✓</div>
+            <h3>Consultation Booked!</h3>
+            <p>
+              Thank you. Our design team will get back to you within 24 hours to
+              schedule your free consultation.
+            </p>
+            <button className="cm-close-btn" onClick={closeConsult}>Done</button>
           </div>
 
-          <div className="login-divider" />
+        ) : (
+          <>
+            {/* ── Sticky header ── */}
+            <div className="cm-header">
+              <div className="cm-header-left">
+                <span className="cm-badge">Free Consultation</span>
+                <h2>Book Your Consultation</h2>
+              </div>
+              <button className="cm-close-x" onClick={closeConsult} aria-label="Close">✕</button>
+            </div>
 
-          <div className="login-inputs">
-            {FIELDS.map(({ name, label, type, placeholder, Icon }) => (
-              <div className="login-field" key={name}>
-                <label htmlFor={`consult-${name}`}>{label}</label>
-                <div className="login-input-wrap">
-                  <span className="login-input-icon"><Icon /></span>
-                  <input
-                    id={`consult-${name}`} name={name} type={type} placeholder={placeholder}
-                    value={data[name]} onChange={onChange} required autoComplete="off"
-                  />
+            {/* ── Scrollable body ── */}
+            <div className="cm-body">
+
+              {/* Steps */}
+              <div className="cm-steps">
+                <div className="cm-step">
+                  <span className="cm-step-num cm-step-num--active">1</span>
+                  <span className="cm-step-label cm-step-label--active">Your Details</span>
+                </div>
+                <div className="cm-step-line" />
+                <div className="cm-step">
+                  <span className="cm-step-num">2</span>
+                  <span className="cm-step-label">Confirmation</span>
                 </div>
               </div>
-            ))}
-            <div className="login-field">
-              <label htmlFor="consult-message">
-                Message <span className="login-field-opt">optional</span>
-              </label>
-              <div className="login-input-wrap">
-                <span className="login-input-icon login-input-icon--top">
-                  <IconCommentDots />
-                </span>
-                <textarea
-                  id="consult-message"
-                  name="message"
-                  placeholder="Tell us about your project — room type, budget, timeline..."
-                  value={data.message}
-                  onChange={onChange}
-                  rows={3}
-                  autoComplete="off"
-                />
-              </div>
-            </div>
-          </div>
 
-          <button type="submit" disabled={loading}>
-            {loading ? 'Submitting…' : <><IconCalendar /> Book Consultation</>}
-          </button>
-          <p className="login-note">No commitment required · Consultation fee refunded on project confirmation</p>
-        </div>
-      </form>
+              {/* Notice */}
+              <div className="cm-notice">
+                <span className="cm-notice-icon">✦</span>
+                <p>
+                  <strong>No commitment required.</strong> Consultation fee is fully
+                  adjusted against your project cost upon confirmation.
+                </p>
+              </div>
+
+              {/* Form */}
+              <form className="cm-form" onSubmit={onSubmit}>
+                <div className="cm-field-row">
+                  <div className="cm-field">
+                    <label htmlFor="c-name">Full Name</label>
+                    <input id="c-name" name="name" type="text" placeholder="Your full name"
+                      value={data.name} onChange={onChange} required autoComplete="off" />
+                  </div>
+                  <div className="cm-field">
+                    <label htmlFor="c-email">Email</label>
+                    <input id="c-email" name="email" type="email" placeholder="your@email.com"
+                      value={data.email} onChange={onChange} required autoComplete="off" />
+                  </div>
+                </div>
+
+                <div className="cm-field-row">
+                  <div className="cm-field">
+                    <label htmlFor="c-phone">Phone Number</label>
+                    <input id="c-phone" name="phone" type="tel" placeholder="+91 XXXXX XXXXX"
+                      value={data.phone} onChange={onChange} required autoComplete="off" />
+                  </div>
+                  <div className="cm-field">
+                    <label htmlFor="c-address">City / Address</label>
+                    <input id="c-address" name="address" type="text" placeholder="Your city / address"
+                      value={data.address} onChange={onChange} required autoComplete="off" />
+                  </div>
+                </div>
+
+                <div className="cm-field">
+                  <label htmlFor="c-message">Message <span>(optional)</span></label>
+                  <textarea id="c-message" name="message" rows={3}
+                    placeholder="Tell us about your project — room type, budget, timeline..."
+                    value={data.message} onChange={onChange} autoComplete="off" />
+                </div>
+
+                <button type="submit" className="cm-submit" disabled={loading}>
+                  {loading ? 'Submitting…' : <><IconCalendar /> Book Consultation</>}
+                </button>
+              </form>
+
+            </div>
+          </>
+        )}
+
+      </div>
     </div>
   );
 }

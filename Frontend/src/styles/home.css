@@ -1106,15 +1106,16 @@
 .marquee-track:hover .marquee-inner { animation-play-state: paused; }
 
 /* ── Testimonial card — enhanced ── */
+/* ── Noir testimonial card — dark green luxury ── */
 .t-card {
-  background: var(--white);
+  background: var(--green);
   border: 1px solid rgba(201,168,124,0.18);
   border-radius: 20px;
-  padding: 24px 24px 20px;
+  padding: 26px 26px 22px;
   width: 360px;
   flex-shrink: 0;
-  box-shadow: 0 4px 20px rgba(16,37,37,0.06);
-  transition: transform 0.32s ease, box-shadow 0.32s ease, border-color 0.32s ease;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+  transition: border-color 0.32s ease, box-shadow 0.32s ease;
   position: relative;
   overflow: hidden;
   display: flex;
@@ -1123,56 +1124,47 @@
 }
 
 .t-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 18px 44px rgba(16,37,37,0.1);
   border-color: rgba(201,168,124,0.42);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.26);
 }
 
-/* Gold left accent on hover */
+/* Large decorative watermark " behind the text */
 .t-card::before {
-  content: "";
+  content: "\201C";
   position: absolute;
-  left: 0; top: 18%; bottom: 18%;
-  width: 3px;
-  background: linear-gradient(to bottom, var(--gold), transparent);
-  border-radius: 0 3px 3px 0;
-  opacity: 0;
-  transition: opacity 0.32s ease;
-}
-.t-card:hover::before { opacity: 1; }
-
-/* Top row: quote badge + stars */
-.t-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  top: -18px;
+  right: 14px;
+  font-family: "Playfair Display", serif;
+  font-size: 9rem;
+  font-weight: 700;
+  color: rgba(201,168,124,0.08);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
 }
 
-.t-card-quote-icon {
-  width: 36px; height: 36px;
-  border-radius: 10px;
-  background: rgba(201,168,124,0.12);
-  border: 1px solid rgba(201,168,124,0.24);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--gold);
-  font-size: 0.85rem;
-}
-
+/* Stars — centered at top */
 .t-card-stars {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
   color: var(--gold);
-  font-size: 0.72rem;
-  display: flex; gap: 3px;
+  font-size: 0.75rem;
+  position: relative;
+  z-index: 1;
 }
 
-/* Quote text */
+/* Quote text — cream italic */
 .t-card-text {
   font-family: "Cormorant Garamond", serif;
   font-style: italic;
-  font-size: 0.97rem;
-  color: var(--text);
+  font-size: 1rem;
+  color: rgba(240,230,211,0.82);
   line-height: 1.78;
   margin: 0;
   flex: 1;
+  position: relative;
+  z-index: 1;
 }
 
 /* Author row */
@@ -1181,18 +1173,20 @@
   align-items: center;
   gap: 12px;
   padding-top: 14px;
-  border-top: 1px solid rgba(201,168,124,0.15);
+  border-top: 1px solid rgba(201,168,124,0.18);
   margin-top: auto;
+  position: relative;
+  z-index: 1;
 }
 
 .t-card-avatar {
-  width: 42px; height: 42px;
+  width: 40px; height: 40px;
   border-radius: 50%;
-  background: var(--green);
-  border: 2px solid rgba(201,168,124,0.3);
+  background: rgba(201,168,124,0.12);
+  border: 1.5px solid rgba(201,168,124,0.3);
   display: flex; align-items: center; justify-content: center;
-  font-size: 1rem; font-weight: 700;
-  color: var(--gold-lt);
+  font-size: 0.95rem; font-weight: 700;
+  color: var(--gold);
   font-family: "Playfair Display", serif;
   flex-shrink: 0;
   overflow: hidden;
@@ -1206,13 +1200,13 @@
   display: block;
   font-family: "Inter", sans-serif;
   font-size: 0.88rem; font-weight: 700;
-  color: var(--green);
+  color: #f0e6d3;
 }
 
 .t-card-author-info span {
   font-family: "Inter", sans-serif;
-  font-size: 0.73rem; font-weight: 500;
-  color: var(--gold);
+  font-size: 0.72rem; font-weight: 500;
+  color: rgba(201,168,124,0.6);
 }
 
 @keyframes marqueeLeft  { 0% { transform: translateX(0); }    100% { transform: translateX(-50%); } }

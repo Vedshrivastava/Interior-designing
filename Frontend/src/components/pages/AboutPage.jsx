@@ -214,10 +214,7 @@ export default function AboutPage() {
             <div className="marquee-inner scroll-left">
               {marqueeItems.map((t, i) => (
                 <div className="t-card" key={`a${i}`}>
-                  <div className="t-card-top">
-                    <div className="t-card-quote-icon"><IconQuoteLeft /></div>
-                    <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
-                  </div>
+                  <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
                   <p className="t-card-text">{t.text}</p>
                   <div className="t-card-author">
                     <div className="t-card-avatar">{t.image ? <img src={t.image.src} alt={t.name} /> : t.name.charAt(0)}</div>
@@ -231,10 +228,7 @@ export default function AboutPage() {
             <div className="marquee-inner scroll-right">
               {[...marqueeItems].reverse().map((t, i) => (
                 <div className="t-card" key={`b${i}`}>
-                  <div className="t-card-top">
-                    <div className="t-card-quote-icon"><IconQuoteLeft /></div>
-                    <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
-                  </div>
+                  <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
                   <p className="t-card-text">{t.text}</p>
                   <div className="t-card-author">
                     <div className="t-card-avatar">{t.image ? <img src={t.image.src} alt={t.name} /> : t.name.charAt(0)}</div>

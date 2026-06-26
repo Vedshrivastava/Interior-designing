@@ -1,6 +1,6 @@
 'use client';
 import '@/styles/about.css';
-import { IconCalendar, IconArrowRight, IconGem, IconCrown, IconHouseChimney, IconSwatchbook, IconShield, IconComments, IconEye, IconHelmet, IconKey, IconBuilding, IconWand, IconQuoteLeft, IconStar, IconStarFilled } from '@/components/Icons';
+import { IconCalendar, IconArrowRight, IconGem, IconCrown, IconHouseChimney, IconSwatchbook, IconShield, IconComments, IconEye, IconHelmet, IconKey, IconBuilding, IconWand, IconQuoteLeft, IconStar, IconStarFilled, IconXMark } from '@/components/Icons';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -56,6 +56,8 @@ const CountUp = ({ endValue, duration = 2300 }) => {
 export default function AboutPage() {
   const router = useRouter();
   const { openConsult } = useModal();
+  const [activeCard, setActiveCard] = useState(null);
+
   const revealRefs = useRef([]);
   useEffect(() => {
     const io = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } }), { threshold: 0.1 });
@@ -64,8 +66,38 @@ export default function AboutPage() {
   }, []);
   const sr = el => { if (el && !revealRefs.current.includes(el)) revealRefs.current.push(el); };
 
+  useEffect(() => {
+    if (activeCard) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [activeCard]);
+
   return (
     <div className="about-page">
+
+      {/* ── Process step detail modal ── */}
+      {activeCard && (
+        <div className="svc-modal-backdrop" onClick={() => setActiveCard(null)}>
+          <div className="svc-modal" onClick={e => e.stopPropagation()}>
+            <div className="svc-modal-header">
+              <div className="svc-modal-icon"><activeCard.Icon /></div>
+              <h3 className="svc-modal-title">
+                {activeCard.num && (
+                  <span style={{ color: 'var(--gold)', fontVariantNumeric: 'lining-nums', marginRight: 8 }}>
+                    {activeCard.num}
+                  </span>
+                )}
+                {activeCard.title}
+              </h3>
+              <button className="svc-modal-close" onClick={() => setActiveCard(null)} aria-label="Close">
+                <IconXMark />
+              </button>
+            </div>
+            <p className="svc-modal-desc">{activeCard.desc}</p>
+          </div>
+        </div>
+      )}
+
       <section className="about-hero">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={bgimg.src} alt="Luxury interior design by Shrivastavas Elevate — premium interior designers in Satna, Madhya Pradesh" className="about-hero-bg" />
@@ -191,7 +223,14 @@ export default function AboutPage() {
             { num: '03', Icon: IconHelmet, title: 'Execution',      desc: 'Expert craftsmen bring your design to life with precision and care.'      },
             { num: '04', Icon: IconKey,          title: 'Final Handover', desc: 'A complete walkthrough and handover of your transformed dream space.'     },
           ].map((s, i) => (
-            <div className="process-box" key={i}>
+            <div
+              className="process-box"
+              key={i}
+              onClick={() => setActiveCard(s)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => e.key === 'Enter' && setActiveCard(s)}
+            >
               <div className="process-box-top">
                 <div className="process-box-icon"><s.Icon /></div>
                 <span className="process-num hp-prof-num">{s.num}</span>

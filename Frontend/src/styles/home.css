@@ -699,7 +699,7 @@
     border-color 0.35s ease,
     box-shadow 0.35s ease;
 
-  cursor: default;
+  cursor: pointer;
 
   opacity: 0;
   transform: translateY(36px);
@@ -825,184 +825,87 @@
 }
 .hp-advantages-head p { color: var(--text-mid); font-size: 0.97rem; line-height: 1.8; margin: 0; }
 
-/* asymmetric 60/40 split */
-.hp-adv-layout {
+/* ── 6-card icon grid ── */
+.hp-adv-grid {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
-  margin-bottom: 20px;
   position: relative;
   z-index: 1;
-}
-
-/* left — tall featured card */
-.hp-adv-feature {
-  background: var(--white);
-  border-radius: 24px;
-  overflow: hidden;
-  border: 1px solid rgba(16,37,37,0.07);
-  box-shadow: 0 8px 30px rgba(16,37,37,0.06);
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.38s ease, box-shadow 0.38s ease;
-  position: relative;
-}
-.hp-adv-feature::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--gold), var(--gold-lt), var(--gold));
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.4s ease;
-  z-index: 1;
-}
-.hp-adv-feature:hover::before { transform: scaleX(1); }
-.hp-adv-feature:hover { transform: translateY(-6px); box-shadow: 0 22px 50px rgba(16,37,37,0.11); }
-
-.hp-adv-feature-img {
-  position: relative;
-  height: 280px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-.hp-adv-feature-img img {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.6s ease;
-}
-.hp-adv-feature:hover .hp-adv-feature-img img { transform: scale(1.06); }
-.hp-adv-feature-overlay {
-  position: absolute; inset: 0;
-  background: linear-gradient(to top, rgba(16,37,37,0.55), transparent 50%);
-}
-.hp-adv-feature-tag {
-  position: absolute;
-  bottom: 16px; left: 16px;
-  background: rgba(16,37,37,0.8);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(201,168,124,0.35);
-  border-radius: 30px;
-  padding: 6px 14px;
-  color: var(--gold);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-
-  display: flex; align-items: center; gap: 6px;
-}
-
-.hp-adv-feature-body {
-  padding: 28px 30px 30px;
-  flex: 1;
-}
-.hp-adv-feature-body h3 {
-  font-family: "Playfair Display", serif;
-  font-size: 1.5rem;
-  color: var(--green);
-  margin: 0 0 10px;
-  font-weight: 700;
-}
-.hp-adv-feature-body > p { color: var(--text-mid); font-size: 0.93rem; line-height: 1.75; margin: 0 0 20px; }
-.hp-adv-feature-body ul, .hp-adv-card-body ul {
-  list-style: none; padding: 0; margin: 0;
-  display: flex; flex-direction: column; gap: 9px;
-  border-top: 1px solid rgba(16,37,37,0.06);
-  padding-top: 16px;
-}
-.hp-adv-feature-body li, .hp-adv-card-body li {
-  display: flex; align-items: center; gap: 10px;
-  color: var(--text-mid); font-size: 0.87rem;
-}
-.hp-adv-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--gold);
-  flex-shrink: 0;
-}
-
-/* right — stacked 2 smaller cards */
-.hp-adv-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 .hp-adv-card {
-  background: var(--white);
-  border-radius: 22px;
-  overflow: hidden;
-  border: 1px solid rgba(16,37,37,0.07);
-  box-shadow: 0 6px 22px rgba(16,37,37,0.05);
+  background: #ffffff;
+  border: 1px solid rgba(201,168,124,0.16);
+  border-radius: 18px;
+  padding: 28px 24px;
   display: flex;
-  flex: 1;
-  transition: transform 0.35s ease, box-shadow 0.35s ease;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 2px 14px rgba(16,37,37,0.05);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   position: relative;
+  overflow: hidden;
+  cursor: pointer;
 }
+
+/* gold sweep on bottom */
 .hp-adv-card::before {
   content: "";
   position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--gold), var(--gold-lt), var(--gold));
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
   transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.4s ease;
-  z-index: 1;
+  transition: transform 0.35s ease;
 }
+
+.hp-adv-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 34px rgba(16,37,37,0.09);
+  border-color: rgba(201,168,124,0.35);
+}
+
 .hp-adv-card:hover::before { transform: scaleX(1); }
-.hp-adv-card:hover { transform: translateY(-5px); box-shadow: 0 18px 40px rgba(16,37,37,0.1); }
 
-.hp-adv-card-img {
-  position: relative;
-  width: 160px;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-.hp-adv-card-img img {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.6s ease;
-}
-.hp-adv-card:hover .hp-adv-card-img img { transform: scale(1.08); }
-.hp-adv-card-img-overlay {
-  position: absolute; inset: 0;
-  background: linear-gradient(to right, transparent 40%, rgba(16,37,37,0.25));
-}
-.hp-adv-card-tag {
-  position: absolute;
-  bottom: 12px; left: 10px;
-  background: rgba(16,37,37,0.78);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(201,168,124,0.3);
-  border-radius: 20px;
-  padding: 4px 10px;
-  color: var(--gold);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-
-  display: flex; align-items: center; gap: 5px;
-}
-
-.hp-adv-card-body {
-  padding: 22px 22px 22px;
-  flex: 1;
+.hp-adv-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: rgba(201,168,124,0.1);
+  border: 1px solid rgba(201,168,124,0.22);
   display: flex;
-  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  color: var(--gold);
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  transition: background 0.25s ease, transform 0.25s ease;
 }
-.hp-adv-card-body h4 {
+
+.hp-adv-card:hover .hp-adv-icon {
+  background: rgba(201,168,124,0.18);
+  transform: scale(1.06) rotate(-4deg);
+}
+
+.hp-adv-card h3 {
   font-family: "Playfair Display", serif;
-  font-size: 1.1rem;
-  color: var(--green);
-  margin: 0 0 8px;
+  font-size: 1.05rem;
   font-weight: 700;
+  color: var(--green);
+  margin: 0;
+  line-height: 1.25;
 }
-.hp-adv-card-body > p { color: var(--text-mid); font-size: 0.87rem; line-height: 1.7; margin: 0 0 14px; }
+
+.hp-adv-card p {
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.87rem;
+  color: var(--text-mid);
+  line-height: 1.68;
+  margin: 0;
+}
 
 /* mini stat strip */
 .hp-adv-stats {
@@ -1105,9 +1008,10 @@
 .scroll-right { animation: marqueeRight 42s linear infinite; }
 .marquee-track:hover .marquee-inner { animation-play-state: paused; }
 
-/* ── Testimonial card — enhanced ── */
-/* ── Noir testimonial card — dark green luxury ── */
-.t-card {
+/* ── Noir testimonial card — scoped to home page only ──
+   Using .hp-testimonials parent gives 2-class specificity,
+   always winning over services.css .t-card (1 class) ── */
+.hp-testimonials .t-card {
   background: #102525;
   border: 1px solid rgba(201,168,124,0.18);
   border-radius: 20px;
@@ -1123,13 +1027,12 @@
   gap: 14px;
 }
 
-.t-card:hover {
+.hp-testimonials .t-card:hover {
   border-color: rgba(201,168,124,0.42);
   box-shadow: 0 14px 40px rgba(0,0,0,0.26);
 }
 
-/* Large decorative watermark " behind the text */
-.t-card::before {
+.hp-testimonials .t-card::before {
   content: "\201C";
   position: absolute;
   top: -18px;
@@ -1143,8 +1046,7 @@
   user-select: none;
 }
 
-/* Stars — centered at top */
-.t-card-stars {
+.hp-testimonials .t-card-stars {
   display: flex;
   justify-content: center;
   gap: 4px;
@@ -1154,8 +1056,7 @@
   z-index: 1;
 }
 
-/* Quote text — cream italic */
-.t-card-text {
+.hp-testimonials .t-card-text {
   font-family: "Cormorant Garamond", serif;
   font-style: italic;
   font-size: 1rem;
@@ -1167,8 +1068,7 @@
   z-index: 1;
 }
 
-/* Author row */
-.t-card-author {
+.hp-testimonials .t-card-author {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1179,7 +1079,7 @@
   z-index: 1;
 }
 
-.t-card-avatar {
+.hp-testimonials .t-card-avatar {
   width: 40px; height: 40px;
   border-radius: 50%;
   background: rgba(201,168,124,0.12);
@@ -1192,18 +1092,18 @@
   overflow: hidden;
 }
 
-.t-card-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hp-testimonials .t-card-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-.t-card-author-info { display: flex; flex-direction: column; gap: 2px; }
+.hp-testimonials .t-card-author-info { display: flex; flex-direction: column; gap: 2px; }
 
-.t-card-author-info strong {
+.hp-testimonials .t-card-author-info strong {
   display: block;
   font-family: "Inter", sans-serif;
   font-size: 0.88rem; font-weight: 700;
   color: #f0e6d3;
 }
 
-.t-card-author-info span {
+.hp-testimonials .t-card-author-info span {
   font-family: "Inter", sans-serif;
   font-size: 0.72rem; font-weight: 500;
   color: rgba(201,168,124,0.6);
@@ -1406,62 +1306,22 @@
     grid-auto-rows: 210px; /* Perfectly balances a 2-column mobile masonry aspect ratio */
   }
   .hp-process-grid { grid-template-columns: 1fr 1fr; gap: 14px; }
-  .hp-adv-layout { grid-template-columns: 1fr; }
-
-/* ════════════════════════════════════════════
-   MAKE FEATURED ADVANTAGE CARD MATCH OTHERS
-════════════════════════════════════════════ */
-
-.hp-adv-feature {
-  flex-direction: column;
-  border-radius: 22px;
-  box-shadow: 0 6px 22px rgba(16,37,37,0.05);
-}
-
-.hp-adv-feature-img {
-  width: 100%;
-  height: 160px;
-}
-
-.hp-adv-feature-body {
-  padding: 22px;
-}
-
-.hp-adv-feature-body h3 {
-  font-size: 1.1rem;
-}
-
-.hp-adv-feature-body > p {
-  font-size: 0.87rem;
-  line-height: 1.7;
-}
-
-/* Match tag styling */
-.hp-adv-feature-tag {
-  bottom: 12px;
-  left: 10px;
-  padding: 4px 10px;
-  font-size: 0.7rem;
-  letter-spacing: 0.3px;
-  border-radius: 20px;
-  gap: 5px;
-}
-
-/* Match icon size */
-.hp-adv-feature-tag svg {
-  font-size: 0.75rem;
-}
-
-
-
-  .hp-adv-card { flex-direction: column; }
-  .hp-adv-card-img { width: 100%; height: 160px; }
-
-  /* Hide bullet lists on mobile — description text is enough at this size */
-  .hp-adv-feature-body ul, .hp-adv-card-body ul { display: none; }
-  /* Remove the bottom margin on description paragraphs now that there's no list below */
-  .hp-adv-feature-body > p { margin-bottom: 0; }
-  .hp-adv-card-body > p { margin-bottom: 0; }
+  /* 2 columns × 3 rows on mobile */
+  .hp-adv-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .hp-adv-card { padding: 22px 18px; gap: 11px; }
+  .hp-adv-icon { width: 40px; height: 40px; font-size: 1rem; }
+  .hp-adv-card p {
+    font-family: "Inter", sans-serif;
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.6;
+    letter-spacing: 0.1px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 
   .hp-adv-stats { grid-template-columns: 1fr; border-radius: 18px; }
   .hp-adv-stat { border-right: none; border-bottom: 1px solid rgba(201,168,124,0.1); padding: 24px; }
@@ -1469,7 +1329,7 @@
 
   .hp-cta-actions { flex-direction: column; align-items: center; }
   .hp-cta-btn-primary, .hp-cta-btn-ghost { width: 100%; max-width: 280px; justify-content: center; }
-  .t-card { width: 280px; }
+  .hp-testimonials .t-card { width: 280px; }
 }
 
 @media (max-width: 480px) {
@@ -1485,7 +1345,7 @@
   }
   .hp-brands-row { gap: 14px; }
   .hp-brand-card { width: 150px; height: 85px; }
-  .t-card { width: 260px; padding: 20px; }
+  .hp-testimonials .t-card { width: 260px; padding: 20px; }
   .hp-cta-inner h2 { font-size: 2.2rem; }
 
   /* ════════════════════════════════════════════
@@ -1519,9 +1379,20 @@
     padding: 20px 12px;
   }
 
-  /* Vanish the description text completely */
+  /* Show description clamped — tap card to read full */
   .hp-process-card p {
-    display: none;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-family: "Inter", sans-serif;
+    font-size: 0.73rem;
+    font-weight: 400;
+    line-height: 1.55;
+    letter-spacing: 0.1px;
+    color: var(--text-mid);
+    margin-top: 4px;
   }
 
   /* Center the icon area */

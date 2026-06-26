@@ -6,7 +6,8 @@ import {
   IconCrown, IconLayerGroup, IconBuilding, IconArrowRight, IconCalendar,
   IconShield, IconUtensils, IconBed, IconBath, IconCouch, IconTv,
   IconComments, IconRuler, IconEye, IconSwatchbook, IconHelmet, IconKey,
-  IconHouseChimney, IconQuoteLeft, IconIndustry, IconStar, IconStarFilled, IconTag,
+  IconHouseChimney, IconQuoteLeft, IconIndustry, IconStar, IconStarFilled,
+  IconGem, IconPenRuler, IconXMark,
 } from '@/components/Icons';
 import Footer from '@/components/Footer';
 import { useModal } from '@/context/ModalContext';
@@ -22,8 +23,6 @@ import saint_gobain from '@/assets/Saint-Gobain.jpg';
 import asian_paints from '@/assets/asian-paints.jpeg';
 import centuryply   from '@/assets/centuryply.png';
 import design       from '@/assets/refund-design.png';
-import rates        from '@/assets/rates.png';
-import visualization3D from '@/assets/3D-visualization.png';
 
 const testimonials = [
   { name: 'Rahul Mehta',    location: 'Mumbai',    text: 'Exceptional execution and luxurious finishing. The team transformed our home beyond expectations.',          rating: 5, image: design },
@@ -83,6 +82,7 @@ const CountUp = ({ endValue, duration = 2300 }) => {
 export default function HomePage() {
   const router = useRouter();
   const { openConsult } = useModal();
+  const [activeCard, setActiveCard] = useState(null);
 
   const revealRefs = useRef([]);
   useEffect(() => {
@@ -95,8 +95,37 @@ export default function HomePage() {
   }, []);
   const sr = el => { if (el && !revealRefs.current.includes(el)) revealRefs.current.push(el); };
 
+  useEffect(() => {
+    if (activeCard) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [activeCard]);
+
   return (
     <div className="home-page">
+
+      {/* ── Card detail modal — process + advantages ── */}
+      {activeCard && (
+        <div className="svc-modal-backdrop" onClick={() => setActiveCard(null)}>
+          <div className="svc-modal" onClick={e => e.stopPropagation()}>
+            <div className="svc-modal-header">
+              <div className="svc-modal-icon"><activeCard.Icon /></div>
+              <h3 className="svc-modal-title">
+                {activeCard.num && (
+                  <span style={{ color: 'var(--gold)', fontVariantNumeric: 'lining-nums', marginRight: 8 }}>
+                    {activeCard.num}
+                  </span>
+                )}
+                {activeCard.title}
+              </h3>
+              <button className="svc-modal-close" onClick={() => setActiveCard(null)} aria-label="Close">
+                <IconXMark />
+              </button>
+            </div>
+            <p className="svc-modal-desc">{activeCard.desc}</p>
+          </div>
+        </div>
+      )}
 
       {/* ══════════════════════════════
           HERO
@@ -233,7 +262,16 @@ export default function HomePage() {
             { Icon: IconHelmet,   num: '05', title: 'Execution',         desc: 'Expert craftsmen bring your design to life with precision and care.'       },
             { Icon: IconKey,      num: '06', title: 'Final Handover',    desc: 'A complete walkthrough and handover of your transformed dream space.'      },
           ].map((s, i) => (
-            <div className="hp-process-card sr-item" key={i} ref={sr} style={{ '--sr-delay': `${i * 80}ms` }}>
+            <div
+              className="hp-process-card sr-item"
+              key={i}
+              ref={sr}
+              style={{ '--sr-delay': `${i * 80}ms` }}
+              onClick={() => setActiveCard(s)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => e.key === 'Enter' && setActiveCard(s)}
+            >
               <div className="hp-pc-top">
                 <div className="hp-pc-icon"><s.Icon /></div>
                 <span className="hp-pc-num hp-prof-num">{s.num}</span>
@@ -256,60 +294,30 @@ export default function HomePage() {
           <p>Every decision is designed to give you more confidence, more value and a smoother journey.</p>
         </div>
 
-        <div className="hp-adv-layout">
-          <div className="hp-adv-feature sr-item" ref={sr}>
-            <div className="hp-adv-feature-img">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={rates.src} alt="Affordable luxury interior design pricing in Satna, Madhya Pradesh — Shrivastavas Elevate" />
-              <div className="hp-adv-feature-overlay" />
-              <div className="hp-adv-feature-tag"><IconTag /> Pricing</div>
+        <div className="hp-adv-grid">
+          {[
+            { Icon: IconGem,      title: 'Affordable Luxury',   desc: 'Premium interiors at transparent pricing — no hidden costs, ever.'                       },
+            { Icon: IconShield,   title: 'Consultation Refund', desc: 'Your consultation fee is fully adjusted against your final project cost.'                 },
+            { Icon: IconEye,      title: '3D Before Build',     desc: 'See your exact space in photorealistic 3D before a single nail is hammered.'              },
+            { Icon: IconKey,      title: 'Turnkey Execution',   desc: 'We handle sourcing, build, quality checks and handover. You just walk in.'                },
+            { Icon: IconPenRuler, title: '100% Bespoke',        desc: 'Every design built from scratch around your life — never from a catalogue.'               },
+            { Icon: IconBuilding, title: 'We Travel to You',    desc: 'Our team visits your location for site measurements, reviews and execution oversight.'    },
+          ].map((adv, i) => (
+            <div
+              className="hp-adv-card sr-item"
+              key={i}
+              ref={sr}
+              style={{ '--sr-delay': `${i * 70}ms` }}
+              onClick={() => setActiveCard(adv)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => e.key === 'Enter' && setActiveCard(adv)}
+            >
+              <div className="hp-adv-icon"><adv.Icon /></div>
+              <h3>{adv.title}</h3>
+              <p>{adv.desc}</p>
             </div>
-            <div className="hp-adv-feature-body">
-              <h3>Affordable Luxury</h3>
-              <p>Premium interiors with transparent pricing and zero hidden costs — luxury made genuinely accessible.</p>
-              <ul>
-                <li><span className="hp-adv-dot" />No hidden charges, ever</li>
-                <li><span className="hp-adv-dot" />Premium materials within budget</li>
-                <li><span className="hp-adv-dot" />Detailed cost breakdown upfront</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="hp-adv-stack">
-            <div className="hp-adv-card sr-item" ref={sr} style={{ '--sr-delay': '80ms' }}>
-              <div className="hp-adv-card-img">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={design.src} alt="Refundable interior design consultation fee — Shrivastavas Elevate, Satna MP" />
-                <div className="hp-adv-card-img-overlay" />
-                <div className="hp-adv-card-tag"><IconShield /> Risk-Free</div>
-              </div>
-              <div className="hp-adv-card-body">
-                <h4>Consultation Refund</h4>
-                <p>Your consultation fee is fully adjusted against project cost — zero financial risk.</p>
-                <ul>
-                  <li><span className="hp-adv-dot" />Fee adjusted on confirmation</li>
-                  <li><span className="hp-adv-dot" />No obligation to proceed</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="hp-adv-card sr-item" ref={sr} style={{ '--sr-delay': '160ms' }}>
-              <div className="hp-adv-card-img">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={visualization3D.src} alt="3D interior visualization and rendering service by Shrivastavas Elevate, Satna MP" />
-                <div className="hp-adv-card-img-overlay" />
-                <div className="hp-adv-card-tag"><IconEye /> 3D Design</div>
-              </div>
-              <div className="hp-adv-card-body">
-                <h4>See It In 3D First</h4>
-                <p>We render your exact space in photorealistic 3D — you approve every detail before we build.</p>
-                <ul>
-                  <li><span className="hp-adv-dot" />No surprises on execution day</li>
-                  <li><span className="hp-adv-dot" />Changes made before costs are locked</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 

@@ -1,7 +1,7 @@
 'use client';
 import '@/styles/services.css';
 import Link from 'next/link';
-import { IconCalendar, IconArrowRight, IconCrown, IconComments, IconEye, IconKey, IconLightbulb, IconHouseChimney, IconBuilding, IconScrewdriverWrench, IconRuler, IconStar, IconStarFilled, IconLayerGroup, IconClock, IconShield, IconPenRuler, IconGem, IconQuoteLeft, IconHandshake } from '@/components/Icons';
+import { IconCalendar, IconArrowRight, IconCrown, IconComments, IconEye, IconKey, IconLightbulb, IconHouseChimney, IconBuilding, IconScrewdriverWrench, IconRuler, IconStar, IconStarFilled, IconLayerGroup, IconClock, IconShield, IconPenRuler, IconGem, IconQuoteLeft, IconHandshake, IconXMark } from '@/components/Icons';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -22,12 +22,12 @@ const testimonials = [
 const marqueeItems = [...testimonials, ...testimonials];
 
 const services = [
-  { Icon: IconHouseChimney,     title: 'Residential Interiors', description: 'Bespoke home interiors for apartments and villas in Satna, Madhya Pradesh — designed around how you actually live.',                   features: ['100% custom, no templates', 'Apartment & villa specialists'],     link: '/design/bedroom-designs'    },
-  { Icon: IconBuilding,         title: 'Commercial Spaces',     description: 'Office and retail interiors in Satna, MP that reflect your brand and keep your team performing at their best.',                         features: ['Brand-centric design', 'Ergonomic, turnkey execution'],           link: '/design/commercial-designs' },
-  { Icon: IconEye,              title: '3D Visualization',      description: 'Photorealistic 3D renders of your space in Satna — see and approve every detail before a single nail is hammered.',                    features: ['Photo-realistic accuracy', 'Approved before a nail is hammered'], link: null                         },
-  { Icon: IconRuler,            title: 'Space Planning',        description: 'Smart layouts that extract every usable inch from your Satna home or office without sacrificing flow or comfort.',                      features: ['Floor plan optimisation', 'Flow & functionality focused'],         link: '/design/kitchen-designs'    },
-  { Icon: IconLightbulb,        title: 'Lighting Design',       description: 'Ambient, accent and task lighting design for homes and commercial spaces in Satna, Madhya Pradesh — defining mood and character.',      features: ['Mood-enhancing concepts', 'Natural & artificial balance'],         link: '/design/lounge-area-designs'},
-  { Icon: IconScrewdriverWrench,title: 'Renovation Services',   description: 'Complete home and office makeovers in Satna, MP — targeted upgrades or full interior renovations with minimal disruption.',             features: ['Partial or full overhauls', 'Minimal disruption approach'],       link: '/projects'                  },
+  { Icon: IconHouseChimney,     title: 'Residential Interiors', description: 'Bespoke home interiors for apartments and villas across India — designed entirely around how you actually live.',                       features: ['100% custom, no templates', 'Apartment & villa specialists'],     link: '/design/bedroom-designs'    },
+  { Icon: IconBuilding,         title: 'Commercial Spaces',     description: 'Office and retail interiors that reflect your brand identity and keep your team performing at their best.',                              features: ['Brand-centric design', 'Ergonomic, turnkey execution'],           link: '/design/commercial-designs' },
+  { Icon: IconEye,              title: '3D Visualization',      description: 'Photorealistic 3D renders of your exact space — see and approve every detail before a single nail is hammered.',                        features: ['Photo-realistic accuracy', 'Approved before a nail is hammered'], link: null                         },
+  { Icon: IconRuler,            title: 'Space Planning',        description: 'Smart layouts that extract every usable inch from your home or office without sacrificing flow or comfort.',                             features: ['Floor plan optimisation', 'Flow & functionality focused'],         link: '/design/kitchen-designs'    },
+  { Icon: IconLightbulb,        title: 'Lighting Design',       description: 'Ambient, accent and task lighting for homes and commercial spaces — defining mood, character and atmosphere.',                           features: ['Mood-enhancing concepts', 'Natural & artificial balance'],         link: '/design/lounge-area-designs'},
+  { Icon: IconScrewdriverWrench,title: 'Renovation Services',   description: 'Complete home and office makeovers — targeted upgrades or full interior renovations delivered with minimal disruption.',                 features: ['Partial or full overhauls', 'Minimal disruption approach'],       link: '/projects'                  },
 ];
 
 const CountUp = ({ endValue, duration = 2300 }) => {
@@ -58,6 +58,8 @@ export default function ServicesPage() {
   const router = useRouter();
   const { openConsult } = useModal();
   const revealRefs = useRef([]);
+  const [activeService, setActiveService] = useState(null);
+
   useEffect(() => {
     const o = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); o.unobserve(e.target); } }), { threshold: 0.1 });
     revealRefs.current.forEach(el => el && o.observe(el));
@@ -65,8 +67,46 @@ export default function ServicesPage() {
   }, []);
   const addRef = el => { if (el && !revealRefs.current.includes(el)) revealRefs.current.push(el); };
 
+  useEffect(() => {
+    if (activeService) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [activeService]);
+
   return (
     <div className="services-page">
+
+      {/* ── Service detail modal ── */}
+      {activeService && (
+        <div className="svc-modal-backdrop" onClick={() => setActiveService(null)}>
+          <div className="svc-modal" onClick={e => e.stopPropagation()}>
+            <div className="svc-modal-header">
+              <div className="svc-modal-icon"><activeService.Icon /></div>
+              <h3 className="svc-modal-title">{activeService.title}</h3>
+              <button className="svc-modal-close" onClick={() => setActiveService(null)} aria-label="Close">
+                <IconXMark />
+              </button>
+            </div>
+            <p className="svc-modal-desc">{activeService.description}</p>
+            {activeService.features?.length > 0 && (
+              <ul className="svc-modal-features">
+                {activeService.features.map((f, i) => (
+                  <li key={i}><span className="svc-feat-dot" />{f}</li>
+                ))}
+              </ul>
+            )}
+            {activeService.link && (
+              <Link
+                href={activeService.link}
+                className="svc-modal-link"
+                onClick={() => setActiveService(null)}
+              >
+                View designs <IconArrowRight />
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
       <section className="services-hero">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={bgimg.src} alt="Luxury interior design services in Satna, Madhya Pradesh — Shrivastavas Elevate" className="services-hero-bg" />
@@ -103,12 +143,22 @@ export default function ServicesPage() {
             <h2>Every Service.<br />One Vision.</h2>
           </div>
           <div className="services-heading-right">
-            <p>From residential retreats to commercial landmarks in Satna, Madhya Pradesh — every interior design brief handled from the first sketch to the final handover.</p>
+            <p>From residential retreats to commercial landmarks across India — every interior design brief handled from the first sketch to the final handover.</p>
           </div>
         </div>
         <div className="svc-grid">
           {services.map((svc, i) => (
-            <div className="svc-grid-card reveal-item" ref={addRef} key={i} data-num={String(i + 1).padStart(2, '0')} style={{ '--delay': `${i * 80}ms` }}>
+            <div
+              className="svc-grid-card reveal-item"
+              ref={addRef}
+              key={i}
+              data-num={String(i + 1).padStart(2, '0')}
+              style={{ '--delay': `${i * 80}ms` }}
+              onClick={() => setActiveService(svc)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => e.key === 'Enter' && setActiveService(svc)}
+            >
               <div className="svc-card-accent" />
               <div className="svc-card-body">
                 <div className="svc-icon-wrap"><svc.Icon /></div>
@@ -118,7 +168,11 @@ export default function ServicesPage() {
                   {svc.features.map((f, idx) => <li key={idx}><span className="svc-feat-dot" />{f}</li>)}
                 </ul>
                 {svc.link && (
-                  <Link href={svc.link} className="svc-card-link">
+                  <Link
+                    href={svc.link}
+                    className="svc-card-link"
+                    onClick={e => e.stopPropagation()}
+                  >
                     <span>View designs</span>
                     <span className="svc-card-link-arrow"><IconArrowRight /></span>
                   </Link>

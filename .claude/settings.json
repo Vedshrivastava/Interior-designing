@@ -73,7 +73,9 @@
       "Bash(npx create-next-app@latest india-news-app --js --app --tailwind --eslint --no-src-dir --import-alias \"@/*\" --no-turbopack)",
       "Bash(npm install *)",
       "Bash(npx prisma *)",
-      "Bash(mkdir -p ~/india-news-app/app/api/auth/\\\\[...nextauth\\\\] ~/india-news-app/app/api/news ~/india-news-app/app/api/posts ~/india-news-app/app/api/thoughts ~/india-news-app/app/api/summarize ~/india-news-app/app/area/\\\\[...slug\\\\] ~/india-news-app/app/topic/\\\\[topic\\\\] ~/india-news-app/app/submit ~/india-news-app/app/thoughts ~/india-news-app/app/auth/signin ~/india-news-app/app/auth/signup ~/india-news-app/components ~/india-news-app/lib ~/india-news-app/data && echo \"Dirs created\")"
+      "Bash(mkdir -p ~/india-news-app/app/api/auth/\\\\[...nextauth\\\\] ~/india-news-app/app/api/news ~/india-news-app/app/api/posts ~/india-news-app/app/api/thoughts ~/india-news-app/app/api/summarize ~/india-news-app/app/area/\\\\[...slug\\\\] ~/india-news-app/app/topic/\\\\[topic\\\\] ~/india-news-app/app/submit ~/india-news-app/app/thoughts ~/india-news-app/app/auth/signin ~/india-news-app/app/auth/signup ~/india-news-app/components ~/india-news-app/lib ~/india-news-app/data && echo \"Dirs created\")",
+      "Bash(node -e \"require\\('fs'\\).readFileSync\\('/Users/vedshrivastava/interior-site-project/Frontend/src/components/pages/HomePage.jsx'\\)\")",
+      "Bash(node -e \"require\\('fs'\\).readFileSync\\('/Users/vedshrivastava/interior-site-project/Frontend/src/styles/home.css'\\)\")"
     ],
     "additionalDirectories": [
       "/tmp",

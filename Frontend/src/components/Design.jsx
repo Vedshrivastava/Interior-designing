@@ -6,10 +6,10 @@ import Image from 'next/image';
 import { useModal } from '@/context/ModalContext';
 
 // Cloudinary transform: serve compressed thumbnails for card/modal thumbnails
-function cloudinaryThumb(url, width = 600) {
+function cloudinaryThumb(url, width = 800) {
   if (!url) return null;
   if (!url.includes('res.cloudinary.com')) return url;
-  return url.replace('/upload/', `/upload/w_${width},c_fill,f_auto,q_auto/`);
+  return url.replace('/upload/', `/upload/w_${width},c_fill,f_auto,q_auto:good/`);
 }
 
 export default function Design({ id, name, description, images, points, category }) {
@@ -64,7 +64,7 @@ export default function Design({ id, name, description, images, points, category
         <div className="dc-card-img-container">
           {images?.[0] ? (
             <Image
-              src={cloudinaryThumb(images[0], 600)}
+              src={images[0]}
               alt={`${name} — ${category || 'interior'} design by Shrivastavas Elevate, Satna MP`}
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -107,7 +107,7 @@ export default function Design({ id, name, description, images, points, category
             <div className="dc-modal-main-img-container">
               {images?.[activeThumb] ? (
                 <Image
-                  src={cloudinaryThumb(images[activeThumb], 900)}
+                  src={images[activeThumb]}
                   alt={`${name} — ${category || 'interior'} design, image ${activeThumb + 1} | Shrivastavas Elevate, Satna MP`}
                   fill
                   sizes="(max-width: 768px) 100vw, 60vw"

@@ -1,6 +1,10 @@
-import { MailtrapClient } from "mailtrap";
 import { mailtrapClient, sender } from "./mailtrap.js";
-import { PASSWORD_RESET_SUCCESS_TEMPLATE, VERIFICATION_EMAIL_TEMPLATE, PASSWORD_RESET_REQUEST_TEMPLATE } from "./emailTemplates.js";
+import {
+  VERIFICATION_EMAIL_TEMPLATE,
+  WELCOME_EMAIL_TEMPLATE,
+  PASSWORD_RESET_REQUEST_TEMPLATE,
+  PASSWORD_RESET_SUCCESS_TEMPLATE,
+} from "./emailTemplates.js";
 import userModel from "../models/user.js";
 
 export const sendVerificationEmail = async (email, verificationToken) => {
@@ -29,11 +33,9 @@ export const sendWelcomeEmail = async (email, name) => {
         const response = await mailtrapClient.send({
             from: sender,
             to: recipient,
-            template_uuid: "72140660-a0ba-478e-9375-882f5c6748f1",
-            template_variables: {
-                company_info_name: "Test_Company_info_name",
-                name: name
-            }
+            subject: 'Welcome to Shrivastava\'s Elevate Admin Panel',
+            html: WELCOME_EMAIL_TEMPLATE.replace('{name}', name),
+            category: 'Welcome',
         });
 
         console.log("Welcome email sent successfully", response);

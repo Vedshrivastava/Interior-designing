@@ -11,7 +11,7 @@ import materials  from '@/assets/materials-2.png';
 import services   from '@/assets/services.png';
 import commitment from '@/assets/commitment.png';
 import bgimg      from '@/assets/home-img.png';
-import storyImg   from '@/assets/house-exterior-img.jpg';
+import storyImg   from '@/assets/story.png';
 import designImg  from '@/assets/refund-design.png';
 
 const testimonials = [

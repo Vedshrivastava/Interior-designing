@@ -1334,9 +1334,15 @@
 
 @media (max-width: 480px) {
   .hp-hero-title { font-size: 2.6rem; }
-  .hp-stats { grid-template-columns: 1fr; }
-  .hp-stat-item { border-right: none; border-bottom: 1px solid rgba(201,168,124,0.1); }
-  .hp-stat-item:last-child { border-bottom: none; }
+  /* 2×2 grid — far more compact than 4 stacked */
+  .hp-stats { grid-template-columns: repeat(2, 1fr); }
+  .hp-stat-item { padding: 28px 16px 24px; }
+  .hp-stat-item:nth-child(odd)  { border-right: 1px solid rgba(201,168,124,0.1); }
+  .hp-stat-item:nth-child(1),
+  .hp-stat-item:nth-child(2)    { border-bottom: 1px solid rgba(201,168,124,0.1); }
+  /* hide sub-text — number + label is enough at this size */
+  .hp-stat-sub { display: none; }
+  .hp-stat-rule { margin-bottom: 14px; }
   
   .hp-designs-grid { 
     grid-template-columns: 1fr; 

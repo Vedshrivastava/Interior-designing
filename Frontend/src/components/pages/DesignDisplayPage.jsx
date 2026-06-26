@@ -76,7 +76,7 @@ export default function DesignDisplayPage({
   useEffect(() => {
     if (!mobileBarRef.current) return;
     const active = mobileBarRef.current.querySelector('.dd-cat-chip.active');
-    if (active) active.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    if (active) active.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'instant' });
   }, [category]);
 
   const displayName = SLUG_LABELS[slug] || category;

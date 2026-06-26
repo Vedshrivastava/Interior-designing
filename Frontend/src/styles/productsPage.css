@@ -561,11 +561,10 @@
   flex-direction: column;
   gap: 14px;                    /* matches dc-modal-content gap */
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(201,168,124,0.3) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-.prod-modal-content::-webkit-scrollbar { width: 4px; }
-.prod-modal-content::-webkit-scrollbar-thumb { background: rgba(201,168,124,0.3); border-radius: 4px; }
+.prod-modal-content::-webkit-scrollbar { display: none; }
 
 .prod-modal-tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
 

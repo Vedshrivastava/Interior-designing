@@ -361,12 +361,11 @@
   gap: 14px;
   overflow-y: auto;
   position: relative;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(201,168,124,0.3) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.dc-modal-content::-webkit-scrollbar { width: 4px; }
-.dc-modal-content::-webkit-scrollbar-thumb { background: rgba(201,168,124,0.3); border-radius: 4px; }
+.dc-modal-content::-webkit-scrollbar { display: none; }
 
 /* X close button inside content panel */
 .dc-modal-close {

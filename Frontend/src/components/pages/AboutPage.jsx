@@ -131,7 +131,7 @@ export default function AboutPage() {
             <h2>Elevating Spaces<br />With Purpose</h2>
           </div>
           <div className="abt-who-head-right">
-            <p>Shrivastavas Elevate is a premium interior design and contracting studio based in Satna, Madhya Pradesh — founded on one belief: that every home deserves to feel extraordinary. Serving residential and commercial clients across Satna, Nagod and Madhya Pradesh, we unite elite artistry with completely transparent project execution.</p>
+            <p>Shrivastavas Elevate is a premium interior design and contracting studio headquartered in Satna, Madhya Pradesh — founded on one belief: that every home deserves to feel extraordinary. Serving residential and commercial clients across India, we unite elite artistry with completely transparent project execution.</p>
             <div className="abt-founders">
               <div className="abt-founder-pill"><span className="abt-founder-pill-avatar">V</span>Ved Shrivastava</div>
               <div className="abt-founder-pill"><span className="abt-founder-pill-avatar">S</span>Shubh Shrivastava</div>

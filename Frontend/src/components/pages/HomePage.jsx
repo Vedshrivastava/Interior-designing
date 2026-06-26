@@ -175,7 +175,7 @@ export default function HomePage() {
           { num: '50+',  label: 'Projects Completed', sub: 'Across residential & commercial' },
           { num: '5+',   label: 'Years Experience',   sub: 'Serving discerning clients'       },
           { num: '100%', label: 'Custom Design',       sub: 'No templates, ever'               },
-          { num: '5',    label: 'Average Rating',      sub: 'Consistently top-rated', star: true },
+          { num: '100%', label: 'Client Satisfaction',  sub: 'Zero compromises, always'            },
         ].map((s, i) => (
           <div className="hp-stat-item" key={i} ref={sr} style={{ '--sr-delay': `${i * 80}ms` }}>
             <span className="hp-stat-rule" />

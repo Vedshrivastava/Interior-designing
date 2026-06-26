@@ -128,7 +128,7 @@ export default function ServicesPage() {
       </section>
 
       <section className="services-stats">
-        {[{ val: '50+', label: 'Projects Completed' }, { val: '5+', label: 'Years Experience' }, { val: '100%', label: 'Client Satisfaction' }, { val: '5', label: 'Average Rating', star: true }].map((s, i) => (
+        {[{ val: '50+', label: 'Projects Completed' }, { val: '5+', label: 'Years Experience' }, { val: '100%', label: 'Client Satisfaction' }, { val: '24hr', label: 'Response Time' }].map((s, i) => (
           <div className="services-stat-box" key={i}>
             <h2><CountUp endValue={s.val} />{s.star && <IconStarFilled className="stat-star" />}</h2>
             <p>{s.label}</p>
@@ -206,10 +206,10 @@ export default function ServicesPage() {
 
       <section className="svc-stats-section">
         <div className="svc-stats-strip reveal-item" ref={addRef}>
-          {[{ Icon: IconLayerGroup, val: '50+', label: 'Projects Delivered' }, { Icon: IconKey, val: '100%', label: 'Turnkey Execution' }, { Icon: IconStarFilled, val: '5', label: 'Average Rating' }].map((s, i) => (
+          {[{ Icon: IconLayerGroup, val: '50+', label: 'Projects Delivered' }, { Icon: IconKey, val: '100%', label: 'Turnkey Execution' }, { Icon: IconClock, val: '24hr', label: 'Response Time' }].map((s, i) => (
             <div className="svc-stat-item" key={i}>
               <div className="svc-stat-icon"><s.Icon /></div>
-              <span className="svc-stat-val"><CountUp endValue={s.val} />{s.label === 'Average Rating' && <IconStarFilled className="stat-star" />}</span>
+              <span className="svc-stat-val"><CountUp endValue={s.val} /></span>
               <span className="svc-stat-lbl">{s.label}</span>
             </div>
           ))}

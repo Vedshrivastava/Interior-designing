@@ -38,11 +38,9 @@ const EmailVerificationPage = () => {
         const verificationCode = code.join("");
         try {
             await verifyEmail(verificationCode);
+            toast.success("Email verified successfully");
             setSuccess(true);
-            setTimeout(() => {
-                navigate("/");
-                toast.success("Email verified successfully");
-            }, 1800);
+            setTimeout(() => navigate("/"), 1800);
         } catch (err) {
             toast.error(err?.response?.data?.message || err?.message || "Invalid code. Please try again.");
         }

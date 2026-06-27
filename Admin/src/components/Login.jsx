@@ -132,6 +132,13 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
         } else {
           toast.error(err.response?.data?.message || err?.message || 'Login failed. Please try again.');
         }
+      } else if (currState === 'Sign Up') {
+        const msg = err.response?.data?.message || err?.message || '';
+        if (msg.toLowerCase().includes('verification email') || msg.toLowerCase().includes('failed to send')) {
+          toast.error('Could not send verification email. Please check your email address and try again.');
+        } else {
+          toast.error(msg || 'Something went wrong. Please try again.');
+        }
       } else {
         toast.error(err.response?.data?.message || err?.message || 'Something went wrong. Please try again.');
       }

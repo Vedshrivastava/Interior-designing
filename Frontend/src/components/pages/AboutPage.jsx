@@ -56,7 +56,8 @@ const CountUp = ({ endValue, duration = 2300 }) => {
 export default function AboutPage() {
   const router = useRouter();
   const { openConsult } = useModal();
-  const [activeCard, setActiveCard] = useState(null);
+  const [activeCard,  setActiveCard]  = useState(null);
+  const [activeTCard, setActiveTCard] = useState(null);
 
   const revealRefs = useRef([]);
   useEffect(() => {
@@ -247,6 +248,20 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {activeTCard && (
+        <div className="t-modal-backdrop" onClick={() => setActiveTCard(null)}>
+          <div className="t-modal" onClick={e => e.stopPropagation()}>
+            <button className="t-modal-close" onClick={() => setActiveTCard(null)} aria-label="Close"><IconXMark /></button>
+            <div className="t-modal-stars">{Array.from({ length: activeTCard.rating }).map((_, i) => <IconStarFilled key={i} />)}</div>
+            <p className="t-modal-text">{activeTCard.text}</p>
+            <div className="t-modal-author">
+              <div className="t-modal-avatar">{activeTCard.image ? <img src={activeTCard.image.src} alt={activeTCard.name} /> : activeTCard.name.charAt(0)}</div>
+              <div className="t-modal-author-info"><strong>{activeTCard.name}</strong><span>{activeTCard.location}</span></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <section className="abt-testimonials">
         <div className="abt-testimonials-head abt-reveal" ref={sr}>
           <span className="section-tag"><IconQuoteLeft /> Testimonials</span>
@@ -257,7 +272,7 @@ export default function AboutPage() {
           <div className="marquee-track">
             <div className="marquee-inner scroll-left">
               {marqueeItems.map((t, i) => (
-                <div className="t-card" key={`a${i}`}>
+                <div className="t-card" key={`a${i}`} onClick={() => setActiveTCard(t)} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && setActiveTCard(t)}>
                   <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
                   <p className="t-card-text">{t.text}</p>
                   <div className="t-card-author">
@@ -271,7 +286,7 @@ export default function AboutPage() {
           <div className="marquee-track">
             <div className="marquee-inner scroll-right">
               {[...marqueeItems].reverse().map((t, i) => (
-                <div className="t-card" key={`b${i}`}>
+                <div className="t-card" key={`b${i}`} onClick={() => setActiveTCard(t)} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && setActiveTCard(t)}>
                   <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
                   <p className="t-card-text">{t.text}</p>
                   <div className="t-card-author">

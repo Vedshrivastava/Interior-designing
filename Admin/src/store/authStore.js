@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 export const useAuthStore = create((set) => ({
     isAuthenticated: localStorage.getItem('isAuthenticated') === 'true' || false,
     error: null,
@@ -11,7 +13,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         console.log("isLoading (signup start):", true); 
         try {
-            const response = await axios.post(`http://localhost:3000/api/admin/register-admin`, { email, password, name });
+            const response = await axios.post(`${API_URL}/api/admin/register-admin`, { email, password, name });
             
             if (response.data && response.data.success === false) {
                 set({ error: response.data.message, isLoading: false });
@@ -40,7 +42,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         console.log("isLoading (login start):", true); 
         try {
-            const response = await axios.post(`http://localhost:3000/api/admin/login-admin`, { email, password });
+            const response = await axios.post(`${API_URL}/api/admin/login-admin`, { email, password });
             const { user } = response.data;
 
             localStorage.setItem('user', JSON.stringify(user));
@@ -62,7 +64,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         console.log("isLoading (verifyEmail start):", true); 
         try {
-            const response = await axios.post(`http://localhost:3000/api/user/verify-email`, { code });
+            const response = await axios.post(`${API_URL}/api/user/verify-email`, { code });
             const { user } = response.data;
 
             localStorage.setItem('user', JSON.stringify(user));
@@ -85,7 +87,7 @@ export const useAuthStore = create((set) => ({
         set({ isCheckingAuth: true, error: null });
         console.log("isCheckingAuth (start):", true); 
         try {
-            const response = await axios.get(`http://localhost:3000/api/user/check-auth`, { 
+            const response = await axios.get(`${API_URL}/api/user/check-auth`, { 
                 headers: { Authorization: `Bearer ${token}` } 
             });
             const { user } = response.data;
@@ -110,7 +112,7 @@ export const useAuthStore = create((set) => ({
     forgotPassword: async (email) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await axios.post(`http://localhost:3000/api/user/forgot-password`, { email });
+            const response = await axios.post(`${API_URL}/api/user/forgot-password`, { email });
             set({ message: response.data.message, isLoading: false });
             return response;
         } catch (error) {
@@ -125,7 +127,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         console.log("isLoading (resetPassword start):", true); 
         try {
-            const response = await axios.post(`http://localhost:3000/api/user/reset-password/${token}`, { password });
+            const response = await axios.post(`${API_URL}/api/user/reset-password/${token}`, { password });
             set({ message: response.data.message });
             console.log("isLoading (resetPassword end):", false); 
             return response;

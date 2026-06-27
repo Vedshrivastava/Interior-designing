@@ -21,7 +21,7 @@ const ResetPasswordPage = ({ setShowLogin }) => {
     const checkToken = async () => {
       try {
         const res = await fetch(
-          `http://localhost:3000/api/user/verify-reset-token/${token}`
+          `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/user/verify-reset-token/${token}`
         );
         const data = await res.json();
         setTokenStatus(data.success ? "valid" : "expired");

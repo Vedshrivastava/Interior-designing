@@ -4,7 +4,7 @@ import axios from "axios";
 export const StoreContext = createContext(null);
 
 const StoreContextProvider = (props) => {
-  const url = "http://localhost:3000";
+  const url = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   // null instead of "" so !token checks work reliably everywhere
   const [token,     setToken]     = useState(() => localStorage.getItem("token")     || null);

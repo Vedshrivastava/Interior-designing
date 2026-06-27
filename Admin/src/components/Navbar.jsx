@@ -80,7 +80,7 @@ export const PageLoader = ({ visible }) => {
     <div className={`page-loader${fading ? ' fade-out' : ''}`}>
       <div className="loader-brand">
         <strong>Shrivastava's</strong>
-        <span>Admin Panel</span>
+        <span>Elevate</span>
       </div>
       <div className="loader-ring" />
       <div className="loader-dots">
@@ -173,7 +173,7 @@ const Navbar = ({ setShowLogin, setAuthType }) => {
           <img className="logo" src={assets.logo} alt="Logo" />
           <div className="navbar-brand-text">
             <strong>Shrivastava's</strong>
-            <span>Admin Panel</span>
+            <span>Elevate</span>
           </div>
         </div>
 

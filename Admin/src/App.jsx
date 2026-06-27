@@ -44,7 +44,7 @@ const App = () => {
   }, []);
   const [authType, setAuthType] = useState('Login');
   const [isLoading, setIsLoading] = useState(false); // Global loader — renders outside sidebar/main-content
-  const url = "http://localhost:3000";
+  const url = import.meta.env.VITE_API_URL || "http://localhost:3000";
   const storedUser = localStorage.getItem("user");
   const user = storedUser ? JSON.parse(storedUser) : null;
 

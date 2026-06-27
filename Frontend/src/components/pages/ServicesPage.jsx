@@ -95,8 +95,9 @@ export default function ServicesPage() {
   const router = useRouter();
   const { openConsult } = useModal();
   const revealRefs = useRef([]);
-  const [activeService, setActiveService] = useState(null);
-  const [activeTCard,   setActiveTCard]   = useState(null);
+  const [activeService,  setActiveService]  = useState(null);
+  const [activeTCard,    setActiveTCard]    = useState(null);
+  const [activeInfoCard, setActiveInfoCard] = useState(null);
 
   useEffect(() => {
     const o = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); o.unobserve(e.target); } }), { threshold: 0.1 });
@@ -113,6 +114,28 @@ export default function ServicesPage() {
 
   return (
     <div className="services-page">
+
+      {/* ── Why Choose Us / How It Works modal ── */}
+      {activeInfoCard && (
+        <div className="svc-modal-backdrop" onClick={() => setActiveInfoCard(null)}>
+          <div className="svc-modal" onClick={e => e.stopPropagation()}>
+            <div className="svc-modal-header">
+              {activeInfoCard.num
+                ? <span className="hp-prof-num svc-modal-num">{activeInfoCard.num}</span>
+                : <div className="svc-modal-icon"><activeInfoCard.Icon /></div>
+              }
+              <h3 className="svc-modal-title">{activeInfoCard.title}</h3>
+              <button className="svc-modal-close" onClick={() => setActiveInfoCard(null)} aria-label="Close"><IconXMark /></button>
+            </div>
+            <p className="svc-modal-desc">{activeInfoCard.desc}</p>
+            {activeInfoCard.cta && (
+              <button className="svc-start-cta" style={{ marginTop: '8px' }} onClick={() => { setActiveInfoCard(null); openConsult(); }}>
+                Book Now <IconArrowRight />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Service detail modal ── */}
       {activeService && (
@@ -212,20 +235,7 @@ export default function ServicesPage() {
               <div className="svc-card-body">
                 <div className="svc-icon-wrap"><svc.Icon /></div>
                 <h3>{svc.title}</h3>
-                <p>{svc.description}</p>
-                <ul className="svc-card-features">
-                  {svc.features.map((f, idx) => <li key={idx}><span className="svc-feat-dot" />{f}</li>)}
-                </ul>
-                {svc.link && (
-                  <Link
-                    href={svc.link}
-                    className="svc-card-link"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <span>View designs</span>
-                    <span className="svc-card-link-arrow"><IconArrowRight /></span>
-                  </Link>
-                )}
+                <p>{truncate(svc.description)}</p>
               </div>
             </div>
           ))}
@@ -244,10 +254,16 @@ export default function ServicesPage() {
             { Icon: IconPenRuler, title: '100% Bespoke',        desc: 'No templates, no catalogue layouts and nothing reused from another project. Every design starts with a real conversation about how you live and ends with something built specifically for your space.'                                                                                },
             { Icon: IconKey,      title: 'Turnkey Execution',   desc: 'From sign-off to handover we manage vendors, materials, labour, site supervision and quality checks. You don\'t chase a single contractor or make a site decision yourself.'                                                                                                          },
           ].map((item, i) => (
-            <div className="svc-why-card reveal-item" ref={addRef} key={i} style={{ '--delay': `${i * 80}ms` }}>
+            <div
+              className="svc-why-card reveal-item" ref={addRef} key={i}
+              style={{ '--delay': `${i * 80}ms`, cursor: 'pointer' }}
+              onClick={() => setActiveInfoCard(item)}
+              role="button" tabIndex={0}
+              onKeyDown={e => e.key === 'Enter' && setActiveInfoCard(item)}
+            >
               <div className="svc-why-icon"><item.Icon /></div>
               <h3>{item.title}</h3>
-              <p>{item.desc}</p>
+              <p>{truncate(item.desc)}</p>
             </div>
           ))}
         </div>
@@ -277,14 +293,19 @@ export default function ServicesPage() {
             { num: '02', Icon: IconEye,      title: 'Approve Your 3D Design',    desc: 'Your brief becomes a photorealistic 3D render with real materials, finishes, furniture and lighting shown to scale. You review it, ask for changes and we refine until it\'s exactly right. Nothing goes to execution until you\'ve signed off on every detail.',                                                cta: false },
             { num: '03', Icon: IconKey,      title: 'Move Into Your Dream Space', desc: 'Once the design is approved, we take over completely: material procurement, vendor coordination, site execution, quality checks and a final handover walkthrough. You walk in when it\'s done, exactly as designed. No site visits, no chasing, no stress.',                                                   cta: false },
           ].map((s, i) => (
-            <div className="svc-start-card reveal-item" key={i} ref={addRef} style={{ '--delay': `${i * 100}ms` }}>
+            <div
+              className="svc-start-card reveal-item" key={i} ref={addRef}
+              style={{ '--delay': `${i * 100}ms`, cursor: 'pointer' }}
+              onClick={() => setActiveInfoCard(s)}
+              role="button" tabIndex={0}
+              onKeyDown={e => e.key === 'Enter' && setActiveInfoCard(s)}
+            >
               <div className="svc-start-card-top">
                 <span className="svc-start-num hp-prof-num">{s.num}</span>
                 <div className="svc-start-icon"><s.Icon /></div>
               </div>
               <h3>{s.title}</h3>
-              <p>{s.desc}</p>
-              {s.cta && <button className="svc-start-cta" onClick={openConsult}>Book Now <IconArrowRight /></button>}
+              <p>{truncate(s.desc)}</p>
             </div>
           ))}
         </div>

@@ -20,7 +20,17 @@ const app = express();
 const port = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:5174',
+    'http://localhost:3001',
+    'https://shrivastavaselevate.com',
+    'https://www.shrivastavaselevate.com',
+    'https://admin.shrivastavaselevate.com',
+    /\.vercel\.app$/,
+  ],
+  credentials: true,
+}));
 
 // Connect to the database
 connectDB(process.env.MONGO_URI);

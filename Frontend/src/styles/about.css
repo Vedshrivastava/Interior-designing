@@ -100,10 +100,12 @@
 .about-hero-content {
   position: relative;
   z-index: 3;
-  text-align: left;
-  padding: 0 5% 90px 7%;
-  max-width: 720px;
+  width: 100%;
+  padding: 56px 6% 100px;
   animation: heroReveal 1s cubic-bezier(.22,.61,.36,1) both;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 @keyframes heroReveal {
@@ -111,84 +113,131 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* hide old eyebrow */
 .abt-eyebrow { display: none; }
 .abt-eyebrow-line { display: none; }
 
 .about-hero-content h1 {
   font-family: "Cormorant Garamond", serif;
+  font-size: clamp(3.6rem, 9.5vw, 11rem);
+  font-weight: 300;
+  line-height: 0.88;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #f0e6d3;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0;
-  margin: 0 0 28px;
-  line-height: 0.88;
+  width: 100%;
 }
-
-.about-hero-content h1 .abt-highlight { display: none; }
+.about-hero-content h1 .abt-highlight  { display: none; }
+.about-hero-content h1 .hp-title-light  { all: unset; display: block; font-family: inherit; font-size: inherit; font-weight: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; }
+.about-hero-content h1 .hp-title-strong { all: unset; display: block; font-family: inherit; font-size: inherit; font-weight: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; }
 
 .about-hero-content > p {
-  max-width: 460px;
-  margin: 0 0 42px;
+  max-width: 420px;
+  margin: 0 0 40px;
   font-family: "Cormorant Garamond", serif;
-  font-size: clamp(1.05rem, 1.4vw, 1.18rem);
+  font-style: italic;
+  font-size: clamp(1rem, 1.3vw, 1.12rem);
   font-weight: 400;
-  line-height: 1.85;
-  color: rgba(255,255,255,0.68);
+  line-height: 1.9;
+  color: rgba(255,255,255,0.6);
 }
 
-/* hero CTA buttons */
 .abt-hero-actions {
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  gap: 28px;
+  gap: 48px;
   flex-wrap: wrap;
 }
 
 .abt-btn-primary {
-  padding: 15px 36px;
+  background: none;
   border: none;
-  border-radius: 999px;
-  background: #f1d5aa;
-  color: #1d1d1d;
+  padding: 0;
   font-family: "Inter", sans-serif;
-  font-size: 0.82rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  letter-spacing: 0.3px;
+  letter-spacing: 3.5px;
+  text-transform: uppercase;
+  color: rgba(240,230,211,0.85);
   cursor: pointer;
-  transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  transition: color 0.2s;
 }
-.abt-btn-primary:hover {
-  transform: translateY(-2px);
-  background: #f7dfb8;
-  box-shadow: 0 14px 35px rgba(0,0,0,0.18);
-}
+.abt-btn-primary:hover { color: #c9a87c; transform: none; box-shadow: none; background: none; }
 
 .abt-btn-ghost {
   background: none;
   border: none;
-  border-bottom: 1px solid rgba(255,255,255,0.28);
-  border-radius: 0;
-  color: rgba(255,255,255,0.72);
+  padding: 0;
   font-family: "Inter", sans-serif;
-  font-size: 0.82rem;
+  font-size: 0.68rem;
   font-weight: 500;
-  letter-spacing: 0.4px;
-  padding: 4px 0;
+  letter-spacing: 3.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.42);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  transition: color 0.2s, border-color 0.2s;
+  gap: 10px;
+  transition: color 0.2s;
 }
-.abt-btn-ghost:hover {
-  color: #c9a87c;
-  border-bottom-color: rgba(201,168,124,0.5);
-  transform: none;
-  background: none;
+.abt-btn-ghost:hover { color: rgba(255,255,255,0.72); transform: none; background: none; border: none; }
+
+/* ── About hero bottom bar ── */
+.abt-hero-bottom {
+  position: absolute;
+  bottom: 36px;
+  left: 6%;
+  right: 6%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  z-index: 4;
+}
+.abt-hero-bottom-left {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+}
+.abt-loc-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.abt-loc-label {
+  font-family: "Inter", sans-serif;
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: rgba(201,168,124,0.5);
+}
+.abt-loc-val {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1rem;
+  font-weight: 400;
+  color: rgba(255,255,255,0.65);
+  line-height: 1;
+}
+.abt-loc-divider {
+  width: 1px;
+  height: 38px;
+  background: rgba(201,168,124,0.2);
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+.abt-est {
+  font-family: "Inter", sans-serif;
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
 }
 
 /* scroll hint */
@@ -1629,10 +1678,11 @@
 }
 
 @media (max-width: 768px) {
-  .about-hero-content { padding: 18px 5% 70px; }
-  .abt-hero-actions { flex-direction: column; align-items: flex-start; gap: 16px; }
-  .abt-btn-primary { width: 100%; max-width: 280px; justify-content: center; }
-  .abt-btn-ghost { width: auto; }
+  .about-hero-content { padding: 32px 5% 100px; }
+  .about-hero-content h1 { font-size: clamp(2.8rem, 10vw, 5rem); }
+  .abt-hero-actions { gap: 28px; }
+  .abt-hero-bottom { bottom: 24px; left: 5%; right: 5%; }
+  .abt-loc-val { font-size: 0.88rem; }
 
   .about-stats { grid-template-columns: repeat(2, 1fr); }
   .abt-intro { padding: 70px 20px 0; }
@@ -1683,9 +1733,9 @@
 @media (max-width: 480px) {
   /* Hero fits exactly between top navbar (58px) and bottom navbar (68px) */
   .about-hero { min-height: calc(100dvh - 126px); height: calc(100dvh - 126px); overflow: hidden; margin-top: 58px; }
-  .about-hero-content { padding: 18px 5% 40px; display: flex; flex-direction: column; justify-content: center; }
-  .about-hero-content h1 .hp-title-light { font-size: 2rem; }
-  .about-hero-content h1 .hp-title-strong { font-size: 3rem; letter-spacing: -1.5px; }
+  .about-hero-content { padding: 24px 5% 40px; }
+  .about-hero-content h1 { font-size: clamp(2.4rem, 11vw, 4rem); }
+  .abt-hero-bottom { bottom: 12px; left: 5%; right: 5%; }
   /* scroll hint just above bottom navbar */
   .abt-scroll-hint { bottom: 8px; }
   /* keep stats at 2×2 — single column is too sparse */

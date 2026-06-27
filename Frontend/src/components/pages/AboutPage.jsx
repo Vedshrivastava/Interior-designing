@@ -115,18 +115,31 @@ export default function AboutPage() {
         <img src={bgimg.src} alt="Luxury interior design by Shrivastavas Elevate — premium interior designers in Satna, Madhya Pradesh" className="about-hero-bg" />
         <div className="about-overlay" />
         <div className="about-hero-content">
-          <div className="hp-hero-kicker">
-            <span className="hp-kicker-label">About Us</span>
-            <span className="hp-kicker-line" />
-          </div>
+          <div className="hp-hero-tag-box">About Us</div>
           <h1>
-            <span className="hp-title-light">Designing</span>
-            <span className="hp-title-strong">Luxury<span className="hp-gold-dot">.</span></span>
+            <span>Designing</span>
+            <span>Luxury</span>
           </h1>
+          <div className="hp-hero-rule" />
           <p>Two brothers, one vision — premium interiors crafted<br />for homes and businesses across India.</p>
           <div className="abt-hero-actions">
-            <button className="abt-btn-primary" onClick={openConsult}>Book Consultation <IconCalendar /></button>
+            <button className="abt-btn-primary" onClick={openConsult}>Book Consultation</button>
             <button className="abt-btn-ghost" onClick={() => router.push('/projects')}>See Our Work</button>
+          </div>
+
+          <div className="abt-hero-bottom">
+            <div className="abt-hero-bottom-left">
+              <div className="abt-loc-item">
+                <span className="abt-loc-label">Founded</span>
+                <span className="abt-loc-val">2019</span>
+              </div>
+              <div className="abt-loc-divider" />
+              <div className="abt-loc-item">
+                <span className="abt-loc-label">Location</span>
+                <span className="abt-loc-val">Satna, M.P.</span>
+              </div>
+            </div>
+            <span className="abt-est">Shrivastavas Elevate</span>
           </div>
         </div>
         <div className="abt-scroll-hint"><span className="abt-scroll-line" /><span>Scroll</span></div>

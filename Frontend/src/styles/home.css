@@ -98,10 +98,12 @@
 .hp-hero-inner {
   position: relative;
   z-index: 3;
-  text-align: left;
-  padding: 0 5% 90px 7%;
-  max-width: 720px;
+  width: 100%;
+  padding: 56px 6% 100px;
   animation: heroReveal 1s cubic-bezier(.22,.61,.36,1) both;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 @keyframes heroReveal {
@@ -116,62 +118,56 @@
   }
 }
 
-/* ── Kicker (replaces centered eyebrow) ── */
-.hp-hero-kicker {
-  display: flex;
+/* ── Tag box (bordered label) ── */
+.hp-hero-tag-box {
+  display: inline-flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 30px;
-}
-.hp-kicker-label {
+  border: 1px solid rgba(201,168,124,0.38);
+  padding: 7px 16px;
+  margin-bottom: 52px;
   font-family: "Inter", sans-serif;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 600;
   letter-spacing: 3.5px;
   text-transform: uppercase;
-  color: rgba(201,168,124,0.75);
-  white-space: nowrap;
-}
-.hp-kicker-line {
-  height: 1px;
-  flex: 0 0 56px;
-  background: linear-gradient(to right, rgba(201,168,124,0.6), transparent);
+  color: rgba(240,230,211,0.6);
 }
 
-/* ── Keep old eyebrow (unused but harmless) ── */
+/* ── Keep old classes hidden ── */
 .hp-hero-eyebrow { display: none; }
-.hp-eyebrow-line { display: none; }
+.hp-eyebrow-line  { display: none; }
+.hp-hero-kicker   { display: none; }
+.hp-kicker-label  { display: none; }
+.hp-kicker-line   { display: none; }
 
 /* ── Main Heading ── */
 .hp-hero-title {
   font-family: "Cormorant Garamond", serif;
+  font-size: clamp(3.6rem, 9.5vw, 11rem);
+  font-weight: 300;
+  line-height: 0.88;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #f0e6d3;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0;
-  margin: 0 0 28px;
-  line-height: 0.88;
+  width: 100%;
 }
-.hp-title-light {
-  font-size: clamp(2.6rem, 5vw, 5rem);
-  font-weight: 300;
-  color: rgba(255,255,255,0.52);
-  letter-spacing: -0.5px;
-  line-height: 1;
-}
-.hp-title-strong {
-  font-size: clamp(3.8rem, 8vw, 7.8rem);
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: -2.5px;
-  line-height: 0.85;
-}
-.hp-gold-dot { color: #c9a87c; }
 
-.hp-highlight {
-  font-family: "Cormorant Garamond", serif !important;
-  font-weight: 500;
-  color: #f1d5aa;
+/* ── Horizontal rule ── */
+.hp-hero-rule {
+  width: 100%;
+  height: 1px;
+  background: rgba(201,168,124,0.22);
+  margin: 28px 0 36px;
 }
+
+/* keep old classes harmless */
+.hp-title-light  { all: unset; display: block; font-family: inherit; font-size: inherit; font-weight: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; }
+.hp-title-strong { all: unset; display: block; font-family: inherit; font-size: inherit; font-weight: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; }
+.hp-gold-dot     { color: #c9a87c; }
+.hp-highlight    { color: #f0e6d3; }
 
 .hp-overline{
     background: none;
@@ -191,14 +187,14 @@
 
 /* ── Subtext ── */
 .hp-hero-sub {
-  max-width: 480px;
-  margin: 0 0 42px;
+  max-width: 420px;
+  margin: 0 0 40px;
   font-family: "Cormorant Garamond", serif;
-  font-size: clamp(1.05rem, 1.4vw, 1.18rem);
+  font-style: italic;
+  font-size: clamp(1rem, 1.3vw, 1.12rem);
   font-weight: 400;
-  line-height: 1.85;
-  letter-spacing: 0.2px;
-  color: rgba(255,255,255,0.68);
+  line-height: 1.9;
+  color: rgba(255,255,255,0.6);
 }
 
 /* ── Buttons ── */
@@ -206,98 +202,111 @@
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  gap: 28px;
+  gap: 48px;
   flex-wrap: wrap;
 }
 
 .hp-btn-primary {
-  padding: 15px 36px;
-
+  background: none;
   border: none;
-  border-radius: 999px;
-
-  background: #f1d5aa;
-  color: #1d1d1d;
-
+  padding: 0;
   font-family: "Inter", sans-serif;
-  font-size: 0.82rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  letter-spacing: 0.3px;
-
-
+  letter-spacing: 3.5px;
+  text-transform: uppercase;
+  color: rgba(240,230,211,0.85);
   cursor: pointer;
-
-  transition: all 0.3s ease;
-
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  transition: color 0.2s;
 }
-
 .hp-btn-primary:hover {
-  transform: translateY(-2px);
-
-  background: #f7dfb8;
-
-  box-shadow: 0 14px 35px rgba(0,0,0,0.18);
+  color: #c9a87c;
+  transform: none;
+  background: none;
+  box-shadow: none;
 }
 
 .hp-btn-ghost {
   background: none;
   border: none;
-  border-bottom: 1px solid rgba(255,255,255,0.28);
-  border-radius: 0;
-  color: rgba(255,255,255,0.72);
+  padding: 0;
   font-family: "Inter", sans-serif;
-  font-size: 0.82rem;
+  font-size: 0.68rem;
   font-weight: 500;
-  letter-spacing: 0.4px;
-  padding: 4px 0;
+  letter-spacing: 3.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.42);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  transition: color 0.2s, border-color 0.2s;
+  gap: 10px;
+  transition: color 0.2s;
 }
 .hp-btn-ghost:hover {
-  color: #c9a87c;
-  border-bottom-color: rgba(201,168,124,0.5);
+  color: rgba(255,255,255,0.72);
   transform: none;
   background: none;
+  border: none;
 }
 
-/* ── Caption / Meta ── */
-.hp-hero-caption {
-  margin-top: 32px;
-  color: rgba(255,255,255,0.38);
-  font-family: "Inter", sans-serif;
-  font-size: 0.65rem;
-  font-weight: 500;
-  letter-spacing: 2px;
-  text-transform: uppercase;
+/* ── Bottom bar (absolute) ── */
+.hp-hero-bottom {
+  position: absolute;
+  bottom: 36px;
+  left: 6%;
+  right: 6%;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-end;
+  justify-content: space-between;
+  z-index: 4;
 }
-.hp-hero-meta {
-  margin-top: 32px;
+.hp-hero-bottom-left {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  color: rgba(255,255,255,0.35);
-  font-family: "Inter", sans-serif;
-  font-size: 0.62rem;
-  font-weight: 500;
-  letter-spacing: 2px;
-  text-transform: uppercase;
+  align-items: flex-end;
+  gap: 24px;
 }
-.hp-meta-dot {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.3);
+.hp-hero-loc-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.hp-loc-label {
+  font-family: "Inter", sans-serif;
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: rgba(201,168,124,0.5);
+}
+.hp-loc-val {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1rem;
+  font-weight: 400;
+  color: rgba(255,255,255,0.65);
+  line-height: 1;
+}
+.hp-hero-loc-divider {
+  width: 1px;
+  height: 38px;
+  background: rgba(201,168,124,0.2);
   flex-shrink: 0;
+  align-self: flex-end;
 }
+.hp-est {
+  font-family: "Inter", sans-serif;
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+}
+/* keep old caption hidden */
+.hp-hero-caption { display: none; }
+.hp-hero-meta    { display: none; }
+.hp-meta-dot     { display: none; }
 
 .hp-scroll-hint {
   position: absolute;
@@ -1465,10 +1474,11 @@
 }
 
 @media (max-width: 768px) {
-  .hp-hero-inner { padding: 18px 5% 70px; }
-  .hp-hero-actions { flex-direction: column; align-items: flex-start; gap: 16px; }
-  .hp-btn-primary { width: 100%; max-width: 280px; justify-content: center; }
-  .hp-btn-ghost { width: auto; border-bottom-width: 1px; }
+  .hp-hero-inner { padding: 32px 5% 100px; }
+  .hp-hero-title { font-size: clamp(2.8rem, 10vw, 5rem); }
+  .hp-hero-actions { gap: 28px; }
+  .hp-hero-bottom { bottom: 24px; left: 5%; right: 5%; }
+  .hp-loc-val { font-size: 0.88rem; }
 
   .hp-stats { grid-template-columns: repeat(2, 1fr); }
   .hp-stat-item { padding: 36px 18px 30px; }
@@ -1512,9 +1522,14 @@
 @media (max-width: 480px) {
   /* Hero fits exactly between top navbar (58px) and bottom navbar (68px) */
   .hp-hero { min-height: calc(100dvh - 126px); height: calc(100dvh - 126px); overflow: hidden; margin-top: 58px; }
-  .hp-hero-inner { padding: 18px 5% 40px; display: flex; flex-direction: column; justify-content: center; }
-  .hp-title-light { font-size: 2rem; }
-  .hp-title-strong { font-size: 3rem; letter-spacing: -1.5px; }
+  .hp-hero-inner { padding: 24px 5% 40px; }
+  .hp-hero-tag-box { margin-bottom: 28px; }
+  .hp-hero-title { font-size: clamp(2.4rem, 11vw, 4rem); }
+  .hp-hero-rule { margin: 18px 0 24px; }
+  .hp-hero-bottom { bottom: 12px; left: 5%; right: 5%; }
+  .hp-hero-loc-divider { height: 28px; }
+  .hp-loc-val { font-size: 0.82rem; }
+  .hp-est { font-size: 0.52rem; }
   /* scroll hint just above bottom navbar */
   .hp-scroll-hint { bottom: 8px; }
   /* caption closer to buttons */

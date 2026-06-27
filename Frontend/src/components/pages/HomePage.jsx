@@ -245,32 +245,38 @@ export default function HomePage() {
         <div className="hp-hero-grid-lines"><span /><span /><span /><span /></div>
 
         <div className="hp-hero-inner">
-          <div className="hp-hero-kicker">
-            <span className="hp-kicker-label">Interior Design Studio</span>
-            <span className="hp-kicker-line" />
-          </div>
+          <div className="hp-hero-tag-box">Interior Design Studio</div>
           <h1 className="hp-hero-title">
-            <span className="hp-title-light">Shrivastavas</span>
-            <span className="hp-title-strong">Elevate<span className="hp-gold-dot">.</span></span>
+            <span>Shrivastava&apos;s</span>
+            <span>Elevate</span>
           </h1>
+          <div className="hp-hero-rule" />
           <p className="hp-hero-sub">
             Crafting timeless interiors with luxury,<br />precision and turnkey execution.
           </p>
           <div className="hp-hero-actions">
             <button onClick={() => router.push('/projects')} className="hp-btn-primary">
-              Explore Projects <IconArrowRight />
+              Explore Projects
             </button>
             <button onClick={openConsult} className="hp-btn-ghost">
               Book Consultation
             </button>
           </div>
-          <div className="hp-hero-meta">
-            <IconBuilding />
-            <span>Satna</span>
-            <span className="hp-meta-dot" />
-            <span>Madhya Pradesh</span>
-            <span className="hp-meta-dot" />
-            <span>Est. 2019</span>
+
+          {/* Bottom bar */}
+          <div className="hp-hero-bottom">
+            <div className="hp-hero-bottom-left">
+              <div className="hp-hero-loc-item">
+                <span className="hp-loc-label">Location</span>
+                <span className="hp-loc-val">Satna</span>
+              </div>
+              <div className="hp-hero-loc-divider" />
+              <div className="hp-hero-loc-item">
+                <span className="hp-loc-label">Region</span>
+                <span className="hp-loc-val">Madhya Pradesh</span>
+              </div>
+            </div>
+            <span className="hp-est">Est. 2019</span>
           </div>
         </div>
 

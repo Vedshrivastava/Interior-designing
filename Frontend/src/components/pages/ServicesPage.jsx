@@ -173,28 +173,38 @@ export default function ServicesPage() {
         <img src={bgimg.src} alt="Luxury interior design services in Satna, Madhya Pradesh — Shrivastavas Elevate" className="hp-hero-bg" />
         <div className="hp-hero-overlay" />
         <div className="hp-hero-inner">
-          <div className="hp-hero-kicker">
-            <span className="hp-kicker-label">Our Services</span>
-            <span className="hp-kicker-line" />
-          </div>
+          <div className="hp-hero-tag-box">Our Services</div>
           <h1 className="hp-hero-title">
-            <span className="hp-title-light">Crafted</span>
-            <span className="hp-title-strong">Interiors<span className="hp-gold-dot">.</span></span>
+            <span>Crafted</span>
+            <span>Interiors</span>
           </h1>
+          <div className="hp-hero-rule" />
           <p className="hp-hero-sub">
             Bespoke interior design and contracting solutions<br />crafted for modern lifestyles and timeless elegance.
           </p>
           <div className="hp-hero-actions">
             <button onClick={openConsult} className="hp-btn-primary">
-              Book Consultation <IconCalendar />
+              Book Consultation
             </button>
             <button onClick={() => router.push('/projects')} className="hp-btn-ghost">
               View Projects
             </button>
           </div>
-          <p className="hp-hero-caption">
-            <IconBuilding /> Interior Designers · Satna
-          </p>
+
+          <div className="hp-hero-bottom">
+            <div className="hp-hero-bottom-left">
+              <div className="hp-hero-loc-item">
+                <span className="hp-loc-label">Location</span>
+                <span className="hp-loc-val">Satna</span>
+              </div>
+              <div className="hp-hero-loc-divider" />
+              <div className="hp-hero-loc-item">
+                <span className="hp-loc-label">Category</span>
+                <span className="hp-loc-val">Interior Design</span>
+              </div>
+            </div>
+            <span className="hp-est">Since 2019</span>
+          </div>
         </div>
         <div className="hp-scroll-hint"><span className="hp-scroll-line" /><span>Scroll</span></div>
       </section>

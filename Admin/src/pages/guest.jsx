@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../styles/guest.css';
 
-const url = 'http://localhost:3000';
+const url = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const WelcomeGuest = ({ setShowLogin, setAuthType }) => {
   const [showModal, setShowModal] = useState(false);

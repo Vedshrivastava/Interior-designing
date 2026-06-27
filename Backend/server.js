@@ -21,14 +21,7 @@ const port = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(cors({
-  origin: [
-    'http://localhost:5174',
-    'http://localhost:3001',
-    'https://shrivastavaselevate.com',
-    'https://www.shrivastavaselevate.com',
-    'https://admin.shrivastavaselevate.com',
-    /\.vercel\.app$/,
-  ],
+  origin: true,
   credentials: true,
 }));
 

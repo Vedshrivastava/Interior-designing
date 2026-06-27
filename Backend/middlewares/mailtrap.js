@@ -13,6 +13,6 @@ export const transporter = nodemailer.createTransport({
 });
 
 export const sender = {
-  email: process.env.MAILTRAP_SENDER_EMAIL || 'noreply@shrivastavaseelevate.com',
+  email: process.env.MAILTRAP_SENDER_EMAIL || 'noreply@shrivastavaselevate.com',
   name: 'Shrivastavas Elevate',
 };

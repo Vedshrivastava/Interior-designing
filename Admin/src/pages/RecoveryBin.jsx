@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { useWebSocket } from '../hooks/useWebSocket';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -206,8 +207,8 @@ const RecoveryBin = ({ url }) => {
                 </div>
             </div>
 
-            {/* Custom permanent-delete confirmation modal */}
-            {confirmItem && (
+            {/* Custom permanent-delete confirmation modal — portal ensures correct viewport positioning */}
+            {confirmItem && ReactDOM.createPortal(
                 <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmItem(null)}>
                     <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
                         <div className="bin-confirm-icon">
@@ -239,7 +240,8 @@ const RecoveryBin = ({ url }) => {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             <style>{`
@@ -325,7 +327,7 @@ const RecoveryBin = ({ url }) => {
                     inset: 0;
                     background: rgba(10, 20, 20, 0.55);
                     backdrop-filter: blur(3px);
-                    z-index: 1000;
+                    z-index: 99999;
                     display: flex;
                     align-items: center;
                     justify-content: center;

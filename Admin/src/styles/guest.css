@@ -7,18 +7,18 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    min-height: calc(100vh - 70px); /* Adjusts perfectly below your Navbar */
+    min-height: 100dvh;
     padding: 3rem 2rem;
+    padding-top: calc(62px + 3rem);
     text-align: center;
     position: relative;
-    overflow: hidden;
     box-sizing: border-box;
   }
-  
-  /* Diamond grid texture layer */
+
+  /* Diamond grid texture — fixed so it covers the full viewport always */
   .welcome-container::before {
     content: "";
-    position: absolute;
+    position: fixed;
     inset: 0;
     opacity: 0.045;
     background-image:
@@ -604,7 +604,7 @@
 
 /* ── No-account state ── */
 .request-no-account {
-  padding: 36px 28px 32px;
+  padding: 40px 28px 36px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -617,37 +617,53 @@
   position: absolute;
   top: 14px;
   right: 14px;
-}
-
-.request-no-account-icon {
-  width: 52px;
-  height: 52px;
+  background: transparent;
+  border: 1px solid rgba(0,0,0,0.1);
+  color: #5a4e44;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: rgba(201,168,124,0.12);
-  border: 2px solid rgba(201,168,124,0.35);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+.request-modal-x--top:hover { background: rgba(0,0,0,0.06); }
+
+.request-no-account-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: rgba(201,168,124,0.12);
+  border: 2px solid rgba(201,168,124,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #c9a87c;
+  color: #a07840;
 }
 
 .request-no-account h3 {
   font-family: 'Playfair Display', serif;
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   font-weight: 700;
-  color: #f0e6d3;
+  color: #102525;
   margin: 0;
 }
 
 .request-no-account > p {
-  font-size: 0.9rem;
-  color: rgba(240,230,211,0.65);
+  font-family: "Inter", sans-serif;
+  font-size: 0.88rem;
+  color: #5a4e44;
   line-height: 1.65;
   margin: 0;
   max-width: 340px;
 }
+
+.request-no-account > p strong { color: #102525; }
 
 .request-no-account-actions {
   display: flex;
@@ -656,8 +672,9 @@
 }
 
 .request-auth-btn {
-  padding: 10px 24px;
+  padding: 11px 28px;
   border-radius: 8px;
+  font-family: "Inter", sans-serif;
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
@@ -666,21 +683,22 @@
 }
 
 .request-auth-btn--primary {
-  background: #c9a87c;
-  color: #102525;
+  background: #102525;
+  color: #e8d0a8;
 }
-.request-auth-btn--primary:hover { background: #d9b98c; }
+.request-auth-btn--primary:hover { background: #1e3a2a; }
 
 .request-auth-btn--ghost {
   background: transparent;
-  color: #c9a87c;
-  border: 1px solid rgba(201,168,124,0.4);
+  color: #102525;
+  border: 1px solid rgba(16,37,37,0.25);
 }
-.request-auth-btn--ghost:hover { background: rgba(201,168,124,0.1); }
+.request-auth-btn--ghost:hover { background: rgba(16,37,37,0.05); }
 
 .request-no-account-hint {
+  font-family: "Inter", sans-serif;
   font-size: 0.78rem;
-  color: rgba(240,230,211,0.35);
+  color: #8a7e74;
   margin: 0;
   max-width: 320px;
 }

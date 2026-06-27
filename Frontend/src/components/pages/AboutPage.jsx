@@ -115,16 +115,18 @@ export default function AboutPage() {
         <img src={bgimg.src} alt="Luxury interior design by Shrivastavas Elevate — premium interior designers in Satna, Madhya Pradesh" className="about-hero-bg" />
         <div className="about-overlay" />
         <div className="about-hero-content">
-          <div className="abt-eyebrow">
-            <span className="abt-eyebrow-line" />
-            <span>About Shrivastavas Elevate</span>
-            <span className="abt-eyebrow-line" />
+          <div className="hp-hero-kicker">
+            <span className="hp-kicker-label">About Us</span>
+            <span className="hp-kicker-line" />
           </div>
-          <h1>Designing Timeless<br /><span className="abt-highlight">Luxury Spaces</span></h1>
-          <p>Transforming residential and commercial interiors with elegance, precision, and premium craftsmanship — tailored entirely to you.</p>
+          <h1>
+            <span className="hp-title-light">Designing</span>
+            <span className="hp-title-strong">Luxury<span className="hp-gold-dot">.</span></span>
+          </h1>
+          <p>Two brothers, one vision — premium interiors crafted<br />for homes and businesses across India.</p>
           <div className="abt-hero-actions">
             <button className="abt-btn-primary" onClick={openConsult}>Book Consultation <IconCalendar /></button>
-            <button className="abt-btn-ghost" onClick={() => router.push('/projects')}>See Our Work <IconArrowRight /></button>
+            <button className="abt-btn-ghost" onClick={() => router.push('/projects')}>See Our Work</button>
           </div>
         </div>
         <div className="abt-scroll-hint"><span className="abt-scroll-line" /><span>Scroll</span></div>

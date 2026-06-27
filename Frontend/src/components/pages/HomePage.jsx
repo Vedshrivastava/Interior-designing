@@ -245,13 +245,13 @@ export default function HomePage() {
         <div className="hp-hero-grid-lines"><span /><span /><span /><span /></div>
 
         <div className="hp-hero-inner">
-          <div className="hp-hero-eyebrow">
-            <span className="hp-eyebrow-line" />
-            <span>Luxury Interior Design Studio</span>
-            <span className="hp-eyebrow-line" />
+          <div className="hp-hero-kicker">
+            <span className="hp-kicker-label">Interior Design Studio</span>
+            <span className="hp-kicker-line" />
           </div>
           <h1 className="hp-hero-title">
-            <span className="hp-highlight">Shrivastavas</span><br />Elevate
+            <span className="hp-title-light">Shrivastavas</span>
+            <span className="hp-title-strong">Elevate<span className="hp-gold-dot">.</span></span>
           </h1>
           <p className="hp-hero-sub">
             Crafting timeless interiors with luxury,<br />precision and turnkey execution.
@@ -261,12 +261,17 @@ export default function HomePage() {
               Explore Projects <IconArrowRight />
             </button>
             <button onClick={openConsult} className="hp-btn-ghost">
-              Book Consultation <IconCalendar />
+              Book Consultation
             </button>
           </div>
-          <p className="hp-hero-caption">
-            <IconBuilding /> Interior Designers &amp; Contractors · Satna
-          </p>
+          <div className="hp-hero-meta">
+            <IconBuilding />
+            <span>Satna</span>
+            <span className="hp-meta-dot" />
+            <span>Madhya Pradesh</span>
+            <span className="hp-meta-dot" />
+            <span>Est. 2019</span>
+          </div>
         </div>
 
         <div className="hp-scroll-hint">

@@ -173,13 +173,13 @@ export default function ServicesPage() {
         <img src={bgimg.src} alt="Luxury interior design services in Satna, Madhya Pradesh — Shrivastavas Elevate" className="hp-hero-bg" />
         <div className="hp-hero-overlay" />
         <div className="hp-hero-inner">
-          <div className="hp-hero-eyebrow">
-            <span className="hp-eyebrow-line" />
-            <span>Luxury Interior Design Studio</span>
-            <span className="hp-eyebrow-line" />
+          <div className="hp-hero-kicker">
+            <span className="hp-kicker-label">Our Services</span>
+            <span className="hp-kicker-line" />
           </div>
           <h1 className="hp-hero-title">
-            Crafted<br /><span className="hp-highlight">Interiors</span>
+            <span className="hp-title-light">Crafted</span>
+            <span className="hp-title-strong">Interiors<span className="hp-gold-dot">.</span></span>
           </h1>
           <p className="hp-hero-sub">
             Bespoke interior design and contracting solutions<br />crafted for modern lifestyles and timeless elegance.
@@ -189,11 +189,11 @@ export default function ServicesPage() {
               Book Consultation <IconCalendar />
             </button>
             <button onClick={() => router.push('/projects')} className="hp-btn-ghost">
-              View Projects <IconArrowRight />
+              View Projects
             </button>
           </div>
           <p className="hp-hero-caption">
-            <IconBuilding /> Interior Designers &amp; Contractors · Satna
+            <IconBuilding /> Interior Designers · Satna
           </p>
         </div>
         <div className="hp-scroll-hint"><span className="hp-scroll-line" /><span>Scroll</span></div>

@@ -100,9 +100,9 @@
 .about-hero-content {
   position: relative;
   z-index: 3;
-  text-align: center;
-  padding: 80px 5% 90px;
-  max-width: 980px;
+  text-align: left;
+  padding: 0 5% 90px 7%;
+  max-width: 720px;
   animation: heroReveal 1s cubic-bezier(.22,.61,.36,1) both;
 }
 
@@ -111,56 +111,37 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* eyebrow */
-.abt-eyebrow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  margin-bottom: 26px;
-  color: rgba(255,255,255,0.75);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-
-}
-.abt-eyebrow-line {
-  width: 42px;
-  height: 1px;
-  background: rgba(255,255,255,0.45);
-  display: block;
-}
+/* hide old eyebrow */
+.abt-eyebrow { display: none; }
+.abt-eyebrow-line { display: none; }
 
 .about-hero-content h1 {
   font-family: "Cormorant Garamond", serif;
-  font-size: clamp(4rem, 8vw, 7rem);
-  font-weight: 600;
-  line-height: 0.92;
-  letter-spacing: -1.8px;
-  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   margin: 0 0 28px;
+  line-height: 0.88;
 }
 
-.about-hero-content h1 .abt-highlight {
-  font-weight: 500;
-  color: #f1d5aa;
-}
+.about-hero-content h1 .abt-highlight { display: none; }
 
 .about-hero-content > p {
-  max-width: 640px;
-  margin: 0 auto 42px;
+  max-width: 460px;
+  margin: 0 0 42px;
   font-family: "Cormorant Garamond", serif;
-  font-size: clamp(1.15rem, 1.6vw, 1.25rem);
+  font-size: clamp(1.05rem, 1.4vw, 1.18rem);
   font-weight: 400;
-  line-height: 1.8;
-  color: rgba(255,255,255,0.78);
+  line-height: 1.85;
+  color: rgba(255,255,255,0.68);
 }
 
 /* hero CTA buttons */
 .abt-hero-actions {
   display: flex;
-  justify-content: center;
-  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 28px;
   flex-wrap: wrap;
 }
 
@@ -174,7 +155,6 @@
   font-size: 0.82rem;
   font-weight: 600;
   letter-spacing: 0.3px;
-
   cursor: pointer;
   transition: all 0.3s ease;
   display: inline-flex;
@@ -188,26 +168,27 @@
 }
 
 .abt-btn-ghost {
-  padding: 15px 36px;
-  background: rgba(255,255,255,0.06);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 999px;
-  color: #ffffff;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.28);
+  border-radius: 0;
+  color: rgba(255,255,255,0.72);
   font-family: "Inter", sans-serif;
   font-size: 0.82rem;
   font-weight: 500;
-  letter-spacing: 0.3px;
-
+  letter-spacing: 0.4px;
+  padding: 4px 0;
   cursor: pointer;
-  transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  transition: color 0.2s, border-color 0.2s;
 }
 .abt-btn-ghost:hover {
-  background: rgba(255,255,255,0.12);
-  transform: translateY(-2px);
+  color: #c9a87c;
+  border-bottom-color: rgba(201,168,124,0.5);
+  transform: none;
+  background: none;
 }
 
 /* scroll hint */
@@ -1648,10 +1629,10 @@
 }
 
 @media (max-width: 768px) {
-  .about-hero-content { padding: 18px 24px 70px; }
-  .about-hero-content h1 { font-size: 3.2rem; letter-spacing: -1px; }
-  .abt-hero-actions { flex-direction: column; align-items: center; }
-  .abt-btn-primary, .abt-btn-ghost { width: 100%; max-width: 280px; justify-content: center; }
+  .about-hero-content { padding: 18px 5% 70px; }
+  .abt-hero-actions { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .abt-btn-primary { width: 100%; max-width: 280px; justify-content: center; }
+  .abt-btn-ghost { width: auto; }
 
   .about-stats { grid-template-columns: repeat(2, 1fr); }
   .abt-intro { padding: 70px 20px 0; }
@@ -1702,8 +1683,9 @@
 @media (max-width: 480px) {
   /* Hero fits exactly between top navbar (58px) and bottom navbar (68px) */
   .about-hero { min-height: calc(100dvh - 126px); height: calc(100dvh - 126px); overflow: hidden; margin-top: 58px; }
-  .about-hero-content { padding: 18px 24px 40px; display: flex; flex-direction: column; justify-content: center; }
-  .about-hero-content h1 { font-size: 2.6rem; }
+  .about-hero-content { padding: 18px 5% 40px; display: flex; flex-direction: column; justify-content: center; }
+  .about-hero-content h1 .hp-title-light { font-size: 2rem; }
+  .about-hero-content h1 .hp-title-strong { font-size: 3rem; letter-spacing: -1.5px; }
   /* scroll hint just above bottom navbar */
   .abt-scroll-hint { bottom: 8px; }
   /* keep stats at 2×2 — single column is too sparse */

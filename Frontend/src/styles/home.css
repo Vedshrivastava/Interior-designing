@@ -98,9 +98,9 @@
 .hp-hero-inner {
   position: relative;
   z-index: 3;
-  text-align: center;
-  padding: 80px 5% 90px;
-  max-width: 980px;
+  text-align: left;
+  padding: 0 5% 90px 7%;
+  max-width: 720px;
   animation: heroReveal 1s cubic-bezier(.22,.61,.36,1) both;
 }
 
@@ -116,46 +116,56 @@
   }
 }
 
-/* ── Eyebrow ── */
-.hp-hero-eyebrow {
+/* ── Kicker (replaces centered eyebrow) ── */
+.hp-hero-kicker {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 14px;
-
-  margin-bottom: 26px;
-
-  color: rgba(255,255,255,0.75);
-
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-
-
+  margin-bottom: 30px;
+}
+.hp-kicker-label {
   font-family: "Inter", sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 3.5px;
+  text-transform: uppercase;
+  color: rgba(201,168,124,0.75);
+  white-space: nowrap;
+}
+.hp-kicker-line {
+  height: 1px;
+  flex: 0 0 56px;
+  background: linear-gradient(to right, rgba(201,168,124,0.6), transparent);
 }
 
-.hp-eyebrow-line {
-  width: 42px;
-  height: 1px;
-  background: rgba(255,255,255,0.45);
-  display: block;
-}
+/* ── Keep old eyebrow (unused but harmless) ── */
+.hp-hero-eyebrow { display: none; }
+.hp-eyebrow-line { display: none; }
 
 /* ── Main Heading ── */
 .hp-hero-title {
   font-family: "Cormorant Garamond", serif;
-
-  font-size: clamp(4rem, 8vw, 7rem);
-  font-weight: 600;
-
-  line-height: 0.92;
-  letter-spacing: -1.8px;
-
-  color: #ffffff;
-
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   margin: 0 0 28px;
+  line-height: 0.88;
 }
+.hp-title-light {
+  font-size: clamp(2.6rem, 5vw, 5rem);
+  font-weight: 300;
+  color: rgba(255,255,255,0.52);
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+.hp-title-strong {
+  font-size: clamp(3.8rem, 8vw, 7.8rem);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -2.5px;
+  line-height: 0.85;
+}
+.hp-gold-dot { color: #c9a87c; }
 
 .hp-highlight {
   font-family: "Cormorant Garamond", serif !important;
@@ -181,21 +191,22 @@
 
 /* ── Subtext ── */
 .hp-hero-sub {
-  max-width: 640px;
-  margin: 0 auto 42px;
+  max-width: 480px;
+  margin: 0 0 42px;
   font-family: "Cormorant Garamond", serif;
-  font-size: clamp(1.15rem, 1.6vw, 1.25rem);
+  font-size: clamp(1.05rem, 1.4vw, 1.18rem);
   font-weight: 400;
   line-height: 1.85;
   letter-spacing: 0.2px;
-  color: rgba(255,255,255,0.78);
+  color: rgba(255,255,255,0.68);
 }
 
 /* ── Buttons ── */
 .hp-hero-actions {
   display: flex;
-  justify-content: center;
-  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 28px;
   flex-wrap: wrap;
 }
 
@@ -232,48 +243,60 @@
 }
 
 .hp-btn-ghost {
-  padding: 15px 36px;
-
-  background: rgba(255,255,255,0.06);
-  backdrop-filter: blur(10px);
-
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 999px;
-
-  color: #ffffff;
-
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.28);
+  border-radius: 0;
+  color: rgba(255,255,255,0.72);
   font-family: "Inter", sans-serif;
   font-size: 0.82rem;
   font-weight: 500;
-  letter-spacing: 0.3px;
-
-
+  letter-spacing: 0.4px;
+  padding: 4px 0;
   cursor: pointer;
-
-  transition: all 0.3s ease;
-
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  transition: color 0.2s, border-color 0.2s;
 }
-
 .hp-btn-ghost:hover {
-  background: rgba(255,255,255,0.12);
-  transform: translateY(-2px);
+  color: #c9a87c;
+  border-bottom-color: rgba(201,168,124,0.5);
+  transform: none;
+  background: none;
 }
 
-/* ── Caption ── */
+/* ── Caption / Meta ── */
 .hp-hero-caption {
-  margin-top: 34px;
-
-  color: rgba(255,255,255,0.52);
-
+  margin-top: 32px;
+  color: rgba(255,255,255,0.38);
   font-family: "Inter", sans-serif;
-
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 500;
-  letter-spacing: 0.4px;
-
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hp-hero-meta {
+  margin-top: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255,255,255,0.35);
+  font-family: "Inter", sans-serif;
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.hp-meta-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  flex-shrink: 0;
 }
 
 .hp-scroll-hint {
@@ -1442,10 +1465,10 @@
 }
 
 @media (max-width: 768px) {
-  .hp-hero-inner { padding: 18px 24px 70px; }
-  .hp-hero-title { font-size: 3.2rem; letter-spacing: -1px; }
-  .hp-hero-actions { flex-direction: column; align-items: center; }
-  .hp-btn-primary, .hp-btn-ghost { width: 100%; max-width: 280px; justify-content: center; }
+  .hp-hero-inner { padding: 18px 5% 70px; }
+  .hp-hero-actions { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .hp-btn-primary { width: 100%; max-width: 280px; justify-content: center; }
+  .hp-btn-ghost { width: auto; border-bottom-width: 1px; }
 
   .hp-stats { grid-template-columns: repeat(2, 1fr); }
   .hp-stat-item { padding: 36px 18px 30px; }
@@ -1489,8 +1512,9 @@
 @media (max-width: 480px) {
   /* Hero fits exactly between top navbar (58px) and bottom navbar (68px) */
   .hp-hero { min-height: calc(100dvh - 126px); height: calc(100dvh - 126px); overflow: hidden; margin-top: 58px; }
-  .hp-hero-inner { padding: 18px 24px 40px; display: flex; flex-direction: column; justify-content: center; }
-  .hp-hero-title { font-size: 2.6rem; }
+  .hp-hero-inner { padding: 18px 5% 40px; display: flex; flex-direction: column; justify-content: center; }
+  .hp-title-light { font-size: 2rem; }
+  .hp-title-strong { font-size: 3rem; letter-spacing: -1.5px; }
   /* scroll hint just above bottom navbar */
   .hp-scroll-hint { bottom: 8px; }
   /* caption closer to buttons */

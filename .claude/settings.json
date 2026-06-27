@@ -78,7 +78,9 @@
       "Bash(node -e \"require\\('fs'\\).readFileSync\\('/Users/vedshrivastava/interior-site-project/Frontend/src/styles/home.css'\\)\")",
       "Bash(node -e \"require\\('fs'\\).readFileSync\\('/Users/vedshrivastava/interior-site-project/Frontend/src/components/pages/ContactPage.jsx'\\)\")",
       "Bash(node -e \"require\\('fs'\\).readFileSync\\('/Users/vedshrivastava/interior-site-project/Frontend/src/styles/contact.css'\\)\")",
-      "Bash(git -C /Users/vedshrivastava/interior-site-project ls-files Frontend/src/components/)"
+      "Bash(git -C /Users/vedshrivastava/interior-site-project ls-files Frontend/src/components/)",
+      "Bash(grep -v \"^\\\\.\\\\|^crypto$\\\\|^fs$\\\\|^zlib$\\\\|^mongodb$\")",
+      "Bash(grep -v \"^\\\\.\\\\|^node:\\\\|^crypto$\\\\|^fs$\\\\|^http$\\\\|^path$\")"
     ],
     "additionalDirectories": [
       "/tmp",

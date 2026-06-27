@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import "../styles/email_verification.css";
 
 const EmailVerificationPage = () => {
@@ -43,8 +43,12 @@ const EmailVerificationPage = () => {
             setTimeout(() => navigate("/"), 2000);
         } catch (err) {
             setShake(true);
-            setTimeout(() => setShake(false), 600);
-            toast.error(err?.response?.data?.message || "Invalid code. Please try again.");
+            setCode(["", "", "", "", "", ""]);
+            setTimeout(() => {
+                setShake(false);
+                inputRefs.current[0]?.focus();
+            }, 600);
+            toast.error(err?.response?.data?.message || "Incorrect code — please try again.");
         }
     };
 
@@ -54,6 +58,24 @@ const EmailVerificationPage = () => {
 
     return (
         <div className="ev-page">
+            <ToastContainer
+                position="top-center"
+                autoClose={3000}
+                closeOnClick
+                pauseOnHover={false}
+                style={{ zIndex: 10001 }}
+                toastStyle={{
+                    background: '#102525',
+                    color: '#f0e6d3',
+                    border: '1px solid rgba(201,168,124,0.3)',
+                    borderRadius: '12px',
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '0.88rem',
+                    fontWeight: 500,
+                    boxShadow: '0 8px 32px rgba(10,20,20,0.4)',
+                    padding: '14px 18px',
+                }}
+            />
 
             <div className="ev-card">
                 {success ? (

@@ -101,6 +101,11 @@ export default function AboutPage() {
                 {activeCard.points.map((pt, i) => <li key={i}><span className="svc-feat-dot" />{pt}</li>)}
               </ul>
             )}
+            {activeCard.href && (
+              <button className="svc-modal-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={() => { setActiveCard(null); router.push(activeCard.href); }}>
+                View more <IconArrowRight />
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -172,7 +177,13 @@ export default function AboutPage() {
               { src: materials,  alt: 'Premium architectural materials and products used in interior design projects in Satna, MP', Tag: IconSwatchbook, tagLabel: 'Products', href: '/products', title: 'Premium Products & Materials', desc: 'We source from India\'s most trusted architectural brands through long-standing trade relationships. Every material is physically sampled before it\'s specified for your project.',  points: ['Flooring: Kajaria tiles and surfaces', 'Paints: Asian Paints premium ranges', 'Boards and laminates: CenturyPly products', 'Glass specifications: Saint-Gobain'] },
               { src: commitment, alt: 'Quality commitment by Shrivastavas Elevate interior designers in Satna, Madhya Pradesh', Tag: IconShield, tagLabel: 'Commitment', href: null, title: 'Our Commitment To Quality', desc: 'Every project is a long-term relationship for us, not a one-time job. We\'re only done when you\'re genuinely satisfied, and our post-handover support and documentation reflect that.', points: ['Detailed project documentation and warranties', 'Post-handover support and follow-up visits', 'Zero-compromise craftsmanship standards', 'Transparent pricing, no hidden costs ever'] },
             ].map((c, i) => (
-              <div key={i} className="abt-stack-card abt-reveal" ref={sr} style={{ '--abt-delay': `${(i + 1) * 60}ms`, cursor: c.href ? 'pointer' : 'default' }} onClick={c.href ? () => router.push(c.href) : undefined}>
+              <div
+                key={i} className="abt-stack-card abt-reveal" ref={sr}
+                style={{ '--abt-delay': `${(i + 1) * 60}ms`, cursor: 'pointer' }}
+                onClick={() => setActiveCard({ Icon: c.Tag, title: c.title, desc: c.desc, points: c.points, href: c.href })}
+                role="button" tabIndex={0}
+                onKeyDown={e => e.key === 'Enter' && setActiveCard({ Icon: c.Tag, title: c.title, desc: c.desc, points: c.points, href: c.href })}
+              >
                 <div className="abt-stack-img">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={c.src.src} alt={c.alt} />
@@ -181,8 +192,7 @@ export default function AboutPage() {
                 </div>
                 <div className="abt-stack-body">
                   <h4>{c.title}</h4>
-                  <p>{c.desc}</p>
-                  <ul className="abt-card-list">{c.points.map((pt, j) => <li key={j}><span className="abt-card-dot" />{pt}</li>)}</ul>
+                  <p>{truncate(c.desc)}</p>
                 </div>
               </div>
             ))}
@@ -243,7 +253,7 @@ export default function AboutPage() {
                 <span className="process-num hp-prof-num">{s.num}</span>
               </div>
               <h3>{s.title}</h3>
-              <p>{s.desc}</p>
+              <p>{truncate(s.desc)}</p>
             </div>
           ))}
         </div>

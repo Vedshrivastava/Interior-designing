@@ -23,6 +23,7 @@ const testimonials = [
   { name: 'Sunita Agarwal', location: 'Bhopal',    text: 'The 3D renders were absolutely spot-on. We knew exactly what we were getting before any work started, which took away all the usual anxiety. The finished space is identical to what we approved in the render. That level of accuracy is rare.',                                                 rating: 5 },
 ];
 const marqueeItems = [...testimonials, ...testimonials];
+const truncate = (text) => text.length > 100 ? text.slice(0, 97).trimEnd() + '…' : text;
 
 const founders = [
   { initial: 'V', name: 'Ved Shrivastava',  role: 'Founder, Managing Director & Full Stack Developer',  quote: 'Building this studio has always been about more than design — it\'s about creating a seamless experience for every client, from the first conversation to the final handover.' },
@@ -274,7 +275,7 @@ export default function AboutPage() {
               {marqueeItems.map((t, i) => (
                 <div className="t-card" key={`a${i}`} onClick={() => setActiveTCard(t)} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && setActiveTCard(t)}>
                   <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
-                  <p className="t-card-text">{t.text}</p>
+                  <p className="t-card-text">{truncate(t.text)}</p>
                   <div className="t-card-author">
                     <div className="t-card-avatar">{t.image ? <img src={t.image.src} alt={t.name} /> : t.name.charAt(0)}</div>
                     <div className="t-card-author-info"><strong>{t.name}</strong><span>{t.location}</span></div>
@@ -288,7 +289,7 @@ export default function AboutPage() {
               {[...marqueeItems].reverse().map((t, i) => (
                 <div className="t-card" key={`b${i}`} onClick={() => setActiveTCard(t)} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && setActiveTCard(t)}>
                   <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
-                  <p className="t-card-text">{t.text}</p>
+                  <p className="t-card-text">{truncate(t.text)}</p>
                   <div className="t-card-author">
                     <div className="t-card-avatar">{t.image ? <img src={t.image.src} alt={t.name} /> : t.name.charAt(0)}</div>
                     <div className="t-card-author-info"><strong>{t.name}</strong><span>{t.location}</span></div>

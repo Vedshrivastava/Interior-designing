@@ -1,5 +1,5 @@
 import userModel from "../models/user.js";
-import bcrypt from "bcrypt";
+import bcrypt from 'bcryptjs';
 import { signTokenForAdmin } from "../middlewares/index.js";
 import validator from "validator";
 import { generateVerificationCode } from "../utils/generateVerificationCode.js";

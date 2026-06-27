@@ -1,5 +1,5 @@
 import userModel from "../models/user.js";
-import bcrypt from "bcrypt";
+import bcrypt from 'bcryptjs';
 import validator from "validator";
 import crypto from 'crypto';
 import { sendVerificationEmail, sendWelcomeEmail, sendResetSuccessEmail, sendPasswordResetEmail } from "../middlewares/emails.js";

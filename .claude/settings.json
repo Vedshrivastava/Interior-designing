@@ -82,7 +82,9 @@
       "Bash(grep -v \"^\\\\.\\\\|^crypto$\\\\|^fs$\\\\|^zlib$\\\\|^mongodb$\")",
       "Bash(grep -v \"^\\\\.\\\\|^node:\\\\|^crypto$\\\\|^fs$\\\\|^http$\\\\|^path$\")",
       "Bash(sed -i '' 's/padding: 70px 24px 70px/padding: 35px 24px 70px/g' /Users/vedshrivastava/interior-site-project/Frontend/src/styles/home.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/about.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/services.css)",
-      "Bash(sed -i '' 's/padding: 70px 6%/padding: 35px 6%/g' /Users/vedshrivastava/interior-site-project/Frontend/src/styles/home.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/about.css)"
+      "Bash(sed -i '' 's/padding: 70px 6%/padding: 35px 6%/g' /Users/vedshrivastava/interior-site-project/Frontend/src/styles/home.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/about.css)",
+      "Bash(sed -i '' 's/padding: 35px 24px 70px/padding: 18px 24px 70px/g' /Users/vedshrivastava/interior-site-project/Frontend/src/styles/home.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/about.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/services.css)",
+      "Bash(sed -i '' 's/padding: 35px 6%/padding: 18px 6%/g' /Users/vedshrivastava/interior-site-project/Frontend/src/styles/home.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/about.css)"
     ],
     "additionalDirectories": [
       "/tmp",

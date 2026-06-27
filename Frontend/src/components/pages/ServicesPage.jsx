@@ -107,23 +107,35 @@ export default function ServicesPage() {
           </div>
         </div>
       )}
-      <section className="services-hero">
+      <section className="hp-hero">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={bgimg.src} alt="Luxury interior design services in Satna, Madhya Pradesh — Shrivastavas Elevate" className="services-hero-bg" />
-        <div className="services-overlay" />
-        <div className="services-hero-content">
-          <div className="svc-hero-eyebrow">
-            <span className="svc-eyebrow-line" />
+        <img src={bgimg.src} alt="Luxury interior design services in Satna, Madhya Pradesh — Shrivastavas Elevate" className="hp-hero-bg" />
+        <div className="hp-hero-overlay" />
+        <div className="hp-hero-inner">
+          <div className="hp-hero-eyebrow">
+            <span className="hp-eyebrow-line" />
             <span>Luxury Interior Design Studio</span>
-            <span className="svc-eyebrow-line" />
+            <span className="hp-eyebrow-line" />
           </div>
-          <h1>Crafted<br /><span className="svc-highlight">Interiors</span></h1>
-          <div className="hero-cta-row">
-            <button className="svc-btn-primary" onClick={openConsult}>Book Consultation <IconCalendar /></button>
-            <button onClick={() => router.push('/projects')} className="svc-btn-ghost">View Projects <IconArrowRight /></button>
+          <h1 className="hp-hero-title">
+            Crafted<br /><span className="hp-highlight">Interiors</span>
+          </h1>
+          <p className="hp-hero-sub">
+            Bespoke interior design and contracting solutions<br />crafted for modern lifestyles and timeless elegance.
+          </p>
+          <div className="hp-hero-actions">
+            <button onClick={openConsult} className="hp-btn-primary">
+              Book Consultation <IconCalendar />
+            </button>
+            <button onClick={() => router.push('/projects')} className="hp-btn-ghost">
+              View Projects <IconArrowRight />
+            </button>
           </div>
+          <p className="hp-hero-caption">
+            <IconBuilding /> Interior Designers &amp; Contractors · Satna
+          </p>
         </div>
-        <div className="svc-scroll-hint"><span className="svc-scroll-line" /><span>Scroll</span></div>
+        <div className="hp-scroll-hint"><span className="hp-scroll-line" /><span>Scroll</span></div>
       </section>
 
       <section className="services-stats">

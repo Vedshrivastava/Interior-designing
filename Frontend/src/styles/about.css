@@ -1478,7 +1478,7 @@
 ════════════════════════════════════════════ */
 .about-cta {
   position: relative;
-  padding: 35px 6%;
+  padding: 18px 6%;
   background: var(--green);
   text-align: center;
   overflow: hidden;
@@ -1618,7 +1618,7 @@
 }
 
 @media (max-width: 768px) {
-  .about-hero-content { padding: 35px 24px 70px; }
+  .about-hero-content { padding: 18px 24px 70px; }
   .about-hero-content h1 { font-size: 3.2rem; letter-spacing: -1px; }
   .abt-hero-actions { flex-direction: column; align-items: center; }
   .abt-btn-primary, .abt-btn-ghost { width: 100%; max-width: 280px; justify-content: center; }
@@ -1670,6 +1670,9 @@
 }
 
 @media (max-width: 480px) {
+  /* Hero fits exactly to mobile viewport */
+  .about-hero { min-height: 100dvh; height: 100dvh; overflow: hidden; }
+  .about-hero-content { padding: 18px 24px 60px; display: flex; flex-direction: column; justify-content: center; }
   .about-hero-content h1 { font-size: 2.6rem; }
   /* keep stats at 2×2 — single column is too sparse */
   .about-stats { grid-template-columns: repeat(2, 1fr); }

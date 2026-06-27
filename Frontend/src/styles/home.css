@@ -1116,7 +1116,7 @@
    BRANDS
 ════════════════════════════════════════════ */
 .hp-brands {
-  padding: 35px 6%;
+  padding: 18px 6%;
   background: var(--ivory);
   position: relative;
 }
@@ -1288,7 +1288,7 @@
 }
 
 @media (max-width: 768px) {
-  .hp-hero-inner { padding: 35px 24px 70px; }
+  .hp-hero-inner { padding: 18px 24px 70px; }
   .hp-hero-title { font-size: 3.2rem; letter-spacing: -1px; }
   .hp-hero-actions { flex-direction: column; align-items: center; }
   .hp-btn-primary, .hp-btn-ghost { width: 100%; max-width: 280px; justify-content: center; }
@@ -1333,6 +1333,9 @@
 }
 
 @media (max-width: 480px) {
+  /* Hero fits exactly to mobile viewport — no overflow */
+  .hp-hero { min-height: 100dvh; height: 100dvh; overflow: hidden; }
+  .hp-hero-inner { padding: 18px 24px 60px; display: flex; flex-direction: column; justify-content: center; }
   .hp-hero-title { font-size: 2.6rem; }
   /* 2×2 grid — far more compact than 4 stacked */
   .hp-stats { grid-template-columns: repeat(2, 1fr); }

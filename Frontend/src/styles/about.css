@@ -1394,9 +1394,10 @@
   line-height: 1.78;
   margin: 0;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  max-height: calc(0.97rem * 1.78 * 2);
 }
 
 .abt-testimonials .t-card-author {

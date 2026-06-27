@@ -1072,9 +1072,10 @@
   position: relative;
   z-index: 1;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  max-height: calc(1rem * 1.78 * 2);
 }
 
 .hp-testimonials .t-card-author {

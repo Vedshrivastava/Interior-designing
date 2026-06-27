@@ -70,6 +70,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  margin-top: 62px;
 }
 
 /* background image — exact copy of .hp-hero-bg */
@@ -460,9 +461,9 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 18px;
-  max-width: 1100px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
@@ -471,6 +472,7 @@
   border: 1px solid rgba(201,168,124,0.12);
   border-radius: 12px;
   padding: 28px 24px;
+  cursor: pointer;
   transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
 }
 .cs-why-card:hover {
@@ -506,6 +508,99 @@
   font-size: 0.86rem;
   color: rgba(240,230,211,0.55);
   line-height: 1.65;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Advantage card modal ── */
+.cs-adv-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,20,20,0.65);
+  backdrop-filter: blur(6px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: csModalFade 0.2s ease;
+}
+@keyframes csModalFade { from { opacity: 0; } to { opacity: 1; } }
+
+.cs-adv-modal {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  scrollbar-width: none;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.22);
+  animation: csModalSlide 0.28s cubic-bezier(.22,.61,.36,1);
+}
+.cs-adv-modal::-webkit-scrollbar { display: none; }
+@keyframes csModalSlide {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+.cs-adv-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid rgba(201,168,124,0.15);
+}
+
+.cs-adv-modal-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(201,168,124,0.1);
+  border: 1px solid rgba(201,168,124,0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold, #c9a87c);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.cs-adv-modal-title {
+  font-family: "Playfair Display", serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--green, #102525);
+  margin: 0;
+  flex: 1;
+}
+
+.cs-adv-modal-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: transparent;
+  color: var(--text-mid, #5a4e44);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s;
+}
+.cs-adv-modal-close:hover { background: var(--green, #102525); color: var(--gold, #c9a87c); }
+
+.cs-adv-modal-desc {
+  padding: 20px 24px 24px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.95rem;
+  color: var(--text-mid, #5a4e44);
+  line-height: 1.75;
   margin: 0;
 }
 
@@ -609,10 +704,6 @@
 /* ══════════════════════════════
    RESPONSIVE
 ══════════════════════════════ */
-@media (max-width: 1024px) {
-  .cs-why-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
 @media (max-width: 768px) {
   .cs-hero-inner    { padding: 120px 24px 80px; }
   .cs-stats         { grid-template-columns: repeat(2, 1fr); }
@@ -623,10 +714,11 @@
 }
 
 @media (max-width: 480px) {
+  /* Hero fits between top navbar (58px) and bottom navbar (68px) */
+  .cs-hero { min-height: calc(100dvh - 126px); height: calc(100dvh - 126px); overflow: hidden; margin-top: 58px; }
   .cs-hero-title    { font-size: 3.2rem; letter-spacing: -1px; }
   .cs-hero-actions  { flex-direction: column; align-items: center; }
   .cs-stats         { grid-template-columns: 1fr 1fr; }
-  .cs-why-grid      { grid-template-columns: 1fr; }
   .cs-proj-grid     { grid-template-columns: 1fr; }
   .cs-cta-actions   { flex-direction: column; align-items: center; }
 }

@@ -8,7 +8,7 @@ import bgimg from '@/assets/home-img.png';
 import {
   IconCalendar, IconArrowRight, IconBuilding, IconHouseChimney,
   IconEye, IconRuler, IconLightbulb, IconScrewdriverWrench,
-  IconLocation, IconKey, IconShield, IconGem, IconPenRuler,
+  IconLocation, IconKey, IconShield, IconGem, IconPenRuler, IconXMark,
 } from '@/components/Icons';
 
 export default function CityServicePage({ cityName, stateName, citySlug, projects }) {
@@ -28,6 +28,20 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
     return () => io.disconnect();
   }, []);
   const sr = el => { if (el && !revealRefs.current.includes(el)) revealRefs.current.push(el); };
+
+  /* ── Advantage card modal ─────────────────────────────────── */
+  const [activeAdv, setActiveAdv] = useState(null);
+  useEffect(() => {
+    if (activeAdv) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [activeAdv]);
+  useEffect(() => {
+    if (!activeAdv) return;
+    const h = e => { if (e.key === 'Escape') setActiveAdv(null); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [activeAdv]);
 
   /* ── Lightbox ───────────────────────────────────────────────── */
   const [lb, setLb] = useState({ open: false, images: [], idx: 0, name: '' });
@@ -67,6 +81,22 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
 
   return (
     <div className="cs-page">
+
+      {/* ── Advantage card modal ────────────────────────────── */}
+      {activeAdv && (
+        <div className="cs-adv-modal-backdrop" onClick={() => setActiveAdv(null)}>
+          <div className="cs-adv-modal" onClick={e => e.stopPropagation()}>
+            <div className="cs-adv-modal-header">
+              <div className="cs-adv-modal-icon"><activeAdv.Icon /></div>
+              <h3 className="cs-adv-modal-title">{activeAdv.title}</h3>
+              <button className="cs-adv-modal-close" onClick={() => setActiveAdv(null)} aria-label="Close">
+                <IconXMark />
+              </button>
+            </div>
+            <p className="cs-adv-modal-desc">{activeAdv.desc}</p>
+          </div>
+        </div>
+      )}
 
       {/* ── Lightbox ─────────────────────────────────────────── */}
       {lb.open && (
@@ -244,7 +274,16 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
         </div>
         <div className="cs-why-grid">
           {advantages.map((a, i) => (
-            <div className="cs-why-card cs-sr" key={i} ref={sr} style={{ '--cs-delay': `${i * 55}ms` }}>
+            <div
+              className="cs-why-card cs-sr"
+              key={i}
+              ref={sr}
+              style={{ '--cs-delay': `${i * 55}ms` }}
+              onClick={() => setActiveAdv(a)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => e.key === 'Enter' && setActiveAdv(a)}
+            >
               <div className="cs-why-icon"><a.Icon /></div>
               <h3>{a.title}</h3>
               <p>{a.desc}</p>

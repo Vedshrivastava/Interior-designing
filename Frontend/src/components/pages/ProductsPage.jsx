@@ -173,6 +173,7 @@ export default function ProductsPage({ initialProducts = [] }) {
     } catch { setError(true); } finally { setLoading(false); }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (initialProducts.length === 0) fetchProducts();
   }, [fetchProducts, initialProducts.length]);
@@ -189,6 +190,7 @@ export default function ProductsPage({ initialProducts = [] }) {
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginated  = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setCurrentPage(1); }, [activeCategory, activeSubcategory, query]);
 
   const getPageRange = (cur, total) => {

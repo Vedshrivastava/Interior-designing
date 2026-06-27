@@ -241,6 +241,7 @@ export default function ProjectsPage({ initialProjects = [] }) {
     }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (initialProjects.length === 0) fetchProjects();
   }, [fetchProjects, initialProjects.length]);

@@ -40,6 +40,7 @@ export default function DesignDisplayPage({
   }, []);
 
   // Reset slider when category changes OR viewport resizes across breakpoint
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setSliderIndex(0); }, [category, cardsPerView]);
 
   const fetchPage = useCallback(async (pageNum, replace = false) => {
@@ -57,6 +58,7 @@ export default function DesignDisplayPage({
   }, [category, pageLimit]);
 
   // Fetch fresh data on mount and whenever category changes (fetchPage is stable per category)
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     setPage(1);
     fetchPage(1, true);

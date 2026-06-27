@@ -19,32 +19,15 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// CORS — before everything else
-const allowedOrigins = [
-  'https://shrivastavaselevate.com',
-  'https://www.shrivastavaselevate.com',
-  'https://admin.shrivastavaselevate.com',
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:5174',
-];
-
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
-      callback(null, true);
-    } else {
-      callback(null, true); // allow all for now during setup
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-};
-
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+// CORS — manual headers, guaranteed to work
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
 
 app.use(express.json());
 

@@ -292,7 +292,7 @@ export default function ServicesPage() {
 
       {activeTCard && (
         <div className="t-modal-backdrop" onClick={() => setActiveTCard(null)}>
-          <div className="t-modal" onClick={e => e.stopPropagation()}>
+          <div className="t-modal t-modal--light" onClick={e => e.stopPropagation()}>
             <button className="t-modal-close" onClick={() => setActiveTCard(null)} aria-label="Close"><IconXMark /></button>
             <div className="t-modal-stars">{Array.from({ length: activeTCard.rating }).map((_, i) => <IconStarFilled key={i} />)}</div>
             <p className="t-modal-text">{activeTCard.text}</p>

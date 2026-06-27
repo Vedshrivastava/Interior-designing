@@ -1522,14 +1522,15 @@
 @media (max-width: 480px) {
   /* Hero fits exactly between top navbar (58px) and bottom navbar (68px) */
   .hp-hero { min-height: calc(100dvh - 126px); height: calc(100dvh - 126px); overflow: hidden; margin-top: 58px; }
-  .hp-hero-inner { padding: 24px 5% 40px; }
+  .hp-hero-inner { padding: 24px 5% 24px; }
   .hp-hero-tag-box { margin-bottom: 28px; }
   .hp-hero-title { font-size: clamp(2.4rem, 11vw, 4rem); }
   .hp-hero-rule { margin: 18px 0 24px; }
-  .hp-hero-bottom { bottom: 12px; left: 5%; right: 5%; }
+  .hp-hero-bottom { position: static; margin-top: 32px; left: unset; right: unset; bottom: unset; }
   .hp-hero-loc-divider { height: 28px; }
   .hp-loc-val { font-size: 0.82rem; }
   .hp-est { font-size: 0.52rem; }
+  .hp-scroll-hint { display: none; }
   /* scroll hint just above bottom navbar */
   .hp-scroll-hint { bottom: 8px; }
   /* caption closer to buttons */

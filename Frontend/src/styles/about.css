@@ -1733,9 +1733,10 @@
 @media (max-width: 480px) {
   /* Hero fits exactly between top navbar (58px) and bottom navbar (68px) */
   .about-hero { min-height: calc(100dvh - 126px); height: calc(100dvh - 126px); overflow: hidden; margin-top: 58px; }
-  .about-hero-content { padding: 24px 5% 40px; }
+  .about-hero-content { padding: 24px 5% 24px; }
   .about-hero-content h1 { font-size: clamp(2.4rem, 11vw, 4rem); }
-  .abt-hero-bottom { bottom: 12px; left: 5%; right: 5%; }
+  .abt-hero-bottom { position: static; margin-top: 32px; left: unset; right: unset; bottom: unset; }
+  .abt-scroll-hint { display: none; }
   /* scroll hint just above bottom navbar */
   .abt-scroll-hint { bottom: 8px; }
   /* keep stats at 2×2 — single column is too sparse */

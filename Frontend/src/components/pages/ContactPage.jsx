@@ -74,7 +74,7 @@ export default function ContactPage() {
               <div className="contact-info-list">
                 {INFO_ITEMS.map(({ Icon, label, value, href }) => (
                   <div className="contact-info-item" key={label}>
-                    <div className={`contact-info-icon${label === 'WhatsApp' ? ' whatsapp-icon' : ''}`}>
+                    <div className="contact-info-icon">
                       <Icon />
                     </div>
                     <div className="contact-info-text">
@@ -123,8 +123,8 @@ export default function ContactPage() {
                   <input id="email" name="email" type="email" placeholder="your@email.com" value={formData.email} onChange={onChange} required />
                 </div>
                 <div className="contact-field">
-                  <label htmlFor="message">Message <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional)</span></label>
-                  <textarea id="message" name="message" placeholder="Tell us about your project, space size, budget range…" value={formData.message} onChange={onChange} rows="5" />
+                  <label htmlFor="message">Message</label>
+                  <textarea id="message" name="message" placeholder="Tell us about your project, space size, budget range…" value={formData.message} onChange={onChange} rows="5" required />
                 </div>
                 <button type="submit" className="contact-submit" disabled={loading}>
                   {loading ? 'Sending…' : <><IconPaperPlane /> Send Message</>}

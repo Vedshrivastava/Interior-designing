@@ -181,7 +181,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  height: 82vh;
+  min-height: 82vh;
 }
 
 /* texture on info card */
@@ -302,7 +302,7 @@
   overflow: hidden;
   position: relative;
   transition: box-shadow 0.38s ease, border-color 0.38s ease;
-  height: 82vh;
+  min-height: 82vh;
 }
 .contact-form-card:hover {
   border-color: rgba(201,168,124,0.25);
@@ -489,9 +489,6 @@
   transform: scale(0.95);
 }
 
-.whatsapp-icon svg {
-  font-size: 1.5rem;
-}
 
 /* ════════════════════════════════════════════
    RESPONSIVE
@@ -499,12 +496,8 @@
 @media (max-width: 1024px) {
   .contact-container { grid-template-columns: 1fr; gap: 22px; }
   .contact-body { padding: 60px 5% 70px; }
-  .contact-details {
-    height: 96vh;
-  }
-  .contact-form-card {
-    height: 96vh;
-  }
+  .contact-details,
+  .contact-form-card { min-height: unset; height: auto; }
 }
 
 @media (max-width: 768px) {
@@ -521,13 +514,5 @@
   .contact-details-inner,
   .contact-form-inner { padding: 26px 20px 30px; }
   .contact-submit { font-size: 0.82rem; }
-  .contact-details {
-    height: 106vh;
-  }
-  .contact-form-card {
-    height: 110vh;
-  }
-  .contact-info-list {
-    gap: 0;
-  }
+  .contact-info-list { gap: 0; }
 }

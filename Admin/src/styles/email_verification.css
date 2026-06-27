@@ -1,137 +1,255 @@
-html, body {
-    height: 100%;
+/* ── Page ── */
+.ev-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0a1a1a;
+    padding: 24px 16px;
+}
+
+/* ── Card ── */
+.ev-card {
+    background: var(--ivory, #f8f4ee);
+    border: 1px solid rgba(201, 168, 124, 0.35);
+    border-radius: 16px;
+    padding: 40px 36px 36px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 24px 64px rgba(10, 20, 20, 0.35);
+    animation: evSlideUp 0.3s ease;
+}
+
+@keyframes evSlideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header ── */
+.ev-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.ev-badge {
+    display: inline-block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--gold, #c9a87c);
+    background: rgba(201, 168, 124, 0.1);
+    border: 1px solid rgba(201, 168, 124, 0.3);
+    border-radius: 20px;
+    padding: 4px 12px;
+    margin-bottom: 14px;
+}
+
+.ev-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.9rem;
+    font-weight: 600;
+    color: #102525;
+    margin: 0 0 8px;
+    line-height: 1.2;
+}
+
+.ev-sub {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    color: #5a6a6a;
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* ── Notice ── */
+.ev-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: rgba(201, 168, 124, 0.08);
+    border-left: 3px solid var(--gold, #c9a87c);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 14px;
+    margin-bottom: 28px;
+}
+
+.ev-notice-icon {
+    font-size: 0.9rem;
+    color: var(--gold, #c9a87c);
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.ev-notice p {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    color: #5a6a6a;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.ev-notice p strong {
+    color: #102525;
+}
+
+/* ── Form ── */
+.ev-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ── OTP Inputs ── */
+.ev-inputs {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.ev-input {
+    width: 52px;
+    height: 58px;
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #102525;
+    background: #fff;
+    border: 1.5px solid rgba(201, 168, 124, 0.35);
+    border-radius: 10px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    caret-color: #c9a87c;
+}
+
+.ev-input:focus {
+    border-color: var(--gold, #c9a87c);
+    box-shadow: 0 0 0 3px rgba(201, 168, 124, 0.15);
+    background: #fffdf9;
+}
+
+.ev-input--filled {
+    border-color: rgba(16, 37, 37, 0.4);
+    background: rgba(16, 37, 37, 0.03);
+}
+
+/* ── Error ── */
+.ev-error {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    color: #c0392b;
+    text-align: center;
     margin: 0;
 }
 
-.email-verification-page {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh; /* Full viewport height */
-    max-width: 400px;
+/* ── Submit button ── */
+.ev-submit {
     width: 100%;
-    border-radius: 16px;
-    overflow: hidden;
-    margin: auto;
-}
-
-.email-verification-container {
-    background-color: #f4f4f4;
-    border-radius: 16px;
-    padding: 32px;
-    width: 100%;
-}
-
-.email-verification-title {
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 24px;
-    text-align: center;
-    background: linear-gradient(to right, tomato, rgb(237, 91, 65));
-    -webkit-background-clip: text;
-    color: transparent;
-}
-
-.email-verification-subtitle {
-    text-align: center;
-    color: #333;
-    margin-bottom: 24px;
-}
-
-.email-verification-form {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-.input-group {
-    display: flex;
-    justify-content: space-between;
-}
-
-.code-input {
-    width: 48px;
-    height: 48px;
-    text-align: center;
-    font-size: 20px;
-    font-weight: bold;
-    background-color: #f4f4f4;
-    color: #333;
-    border: 2px solid tomato;
-    border-radius: 8px;
-    transition: border-color 0.3s ease;
-}
-
-.code-input:focus {
-    border-color: #333;
-    outline: none;
-}
-
-.error-message {
-    color: #ef4444;
-    font-weight: 600;
-    margin-top: 8px;
-}
-
-.verify-button {
-    width: 100%;
-    background: linear-gradient(to right, tomato, rgb(237, 91, 65));
-    color: #fff;
-    font-weight: bold;
-    padding: 12px;
-    border-radius: 8px;
-    transition: background 0.3s ease;
+    padding: 13px;
+    background: linear-gradient(135deg, #c9a87c 0%, #e8c99a 50%, #c9a87c 100%);
+    background-size: 200% auto;
+    color: #102525;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border: none;
+    border-radius: 10px;
     cursor: pointer;
+    transition: background-position 0.4s ease, opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
-.verify-button:hover {
-    background: linear-gradient(to right, tomato, rgb(237, 91, 65));
+.ev-submit:hover:not(:disabled) {
+    background-position: right center;
 }
 
-.verify-button:disabled {
-    opacity: 0.5;
+.ev-submit:disabled {
+    opacity: 0.45;
     cursor: not-allowed;
 }
 
-.verify-button:focus {
-    outline: none;
+/* ── Spinner ── */
+.ev-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(16, 37, 37, 0.3);
+    border-top-color: #102525;
+    border-radius: 50%;
+    animation: evSpin 0.7s linear infinite;
 }
 
-/* Media query for screens with a max width of 480px */
+@keyframes evSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Success state ── */
+.ev-success {
+    text-align: center;
+    padding: 16px 0 8px;
+}
+
+.ev-success-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(22, 163, 74, 0.1);
+    border: 2px solid rgba(22, 163, 74, 0.3);
+    color: #16a34a;
+    font-size: 1.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    animation: evPop 0.4s ease;
+}
+
+@keyframes evPop {
+    0%   { transform: scale(0.5); opacity: 0; }
+    70%  { transform: scale(1.1); }
+    100% { transform: scale(1);   opacity: 1; }
+}
+
+.ev-success-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #102525;
+    margin: 0 0 8px;
+}
+
+.ev-success-sub {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    color: #5a6a6a;
+    margin: 0;
+}
+
+/* ── Mobile ── */
 @media (max-width: 480px) {
-    .email-verification-page {
-        padding: 10px;
-        max-width: 90%; /* Reduce max width to fit small screens */
-        box-shadow: none; /* Remove box shadow to eliminate the larger shadow size */
+    .ev-card {
+        padding: 28px 20px 24px;
+        border-radius: 14px;
     }
 
-    .email-verification-container {
-        padding: 20px; /* Reduce padding */
-        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1); /* Smaller shadow for small screen */
+    .ev-input {
+        width: 42px;
+        height: 50px;
+        font-size: 1.4rem;
+        border-radius: 8px;
     }
 
-    .email-verification-title {
-        font-size: 20px; /* Smaller font size */
-        margin-bottom: 16px; /* Reduce margin */
+    .ev-inputs {
+        gap: 7px;
     }
 
-    .email-verification-subtitle {
-        font-size: 14px; /* Smaller subtitle font */
-        margin-bottom: 16px; /* Reduce margin */
-    }
-
-    .email-verification-form {
-        gap: 16px; /* Reduce the gap between form elements */
-    }
-
-    .code-input {
-        width: 34px; /* Adjust width for smaller screen */
-        height: 34px;
-        font-size: 15px; /* Reduce font size to fit the input */
-    }
-
-    .verify-button {
-        padding: 10px; /* Reduce button padding */
-        font-size: 16px; /* Smaller button text */
+    .ev-title {
+        font-size: 1.6rem;
     }
 }

@@ -10,6 +10,7 @@ const EmailVerificationPage = () => {
     const navigate = useNavigate();
     const { error, isLoading, verifyEmail } = useAuthStore();
     const [success, setSuccess] = useState(false);
+    const [shake, setShake] = useState(false);
 
     const handleChange = (index, value) => {
         const newCode = [...code];
@@ -18,8 +19,7 @@ const EmailVerificationPage = () => {
             for (let i = 0; i < 6; i++) newCode[i] = pastedCode[i] || "";
             setCode(newCode);
             const lastFilled = newCode.findLastIndex((d) => d !== "");
-            const focusIndex = lastFilled < 5 ? lastFilled + 1 : 5;
-            inputRefs.current[focusIndex]?.focus();
+            inputRefs.current[Math.min(lastFilled + 1, 5)]?.focus();
         } else {
             newCode[index] = value;
             setCode(newCode);
@@ -40,9 +40,11 @@ const EmailVerificationPage = () => {
             await verifyEmail(verificationCode);
             toast.success("Email verified successfully");
             setSuccess(true);
-            setTimeout(() => navigate("/"), 1800);
+            setTimeout(() => navigate("/"), 2000);
         } catch (err) {
-            toast.error(err?.response?.data?.message || err?.message || "Invalid code. Please try again.");
+            setShake(true);
+            setTimeout(() => setShake(false), 600);
+            toast.error(err?.response?.data?.message || "Invalid code. Please try again.");
         }
     };
 
@@ -52,32 +54,53 @@ const EmailVerificationPage = () => {
 
     return (
         <div className="ev-page">
-            <div className="ev-card">
 
+            {/* Background decoration */}
+            <div className="ev-bg-orb ev-bg-orb--1" />
+            <div className="ev-bg-orb ev-bg-orb--2" />
+
+            <div className="ev-card">
                 {success ? (
                     <div className="ev-success">
-                        <div className="ev-success-icon">✓</div>
+                        <div className="ev-success-ring">
+                            <svg viewBox="0 0 52 52" className="ev-checkmark">
+                                <circle className="ev-checkmark-circle" cx="26" cy="26" r="25" fill="none" />
+                                <path className="ev-checkmark-path" fill="none" d="M14 26 l8 8 l16-16" />
+                            </svg>
+                        </div>
                         <h2 className="ev-success-title">Verified!</h2>
-                        <p className="ev-success-sub">Taking you to your dashboard…</p>
+                        <p className="ev-success-sub">Redirecting to your dashboard…</p>
                     </div>
                 ) : (
                     <>
-                        {/* Header */}
-                        <div className="ev-header">
-                            <span className="ev-badge">Email Verification</span>
-                            <h2 className="ev-title">Verify Your Email</h2>
-                            <p className="ev-sub">Enter the 6-digit code sent to your email address.</p>
+                        {/* Top icon */}
+                        <div className="ev-icon-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/>
+                            </svg>
                         </div>
 
-                        {/* Notice */}
-                        <div className="ev-notice">
-                            <span className="ev-notice-icon">ℹ</span>
-                            <p>Check your inbox — the code expires in <strong>15 minutes</strong>.</p>
+                        {/* Steps */}
+                        <div className="ev-steps">
+                            <div className="ev-step ev-step--done">
+                                <span className="ev-step-dot">✓</span>
+                                <span>Create Account</span>
+                            </div>
+                            <div className="ev-step-line" />
+                            <div className="ev-step ev-step--active">
+                                <span className="ev-step-dot ev-step-dot--active">2</span>
+                                <span>Verify Email</span>
+                            </div>
                         </div>
 
-                        {/* OTP inputs */}
+                        <h2 className="ev-title">Check your inbox</h2>
+                        <p className="ev-sub">
+                            We sent a 6-digit code to your email address.<br />
+                            Enter it below to verify your account.
+                        </p>
+
                         <form onSubmit={handleSubmit} className="ev-form">
-                            <div className="ev-inputs">
+                            <div className={`ev-inputs${shake ? " ev-inputs--shake" : ""}`}>
                                 {code.map((digit, index) => (
                                     <input
                                         key={index}
@@ -94,7 +117,11 @@ const EmailVerificationPage = () => {
                                 ))}
                             </div>
 
-                            {error && <p className="ev-error">{error}</p>}
+                            {error && (
+                                <div className="ev-error-box">
+                                    <span>⚠</span> {error}
+                                </div>
+                            )}
 
                             <button
                                 type="submit"
@@ -108,6 +135,11 @@ const EmailVerificationPage = () => {
                                 )}
                             </button>
                         </form>
+
+                        <p className="ev-footer-hint">
+                            Didn't receive the code?{" "}
+                            <span>Check your spam folder or create a new account.</span>
+                        </p>
                     </>
                 )}
             </div>

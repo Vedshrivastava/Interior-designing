@@ -25,12 +25,12 @@ import centuryply   from '@/assets/centuryply.png';
 import design       from '@/assets/refund-design.png';
 
 const testimonials = [
-  { name: 'Rahul Mehta',    location: 'Mumbai',    text: 'Exceptional execution and luxurious finishing. The team transformed our home beyond expectations.',          rating: 5, image: design },
-  { name: 'Priya Sharma',   location: 'Delhi',     text: 'Their design sense is outstanding. Every corner of our apartment feels premium and thoughtfully designed.', rating: 5 },
-  { name: 'Aman Verma',     location: 'Bangalore', text: 'Professional, transparent, and highly skilled. The 3D design matched the final output perfectly.',          rating: 5 },
-  { name: 'Neha Joshi',     location: 'Pune',      text: 'From consultation to handover, the entire process was smooth and stress-free. Truly turnkey.',              rating: 5 },
-  { name: 'Vikram Singh',   location: 'Indore',    text: 'We got a luxury home interior within our budget. Absolutely no compromise on quality or aesthetics.',       rating: 5 },
-  { name: 'Sunita Agarwal', location: 'Bhopal',    text: 'The 3D renders were spot-on. We knew exactly what we were getting before a single nail was hammered.',     rating: 5 },
+  { name: 'Rahul Mehta',    location: 'Mumbai',    text: 'Exceptional execution and luxurious finishing. The team transformed our home beyond expectations — every material, every proportion, every detail was considered. What impressed me most was how accurately the final result matched the 3D render they had shown us months earlier.',                                                                               rating: 5, image: design },
+  { name: 'Priya Sharma',   location: 'Delhi',     text: 'Their design sense is outstanding. Every corner of our apartment feels premium and thoughtfully designed, as if the space were always meant to look this way. They listened carefully to how we live and the final design reflects our lifestyle perfectly — not a catalogue look.',                                                                            rating: 5 },
+  { name: 'Aman Verma',     location: 'Bangalore', text: 'Professional, transparent, and highly skilled. The 3D model matched the final output perfectly — I could see every finish and furniture placement before work started, which gave me complete confidence. There were no surprises during execution, only a flawless result.',                                                                                   rating: 5 },
+  { name: 'Neha Joshi',     location: 'Pune',      text: 'From consultation to handover, the entire process was smooth and completely stress-free. Truly turnkey — they handled every contractor, every delivery and every site decision. I just showed up on handover day and walked into a finished home. Could not have asked for more.',                                                                              rating: 5 },
+  { name: 'Vikram Singh',   location: 'Indore',    text: 'We got a luxury home interior within our budget. Absolutely no compromise on quality or aesthetics — the materials are premium and the craftsmanship is immaculate. I had been quoted more by two other designers for a noticeably lower standard of finish.',                                                                                                 rating: 5 },
+  { name: 'Sunita Agarwal', location: 'Bhopal',    text: 'The 3D renders were spot-on. We knew exactly what we were getting before a single nail was hammered, which made the whole process remarkably stress-free. The finished space is identical to what we approved in the render — a rare and genuinely reassuring experience.',                                                                                   rating: 5 },
 ];
 const marqueeItems = [...testimonials, ...testimonials];
 
@@ -358,12 +358,12 @@ export default function HomePage() {
         </div>
         <div className="hp-process-grid">
           {[
-            { Icon: IconComments, num: '01', title: 'Consultation',     desc: 'We understand your vision, budget, and lifestyle before anything else.'   },
-            { Icon: IconRuler,    num: '02', title: 'Space Planning',    desc: 'Smart layouts designed to maximise every square foot of your space.'        },
-            { Icon: IconEye,      num: '03', title: '3D Visualization',  desc: 'Photo-realistic renders so you approve the look before execution begins.'   },
-            { Icon: IconSwatchbook,num: '04', title: 'Material Selection',desc: 'Premium materials curated from trusted partners within your budget.'       },
-            { Icon: IconHelmet,   num: '05', title: 'Execution',         desc: 'Expert craftsmen bring your design to life with precision and care.'       },
-            { Icon: IconKey,      num: '06', title: 'Final Handover',    desc: 'A complete walkthrough and handover of your transformed dream space.'      },
+            { Icon: IconComments,   num: '01', title: 'Consultation',      desc: 'We start every project with an in-depth conversation about how you live, what you love, and what your space needs to do. We ask about your daily routines, storage requirements, preferred aesthetics and budget — then we listen. This session shapes everything that follows and ensures the design is built around your real life, not a generic brief.' },
+            { Icon: IconRuler,      num: '02', title: 'Space Planning',    desc: 'Before any visual design begins, we analyse your floor plan for traffic flow, natural light, structural constraints and functional zones. We optimise the layout to extract every usable inch — positioning rooms, furniture zones and storage so the space feels larger, more comfortable and more intuitive to live in.' },
+            { Icon: IconEye,        num: '03', title: '3D Visualization',  desc: 'We model your space to exact scale and apply real material finishes, furniture and lighting in a photorealistic 3D render. You review every detail — colours, textures, proportions, furniture layout — and nothing moves to execution until you have given explicit approval. What you see in 3D is what you will receive in reality.' },
+            { Icon: IconSwatchbook, num: '04', title: 'Material Selection', desc: 'We curate every material — from flooring and wall finishes to hardware and fixtures — from our network of trusted partners including Kajaria, Asian Paints and CenturyPly. All selections are presented within your approved budget, with physical samples available for review so you can touch and feel each choice before it is committed to your space.' },
+            { Icon: IconHelmet,     num: '05', title: 'Execution',         desc: 'Our skilled craftsmen execute the approved design with precision. A dedicated project manager supervises every phase — civil work, electrical, joinery, painting and installation — performing quality checks at each milestone. You receive regular updates and have full visibility over progress throughout the build.' },
+            { Icon: IconKey,        num: '06', title: 'Final Handover',    desc: 'Before we hand over your space, we conduct a thorough walkthrough against the original design specifications and punch-list every outstanding item. Once everything meets our quality standards, we hand over a completely finished, cleaned and furnished home — along with warranty documentation for all installed products.' },
           ].map((s, i) => (
             <div
               className="hp-process-card sr-item"
@@ -399,12 +399,12 @@ export default function HomePage() {
 
         <div className="hp-adv-grid">
           {[
-            { Icon: IconGem,      title: 'Affordable Luxury',   desc: 'Premium interiors at transparent pricing — no hidden costs, ever.'                       },
-            { Icon: IconShield,   title: 'Consultation Refund', desc: 'Your consultation fee is fully adjusted against your final project cost.'                 },
-            { Icon: IconEye,      title: '3D Before Build',     desc: 'See your exact space in photorealistic 3D before a single nail is hammered.'              },
-            { Icon: IconKey,      title: 'Turnkey Execution',   desc: 'We handle sourcing, build, quality checks and handover. You just walk in.'                },
-            { Icon: IconPenRuler, title: '100% Bespoke',        desc: 'Every design built from scratch around your life — never from a catalogue.'               },
-            { Icon: IconBuilding, title: 'We Travel to You',    desc: 'Our team visits your location for site measurements, reviews and execution oversight.'    },
+            { Icon: IconGem,      title: 'Affordable Luxury',   desc: 'Every project begins with a fully itemised quote — materials, labour and logistics — so you know exactly where every rupee goes before work starts. We source premium materials directly from trusted partners like Kajaria, Asian Paints and CenturyPly, cutting out middlemen and passing the savings to you. The result is a luxury finish at a price that is honest and fair.' },
+            { Icon: IconShield,   title: 'Consultation Refund', desc: 'Our initial design consultation is not a cost — it is an investment. The full consultation fee is credited back against your project cost the moment you confirm. This means if you proceed with us, the consultation was completely free. We offer this because we are confident in our work and want you to experience our design process without financial risk.' },
+            { Icon: IconEye,      title: '3D Before Build',     desc: 'Before a single wall is painted or fixture is installed, you will see your space exactly as it will look — in photorealistic 3D. We model every room to scale, apply real material textures, and adjust lighting so you can virtually walk through your future home. You approve every detail at this stage. No guesswork, no mid-project regret, no costly changes after execution begins.' },
+            { Icon: IconKey,      title: 'Turnkey Execution',   desc: 'From design sign-off to the day you walk in with your keys, we manage everything. Vendor selection, material procurement, skilled labour coordination, site supervision, quality checks at every phase, and a formal punch-list before handover — all handled by our team. You do not need to chase contractors, follow up on deliveries, or make a single site decision.' },
+            { Icon: IconPenRuler, title: '100% Bespoke',        desc: 'We do not work from templates or reuse catalogue layouts. Every design begins with a conversation about how you actually live — your daily routines, storage needs, aesthetic preferences and family. From that we build a design that is unique to your space and your life. Whether it is a compact apartment or a sprawling villa, every detail is conceived specifically for you.' },
+            { Icon: IconBuilding, title: 'We Travel to You',    desc: 'Our studio is based in Satna, MP, but we take on projects across India. For clients outside Satna, our team travels for the initial site visit, key milestone reviews and final handover inspection. We also offer virtual progress check-ins between visits — so no matter where you are in the country, you stay in full control of your project.' },
           ].map((adv, i) => (
             <div
               className="hp-adv-card sr-item"

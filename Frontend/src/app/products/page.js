@@ -37,7 +37,7 @@ export default async function Page() {
   let initialProducts = [];
 
   try {
-    const res = await fetch(`${API_URL}/api/product/list`, { next: { revalidate: 60 } });
+    const res = await fetch(`${API_URL}/api/product/list`, { next: { revalidate: 60 }, signal: AbortSignal.timeout(5000) });
     const json = await res.json();
     if (json.success) initialProducts = json.data ?? [];
   } catch {

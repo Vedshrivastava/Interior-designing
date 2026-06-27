@@ -36,7 +36,7 @@ export default async function Page() {
   let initialProjects = [];
 
   try {
-    const res = await fetch(`${API_URL}/api/project/list`, { next: { revalidate: 60 } });
+    const res = await fetch(`${API_URL}/api/project/list`, { next: { revalidate: 60 }, signal: AbortSignal.timeout(5000) });
     const json = await res.json();
     if (json.success) initialProjects = json.data ?? [];
   } catch {

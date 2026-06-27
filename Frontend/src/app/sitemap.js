@@ -14,9 +14,9 @@ export default async function sitemap() {
 
   try {
     const [designRes, productRes, projectRes] = await Promise.all([
-      fetch(`${API_URL}/api/design/list`,  { next: { revalidate: 3600 } }),
-      fetch(`${API_URL}/api/product/list`, { next: { revalidate: 3600 } }),
-      fetch(`${API_URL}/api/project/list`, { next: { revalidate: 3600 } }),
+      fetch(`${API_URL}/api/design/list`,  { next: { revalidate: 3600 }, signal: AbortSignal.timeout(5000) }),
+      fetch(`${API_URL}/api/product/list`, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(5000) }),
+      fetch(`${API_URL}/api/project/list`, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(5000) }),
     ]);
 
     if (designRes.ok)  { const d = await designRes.json();  if (d.success) allDesigns  = d.data ?? []; }

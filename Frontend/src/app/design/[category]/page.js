@@ -98,7 +98,7 @@ export default async function Page({ params }) {
   try {
     const res = await fetch(
       `${API_URL}/api/design/list?category=${encodeURIComponent(categoryName)}&page=1&limit=${PAGE_LIMIT}`,
-      { next: { revalidate: 60 } }
+      { next: { revalidate: 60 }, signal: AbortSignal.timeout(5000) }
     );
     const json = await res.json();
     if (json.success) {

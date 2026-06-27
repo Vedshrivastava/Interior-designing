@@ -7,21 +7,8 @@ const API_URL  = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 export const revalidate = 3600;
 
 export async function generateStaticParams() {
-  const coreSlugs = new Set(CITY_SLUGS);
-
-  // Also discover cities from real project locations
-  try {
-    const res = await fetch(`${API_URL}/api/project/list`, { next: { revalidate: 3600 } });
-    const json = await res.json();
-    if (json.success) {
-      for (const project of json.data) {
-        const slug = locationToSlug(project.location);
-        if (slug) coreSlugs.add(slug);
-      }
-    }
-  } catch {}
-
-  return [...coreSlugs].map(city => ({ city }));
+  // Only use core slugs at build time — new cities discovered at revalidation
+  return CITY_SLUGS.map(city => ({ city }));
 }
 
 export async function generateMetadata({ params }) {
@@ -66,7 +53,7 @@ export default async function Page({ params }) {
 
   let allProjects = [];
   try {
-    const res = await fetch(`${API_URL}/api/project/list`, { next: { revalidate: 3600 } });
+    const res = await fetch(`${API_URL}/api/project/list`, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(5000) });
     const json = await res.json();
     if (json.success) allProjects = json.data ?? [];
   } catch {}

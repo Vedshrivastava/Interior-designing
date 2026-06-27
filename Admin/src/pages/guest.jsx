@@ -7,9 +7,10 @@ const url = 'http://localhost:3000';
 
 const WelcomeGuest = ({ setShowLogin, setAuthType }) => {
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm]   = useState({ name: '', email: '', reason: '' });
-  const [loading, setLoading] = useState(false);
+  const [form, setForm]     = useState({ name: '', email: '', reason: '' });
+  const [loading, setLoading]   = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [noAccount, setNoAccount] = useState(false);
 
   const handleOpenAuth = (type) => {
     if (setAuthType) setAuthType(type);
@@ -30,7 +31,12 @@ const WelcomeGuest = ({ setShowLogin, setAuthType }) => {
         toast.error(res.data.message || 'Failed to submit request.');
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Something went wrong.');
+      const msg = err.response?.data?.message || '';
+      if (err.response?.status === 400 && msg.toLowerCase().includes('no account')) {
+        setNoAccount(true);
+      } else {
+        toast.error(msg || 'Something went wrong. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -39,6 +45,7 @@ const WelcomeGuest = ({ setShowLogin, setAuthType }) => {
   const closeModal = () => {
     setShowModal(false);
     setSubmitted(false);
+    setNoAccount(false);
     setForm({ name: '', email: '', reason: '' });
   };
 
@@ -86,6 +93,35 @@ const WelcomeGuest = ({ setShowLogin, setAuthType }) => {
                   it and notify you once a decision is made.
                 </p>
                 <button className="request-close-btn" onClick={closeModal}>Close</button>
+              </div>
+
+            ) : noAccount ? (
+              /* ── No account state ── */
+              <div className="request-no-account">
+                <button className="request-modal-x request-modal-x--top" onClick={closeModal} aria-label="Close">✕</button>
+                <div className="request-no-account-icon">!</div>
+                <h3>No Account Found</h3>
+                <p>
+                  There's no account registered with <strong>{form.email || 'this email'}</strong>.
+                  You need to create an account first before you can request admin access.
+                </p>
+                <div className="request-no-account-actions">
+                  <button
+                    className="request-auth-btn request-auth-btn--primary"
+                    onClick={() => { closeModal(); handleOpenAuth('Sign Up'); }}
+                  >
+                    Create Account
+                  </button>
+                  <button
+                    className="request-auth-btn request-auth-btn--ghost"
+                    onClick={() => { closeModal(); handleOpenAuth('Login'); }}
+                  >
+                    Sign In
+                  </button>
+                </div>
+                <p className="request-no-account-hint">
+                  Once your account is set up, come back here and submit the request using the same email.
+                </p>
               </div>
 
             ) : (

@@ -602,6 +602,89 @@
 }
 .request-close-btn:hover { background: #1e3a2a; }
 
+/* ── No-account state ── */
+.request-no-account {
+  padding: 36px 28px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  position: relative;
+}
+
+.request-modal-x--top {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.request-no-account-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(201,168,124,0.12);
+  border: 2px solid rgba(201,168,124,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #c9a87c;
+}
+
+.request-no-account h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f0e6d3;
+  margin: 0;
+}
+
+.request-no-account > p {
+  font-size: 0.9rem;
+  color: rgba(240,230,211,0.65);
+  line-height: 1.65;
+  margin: 0;
+  max-width: 340px;
+}
+
+.request-no-account-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.request-auth-btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.request-auth-btn--primary {
+  background: #c9a87c;
+  color: #102525;
+}
+.request-auth-btn--primary:hover { background: #d9b98c; }
+
+.request-auth-btn--ghost {
+  background: transparent;
+  color: #c9a87c;
+  border: 1px solid rgba(201,168,124,0.4);
+}
+.request-auth-btn--ghost:hover { background: rgba(201,168,124,0.1); }
+
+.request-no-account-hint {
+  font-size: 0.78rem;
+  color: rgba(240,230,211,0.35);
+  margin: 0;
+  max-width: 320px;
+}
+
 /* ── Mobile: stack name+email, tighten padding, bottom-sheet feel ── */
 @media (max-width: 540px) {
   .request-backdrop {

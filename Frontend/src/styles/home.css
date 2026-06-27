@@ -1352,10 +1352,17 @@
   .hp-stat-sub { display: none; }
   .hp-stat-rule { margin-bottom: 14px; }
   
-  .hp-designs-grid { 
-    grid-template-columns: 1fr; 
-    grid-auto-rows: 260px; 
+  .hp-designs-grid {
+    grid-template-columns: 1fr;
+    grid-auto-rows: 260px;
     gap: 16px;
+  }
+  /* kitchen (featured) card same as all others, pinned first */
+  .hp-design-card--featured {
+    grid-row: span 1 !important;
+    grid-column: span 1 !important;
+    order: -1;
+    height: 260px;
   }
   .hp-brands-row { gap: 14px; }
   .hp-brand-card { width: 150px; height: 85px; }

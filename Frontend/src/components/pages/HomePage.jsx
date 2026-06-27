@@ -36,7 +36,7 @@ const marqueeItems = [...testimonials, ...testimonials];
 
 function useDraggableMarquee({ speed = 0.55, reverse = false } = {}) {
   const innerRef = useRef(null);
-  const stateRef = useRef({ pos: 0, dragging: false, startX: 0, startPos: 0 });
+  const stateRef = useRef({ pos: 0, dragging: false, startX: 0, startPos: 0, moved: false });
   const rafRef = useRef(null);
 
   useEffect(() => {
@@ -68,6 +68,7 @@ function useDraggableMarquee({ speed = 0.55, reverse = false } = {}) {
     el.setPointerCapture(e.pointerId);
     const s = stateRef.current;
     s.dragging = true;
+    s.moved = false;
     s.startX = e.clientX;
     s.startPos = s.pos;
   }
@@ -75,6 +76,7 @@ function useDraggableMarquee({ speed = 0.55, reverse = false } = {}) {
   function handlePointerMove(e) {
     const s = stateRef.current;
     if (!s.dragging) return;
+    if (Math.abs(e.clientX - s.startX) > 5) s.moved = true;
     const el = innerRef.current;
     const half = el.scrollWidth / 2;
     let newPos = s.startPos + (e.clientX - s.startX);
@@ -94,6 +96,7 @@ function useDraggableMarquee({ speed = 0.55, reverse = false } = {}) {
     onPointerMove: handlePointerMove,
     onPointerUp: handlePointerUp,
     onPointerCancel: handlePointerUp,
+    wasDragged: () => stateRef.current.moved,
   };
 }
 
@@ -161,11 +164,20 @@ export default function HomePage() {
   }, []);
   const sr = el => { if (el && !revealRefs.current.includes(el)) revealRefs.current.push(el); };
 
+  const [activeTCard, setActiveTCard] = useState(null);
+
   useEffect(() => {
-    if (activeCard) document.body.style.overflow = 'hidden';
+    if (activeCard || activeTCard) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = '';
     return () => { document.body.style.overflow = ''; };
-  }, [activeCard]);
+  }, [activeCard, activeTCard]);
+
+  useEffect(() => {
+    if (!activeTCard) return;
+    const handler = e => { if (e.key === 'Escape') setActiveTCard(null); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [activeTCard]);
 
   return (
     <div className="home-page">
@@ -189,6 +201,31 @@ export default function HomePage() {
               </button>
             </div>
             <p className="svc-modal-desc">{activeCard.desc}</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Testimonial detail modal ── */}
+      {activeTCard && (
+        <div className="t-modal-backdrop" onClick={() => setActiveTCard(null)}>
+          <div className="t-modal" onClick={e => e.stopPropagation()}>
+            <button className="t-modal-close" onClick={() => setActiveTCard(null)} aria-label="Close">
+              <IconXMark />
+            </button>
+            <div className="t-modal-stars">
+              {Array.from({ length: activeTCard.rating }).map((_, i) => <IconStarFilled key={i} />)}
+            </div>
+            <p className="t-modal-text">{activeTCard.text}</p>
+            <div className="t-modal-author">
+              <div className="t-modal-avatar">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {activeTCard.image ? <img src={activeTCard.image.src} alt={activeTCard.name} /> : activeTCard.name.charAt(0)}
+              </div>
+              <div className="t-modal-author-info">
+                <strong>{activeTCard.name}</strong>
+                <span>{activeTCard.location}</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -407,7 +444,7 @@ export default function HomePage() {
               onPointerCancel={trackA.onPointerCancel}
             >
               {marqueeItems.map((t, i) => (
-                <div className="t-card" key={`a${i}`}>
+                <div className="t-card" key={`a${i}`} onClick={() => { if (!trackA.wasDragged()) setActiveTCard(t); }} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && setActiveTCard(t)}>
                   <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
                   <p className="t-card-text">{t.text}</p>
                   <div className="t-card-author">
@@ -434,7 +471,7 @@ export default function HomePage() {
               onPointerCancel={trackB.onPointerCancel}
             >
               {[...marqueeItems].reverse().map((t, i) => (
-                <div className="t-card" key={`b${i}`}>
+                <div className="t-card" key={`b${i}`} onClick={() => { if (!trackB.wasDragged()) setActiveTCard(t); }} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && setActiveTCard(t)}>
                   <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
                   <p className="t-card-text">{t.text}</p>
                   <div className="t-card-author">

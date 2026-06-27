@@ -28,9 +28,11 @@ const AdminRequests = ({ url }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.data.success) setRequests(res.data.data);
-      else toast.error('Failed to load requests.');
+      else toast.error(res.data.message || 'Failed to load requests.');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to load requests.');
+      const msg = err.response?.data?.message || err.message || 'Failed to load requests.';
+      console.error('fetchRequests error:', err.response?.status, msg);
+      toast.error(`Requests: ${msg}`);
     } finally {
       setLoading(false);
     }

@@ -153,40 +153,42 @@
 }
 
 .abt-btn-primary {
-  background: none;
-  border: none;
-  padding: 0;
+  background: rgba(201,168,124,0.12);
+  border: 1px solid rgba(201,168,124,0.55);
+  padding: 11px 26px;
+  border-radius: 3px;
   font-family: "Inter", sans-serif;
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  letter-spacing: 3.5px;
+  letter-spacing: 3px;
   text-transform: uppercase;
-  color: rgba(240,230,211,0.85);
+  color: #f1d5aa;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  transition: color 0.2s;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
-.abt-btn-primary:hover { color: #c9a87c; transform: none; box-shadow: none; background: none; }
+.abt-btn-primary:hover { background: rgba(201,168,124,0.22); color: #fff; border-color: rgba(201,168,124,0.8); transform: none; box-shadow: none; }
 
 .abt-btn-ghost {
   background: none;
-  border: none;
-  padding: 0;
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 11px 26px;
+  border-radius: 3px;
   font-family: "Inter", sans-serif;
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 500;
-  letter-spacing: 3.5px;
+  letter-spacing: 3px;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.42);
+  color: rgba(255,255,255,0.5);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  transition: color 0.2s;
+  transition: border-color 0.2s, color 0.2s;
 }
-.abt-btn-ghost:hover { color: rgba(255,255,255,0.72); transform: none; background: none; border: none; }
+.abt-btn-ghost:hover { color: rgba(255,255,255,0.82); border-color: rgba(255,255,255,0.4); transform: none; background: none; }
 
 /* ── About hero bottom bar ── */
 .abt-hero-bottom {
@@ -1735,7 +1737,17 @@
   .about-hero { min-height: calc(100dvh - 126px); height: calc(100dvh - 126px); overflow: hidden; margin-top: 58px; }
   .about-hero-content { padding: 24px 5% 24px; }
   .about-hero-content h1 { font-size: clamp(2.4rem, 11vw, 4rem); }
-  .abt-hero-bottom { position: static; margin-top: 32px; left: unset; right: unset; bottom: unset; }
+  .abt-hero-actions { gap: 14px; }
+  .abt-btn-primary, .abt-btn-ghost { padding: 10px 18px; font-size: 0.6rem; letter-spacing: 2px; }
+  .abt-hero-bottom {
+    position: static; margin-top: 28px;
+    flex-direction: column; align-items: flex-start; gap: 14px;
+    left: unset; right: unset; bottom: unset;
+  }
+  .abt-hero-bottom-left { gap: 16px; }
+  .abt-loc-divider { height: 26px; }
+  .abt-loc-val { font-size: 0.82rem; }
+  .abt-est { align-self: flex-start; font-size: 0.52rem; }
   .abt-scroll-hint { display: none; }
   /* scroll hint just above bottom navbar */
   .abt-scroll-hint { bottom: 8px; }

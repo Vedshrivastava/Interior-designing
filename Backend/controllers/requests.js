@@ -115,4 +115,19 @@ const deleteRequest = async (req, res) => {
     }
 };
 
-export { submitRequest, listRequests, approveRequest, rejectRequest, deleteRequest };
+/* ── Any user: check their own request status ── */
+const myRequestStatus = async (req, res) => {
+    try {
+        const request = await AdminRequest.findOne({ email: req.userEmail }).sort({ createdAt: -1 });
+        return res.json({
+            success: true,
+            hasRequest: !!request,
+            status: request?.status || null,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+export { submitRequest, listRequests, approveRequest, rejectRequest, deleteRequest, myRequestStatus };

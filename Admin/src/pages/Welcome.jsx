@@ -32,7 +32,7 @@ const WelcomeScreen = () => {
 
     return (
         <div className="welcome-container">
-            <span className="welcome-badge">Admin Dashboard</span>
+            <span className="welcome-badge">{isMaster ? 'Master Control' : 'Admin Dashboard'}</span>
             <h1>Welcome back to <em>your</em> workspace</h1>
             <p>Everything you need to manage your business is just a click away.</p>
             <div className="welcome-divider">

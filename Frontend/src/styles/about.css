@@ -516,6 +516,32 @@
   flex-shrink: 0;
 }
 
+/* modal feature list — reused by about page modals */
+.svc-modal-features {
+  list-style: none;
+  padding: 18px 24px 20px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid rgba(201,168,124,0.12);
+}
+.svc-modal-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.87rem;
+  color: var(--text-mid);
+}
+.svc-feat-dot {
+  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+
 /* optional inline CTA */
 .abt-card-btn {
   align-self: flex-start;

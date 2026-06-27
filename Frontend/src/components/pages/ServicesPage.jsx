@@ -12,12 +12,12 @@ import bgimg  from '@/assets/home-img.png';
 import design from '@/assets/refund-design.png';
 
 const testimonials = [
-  { name: 'Rahul Mehta',    location: 'Mumbai',    text: 'Exceptional execution and luxurious finishing. The team transformed our home beyond expectations — every material, every proportion, every detail was considered. What impressed me most was how accurately the final result matched the 3D render they had shown us months earlier.',                                                                               rating: 5, image: design },
-  { name: 'Priya Sharma',   location: 'Delhi',     text: 'Their design sense is outstanding. Every corner of our apartment feels premium and thoughtfully designed, as if the space were always meant to look this way. They listened carefully to how we live and the final design reflects our lifestyle perfectly — not a catalogue look.',                                                                            rating: 5 },
-  { name: 'Aman Verma',     location: 'Bangalore', text: 'Professional, transparent, and highly skilled. The 3D model matched the final output perfectly — I could see every finish and furniture placement before work started, which gave me complete confidence. There were no surprises during execution, only a flawless result.',                                                                                   rating: 5 },
-  { name: 'Neha Joshi',     location: 'Pune',      text: 'From consultation to handover, the entire process was smooth and completely stress-free. Truly turnkey — they handled every contractor, every delivery and every site decision. I just showed up on handover day and walked into a finished home. Could not have asked for more.',                                                                              rating: 5 },
-  { name: 'Vikram Singh',   location: 'Indore',    text: 'We got a luxury home interior within our budget. Absolutely no compromise on quality or aesthetics — the materials are premium and the craftsmanship is immaculate. I had been quoted more by two other designers for a noticeably lower standard of finish.',                                                                                                 rating: 5 },
-  { name: 'Sunita Agarwal', location: 'Bhopal',    text: 'The 3D renders were spot-on. We knew exactly what we were getting before a single nail was hammered, which made the whole process remarkably stress-free. The finished space is identical to what we approved in the render — a rare and genuinely reassuring experience.',                                                                                   rating: 5 },
+  { name: 'Rahul Mehta',    location: 'Mumbai',    text: 'Exceptional execution and genuinely luxurious finishing. Every material, proportion and detail was considered, and the finished space matched the 3D render they showed us months earlier almost exactly. That kind of accuracy is rare.',                                                         rating: 5, image: design },
+  { name: 'Priya Sharma',   location: 'Delhi',     text: 'Their design sense is outstanding. Every corner of our apartment feels premium and considered, like the space was always meant to look this way. They listened carefully to how we actually live and you can see that in the result.',                                                             rating: 5 },
+  { name: 'Aman Verma',     location: 'Bangalore', text: 'Professional, transparent and highly skilled. I could see every finish and furniture placement in the 3D before work started, which gave me real confidence going in. The execution matched it perfectly with no surprises at all.',                                                               rating: 5 },
+  { name: 'Neha Joshi',     location: 'Pune',      text: 'From the first consultation to handover, the whole process was smooth and genuinely stress-free. They handled every contractor, delivery and site call. I just showed up on handover day and walked into a finished home.',                                                                       rating: 5 },
+  { name: 'Vikram Singh',   location: 'Indore',    text: 'We got a genuinely luxurious interior within our budget, with no compromise on quality or finish. The materials are premium and the craftsmanship is immaculate. Two other designers had quoted us more for a noticeably lower standard of work.',                                                rating: 5 },
+  { name: 'Sunita Agarwal', location: 'Bhopal',    text: 'The 3D renders were absolutely spot-on. We knew exactly what we were getting before any work started, which took away all the usual anxiety. The finished space is identical to what we approved in the render. That level of accuracy is rare.',                                                 rating: 5 },
 ];
 const marqueeItems = [...testimonials, ...testimonials];
 
@@ -25,43 +25,43 @@ const services = [
   {
     Icon: IconHouseChimney,
     title: 'Residential Interiors',
-    description: 'We specialise in full-home and room-by-room interior design for apartments, independent houses, villas and penthouses. Every project begins with a thorough lifestyle brief — how you cook, how you entertain, how much storage you need — and results in a completely bespoke design that no other home will share. From modular kitchens and wardrobes to living rooms, bedrooms and home offices, we cover every space with equal care.',
-    features: ['100% custom — no templates or catalogues', 'Apartments, villas and independent houses', 'All rooms: kitchen, bedroom, living, bathroom', 'Full-home or single-room scope available', 'Trusted partners: Kajaria, Asian Paints, CenturyPly'],
+    description: 'Full-home and room-by-room interiors for apartments, houses, villas and penthouses. Every project starts with a detailed lifestyle brief: how you cook, how you entertain, how much storage you actually need. The result is a completely bespoke design that belongs to your home and no one else\'s.',
+    features: ['100% custom, nothing from a template or catalogue', 'Apartments, villas and independent houses', 'Kitchens, bedrooms, living spaces, bathrooms, home offices', 'Full-home or single-room scope available', 'Sourced from Kajaria, Asian Paints and CenturyPly'],
     link: '/design/bedroom-designs',
   },
   {
     Icon: IconBuilding,
     title: 'Commercial Spaces',
-    description: 'Offices, retail outlets and hospitality spaces that go beyond aesthetics — every commercial interior we design is engineered to reflect your brand identity, support your team\'s workflow and make a lasting impression on clients and visitors. We balance form with function and ensure durability under daily commercial use, delivering turnkey execution from concept to fit-out.',
-    features: ['Offices, retail, showrooms and hospitality', 'Brand-aligned visual identity', 'Ergonomic layouts for team performance', 'Durable materials suited to commercial use', 'Turnkey fit-out from concept to completion'],
+    description: 'Commercial interiors need to do more than look good. Every office, retail or hospitality space we design is built around your brand, your team\'s workflow and the impression you want visitors to walk away with. Materials and finishes are chosen for durability under daily use.',
+    features: ['Offices, retail, showrooms and hospitality spaces', 'Brand-aligned design throughout', 'Ergonomic layouts that support daily team performance', 'Materials chosen for commercial durability', 'Turnkey delivery from concept to fit-out'],
     link: '/design/commercial-designs',
   },
   {
     Icon: IconEye,
     title: '3D Visualization',
-    description: 'Before any physical work begins, you see your space in exact, photorealistic 3D — with correct proportions, real material textures, furniture placement and lighting. You review and approve every detail at this stage, eliminating mid-project surprises and costly changes. The 3D model we produce is not a mood board or a rough concept — it is an accurate digital twin of what will be built.',
-    features: ['Exact-scale photorealistic renders', 'Real material and finish textures applied', 'Furniture and lighting placement shown', 'Full client approval before execution starts', 'Revision rounds included until satisfied'],
+    description: 'Before any physical work begins, you see your space in precise, photorealistic 3D. This isn\'t a rough concept or a mood board. It\'s an accurate replica of what will actually be built, with real proportions, real textures and real lighting.',
+    features: ['Every room modelled to exact scale', 'Real material textures and furniture placement shown', 'Lighting design visualised in the render', 'Client approval required before any execution starts', 'Revision rounds until you\'re fully satisfied'],
     link: null,
   },
   {
     Icon: IconRuler,
     title: 'Space Planning',
-    description: 'A well-planned space is the foundation of every great interior. We analyse your floor plan for traffic flow, natural light, ventilation, storage requirements and functional zones — then optimise the layout before any visual design choices are made. Good space planning makes a home feel larger, more liveable and more intuitive without changing its square footage.',
-    features: ['Floor plan optimisation before visual design', 'Traffic flow and functional zoning', 'Storage maximisation throughout every room', 'Natural light and ventilation considered', 'Modular kitchen and wardrobe layout planning'],
+    description: 'A well-planned layout is the foundation of every great interior. We study the floor plan before any visual decisions are made, so everything that follows is grounded in how the space actually works, not just how it looks.',
+    features: ['Traffic flow and functional zoning optimised first', 'Natural light and ventilation factored into the layout', 'Storage built into the plan from the start', 'Kitchen and wardrobe layouts planned to exact dimensions', 'Makes the space feel larger without changing square footage'],
     link: '/design/kitchen-designs',
   },
   {
     Icon: IconLightbulb,
     title: 'Lighting Design',
-    description: 'Lighting transforms how a space feels — a well-lit room looks larger, warmer and more luxurious than the same room with poor lighting. We design layered schemes combining ambient, accent and task lighting for every room, balancing artificial sources with natural light to create the right atmosphere at every time of day. Lighting design is included in full-home projects and available as a standalone service.',
-    features: ['Three-layer lighting: ambient, accent, task', 'Natural light maximisation strategy', 'Mood-appropriate zoning per room', 'Energy-efficient fixture recommendations', 'Coordinated with 3D visualisation'],
+    description: 'Lighting changes how a space feels completely. A well-lit room looks larger, warmer and more considered than the same room with poor lighting. We design layered schemes for each room, balanced against natural light throughout the day.',
+    features: ['Three-layer scheme: ambient, accent and task lighting', 'Natural light maximised and balanced with artificial sources', 'Room-by-room zoning for different moods and uses', 'Energy-efficient fixtures recommended throughout', 'Included in full-home projects, also available standalone'],
     link: '/design/lounge-area-designs',
   },
   {
     Icon: IconScrewdriverWrench,
     title: 'Renovation Services',
-    description: 'Renovation is more complex than new build — it requires a precise assessment of what exists before recommending what to change. We begin every renovation with a thorough audit of your current space, identify structural constraints and opportunities, then redesign around them. Civil, electrical, plumbing-coordination and finishing are managed together so you never juggle multiple contractors and timelines.',
-    features: ['Full audit of existing space before any work', 'Partial or full-scale renovation scope', 'Civil, electrical and finishing coordinated', 'Structural constraints identified upfront', 'Minimal disruption scheduling and management'],
+    description: 'Renovation is more complex than starting fresh. We audit what exists before recommending anything, identify structural constraints early, and coordinate all trades under one managed project so you\'re never dealing with multiple contractors pulling in different directions.',
+    features: ['Full audit of existing space before any work is recommended', 'Partial or full-scale renovation scope', 'Civil, electrical and finishing managed as one project', 'Structural constraints identified upfront, no surprises', 'Scheduled around your routine to minimise disruption'],
     link: '/projects',
   },
 ];
@@ -237,10 +237,10 @@ export default function ServicesPage() {
         </div>
         <div className="svc-why-grid">
           {[
-            { Icon: IconGem,      title: 'Affordable Luxury',   desc: 'Every project begins with a fully itemised quote — materials, labour and logistics — so you know exactly where every rupee goes before work starts. We source premium materials directly from trusted partners like Kajaria, Asian Paints and CenturyPly, cutting out middlemen and passing the savings to you. The result is a luxury finish at a price that is honest and fair.' },
-            { Icon: IconShield,   title: 'Consultation Refund', desc: 'Our initial design consultation is not a cost — it is an investment. The full consultation fee is credited back against your project cost the moment you confirm. This means if you proceed with us, the consultation was completely free. We offer this because we are confident in our work and want you to experience our process without financial risk.' },
-            { Icon: IconPenRuler, title: '100% Bespoke',        desc: 'We do not work from templates or reuse catalogue layouts. Every design begins with a conversation about how you actually live — your daily routines, storage needs, aesthetic preferences and family. From that we build a design that is unique to your space and your life. Whether it is a compact apartment or a sprawling villa, every detail is conceived specifically for you.' },
-            { Icon: IconKey,      title: 'Turnkey Execution',   desc: 'From design sign-off to the day you walk in with your keys, we manage everything. Vendor selection, material procurement, skilled labour coordination, site supervision, quality checks at every phase, and a formal punch-list before handover — all handled by our team. You do not need to chase contractors, follow up on deliveries, or make a single site decision.' },
+            { Icon: IconGem,      title: 'Affordable Luxury',   desc: 'Fully itemised quote upfront, direct sourcing from Kajaria, Asian Paints and CenturyPly with no middlemen, and no hidden costs added mid-project. You get a luxury finish at a price that\'s transparent from day one.'                                                },
+            { Icon: IconShield,   title: 'Consultation Refund', desc: 'The consultation fee gets credited back against your project the moment you confirm. If you go ahead with us, it was essentially free. We do this because we\'re confident in the work.'                                                                                              },
+            { Icon: IconPenRuler, title: '100% Bespoke',        desc: 'No templates, no catalogue layouts and nothing reused from another project. Every design starts with a real conversation about how you live and ends with something built specifically for your space.'                                                                                },
+            { Icon: IconKey,      title: 'Turnkey Execution',   desc: 'From sign-off to handover we manage vendors, materials, labour, site supervision and quality checks. You don\'t chase a single contractor or make a site decision yourself.'                                                                                                          },
           ].map((item, i) => (
             <div className="svc-why-card reveal-item" ref={addRef} key={i} style={{ '--delay': `${i * 80}ms` }}>
               <div className="svc-why-icon"><item.Icon /></div>
@@ -271,9 +271,9 @@ export default function ServicesPage() {
         </div>
         <div className="svc-start-grid">
           {[
-            { num: '01', Icon: IconCalendar, title: 'Book a Free Consultation',   desc: 'Tell us about your space, vision and budget in a relaxed conversation — no obligation, no pressure. We ask the questions that matter: how you live, what frustrates you about your current space, and what your dream version looks like. This session is the foundation for everything that follows.', cta: true  },
-            { num: '02', Icon: IconEye,      title: 'Approve Your 3D Design',    desc: 'We translate your brief into a photorealistic 3D render of your exact space — every material, finish, furniture piece and lighting effect shown to scale. You review and request changes until the design is exactly right. Nothing moves to execution until you have explicitly signed off.', cta: false },
-            { num: '03', Icon: IconKey,      title: 'Move Into Your Dream Space', desc: 'Once you approve the design, our team handles everything — material procurement, vendor coordination, on-site execution, quality checks at each milestone and a formal handover walkthrough. You walk in when it is finished, exactly as designed. No site visits, no contractor chasing, no stress.', cta: false },
+            { num: '01', Icon: IconCalendar, title: 'Book a Free Consultation',   desc: 'A straightforward conversation about your space, vision and budget. No obligation, no sales pitch. We ask how you live, what bothers you about your current space and what your ideal version looks like. Everything that follows is built from this.',                                                   cta: true  },
+            { num: '02', Icon: IconEye,      title: 'Approve Your 3D Design',    desc: 'Your brief becomes a photorealistic 3D render with real materials, finishes, furniture and lighting shown to scale. You review it, ask for changes and we refine until it\'s exactly right. Nothing goes to execution until you\'ve signed off on every detail.',                                                cta: false },
+            { num: '03', Icon: IconKey,      title: 'Move Into Your Dream Space', desc: 'Once the design is approved, we take over completely: material procurement, vendor coordination, site execution, quality checks and a final handover walkthrough. You walk in when it\'s done, exactly as designed. No site visits, no chasing, no stress.',                                                   cta: false },
           ].map((s, i) => (
             <div className="svc-start-card reveal-item" key={i} ref={addRef} style={{ '--delay': `${i * 100}ms` }}>
               <div className="svc-start-card-top">

@@ -68,15 +68,105 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
 
   /* ── Data ───────────────────────────────────────────────────── */
   const advantages = [
-    { Icon: IconGem,               title: 'Affordable Luxury',       desc: 'Premium interiors at transparent pricing — no hidden costs, ever.'                                        },
-    { Icon: IconShield,            title: 'Consultation Refund',      desc: 'Your consultation fee is fully adjusted against your final project cost.'                                },
-    { Icon: IconEye,               title: '3D Before Build',          desc: `See your exact ${cityName} space in photorealistic 3D before a single nail is hammered.`               },
-    { Icon: IconPenRuler,          title: '100% Bespoke Design',      desc: 'Every interior built from scratch around your life — never from a catalogue.'                           },
-    { Icon: IconKey,               title: 'Turnkey Execution',        desc: 'We handle sourcing, execution, quality checks and handover. You just walk in.'                         },
-    { Icon: IconBuilding,          title: 'We Travel to You',         desc: `Our team visits ${cityName} for site measurements, reviews and execution oversight.`                   },
-    { Icon: IconHouseChimney,      title: 'Residential Specialists',  desc: `Bespoke home interiors for apartments and villas in ${cityName}, ${stateName}.`                       },
-    { Icon: IconScrewdriverWrench, title: 'Renovation Services',      desc: `Complete home and office renovations in ${cityName} with minimal disruption.`                          },
-    { Icon: IconRuler,             title: 'Space Planning',           desc: `Smart layouts for your ${cityName} space — maximising every square foot.`                              },
+    {
+      Icon: IconGem,
+      title: 'Affordable Luxury',
+      desc: `Premium interiors shouldn't come with financial surprises.`,
+      points: [
+        `Fully itemised quote upfront covering materials, labour and logistics`,
+        `Direct sourcing from Kajaria, Asian Paints and CenturyPly, no middlemen`,
+        `No hidden costs added at any stage of the project`,
+        `Luxury finish at a price that's honest and transparent`,
+      ],
+    },
+    {
+      Icon: IconShield,
+      title: 'Consultation Refund',
+      desc: `The initial consultation fee isn't a cost, it's a credit.`,
+      points: [
+        `Full fee adjusted against your project cost when you confirm`,
+        `If you proceed with us, the consultation was essentially free`,
+        `No financial hesitation to experiencing what we do`,
+        `Reflects our confidence in the work we deliver`,
+      ],
+    },
+    {
+      Icon: IconEye,
+      title: '3D Before Build',
+      desc: `Before a single wall is touched, you see your ${cityName} space exactly as it'll look.`,
+      points: [
+        `Every room modelled to scale in photorealistic 3D`,
+        `Real material textures and lighting applied throughout`,
+        `Full approval required before execution starts`,
+        `What's in the render is exactly what gets built`,
+      ],
+    },
+    {
+      Icon: IconPenRuler,
+      title: '100% Bespoke Design',
+      desc: `We don't use templates or pull from a catalogue.`,
+      points: [
+        `Starts with a real conversation about how you live`,
+        `Covers routines, storage needs, tastes and your family`,
+        `Every detail conceived specifically for your space`,
+        `Compact apartment in ${cityName} or large villa, the process is the same`,
+      ],
+    },
+    {
+      Icon: IconKey,
+      title: 'Turnkey Execution',
+      desc: `From design sign-off to handover, we manage everything.`,
+      points: [
+        `Vendor selection and material procurement handled by us`,
+        `Skilled labour coordination and on-site supervision`,
+        `Quality checks at every phase of the build`,
+        `Formal walkthrough before handover, no outstanding items`,
+      ],
+    },
+    {
+      Icon: IconBuilding,
+      title: 'We Travel to You',
+      desc: `Our studio is in Satna, MP, but we work across India.`,
+      points: [
+        `Site visit to ${cityName} for measurements and assessment`,
+        `Milestone reviews and execution oversight on location`,
+        `Video walkthroughs and shared design boards between visits`,
+        `Same standards and attention as our local Satna projects`,
+      ],
+    },
+    {
+      Icon: IconHouseChimney,
+      title: 'Residential Specialists',
+      desc: `We do full-home interiors for all residential property types in ${cityName}, ${stateName}.`,
+      points: [
+        `Apartments, independent houses, villas and penthouses`,
+        `Modular kitchens, bedrooms, living and dining spaces`,
+        `TV units, wardrobes, pooja rooms, balconies and home offices`,
+        `Every space gets equal care, not just the rooms you show guests`,
+      ],
+    },
+    {
+      Icon: IconScrewdriverWrench,
+      title: 'Renovation Services',
+      desc: `An outdated space doesn't mean starting over.`,
+      points: [
+        `Full audit of existing space before recommending any changes`,
+        `Reconfiguring layouts, updating finishes, replacing fixtures`,
+        `Civil, electrical and finishing managed under one project`,
+        `Scheduled around your routine to minimise disruption`,
+      ],
+    },
+    {
+      Icon: IconRuler,
+      title: 'Space Planning',
+      desc: `Good design starts with the layout, before any material is chosen.`,
+      points: [
+        `Traffic flow, natural light, ventilation and functional zones studied first`,
+        `Layout optimised for how you actually move through the space`,
+        `Better storage built into the plan from the beginning`,
+        `Makes the home feel more spacious without touching the square footage`,
+      ],
+    },
   ];
 
   return (
@@ -94,6 +184,11 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
               </button>
             </div>
             <p className="cs-adv-modal-desc">{activeAdv.desc}</p>
+            {activeAdv.points?.length > 0 && (
+              <ul className="cs-adv-modal-points">
+                {activeAdv.points.map((pt, i) => <li key={i}><span className="cs-adv-dot" />{pt}</li>)}
+              </ul>
+            )}
           </div>
         </div>
       )}

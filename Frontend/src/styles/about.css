@@ -1368,7 +1368,10 @@
   color: var(--text);
   line-height: 1.78;
   margin: 0;
-  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .abt-testimonials .t-card-author {

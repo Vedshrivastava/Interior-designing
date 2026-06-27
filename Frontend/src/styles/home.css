@@ -1069,9 +1069,12 @@
   color: rgba(240,230,211,0.82);
   line-height: 1.78;
   margin: 0;
-  flex: 1;
   position: relative;
   z-index: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .hp-testimonials .t-card-author {

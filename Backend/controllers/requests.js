@@ -4,7 +4,8 @@ import validator    from "validator";
 
 /* ── Public: submit a request — account must already exist ── */
 const submitRequest = async (req, res) => {
-    const { name, email, reason } = req.body;
+    const { name, reason } = req.body;
+    const email = req.body.email?.toLowerCase().trim();
     try {
         if (!name || !email)
             return res.status(400).json({ success: false, message: 'Name and email are required.' });

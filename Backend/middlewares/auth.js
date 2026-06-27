@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import userModel from '../models/user.js';
 
 const adminAuthMiddleware = async (req, res, next) => {
     // Extract token from Authorization header
@@ -32,8 +33,8 @@ const adminAuthMiddleware = async (req, res, next) => {
     }
 };
 
-/* MASTER-only middleware — role is now embedded in the JWT payload */
-const masterAuthMiddleware = (req, res, next) => {
+/* MASTER-only middleware — checks JWT role, falls back to DB if not in token */
+const masterAuthMiddleware = async (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ success: false, message: 'Not Authorized' });
 
@@ -43,7 +44,13 @@ const masterAuthMiddleware = (req, res, next) => {
         req.userName  = decoded.name;
         req.userEmail = decoded.email;
 
-        if (decoded.role !== 'MASTER') {
+        let role = decoded.role;
+        if (!role) {
+            const user = await userModel.findById(decoded.id).select('role');
+            role = user?.role;
+        }
+
+        if (role !== 'MASTER') {
             return res.status(403).json({ success: false, message: 'Master access required' });
         }
         next();

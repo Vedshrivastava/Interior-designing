@@ -1000,7 +1000,6 @@
 .marquee-track {
   width: 100%;
   overflow: hidden;
-  mask-image: linear-gradient(to right, transparent 0%, black 7%, black 93%, transparent 100%);
   position: relative;
   z-index: 1;
 }

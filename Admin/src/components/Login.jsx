@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import '../styles/Login.css';
 import { StoreContext } from '../context/StoreContext';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';
@@ -232,16 +232,6 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
           </div>
         </form>
 
-        <ToastContainer
-          position="bottom-center"
-          autoClose={3000}
-          theme="dark"
-          toastStyle={{
-            background: '#102525',
-            color: '#f0e6d3',
-            border: '1px solid rgba(201,168,124,0.25)',
-          }}
-        />
       </div>
     </>
   );

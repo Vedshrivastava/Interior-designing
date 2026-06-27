@@ -85,7 +85,14 @@ const App = () => {
 
       {showLogin && <Login setShowLogin={setShowLogin} authType={authType} />}
 
-      <ToastContainer position="bottom-center" />
+      <ToastContainer
+        position="bottom-center"
+        autoClose={3500}
+        closeOnClick
+        pauseOnHover
+        draggable={false}
+        style={{ zIndex: 999998 }}
+      />
 
       <Navbar setShowLogin={setShowLogin} setAuthType={setAuthType} />
 

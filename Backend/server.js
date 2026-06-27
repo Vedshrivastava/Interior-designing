@@ -19,10 +19,32 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// CORS — must be before everything else including express.json()
-const corsOptions = { origin: true, credentials: true };
+// CORS — before everything else
+const allowedOrigins = [
+  'https://shrivastavaselevate.com',
+  'https://www.shrivastavaselevate.com',
+  'https://admin.shrivastavaselevate.com',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5174',
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true); // allow all for now during setup
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // handle preflight for all routes
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 

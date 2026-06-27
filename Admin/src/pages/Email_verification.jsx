@@ -55,10 +55,6 @@ const EmailVerificationPage = () => {
     return (
         <div className="ev-page">
 
-            {/* Background decoration */}
-            <div className="ev-bg-orb ev-bg-orb--1" />
-            <div className="ev-bg-orb ev-bg-orb--2" />
-
             <div className="ev-card">
                 {success ? (
                     <div className="ev-success">

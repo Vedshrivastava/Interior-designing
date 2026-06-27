@@ -5,29 +5,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #0b1d1d;
+    background-color: #0d2020;
+    background-image:
+        linear-gradient(rgba(201,168,124,0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201,168,124,0.07) 1px, transparent 1px);
+    background-size: 36px 36px;
     padding: 24px 16px;
     overflow: hidden;
     z-index: 9999;
-}
-
-/* Soft glow orbs in background */
-.ev-bg-orb {
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
-    filter: blur(80px);
-    opacity: 0.18;
-}
-.ev-bg-orb--1 {
-    width: 500px; height: 500px;
-    background: #c9a87c;
-    top: -160px; left: -160px;
-}
-.ev-bg-orb--2 {
-    width: 400px; height: 400px;
-    background: #1a4a3a;
-    bottom: -120px; right: -100px;
 }
 
 /* ── Card ── */

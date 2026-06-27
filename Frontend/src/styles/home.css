@@ -1336,8 +1336,12 @@
 @media (max-width: 480px) {
   /* Hero fits exactly between top navbar (58px) and bottom navbar (68px) */
   .hp-hero { min-height: calc(100dvh - 126px); height: calc(100dvh - 126px); overflow: hidden; margin-top: 58px; }
-  .hp-hero-inner { padding: 18px 24px 60px; display: flex; flex-direction: column; justify-content: center; }
+  .hp-hero-inner { padding: 18px 24px 40px; display: flex; flex-direction: column; justify-content: center; }
   .hp-hero-title { font-size: 2.6rem; }
+  /* scroll hint just above bottom navbar */
+  .hp-scroll-hint { bottom: 8px; }
+  /* caption closer to buttons */
+  .hp-hero-caption { margin-top: 12px; }
   /* 2×2 grid — far more compact than 4 stacked */
   .hp-stats { grid-template-columns: repeat(2, 1fr); }
   .hp-stat-item { padding: 28px 16px 24px; }

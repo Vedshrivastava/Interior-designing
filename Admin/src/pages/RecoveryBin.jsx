@@ -325,8 +325,7 @@ const RecoveryBin = ({ url }) => {
                 .bin-confirm-backdrop {
                     position: fixed;
                     inset: 0;
-                    background: rgba(10, 20, 20, 0.55);
-                    backdrop-filter: blur(3px);
+                    background: rgba(10, 20, 20, 0.85);
                     z-index: 99999;
                     display: flex;
                     align-items: center;
@@ -418,6 +417,7 @@ const RecoveryBin = ({ url }) => {
                     background: #c0392b;
                     border-color: #c0392b;
                     color: #fff;
+                    min-width: 175px;
                 }
                 .bin-btn-delete:hover:not(:disabled) {
                     background: #a93226;

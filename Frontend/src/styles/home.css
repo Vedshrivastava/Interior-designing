@@ -1540,7 +1540,6 @@
   .hp-hero-loc-divider { height: 26px; }
   .hp-loc-val { font-size: 0.82rem; }
   .hp-est { align-self: flex-start; font-size: 0.52rem; }
-  .hp-scroll-hint { display: none; }
   /* scroll hint just above bottom navbar */
   .hp-scroll-hint { bottom: 8px; }
   /* caption closer to buttons */

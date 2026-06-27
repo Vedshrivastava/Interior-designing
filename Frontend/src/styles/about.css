@@ -1748,7 +1748,6 @@
   .abt-loc-divider { height: 26px; }
   .abt-loc-val { font-size: 0.82rem; }
   .abt-est { align-self: flex-start; font-size: 0.52rem; }
-  .abt-scroll-hint { display: none; }
   /* scroll hint just above bottom navbar */
   .abt-scroll-hint { bottom: 8px; }
   /* keep stats at 2×2 — single column is too sparse */

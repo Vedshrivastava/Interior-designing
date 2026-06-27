@@ -117,8 +117,7 @@ export default function ServicesPage() {
             <span>Luxury Interior Design Studio</span>
             <span className="svc-eyebrow-line" />
           </div>
-          <h1>Crafted Interiors<br /><span className="svc-highlight">Designed To Elevate</span></h1>
-          <p>Luxury interior design and contracting solutions tailored to modern lifestyles, functionality, and timeless elegance.</p>
+          <h1>Crafted<br /><span className="svc-highlight">Interiors</span></h1>
           <div className="hero-cta-row">
             <button className="svc-btn-primary" onClick={openConsult}>Book Consultation <IconCalendar /></button>
             <button onClick={() => router.push('/projects')} className="svc-btn-ghost">View Projects <IconArrowRight /></button>

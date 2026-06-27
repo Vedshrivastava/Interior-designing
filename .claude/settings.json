@@ -80,7 +80,9 @@
       "Bash(node -e \"require\\('fs'\\).readFileSync\\('/Users/vedshrivastava/interior-site-project/Frontend/src/styles/contact.css'\\)\")",
       "Bash(git -C /Users/vedshrivastava/interior-site-project ls-files Frontend/src/components/)",
       "Bash(grep -v \"^\\\\.\\\\|^crypto$\\\\|^fs$\\\\|^zlib$\\\\|^mongodb$\")",
-      "Bash(grep -v \"^\\\\.\\\\|^node:\\\\|^crypto$\\\\|^fs$\\\\|^http$\\\\|^path$\")"
+      "Bash(grep -v \"^\\\\.\\\\|^node:\\\\|^crypto$\\\\|^fs$\\\\|^http$\\\\|^path$\")",
+      "Bash(sed -i '' 's/padding: 70px 24px 70px/padding: 35px 24px 70px/g' /Users/vedshrivastava/interior-site-project/Frontend/src/styles/home.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/about.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/services.css)",
+      "Bash(sed -i '' 's/padding: 70px 6%/padding: 35px 6%/g' /Users/vedshrivastava/interior-site-project/Frontend/src/styles/home.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/about.css)"
     ],
     "additionalDirectories": [
       "/tmp",

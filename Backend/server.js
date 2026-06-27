@@ -18,12 +18,13 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
-// Middleware
+
+// CORS — must be before everything else including express.json()
+const corsOptions = { origin: true, credentials: true };
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // handle preflight for all routes
+
 app.use(express.json());
-app.use(cors({
-  origin: true,
-  credentials: true,
-}));
 
 // Connect to the database
 connectDB(process.env.MONGO_URI);

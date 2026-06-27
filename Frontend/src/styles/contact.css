@@ -68,7 +68,7 @@
   position: relative;
   z-index: 1;
   text-align: center;
-  padding: 130px 6% 80px;
+  padding: 80px 6% 80px;
   animation: heroReveal 1s cubic-bezier(.22,.61,.36,1) both;
 }
 

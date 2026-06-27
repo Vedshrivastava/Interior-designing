@@ -13,13 +13,15 @@ const PendingApproval = ({ setShowLogin }) => {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      position: 'fixed',
+      inset: 0,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       background: '#0a1a1a',
       padding: '24px 16px',
       fontFamily: "'DM Sans', sans-serif",
+      zIndex: 9999,
     }}>
       <div style={{
         background: '#f8f4ee',

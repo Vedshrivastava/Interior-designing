@@ -10,6 +10,9 @@ export const transporter = nodemailer.createTransport({
     user: process.env.MAILTRAP_USER,
     pass: process.env.MAILTRAP_PASS,
   },
+  connectionTimeout: 8000,
+  greetingTimeout: 8000,
+  socketTimeout: 8000,
 });
 
 export const sender = {

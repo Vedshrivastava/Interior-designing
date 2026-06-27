@@ -106,19 +106,15 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
           isVerified: response.data.user?.isVerified ?? false,
         }));
 
-        /* ── Role check — allow ADMIN and MASTER, kick everyone else ── */
-        const allowedRoles = ['ADMIN', 'MASTER'];
-        if (!allowedRoles.includes(response.data.role)) {
-          ['token','userId','userName','userEmail','user'].forEach(k => localStorage.removeItem(k));
-          setToken(null);
-          setIsLoggedIn(false);
-          window.location.replace('/');
-          return;
-        }
-
         toast.success('Logged in successfully!');
         setShowLogin(false);
-        navigate('/welcome');
+
+        const allowedRoles = ['ADMIN', 'MASTER'];
+        if (allowedRoles.includes(response.data.role)) {
+          navigate('/welcome');
+        } else {
+          navigate('/pending');
+        }
       }
     } catch (err) {
       console.error(err);
@@ -126,9 +122,7 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
         const status  = err.response?.status;
         const message = err.response?.data?.message;
         if (status === 404 || message === 'no_account') {
-          toast.error("No account found with this email. Please create an account first, then request admin access.");
-        } else if (status === 403 || message === 'not_admin') {
-          toast.error("This account doesn't have admin access. Contact an existing admin to get your access approved.");
+          toast.error("No account found with this email. Please create an account first.");
         } else {
           toast.error(err.response?.data?.message || err?.message || 'Login failed. Please try again.');
         }

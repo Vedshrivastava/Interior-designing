@@ -21,6 +21,7 @@ import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import Email_verification from './pages/Email_verification';
 import ResetPassword from './pages/ResetPassword';
+import PendingApproval from './pages/PendingApproval';
 import WelcomeScreen from './pages/Welcome';
 import Guest from './pages/guest';
 import { Navigate } from "react-router-dom";
@@ -202,6 +203,7 @@ const App = () => {
               }
             />
             <Route path='/verify-email' element={<Email_verification />} />
+            <Route path='/pending' element={<PendingApproval />} />
             <Route
               path='/reset-password/:token'
               element={<ResetPassword setShowLogin={setShowLogin} />}

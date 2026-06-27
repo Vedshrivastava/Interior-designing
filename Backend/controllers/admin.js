@@ -6,7 +6,8 @@ import { generateVerificationCode } from "../utils/generateVerificationCode.js";
 import { sendVerificationEmail } from "../middlewares/emails.js";
 
 const registerAdmin = async (req, res) => {
-  const { name, password, email } = req.body;
+  const { name, password } = req.body;
+  const email = req.body.email?.toLowerCase().trim();
   try {
     // ── Validations first (before any DB writes) ──
     if (!validator.isEmail(email)) {
@@ -77,7 +78,8 @@ const registerAdmin = async (req, res) => {
 };
 
 const loginAdmin = async (req, res) => {
-  const { email, password } = req.body;
+  const email = req.body.email?.toLowerCase().trim();
+  const { password } = req.body;
 
   try {
     const admin = await userModel.findOne({ email });
@@ -86,13 +88,6 @@ const loginAdmin = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "no_account",
-      });
-    }
-
-    if (admin.role !== "ADMIN" && admin.role !== "MASTER") {
-      return res.status(403).json({
-        success: false,
-        message: "not_admin",
       });
     }
 

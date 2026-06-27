@@ -74,7 +74,14 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
       } else {
         const response = await login(data.email, data.password);
         if (!response?.data?.success) {
-          toast.error(response?.data?.message || 'Login failed.');
+          const msg = response?.data?.message;
+          if (msg === 'no_account') {
+            toast.error("No account found with this email. Please create an account first, then request admin access.");
+          } else if (msg === 'not_admin') {
+            toast.error("This account doesn't have admin access. Contact an existing admin to get your access approved.");
+          } else {
+            toast.error(msg || 'Login failed. Please try again.');
+          }
           return;
         }
 
@@ -115,8 +122,16 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
       }
     } catch (err) {
       console.error(err);
-      if (currState === 'Login' && err.response && err.response.status === 400) {
-        toast.error('Access Denied. You need authentication as an admin.');
+      if (currState === 'Login') {
+        const status  = err.response?.status;
+        const message = err.response?.data?.message;
+        if (status === 404 || message === 'no_account') {
+          toast.error("No account found with this email. Please create an account first, then request admin access.");
+        } else if (status === 403 || message === 'not_admin') {
+          toast.error("This account doesn't have admin access. Contact an existing admin to get your access approved.");
+        } else {
+          toast.error(err.response?.data?.message || err?.message || 'Login failed. Please try again.');
+        }
       } else {
         toast.error(err.response?.data?.message || err?.message || 'Something went wrong. Please try again.');
       }

@@ -82,10 +82,17 @@ const loginAdmin = async (req, res) => {
   try {
     const admin = await userModel.findOne({ email });
 
-    if (!admin || (admin.role !== "ADMIN" && admin.role !== "MASTER")) {
-      return res.status(400).json({
+    if (!admin) {
+      return res.status(404).json({
         success: false,
-        message: "Admin does not exist with provided email",
+        message: "no_account",
+      });
+    }
+
+    if (admin.role !== "ADMIN" && admin.role !== "MASTER") {
+      return res.status(403).json({
+        success: false,
+        message: "not_admin",
       });
     }
 

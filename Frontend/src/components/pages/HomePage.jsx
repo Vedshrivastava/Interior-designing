@@ -34,6 +34,69 @@ const testimonials = [
 ];
 const marqueeItems = [...testimonials, ...testimonials];
 
+function useDraggableMarquee({ speed = 0.55, reverse = false } = {}) {
+  const innerRef = useRef(null);
+  const stateRef = useRef({ pos: 0, dragging: false, startX: 0, startPos: 0 });
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    const half = el.scrollWidth / 2;
+    stateRef.current.pos = reverse ? -half : 0;
+    el.style.transform = `translateX(${stateRef.current.pos}px)`;
+
+    function tick() {
+      const s = stateRef.current;
+      if (!s.dragging) {
+        const h = el.scrollWidth / 2;
+        s.pos += reverse ? speed : -speed;
+        if (!reverse && s.pos <= -h) s.pos += h;
+        if (reverse  && s.pos >= 0)  s.pos -= h;
+        el.style.transform = `translateX(${s.pos}px)`;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [speed, reverse]);
+
+  function handlePointerDown(e) {
+    const el = innerRef.current;
+    if (!el) return;
+    el.setPointerCapture(e.pointerId);
+    const s = stateRef.current;
+    s.dragging = true;
+    s.startX = e.clientX;
+    s.startPos = s.pos;
+  }
+
+  function handlePointerMove(e) {
+    const s = stateRef.current;
+    if (!s.dragging) return;
+    const el = innerRef.current;
+    const half = el.scrollWidth / 2;
+    let newPos = s.startPos + (e.clientX - s.startX);
+    if (newPos > 0) newPos -= half;
+    if (newPos < -half) newPos += half;
+    s.pos = newPos;
+    el.style.transform = `translateX(${newPos}px)`;
+  }
+
+  function handlePointerUp() {
+    stateRef.current.dragging = false;
+  }
+
+  return {
+    innerRef,
+    onPointerDown: handlePointerDown,
+    onPointerMove: handlePointerMove,
+    onPointerUp: handlePointerUp,
+    onPointerCancel: handlePointerUp,
+  };
+}
+
 const brandLogos = [
   { src: kajaria.src,      alt: 'Kajaria'      },
   { src: saint_gobain.src, alt: 'Saint-Gobain' },
@@ -83,6 +146,9 @@ export default function HomePage() {
   const router = useRouter();
   const { openConsult } = useModal();
   const [activeCard, setActiveCard] = useState(null);
+
+  const trackA = useDraggableMarquee({ speed: 0.55, reverse: false });
+  const trackB = useDraggableMarquee({ speed: 0.55, reverse: true });
 
   const revealRefs = useRef([]);
   useEffect(() => {
@@ -332,7 +398,14 @@ export default function HomePage() {
         </div>
         <div className="marquee-track-wrapper">
           <div className="marquee-track">
-            <div className="marquee-inner scroll-left">
+            <div
+              className="marquee-inner scroll-left"
+              ref={trackA.innerRef}
+              onPointerDown={trackA.onPointerDown}
+              onPointerMove={trackA.onPointerMove}
+              onPointerUp={trackA.onPointerUp}
+              onPointerCancel={trackA.onPointerCancel}
+            >
               {marqueeItems.map((t, i) => (
                 <div className="t-card" key={`a${i}`}>
                   <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
@@ -352,7 +425,14 @@ export default function HomePage() {
             </div>
           </div>
           <div className="marquee-track">
-            <div className="marquee-inner scroll-right">
+            <div
+              className="marquee-inner scroll-right"
+              ref={trackB.innerRef}
+              onPointerDown={trackB.onPointerDown}
+              onPointerMove={trackB.onPointerMove}
+              onPointerUp={trackB.onPointerUp}
+              onPointerCancel={trackB.onPointerCancel}
+            >
               {[...marqueeItems].reverse().map((t, i) => (
                 <div className="t-card" key={`b${i}`}>
                   <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>

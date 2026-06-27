@@ -1003,10 +1003,16 @@
   position: relative;
   z-index: 1;
 }
-.marquee-inner { display: flex; gap: 18px; width: max-content; }
-.scroll-left  { animation: marqueeLeft  42s linear infinite; }
-.scroll-right { animation: marqueeRight 42s linear infinite; }
-.marquee-track:hover .marquee-inner { animation-play-state: paused; }
+.marquee-inner {
+  display: flex;
+  gap: 18px;
+  width: max-content;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  will-change: transform;
+}
+.marquee-inner:active { cursor: grabbing; }
 
 /* ── Noir testimonial card — scoped to home page only ──
    Using .hp-testimonials parent gives 2-class specificity,

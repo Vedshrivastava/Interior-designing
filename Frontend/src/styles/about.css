@@ -1670,8 +1670,8 @@
 }
 
 @media (max-width: 480px) {
-  /* Hero fits exactly to mobile viewport */
-  .about-hero { min-height: 100dvh; height: 100dvh; overflow: hidden; }
+  /* Hero fits exactly to mobile viewport minus bottom navbar (68px) */
+  .about-hero { min-height: calc(100dvh - 126px); height: calc(100dvh - 126px); overflow: hidden; }
   .about-hero-content { padding: 18px 24px 60px; display: flex; flex-direction: column; justify-content: center; }
   .about-hero-content h1 { font-size: 2.6rem; }
   /* keep stats at 2×2 — single column is too sparse */

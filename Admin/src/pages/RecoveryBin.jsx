@@ -393,6 +393,8 @@ const RecoveryBin = ({ url }) => {
                 .bin-btn-cancel,
                 .bin-btn-delete {
                     padding: 10px 22px;
+                    min-width: 160px;
+                    justify-content: center;
                     border-radius: 8px;
                     font-family: 'DM Sans', sans-serif;
                     font-size: 0.88rem;

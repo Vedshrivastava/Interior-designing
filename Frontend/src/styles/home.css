@@ -1333,8 +1333,8 @@
 }
 
 @media (max-width: 480px) {
-  /* Hero fits exactly to mobile viewport — no overflow */
-  .hp-hero { min-height: 100dvh; height: 100dvh; overflow: hidden; }
+  /* Hero fits exactly to mobile viewport minus bottom navbar (68px) */
+  .hp-hero { min-height: calc(100dvh - 126px); height: calc(100dvh - 126px); overflow: hidden; }
   .hp-hero-inner { padding: 18px 24px 60px; display: flex; flex-direction: column; justify-content: center; }
   .hp-hero-title { font-size: 2.6rem; }
   /* 2×2 grid — far more compact than 4 stacked */

@@ -65,6 +65,10 @@ export const metadata = {
     follow: true,
     googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
   },
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
   alternates: {
     canonical: SITE_URL,
   },

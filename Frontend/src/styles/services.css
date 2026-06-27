@@ -1673,6 +1673,11 @@
     }
 }
 
+/* ── Services hero: reduce gap between subtext and buttons ── */
+.services-page .hp-hero-sub {
+    margin-bottom: 24px;
+}
+
 /* ════════════════════════════════════════════
    RESPONSIVE
 ════════════════════════════════════════════ */

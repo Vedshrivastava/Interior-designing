@@ -95,7 +95,7 @@ const localBusinessSchema = {
   telephone: '+918962053372',
   email: 'shrivastavaselevatepvt.ltd@gmail.com',
   priceRange: '₹₹₹',
-  foundingDate: '2019',
+  foundingDate: '2024',
   address: {
     '@type': 'PostalAddress',
     streetAddress: 'Shree Ganga Inn, Lakshmi Bai Marg, Gandhi Chowk, Nagod',

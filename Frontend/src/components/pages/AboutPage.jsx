@@ -131,7 +131,7 @@ export default function AboutPage() {
             <div className="abt-hero-bottom-left">
               <div className="abt-loc-item">
                 <span className="abt-loc-label">Founded</span>
-                <span className="abt-loc-val">2019</span>
+                <span className="abt-loc-val">2024</span>
               </div>
               <div className="abt-loc-divider" />
               <div className="abt-loc-item">
@@ -146,7 +146,7 @@ export default function AboutPage() {
       </section>
 
       <section className="about-stats">
-        {[{ val: '50+', label: 'Projects Completed' }, { val: '5+', label: 'Years Experience' }, { val: 'Turnkey', label: 'End-to-End Delivery' }, { val: '100%', label: 'Client Satisfaction' }].map((s, i) => (
+        {[{ val: '50+', label: 'Projects Completed' }, { val: '7+', label: 'Years Experienced Team' }, { val: 'Turnkey', label: 'End-to-End Delivery' }, { val: '100%', label: 'Client Satisfaction' }].map((s, i) => (
           <div className="about-stat-box" key={i}><h2><CountUp endValue={s.val} /></h2><p>{s.label}</p></div>
         ))}
       </section>

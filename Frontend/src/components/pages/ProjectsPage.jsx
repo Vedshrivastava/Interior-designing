@@ -284,7 +284,7 @@ export default function ProjectsPage({ initialProjects = [] }) {
       <div className="proj-stats">
         {[
           { val: '50+',  label: 'Projects Completed'  },
-          { val: '5+',   label: 'Years Experience'    },
+          { val: '7+',   label: 'Years Experienced Team'    },
           { val: '100%', label: 'Client Satisfaction' },
         ].map((s, i) => (
           <div className="proj-stat-item" key={i}>

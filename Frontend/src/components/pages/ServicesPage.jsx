@@ -203,14 +203,14 @@ export default function ServicesPage() {
                 <span className="hp-loc-val">Interior Design</span>
               </div>
             </div>
-            <span className="hp-est">Since 2019</span>
+            <span className="hp-est">Since 2024</span>
           </div>
         </div>
         <div className="hp-scroll-hint"><span className="hp-scroll-line" /><span>Scroll</span></div>
       </section>
 
       <section className="services-stats">
-        {[{ val: '50+', label: 'Projects Completed' }, { val: '5+', label: 'Years Experience' }, { val: '100%', label: 'Client Satisfaction' }, { val: '24hr', label: 'Response Time' }].map((s, i) => (
+        {[{ val: '50+', label: 'Projects Completed' }, { val: '7+', label: 'Years Experienced Team' }, { val: '100%', label: 'Client Satisfaction' }, { val: '24hr', label: 'Response Time' }].map((s, i) => (
           <div className="services-stat-box" key={i}>
             <h2><CountUp endValue={s.val} />{s.star && <IconStarFilled className="stat-star" />}</h2>
             <p>{s.label}</p>

@@ -264,7 +264,7 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
       <section className="cs-stats">
         {[
           { num: '50+',  label: 'Projects Completed',  sub: 'Across India'               },
-          { num: '5+',   label: 'Years Experience',     sub: 'Since 2019'                  },
+          { num: '7+',   label: 'Years Experienced Team',     sub: 'Since 2024'                  },
           { num: '100%', label: 'Turnkey Execution',    sub: 'End-to-end delivery'         },
           { num: '3D',   label: 'Before Any Build',     sub: 'You approve before we begin' },
         ].map((s, i) => (

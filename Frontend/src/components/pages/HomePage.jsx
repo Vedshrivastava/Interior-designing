@@ -276,7 +276,7 @@ export default function HomePage() {
                 <span className="hp-loc-val">Madhya Pradesh</span>
               </div>
             </div>
-            <span className="hp-est">Est. 2019</span>
+            <span className="hp-est">Est. 2024</span>
           </div>
         </div>
 
@@ -292,7 +292,7 @@ export default function HomePage() {
       <section className="hp-stats">
         {[
           { num: '50+',  label: 'Projects Completed', sub: 'Across residential & commercial' },
-          { num: '5+',   label: 'Years Experience',   sub: 'Serving discerning clients'       },
+          { num: '7+',   label: 'Years Experienced Team',   sub: 'Serving discerning clients'       },
           { num: '100%', label: 'Custom Design',       sub: 'No templates, ever'               },
           { num: '100%', label: 'Client Satisfaction',  sub: 'Zero compromises, always'            },
         ].map((s, i) => (

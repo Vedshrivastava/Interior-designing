@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { adminAuthMiddleware } from '../middlewares/auth.js';
 import { addTestimonial, listTestimonials, removeTestimonial, updateTestimonial } from '../controllers/testimonial.js';
+import { getGoogleReviews } from '../controllers/googleReviews.js';
 
 const testimonialRouter = express.Router();
 
@@ -11,9 +12,10 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-testimonialRouter.post('/add',    adminAuthMiddleware, upload.single('image'), addTestimonial);
-testimonialRouter.get('/list',    listTestimonials);
+testimonialRouter.post('/add',      adminAuthMiddleware, upload.single('image'), addTestimonial);
+testimonialRouter.get('/list',      listTestimonials);
+testimonialRouter.get('/google',    getGoogleReviews);
 testimonialRouter.delete('/remove', adminAuthMiddleware, removeTestimonial);
-testimonialRouter.post('/update', adminAuthMiddleware, upload.single('image'), updateTestimonial);
+testimonialRouter.post('/update',   adminAuthMiddleware, upload.single('image'), updateTestimonial);
 
 export default testimonialRouter;

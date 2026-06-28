@@ -86,7 +86,7 @@
 .hp-hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(160deg, rgba(0,0,0,0.5) 0%, rgba(16,37,37,0.78) 100%);
+  background: linear-gradient(160deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.78) 100%);
   z-index: 1;
 }
 

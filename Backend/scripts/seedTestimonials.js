@@ -54,7 +54,7 @@ const testimonials = [
 ];
 
 async function seed() {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGO_URI, { dbName: 'Interior' });
     console.log('Connected to MongoDB');
 
     let inserted = 0;

@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import moment from 'moment';
 import { useWebSocket } from '../hooks/useWebSocket';
 import '../styles/list.css';
+import '../styles/add.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const STARS = n => '★'.repeat(n) + '☆'.repeat(5 - n);
@@ -179,46 +181,66 @@ const ListTestimonials = ({ url }) => {
             </div>
 
             {/* Edit modal */}
-            {editItem && (
-                <div className="svc-modal-backdrop" onClick={() => setEditItem(null)}>
-                    <div className="svc-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
-                        <div className="svc-modal-header">
-                            <h3 className="svc-modal-title">Edit Testimonial</h3>
-                            <button className="svc-modal-close" onClick={() => setEditItem(null)}>✕</button>
-                        </div>
-                        <form onSubmit={saveEdit} style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px 0 0' }}>
-                            <div style={{ display: 'flex', gap: 12 }}>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-mid)', display: 'block', marginBottom: 6 }}>Name</label>
-                                    <input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} required style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid rgba(201,168,124,0.2)', background: 'rgba(201,168,124,0.04)', fontFamily: 'DM Sans, sans-serif', fontSize: '0.88rem', color: 'var(--green)' }} />
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-mid)', display: 'block', marginBottom: 6 }}>Location</label>
-                                    <input value={editForm.location} onChange={e => setEditForm(p => ({ ...p, location: e.target.value }))} required style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid rgba(201,168,124,0.2)', background: 'rgba(201,168,124,0.04)', fontFamily: 'DM Sans, sans-serif', fontSize: '0.88rem', color: 'var(--green)' }} />
-                                </div>
+            {editItem && ReactDOM.createPortal(
+                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal">
+                        <h2>Edit Testimonial</h2>
+                        <form className="flex-col" onSubmit={saveEdit}>
+
+                            <div className="add-product-name flex-col">
+                                <p>Client Name</p>
+                                <input type="text" value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} required />
                             </div>
-                            <div>
-                                <label style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-mid)', display: 'block', marginBottom: 6 }}>Rating</label>
-                                <div style={{ display: 'flex', gap: 8 }}>
+
+                            <div className="add-product-name flex-col">
+                                <p>Location</p>
+                                <input type="text" value={editForm.location} onChange={e => setEditForm(p => ({ ...p, location: e.target.value }))} required />
+                            </div>
+
+                            <div className="add-product-points flex-col">
+                                <p>Star Rating</p>
+                                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                                     {[1,2,3,4,5].map(n => (
-                                        <button key={n} type="button" onClick={() => setEditForm(p => ({ ...p, rating: n }))} style={{ background: editForm.rating >= n ? '#c9a87c' : 'rgba(201,168,124,0.1)', border: '1px solid rgba(201,168,124,0.3)', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: editForm.rating >= n ? '#102525' : '#c9a87c', fontWeight: 700 }}>★</button>
+                                        <button
+                                            key={n} type="button"
+                                            onClick={() => setEditForm(p => ({ ...p, rating: n }))}
+                                            style={{
+                                                background: editForm.rating >= n ? 'rgba(201,168,124,0.25)' : 'rgba(201,168,124,0.06)',
+                                                border: `1.5px solid ${editForm.rating >= n ? 'rgba(201,168,124,0.6)' : 'rgba(201,168,124,0.2)'}`,
+                                                borderRadius: 8, padding: '8px 14px', cursor: 'pointer',
+                                                color: editForm.rating >= n ? '#c9a87c' : 'rgba(201,168,124,0.4)',
+                                                fontSize: '1rem', fontWeight: 700,
+                                            }}
+                                        >★</button>
                                     ))}
+                                    <span style={{ alignSelf: 'center', color: '#c9a87c', fontWeight: 600, fontSize: '0.85rem' }}>{editForm.rating} / 5</span>
                                 </div>
                             </div>
-                            <div>
-                                <label style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-mid)', display: 'block', marginBottom: 6 }}>Review</label>
-                                <textarea value={editForm.text} onChange={e => setEditForm(p => ({ ...p, text: e.target.value }))} rows={4} required style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid rgba(201,168,124,0.2)', background: 'rgba(201,168,124,0.04)', fontFamily: 'DM Sans, sans-serif', fontSize: '0.88rem', color: 'var(--green)', resize: 'vertical' }} />
+
+                            <div className="add-product-description flex-col">
+                                <p>Review</p>
+                                <textarea rows={4} value={editForm.text} onChange={e => setEditForm(p => ({ ...p, text: e.target.value }))} required />
                             </div>
-                            <div>
-                                <label style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-mid)', display: 'block', marginBottom: 6 }}>Replace Photo <span style={{ opacity: 0.5 }}>(optional)</span></label>
-                                <input type="file" accept="image/*" onChange={e => setEditForm(p => ({ ...p, image: e.target.files[0] }))} style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.82rem' }} />
+
+                            <div className="add-img-upload flex-col">
+                                <p>Replace Photo <span style={{ opacity: 0.5, fontWeight: 400, fontSize: '0.8rem' }}>(optional)</span></p>
+                                <label htmlFor="edit-t-img" className="upload-icon">
+                                    <i className="fa fa-upload" />
+                                </label>
+                                <input id="edit-t-img" type="file" accept="image/*" onChange={e => setEditForm(p => ({ ...p, image: e.target.files[0] }))} hidden />
+                                {editForm.image && <p style={{ fontSize: '0.78rem', color: '#c9a87c', marginTop: 6 }}>New photo selected: {editForm.image.name}</p>}
                             </div>
-                            <button type="submit" disabled={saving} style={{ padding: '12px', background: 'linear-gradient(135deg, #c9a87c, #e8c99a)', color: '#102525', border: 'none', borderRadius: 10, fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}>
-                                {saving ? 'Saving…' : 'Save Changes'}
-                            </button>
+
+                            <div className="edit-modal-actions">
+                                <button type="button" className="add-btn cancel-btn" onClick={() => setEditItem(null)}>Cancel</button>
+                                <button type="submit" className="add-btn" disabled={saving}>
+                                    {saving ? 'Saving…' : 'Save Changes'}
+                                </button>
+                            </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

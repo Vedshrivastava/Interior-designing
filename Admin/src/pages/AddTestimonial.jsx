@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
+import '../styles/add.css';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import '../styles/add.css';
+import '../index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const AddTestimonial = ({ url }) => {
-    const [form, setForm] = useState({
+    const [image,    setImage]    = useState(null);
+    const [preview,  setPreview]  = useState(null);
+    const [loading,  setLoading]  = useState(false);
+    const [data, setData] = useState({
         name: '', location: '', text: '', rating: 5, isActive: true,
     });
-    const [image, setImage]   = useState(null);
-    const [preview, setPreview] = useState(null);
-    const [loading, setLoading] = useState(false);
     const token = localStorage.getItem('token');
 
     const onChange = e => {
         const { name, value, type, checked } = e.target;
-        setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+        setData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     };
 
     const onImage = e => {
@@ -27,18 +28,14 @@ const AddTestimonial = ({ url }) => {
 
     const onSubmit = async e => {
         e.preventDefault();
-        if (!form.name || !form.location || !form.text) {
-            toast.error('Name, location and review text are required.');
-            return;
-        }
         setLoading(true);
         try {
             const fd = new FormData();
-            fd.append('name',     form.name);
-            fd.append('location', form.location);
-            fd.append('text',     form.text);
-            fd.append('rating',   form.rating);
-            fd.append('isActive', form.isActive);
+            fd.append('name',     data.name);
+            fd.append('location', data.location);
+            fd.append('text',     data.text);
+            fd.append('rating',   data.rating);
+            fd.append('isActive', data.isActive);
             if (image) fd.append('image', image);
 
             const res = await axios.post(`${url}/api/testimonial/add`, fd, {
@@ -46,7 +43,7 @@ const AddTestimonial = ({ url }) => {
             });
             if (res.data.success) {
                 toast.success('Testimonial added successfully!');
-                setForm({ name: '', location: '', text: '', rating: 5, isActive: true });
+                setData({ name: '', location: '', text: '', rating: 5, isActive: true });
                 setImage(null);
                 setPreview(null);
             } else {
@@ -60,89 +57,103 @@ const AddTestimonial = ({ url }) => {
     };
 
     return (
-        <div className="add flex-col">
-            <div className="add-form-card">
-                <div className="add-form-header">
-                    <div>
-                        <h1>Add Testimonial</h1>
-                        <p className="add-form-subtitle">Add a client review to display on the website.</p>
+        <div className="add">
+            <form className="flex-col" onSubmit={onSubmit}>
+
+                {/* ── Client Photo ── */}
+                <div className="add-img-upload flex-col">
+                    <h2>Client Photo <span style={{ fontSize: '0.75rem', opacity: 0.5, fontWeight: 400 }}>(optional)</span></h2>
+                    <label htmlFor="t-image" className="upload-icon">
+                        {preview
+                            ? <img src={preview} alt="preview" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(201,168,124,0.4)' }} />
+                            : <i className="fa fa-upload" />
+                        }
+                    </label>
+                    <input onChange={onImage} type="file" id="t-image" accept="image/*" hidden />
+                </div>
+
+                {/* ── Client Name ── */}
+                <div className="add-product-name flex-col">
+                    <h2>Client Name</h2>
+                    <input
+                        name="name" value={data.name} onChange={onChange}
+                        type="text" placeholder="e.g. Rahul Mehta" required
+                    />
+                </div>
+
+                {/* ── Location ── */}
+                <div className="add-product-name flex-col">
+                    <h2>Location</h2>
+                    <input
+                        name="location" value={data.location} onChange={onChange}
+                        type="text" placeholder="e.g. Mumbai" required
+                    />
+                </div>
+
+                {/* ── Star Rating ── */}
+                <div className="add-product-points flex-col">
+                    <h2>Star Rating</h2>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 4 }}>
+                        {[1, 2, 3, 4, 5].map(n => (
+                            <button
+                                key={n}
+                                type="button"
+                                onClick={() => setData(prev => ({ ...prev, rating: n }))}
+                                style={{
+                                    background: data.rating >= n ? 'rgba(201,168,124,0.2)' : 'rgba(201,168,124,0.06)',
+                                    border: `1.5px solid ${data.rating >= n ? 'rgba(201,168,124,0.6)' : 'rgba(201,168,124,0.2)'}`,
+                                    borderRadius: 8,
+                                    padding: '8px 14px',
+                                    cursor: 'pointer',
+                                    color: data.rating >= n ? '#c9a87c' : 'rgba(201,168,124,0.4)',
+                                    fontSize: '1rem',
+                                    fontWeight: 700,
+                                    transition: 'all 0.15s',
+                                }}
+                            >★</button>
+                        ))}
+                        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.85rem', color: '#c9a87c', fontWeight: 600, marginLeft: 6 }}>
+                            {data.rating} / 5
+                        </span>
                     </div>
                 </div>
 
-                <form onSubmit={onSubmit} className="add-form-body">
+                {/* ── Review Text ── */}
+                <div className="add-product-description flex-col">
+                    <h2>Review</h2>
+                    <textarea
+                        name="text" value={data.text} onChange={onChange}
+                        rows={5} placeholder="Write the client's review here…" required
+                    />
+                </div>
 
-                    {/* Client photo (optional) */}
-                    <div className="add-section">
-                        <p className="add-section-label">Client Photo <span className="add-optional">(optional)</span></p>
-                        <label className="add-img-upload-label" htmlFor="testimonial-img">
-                            {preview
-                                ? <img src={preview} alt="preview" className="add-img-preview-single" />
-                                : <div className="add-img-placeholder"><i className="fa-regular fa-image" /><span>Upload Photo</span></div>
-                            }
-                        </label>
-                        <input id="testimonial-img" type="file" accept="image/*" onChange={onImage} hidden />
-                    </div>
-
-                    {/* Name + Location */}
-                    <div className="add-section add-row">
-                        <div className="add-field">
-                            <label>Client Name <span className="add-required">*</span></label>
-                            <input name="name" type="text" placeholder="e.g. Rahul Mehta" value={form.name} onChange={onChange} required />
+                {/* ── Show on Website toggle ── */}
+                <label className={`add-feature-card${data.isActive ? ' active' : ''}`}>
+                    <div className="add-feature-left">
+                        <div className="add-feature-icon">
+                            <i className="fa fa-eye" />
                         </div>
-                        <div className="add-field">
-                            <label>Location <span className="add-required">*</span></label>
-                            <input name="location" type="text" placeholder="e.g. Mumbai" value={form.location} onChange={onChange} required />
+                        <div className="add-feature-text">
+                            <span className="add-feature-title">Show on Website</span>
+                            <span className="add-feature-desc">
+                                Toggle off to save this review without displaying it publicly yet.
+                            </span>
                         </div>
                     </div>
+                    <input
+                        type="checkbox"
+                        name="isActive"
+                        checked={data.isActive}
+                        onChange={onChange}
+                        style={{ display: 'none' }}
+                    />
+                    <span className="toggle-slider" />
+                </label>
 
-                    {/* Rating */}
-                    <div className="add-section">
-                        <label>Star Rating <span className="add-required">*</span></label>
-                        <div className="add-star-row">
-                            {[1,2,3,4,5].map(n => (
-                                <button
-                                    key={n}
-                                    type="button"
-                                    className={`add-star-btn${form.rating >= n ? ' active' : ''}`}
-                                    onClick={() => setForm(prev => ({ ...prev, rating: n }))}
-                                >
-                                    <i className="fa-solid fa-star" />
-                                </button>
-                            ))}
-                            <span className="add-star-label">{form.rating} / 5</span>
-                        </div>
-                    </div>
-
-                    {/* Review Text */}
-                    <div className="add-section">
-                        <label>Review <span className="add-required">*</span></label>
-                        <textarea
-                            name="text"
-                            rows={5}
-                            placeholder="Write the client's review here…"
-                            value={form.text}
-                            onChange={onChange}
-                            required
-                        />
-                    </div>
-
-                    {/* Active toggle */}
-                    <div className="add-section add-toggle-row">
-                        <div className="add-toggle-info">
-                            <p className="add-toggle-title">Show on Website</p>
-                            <p className="add-toggle-sub">Toggle off to hide this review without deleting it.</p>
-                        </div>
-                        <label className="add-toggle-switch">
-                            <input type="checkbox" name="isActive" checked={form.isActive} onChange={onChange} />
-                            <span className="add-toggle-track"><span className="add-toggle-thumb" /></span>
-                        </label>
-                    </div>
-
-                    <button type="submit" className="add-submit-btn" disabled={loading}>
-                        {loading ? <><i className="fa-solid fa-circle-notch fa-spin" /> Saving…</> : 'Add Testimonial'}
-                    </button>
-                </form>
-            </div>
+                <button type="submit" className="add-btn" disabled={loading}>
+                    {loading ? 'Adding…' : 'Add Testimonial'}
+                </button>
+            </form>
         </div>
     );
 };

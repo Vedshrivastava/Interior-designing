@@ -116,7 +116,7 @@ export const metadata = {
     url: `${SITE_URL}/services`,
     images: [
       {
-        url: `${SITE_URL}/favicon.jpeg`,
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: 'Interior Design Services in Satna — Shrivastavas Elevate',
@@ -126,7 +126,7 @@ export const metadata = {
   twitter: {
     title: 'Interior Design Services in Satna MP | Shrivastavas Elevate',
     description: 'Modular kitchens, bedrooms, commercial spaces & 3D visualization in Satna, MP.',
-    images: [`${SITE_URL}/favicon.jpeg`],
+    images: [`${SITE_URL}/og-image.png`],
   },
 };
 

@@ -58,7 +58,7 @@ export const metadata = {
     url: `${SITE_URL}/contact`,
     images: [
       {
-        url: `${SITE_URL}/og-image.png`,
+        url: `${SITE_URL}/favicon.jpeg`,
         width: 1200,
         height: 630,
         alt: 'Contact Shrivastavas Elevate — Interior Designer in Satna MP',
@@ -68,7 +68,7 @@ export const metadata = {
   twitter: {
     title: 'Contact Interior Designer in Satna | Free Consultation',
     description: 'Book a free interior design consultation in Satna, MP. Call +91 89620 53372.',
-    images: [`${SITE_URL}/og-image.png`],
+    images: [`${SITE_URL}/favicon.jpeg`],
   },
 };
 

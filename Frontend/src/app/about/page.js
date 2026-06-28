@@ -47,7 +47,7 @@ export const metadata = {
     url: `${SITE_URL}/about`,
     images: [
       {
-        url: `${SITE_URL}/og-image.png`,
+        url: `${SITE_URL}/favicon.jpeg`,
         width: 1200,
         height: 630,
         alt: 'Shrivastavas Elevate Team — Interior Designers in Satna MP',
@@ -57,7 +57,7 @@ export const metadata = {
   twitter: {
     title: 'About Shrivastavas Elevate — Interior Designers in Satna MP',
     description: 'Premium interior design studio in Satna MP. 7+ years experience, 50+ projects.',
-    images: [`${SITE_URL}/og-image.png`],
+    images: [`${SITE_URL}/favicon.jpeg`],
   },
 };
 

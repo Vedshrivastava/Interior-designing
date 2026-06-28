@@ -72,7 +72,7 @@ export async function generateMetadata({ params }) {
       type: 'website',
       images: [
         {
-          url: `${SITE_URL}/og-image.png`,
+          url: `${SITE_URL}/favicon.jpeg`,
           width: 1200,
           height: 630,
           alt: `${categoryName} — Shrivastavas Elevate, Satna MP`,
@@ -82,7 +82,7 @@ export async function generateMetadata({ params }) {
     twitter: {
       title,
       description: `${desc} Free quote available.`,
-      images: [`${SITE_URL}/og-image.png`],
+      images: [`${SITE_URL}/favicon.jpeg`],
     },
   };
 }

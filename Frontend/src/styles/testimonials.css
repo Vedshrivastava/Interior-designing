@@ -135,6 +135,97 @@
   font-size: 0.72rem; color: #8a9a9a;
 }
 
+/* ── CTA section (self-contained, no services.css dependency) ── */
+.tr-cta-section {
+  position: relative;
+  padding: 90px 6%;
+  background: #102525;
+  text-align: center;
+  overflow: hidden;
+}
+.tr-cta-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.07;
+  background-image:
+    repeating-linear-gradient(45deg, #c9a87c 0, #c9a87c 1px, transparent 0, transparent 28px),
+    repeating-linear-gradient(-45deg, #c9a87c 0, #c9a87c 1px, transparent 0, transparent 28px);
+  pointer-events: none;
+}
+.tr-cta-section::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(201,168,124,0.1) 0%, transparent 65%);
+  pointer-events: none;
+}
+.tr-cta-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.tr-cta-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(201,168,124,0.7);
+  margin-bottom: 16px;
+}
+.tr-cta-section h2 {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(2.8rem, 6vw, 5rem);
+  color: #f5ede0;
+  margin: 0 0 22px;
+  line-height: 1.05;
+  letter-spacing: -1px;
+}
+.tr-cta-section p {
+  color: rgba(240,230,211,0.65);
+  font-size: 1rem;
+  line-height: 1.85;
+  max-width: 540px;
+  margin: 0 auto 40px;
+  font-family: "Inter", sans-serif;
+}
+.tr-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 40px;
+  background: #c9a87c;
+  color: #102525;
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background 0.2s, gap 0.2s;
+}
+.tr-cta-btn:hover { background: #e8c99a; gap: 14px; }
+.tr-cta-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  background: none;
+  border: none;
+  color: rgba(240,230,211,0.45);
+  font-family: "Inter", sans-serif;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.tr-cta-back:hover { color: rgba(240,230,211,0.8); }
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .tr-grid { grid-template-columns: repeat(2, 1fr); }

@@ -1,6 +1,5 @@
 'use client';
 import '@/styles/testimonials.css';
-import '@/styles/services.css';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { IconQuoteLeft, IconStarFilled, IconArrowRight, IconXMark, IconCrown, IconCalendar } from '@/components/Icons';
@@ -118,21 +117,16 @@ export default function TestimonialsPage() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="services-cta">
-        <div className="cta-inner">
-          <span className="svc-section-tag"><IconCrown /> Begin Your Journey</span>
+      <section className="tr-cta-section">
+        <div className="tr-cta-inner">
+          <span className="tr-cta-tag"><IconCrown /> Begin Your Journey</span>
           <h2>Your Space<br />Could Be Next</h2>
           <p>Every review above started with one conversation. Book a free consultation and let&apos;s start yours.</p>
-          <button className="services-cta-btn" onClick={openConsult}>
+          <button className="tr-cta-btn" onClick={openConsult}>
             Book Free Consultation <IconCalendar />
           </button>
-          <div style={{ marginTop: '20px' }}>
-            <button
-              onClick={() => router.push('/')}
-              style={{ background: 'none', border: 'none', color: 'rgba(240,230,211,0.5)', fontFamily: 'Inter, sans-serif', fontSize: '0.78rem', cursor: 'pointer', letterSpacing: '0.5px', display: 'inline-flex', alignItems: 'center', gap: 8, transition: 'color 0.2s' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'rgba(240,230,211,0.85)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'rgba(240,230,211,0.5)'}
-            >
+          <div>
+            <button className="tr-cta-back" onClick={() => router.push('/')}>
               <IconArrowRight style={{ transform: 'rotate(180deg)' }} /> Back to Home
             </button>
           </div>

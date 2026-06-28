@@ -1,5 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* ── Text button — shared across all pages ── */
+.hp-text-btn {
+  background: none;
+  border: none;
+  color: var(--gold, #c9a87c);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  transition: gap 0.3s ease, color 0.3s ease;
+}
+.hp-text-btn:hover { gap: 13px; color: #1e3a2a; }
+
 /* ================================================
    STAT STAR — filled gold star rendered inline
    with CountUp numbers in all stats sections

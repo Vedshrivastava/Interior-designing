@@ -1,7 +1,8 @@
 'use client';
 import '@/styles/about.css';
 import { IconCalendar, IconArrowRight, IconGem, IconCrown, IconHouseChimney, IconSwatchbook, IconShield, IconComments, IconEye, IconHelmet, IconKey, IconBuilding, IconWand, IconQuoteLeft, IconStar, IconStarFilled, IconXMark } from '@/components/Icons';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { useRouter } from 'next/navigation';
 
 import Footer from '@/components/Footer';
@@ -60,14 +61,18 @@ export default function AboutPage() {
   const [activeTCard, setActiveTCard] = useState(null);
   const [testimonials, setTestimonials] = useState(FALLBACK_TESTIMONIALS);
 
-  useEffect(() => {
+  const fetchTestimonials = useCallback(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/testimonial/list?activeOnly=true`)
       .then(r => r.json())
-      .then(d => {
-        if (d.success) setTestimonials(d.data?.length > 0 ? d.data : FALLBACK_TESTIMONIALS);
-      })
+      .then(d => { if (d.success) setTestimonials(d.data?.length > 0 ? d.data : FALLBACK_TESTIMONIALS); })
       .catch(() => {});
   }, []);
+
+  useEffect(() => { fetchTestimonials(); }, [fetchTestimonials]);
+
+  useWebSocket(useCallback(msg => {
+    if (msg.type === 'testimonialsChanged') fetchTestimonials();
+  }, [fetchTestimonials]));
 
   const marqueeItems = [...testimonials, ...testimonials];
 

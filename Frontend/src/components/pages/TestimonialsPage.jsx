@@ -1,6 +1,7 @@
 'use client';
 import '@/styles/testimonials.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { useRouter } from 'next/navigation';
 import { IconQuoteLeft, IconStarFilled, IconArrowRight, IconXMark, IconCrown, IconCalendar } from '@/components/Icons';
 import Footer from '@/components/Footer';
@@ -43,7 +44,7 @@ export default function TestimonialsPage() {
   const [active,        setActive]        = useState(null);
   const [loading,       setLoading]       = useState(true);
 
-  useEffect(() => {
+  const fetchAll = useCallback(() => {
     const API = process.env.NEXT_PUBLIC_API_URL;
     Promise.all([
       fetch(`${API}/api/testimonial/list?activeOnly=true`).then(r => r.json()).catch(() => null),
@@ -56,6 +57,12 @@ export default function TestimonialsPage() {
       }
     }).finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  useWebSocket(useCallback(msg => {
+    if (msg.type === 'testimonialsChanged') fetchAll();
+  }, [fetchAll]));
 
   useEffect(() => {
     if (active) document.body.style.overflow = 'hidden';

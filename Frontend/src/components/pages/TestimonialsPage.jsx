@@ -1,9 +1,11 @@
 'use client';
 import '@/styles/testimonials.css';
+import '@/styles/services.css';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { IconQuoteLeft, IconStarFilled, IconArrowRight, IconXMark } from '@/components/Icons';
+import { IconQuoteLeft, IconStarFilled, IconArrowRight, IconXMark, IconCrown, IconCalendar } from '@/components/Icons';
 import Footer from '@/components/Footer';
+import { useModal } from '@/context/ModalContext';
 
 const FALLBACK = [
   { name: 'Rahul Mehta',    location: 'Mumbai',    rating: 5, text: 'Exceptional execution and genuinely luxurious finishing. Every material, proportion and detail was considered, and the finished space matched the 3D render they showed us months earlier almost exactly. That kind of accuracy is rare.' },
@@ -18,6 +20,7 @@ const truncate = text => text.length > 120 ? text.slice(0, 117).trimEnd() + '…
 
 export default function TestimonialsPage() {
   const router = useRouter();
+  const { openConsult } = useModal();
   const [reviews, setReviews]     = useState(FALLBACK);
   const [active,  setActive]      = useState(null);
   const [loading, setLoading]     = useState(true);
@@ -115,11 +118,25 @@ export default function TestimonialsPage() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="tr-cta">
-        <p className="tr-cta-text">Ready to transform your space?</p>
-        <button className="tr-cta-btn" onClick={() => router.push('/')}>
-          Back to Home <IconArrowRight />
-        </button>
+      <section className="services-cta">
+        <div className="cta-inner">
+          <span className="svc-section-tag"><IconCrown /> Begin Your Journey</span>
+          <h2>Create Your Own<br />Success Story</h2>
+          <p>Every review above started with a single conversation. Let&apos;s start yours — a free consultation, no obligation, just your vision and ours.</p>
+          <button className="services-cta-btn" onClick={openConsult}>
+            Book Free Consultation <IconCalendar />
+          </button>
+          <div style={{ marginTop: '20px' }}>
+            <button
+              onClick={() => router.push('/')}
+              style={{ background: 'none', border: 'none', color: 'rgba(240,230,211,0.5)', fontFamily: 'Inter, sans-serif', fontSize: '0.78rem', cursor: 'pointer', letterSpacing: '0.5px', display: 'inline-flex', alignItems: 'center', gap: 8, transition: 'color 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'rgba(240,230,211,0.85)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(240,230,211,0.5)'}
+            >
+              <IconArrowRight style={{ transform: 'rotate(180deg)' }} /> Back to Home
+            </button>
+          </div>
+        </div>
       </section>
 
       <Footer />

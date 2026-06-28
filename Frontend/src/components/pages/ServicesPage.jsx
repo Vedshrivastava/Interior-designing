@@ -102,7 +102,9 @@ export default function ServicesPage() {
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/testimonial/list?activeOnly=true`)
       .then(r => r.json())
-      .then(d => { if (d.success && d.data?.length > 0) setTestimonials(d.data); })
+      .then(d => {
+        if (d.success) setTestimonials(d.data?.length > 0 ? d.data : FALLBACK_TESTIMONIALS);
+      })
       .catch(() => {});
   }, []);
 

@@ -157,7 +157,7 @@ const ListTestimonials = ({ url }) => {
                                 <span style={{
                                     display: 'inline-flex', alignItems: 'center', padding: '4px 10px',
                                     borderRadius: 20, fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.5px',
-                                    textTransform: 'uppercase',
+                                    textTransform: 'uppercase', width: 'fit-content', alignSelf: 'center',
                                     background: t.isActive ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.08)',
                                     border: `1px solid ${t.isActive ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.25)'}`,
                                     color: t.isActive ? '#15803d' : '#dc2626',

@@ -11,7 +11,7 @@ import { useModal } from '@/context/ModalContext';
 import bgimg  from '@/assets/home-img.png';
 import design from '@/assets/refund-design.png';
 
-const testimonials = [
+const FALLBACK_TESTIMONIALS = [
   { name: 'Rahul Mehta',    location: 'Mumbai',    text: 'Exceptional execution and genuinely luxurious finishing. Every material, proportion and detail was considered, and the finished space matched the 3D render they showed us months earlier almost exactly. That kind of accuracy is rare.',                                                         rating: 5, image: design },
   { name: 'Priya Sharma',   location: 'Delhi',     text: 'Their design sense is outstanding. Every corner of our apartment feels premium and considered, like the space was always meant to look this way. They listened carefully to how we actually live and you can see that in the result.',                                                             rating: 5 },
   { name: 'Aman Verma',     location: 'Bangalore', text: 'Professional, transparent and highly skilled. I could see every finish and furniture placement in the 3D before work started, which gave me real confidence going in. The execution matched it perfectly with no surprises at all.',                                                               rating: 5 },
@@ -19,7 +19,6 @@ const testimonials = [
   { name: 'Vikram Singh',   location: 'Indore',    text: 'We got a genuinely luxurious interior within our budget, with no compromise on quality or finish. The materials are premium and the craftsmanship is immaculate. Two other designers had quoted us more for a noticeably lower standard of work.',                                                rating: 5 },
   { name: 'Sunita Agarwal', location: 'Bhopal',    text: 'The 3D renders were absolutely spot-on. We knew exactly what we were getting before any work started, which took away all the usual anxiety. The finished space is identical to what we approved in the render. That level of accuracy is rare.',                                                 rating: 5 },
 ];
-const marqueeItems = [...testimonials, ...testimonials];
 const truncate = (text) => text.length > 100 ? text.slice(0, 97).trimEnd() + '…' : text;
 
 const services = [
@@ -98,6 +97,16 @@ export default function ServicesPage() {
   const [activeService,  setActiveService]  = useState(null);
   const [activeTCard,    setActiveTCard]    = useState(null);
   const [activeInfoCard, setActiveInfoCard] = useState(null);
+  const [testimonials,   setTestimonials]   = useState(FALLBACK_TESTIMONIALS);
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/testimonial/list?activeOnly=true`)
+      .then(r => r.json())
+      .then(d => { if (d.success && d.data?.length > 0) setTestimonials(d.data); })
+      .catch(() => {});
+  }, []);
+
+  const marqueeItems = [...testimonials, ...testimonials];
 
   useEffect(() => {
     const o = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); o.unobserve(e.target); } }), { threshold: 0.1 });

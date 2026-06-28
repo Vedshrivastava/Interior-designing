@@ -335,6 +335,12 @@ export default function AboutPage() {
             </div>
           </div>
         </div>
+
+        <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center' }}>
+          <button onClick={() => router.push('/testimonials')} className="hp-text-btn">
+            See all reviews <IconArrowRight />
+          </button>
+        </div>
       </section>
 
       <section className="about-cta">

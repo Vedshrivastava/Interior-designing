@@ -121,8 +121,8 @@ export default function TestimonialsPage() {
       <section className="services-cta">
         <div className="cta-inner">
           <span className="svc-section-tag"><IconCrown /> Begin Your Journey</span>
-          <h2>Create Your Own<br />Success Story</h2>
-          <p>Every review above started with a single conversation. Let&apos;s start yours — a free consultation, no obligation, just your vision and ours.</p>
+          <h2>Let&apos;s Design<br />Your Space</h2>
+          <p>Every review above started with one conversation. Book a free consultation and let&apos;s start yours.</p>
           <button className="services-cta-btn" onClick={openConsult}>
             Book Free Consultation <IconCalendar />
           </button>

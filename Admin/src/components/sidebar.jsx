@@ -4,7 +4,7 @@ import { NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPlus, faList, faIdBadge, faMessage, faFolderPlus, faFolderOpen,
-  faCubes, faBoxesStacked, faUsers, faTrash,
+  faCubes, faBoxesStacked, faUsers, faTrash, faStar, faStarHalfStroke,
 } from '@fortawesome/free-solid-svg-icons';
 
 const NAV_SECTIONS = [
@@ -27,6 +27,13 @@ const NAV_SECTIONS = [
     items: [
       { to: '/add-product',   icon: faCubes,        label: 'Add Product' },
       { to: '/list-products', icon: faBoxesStacked, label: 'Products'    },
+    ],
+  },
+  {
+    label: 'Testimonials',
+    items: [
+      { to: '/add-testimonial',   icon: faStar,            label: 'Add Testimonial'  },
+      { to: '/list-testimonials', icon: faStarHalfStroke,  label: 'Testimonials'     },
     ],
   },
   {

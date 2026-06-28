@@ -14,6 +14,8 @@ import AdminRequests  from './pages/AdminRequests';
 import RecoveryBin    from './pages/RecoveryBin';
 import AddProduct from './pages/AddProduct';
 import ListProducts from './pages/ListProducts';
+import AddTestimonial   from './pages/AddTestimonial';
+import ListTestimonials from './pages/ListTestimonials';
 import './index.css';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
@@ -190,6 +192,22 @@ const App = () => {
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
                   <MyAccount url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/add-testimonial'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <AddTestimonial url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/list-testimonials'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <ListTestimonials url={url} />
                 </ProtectedRoute>
               }
             />

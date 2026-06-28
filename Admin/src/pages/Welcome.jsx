@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faPlus, faList, faIdBadge, faMessage,
-    faFolderPlus, faFolderOpen, faCubes, faBoxesStacked, faUsers, faTrash,
+    faFolderPlus, faFolderOpen, faCubes, faBoxesStacked, faUsers, faTrash, faStar,
 } from '@fortawesome/free-solid-svg-icons';
 import '../styles/welcome.css';
 
@@ -14,8 +14,10 @@ const ALL_SHORTCUTS = [
     { icon: faFolderOpen,   label: 'Projects',         desc: 'Browse and edit your portfolio',        path: '/list-projects'  },
     { icon: faCubes,        label: 'Add Product',      desc: 'List a new product to the catalogue',   path: '/add-product'    },
     { icon: faBoxesStacked, label: 'Products',         desc: 'View and manage all products',          path: '/list-products'  },
-    { icon: faIdBadge,      label: 'Appointments',     desc: 'Track and manage bookings',             path: '/appointments'   },
-    { icon: faMessage,      label: 'Quotes',           desc: 'Review customer quote requests',        path: '/quotes'         },
+    { icon: faStar,         label: 'Add Testimonial',  desc: 'Add a new client review',               path: '/add-testimonial'   },
+    { icon: faList,         label: 'Testimonials',     desc: 'Manage all client reviews',             path: '/list-testimonials' },
+    { icon: faIdBadge,      label: 'Appointments',     desc: 'Track and manage bookings',             path: '/appointments'      },
+    { icon: faMessage,      label: 'Quotes',           desc: 'Review customer quote requests',        path: '/quotes'            },
 ];
 
 const MASTER_SHORTCUTS = [

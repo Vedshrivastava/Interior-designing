@@ -488,33 +488,33 @@ a {
 }
 
 /* ── Light modal variant — services & about pages (white cards) ── */
-.t-modal--light {
-  background: #ffffff;
+.t-modal.t-modal--light {
+  background: #ffffff !important;
   border-color: rgba(201,168,124,0.3);
 }
-.t-modal--light .t-modal-close {
+.t-modal.t-modal--light .t-modal-close {
   border-color: rgba(16,37,37,0.15);
   background: rgba(16,37,37,0.04);
   color: rgba(16,37,37,0.5);
 }
-.t-modal--light .t-modal-close:hover {
+.t-modal.t-modal--light .t-modal-close:hover {
   background: rgba(201,168,124,0.12);
   color: #c9a87c;
 }
-.t-modal--light .t-modal-text {
-  color: #2a3a3a;
+.t-modal.t-modal--light .t-modal-text {
+  color: #2a3a3a !important;
 }
-.t-modal--light .t-modal-author {
+.t-modal.t-modal--light .t-modal-author {
   border-top-color: rgba(201,168,124,0.2);
 }
-.t-modal--light .t-modal-avatar {
+.t-modal.t-modal--light .t-modal-avatar {
   background: rgba(16,37,37,0.06);
   border-color: rgba(201,168,124,0.35);
   color: #102525;
 }
-.t-modal--light .t-modal-author-info strong {
-  color: #102525;
+.t-modal.t-modal--light .t-modal-author-info strong {
+  color: #102525 !important;
 }
-.t-modal--light .t-modal-author-info span {
-  color: rgba(16,37,37,0.45);
+.t-modal.t-modal--light .t-modal-author-info span {
+  color: rgba(16,37,37,0.45) !important;
 }

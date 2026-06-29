@@ -6,6 +6,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import moment from 'moment';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 const CITY_OPTIONS = [
     { slug: 'satna',    label: 'Satna'    },
@@ -91,6 +92,20 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
     };
 
     useEffect(() => { fetchList(); }, []);
+
+    const fetchProjectTypes_ = useCallback(() => {
+        axios.get(`${url}/api/project-type/list`).then(r => { if (r.data.success) setProjectTypes(r.data.data.map(t => t.name)); }).catch(() => {});
+    }, [url]);
+
+    const fetchProjectCategories_ = useCallback(() => {
+        axios.get(`${url}/api/project-category/list`).then(r => { if (r.data.success) setProjectCategories(r.data.data.map(c => c.name)); }).catch(() => {});
+    }, [url]);
+
+    useWebSocket(useCallback((msg) => {
+        if (msg.type === 'projectsChanged')          fetchList();
+        if (msg.type === 'projectTypesChanged')      fetchProjectTypes_();
+        if (msg.type === 'projectCategoriesChanged') fetchProjectCategories_();
+    }, [fetchProjectTypes_, fetchProjectCategories_]));
 
     /* ── Delete ── */
     const removeProject = async (id) => {

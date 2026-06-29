@@ -125,17 +125,17 @@ export default function ProjectsPage({ initialProjects = [] }) {
       {/* ── BODY ── */}
       <div className="proj-body">
 
-        {/* Filter tabs */}
-        <div className="proj-filter-bar">
+        {/* Filter tabs — scrollable pill bar */}
+        <div className="proj-type-scroll-bar">
           {['All', ...projectTypes].map(f => (
             <button
               key={f}
-              className={`proj-filter-btn${activeFilter === f ? ' active' : ''}`}
+              className={`proj-type-pill${activeFilter === f ? ' active' : ''}`}
               onClick={() => setActiveFilter(f)}
             >
               {f === 'Residential' && <IconHouseChimney />}
               {f === 'Commercial'  && <IconBuilding />}
-              {f} {f !== 'All' && `(${projects.filter(p => p.projectType === f).length})`}
+              {f}{f !== 'All' && ` (${projects.filter(p => p.projectType === f).length})`}
             </button>
           ))}
         </div>

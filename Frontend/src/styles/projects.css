@@ -445,6 +445,56 @@ html { scroll-behavior: smooth; }
   flex-wrap: wrap;
 }
 
+/* ── Scrollable pill bar (replaces proj-filter-bar for type filter) ── */
+.proj-type-scroll-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 28px;
+  margin-bottom: 12px;
+  padding-top: 4px;
+}
+
+.proj-type-scroll-bar::-webkit-scrollbar { display: none; }
+
+.proj-type-pill {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  border-radius: 30px;
+  border: 1px solid rgba(201,168,124,0.3);
+  background: transparent;
+  color: var(--text-mid);
+  font-family: "Inter", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.proj-type-pill:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(201,168,124,0.07);
+}
+
+.proj-type-pill.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--gold);
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(16,37,37,0.18);
+}
+
+.proj-type-pill svg { width: 14px; height: 14px; flex-shrink: 0; }
+
 .proj-filter-btn {
   display: inline-flex;
   align-items: center;

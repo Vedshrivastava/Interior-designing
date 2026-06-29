@@ -5,11 +5,11 @@ import ReactDOM from 'react-dom';
 import Image from 'next/image';
 import { useModal } from '@/context/ModalContext';
 
-// Cloudinary transform: serve compressed thumbnails for card/modal thumbnails
+import { cloudinaryOptimize } from '@/lib/cloudinary';
+
 function cloudinaryThumb(url, width = 800) {
   if (!url) return null;
-  if (!url.includes('res.cloudinary.com')) return url;
-  return url.replace('/upload/', `/upload/w_${width},c_fill,f_auto,q_auto:good/`);
+  return cloudinaryOptimize(url, { width, crop: 'fill' }) ?? url;
 }
 
 export default function Design({ id, name, description, images, points, category }) {
@@ -186,7 +186,7 @@ export default function Design({ id, name, description, images, points, category
       {images.length > 1 && <button className="lb-arrow lb-arrow--prev" onClick={goPrev} aria-label="Previous">&#8249;</button>}
       <div className="lb-img-wrap" onClick={e => e.stopPropagation()}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={images[lightboxIndex]} alt={`${name} — ${category || 'interior'} design, image ${lightboxIndex + 1} | Shrivastavas Elevate`} className="lb-img" />
+        <img src={cloudinaryOptimize(images[lightboxIndex])} alt={`${name} — ${category || 'interior'} design, image ${lightboxIndex + 1} | Shrivastavas Elevate`} className="lb-img" />
         <div className="lb-caption">
           <span className="lb-name">{name}</span>
           {images.length > 1 && <span className="lb-counter">{lightboxIndex + 1} / {images.length}</span>}

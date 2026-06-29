@@ -10,6 +10,8 @@ import { useModal } from '@/context/ModalContext';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { IconBuilding, IconHouseChimney, IconLayerGroup, IconCalendar, IconCrown, IconLocation, IconRulerCombined, IconClock, IconCalendarDays, IconQuoteLeft, IconStar, IconStarFilled, IconKey, IconArrowRight } from '@/components/Icons';
 
+import { cloudinaryOptimize } from '@/lib/cloudinary';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 /* ─── CountUp ─────────────────────────────────────────────────── */
@@ -76,7 +78,7 @@ const ProjectCard = ({ project, openConsult }) => {
       <div className="proj-card-img-wrap" onClick={() => images?.length > 0 && openLb(0)}>
         {images?.[0]
           ? /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={images[0]} alt={`${name}${location ? ` in ${location}` : ''} — interior design project by Shrivastavas Elevate, Satna MP`} loading="lazy" />
+            <img src={cloudinaryOptimize(images[0], { width: 800 })} alt={`${name}${location ? ` in ${location}` : ''} — interior design project by Shrivastavas Elevate, Satna MP`} loading="lazy" />
           : <div className="proj-card-img-placeholder" />
         }
         {images.length > 1 && <div className="proj-card-img-count">+{images.length - 1}</div>}
@@ -120,7 +122,7 @@ const ProjectCard = ({ project, openConsult }) => {
         <div className="proj-modal-gallery">
           <div className="proj-modal-main-img-wrap" onClick={() => openLb(activeThumb)}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={images[activeThumb]} alt={`${name}${location ? ` in ${location}` : ''} — interior design project, image ${activeThumb + 1} | Shrivastavas Elevate, Satna MP`} className="proj-modal-main-img" />
+            <img src={cloudinaryOptimize(images[activeThumb], { width: 1200 })} alt={`${name}${location ? ` in ${location}` : ''} — interior design project, image ${activeThumb + 1} | Shrivastavas Elevate, Satna MP`} className="proj-modal-main-img" />
             <div className="proj-modal-img-hint">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -134,7 +136,7 @@ const ProjectCard = ({ project, openConsult }) => {
                 <button key={i} className={`proj-modal-thumb${i === activeThumb ? ' active' : ''}`}
                   onClick={() => setActiveThumb(i)} aria-label={`Image ${i + 1}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={src} alt={`${name} — project image ${i + 1}`} />
+                  <img src={cloudinaryOptimize(src, { width: 200 })} alt={`${name} — project image ${i + 1}`} />
                 </button>
               ))}
             </div>
@@ -208,7 +210,7 @@ const ProjectCard = ({ project, openConsult }) => {
       {images.length > 1 && <button className="proj-lb-arrow proj-lb-arrow--prev" onClick={lbPrev} aria-label="Previous">&#8249;</button>}
       <div className="proj-lb-img-wrap" onClick={e => e.stopPropagation()}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={images[lbIdx]} alt={`${name}${location ? ` in ${location}` : ''} — project image ${lbIdx + 1} | Shrivastavas Elevate`} className="proj-lb-img" />
+        <img src={cloudinaryOptimize(images[lbIdx])} alt={`${name}${location ? ` in ${location}` : ''} — project image ${lbIdx + 1} | Shrivastavas Elevate`} className="proj-lb-img" />
         <div className="proj-lb-caption">
           <span>{name}</span>
           {images.length > 1 && <span>{lbIdx + 1} / {images.length}</span>}

@@ -1,4 +1,6 @@
+import { preload } from 'react-dom';
 import ServicesPage from '@/components/pages/ServicesPage';
+import bgimg from '@/assets/home-img.png';
 
 const SITE_URL = 'https://shrivastavaseelevate.com';
 
@@ -131,6 +133,7 @@ export const metadata = {
 };
 
 export default function Page() {
+  preload(bgimg.src, { as: 'image', fetchPriority: 'high' });
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />

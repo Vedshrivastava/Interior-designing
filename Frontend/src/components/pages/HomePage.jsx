@@ -358,7 +358,7 @@ export default function HomePage() {
             >
               <div className="hp-dc-img">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={d.img.src} alt={d.alt} />
+                <img src={d.img.src} alt={d.alt} loading="lazy" />
                 <div className="hp-dc-overlay" />
               </div>
               <div className="hp-dc-info">

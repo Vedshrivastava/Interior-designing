@@ -754,3 +754,66 @@
   grid-template-columns: 1fr;
   gap: 24px;
 }
+
+/* ── Skeleton loader ── */
+@keyframes csSkelPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+.cs-proj-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.cs-proj-skeleton {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 260px;
+  animation: csSkelPulse 1.6s ease-in-out infinite;
+}
+
+.cs-skel-img {
+  background: rgba(201,168,124,0.12);
+}
+
+.cs-skel-content {
+  background: var(--white);
+  border: 1px solid rgba(201,168,124,0.12);
+  border-left: none;
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cs-skel-tag {
+  width: 90px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(201,168,124,0.15);
+}
+
+.cs-skel-title {
+  width: 65%;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(16,37,37,0.08);
+}
+
+.cs-skel-line {
+  width: 85%;
+  height: 14px;
+  border-radius: 4px;
+  background: rgba(16,37,37,0.05);
+}
+
+.cs-skel-line--short { width: 50%; }
+
+@media (max-width: 860px) {
+  .cs-proj-skeleton { grid-template-columns: 1fr; }
+  .cs-skel-img      { height: 200px; }
+}

@@ -53,7 +53,7 @@ export default async function Page({ params }) {
 
   let allProjects = [];
   try {
-    const res = await fetch(`${API_URL}/api/project/list`, { next: { revalidate: 60 }, signal: AbortSignal.timeout(5000) });
+    const res = await fetch(`${API_URL}/api/project/list`, { cache: 'no-store', signal: AbortSignal.timeout(5000) });
     const json = await res.json();
     if (json.success) allProjects = json.data ?? [];
   } catch {}

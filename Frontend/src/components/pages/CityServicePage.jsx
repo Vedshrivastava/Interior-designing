@@ -19,16 +19,17 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
   const router   = useRouter();
   const { openConsult } = useModal();
 
-  const [projects, setProjects] = useState(initialProjects);
+  const [projects, setProjects] = useState(null);
 
   const fetchProjects = useCallback(() => {
     fetch(`${API_URL}/api/project/list`)
       .then(r => r.json())
       .then(d => {
         if (d.success) setProjects((d.data ?? []).filter(p => p.cityPage === citySlug));
+        else setProjects([]);
       })
-      .catch(() => {});
-  }, [citySlug]);
+      .catch(() => setProjects(initialProjects ?? []));
+  }, [citySlug, initialProjects]);
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
@@ -251,21 +252,37 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
       <section className="cs-projects">
         <div className="cs-section-head cs-sr" ref={sr}>
           <span className="cs-overline">
-            {projects.length > 0 ? `Our Work in ${cityName}` : `Expanding to ${cityName}`}
+            {projects === null ? `Our Work in ${cityName}` : projects.length > 0 ? `Our Work in ${cityName}` : `Expanding to ${cityName}`}
           </span>
           <h2>
-            {projects.length > 0
+            {projects === null || projects.length > 0
               ? `Some of Our Recent Projects in ${cityName}`
               : `Coming to ${cityName}, ${stateName}`}
           </h2>
           <p>
-            {projects.length > 0
+            {projects === null
+              ? `Fetching our latest work in ${cityName}…`
+              : projects.length > 0
               ? `${projects.length} project${projects.length !== 1 ? 's' : ''} completed in ${cityName}. Each one crafted with premium materials, precision and timeless design.`
               : `We are actively accepting interior design projects in ${cityName}. Be among our first clients in the city — and receive our complete, undivided focus from consultation to handover.`}
           </p>
         </div>
 
-        {projects.length > 0 ? (
+        {projects === null ? (
+          <div className="cs-proj-skeleton-list">
+            {[0, 1].map(i => (
+              <div key={i} className="cs-proj-skeleton">
+                <div className="cs-skel-img" />
+                <div className="cs-skel-content">
+                  <div className="cs-skel-tag" />
+                  <div className="cs-skel-title" />
+                  <div className="cs-skel-line" />
+                  <div className="cs-skel-line cs-skel-line--short" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : projects.length > 0 ? (
           <div className="project-display-list">
             {projects.map(p => (
               <ProjectCard key={p._id} project={p} openConsult={openConsult} variant="city" />

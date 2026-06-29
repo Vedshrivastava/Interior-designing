@@ -15,6 +15,7 @@ import recoveryRouter from "./routes/recovery.js";
 import categoryRouter        from "./routes/category.js";
 import projectCategoryRouter from "./routes/projectCategory.js";
 import projectTypeRouter     from "./routes/projectType.js";
+import specialityRouter      from "./routes/speciality.js";
 import dotenv from 'dotenv';
 import { wss } from './middlewares/webSocket.js'; // Import WebSocket server setup
 
@@ -63,6 +64,7 @@ app.use('/api/recovery', recoveryRouter);
 app.use('/api/category',         categoryRouter);
 app.use('/api/project-category', projectCategoryRouter);
 app.use('/api/project-type',     projectTypeRouter);
+app.use('/api/speciality',       specialityRouter);
 
 // Serve static files
 app.use('/images', express.static('uploads'));

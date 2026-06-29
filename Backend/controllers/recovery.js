@@ -4,6 +4,7 @@ import Project         from '../models/project.js';
 import Category        from '../models/category.js';
 import ProjectCategory from '../models/projectCategory.js';
 import ProjectType     from '../models/projectType.js';
+import Speciality      from '../models/speciality.js';
 import { v2 as cloudinary } from 'cloudinary';
 import { broadcast } from '../middlewares/webSocket.js';
 import dotenv from 'dotenv';
@@ -16,6 +17,7 @@ const TYPE_BROADCAST = {
     category:          'categoriesChanged',
     projectCategory:   'projectCategoriesChanged',
     projectType:       'projectTypesChanged',
+    speciality:        'specialitiesChanged',
 };
 
 cloudinary.config({
@@ -27,13 +29,14 @@ cloudinary.config({
 /* ── List all soft-deleted items across all 3 collections ── */
 const listBin = async (req, res) => {
     try {
-        const [designs, products, projects, categories, projectCategories, projectTypes] = await Promise.all([
+        const [designs, products, projects, categories, projectCategories, projectTypes, specialities] = await Promise.all([
             Design         .find({ deleted: true }).sort({ deletedAt: -1 }),
             Product        .find({ deleted: true }).sort({ deletedAt: -1 }),
             Project        .find({ deleted: true }).sort({ deletedAt: -1 }),
             Category       .find({ deleted: true }).sort({ deletedAt: -1 }),
             ProjectCategory.find({ deleted: true }).sort({ deletedAt: -1 }),
             ProjectType    .find({ deleted: true }).sort({ deletedAt: -1 }),
+            Speciality     .find({ deleted: true }).sort({ deletedAt: -1 }),
         ]);
 
         const categoryData = await Promise.all(
@@ -63,9 +66,10 @@ const listBin = async (req, res) => {
                 designs:          designs .map(d => ({ ...d.toObject(), _type: 'design'   })),
                 products:         products.map(p => ({ ...p.toObject(), _type: 'product'  })),
                 projects:         projects.map(p => ({ ...p.toObject(), _type: 'project'  })),
-                categories:       categoryData,
+                categories:        categoryData,
                 projectCategories: projectCategoryData,
-                projectTypes:     projectTypeData,
+                projectTypes:      projectTypeData,
+                specialities:      specialities.map(s => ({ ...s.toObject(), _type: 'speciality' })),
             },
         });
     } catch (error) {
@@ -78,7 +82,7 @@ const listBin = async (req, res) => {
 const restoreItem = async (req, res) => {
     const { _id, _type } = req.body;
     try {
-        const Model = _type === 'design' ? Design : _type === 'product' ? Product : _type === 'category' ? Category : _type === 'projectCategory' ? ProjectCategory : _type === 'projectType' ? ProjectType : Project;
+        const Model = _type === 'design' ? Design : _type === 'product' ? Product : _type === 'category' ? Category : _type === 'projectCategory' ? ProjectCategory : _type === 'projectType' ? ProjectType : _type === 'speciality' ? Speciality : Project;
         const item  = await Model.findById(_id);
         if (!item) return res.status(404).json({ success: false, message: 'Item not found.' });
 
@@ -100,7 +104,7 @@ const restoreItem = async (req, res) => {
 const permanentDelete = async (req, res) => {
     const { _id, _type } = req.body;
     try {
-        const Model  = _type === 'design' ? Design : _type === 'product' ? Product : _type === 'category' ? Category : _type === 'projectCategory' ? ProjectCategory : _type === 'projectType' ? ProjectType : Project;
+        const Model  = _type === 'design' ? Design : _type === 'product' ? Product : _type === 'category' ? Category : _type === 'projectCategory' ? ProjectCategory : _type === 'projectType' ? ProjectType : _type === 'speciality' ? Speciality : Project;
         const folder = _type === 'design' ? 'design_images' : _type === 'product' ? 'product_images' : _type === 'project' ? 'project_images' : null;
 
         const item = await Model.findById(_id);

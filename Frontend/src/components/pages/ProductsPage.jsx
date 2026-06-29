@@ -23,24 +23,47 @@ const SUBCATEGORIES = {
 };
 const CATEGORIES = Object.keys(SUBCATEGORIES);
 
-const SPEC_META = {
-  'Waterproof':          { Icon: IconDroplet,        color: '#3b82f6' },
-  'UV Protection':       { Icon: IconSun,             color: '#f59e0b' },
-  'Fire Resistant':      { Icon: IconFire,            color: '#ef4444' },
-  'Weather Resistant':   { Icon: IconCloud,       color: '#6366f1' },
-  'Eco-Friendly':        { Icon: IconLeaf,            color: '#22c55e' },
-  'Low Maintenance':     { Icon: IconScrewdriverWrench,          color: '#8b5cf6' },
-  'Anti-Fungal':         { Icon: IconShield,    color: '#14b8a6' },
-  'Sound Insulation':    { Icon: IconVolumeX,     color: '#ec4899' },
-  'Thermal Insulation':  { Icon: IconThermometer, color: '#f97316' },
-  'Scratch Resistant':   { Icon: IconShield,          color: '#64748b' },
-  'Fade Resistant':      { Icon: IconSun,             color: '#a78bfa' },
-  'Customizable':        { Icon: IconPen,             color: '#c9a87c' },
-  'Non-Toxic':           { Icon: IconLeaf,            color: '#10b981' },
-  'Rust Resistant':      { Icon: IconShield,    color: '#78716c' },
+// Hardcoded fallback — used when DB hasn't loaded yet or for legacy data
+const SPEC_META_FALLBACK = {
+  'Waterproof':          { Icon: IconDroplet,          color: '#3b82f6' },
+  'UV Protection':       { Icon: IconSun,              color: '#f59e0b' },
+  'Fire Resistant':      { Icon: IconFire,             color: '#ef4444' },
+  'Weather Resistant':   { Icon: IconCloud,            color: '#6366f1' },
+  'Eco-Friendly':        { Icon: IconLeaf,             color: '#22c55e' },
+  'Low Maintenance':     { Icon: IconScrewdriverWrench,color: '#8b5cf6' },
+  'Anti-Fungal':         { Icon: IconShield,           color: '#14b8a6' },
+  'Sound Insulation':    { Icon: IconVolumeX,          color: '#ec4899' },
+  'Thermal Insulation':  { Icon: IconThermometer,      color: '#f97316' },
+  'Scratch Resistant':   { Icon: IconShield,           color: '#64748b' },
+  'Fade Resistant':      { Icon: IconSun,              color: '#a78bfa' },
+  'Customizable':        { Icon: IconPen,              color: '#c9a87c' },
+  'Non-Toxic':           { Icon: IconLeaf,             color: '#10b981' },
+  'Rust Resistant':      { Icon: IconShield,           color: '#78716c' },
 };
 
-const ProductCard = ({ product, openConsult }) => {
+// Map icon key string (stored in DB) to React component
+const ICON_COMPONENT_MAP = {
+  'droplet':     IconDroplet,
+  'sun':         IconSun,
+  'fire':        IconFire,
+  'cloud':       IconCloud,
+  'leaf':        IconLeaf,
+  'shield':      IconShield,
+  'volume-off':  IconVolumeX,
+  'thermometer': IconThermometer,
+  'pen':         IconPen,
+  'check':       IconCheck,
+  'wrench':      IconScrewdriverWrench,
+  'ruler':       IconPenRuler,
+  'star':        IconStar,
+  'gem':         null, // not in Icons.jsx, fallback to check
+  'eye':         null,
+  'lightbulb':   null,
+  'recycle':     IconLeaf,
+  'lock':        IconShield,
+};
+
+const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK }) => {
   const [modalOpen,   setModalOpen]   = useState(false);
   const [activeThumb, setActiveThumb] = useState(0);
   const [lbIdx,       setLbIdx]       = useState(null);
@@ -123,7 +146,7 @@ const ProductCard = ({ product, openConsult }) => {
           {specialities.length > 0 && (
             <div className="prod-modal-section"><h4 className="prod-modal-section-label">Specialities</h4>
               <div className="prod-spec-badges">
-                {specialities.map((spec, i) => { const meta = SPEC_META[spec] || { Icon: IconCheck, color: '#c9a87c' }; return <span key={i} className="prod-spec-badge" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}><meta.Icon />{spec}</span>; })}
+                {specialities.map((spec, i) => { const meta = specMeta[spec] || { Icon: IconCheck, color: '#c9a87c' }; return <span key={i} className="prod-spec-badge" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}><meta.Icon />{spec}</span>; })}
               </div>
             </div>
           )}
@@ -167,6 +190,8 @@ export default function ProductsPage({ initialProducts = [] }) {
   const [currentPage,      setCurrentPage]      = useState(1);
   const ITEMS_PER_PAGE = 12;
 
+  const [specMeta, setSpecMeta] = useState(SPEC_META_FALLBACK);
+
   const fetchProducts = useCallback(async () => {
     try {
       const res = await axios.get(`${API_URL}/api/product/list`);
@@ -174,11 +199,32 @@ export default function ProductsPage({ initialProducts = [] }) {
     } catch { setError(true); } finally { setLoading(false); }
   }, []);
 
+  const fetchSpecialities = useCallback(() => {
+    fetch(`${API_URL}/api/speciality/list`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.data?.length > 0) {
+          const map = {};
+          d.data.forEach(s => {
+            const Icon = ICON_COMPONENT_MAP[s.icon] || IconCheck;
+            map[s.name] = { Icon, color: s.color };
+          });
+          setSpecMeta(prev => ({ ...SPEC_META_FALLBACK, ...map }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (initialProducts.length === 0) fetchProducts();
-  }, [fetchProducts, initialProducts.length]);
-  useWebSocket(useCallback((msg) => { if (msg.type === 'productsChanged') fetchProducts(); }, [fetchProducts]));
+    fetchSpecialities();
+  }, [fetchProducts, fetchSpecialities, initialProducts.length]);
+
+  useWebSocket(useCallback((msg) => {
+    if (msg.type === 'productsChanged')    fetchProducts();
+    if (msg.type === 'specialitiesChanged') fetchSpecialities();
+  }, [fetchProducts, fetchSpecialities]));
 
   const handleCategoryChange = (cat) => { setActiveCategory(cat); setActiveSubcategory('All'); };
   const getCategories = (p) => p.categories?.length ? p.categories : (p.category ? [p.category] : []);
@@ -247,7 +293,7 @@ export default function ProductsPage({ initialProducts = [] }) {
           ) : error ? (
             <div className="prod-empty"><div className="prod-empty-icon"><IconStore /></div><h3>Couldn&apos;t load products</h3><p>Please check your connection and try refreshing.</p></div>
           ) : filtered.length > 0 ? (
-            paginated.map(product => <ProductCard key={product._id} product={product} openConsult={openConsult} />)
+            paginated.map(product => <ProductCard key={product._id} product={product} openConsult={openConsult} specMeta={specMeta} />)
           ) : (
             <div className="prod-empty"><div className="prod-empty-icon"><IconStore /></div><h3>No products here yet</h3><p>We&apos;re adding products to this section. Check back shortly.</p></div>
           )}

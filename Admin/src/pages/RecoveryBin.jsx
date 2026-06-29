@@ -10,7 +10,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 const TYPE_LABEL = { design: 'Design', product: 'Product', project: 'Project' };
 
 const RecoveryBin = ({ url }) => {
-    const [bin,          setBin]          = useState({ designs: [], products: [], projects: [], categories: [], projectCategories: [], projectTypes: [] });
+    const [bin,          setBin]          = useState({ designs: [], products: [], projects: [], categories: [], projectCategories: [], projectTypes: [], specialities: [] });
     const [loading,      setLoading]      = useState(true);
     const [activeTab,    setActiveTab]    = useState('designs');
     const [query,        setQuery]        = useState('');
@@ -84,9 +84,10 @@ const RecoveryBin = ({ url }) => {
         { key: 'categories',        label: `Design Categories (${bin.categories.length})`        },
         { key: 'projectCategories', label: `Project Categories (${(bin.projectCategories||[]).length})` },
         { key: 'projectTypes',      label: `Project Types (${(bin.projectTypes||[]).length})`    },
+        { key: 'specialities',      label: `Specialities (${(bin.specialities||[]).length})`     },
     ];
 
-    const total = bin.designs.length + bin.products.length + bin.projects.length + bin.categories.length + (bin.projectCategories||[]).length + (bin.projectTypes||[]).length;
+    const total = bin.designs.length + bin.products.length + bin.projects.length + bin.categories.length + (bin.projectCategories||[]).length + (bin.projectTypes||[]).length + (bin.specialities||[]).length;
     const items = (bin[activeTab] || [])
         .filter(item => !query || item.name.toLowerCase().includes(query.toLowerCase()));
 
@@ -145,10 +146,10 @@ const RecoveryBin = ({ url }) => {
                         <div className="admin-empty-state">
                             {activeTab === 'categories' ? 'No deleted categories — all clear.' : `Nothing in ${TYPE_LABEL[activeTab.slice(0, -1)]} bin — all clear.`}
                         </div>
-                    ) : (activeTab === 'categories' || activeTab === 'projectCategories' || activeTab === 'projectTypes') ? (
+                    ) : (activeTab === 'categories' || activeTab === 'projectCategories' || activeTab === 'projectTypes' || activeTab === 'specialities') ? (
                         items.map((item) => {
                             const count = item.designCount ?? item.projectCount ?? 0;
-                            const countLabel = activeTab === 'categories' ? `${count} design${count !== 1 ? 's' : ''}` : `${count} project${count !== 1 ? 's' : ''}`;
+                            const countLabel = activeTab === 'categories' ? `${count} design${count !== 1 ? 's' : ''}` : activeTab === 'specialities' ? 'used in products' : `${count} project${count !== 1 ? 's' : ''}`;
                             return (
                                 <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 190px', gap: '24px', padding: '16px 28px', alignItems: 'center' }}>
                                     <div style={{ minWidth: 0 }}>

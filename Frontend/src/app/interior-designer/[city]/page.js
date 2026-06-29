@@ -58,7 +58,7 @@ export default async function Page({ params }) {
     if (json.success) allProjects = json.data ?? [];
   } catch {}
 
-  const cityProjects = allProjects.filter(p => matchesCity(p.location, slug));
+  const cityProjects = allProjects.filter(p => p.cityPage === slug);
 
   // ── Schemas ──────────────────────────────────────────────────
   const breadcrumbSchema = {

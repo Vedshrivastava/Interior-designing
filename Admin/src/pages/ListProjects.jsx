@@ -7,6 +7,17 @@ import { toast } from 'react-toastify';
 import moment from 'moment';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
+const CITY_OPTIONS = [
+    { slug: 'satna',    label: 'Satna'    },
+    { slug: 'nagod',    label: 'Nagod'    },
+    { slug: 'indore',   label: 'Indore'   },
+    { slug: 'bhopal',   label: 'Bhopal'   },
+    { slug: 'jabalpur', label: 'Jabalpur' },
+    { slug: 'rewa',     label: 'Rewa'     },
+    { slug: 'mumbai',   label: 'Mumbai'   },
+    { slug: 'pune',     label: 'Pune'     },
+];
+
 const PROJECT_CATEGORIES = [
     'Full Home Interior', 'Kitchen', 'Bedroom', 'Living Room',
     'Bathroom', 'TV Unit', 'Kids Room', 'Commercial', 'Office',
@@ -21,6 +32,8 @@ const toDateInput = (dateStr) => {
 const ListProjects = ({ url, setIsLoading, isLoading }) => {
     const [list,          setList]          = useState([]);
     const [activeFilter,  setActiveFilter]  = useState('All');
+    const [cityMode,      setCityMode]      = useState(false);
+    const [cityFilter,    setCityFilter]    = useState('');
     const mobileBarRef = useRef(null);
     const token = localStorage.getItem('token');
 
@@ -48,6 +61,7 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
         _id: '', name: '', description: '', category: PROJECT_CATEGORIES[0],
         projectType: 'Residential', location: '', area: '', duration: '',
         completedAt: '', clientTestimonial: '', isFeatured: false, points: [],
+        showInCityPage: false, cityPage: '',
     };
     const [isEditOpen,  setIsEditOpen]  = useState(false);
     const [editData,    setEditData]    = useState(blankEdit);
@@ -104,6 +118,8 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
             clientTestimonial: item.clientTestimonial || '',
             isFeatured:        item.isFeatured        || false,
             points:            item.points            || [],
+            showInCityPage:    !!item.cityPage,
+            cityPage:          item.cityPage          || '',
         });
         setKeptImages(item.images || []);
         setEditImages([]);
@@ -140,6 +156,7 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
         fd.append('completedAt',       editData.completedAt);
         fd.append('clientTestimonial', editData.clientTestimonial);
         fd.append('isFeatured',        editData.isFeatured);
+        fd.append('cityPage',          editData.showInCityPage ? editData.cityPage : '');
         fd.append('points',            JSON.stringify(editData.points));
         fd.append('existingImages',    JSON.stringify(keptImages));
         editImages.forEach(img => fd.append('images', img));
@@ -158,8 +175,10 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
     };
 
     /* ── Filter ── */
-    const filters     = ['All', 'Residential', 'Commercial'];
-    const visibleList = activeFilter === 'All' ? list : list.filter(p => p.projectType === activeFilter);
+    const filters = ['All', 'Residential', 'Commercial'];
+    const visibleList = cityMode
+        ? list.filter(p => p.cityPage && (cityFilter === '' || p.cityPage === cityFilter))
+        : (activeFilter === 'All' ? list : list.filter(p => p.projectType === activeFilter));
 
     return (
         <div className="list add flex-col">
@@ -244,6 +263,29 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
                                 </div>
                             </div>
 
+                            <label className={`add-feature-card${editData.showInCityPage ? ' active' : ''}`} style={{ cursor: 'pointer' }}>
+                                <div className="add-feature-left">
+                                    <div className="add-feature-icon"><i className="fa fa-location-dot" /></div>
+                                    <div className="add-feature-text">
+                                        <span className="add-feature-title">Show on a City Page</span>
+                                        <span className="add-feature-desc">This project will also appear on the selected city's page.</span>
+                                    </div>
+                                </div>
+                                <input type="checkbox" name="showInCityPage" checked={editData.showInCityPage} onChange={onEditChange} style={{ display: 'none' }} />
+                                <span className="toggle-slider" />
+                            </label>
+                            {editData.showInCityPage && (
+                                <div className="flex-col" style={{ marginTop: '8px' }}>
+                                    <p>Select City</p>
+                                    <select name="cityPage" value={editData.cityPage} onChange={onEditChange}>
+                                        <option value="">— Pick a city —</option>
+                                        {CITY_OPTIONS.map(c => (
+                                            <option key={c.slug} value={c.slug}>{c.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
                             <div className="add-product-points flex-col">
                                 <p>Key Highlights</p>
                                 {editData.points.map((pt, i) => (
@@ -305,19 +347,47 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
                     <div className="admin-count-badge">{visibleList.length} projects</div>
                 </div>
 
-                {/* Filter pills */}
-                <div className="admin-category-scroll" ref={mobileBarRef}>
-                    {filters.map(f => (
-                        <button
-                            key={f}
-                            className={`admin-cat-pill${activeFilter === f ? ' active' : ''}`}
-                            onClick={() => setActiveFilter(f)}
+                {/* City mode toggle */}
+                <label className={`add-feature-card${cityMode ? ' active' : ''}`} style={{ marginBottom: '12px', cursor: 'pointer' }}>
+                    <div className="add-feature-left">
+                        <div className="add-feature-icon"><i className="fa fa-location-dot" /></div>
+                        <div className="add-feature-text">
+                            <span className="add-feature-title">City Projects</span>
+                            <span className="add-feature-desc">Show only projects assigned to a city page.</span>
+                        </div>
+                    </div>
+                    <input type="checkbox" checked={cityMode} onChange={e => { setCityMode(e.target.checked); setCityFilter(''); }} style={{ display: 'none' }} />
+                    <span className="toggle-slider" />
+                </label>
+
+                {/* Filter pills / city dropdown */}
+                {cityMode ? (
+                    <div className="admin-category-scroll" ref={mobileBarRef}>
+                        <select
+                            value={cityFilter}
+                            onChange={e => setCityFilter(e.target.value)}
+                            style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.82rem', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--gold-line)', background: 'var(--bg-ivory)', color: 'var(--text-mid)', cursor: 'pointer' }}
                         >
-                            {f}
-                            {f !== 'All' && ` (${list.filter(p => p.projectType === f).length})`}
-                        </button>
-                    ))}
-                </div>
+                            <option value="">All Cities</option>
+                            {CITY_OPTIONS.map(c => (
+                                <option key={c.slug} value={c.slug}>{c.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                ) : (
+                    <div className="admin-category-scroll" ref={mobileBarRef}>
+                        {filters.map(f => (
+                            <button
+                                key={f}
+                                className={`admin-cat-pill${activeFilter === f ? ' active' : ''}`}
+                                onClick={() => setActiveFilter(f)}
+                            >
+                                {f}
+                                {f !== 'All' && ` (${list.filter(p => p.projectType === f).length})`}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 {/* Table */}
                 <div className="list-table">
@@ -358,6 +428,12 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
                                     {item.completedAt && (
                                         <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.72rem', color: 'var(--text-lt)', margin: '2px 0 0' }}>
                                             {moment(item.completedAt).format('MMMM YYYY')}
+                                        </p>
+                                    )}
+                                    {item.cityPage && (
+                                        <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.7rem', color: 'var(--color-accent)', margin: '3px 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <i className="fa fa-location-dot" style={{ fontSize: '0.65rem' }} />
+                                            {CITY_OPTIONS.find(c => c.slug === item.cityPage)?.label || item.cityPage} city page
                                         </p>
                                     )}
                                 </div>

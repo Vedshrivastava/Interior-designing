@@ -5,6 +5,17 @@ import { toast } from 'react-toastify';
 import '../index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
+const CITY_OPTIONS = [
+    { slug: 'satna',    label: 'Satna, MP'    },
+    { slug: 'nagod',    label: 'Nagod, MP'    },
+    { slug: 'indore',   label: 'Indore, MP'   },
+    { slug: 'bhopal',   label: 'Bhopal, MP'   },
+    { slug: 'jabalpur', label: 'Jabalpur, MP' },
+    { slug: 'rewa',     label: 'Rewa, MP'     },
+    { slug: 'mumbai',   label: 'Mumbai, MH'   },
+    { slug: 'pune',     label: 'Pune, MH'     },
+];
+
 const PROJECT_CATEGORIES = [
     'Full Home Interior', 'Kitchen', 'Bedroom', 'Living Room',
     'Bathroom', 'TV Unit', 'Kids Room', 'Commercial', 'Office',
@@ -24,6 +35,8 @@ const AddProject = ({ url, setIsLoading, isLoading }) => {
         completedAt:       '',
         clientTestimonial: '',
         isFeatured:        false,
+        showInCityPage:    false,
+        cityPage:          '',
     });
     const [points,  setPoints]  = useState(['']);
     const [catOpen, setCatOpen] = useState(false);
@@ -66,6 +79,7 @@ const AddProject = ({ url, setIsLoading, isLoading }) => {
         fd.append('completedAt',       data.completedAt);
         fd.append('clientTestimonial', data.clientTestimonial);
         fd.append('isFeatured',        data.isFeatured);
+        fd.append('cityPage',          data.showInCityPage ? data.cityPage : '');
         fd.append('points',            JSON.stringify(points.filter(p => p.trim())));
         images.forEach(img => fd.append('images', img));
 
@@ -77,7 +91,8 @@ const AddProject = ({ url, setIsLoading, isLoading }) => {
                 setData({
                     name: '', description: '', category: PROJECT_CATEGORIES[0],
                     projectType: 'Residential', location: '', area: '',
-                    duration: '', completedAt: '', clientTestimonial: '', isFeatured: false,
+                    duration: '', completedAt: '', clientTestimonial: '',
+                    isFeatured: false, showInCityPage: false, cityPage: '',
                 });
                 setPoints(['']);
                 setImages([]);
@@ -230,6 +245,40 @@ const AddProject = ({ url, setIsLoading, isLoading }) => {
                     />
                     <span className="toggle-slider" />
                 </label>
+
+                {/* ── City Page ── */}
+                <label className={`add-feature-card${data.showInCityPage ? ' active' : ''}`}>
+                    <div className="add-feature-left">
+                        <div className="add-feature-icon">
+                            <i className="fa fa-location-dot" />
+                        </div>
+                        <div className="add-feature-text">
+                            <span className="add-feature-title">Show on a City Page</span>
+                            <span className="add-feature-desc">
+                                This project will also appear on the selected city's page.
+                            </span>
+                        </div>
+                    </div>
+                    <input
+                        type="checkbox"
+                        name="showInCityPage"
+                        checked={data.showInCityPage}
+                        onChange={onChangeHandler}
+                        style={{ display: 'none' }}
+                    />
+                    <span className="toggle-slider" />
+                </label>
+                {data.showInCityPage && (
+                    <div className="add-category flex-col">
+                        <h2>Select City</h2>
+                        <select name="cityPage" value={data.cityPage} onChange={onChangeHandler} required>
+                            <option value="">— Pick a city —</option>
+                            {CITY_OPTIONS.map(c => (
+                                <option key={c.slug} value={c.slug}>{c.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
 
                 {/* ── Points ── */}
                 <div className="add-product-points flex-col">

@@ -287,7 +287,7 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
           </span>
           <h2>
             {projects.length > 0
-              ? `Interior Design Projects in ${cityName}`
+              ? `Some of Our Recent Projects in ${cityName}`
               : `Coming to ${cityName}, ${stateName}`}
           </h2>
           <p>

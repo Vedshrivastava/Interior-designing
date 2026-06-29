@@ -40,6 +40,7 @@ const addProject = async (req, res) => {
             duration:          req.body.duration || '',
             completedAt:       req.body.completedAt || undefined,
             clientTestimonial: req.body.clientTestimonial || '',
+            cityPage:          req.body.cityPage          || '',
         });
 
         await project.save();
@@ -144,6 +145,7 @@ const updateProject = async (req, res) => {
             duration:          duration          || '',
             completedAt:       completedAt       || undefined,
             clientTestimonial: clientTestimonial || '',
+            cityPage:          req.body.cityPage  || '',
         };
 
         await Project.findByIdAndUpdate(_id, updateData, { new: true });

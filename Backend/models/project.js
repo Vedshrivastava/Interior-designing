@@ -16,6 +16,7 @@ const projectSchema = new mongoose.Schema({
     duration:    { type: String },                          // e.g. "6 weeks"
     completedAt: { type: Date },                            // handover date
     clientTestimonial: { type: String },
+    cityPage:          { type: String, default: '' },   // slug of city page, e.g. 'mumbai'
     deleted:           { type: Boolean, default: false },
     deletedAt:         { type: Date },
     deletedBy:         { type: String },

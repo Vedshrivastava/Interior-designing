@@ -2,20 +2,20 @@ import Speciality from '../models/speciality.js';
 import { broadcast } from '../middlewares/webSocket.js';
 
 const SEED = [
-    { name: 'Waterproof',         icon: 'droplet',   color: '#3b82f6', order: 1  },
-    { name: 'UV Protection',      icon: 'sun',        color: '#f59e0b', order: 2  },
-    { name: 'Fire Resistant',     icon: 'fire',       color: '#ef4444', order: 3  },
-    { name: 'Weather Resistant',  icon: 'cloud',      color: '#6366f1', order: 4  },
-    { name: 'Eco-Friendly',       icon: 'leaf',       color: '#22c55e', order: 5  },
-    { name: 'Low Maintenance',    icon: 'wrench',     color: '#8b5cf6', order: 6  },
-    { name: 'Anti-Fungal',        icon: 'shield',     color: '#14b8a6', order: 7  },
-    { name: 'Sound Insulation',   icon: 'volume-off', color: '#ec4899', order: 8  },
-    { name: 'Thermal Insulation', icon: 'thermometer',color: '#f97316', order: 9  },
-    { name: 'Scratch Resistant',  icon: 'shield',     color: '#64748b', order: 10 },
-    { name: 'Fade Resistant',     icon: 'sun',        color: '#a78bfa', order: 11 },
-    { name: 'Customizable',       icon: 'pen',        color: '#c9a87c', order: 12 },
-    { name: 'Non-Toxic',          icon: 'leaf',       color: '#10b981', order: 13 },
-    { name: 'Rust Resistant',     icon: 'shield',     color: '#78716c', order: 14 },
+    { name: 'Waterproof',         icon: 'mdi:water',                     color: '#3b82f6', order: 1  },
+    { name: 'UV Protection',      icon: 'mdi:weather-sunny',             color: '#f59e0b', order: 2  },
+    { name: 'Fire Resistant',     icon: 'mdi:fire',                      color: '#ef4444', order: 3  },
+    { name: 'Weather Resistant',  icon: 'mdi:weather-cloudy',            color: '#6366f1', order: 4  },
+    { name: 'Eco-Friendly',       icon: 'mdi:leaf',                      color: '#22c55e', order: 5  },
+    { name: 'Low Maintenance',    icon: 'mdi:wrench',                    color: '#8b5cf6', order: 6  },
+    { name: 'Anti-Fungal',        icon: 'mdi:shield-check',              color: '#14b8a6', order: 7  },
+    { name: 'Sound Insulation',   icon: 'mdi:volume-off',                color: '#ec4899', order: 8  },
+    { name: 'Thermal Insulation', icon: 'mdi:thermometer',               color: '#f97316', order: 9  },
+    { name: 'Scratch Resistant',  icon: 'mdi:shield-alert',              color: '#64748b', order: 10 },
+    { name: 'Fade Resistant',     icon: 'mdi:sun-wireless',              color: '#a78bfa', order: 11 },
+    { name: 'Customizable',       icon: 'mdi:pencil',                    color: '#c9a87c', order: 12 },
+    { name: 'Non-Toxic',          icon: 'mdi:leaf-circle',               color: '#10b981', order: 13 },
+    { name: 'Rust Resistant',     icon: 'mdi:shield-half-full',          color: '#78716c', order: 14 },
 ];
 
 const listSpecialities = async (req, res) => {

@@ -221,7 +221,18 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK }) =>
           {specialities.length > 0 && (
             <div className="prod-modal-section"><h4 className="prod-modal-section-label">Specialities</h4>
               <div className="prod-spec-badges">
-                {specialities.map((spec, i) => { const meta = specMeta[spec] || { Icon: IconCheck, color: '#c9a87c' }; return <span key={i} className="prod-spec-badge" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}><meta.Icon />{spec}</span>; })}
+                {specialities.map((spec, i) => {
+                  const meta = specMeta[spec] || { Icon: IconCheck, color: '#c9a87c', iconUrl: null };
+                  return (
+                    <span key={i} className="prod-spec-badge" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
+                      {meta.iconUrl
+                        ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} />
+                        : <meta.Icon />
+                      }
+                      {spec}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -265,7 +276,12 @@ export default function ProductsPage({ initialProducts = [] }) {
   const [currentPage,      setCurrentPage]      = useState(1);
   const ITEMS_PER_PAGE = 12;
 
-  const [specMeta, setSpecMeta] = useState(SPEC_META_FALLBACK);
+  // specMeta: name → { iconUrl, color } — built from DB, falls back to hardcoded
+  const [specMeta, setSpecMeta] = useState(() => {
+    const m = {};
+    Object.entries(SPEC_META_FALLBACK).forEach(([name, { Icon, color }]) => { m[name] = { Icon, color, iconUrl: null }; });
+    return m;
+  });
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -281,10 +297,14 @@ export default function ProductsPage({ initialProducts = [] }) {
         if (d.success && d.data?.length > 0) {
           const map = {};
           d.data.forEach(s => {
-            const Icon = ICON_COMPONENT_MAP[s.icon] || IconCheck;
-            map[s.name] = { Icon, color: s.color };
+            const isIconify = s.icon && s.icon.includes(':');
+            const iconUrl = isIconify
+              ? `https://api.iconify.design/${s.icon.replace(':', '/')}.svg?color=${encodeURIComponent(s.color)}`
+              : null;
+            const fallback = SPEC_META_FALLBACK[s.name];
+            map[s.name] = { Icon: fallback?.Icon || IconCheck, color: s.color, iconUrl };
           });
-          setSpecMeta(prev => ({ ...SPEC_META_FALLBACK, ...map }));
+          setSpecMeta(prev => ({ ...prev, ...map }));
         }
       })
       .catch(() => {});

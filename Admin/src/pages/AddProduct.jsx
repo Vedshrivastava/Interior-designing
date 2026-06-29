@@ -20,149 +20,16 @@ const FALLBACK_SPECIALITIES = [
     'Customizable', 'Non-Toxic', 'Rust Resistant',
 ];
 
-// Available icons for the picker
-const ICON_POOL = [
-  // Water / Moisture
-  { key:'droplet',       fa:'fa-droplet',              label:'Water',        kw:['water','wet','moisture','waterproof','liquid','damp','humid','flood','rain','drip'] },
-  { key:'umbrella',      fa:'fa-umbrella',             label:'Umbrella',     kw:['rain','water','wet','weather','protection','resistant'] },
-  { key:'tint-slash',    fa:'fa-droplet-slash',        label:'Dry',          kw:['dry','moisture','waterproof','resistant','anti'] },
-  // Fire / Heat
-  { key:'fire',          fa:'fa-fire',                 label:'Fire',         kw:['fire','flame','heat','burn','resistant','hot','thermal','flammable'] },
-  { key:'fire-extinguisher',fa:'fa-fire-extinguisher', label:'Extinguish',   kw:['fire','safety','resistant','extinguish','protect'] },
-  // Sun / UV / Light
-  { key:'sun',           fa:'fa-sun',                  label:'Sun/UV',       kw:['sun','uv','ultraviolet','light','fade','resistant','solar','bright','outdoor'] },
-  { key:'radiation',     fa:'fa-radiation',            label:'Radiation',    kw:['uv','radiation','resist','nuclear','solar'] },
-  // Temperature
-  { key:'thermometer',   fa:'fa-temperature-half',     label:'Temp',         kw:['temperature','thermal','heat','cold','insulation','warm','cool','freeze'] },
-  { key:'snowflake',     fa:'fa-snowflake',            label:'Cold',         kw:['cold','freeze','frost','ice','thermal','insulation','temperature','cool'] },
-  // Weather / Cloud
-  { key:'cloud',         fa:'fa-cloud',                label:'Cloud',        kw:['weather','cloud','rain','outdoor','resistant','climate'] },
-  { key:'wind',          fa:'fa-wind',                 label:'Wind',         kw:['wind','weather','outdoor','resistant','air','ventilation'] },
-  // Eco / Nature
-  { key:'leaf',          fa:'fa-leaf',                 label:'Eco',          kw:['eco','green','nature','environment','sustainable','organic','natural','friendly','plant','bio'] },
-  { key:'seedling',      fa:'fa-seedling',             label:'Seedling',     kw:['eco','green','grow','plant','natural','sustainable','organic'] },
-  { key:'recycle',       fa:'fa-recycle',              label:'Recycle',      kw:['recycle','eco','sustainable','green','reuse','environment','friendly'] },
-  { key:'globe',         fa:'fa-globe',                label:'Global',       kw:['eco','global','environment','sustainable','world','green'] },
-  // Shield / Safety / Protection
-  { key:'shield',        fa:'fa-shield',               label:'Shield',       kw:['protect','shield','safety','secure','resistant','anti','guard','defense','proof'] },
-  { key:'shield-halved', fa:'fa-shield-halved',        label:'Protected',    kw:['protect','safety','resistant','anti','guard','secure','proof'] },
-  { key:'lock',          fa:'fa-lock',                 label:'Lock',         kw:['secure','lock','safety','tamper','anti','proof','resistant'] },
-  { key:'user-shield',   fa:'fa-user-shield',          label:'User Safety',  kw:['safety','protect','user','secure','guard'] },
-  { key:'hard-hat',      fa:'fa-helmet-safety',        label:'Safety',       kw:['safety','helmet','protection','industrial','construction'] },
-  // Sound / Noise
-  { key:'volume-off',    fa:'fa-volume-xmark',         label:'Silent',       kw:['sound','noise','acoustic','silent','insulation','mute','quiet','vibration'] },
-  { key:'ear-deaf',      fa:'fa-ear-deaf',             label:'Soundproof',   kw:['sound','noise','acoustic','deaf','insulation','quiet','silent'] },
-  // Anti-fungal / Bio
-  { key:'virus-slash',   fa:'fa-virus-slash',          label:'Anti-viral',   kw:['anti','fungal','viral','bacteria','germ','microbe','bio','mold','mildew'] },
-  { key:'bacteria',      fa:'fa-bacteria',             label:'Bacteria',     kw:['bacteria','fungal','anti','germ','microbe','bio','mold'] },
-  { key:'biohazard',     fa:'fa-biohazard',            label:'Biohazard',    kw:['bio','toxic','hazard','chemical','anti','fungi'] },
-  // Scratch / Durability
-  { key:'hammer',        fa:'fa-hammer',               label:'Durable',      kw:['scratch','durable','tough','strong','resistant','hard','solid','impact'] },
-  { key:'cubes',         fa:'fa-cubes',                label:'Solid',        kw:['solid','durable','strong','material','robust','tough','impact'] },
-  { key:'layer-group',   fa:'fa-layer-group',          label:'Layers',       kw:['layer','durable','multi','composite','thick','solid','laminate'] },
-  // Rust / Corrosion
-  { key:'rust',          fa:'fa-circle-exclamation',   label:'Anti-Rust',    kw:['rust','corrosion','oxidation','metal','anti','resistant','steel'] },
-  { key:'wrench',        fa:'fa-screwdriver-wrench',   label:'Maintenance',  kw:['maintenance','repair','service','low','easy','wrench','fix'] },
-  { key:'gear',          fa:'fa-gear',                 label:'Settings',     kw:['maintenance','service','mechanism','gear','function','low'] },
-  { key:'gears',         fa:'fa-gears',                label:'Gears',        kw:['maintenance','system','mechanism','service','function'] },
-  // Customizable / Design
-  { key:'pen',           fa:'fa-pen',                  label:'Custom',       kw:['custom','design','flexible','adapt','pen','personalise','change'] },
-  { key:'wand',          fa:'fa-wand-magic-sparkles',  label:'Magic',        kw:['custom','design','unique','special','magic','personalise'] },
-  { key:'palette',       fa:'fa-palette',              label:'Colour',       kw:['colour','color','custom','design','paint','aesthetic','decor'] },
-  { key:'paint-roller',  fa:'fa-paint-roller',         label:'Paintable',    kw:['paint','colour','custom','finish','coat','surface'] },
-  { key:'brush',         fa:'fa-brush',                label:'Brush',        kw:['paint','finish','coat','custom','colour','surface'] },
-  // Non-toxic / Chemical
-  { key:'flask',         fa:'fa-flask',                label:'Chemical',     kw:['chemical','non-toxic','safe','material','lab','compound','solvent'] },
-  { key:'vial',          fa:'fa-vial-circle-check',    label:'Safe',         kw:['non-toxic','safe','chemical','test','approved','lab'] },
-  { key:'atom',          fa:'fa-atom',                 label:'Atomic',       kw:['chemical','material','compound','nano','molecular','anti'] },
-  // Lightweight / Weight
-  { key:'feather',       fa:'fa-feather',              label:'Light',        kw:['lightweight','light','weight','easy','portable','thin','slim'] },
-  { key:'weight',        fa:'fa-weight-hanging',       label:'Heavy',        kw:['heavy','weight','strong','dense','solid','durable'] },
-  // Electric / Static
-  { key:'bolt',          fa:'fa-bolt',                 label:'Electric',     kw:['electric','static','anti','lightning','charge','power','energy','current'] },
-  { key:'plug',          fa:'fa-plug',                 label:'Plug',         kw:['electric','power','plug','current','static','anti','charge'] },
-  { key:'microchip',     fa:'fa-microchip',            label:'Tech',         kw:['tech','electronic','static','chip','smart','digital','anti'] },
-  // General Positive / Quality
-  { key:'check',         fa:'fa-check',                label:'Check',        kw:['check','approve','certified','quality','good','pass','yes','standard'] },
-  { key:'circle-check',  fa:'fa-circle-check',         label:'Certified',    kw:['certified','approved','quality','standard','check','safe','tested'] },
-  { key:'medal',         fa:'fa-medal',                label:'Medal',        kw:['quality','award','premium','best','top','medal','certified','standard'] },
-  { key:'certificate',   fa:'fa-certificate',          label:'Certified',    kw:['certified','approved','standard','quality','official','tested'] },
-  { key:'star',          fa:'fa-star',                 label:'Star',         kw:['quality','premium','best','top','star','excellent','superior'] },
-  { key:'gem',           fa:'fa-gem',                  label:'Premium',      kw:['premium','luxury','gem','quality','superior','finest','exclusive'] },
-  { key:'crown',         fa:'fa-crown',                label:'Top',          kw:['top','premium','best','quality','crown','luxury','superior'] },
-  { key:'trophy',        fa:'fa-trophy',               label:'Trophy',       kw:['award','best','quality','top','winner','premium','excellence'] },
-  // Eye / Visibility
-  { key:'eye',           fa:'fa-eye',                  label:'Visible',      kw:['visible','eye','see','transparent','clear','view','anti-fade'] },
-  { key:'eye-slash',     fa:'fa-eye-slash',            label:'Private',      kw:['anti','privacy','opaque','hide','block','uv','tint'] },
-  // Compress / Expand / Flexibility
-  { key:'compress',      fa:'fa-compress',             label:'Compact',      kw:['compact','flexible','compress','fold','small','fit'] },
-  { key:'expand',        fa:'fa-expand',               label:'Expandable',   kw:['expand','flexible','large','adaptable','stretch','size'] },
-  { key:'arrows-rotate', fa:'fa-arrows-rotate',        label:'Flexible',     kw:['flexible','rotation','reversible','custom','change','adapt'] },
-  // Heat / Thermal Specific
-  { key:'fire-flame',    fa:'fa-fire-flame-curved',    label:'Flame',        kw:['flame','fire','heat','thermal','resistant','hot','burn'] },
-  { key:'temperature-arrow-up', fa:'fa-temperature-arrow-up', label:'Heating', kw:['heat','thermal','temperature','warm','insulation','efficient'] },
-  { key:'temperature-arrow-down', fa:'fa-temperature-arrow-down', label:'Cooling', kw:['cool','cold','thermal','temperature','insulation','freeze'] },
-  // Magnetic
-  { key:'magnet',        fa:'fa-magnet',               label:'Magnet',       kw:['magnetic','anti','attract','metal','steel','force'] },
-  // Time / Long-lasting
-  { key:'clock',         fa:'fa-clock',                label:'Long-lasting', kw:['long','lasting','durable','time','permanent','lifetime','warranty'] },
-  { key:'hourglass',     fa:'fa-hourglass-half',       label:'Durable',      kw:['time','durable','lasting','long','permanent','lifespan'] },
-  { key:'infinity',      fa:'fa-infinity',             label:'Infinite',     kw:['infinite','long','lasting','permanent','eternal','maintenance'] },
-  // Light / Illumination
-  { key:'lightbulb',     fa:'fa-lightbulb',            label:'Light',        kw:['light','bright','energy','efficient','illumination','luminous','glow'] },
-  { key:'sun-plant-wilt',fa:'fa-sun-plant-wilt',       label:'UV Proof',     kw:['uv','sun','fade','resistant','outdoor','solar','proof'] },
-  // Surfaces / Materials
-  { key:'cube',          fa:'fa-cube',                 label:'Block',        kw:['solid','block','cube','material','durable','structural'] },
-  { key:'ruler',         fa:'fa-ruler',                label:'Precision',    kw:['precision','measure','accurate','fit','size','custom','cut'] },
-  { key:'ruler-combined',fa:'fa-ruler-combined',       label:'Measure',      kw:['measure','precision','accurate','design','plan','size'] },
-  // Odour / Air
-  { key:'wind-free',     fa:'fa-wind',                 label:'Ventilation',  kw:['air','ventilation','breathable','odour','smell','fresh','circulation'] },
-  { key:'mask',          fa:'fa-mask',                 label:'Anti-odour',   kw:['odour','smell','anti','toxic','mask','fume','chemical'] },
-  // People / Friendly
-  { key:'hand',          fa:'fa-hand',                 label:'Hand-safe',    kw:['safe','touch','friendly','non-toxic','handle','easy'] },
-  { key:'hand-holding-heart', fa:'fa-hand-holding-heart', label:'Care',      kw:['care','safe','friendly','health','eco','non-toxic'] },
-  { key:'heart',         fa:'fa-heart',                label:'Health',       kw:['health','safe','friendly','care','non-toxic','organic'] },
-  { key:'person-walking',fa:'fa-person-walking',       label:'Accessible',   kw:['accessible','slip','anti','safe','walk','easy','mobility'] },
-  // Slip / Grip
-  { key:'shoe-prints',   fa:'fa-shoe-prints',          label:'Anti-Slip',    kw:['slip','anti','grip','floor','traction','safe','walk','skid'] },
-  // Brightness / Reflectivity
-  { key:'moon',          fa:'fa-moon',                 label:'Anti-Glare',   kw:['glare','anti','reflect','light','dark','night','matte','dull'] },
-  { key:'mirror',        fa:'fa-mirror',               label:'Reflective',   kw:['reflect','mirror','surface','glare','shine','polish'] },
-  // Structural
-  { key:'building',      fa:'fa-building',             label:'Structural',   kw:['structural','building','architecture','construction','wall','facade'] },
-  { key:'archway',       fa:'fa-archway',              label:'Arch',         kw:['arch','structural','wall','facade','design','architecture'] },
-  // Pest
-  { key:'bug-slash',     fa:'fa-bug-slash',            label:'Anti-Pest',    kw:['pest','anti','bug','insect','rodent','termite','proof'] },
-  { key:'bug',           fa:'fa-bug',                  label:'Bug',          kw:['pest','bug','anti','insect','termite','resistant'] },
-  // Allergy / Hypo
-  { key:'face-grin',     fa:'fa-face-smile',           label:'Hypo-allergenic', kw:['allergy','hypo','safe','sensitive','non-toxic','friendly','allergic'] },
-  // Industry
-  { key:'industry',      fa:'fa-industry',             label:'Industrial',   kw:['industrial','heavy','factory','commercial','durable','strong'] },
-  { key:'truck',         fa:'fa-truck',                label:'Heavy Duty',   kw:['heavy','duty','industrial','durable','strong','commercial','robust'] },
-  // Flex / Bend
-  { key:'arrows-alt',    fa:'fa-up-down-left-right',   label:'Flexible',     kw:['flexible','bend','adapt','move','direction','custom','versatile'] },
-  // Award / Approved
-  { key:'check-double',  fa:'fa-check-double',         label:'Double Check', kw:['approved','certified','double','quality','standard','tested','checked'] },
-  { key:'clipboard-check', fa:'fa-clipboard-check',    label:'Tested',       kw:['tested','approved','quality','standard','certified','checked','passed'] },
-  // Tag / Label
-  { key:'tag',           fa:'fa-tag',                  label:'Tag',          kw:['tag','label','brand','mark','certified','rated','grade'] },
-  // Money / Value
-  { key:'money-bill',    fa:'fa-money-bill',           label:'Value',        kw:['value','cost','price','affordable','economic','budget','cheap'] },
-  // Repair / Fix
-  { key:'rotate',        fa:'fa-rotate',               label:'Reversible',   kw:['reversible','repair','restore','fix','undo','reset','change'] },
-  // Dimension
-  { key:'maximize',      fa:'fa-maximize',             label:'Wide',         kw:['wide','large','expand','size','dimension','big','spacious'] },
-];
-
-const COLOR_OPTIONS = [
-    '#3b82f6', '#f59e0b', '#ef4444', '#6366f1', '#22c55e',
-    '#8b5cf6', '#14b8a6', '#ec4899', '#f97316', '#64748b',
-    '#a78bfa', '#c9a87c', '#10b981', '#78716c', '#0ea5e9',
-    '#dc2626', '#16a34a', '#9333ea', '#0891b2', '#d97706',
-];
-
-// Backwards-compat alias — still used in a few places
-const ICON_OPTIONS = ICON_POOL;
+// Iconify helpers
+const iconifyImgUrl = (iconId) => {
+  if (!iconId || !iconId.includes(':')) return null;
+  const [prefix, name] = iconId.split(':');
+  return `https://api.iconify.design/${prefix}/${name}.svg`;
+};
+const iconifyColorUrl = (iconId, color) => {
+  const base = iconifyImgUrl(iconId);
+  return base ? `${base}?color=${encodeURIComponent(color)}` : null;
+};
 
 const APPLICATIONS = [
     'Residential', 'Commercial', 'Hospitality', 'Office',
@@ -192,8 +59,11 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
     const [specialityObjects, setSpecialityObjects] = useState([]);
     const [addingSpec,   setAddingSpec]   = useState(false);
     const [newSpecName,  setNewSpecName]  = useState('');
-    const [newSpecIcon,  setNewSpecIcon]  = useState('check');
+    const [newSpecIcon,  setNewSpecIcon]  = useState('');
     const [iconSearch,   setIconSearch]   = useState('');
+    const [iconResults,  setIconResults]  = useState([]);
+    const [iconLoading,  setIconLoading]  = useState(false);
+    const iconDebounceRef = useRef(null);
     const [newSpecColor, setNewSpecColor] = useState('#c9a87c');
     const [specSaving,   setSpecSaving]   = useState(false);
     const [confirmSpec,  setConfirmSpec]  = useState(null);
@@ -221,6 +91,32 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
         } catch { setSpecialityObjects(FALLBACK_SPECIALITIES.map((n, i) => ({ _id: n, name: n, icon: 'check', color: '#c9a87c', order: i }))); }
     };
     useEffect(() => { fetchSpecialities(); }, []);
+
+    const searchIcons = async (query) => {
+        if (!query.trim()) { setIconResults([]); return; }
+        setIconLoading(true);
+        try {
+            const res = await fetch(`https://api.iconify.design/search?query=${encodeURIComponent(query)}&limit=60`);
+            const data = await res.json();
+            setIconResults(data.icons || []);
+        } catch { setIconResults([]); }
+        finally { setIconLoading(false); }
+    };
+
+    // Debounce icon search
+    useEffect(() => {
+        clearTimeout(iconDebounceRef.current);
+        iconDebounceRef.current = setTimeout(() => searchIcons(iconSearch), 350);
+        return () => clearTimeout(iconDebounceRef.current);
+    }, [iconSearch]);
+
+    // Auto-search when name changes and form is open
+    useEffect(() => {
+        if (addingSpec && newSpecName.trim()) {
+            const firstWord = newSpecName.trim().split(/\s+/)[0];
+            setIconSearch(firstWord);
+        }
+    }, [newSpecName, addingSpec]);
 
     const saveNewSpec = async () => {
         if (!newSpecName.trim()) { toast.error('Name is required'); return; }
@@ -421,15 +317,15 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
                     <h2>Specialities</h2>
                     <div className="add-multi-grid">
                         {specialityObjects.map(spec => {
-                            const icon = ICON_OPTIONS.find(i => i.key === spec.icon);
                             const selected = data.specialities.includes(spec.name);
+                            const iconUrl = iconifyImgUrl(spec.icon);
                             return (
                                 <div key={spec._id} className="spec-chip-wrap">
                                     <button type="button"
                                         className={`add-multi-chip spec-chip${selected ? ' active' : ''}`}
                                         style={selected ? { background: `${spec.color}22`, borderColor: `${spec.color}88`, color: spec.color } : {}}
                                         onClick={() => toggleChip('specialities', spec.name)}>
-                                        {icon && <i className={`fa-solid ${icon.fa}`} style={{ color: selected ? spec.color : undefined }} />}
+                                        {iconUrl && <img src={selected ? `${iconUrl}?color=${encodeURIComponent(spec.color)}` : iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} />}
                                         {spec.name}
                                     </button>
                                     <button type="button" className="spec-trash-btn"
@@ -444,7 +340,7 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
 
                     {/* Add new speciality */}
                     {!addingSpec ? (
-                        <button type="button" className="add-point-btn" style={{ marginTop: '10px' }} onClick={() => { setAddingSpec(true); setIconSearch(''); }}>
+                        <button type="button" className="add-point-btn" style={{ marginTop: '10px' }} onClick={() => { setAddingSpec(true); setNewSpecIcon(''); setIconSearch(''); setIconResults([]); }}>
                             <i className="fa fa-plus" /> Add new speciality
                         </button>
                     ) : (
@@ -456,66 +352,49 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
                             />
                             <p className="spec-form-label">Pick an icon</p>
 
-                            {/* Search bar */}
+                            {/* Iconify live search */}
                             <div className="spec-icon-search-wrap">
                                 <i className="fa-solid fa-magnifying-glass" />
                                 <input
                                     type="text"
-                                    placeholder="Search icons… e.g. water, fire, eco"
+                                    placeholder="Search 200,000+ icons… e.g. water, fire, eco, shield"
                                     value={iconSearch}
                                     onChange={e => setIconSearch(e.target.value)}
                                 />
-                                {iconSearch && <button type="button" className="spec-icon-search-clear" onClick={() => setIconSearch('')}>×</button>}
+                                {iconLoading && <i className="fa-solid fa-circle-notch fa-spin" style={{ color: 'var(--text-lt)', fontSize: '0.75rem', flexShrink: 0 }} />}
+                                {iconSearch && !iconLoading && <button type="button" className="spec-icon-search-clear" onClick={() => { setIconSearch(''); setIconResults([]); }}>×</button>}
                             </div>
 
-                            {/* Smart suggestions based on name */}
-                            {(() => {
-                                const nameWords = newSpecName.toLowerCase().split(/\s+|-/).filter(Boolean);
-                                const suggestions = nameWords.length > 0
-                                    ? ICON_POOL
-                                        .map(opt => ({ ...opt, score: opt.kw.reduce((s, kw) => s + (nameWords.some(w => kw.includes(w) || w.includes(kw)) ? 1 : 0), 0) }))
-                                        .filter(opt => opt.score > 0)
-                                        .sort((a, b) => b.score - a.score)
-                                        .slice(0, 8)
-                                    : [];
-                                return suggestions.length > 0 && !iconSearch ? (
-                                    <div>
-                                        <p className="spec-form-label" style={{ color: 'var(--gold)', marginBottom: '6px' }}>
-                                            <i className="fa-solid fa-wand-magic-sparkles" style={{ marginRight: '5px' }} />
-                                            Suggested for "{newSpecName}"
-                                        </p>
-                                        <div className="spec-icon-grid spec-icon-grid--suggestions">
-                                            {suggestions.map(opt => (
-                                                <button key={opt.key} type="button"
-                                                    className={`spec-icon-btn${newSpecIcon === opt.key ? ' active' : ''}`}
-                                                    title={opt.label}
-                                                    onClick={() => setNewSpecIcon(opt.key)}>
-                                                    <i className={`fa-solid ${opt.fa}`} />
-                                                    <span>{opt.label}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ) : null;
-                            })()}
-
-                            {/* Full icon grid (filtered by search) */}
+                            {/* Results grid */}
                             <div className="spec-icon-grid-wrap">
-                                <div className="spec-icon-grid spec-icon-grid--full">
-                                    {ICON_POOL
-                                        .filter(opt => !iconSearch || opt.label.toLowerCase().includes(iconSearch.toLowerCase()) || opt.kw.some(k => k.includes(iconSearch.toLowerCase())))
-                                        .map(opt => (
-                                            <button key={opt.key} type="button"
-                                                className={`spec-icon-btn${newSpecIcon === opt.key ? ' active' : ''}`}
-                                                title={opt.label}
-                                                onClick={() => setNewSpecIcon(opt.key)}>
-                                                <i className={`fa-solid ${opt.fa}`} />
-                                                <span>{opt.label}</span>
-                                            </button>
-                                        ))
-                                    }
-                                </div>
+                                {iconResults.length === 0 && !iconLoading && iconSearch && (
+                                    <p style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.78rem', color: 'var(--text-lt)', textAlign: 'center', padding: '16px 0', margin: 0 }}>No icons found — try a different word</p>
+                                )}
+                                {iconResults.length === 0 && !iconLoading && !iconSearch && (
+                                    <p style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.78rem', color: 'var(--text-lt)', textAlign: 'center', padding: '16px 0', margin: 0 }}>
+                                        <i className="fa-solid fa-wand-magic-sparkles" style={{ marginRight: '6px', color: 'var(--gold)' }} />
+                                        Type the speciality name — icons will auto-appear
+                                    </p>
+                                )}
+                                {iconResults.length > 0 && (
+                                    <div className="spec-icon-grid spec-icon-grid--full">
+                                        {iconResults.map(iconId => {
+                                            const url = iconifyImgUrl(iconId);
+                                            const shortName = iconId.split(':')[1] || iconId;
+                                            return (
+                                                <button key={iconId} type="button"
+                                                    className={`spec-icon-btn${newSpecIcon === iconId ? ' active' : ''}`}
+                                                    title={iconId}
+                                                    onClick={() => setNewSpecIcon(iconId)}>
+                                                    <img src={newSpecIcon === iconId ? `${url}?color=%23fff` : url} width={20} height={20} alt={shortName} />
+                                                    <span>{shortName.slice(0, 8)}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
+
                             <p className="spec-form-label">Pick a colour</p>
                             <div className="spec-color-row">
                                 {COLOR_OPTIONS.map(c => (
@@ -525,16 +404,22 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
                                         onClick={() => setNewSpecColor(c)} />
                                 ))}
                             </div>
-                            {/* Preview */}
+
+                            {/* Live preview */}
                             <div className="spec-preview">
-                                Preview: <span className="spec-preview-badge" style={{ background: `${newSpecColor}22`, borderColor: `${newSpecColor}88`, color: newSpecColor }}>
-                                    {ICON_OPTIONS.find(i => i.key === newSpecIcon) && <i className={`fa-solid ${ICON_OPTIONS.find(i => i.key === newSpecIcon).fa}`} />}
+                                Preview:{' '}
+                                <span className="spec-preview-badge" style={{ background: `${newSpecColor}22`, borderColor: `${newSpecColor}88`, color: newSpecColor }}>
+                                    {newSpecIcon && iconifyImgUrl(newSpecIcon) && (
+                                        <img src={`${iconifyImgUrl(newSpecIcon)}?color=${encodeURIComponent(newSpecColor)}`} width={13} height={13} alt="" />
+                                    )}
                                     {newSpecName || 'Name'}
                                 </span>
+                                {!newSpecIcon && <span style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.72rem', color: 'var(--text-lt)', marginLeft: '8px' }}>← pick an icon above</span>}
                             </div>
+
                             <div className="add-cat-new-actions" style={{ marginTop: '10px' }}>
                                 <button type="button" className="add-cat-save-btn" onClick={saveNewSpec} disabled={specSaving}>{specSaving ? 'Saving…' : 'Save'}</button>
-                                <button type="button" className="add-cat-cancel-btn" onClick={() => { setAddingSpec(false); setNewSpecName(''); setNewSpecIcon('check'); setNewSpecColor('#c9a87c'); setIconSearch(''); }}>Cancel</button>
+                                <button type="button" className="add-cat-cancel-btn" onClick={() => { setAddingSpec(false); setNewSpecName(''); setNewSpecIcon(''); setNewSpecColor('#c9a87c'); setIconSearch(''); setIconResults([]); }}>Cancel</button>
                             </div>
                         </div>
                     )}

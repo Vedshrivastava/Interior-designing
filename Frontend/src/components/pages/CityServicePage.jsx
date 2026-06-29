@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
 import { useModal } from '@/context/ModalContext';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { cloudinaryOptimize } from '@/lib/cloudinary';
+import ProjectCard from '@/components/ProjectCard';
 import bgimg from '@/assets/home-img.png';
 import {
   IconCalendar, IconArrowRight, IconBuilding, IconHouseChimney,
@@ -64,28 +64,6 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
     return () => window.removeEventListener('keydown', h);
   }, [activeAdv]);
 
-  /* ── Lightbox ───────────────────────────────────────────────── */
-  const [lb, setLb] = useState({ open: false, images: [], idx: 0, name: '' });
-
-  const openLb = useCallback((images, idx, name) => {
-    setLb({ open: true, images, idx, name });
-    document.body.style.overflow = 'hidden';
-  }, []);
-  const closeLb = useCallback(() => {
-    setLb(p => ({ ...p, open: false }));
-    document.body.style.overflow = '';
-  }, []);
-
-  useEffect(() => {
-    if (!lb.open) return;
-    const h = (e) => {
-      if (e.key === 'Escape') closeLb();
-      if (e.key === 'ArrowLeft')  setLb(p => ({ ...p, idx: (p.idx - 1 + p.images.length) % p.images.length }));
-      if (e.key === 'ArrowRight') setLb(p => ({ ...p, idx: (p.idx + 1) % p.images.length }));
-    };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [lb.open, closeLb]);
 
   /* ── Data ───────────────────────────────────────────────────── */
   const advantages = [
@@ -214,37 +192,6 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
         </div>
       )}
 
-      {/* ── Lightbox ─────────────────────────────────────────── */}
-      {lb.open && (
-        <div className="cs-lb-overlay" onClick={closeLb}>
-          <button className="lb-close" onClick={closeLb} aria-label="Close">✕</button>
-          {lb.images.length > 1 && (
-            <button className="lb-arrow lb-arrow--prev" aria-label="Previous"
-              onClick={e => { e.stopPropagation(); setLb(p => ({ ...p, idx: (p.idx - 1 + p.images.length) % p.images.length })); }}>
-              &#8249;
-            </button>
-          )}
-          <div className="lb-img-wrap" onClick={e => e.stopPropagation()}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={cloudinaryOptimize(lb.images[lb.idx])}
-              alt={`${lb.name} — interior design project in ${cityName} by Shrivastavas Elevate`}
-              className="lb-img"
-            />
-            <div className="lb-caption">
-              <span className="lb-name">{lb.name}</span>
-              {lb.images.length > 1 && <span className="lb-counter">{lb.idx + 1} / {lb.images.length}</span>}
-            </div>
-          </div>
-          {lb.images.length > 1 && (
-            <button className="lb-arrow lb-arrow--next" aria-label="Next"
-              onClick={e => { e.stopPropagation(); setLb(p => ({ ...p, idx: (p.idx + 1) % p.images.length })); }}>
-              &#8250;
-            </button>
-          )}
-        </div>
-      )}
-
       {/* ══════════════════════════════
           HERO — homepage-identical design
       ══════════════════════════════ */}
@@ -319,43 +266,9 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
         </div>
 
         {projects.length > 0 ? (
-          <div className="cs-proj-grid">
-            {projects.map((p, i) => (
-              <div
-                key={p._id}
-                className="cs-proj-card cs-sr"
-                ref={sr}
-                style={{ '--cs-delay': `${i * 70}ms` }}
-                onClick={() => p.images?.length > 0 && openLb(p.images, 0, p.name)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={e => e.key === 'Enter' && p.images?.length > 0 && openLb(p.images, 0, p.name)}
-                aria-label={`View ${p.name} project`}
-              >
-                <div className="cs-proj-img-wrap">
-                  {p.images?.[0] ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={cloudinaryOptimize(p.images[0], { width: 800 })}
-                      alt={`${p.name} — interior design project in ${cityName}, ${stateName} by Shrivastavas Elevate`}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="cs-proj-img-placeholder" />
-                  )}
-                  {p.images?.length > 1 && (
-                    <div className="cs-proj-count">+{p.images.length - 1}</div>
-                  )}
-                  <div className="cs-proj-overlay"><span>View Images</span></div>
-                </div>
-                <div className="cs-proj-info">
-                  <p className="cs-proj-name">{p.name}</p>
-                  <div className="cs-proj-meta">
-                    {p.category && <span className="cs-proj-cat">{p.category}</span>}
-                    {p.projectType && <span className="cs-proj-type">{p.projectType}</span>}
-                  </div>
-                </div>
-              </div>
+          <div className="project-display-list">
+            {projects.map(p => (
+              <ProjectCard key={p._id} project={p} openConsult={openConsult} />
             ))}
           </div>
         ) : (

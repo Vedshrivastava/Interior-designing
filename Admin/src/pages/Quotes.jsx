@@ -193,7 +193,9 @@ const Quotes = ({ url }) => {
       <div className="order-list">
         {Object.keys(groupedOrders).length === 0 && !isLoading ? (
           <div className="empty-state">
-            <p>No quotes available at this time.</p>
+            <i className="fa-solid fa-file-invoice empty-state-icon"></i>
+            <p className="empty-state-title">No quote requests yet</p>
+            <p className="empty-state-sub">Design quote requests from customers will appear here.</p>
           </div>
         ) : (
           Object.keys(groupedOrders).map((date) => (

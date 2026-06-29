@@ -101,7 +101,13 @@ const Appointments = ({ url }) => {
         </div>
       </div>
       <div className='appointment-list'>
-        {Object.keys(groupedOrders).map((date) => (
+        {Object.keys(groupedOrders).length === 0 ? (
+          <div className="empty-state">
+            <i className="fa-solid fa-calendar-xmark empty-state-icon"></i>
+            <p className="empty-state-title">No appointments yet</p>
+            <p className="empty-state-sub">Consultation requests from customers will appear here.</p>
+          </div>
+        ) : Object.keys(groupedOrders).map((date) => (
           <div key={date} className='appointment-date-group'>
             <h4 className='appointment-date'>{moment(date).format('MMMM Do, YYYY')}</h4>
             
@@ -141,3 +147,4 @@ const Appointments = ({ url }) => {
 };
 
 export default Appointments;
+

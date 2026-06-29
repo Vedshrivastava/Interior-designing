@@ -689,6 +689,53 @@ html { scroll-behavior: smooth; }
 
 .proj-card-btn:hover svg { transform: translateX(3px); }
 
+/* ── City variant extras ── */
+.proj-card-excerpt {
+  font-family: "Inter", sans-serif;
+  font-size: 0.8rem;
+  color: var(--text-mid);
+  line-height: 1.55;
+  margin: 8px 0 0;
+  opacity: 0.82;
+}
+
+.proj-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: auto;
+}
+
+.proj-card-consult-btn {
+  align-self: stretch;
+  background: var(--green);
+  border: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: 12px 16px;
+  color: var(--gold-lt);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+  cursor: pointer;
+  letter-spacing: 0.2px;
+  transition: background 0.22s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 0 -20px -20px;
+}
+
+.proj-card-consult-btn:hover {
+  background: #0a1c1c;
+}
+
+.proj-card-consult-btn svg {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+}
+
 /* ════════════════════════════════════════════
    PROJECT MODAL
 ════════════════════════════════════════════ */

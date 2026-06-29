@@ -268,7 +268,7 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
         {projects.length > 0 ? (
           <div className="project-display-list">
             {projects.map(p => (
-              <ProjectCard key={p._id} project={p} openConsult={openConsult} />
+              <ProjectCard key={p._id} project={p} openConsult={openConsult} variant="city" />
             ))}
           </div>
         ) : (

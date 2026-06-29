@@ -9,7 +9,7 @@ import {
   IconArrowRight, IconCalendar,
 } from '@/components/Icons';
 
-export default function ProjectCard({ project, openConsult }) {
+export default function ProjectCard({ project, openConsult, variant }) {
   const [modalOpen,   setModalOpen]   = useState(false);
   const [activeThumb, setActiveThumb] = useState(0);
   const [lbIdx,       setLbIdx]       = useState(null);
@@ -79,9 +79,21 @@ export default function ProjectCard({ project, openConsult }) {
             {formattedDate && <span className="proj-chip"><IconCalendarDays />{formattedDate}</span>}
           </div>
         )}
-        <button className="proj-card-btn" onClick={openModal}>
-          See Details <IconArrowRight />
-        </button>
+        {variant === 'city' && description && (
+          <p className="proj-card-excerpt">
+            {description.length > 110 ? description.slice(0, 107).trimEnd() + '…' : description}
+          </p>
+        )}
+        <div className={variant === 'city' ? 'proj-card-actions' : ''}>
+          <button className="proj-card-btn" onClick={openModal}>
+            See Details <IconArrowRight />
+          </button>
+          {variant === 'city' && (
+            <button className="proj-card-consult-btn" onClick={openConsult}>
+              Book Free Consultation <IconCalendar />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

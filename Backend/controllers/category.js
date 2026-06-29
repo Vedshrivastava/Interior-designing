@@ -77,4 +77,22 @@ const removeCategory = async (req, res) => {
     }
 };
 
-export { listCategories, addCategory, removeCategory };
+const reorderCategories = async (req, res) => {
+    try {
+        const { order } = req.body; // [{ _id, order }, ...]
+        if (!Array.isArray(order) || order.length === 0)
+            return res.status(400).json({ success: false, message: 'Order array required' });
+
+        await Promise.all(order.map(({ _id, order: o }) =>
+            Category.findByIdAndUpdate(_id, { order: o })
+        ));
+
+        broadcast({ type: 'categoriesChanged' });
+        res.json({ success: true, message: 'Order saved' });
+    } catch (error) {
+        console.error('Error reordering categories:', error);
+        res.status(500).json({ success: false, message: 'Error saving order' });
+    }
+};
+
+export { listCategories, addCategory, removeCategory, reorderCategories };

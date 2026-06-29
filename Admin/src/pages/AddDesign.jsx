@@ -33,6 +33,9 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
     const token  = localStorage.getItem('token');
 
     const [categoryObjects, setCategoryObjects] = useState([]);
+    const [showReorder,    setShowReorder]    = useState(false);
+    const [dragIndex,      setDragIndex]      = useState(null);
+    const [dragOverIndex,  setDragOverIndex]  = useState(null);
 
     const fetchCategories = async () => {
         try {
@@ -126,6 +129,30 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
             toast.error('Failed to add category');
         } finally {
             setCatSaving(false);
+        }
+    };
+
+    const onDragStart = (i) => setDragIndex(i);
+    const onDragOver  = (e, i) => { e.preventDefault(); setDragOverIndex(i); };
+    const onDragEnd   = () => { setDragIndex(null); setDragOverIndex(null); };
+
+    const onDrop = async (e, dropIndex) => {
+        e.preventDefault();
+        if (dragIndex === null || dragIndex === dropIndex) { onDragEnd(); return; }
+        const reordered = [...categoryObjects];
+        const [moved] = reordered.splice(dragIndex, 1);
+        reordered.splice(dropIndex, 0, moved);
+        setCategoryObjects(reordered);
+        setCategories(reordered.map(c => c.name));
+        onDragEnd();
+        try {
+            await axios.post(`${url}/api/category/reorder`,
+                { order: reordered.map((c, i) => ({ _id: c._id, order: i + 1 })) },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+        } catch {
+            toast.error('Failed to save order');
+            await fetchCategories();
         }
     };
 
@@ -279,6 +306,40 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
                             </ul>
                         )}
                     </div>
+                </div>
+
+                {/* ── Reorder categories ── */}
+                <div className="cat-reorder-wrap">
+                    <button
+                        type="button"
+                        className={`cat-reorder-toggle${showReorder ? ' active' : ''}`}
+                        onClick={() => setShowReorder(o => !o)}
+                    >
+                        <i className="fa fa-grip-lines" />
+                        {showReorder ? 'Done Reordering' : 'Reorder Categories'}
+                        <i className={`fa fa-chevron-${showReorder ? 'up' : 'down'} cat-reorder-chevron`} />
+                    </button>
+
+                    {showReorder && (
+                        <ul className="cat-reorder-list">
+                            {categoryObjects.map((cat, i) => (
+                                <li
+                                    key={cat._id}
+                                    className={`cat-reorder-item${dragOverIndex === i ? ' drag-over' : ''}${dragIndex === i ? ' dragging' : ''}`}
+                                    draggable
+                                    onDragStart={() => onDragStart(i)}
+                                    onDragOver={e => onDragOver(e, i)}
+                                    onDrop={e => onDrop(e, i)}
+                                    onDragEnd={onDragEnd}
+                                >
+                                    <i className="fa fa-grip-vertical cat-drag-handle" />
+                                    <span className="cat-reorder-name">{cat.name}</span>
+                                    {cat.label && <span className="cat-reorder-label">{cat.label}</span>}
+                                    <span className="cat-reorder-pos">{i + 1}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
 
                 {/* ── Featured ── */}

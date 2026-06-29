@@ -958,6 +958,118 @@
     background: #c9a87c;
 }
 
+/* ── Category reorder panel ── */
+.cat-reorder-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cat-reorder-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1px solid rgba(201,168,124,0.28);
+    border-radius: var(--radius-sm);
+    background: var(--ivory);
+    color: var(--text-mid);
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.22s ease;
+    width: 100%;
+    justify-content: flex-start;
+}
+
+.cat-reorder-toggle:hover,
+.cat-reorder-toggle.active {
+    border-color: var(--gold);
+    background: var(--white);
+    color: var(--green);
+}
+
+.cat-reorder-chevron { margin-left: auto; font-size: 0.7rem; color: var(--text-lt); }
+
+.cat-reorder-list {
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+    background: var(--white);
+    border: 1px solid rgba(201,168,124,0.2);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.cat-reorder-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--ivory);
+    border: 1px solid transparent;
+    cursor: grab;
+    transition: background 0.15s, border-color 0.15s, opacity 0.15s, transform 0.15s;
+    user-select: none;
+}
+
+.cat-reorder-item:active { cursor: grabbing; }
+
+.cat-reorder-item.dragging {
+    opacity: 0.4;
+    background: rgba(201,168,124,0.08);
+}
+
+.cat-reorder-item.drag-over {
+    border-color: var(--gold);
+    background: rgba(201,168,124,0.1);
+    transform: scale(1.01);
+}
+
+.cat-drag-handle {
+    color: var(--text-lt);
+    font-size: 0.78rem;
+    flex-shrink: 0;
+    cursor: grab;
+}
+
+.cat-reorder-name {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.85rem;
+    color: var(--green);
+    font-weight: 500;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cat-reorder-label {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.72rem;
+    color: var(--gold);
+    background: rgba(201,168,124,0.12);
+    border: 1px solid rgba(201,168,124,0.28);
+    border-radius: 999px;
+    padding: 2px 8px;
+    flex-shrink: 0;
+}
+
+.cat-reorder-pos {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.7rem;
+    color: var(--text-lt);
+    font-weight: 600;
+    width: 18px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
 /* ── Shared confirm modal (reused from RecoveryBin) ── */
 .bin-confirm-backdrop {
     position: fixed; inset: 0;

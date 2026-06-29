@@ -43,6 +43,64 @@ export default function ProjectCard({ project, openConsult, variant }) {
     return () => window.removeEventListener('keydown', h);
   }, [lbIdx, modalOpen, images.length, closeModal, closeLb]);
 
+  const cityCard = (
+    <div className="proj-city-card">
+      <div className="proj-city-img" onClick={() => images?.length > 0 && openLb(0)}>
+        {images?.[0]
+          ? /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={cloudinaryOptimize(images[0], { width: 900 })} alt={`${name}${location ? ` in ${location}` : ''} — interior design project by Shrivastavas Elevate`} loading="lazy" />
+          : <div className="proj-card-img-placeholder" />
+        }
+        {images.length > 1 && <div className="proj-city-img-count"><span>+{images.length - 1}</span> more photos</div>}
+        <div className="proj-city-img-overlay"><span>View Photos</span></div>
+      </div>
+
+      <div className="proj-city-content">
+        <div className="proj-city-tags">
+          {category && <span className="proj-city-tag">{category}</span>}
+          {projectType && (
+            <span className="proj-city-tag proj-city-tag--type">
+              {projectType === 'Residential' ? <IconHouseChimney /> : <IconBuilding />}
+              {projectType}
+            </span>
+          )}
+          {isFeatured && <span className="proj-city-tag proj-city-tag--featured"><IconStarFilled /> Featured</span>}
+        </div>
+
+        <h3 className="proj-city-title">{name}</h3>
+
+        {location && (
+          <div className="proj-city-location">
+            <IconLocation /> {location}
+          </div>
+        )}
+
+        {(area || duration || formattedDate) && (
+          <div className="proj-card-chips">
+            {area          && <span className="proj-chip"><IconRulerCombined />{area}</span>}
+            {duration      && <span className="proj-chip"><IconClock />{duration}</span>}
+            {formattedDate && <span className="proj-chip"><IconCalendarDays />{formattedDate}</span>}
+          </div>
+        )}
+
+        {description && (
+          <p className="proj-city-desc">
+            {description.length > 160 ? description.slice(0, 157).trimEnd() + '…' : description}
+          </p>
+        )}
+
+        <div className="proj-city-btns">
+          <button className="proj-city-btn-ghost" onClick={openModal}>
+            See Details <IconArrowRight />
+          </button>
+          <button className="proj-city-btn-primary" onClick={openConsult}>
+            Book Free Consultation <IconCalendar />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   const card = (
     <div className="proj-card">
       <div className="proj-card-img-wrap" onClick={() => images?.length > 0 && openLb(0)}>
@@ -79,21 +137,9 @@ export default function ProjectCard({ project, openConsult, variant }) {
             {formattedDate && <span className="proj-chip"><IconCalendarDays />{formattedDate}</span>}
           </div>
         )}
-        {variant === 'city' && description && (
-          <p className="proj-card-excerpt">
-            {description.length > 110 ? description.slice(0, 107).trimEnd() + '…' : description}
-          </p>
-        )}
-        <div className={variant === 'city' ? 'proj-card-actions' : ''}>
-          <button className="proj-card-btn" onClick={openModal}>
-            See Details <IconArrowRight />
-          </button>
-          {variant === 'city' && (
-            <button className="proj-card-consult-btn" onClick={openConsult}>
-              Book Free Consultation <IconCalendar />
-            </button>
-          )}
-        </div>
+        <button className="proj-card-btn" onClick={openModal}>
+          See Details <IconArrowRight />
+        </button>
       </div>
     </div>
   );
@@ -203,5 +249,5 @@ export default function ProjectCard({ project, openConsult, variant }) {
     document.body
   );
 
-  return <>{card}{modal}{lightbox}</>;
+  return <>{variant === 'city' ? cityCard : card}{modal}{lightbox}</>;
 }

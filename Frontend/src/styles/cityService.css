@@ -748,3 +748,9 @@
   .cs-proj-grid     { grid-template-columns: 1fr; }
   .cs-cta-actions   { flex-direction: column; align-items: center; }
 }
+
+/* ── City page: override project grid to single-column for horizontal cards ── */
+.cs-projects .project-display-list {
+  grid-template-columns: 1fr;
+  gap: 24px;
+}

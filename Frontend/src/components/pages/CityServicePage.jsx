@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
 import { useModal } from '@/context/ModalContext';
+import { useWebSocket } from '@/hooks/useWebSocket';
+import { cloudinaryOptimize } from '@/lib/cloudinary';
 import bgimg from '@/assets/home-img.png';
 import {
   IconCalendar, IconArrowRight, IconBuilding, IconHouseChimney,
@@ -11,9 +13,28 @@ import {
   IconLocation, IconKey, IconShield, IconGem, IconPenRuler, IconXMark,
 } from '@/components/Icons';
 
-export default function CityServicePage({ cityName, stateName, citySlug, projects }) {
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+export default function CityServicePage({ cityName, stateName, citySlug, projects: initialProjects }) {
   const router   = useRouter();
   const { openConsult } = useModal();
+
+  const [projects, setProjects] = useState(initialProjects);
+
+  const fetchProjects = useCallback(() => {
+    fetch(`${API_URL}/api/project/list`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) setProjects((d.data ?? []).filter(p => p.cityPage === citySlug));
+      })
+      .catch(() => {});
+  }, [citySlug]);
+
+  useEffect(() => { fetchProjects(); }, [fetchProjects]);
+
+  useWebSocket(useCallback((message) => {
+    if (message.type === 'projectsChanged') fetchProjects();
+  }, [fetchProjects]));
 
   /* ── Scroll reveal ─────────────────────────────────────────── */
   const revealRefs = useRef([]);
@@ -206,7 +227,7 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
           <div className="lb-img-wrap" onClick={e => e.stopPropagation()}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={lb.images[lb.idx]}
+              src={cloudinaryOptimize(lb.images[lb.idx])}
               alt={`${lb.name} — interior design project in ${cityName} by Shrivastavas Elevate`}
               className="lb-img"
             />
@@ -315,7 +336,7 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
                   {p.images?.[0] ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
-                      src={p.images[0]}
+                      src={cloudinaryOptimize(p.images[0], { width: 800 })}
                       alt={`${p.name} — interior design project in ${cityName}, ${stateName} by Shrivastavas Elevate`}
                       loading="lazy"
                     />

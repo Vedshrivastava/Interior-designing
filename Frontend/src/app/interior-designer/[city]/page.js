@@ -4,7 +4,7 @@ import { CITY_SLUGS, getCity, matchesCity, locationToSlug } from '@/lib/cities';
 const SITE_URL = 'https://shrivastavaseelevate.com';
 const API_URL  = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-export const revalidate = 3600;
+export const revalidate = 60;
 
 export async function generateStaticParams() {
   // Only use core slugs at build time — new cities discovered at revalidation
@@ -53,7 +53,7 @@ export default async function Page({ params }) {
 
   let allProjects = [];
   try {
-    const res = await fetch(`${API_URL}/api/project/list`, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(5000) });
+    const res = await fetch(`${API_URL}/api/project/list`, { next: { revalidate: 60 }, signal: AbortSignal.timeout(5000) });
     const json = await res.json();
     if (json.success) allProjects = json.data ?? [];
   } catch {}

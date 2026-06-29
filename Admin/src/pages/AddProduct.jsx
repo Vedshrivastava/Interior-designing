@@ -31,6 +31,13 @@ const iconifyColorUrl = (iconId, color) => {
   return base ? `${base}?color=${encodeURIComponent(color)}` : null;
 };
 
+const COLOR_OPTIONS = [
+    '#3b82f6', '#f59e0b', '#ef4444', '#6366f1', '#22c55e',
+    '#8b5cf6', '#14b8a6', '#ec4899', '#f97316', '#64748b',
+    '#a78bfa', '#c9a87c', '#10b981', '#78716c', '#0ea5e9',
+    '#dc2626', '#16a34a', '#9333ea', '#0891b2', '#d97706',
+];
+
 const APPLICATIONS = [
     'Residential', 'Commercial', 'Hospitality', 'Office',
     'Retail', 'Healthcare', 'Outdoor', 'Garden',

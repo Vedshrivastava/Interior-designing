@@ -1076,10 +1076,76 @@
     margin: 0;
 }
 
+/* ── Icon search bar ── */
+.spec-icon-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--ivory);
+    border: 1px solid rgba(201,168,124,0.28);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    transition: border-color 0.2s;
+}
+
+.spec-icon-search-wrap:focus-within { border-color: var(--gold); }
+
+.spec-icon-search-wrap i { color: var(--text-lt); font-size: 0.78rem; flex-shrink: 0; }
+
+.spec-icon-search-wrap input {
+    flex: 1;
+    border: none;
+    background: none;
+    outline: none;
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.82rem;
+    color: var(--green);
+    padding: 0;
+}
+
+.spec-icon-search-clear {
+    background: none;
+    border: none;
+    color: var(--text-lt);
+    font-size: 1.1rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 2px;
+    flex-shrink: 0;
+    transition: color 0.15s;
+}
+
+.spec-icon-search-clear:hover { color: var(--green); }
+
+/* ── Scrollable full icon grid ── */
+.spec-icon-grid-wrap {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid rgba(201,168,124,0.15);
+    border-radius: var(--radius-sm);
+    padding: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(201,168,124,0.3) transparent;
+}
+
+.spec-icon-grid-wrap::-webkit-scrollbar { width: 4px; }
+.spec-icon-grid-wrap::-webkit-scrollbar-thumb { background: rgba(201,168,124,0.3); border-radius: 4px; }
+
 .spec-icon-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     gap: 6px;
+}
+
+.spec-icon-grid--full {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.spec-icon-grid--suggestions {
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+    margin-bottom: 8px;
 }
 
 .spec-icon-btn {

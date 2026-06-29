@@ -159,6 +159,7 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
     };
 
     return (
+        <>
         <div className="add">
             <form className="flex-col" onSubmit={onSubmitHandler}>
 
@@ -327,6 +328,7 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
             </div>,
             document.body
         )}
+        </>
     );
 };
 

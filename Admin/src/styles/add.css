@@ -269,6 +269,26 @@
     font-size: 0.75rem;
 }
 
+/* ── Category option actions (check + trash) ── */
+.add-cat-option-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.add-cat-trash {
+    font-size: 0.72rem;
+    color: var(--text-lt);
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+    cursor: pointer;
+    padding: 2px 4px;
+}
+
+.add-cat-option:hover .add-cat-trash { opacity: 1; }
+.add-cat-trash:hover { color: #c0392b !important; }
+
 /* ── Add new category button in dropdown ── */
 .add-cat-new-btn {
     border-top: 1px solid rgba(201,168,124,0.18);

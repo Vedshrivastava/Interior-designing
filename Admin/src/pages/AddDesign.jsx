@@ -29,10 +29,13 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
     const catRef = useRef(null);
     const token  = localStorage.getItem('token');
 
+    const [categoryObjects, setCategoryObjects] = useState([]);
+
     const fetchCategories = async () => {
         try {
             const res = await axios.get(`${url}/api/category/list`);
             if (res.data.success) {
+                setCategoryObjects(res.data.data);
                 const names = res.data.data.map(c => c.name);
                 setCategories(names);
                 if (!data.category) setData(p => ({ ...p, category: names[0] || '' }));
@@ -40,6 +43,26 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
         } catch {
             setCategories(FALLBACK_CATEGORIES);
             if (!data.category) setData(p => ({ ...p, category: FALLBACK_CATEGORIES[0] }));
+        }
+    };
+
+    const deleteCategory = async (e, catObj) => {
+        e.stopPropagation();
+        if (!window.confirm(`Remove "${catObj.name}" from categories? Designs inside are kept safe.`)) return;
+        try {
+            const res = await axios.post(`${url}/api/category/remove`,
+                { _id: catObj._id },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (res.data.success) {
+                toast.success(res.data.message);
+                if (data.category === catObj.name) setData(p => ({ ...p, category: '' }));
+                await fetchCategories();
+            } else {
+                toast.error(res.data.message);
+            }
+        } catch {
+            toast.error('Failed to remove category');
         }
     };
 
@@ -183,16 +206,28 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
 
                         {catOpen && (
                             <ul className="add-cat-list">
-                                {categories.map((cat, i) => (
-                                    <li
-                                        key={i}
-                                        className={`add-cat-option${data.category === cat ? ' active' : ''}`}
-                                        onClick={() => { setData(p => ({ ...p, category: cat })); setCatOpen(false); setAddingCat(false); }}
-                                    >
-                                        <span>{cat}</span>
-                                        {data.category === cat && <i className="fa fa-check" />}
-                                    </li>
-                                ))}
+                                {categories.map((cat, i) => {
+                                    const catObj = categoryObjects.find(c => c.name === cat);
+                                    return (
+                                        <li
+                                            key={i}
+                                            className={`add-cat-option${data.category === cat ? ' active' : ''}`}
+                                            onClick={() => { setData(p => ({ ...p, category: cat })); setCatOpen(false); setAddingCat(false); }}
+                                        >
+                                            <span>{cat}</span>
+                                            <div className="add-cat-option-actions" onClick={e => e.stopPropagation()}>
+                                                {data.category === cat && <i className="fa fa-check" />}
+                                                {catObj && (
+                                                    <i
+                                                        className="fa fa-trash add-cat-trash"
+                                                        title={`Remove "${cat}"`}
+                                                        onClick={e => deleteCategory(e, catObj)}
+                                                    />
+                                                )}
+                                            </div>
+                                        </li>
+                                    );
+                                })}
 
                                 {/* ── Add new category row ── */}
                                 {!addingCat ? (

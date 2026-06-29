@@ -15,7 +15,7 @@ const SEED_CATEGORIES = [
 
 const listCategories = async (req, res) => {
     try {
-        let categories = await Category.find().sort({ order: 1, createdAt: 1 });
+        let categories = await Category.find({ deleted: { $ne: true } }).sort({ order: 1, createdAt: 1 });
 
         // Auto-seed on first call if collection is empty
         if (categories.length === 0) {
@@ -56,4 +56,22 @@ const addCategory = async (req, res) => {
     }
 };
 
-export { listCategories, addCategory };
+const removeCategory = async (req, res) => {
+    try {
+        const { _id } = req.body;
+        const category = await Category.findById(_id);
+        if (!category) return res.status(404).json({ success: false, message: 'Category not found' });
+
+        category.deleted   = true;
+        category.deletedAt = new Date();
+        category.deletedBy = req.userName || 'Admin';
+        await category.save();
+
+        res.json({ success: true, message: `"${category.name}" moved to recovery bin` });
+    } catch (error) {
+        console.error('Error removing category:', error);
+        res.status(500).json({ success: false, message: 'Error removing category' });
+    }
+};
+
+export { listCategories, addCategory, removeCategory };

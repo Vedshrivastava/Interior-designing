@@ -10,7 +10,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 const TYPE_LABEL = { design: 'Design', product: 'Product', project: 'Project' };
 
 const RecoveryBin = ({ url }) => {
-    const [bin,          setBin]          = useState({ designs: [], products: [], projects: [] });
+    const [bin,          setBin]          = useState({ designs: [], products: [], projects: [], categories: [] });
     const [loading,      setLoading]      = useState(true);
     const [activeTab,    setActiveTab]    = useState('designs');
     const [query,        setQuery]        = useState('');
@@ -78,12 +78,13 @@ const RecoveryBin = ({ url }) => {
     };
 
     const tabs = [
-        { key: 'designs',  label: `Designs (${bin.designs.length})`   },
-        { key: 'products', label: `Products (${bin.products.length})`  },
-        { key: 'projects', label: `Projects (${bin.projects.length})`  },
+        { key: 'designs',    label: `Designs (${bin.designs.length})`      },
+        { key: 'products',   label: `Products (${bin.products.length})`     },
+        { key: 'projects',   label: `Projects (${bin.projects.length})`     },
+        { key: 'categories', label: `Categories (${bin.categories.length})` },
     ];
 
-    const total = bin.designs.length + bin.products.length + bin.projects.length;
+    const total = bin.designs.length + bin.products.length + bin.projects.length + bin.categories.length;
     const items = (bin[activeTab] || [])
         .filter(item => !query || item.name.toLowerCase().includes(query.toLowerCase()));
 
@@ -140,8 +141,38 @@ const RecoveryBin = ({ url }) => {
                         <div className="admin-empty-state">Loading…</div>
                     ) : items.length === 0 ? (
                         <div className="admin-empty-state">
-                            Nothing in {TYPE_LABEL[activeTab.slice(0, -1)]} bin — all clear.
+                            {activeTab === 'categories' ? 'No deleted categories — all clear.' : `Nothing in ${TYPE_LABEL[activeTab.slice(0, -1)]} bin — all clear.`}
                         </div>
+                    ) : activeTab === 'categories' ? (
+                        items.map((item) => (
+                            <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 190px', gap: '24px', padding: '16px 28px', alignItems: 'center' }}>
+                                {/* Name + label */}
+                                <div style={{ minWidth: 0 }}>
+                                    <p className="item-name bin-item-name">{item.name}</p>
+                                    {item.label && <span className="bin-type-badge">{item.label}</span>}
+                                </div>
+
+                                {/* Design count */}
+                                <div style={{ minWidth: 0 }}>
+                                    <p className="bin-meta-label">Designs inside</p>
+                                    <p className="bin-meta-value">{item.designCount ?? 0} design{item.designCount !== 1 ? 's' : ''} (safe)</p>
+                                </div>
+
+                                {/* Deleted on */}
+                                <div style={{ minWidth: 0 }}>
+                                    <p className="bin-meta-label">Removed</p>
+                                    <p className="bin-meta-value" title={item.deletedAt ? moment(item.deletedAt).format('DD MMM YYYY, HH:mm') : ''}>
+                                        {item.deletedAt ? moment(item.deletedAt).fromNow() : '—'}
+                                    </p>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="action-buttons">
+                                    <p className="cursor edit-action" style={{ color: '#16a34a', borderColor: 'rgba(34,197,94,0.3)' }} onClick={() => restore(item)}>Restore</p>
+                                    <p className="cursor delete-action" onClick={() => confirmPermanentDelete(item)} title="This cannot be undone">Delete Forever</p>
+                                </div>
+                            </div>
+                        ))
                     ) : (
                         items.map((item) => (
                             <div key={item._id} className="list-table-format row-item bin-grid">
@@ -176,30 +207,15 @@ const RecoveryBin = ({ url }) => {
                                 {/* Deleted on */}
                                 <div style={{ minWidth: 0 }}>
                                     <p className="bin-meta-label">When</p>
-                                    <p
-                                        className="bin-meta-value"
-                                        title={item.deletedAt ? moment(item.deletedAt).format('DD MMM YYYY, HH:mm') : ''}
-                                    >
+                                    <p className="bin-meta-value" title={item.deletedAt ? moment(item.deletedAt).format('DD MMM YYYY, HH:mm') : ''}>
                                         {item.deletedAt ? moment(item.deletedAt).fromNow() : '—'}
                                     </p>
                                 </div>
 
                                 {/* Actions */}
                                 <div className="action-buttons">
-                                    <p
-                                        className="cursor edit-action"
-                                        style={{ color: '#16a34a', borderColor: 'rgba(34,197,94,0.3)' }}
-                                        onClick={() => restore(item)}
-                                    >
-                                        Restore
-                                    </p>
-                                    <p
-                                        className="cursor delete-action"
-                                        onClick={() => confirmPermanentDelete(item)}
-                                        title="This cannot be undone"
-                                    >
-                                        Delete Forever
-                                    </p>
+                                    <p className="cursor edit-action" style={{ color: '#16a34a', borderColor: 'rgba(34,197,94,0.3)' }} onClick={() => restore(item)}>Restore</p>
+                                    <p className="cursor delete-action" onClick={() => confirmPermanentDelete(item)} title="This cannot be undone">Delete Forever</p>
                                 </div>
                             </div>
                         ))
@@ -217,8 +233,10 @@ const RecoveryBin = ({ url }) => {
                         <h3>Delete Forever?</h3>
                         <p className="bin-confirm-name">"{confirmItem.name}"</p>
                         <p className="bin-confirm-warning">
-                            This will permanently remove the item and all its images from storage.<br />
-                            <strong>This action cannot be undone.</strong>
+                            {confirmItem?._type === 'category'
+                                ? <>This will permanently remove the category. Designs inside are <strong>not deleted</strong> — they remain in your database.<br /><strong>This action cannot be undone.</strong></>
+                                : <>This will permanently remove the item and all its images from storage.<br /><strong>This action cannot be undone.</strong></>
+                            }
                         </p>
                         <div className="bin-confirm-actions">
                             <button

@@ -1,15 +1,17 @@
-import Design  from '../models/design.js';
-import Product from '../models/product.js';
-import Project from '../models/project.js';
+import Design    from '../models/design.js';
+import Product  from '../models/product.js';
+import Project  from '../models/project.js';
+import Category from '../models/category.js';
 import { v2 as cloudinary } from 'cloudinary';
 import { broadcast } from '../middlewares/webSocket.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
 const TYPE_BROADCAST = {
-    design:  'designsChanged',
-    product: 'productsChanged',
-    project: 'projectsChanged',
+    design:    'designsChanged',
+    product:   'productsChanged',
+    project:   'projectsChanged',
+    category:  'categoriesChanged',
 };
 
 cloudinary.config({
@@ -21,18 +23,28 @@ cloudinary.config({
 /* ── List all soft-deleted items across all 3 collections ── */
 const listBin = async (req, res) => {
     try {
-        const [designs, products, projects] = await Promise.all([
-            Design .find({ deleted: true }).sort({ deletedAt: -1 }),
-            Product.find({ deleted: true }).sort({ deletedAt: -1 }),
-            Project.find({ deleted: true }).sort({ deletedAt: -1 }),
+        const [designs, products, projects, categories] = await Promise.all([
+            Design  .find({ deleted: true }).sort({ deletedAt: -1 }),
+            Product .find({ deleted: true }).sort({ deletedAt: -1 }),
+            Project .find({ deleted: true }).sort({ deletedAt: -1 }),
+            Category.find({ deleted: true }).sort({ deletedAt: -1 }),
         ]);
+
+        // Attach design count to each deleted category
+        const categoryData = await Promise.all(
+            categories.map(async cat => {
+                const designCount = await Design.countDocuments({ category: cat.name, deleted: { $ne: true } });
+                return { ...cat.toObject(), _type: 'category', designCount };
+            })
+        );
 
         return res.json({
             success: true,
             data: {
-                designs:  designs .map(d => ({ ...d.toObject(), _type: 'design'  })),
-                products: products.map(p => ({ ...p.toObject(), _type: 'product' })),
-                projects: projects.map(p => ({ ...p.toObject(), _type: 'project' })),
+                designs:    designs .map(d => ({ ...d.toObject(), _type: 'design'   })),
+                products:   products.map(p => ({ ...p.toObject(), _type: 'product'  })),
+                projects:   projects.map(p => ({ ...p.toObject(), _type: 'project'  })),
+                categories: categoryData,
             },
         });
     } catch (error) {
@@ -45,7 +57,7 @@ const listBin = async (req, res) => {
 const restoreItem = async (req, res) => {
     const { _id, _type } = req.body;
     try {
-        const Model = _type === 'design' ? Design : _type === 'product' ? Product : Project;
+        const Model = _type === 'design' ? Design : _type === 'product' ? Product : _type === 'category' ? Category : Project;
         const item  = await Model.findById(_id);
         if (!item) return res.status(404).json({ success: false, message: 'Item not found.' });
 
@@ -67,18 +79,20 @@ const restoreItem = async (req, res) => {
 const permanentDelete = async (req, res) => {
     const { _id, _type } = req.body;
     try {
-        const Model  = _type === 'design' ? Design : _type === 'product' ? Product : Project;
-        const folder = _type === 'design' ? 'design_images' : _type === 'product' ? 'product_images' : 'project_images';
+        const Model  = _type === 'design' ? Design : _type === 'product' ? Product : _type === 'category' ? Category : Project;
+        const folder = _type === 'design' ? 'design_images' : _type === 'product' ? 'product_images' : _type === 'project' ? 'project_images' : null;
 
         const item = await Model.findById(_id);
         if (!item) return res.status(404).json({ success: false, message: 'Item not found.' });
 
-        for (const url of item.images || []) {
-            try {
-                const publicId = url.split('/').pop().split('.')[0];
-                await cloudinary.uploader.destroy(`${folder}/${publicId}`);
-            } catch (err) {
-                console.error('Cloudinary delete error:', err);
+        if (folder) {
+            for (const url of item.images || []) {
+                try {
+                    const publicId = url.split('/').pop().split('.')[0];
+                    await cloudinary.uploader.destroy(`${folder}/${publicId}`);
+                } catch (err) {
+                    console.error('Cloudinary delete error:', err);
+                }
             }
         }
 

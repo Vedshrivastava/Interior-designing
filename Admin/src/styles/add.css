@@ -269,6 +269,79 @@
     font-size: 0.75rem;
 }
 
+/* ── Add new category button in dropdown ── */
+.add-cat-new-btn {
+    border-top: 1px solid rgba(201,168,124,0.18);
+    margin-top: 4px;
+    padding-top: 12px;
+    color: var(--gold) !important;
+    font-weight: 600;
+    gap: 8px;
+}
+
+.add-cat-new-btn i { font-size: 0.75rem; }
+
+/* ── Inline new category form ── */
+.add-cat-new-form {
+    border-top: 1px solid rgba(201,168,124,0.18);
+    margin-top: 4px;
+    padding: 12px 10px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.add-cat-new-form input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid rgba(201,168,124,0.3);
+    border-radius: var(--radius-sm);
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.82rem;
+    color: var(--green);
+    background: var(--ivory);
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.add-cat-new-form input:focus { border-color: var(--gold); }
+
+.add-cat-new-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.add-cat-save-btn {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--green);
+    color: var(--gold-lt);
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.add-cat-save-btn:hover:not(:disabled) { background: #0a1c1c; }
+.add-cat-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.add-cat-cancel-btn {
+    padding: 8px 14px;
+    border: 1px solid rgba(201,168,124,0.3);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--text-mid);
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.add-cat-cancel-btn:hover { border-color: var(--gold); color: var(--green); }
 
 /* ══════════════════════════════════════════════
    5. INPUT FIELDS

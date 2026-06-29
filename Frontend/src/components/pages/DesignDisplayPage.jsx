@@ -18,9 +18,12 @@ export default function DesignDisplayPage({
   initialDesigns = [],
   initialTotal   = 0,
   pageLimit      = 20,
+  categories     = null,
 }) {
-  const router       = useRouter();
-  const category     = SLUG_TO_CATEGORY[slug] || slug; // DB category name
+  const router   = useRouter();
+  // Use prop categories if provided, otherwise fall back to hardcoded
+  const catList  = categories ?? CATEGORY_SLUGS.map(s => ({ slug: s, label: SLUG_LABELS[s], name: SLUG_TO_CATEGORY[s] }));
+  const category = catList.find(c => c.slug === slug)?.name || SLUG_TO_CATEGORY[slug] || slug;
   const mobileBarRef = useRef(null);
 
   const [designList,  setDesignList]  = useState(initialDesigns);
@@ -116,25 +119,25 @@ export default function DesignDisplayPage({
         </div>
 
         <nav className="dd-category-bar" aria-label="Design categories">
-          {CATEGORY_SLUGS.map(cat => (
+          {catList.map(cat => (
             <button
-              key={cat}
-              className={`dd-cat-pill${slug === cat ? ' active' : ''}`}
-              onClick={() => router.push(`/design/${cat}`)}
+              key={cat.slug}
+              className={`dd-cat-pill${slug === cat.slug ? ' active' : ''}`}
+              onClick={() => router.push(`/design/${cat.slug}`)}
             >
-              {SLUG_LABELS[cat]}
+              {cat.label}
             </button>
           ))}
         </nav>
 
         <div className="dd-cat-mobile" ref={mobileBarRef}>
-          {CATEGORY_SLUGS.map(cat => (
+          {catList.map(cat => (
             <button
-              key={cat}
-              className={`dd-cat-chip${slug === cat ? ' active' : ''}`}
-              onClick={() => router.push(`/design/${cat}`)}
+              key={cat.slug}
+              className={`dd-cat-chip${slug === cat.slug ? ' active' : ''}`}
+              onClick={() => router.push(`/design/${cat.slug}`)}
             >
-              {SLUG_LABELS[cat]}
+              {cat.label}
             </button>
           ))}
         </div>

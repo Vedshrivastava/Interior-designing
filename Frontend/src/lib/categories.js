@@ -44,3 +44,24 @@ export const SLUG_LABELS = {
 
 /** Default slug when linking to the designs section */
 export const DEFAULT_DESIGN_SLUG = 'kitchen-designs';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+/**
+ * Fetches live categories from the DB.
+ * Returns an array of { name, slug, label } objects.
+ * Falls back to the hardcoded list on error.
+ */
+export async function fetchCategoriesFromDB() {
+  try {
+    const res = await fetch(`${API_URL}/api/category/list`, { cache: 'no-store' });
+    const json = await res.json();
+    if (json.success && json.data?.length > 0) return json.data;
+  } catch {}
+  // fallback to hardcoded
+  return CATEGORY_SLUGS.map(slug => ({
+    name:  SLUG_TO_CATEGORY[slug],
+    slug,
+    label: SLUG_LABELS[slug],
+  }));
+}

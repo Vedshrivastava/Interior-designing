@@ -5,149 +5,179 @@ import { toast } from 'react-toastify';
 import '../index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
-// 1. Accept the prop here
+const FALLBACK_CATEGORIES = [
+    'Kitchen Designs', 'Bedroom Designs', 'Bathroom Designs',
+    'Lounge area Designs', 'Kids Room Designs', 'TV Unit Designs',
+    'Commercial Designs', 'Mandir Designs', 'Garden Designs', 'House Exterior',
+];
+
 const AddDesign = ({ url, setIsLoading, isLoading }) => {
     const [images, setImages] = useState([]);
     const [data, setData] = useState({
-        name: "",
-        description: "",
-        price: "",
-        category: "Kitchen Designs",
-        isFeatured: false // Add this
+        name: '', description: '', category: '', isFeatured: false,
     });
-    const [points,  setPoints]  = useState([""]);
-    const [catOpen, setCatOpen] = useState(false);
-    const catRef = useRef(null);
+    const [points,     setPoints]     = useState(['']);
+    const [catOpen,    setCatOpen]    = useState(false);
+    const [categories, setCategories] = useState(FALLBACK_CATEGORIES);
 
-    const token = localStorage.getItem('token');
+    // inline add-category state
+    const [addingCat,  setAddingCat]  = useState(false);
+    const [newCatName, setNewCatName] = useState('');
+    const [newCatLabel,setNewCatLabel]= useState('');
+    const [catSaving,  setCatSaving]  = useState(false);
+
+    const catRef = useRef(null);
+    const token  = localStorage.getItem('token');
+
+    const fetchCategories = async () => {
+        try {
+            const res = await axios.get(`${url}/api/category/list`);
+            if (res.data.success) {
+                const names = res.data.data.map(c => c.name);
+                setCategories(names);
+                if (!data.category) setData(p => ({ ...p, category: names[0] || '' }));
+            }
+        } catch {
+            setCategories(FALLBACK_CATEGORIES);
+            if (!data.category) setData(p => ({ ...p, category: FALLBACK_CATEGORIES[0] }));
+        }
+    };
+
+    useEffect(() => { fetchCategories(); }, []);
 
     useEffect(() => {
         const handleOutside = (e) => {
-            if (catRef.current && !catRef.current.contains(e.target)) setCatOpen(false);
+            if (catRef.current && !catRef.current.contains(e.target)) {
+                setCatOpen(false);
+                setAddingCat(false);
+            }
         };
         document.addEventListener('mousedown', handleOutside);
         return () => document.removeEventListener('mousedown', handleOutside);
     }, []);
 
-    const categories = [
-        'Kitchen Designs', 'Bedroom Designs', 'Bathroom Designs',
-        'Lounge area Designs', 'Kids Room Designs', 'TV Unit Designs',
-        'Commercial Designs', 'Mandir Designs', 'Garden Designs',
-        'House Exterior Designs',
-    ];
-
-    const onChangeHandler = (event) => {
-        const { name, value, type, checked } = event.target;
-        setData(prevData => ({
-            ...prevData,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+    const onChangeHandler = (e) => {
+        const { name, value, type, checked } = e.target;
+        setData(p => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
     };
 
-    const onPointChangeHandler = (index, value) => {
-        const updatedPoints = [...points];
-        updatedPoints[index] = value;
-        setPoints(updatedPoints);
+    const onPointChange   = (i, v) => { const p = [...points]; p[i] = v; setPoints(p); };
+    const addPoint        = ()     => setPoints([...points, '']);
+    const removePoint     = (i)    => setPoints(points.filter((_, idx) => idx !== i));
+    const onImageChange   = (e)    => setImages(p => [...p, ...Array.from(e.target.files)]);
+    const removeImage     = (i)    => setImages(images.filter((_, idx) => idx !== i));
+
+    const saveNewCategory = async () => {
+        if (!newCatName.trim() || !newCatLabel.trim()) {
+            toast.error('Both name and label are required');
+            return;
+        }
+        setCatSaving(true);
+        try {
+            const res = await axios.post(`${url}/api/category/add`,
+                { name: newCatName.trim(), label: newCatLabel.trim() },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (res.data.success) {
+                toast.success('Category added');
+                setNewCatName(''); setNewCatLabel(''); setAddingCat(false);
+                await fetchCategories();
+                setData(p => ({ ...p, category: res.data.data.name }));
+                setCatOpen(false);
+            } else {
+                toast.error(res.data.message);
+            }
+        } catch {
+            toast.error('Failed to add category');
+        } finally {
+            setCatSaving(false);
+        }
     };
 
-    const addPoint = () => setPoints([...points, ""]);
-    const removePoint = (index) => setPoints(points.filter((_, idx) => idx !== index));
-
-    const onImageChangeHandler = (event) => {
-        const selectedFiles = Array.from(event.target.files);
-        setImages(prevImages => [...prevImages, ...selectedFiles]);
-    };
-
-    const removeImage = (indexToRemove) => {
-        setImages(images.filter((_, index) => index !== indexToRemove));
-    };
-
-    const onSubmitHandler = async (event) => {
-        event.preventDefault();
-        setIsLoading(true); // 1. Freeze the screen instantly
-
+    const onSubmitHandler = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
         const formData = new FormData();
-        formData.append("name", data.name);
-        formData.append("description", data.description);
-        formData.append("category", data.category);
-        formData.append("points", JSON.stringify(points));
-        formData.append("isFeatured", data.isFeatured);
-        images.forEach((image) => {
-            formData.append("images", image);
-        });
+        formData.append('name',        data.name);
+        formData.append('description', data.description);
+        formData.append('category',    data.category);
+        formData.append('isFeatured',  data.isFeatured);
+        formData.append('points',      JSON.stringify(points.filter(p => p.trim())));
+        images.forEach(img => formData.append('images', img));
 
         try {
-            const response = await axios.post(`${url}/api/design/add`, formData, { headers: { Authorization: `Bearer ${token}` } });
-            if (response.data.success) {
-                setData({ name: "", description: "", category: categories[0] });
-                setPoints([""]);
-                setImages([]);
-                toast.success(response.data.message);
+            const res = await axios.post(`${url}/api/design/add`, formData, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.data.success) {
+                setData({ name: '', description: '', category: categories[0] || '', isFeatured: false });
+                setPoints(['']); setImages([]);
+                toast.success(res.data.message);
             } else {
-                toast.error(response.data.message);
+                toast.error(res.data.message);
             }
-        } catch (error) {
-            toast.error('An error occurred while adding the data.');
+        } catch {
+            toast.error('An error occurred while adding the design.');
         } finally {
-            setIsLoading(false); // 2. Unfreeze the screen
+            setIsLoading(false);
         }
     };
 
     return (
-        <div className='add'>
+        <div className="add">
             <form className="flex-col" onSubmit={onSubmitHandler}>
+
+                {/* ── Images ── */}
                 <div className="add-img-upload flex-col">
                     <h2>Upload Image</h2>
                     <label htmlFor="image" className="upload-icon">
-                        <i className="fa fa-upload"></i>
+                        <i className="fa fa-upload" />
                     </label>
-                    <input onChange={onImageChangeHandler} type='file' id='image' multiple hidden />
-
+                    <input onChange={onImageChange} type="file" id="image" multiple hidden />
                     <div className="selected-images">
-                        {images.length > 0 && images.map((img, index) => (
-                            <div key={index} className="image-preview">
-                                <img src={URL.createObjectURL(img)} alt={`Image ${index + 1}`} className="thumbnail" />
-                                <button type="button" onClick={() => removeImage(index)} className="remove-btn">X</button>
+                        {images.map((img, i) => (
+                            <div key={i} className="image-preview">
+                                <img src={URL.createObjectURL(img)} alt={`img-${i}`} className="thumbnail" />
+                                <button type="button" onClick={() => removeImage(i)} className="remove-btn">X</button>
                             </div>
                         ))}
                     </div>
                 </div>
 
+                {/* ── Name ── */}
                 <div className="add-product-name flex-col">
                     <h2>Name</h2>
-                    <input onChange={onChangeHandler} value={data.name} type="text" name='name' placeholder='Type here' required />
+                    <input onChange={onChangeHandler} value={data.name} type="text" name="name" placeholder="Type here" required />
                 </div>
 
+                {/* ── Description ── */}
                 <div className="add-product-description flex-col">
                     <h2>Description</h2>
-                    <textarea onChange={onChangeHandler} value={data.description} name="description" rows="6" placeholder='Write about the item here.' required></textarea>
+                    <textarea onChange={onChangeHandler} value={data.description} name="description" rows="6" placeholder="Write about the item here." required />
                 </div>
 
+                {/* ── Points ── */}
                 <div className="add-product-points flex-col">
                     <h2>Points</h2>
-                    {points.map((point, index) => (
-                        <div key={index} className="point-input">
-                            <input
-                                type="text"
-                                value={point}
-                                onChange={(e) => onPointChangeHandler(index, e.target.value)}
-                                placeholder={`Point ${index + 1}`}
-                            />
-                            <button type="button" onClick={() => removePoint(index)} className="remove-point-btn">Remove</button>
+                    {points.map((pt, i) => (
+                        <div key={i} className="point-input">
+                            <input type="text" value={pt} onChange={e => onPointChange(i, e.target.value)} placeholder={`Point ${i + 1}`} />
+                            <button type="button" onClick={() => removePoint(i)} className="remove-point-btn">Remove</button>
                         </div>
                     ))}
-                    <button className='add-point-btn' type="button" onClick={addPoint}>+ Add Point</button>
+                    <button className="add-point-btn" type="button" onClick={addPoint}>+ Add Point</button>
                 </div>
 
+                {/* ── Category ── */}
                 <div className="add-cat-dropdown-wrap flex-col">
                     <h2>Category</h2>
                     <div className="add-cat-dropdown" ref={catRef}>
                         <button
                             type="button"
                             className={`add-cat-trigger${catOpen ? ' open' : ''}`}
-                            onClick={() => setCatOpen(o => !o)}
+                            onClick={() => { setCatOpen(o => !o); setAddingCat(false); }}
                         >
-                            <span>{data.category}</span>
+                            <span>{data.category || 'Select category'}</span>
                             <i className="fa fa-chevron-down" />
                         </button>
 
@@ -157,44 +187,66 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
                                     <li
                                         key={i}
                                         className={`add-cat-option${data.category === cat ? ' active' : ''}`}
-                                        onClick={() => {
-                                            setData(prev => ({ ...prev, category: cat }));
-                                            setCatOpen(false);
-                                        }}
+                                        onClick={() => { setData(p => ({ ...p, category: cat })); setCatOpen(false); setAddingCat(false); }}
                                     >
                                         <span>{cat}</span>
                                         {data.category === cat && <i className="fa fa-check" />}
                                     </li>
                                 ))}
+
+                                {/* ── Add new category row ── */}
+                                {!addingCat ? (
+                                    <li
+                                        className="add-cat-option add-cat-new-btn"
+                                        onClick={(e) => { e.stopPropagation(); setAddingCat(true); }}
+                                    >
+                                        <i className="fa fa-plus" />
+                                        <span>Add new category</span>
+                                    </li>
+                                ) : (
+                                    <li className="add-cat-new-form" onClick={e => e.stopPropagation()}>
+                                        <input
+                                            type="text"
+                                            placeholder="Name e.g. Pooja Room Designs"
+                                            value={newCatName}
+                                            onChange={e => setNewCatName(e.target.value)}
+                                            autoFocus
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="Short label e.g. Pooja Room"
+                                            value={newCatLabel}
+                                            onChange={e => setNewCatLabel(e.target.value)}
+                                        />
+                                        <div className="add-cat-new-actions">
+                                            <button type="button" className="add-cat-save-btn" onClick={saveNewCategory} disabled={catSaving}>
+                                                {catSaving ? 'Saving…' : 'Save'}
+                                            </button>
+                                            <button type="button" className="add-cat-cancel-btn" onClick={() => { setAddingCat(false); setNewCatName(''); setNewCatLabel(''); }}>
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </li>
+                                )}
                             </ul>
                         )}
                     </div>
                 </div>
 
-                {/* ── Featured card ── */}
+                {/* ── Featured ── */}
                 <label className={`add-feature-card${data.isFeatured ? ' active' : ''}`}>
                     <div className="add-feature-left">
-                        <div className="add-feature-icon">
-                            <i className="fa fa-star" />
-                        </div>
+                        <div className="add-feature-icon"><i className="fa fa-star" /></div>
                         <div className="add-feature-text">
                             <span className="add-feature-title">Feature on Homepage</span>
-                            <span className="add-feature-desc">
-                                Mark as featured — this design will appear in the Featured Picks slider on the design display page.
-                            </span>
+                            <span className="add-feature-desc">Mark as featured — this design will appear in the Featured Picks slider on the design display page.</span>
                         </div>
                     </div>
-                    <input
-                        type="checkbox"
-                        name="isFeatured"
-                        checked={data.isFeatured}
-                        onChange={onChangeHandler}
-                        style={{ display: 'none' }}
-                    />
+                    <input type="checkbox" name="isFeatured" checked={data.isFeatured} onChange={onChangeHandler} style={{ display: 'none' }} />
                     <span className="toggle-slider" />
                 </label>
 
-                <button type='submit' className='add-btn' disabled={isLoading}>
+                <button type="submit" className="add-btn" disabled={isLoading}>
                     {isLoading ? 'Adding...' : 'Add Design'}
                 </button>
             </form>

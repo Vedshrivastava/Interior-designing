@@ -1,4 +1,4 @@
-import { CATEGORY_SLUGS, SLUG_TO_CATEGORY, CATEGORY_TO_SLUG } from '@/lib/categories';
+import { CATEGORY_SLUGS, SLUG_TO_CATEGORY, CATEGORY_TO_SLUG, fetchCategoriesFromDB } from '@/lib/categories';
 import { CITY_SLUGS, locationToSlug, matchesCity } from '@/lib/cities';
 
 const BASE_URL = 'https://shrivastavaseelevate.com';
@@ -26,10 +26,14 @@ export default async function sitemap() {
     // API unavailable at build time — sitemap will have no images but valid URLs
   }
 
+  // ── Fetch live categories ─────────────────────────────────────
+  const liveCategories = await fetchCategoriesFromDB();
+  const liveCategoryToSlug = Object.fromEntries(liveCategories.map(c => [c.name, c.slug]));
+
   // ── Group designs by category slug ────────────────────────────
   const designsBySlug = {};
   for (const design of allDesigns) {
-    const slug = CATEGORY_TO_SLUG[design.category];
+    const slug = liveCategoryToSlug[design.category] || CATEGORY_TO_SLUG[design.category];
     if (!slug) continue;
     if (!designsBySlug[slug]) designsBySlug[slug] = [];
     designsBySlug[slug].push(design);
@@ -72,8 +76,9 @@ export default async function sitemap() {
   };
 
   // ── Design category routes with every design image ────────────
-  const designRoutes = CATEGORY_SLUGS.map(slug => {
-    const categoryName = SLUG_TO_CATEGORY[slug];
+  const designRoutes = liveCategories.map(cat => {
+    const slug         = cat.slug;
+    const categoryName = cat.name;
     const designs      = designsBySlug[slug] || [];
     const isHighPriority = slug === 'kitchen-designs' || slug === 'bedroom-designs';
 

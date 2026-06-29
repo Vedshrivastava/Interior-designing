@@ -1,5 +1,5 @@
 import DesignDisplayPage from '@/components/pages/DesignDisplayPage';
-import { SLUG_TO_CATEGORY, CATEGORY_SLUGS } from '@/lib/categories';
+import { SLUG_TO_CATEGORY, CATEGORY_SLUGS, fetchCategoriesFromDB } from '@/lib/categories';
 
 export const revalidate = 60;
 
@@ -50,7 +50,8 @@ const CATEGORY_META = {
 };
 
 export async function generateStaticParams() {
-  return CATEGORY_SLUGS.map(slug => ({ category: slug }));
+  const cats = await fetchCategoriesFromDB();
+  return cats.map(c => ({ category: c.slug }));
 }
 
 export async function generateMetadata({ params }) {
@@ -91,6 +92,8 @@ export default async function Page({ params }) {
   const { category: slug } = await params;
   const categoryName = SLUG_TO_CATEGORY[slug] || slug;
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+  const categories = await fetchCategoriesFromDB();
 
   let initialDesigns = [];
   let initialTotal   = 0;
@@ -174,6 +177,7 @@ export default async function Page({ params }) {
         initialDesigns={initialDesigns}
         initialTotal={initialTotal}
         pageLimit={PAGE_LIMIT}
+        categories={categories}
       />
     </>
   );

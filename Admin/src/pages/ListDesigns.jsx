@@ -63,20 +63,18 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
   const [keptImages, setKeptImages] = useState([]);
   const [editImages, setEditImages] = useState([]);
 
-  const formCategories = [
-    'Kitchen Designs',
-    'Bedroom Designs',
-    'Bathroom Designs',
-    'Lounge area Designs',
-    'TV Unit Designs',
-    'Kids Room Designs',
-    'Commercial Designs',
-    'House Exterior',
-    'Mandir Designs',
-    'Garden Designs',
-  ];
+  const [formCategories, setFormCategories] = useState([
+    'Kitchen Designs', 'Bedroom Designs', 'Bathroom Designs',
+    'Lounge area Designs', 'TV Unit Designs', 'Kids Room Designs',
+    'Commercial Designs', 'House Exterior', 'Mandir Designs', 'Garden Designs',
+  ]);
 
-  // Added 'All' just for the top filter bar
+  useEffect(() => {
+    axios.get(`${url}/api/category/list`)
+      .then(res => { if (res.data.success) setFormCategories(res.data.data.map(c => c.name)); })
+      .catch(() => {});
+  }, [url]);
+
   const filterCategories = ['All', ...formCategories];
 
   const fetchList = async () => {

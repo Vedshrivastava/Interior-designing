@@ -216,6 +216,7 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
     };
 
     return (
+        <>
         <div className="add">
             <form className="flex-col" onSubmit={onSubmit}>
 
@@ -435,6 +436,7 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
             </div>,
             document.body
         )}
+        </>
     );
 };
 

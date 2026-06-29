@@ -38,15 +38,18 @@ const AddProject = ({ url, setIsLoading, isLoading }) => {
         showInCityPage:    false,
         cityPage:          '',
     });
-    const [points,  setPoints]  = useState(['']);
-    const [catOpen, setCatOpen] = useState(false);
-    const catRef = useRef(null);
+    const [points,   setPoints]   = useState(['']);
+    const [catOpen,  setCatOpen]  = useState(false);
+    const [cityOpen, setCityOpen] = useState(false);
+    const catRef  = useRef(null);
+    const cityRef = useRef(null);
 
     const token = localStorage.getItem('token');
 
     useEffect(() => {
         const handleOutside = (e) => {
-            if (catRef.current && !catRef.current.contains(e.target)) setCatOpen(false);
+            if (catRef.current  && !catRef.current.contains(e.target))  setCatOpen(false);
+            if (cityRef.current && !cityRef.current.contains(e.target)) setCityOpen(false);
         };
         document.addEventListener('mousedown', handleOutside);
         return () => document.removeEventListener('mousedown', handleOutside);
@@ -269,14 +272,35 @@ const AddProject = ({ url, setIsLoading, isLoading }) => {
                     <span className="toggle-slider" />
                 </label>
                 {data.showInCityPage && (
-                    <div className="add-category flex-col">
+                    <div className="add-cat-dropdown-wrap flex-col">
                         <h2>Select City</h2>
-                        <select name="cityPage" value={data.cityPage} onChange={onChangeHandler} required>
-                            <option value="">— Pick a city —</option>
-                            {CITY_OPTIONS.map(c => (
-                                <option key={c.slug} value={c.slug}>{c.label}</option>
-                            ))}
-                        </select>
+                        <div className="add-cat-dropdown" ref={cityRef}>
+                            <button
+                                type="button"
+                                className={`add-cat-trigger${cityOpen ? ' open' : ''}`}
+                                onClick={() => setCityOpen(o => !o)}
+                            >
+                                <span>{data.cityPage ? CITY_OPTIONS.find(c => c.slug === data.cityPage)?.label : '— Pick a city —'}</span>
+                                <i className="fa fa-chevron-down" />
+                            </button>
+                            {cityOpen && (
+                                <ul className="add-cat-list">
+                                    {CITY_OPTIONS.map(c => (
+                                        <li
+                                            key={c.slug}
+                                            className={`add-cat-option${data.cityPage === c.slug ? ' active' : ''}`}
+                                            onClick={() => {
+                                                setData(prev => ({ ...prev, cityPage: c.slug }));
+                                                setCityOpen(false);
+                                            }}
+                                        >
+                                            <span>{c.label}</span>
+                                            {data.cityPage === c.slug && <i className="fa fa-check" />}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
                     </div>
                 )}
 

@@ -34,7 +34,9 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
     const [activeFilter,  setActiveFilter]  = useState('All');
     const [cityMode,      setCityMode]      = useState(false);
     const [cityFilter,    setCityFilter]    = useState('');
+    const [editCityOpen,  setEditCityOpen]  = useState(false);
     const mobileBarRef = useRef(null);
+    const editCityRef  = useRef(null);
     const token = localStorage.getItem('token');
 
     /* ── Lightbox ── */
@@ -275,14 +277,35 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
                                 <span className="toggle-slider" />
                             </label>
                             {editData.showInCityPage && (
-                                <div className="flex-col" style={{ marginTop: '8px' }}>
+                                <div className="add-cat-dropdown-wrap flex-col" style={{ marginTop: '8px' }} ref={editCityRef}>
                                     <p>Select City</p>
-                                    <select name="cityPage" value={editData.cityPage} onChange={onEditChange}>
-                                        <option value="">— Pick a city —</option>
-                                        {CITY_OPTIONS.map(c => (
-                                            <option key={c.slug} value={c.slug}>{c.label}</option>
-                                        ))}
-                                    </select>
+                                    <div className="add-cat-dropdown">
+                                        <button
+                                            type="button"
+                                            className={`add-cat-trigger${editCityOpen ? ' open' : ''}`}
+                                            onClick={() => setEditCityOpen(o => !o)}
+                                        >
+                                            <span>{editData.cityPage ? CITY_OPTIONS.find(c => c.slug === editData.cityPage)?.label : '— Pick a city —'}</span>
+                                            <i className="fa fa-chevron-down" />
+                                        </button>
+                                        {editCityOpen && (
+                                            <ul className="add-cat-list">
+                                                {CITY_OPTIONS.map(c => (
+                                                    <li
+                                                        key={c.slug}
+                                                        className={`add-cat-option${editData.cityPage === c.slug ? ' active' : ''}`}
+                                                        onClick={() => {
+                                                            setEditData(p => ({ ...p, cityPage: c.slug }));
+                                                            setEditCityOpen(false);
+                                                        }}
+                                                    >
+                                                        <span>{c.label}</span>
+                                                        {editData.cityPage === c.slug && <i className="fa fa-check" />}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
@@ -363,16 +386,21 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
                 {/* Filter pills / city dropdown */}
                 {cityMode ? (
                     <div className="admin-category-scroll" ref={mobileBarRef}>
-                        <select
-                            value={cityFilter}
-                            onChange={e => setCityFilter(e.target.value)}
-                            style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.82rem', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--gold-line)', background: 'var(--bg-ivory)', color: 'var(--text-mid)', cursor: 'pointer' }}
+                        <button
+                            className={`admin-cat-pill${cityFilter === '' ? ' active' : ''}`}
+                            onClick={() => setCityFilter('')}
                         >
-                            <option value="">All Cities</option>
-                            {CITY_OPTIONS.map(c => (
-                                <option key={c.slug} value={c.slug}>{c.label}</option>
-                            ))}
-                        </select>
+                            All Cities
+                        </button>
+                        {CITY_OPTIONS.map(c => (
+                            <button
+                                key={c.slug}
+                                className={`admin-cat-pill${cityFilter === c.slug ? ' active' : ''}`}
+                                onClick={() => setCityFilter(c.slug)}
+                            >
+                                {c.label}
+                            </button>
+                        ))}
                     </div>
                 ) : (
                     <div className="admin-category-scroll" ref={mobileBarRef}>

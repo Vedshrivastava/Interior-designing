@@ -1013,6 +1013,7 @@
     background: var(--ivory);
     border: 1px solid transparent;
     cursor: grab;
+    touch-action: none;
     transition: background 0.15s, border-color 0.15s, opacity 0.15s, transform 0.15s;
     user-select: none;
 }

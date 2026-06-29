@@ -136,23 +136,55 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
     const onDragOver  = (e, i) => { e.preventDefault(); setDragOverIndex(i); };
     const onDragEnd   = () => { setDragIndex(null); setDragOverIndex(null); };
 
+    const saveReorder = async (reordered) => {
+        setCategoryObjects(reordered);
+        setCategories(reordered.map(c => c.name));
+        try {
+            await axios.post(`${url}/api/category/reorder`,
+                { order: reordered.map((c, idx) => ({ _id: c._id, order: idx + 1 })) },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+        } catch {
+            toast.error('Failed to save order');
+            await fetchCategories();
+        }
+    };
+
     const onDrop = async (e, dropIndex) => {
         e.preventDefault();
         if (dragIndex === null || dragIndex === dropIndex) { onDragEnd(); return; }
         const reordered = [...categoryObjects];
         const [moved] = reordered.splice(dragIndex, 1);
         reordered.splice(dropIndex, 0, moved);
-        setCategoryObjects(reordered);
-        setCategories(reordered.map(c => c.name));
         onDragEnd();
-        try {
-            await axios.post(`${url}/api/category/reorder`,
-                { order: reordered.map((c, i) => ({ _id: c._id, order: i + 1 })) },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-        } catch {
-            toast.error('Failed to save order');
-            await fetchCategories();
+        await saveReorder(reordered);
+    };
+
+    // ── Touch drag-and-drop (mobile) ──
+    const onTouchStart = (e, i) => {
+        setDragIndex(i);
+    };
+
+    const onTouchMove = (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        const item = el?.closest('[data-reorder-index]');
+        if (item) {
+            const idx = parseInt(item.dataset.reorderIndex, 10);
+            if (!isNaN(idx)) setDragOverIndex(idx);
+        }
+    };
+
+    const onTouchEnd = async () => {
+        if (dragIndex !== null && dragOverIndex !== null && dragIndex !== dragOverIndex) {
+            const reordered = [...categoryObjects];
+            const [moved] = reordered.splice(dragIndex, 1);
+            reordered.splice(dragOverIndex, 0, moved);
+            onDragEnd();
+            await saveReorder(reordered);
+        } else {
+            onDragEnd();
         }
     };
 
@@ -325,12 +357,16 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
                             {categoryObjects.map((cat, i) => (
                                 <li
                                     key={cat._id}
+                                    data-reorder-index={i}
                                     className={`cat-reorder-item${dragOverIndex === i ? ' drag-over' : ''}${dragIndex === i ? ' dragging' : ''}`}
                                     draggable
                                     onDragStart={() => onDragStart(i)}
                                     onDragOver={e => onDragOver(e, i)}
                                     onDrop={e => onDrop(e, i)}
                                     onDragEnd={onDragEnd}
+                                    onTouchStart={e => onTouchStart(e, i)}
+                                    onTouchMove={onTouchMove}
+                                    onTouchEnd={onTouchEnd}
                                 >
                                     <i className="fa fa-grip-vertical cat-drag-handle" />
                                     <span className="cat-reorder-name">{cat.name}</span>

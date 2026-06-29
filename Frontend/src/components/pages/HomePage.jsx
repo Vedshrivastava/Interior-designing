@@ -150,8 +150,8 @@ export default function HomePage() {
   const { openConsult } = useModal();
   const [activeCard, setActiveCard] = useState(null);
 
-  const trackA = useDraggableMarquee({ speed: 0.55, reverse: false });
-  const trackB = useDraggableMarquee({ speed: 0.55, reverse: true });
+  const trackA = useDraggableMarquee({ speed: 0.75, reverse: false });
+  const trackB = useDraggableMarquee({ speed: 0.75, reverse: true });
 
   const revealRefs = useRef([]);
   useEffect(() => {

@@ -91,10 +91,70 @@ const CountUp = ({ endValue, duration = 2300 }) => {
   return <span ref={ref}>{prefix}<span className="hp-prof-num">{d}</span>{suffix}</span>;
 };
 
+function useDraggableMarquee({ speed = 0.75, reverse = false } = {}) {
+  const innerRef = useRef(null);
+  const stateRef = useRef({ pos: 0, dragging: false, startX: 0, startPos: 0, moved: false });
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    const half = el.scrollWidth / 2;
+    stateRef.current.pos = reverse ? -half : 0;
+    el.style.transform = `translateX(${stateRef.current.pos}px)`;
+
+    function tick() {
+      const s = stateRef.current;
+      if (!s.dragging) {
+        const h = el.scrollWidth / 2;
+        s.pos += reverse ? speed : -speed;
+        if (!reverse && s.pos <= -h) s.pos += h;
+        if (reverse  && s.pos >= 0)  s.pos -= h;
+        el.style.transform = `translateX(${s.pos}px)`;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    }
+
+    function onWindowMove(e) {
+      const s = stateRef.current;
+      if (!s.dragging) return;
+      if (Math.abs(e.clientX - s.startX) > 8) s.moved = true;
+      const h = el.scrollWidth / 2;
+      let newPos = s.startPos + (e.clientX - s.startX);
+      if (newPos > 0) newPos -= h;
+      if (newPos < -h) newPos += h;
+      s.pos = newPos;
+      el.style.transform = `translateX(${newPos}px)`;
+    }
+
+    function onWindowUp() { stateRef.current.dragging = false; }
+
+    window.addEventListener('pointermove', onWindowMove);
+    window.addEventListener('pointerup',   onWindowUp);
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      window.removeEventListener('pointermove', onWindowMove);
+      window.removeEventListener('pointerup',   onWindowUp);
+    };
+  }, [speed, reverse]);
+
+  function handlePointerDown(e) {
+    const s = stateRef.current;
+    s.dragging = true; s.moved = false;
+    s.startX = e.clientX; s.startPos = s.pos;
+  }
+
+  return { innerRef, onPointerDown: handlePointerDown, wasDragged: () => stateRef.current.moved };
+}
+
 export default function ServicesPage() {
   const router = useRouter();
   const { openConsult } = useModal();
   const revealRefs = useRef([]);
+  const trackA = useDraggableMarquee({ speed: 0.75, reverse: false });
+  const trackB = useDraggableMarquee({ speed: 0.75, reverse: true });
   const [activeService,  setActiveService]  = useState(null);
   const [activeTCard,    setActiveTCard]    = useState(null);
   const [activeInfoCard, setActiveInfoCard] = useState(null);
@@ -359,9 +419,9 @@ export default function ServicesPage() {
         </div>
         <div className="marquee-track-wrapper">
           <div className="marquee-track">
-            <div className="marquee-inner scroll-left">
+            <div className="marquee-inner" ref={trackA.innerRef} onPointerDown={trackA.onPointerDown} style={{ cursor: 'grab' }}>
               {marqueeItems.map((t, i) => (
-                <div className="t-card" key={`a${i}`} onClick={() => setActiveTCard(t)} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && setActiveTCard(t)}>
+                <div className="t-card" key={`a${i}`} onClick={() => { if (!trackA.wasDragged()) setActiveTCard(t); }} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && setActiveTCard(t)}>
                   <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
                   <p className="t-card-text">{truncate(t.text)}</p>
                   <div className="t-card-author">
@@ -373,9 +433,9 @@ export default function ServicesPage() {
             </div>
           </div>
           <div className="marquee-track">
-            <div className="marquee-inner scroll-right">
+            <div className="marquee-inner" ref={trackB.innerRef} onPointerDown={trackB.onPointerDown} style={{ cursor: 'grab' }}>
               {[...marqueeItems].reverse().map((t, i) => (
-                <div className="t-card" key={`b${i}`} onClick={() => setActiveTCard(t)} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && setActiveTCard(t)}>
+                <div className="t-card" key={`b${i}`} onClick={() => { if (!trackB.wasDragged()) setActiveTCard(t); }} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && setActiveTCard(t)}>
                   <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
                   <p className="t-card-text">{truncate(t.text)}</p>
                   <div className="t-card-author">

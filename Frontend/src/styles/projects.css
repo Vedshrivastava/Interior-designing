@@ -461,35 +461,7 @@ html { scroll-behavior: smooth; }
 
 .proj-type-scroll-bar::-webkit-scrollbar { display: none; }
 
-@media (max-width: 640px) {
-  .proj-type-scroll-bar {
-    background: var(--green);
-    margin: 0 -5% 24px;
-    padding: 12px 5% 14px;
-    gap: 8px;
-  }
 
-  .proj-type-pill {
-    background: rgba(201,168,124,0.1);
-    border-color: rgba(201,168,124,0.18);
-    color: rgba(201,168,124,0.8);
-    padding: 8px 16px;
-  }
-
-  .proj-type-pill:hover {
-    background: rgba(201,168,124,0.18);
-    color: rgba(255,255,255,0.9);
-    border-color: rgba(201,168,124,0.3);
-  }
-
-  .proj-type-pill.active {
-    background: rgba(201,168,124,0.22);
-    border-color: var(--gold);
-    color: #fff;
-    font-weight: 700;
-    box-shadow: none;
-  }
-}
 
 .proj-type-pill {
   flex-shrink: 0;

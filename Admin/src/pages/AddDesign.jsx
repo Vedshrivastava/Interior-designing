@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import '../styles/add.css';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -21,7 +22,9 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
     const [categories, setCategories] = useState(FALLBACK_CATEGORIES);
 
     // inline add-category state
-    const [addingCat,  setAddingCat]  = useState(false);
+    const [addingCat,    setAddingCat]    = useState(false);
+    const [confirmCatDel, setConfirmCatDel] = useState(null); // catObj pending delete
+    const [catDeleting,   setCatDeleting]   = useState(false);
     const [newCatName, setNewCatName] = useState('');
     const [newCatLabel,setNewCatLabel]= useState('');
     const [catSaving,  setCatSaving]  = useState(false);
@@ -46,23 +49,32 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
         }
     };
 
-    const deleteCategory = async (e, catObj) => {
+    const deleteCategory = (e, catObj) => {
         e.stopPropagation();
-        if (!window.confirm(`Remove "${catObj.name}" from categories? Designs inside are kept safe.`)) return;
+        setCatOpen(false);
+        setConfirmCatDel(catObj);
+    };
+
+    const confirmDeleteCategory = async () => {
+        if (!confirmCatDel || catDeleting) return;
+        setCatDeleting(true);
         try {
             const res = await axios.post(`${url}/api/category/remove`,
-                { _id: catObj._id },
+                { _id: confirmCatDel._id },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             if (res.data.success) {
                 toast.success(res.data.message);
-                if (data.category === catObj.name) setData(p => ({ ...p, category: '' }));
+                if (data.category === confirmCatDel.name) setData(p => ({ ...p, category: '' }));
                 await fetchCategories();
             } else {
                 toast.error(res.data.message);
             }
         } catch {
             toast.error('Failed to remove category');
+        } finally {
+            setCatDeleting(false);
+            setConfirmCatDel(null);
         }
     };
 
@@ -286,6 +298,35 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
                 </button>
             </form>
         </div>
+
+        {/* ── Category delete confirmation modal ── */}
+        {confirmCatDel && ReactDOM.createPortal(
+            <div className="bin-confirm-backdrop" onClick={() => !catDeleting && setConfirmCatDel(null)}>
+                <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                    <div className="bin-confirm-icon">
+                        <i className="fa-solid fa-triangle-exclamation" />
+                    </div>
+                    <h3>Remove Category?</h3>
+                    <p className="bin-confirm-name">"{confirmCatDel.name}"</p>
+                    <p className="bin-confirm-warning">
+                        This moves the category to the Recovery Bin.<br />
+                        <strong>Designs inside are kept safe</strong> — they won't be deleted.
+                    </p>
+                    <div className="bin-confirm-actions">
+                        <button className="bin-btn-cancel" onClick={() => setConfirmCatDel(null)} disabled={catDeleting}>
+                            Cancel
+                        </button>
+                        <button className="bin-btn-delete" onClick={confirmDeleteCategory} disabled={catDeleting}>
+                            {catDeleting
+                                ? <><i className="fa-solid fa-circle-notch fa-spin" /> Removing…</>
+                                : <><i className="fa-solid fa-trash" /> Yes, Remove</>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>,
+            document.body
+        )}
     );
 };
 

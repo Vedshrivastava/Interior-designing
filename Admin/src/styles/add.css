@@ -957,3 +957,57 @@
     transform: translateX(20px);
     background: #c9a87c;
 }
+
+/* ── Shared confirm modal (reused from RecoveryBin) ── */
+.bin-confirm-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(10,20,20,0.85);
+    z-index: 99999;
+    display: flex; align-items: center; justify-content: center;
+    animation: binFadeIn 0.15s ease;
+}
+@keyframes binFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.bin-confirm-modal {
+    background: var(--ivory);
+    border: 1px solid rgba(201,168,124,0.35);
+    border-radius: 14px;
+    padding: 36px 32px 28px;
+    width: min(420px, 92vw);
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(10,20,20,0.25);
+    animation: binSlideUp 0.18s ease;
+}
+@keyframes binSlideUp { from { transform: translateY(14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.bin-confirm-icon {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(220,60,60,0.1);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px; font-size: 1.4rem; color: #c0392b;
+}
+.bin-confirm-modal h3 {
+    font-family: 'Cormorant Garamond', serif; font-size: 1.4rem;
+    font-weight: 600; color: var(--green); margin: 0 0 6px;
+}
+.bin-confirm-name {
+    font-family: 'DM Sans', sans-serif; font-size: 0.95rem;
+    font-weight: 600; color: var(--gold); margin: 0 0 14px; word-break: break-word;
+}
+.bin-confirm-warning {
+    font-family: 'DM Sans', sans-serif; font-size: 0.85rem;
+    color: var(--text-mid); line-height: 1.6; margin: 0 0 26px;
+}
+.bin-confirm-actions { display: flex; gap: 12px; justify-content: center; }
+.bin-btn-cancel, .bin-btn-delete {
+    padding: 10px 22px; min-width: 140px; justify-content: center;
+    border-radius: 8px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem; font-weight: 500; cursor: pointer; border: 1px solid;
+    transition: background 0.15s, opacity 0.15s;
+    display: flex; align-items: center; gap: 7px;
+}
+.bin-btn-cancel { background: transparent; border-color: rgba(201,168,124,0.4); color: var(--green); }
+.bin-btn-cancel:hover:not(:disabled) { background: rgba(201,168,124,0.1); }
+.bin-btn-delete { background: #c0392b; border-color: #c0392b; color: #fff; }
+.bin-btn-delete:hover:not(:disabled) { background: #a93226; border-color: #a93226; }
+.bin-btn-cancel:disabled, .bin-btn-delete:disabled { opacity: 0.55; cursor: not-allowed; }

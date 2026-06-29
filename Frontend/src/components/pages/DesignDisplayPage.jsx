@@ -125,7 +125,7 @@ export default function DesignDisplayPage({
               className={`dd-cat-pill${slug === cat.slug ? ' active' : ''}`}
               onClick={() => router.push(`/design/${cat.slug}`)}
             >
-              {cat.name.replace(' Designs', '').replace(' Design', '').trim() || cat.name}
+              {cat.name}
             </button>
           ))}
         </nav>
@@ -137,7 +137,7 @@ export default function DesignDisplayPage({
               className={`dd-cat-chip${slug === cat.slug ? ' active' : ''}`}
               onClick={() => router.push(`/design/${cat.slug}`)}
             >
-              {cat.name.replace(' Designs', '').replace(' Design', '').trim() || cat.name}
+              {cat.name}
             </button>
           ))}
         </div>

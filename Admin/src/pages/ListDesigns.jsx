@@ -64,18 +64,26 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
   const [editImages, setEditImages] = useState([]);
 
   const [formCategories, setFormCategories] = useState([
-    'Kitchen Designs', 'Bedroom Designs', 'Bathroom Designs',
-    'Lounge area Designs', 'TV Unit Designs', 'Kids Room Designs',
-    'Commercial Designs', 'House Exterior', 'Mandir Designs', 'Garden Designs',
+    { name: 'Kitchen Designs',     label: 'Kitchen'    },
+    { name: 'Bedroom Designs',     label: 'Bedroom'    },
+    { name: 'Bathroom Designs',    label: 'Bathroom'   },
+    { name: 'Lounge area Designs', label: 'Lounge'     },
+    { name: 'TV Unit Designs',     label: 'TV Unit'    },
+    { name: 'Kids Room Designs',   label: 'Kids Room'  },
+    { name: 'Commercial Designs',  label: 'Commercial' },
+    { name: 'House Exterior',      label: 'Exterior'   },
+    { name: 'Mandir Designs',      label: 'Mandir'     },
+    { name: 'Garden Designs',      label: 'Garden'     },
   ]);
 
   useEffect(() => {
     axios.get(`${url}/api/category/list`)
-      .then(res => { if (res.data.success) setFormCategories(res.data.data.map(c => c.name)); })
+      .then(res => { if (res.data.success) setFormCategories(res.data.data); })
       .catch(() => {});
   }, [url]);
 
-  const filterCategories = ['All', ...formCategories];
+  const getCatLabel = (name) => formCategories.find(c => c.name === name)?.label || name;
+  const filterCategories = ['All', ...formCategories.map(c => c.name)];
 
   const fetchList = async () => {
     setIsLoading(true);
@@ -269,7 +277,7 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
                 <p>Category</p>
                 <select name="category" value={editData.category} onChange={handleEditChange}>
                   {formCategories.map((cat, index) => (
-                    <option key={index} value={cat}>{cat}</option>
+                    <option key={index} value={cat.name}>{cat.name}</option>
                   ))}
                 </select>
               </div>
@@ -364,7 +372,7 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
               className={`admin-cat-pill ${currentFilter === cat ? 'active' : ''}`}
               onClick={() => setCurrentFilter(cat)}
             >
-              {cat.replace(' Designs', '')} {/* Cleans up long names like 'Kitchen Designs' to just 'Kitchen' */}
+              {cat}
             </button>
           ))}
         </div>
@@ -400,7 +408,7 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
                     )}
                   </div>
                   <p className="item-name">{item.name}</p>
-                  <p className="item-category">{item.category}</p>
+                  <p className="item-category">{getCatLabel(item.category)}</p>
 
                   <div className="action-buttons">
                     <p onClick={() => openEditModal(item)} className='cursor edit-action'>Edit</p>

@@ -81,7 +81,7 @@ export default function Design({ id, name, description, images, points, category
 
       <div className="dc-card-body">
         <span className="dc-category-tag">
-          {categoryLabel || category?.replace(' Designs', '').replace(' Design', '').trim() || 'Design'}
+          {categoryLabel || category || 'Design'}
         </span>
         <h3 className="dc-card-title">{name}</h3>
         <p className="dc-card-desc">{description}</p>

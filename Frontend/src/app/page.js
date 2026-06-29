@@ -1,4 +1,6 @@
+import { preload } from 'react-dom';
 import HomePage from '@/components/pages/HomePage';
+import bgimg from '@/assets/home-img.png';
 
 const SITE_URL = 'https://shrivastavaseelevate.com';
 
@@ -86,6 +88,7 @@ const faqSchema = {
 export const revalidate = 60;
 
 export default function Page() {
+  preload(bgimg.src, { as: 'image', fetchPriority: 'high' });
   return (
     <>
       <script

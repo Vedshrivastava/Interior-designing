@@ -18,11 +18,8 @@ const CITY_OPTIONS = [
     { slug: 'pune',     label: 'Pune'     },
 ];
 
-const PROJECT_CATEGORIES = [
-    'Full Home Interior', 'Kitchen', 'Bedroom', 'Living Room',
-    'Bathroom', 'TV Unit', 'Kids Room', 'Commercial', 'Office',
-    'Villa / Bungalow', 'Apartment', 'Renovation',
-];
+const FALLBACK_CATEGORIES = ['Full Home Interior','Kitchen','Bedroom','Living Room','Bathroom','TV Unit','Kids Room','Commercial','Office','Villa / Bungalow','Apartment','Renovation'];
+const FALLBACK_TYPES      = ['Residential','Commercial'];
 
 const toDateInput = (dateStr) => {
     if (!dateStr) return '';
@@ -31,7 +28,14 @@ const toDateInput = (dateStr) => {
 
 const ListProjects = ({ url, setIsLoading, isLoading }) => {
     const [list,          setList]          = useState([]);
-    const [activeFilter,  setActiveFilter]  = useState('All');
+    const [activeFilter,    setActiveFilter]    = useState('All');
+    const [projectCategories, setProjectCategories] = useState(FALLBACK_CATEGORIES);
+    const [projectTypes,      setProjectTypes]      = useState(FALLBACK_TYPES);
+
+    useEffect(() => {
+        axios.get(`${url}/api/project-category/list`).then(r => { if (r.data.success) setProjectCategories(r.data.data.map(c => c.name)); }).catch(() => {});
+        axios.get(`${url}/api/project-type/list`).then(r => { if (r.data.success) setProjectTypes(r.data.data.map(t => t.name)); }).catch(() => {});
+    }, [url]);
     const [cityMode,      setCityMode]      = useState(false);
     const [cityFilter,    setCityFilter]    = useState('');
     const [editCityOpen,  setEditCityOpen]  = useState(false);
@@ -60,8 +64,8 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
 
     /* ── Edit modal ── */
     const blankEdit = {
-        _id: '', name: '', description: '', category: PROJECT_CATEGORIES[0],
-        projectType: 'Residential', location: '', area: '', duration: '',
+        _id: '', name: '', description: '', category: projectCategories[0] || '',
+        projectType: projectTypes[0] || '', location: '', area: '', duration: '',
         completedAt: '', clientTestimonial: '', isFeatured: false, points: [],
         showInCityPage: false, cityPage: '',
     };
@@ -111,8 +115,8 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
             _id:               item._id,
             name:              item.name              || '',
             description:       item.description       || '',
-            category:          item.category          || PROJECT_CATEGORIES[0],
-            projectType:       item.projectType       || 'Residential',
+            category:          item.category          || projectCategories[0] || '',
+            projectType:       item.projectType       || projectTypes[0]     || '',
             location:          item.location          || '',
             area:              item.area              || '',
             duration:          item.duration          || '',
@@ -177,7 +181,7 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
     };
 
     /* ── Filter ── */
-    const filters = ['All', 'Residential', 'Commercial'];
+    const filters = ['All', ...projectTypes];
     const visibleList = cityMode
         ? list.filter(p => p.cityPage && (cityFilter === '' || p.cityPage === cityFilter))
         : (activeFilter === 'All' ? list : list.filter(p => p.projectType === activeFilter));
@@ -223,14 +227,13 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
                                 <div className="flex-col" style={{ flex: 1 }}>
                                     <p>Category</p>
                                     <select name="category" value={editData.category} onChange={onEditChange}>
-                                        {PROJECT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                        {projectCategories.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
                                 <div className="flex-col" style={{ flex: 1 }}>
                                     <p>Project Type</p>
                                     <select name="projectType" value={editData.projectType} onChange={onEditChange}>
-                                        <option value="Residential">Residential</option>
-                                        <option value="Commercial">Commercial</option>
+                                        {projectTypes.map(t => <option key={t} value={t}>{t}</option>)}
                                     </select>
                                 </div>
                             </div>

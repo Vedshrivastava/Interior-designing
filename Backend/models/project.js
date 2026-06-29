@@ -11,7 +11,7 @@ const projectSchema = new mongoose.Schema({
 
     // ── Project-specific ──
     location:    { type: String, required: true },          // e.g. "Satna, MP"
-    projectType: { type: String, enum: ['Residential', 'Commercial'], required: true },
+    projectType: { type: String, required: true },
     area:        { type: String },                          // e.g. "1500 sq.ft" or "3BHK"
     duration:    { type: String },                          // e.g. "6 weeks"
     completedAt: { type: Date },                            // handover date

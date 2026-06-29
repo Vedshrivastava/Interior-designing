@@ -12,7 +12,9 @@ import router from "./routes/appointments.js";
 import admin from "./routes/admin.js";
 import user from "./routes/user.js";
 import recoveryRouter from "./routes/recovery.js";
-import categoryRouter from "./routes/category.js";
+import categoryRouter        from "./routes/category.js";
+import projectCategoryRouter from "./routes/projectCategory.js";
+import projectTypeRouter     from "./routes/projectType.js";
 import dotenv from 'dotenv';
 import { wss } from './middlewares/webSocket.js'; // Import WebSocket server setup
 
@@ -58,7 +60,9 @@ app.use('/api/appointment', router);
 app.use('/api/admin', admin);
 app.use('/api/user', user);
 app.use('/api/recovery', recoveryRouter);
-app.use('/api/category', categoryRouter);
+app.use('/api/category',         categoryRouter);
+app.use('/api/project-category', projectCategoryRouter);
+app.use('/api/project-type',     projectTypeRouter);
 
 // Serve static files
 app.use('/images', express.static('uploads'));

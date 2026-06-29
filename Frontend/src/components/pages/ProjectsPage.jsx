@@ -46,6 +46,16 @@ export default function ProjectsPage({ initialProjects = [] }) {
   const [activeFilter, setActiveFilter] = useState('All');
   const [loading,      setLoading]      = useState(initialProjects.length === 0);
   const [error,        setError]        = useState(false);
+  const [projectTypes, setProjectTypes] = useState(['Residential', 'Commercial']);
+
+  const fetchProjectTypes = useCallback(() => {
+    fetch(`${API_URL}/api/project-type/list`)
+      .then(r => r.json())
+      .then(d => { if (d.success && d.data?.length > 0) setProjectTypes(d.data.map(t => t.name)); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => { fetchProjectTypes(); }, [fetchProjectTypes]);
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -64,8 +74,9 @@ export default function ProjectsPage({ initialProjects = [] }) {
   }, [fetchProjects, initialProjects.length]);
 
   useWebSocket(useCallback((msg) => {
-    if (msg.type === 'projectsChanged') fetchProjects();
-  }, [fetchProjects]));
+    if (msg.type === 'projectsChanged')     fetchProjects();
+    if (msg.type === 'projectTypesChanged') fetchProjectTypes();
+  }, [fetchProjects, fetchProjectTypes]));
 
   const filtered = (activeFilter === 'All'
     ? projects
@@ -116,7 +127,7 @@ export default function ProjectsPage({ initialProjects = [] }) {
 
         {/* Filter tabs */}
         <div className="proj-filter-bar">
-          {['All', 'Residential', 'Commercial'].map(f => (
+          {['All', ...projectTypes].map(f => (
             <button
               key={f}
               className={`proj-filter-btn${activeFilter === f ? ' active' : ''}`}

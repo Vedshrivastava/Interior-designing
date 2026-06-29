@@ -683,19 +683,64 @@ html { scroll-behavior: smooth; }
 
 /* Card body */
 .proj-card-body {
-  padding: 20px 22px 22px;
+  padding: 16px 20px 20px;
   display: flex;
   flex-direction: column;
   gap: 0;
   flex: 1;
 }
 
+/* ── Tier 1: Type row ── */
+.proj-card-type-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.proj-card-type-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--green);
+  color: var(--gold-lt);
+  font-family: "Inter", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.proj-card-type-pill svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+/* ── Tier 4: Category chips ── */
+.proj-card-cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.proj-cat-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(201,168,124,0.1);
+  border: 1px solid rgba(201,168,124,0.25);
+  color: var(--text-mid);
+  font-family: "Inter", sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .proj-card-title {
   font-family: "Playfair Display", serif;
-  font-size: 1.22rem;
+  font-size: 1.18rem;
   font-weight: 700;
   color: var(--green);
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   line-height: 1.25;
   letter-spacing: -0.2px;
 }
@@ -705,9 +750,9 @@ html { scroll-behavior: smooth; }
   align-items: center;
   gap: 5px;
   color: var(--text-lt);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-family: "Inter", sans-serif;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .proj-card-location svg { color: var(--gold); font-size: 0.7rem; }

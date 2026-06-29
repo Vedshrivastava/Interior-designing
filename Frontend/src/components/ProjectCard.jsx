@@ -19,6 +19,11 @@ export default function ProjectCard({ project, openConsult, variant }) {
     location, projectType, area, duration, completedAt, clientTestimonial, isFeatured,
   } = project;
 
+  // Support multi-category; fall back to legacy single string
+  const projectCategories = project.categories?.length > 0
+    ? project.categories
+    : category ? [category] : [];
+
   const formattedDate = completedAt
     ? new Date(completedAt).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
     : null;
@@ -57,13 +62,15 @@ export default function ProjectCard({ project, openConsult, variant }) {
 
       <div className="proj-city-content">
         <div className="proj-city-tags">
-          {category && <span className="proj-city-tag">{category}</span>}
           {projectType && (
             <span className="proj-city-tag proj-city-tag--type">
               {projectType === 'Residential' ? <IconHouseChimney /> : <IconBuilding />}
               {projectType}
             </span>
           )}
+          {projectCategories.map(c => (
+            <span key={c} className="proj-city-tag">{c}</span>
+          ))}
           {isFeatured && <span className="proj-city-tag proj-city-tag--featured"><IconStarFilled /> Featured</span>}
         </div>
 
@@ -111,12 +118,6 @@ export default function ProjectCard({ project, openConsult, variant }) {
         }
         {images.length > 1 && <div className="proj-card-img-count">+{images.length - 1}</div>}
         <div className="proj-card-img-overlay"><span>View Images</span></div>
-        {projectType && (
-          <div className="proj-card-type-badge">
-            {projectType === 'Residential' ? <IconHouseChimney /> : <IconBuilding />}
-            {projectType}
-          </div>
-        )}
         {isFeatured && (
           <div className="proj-card-featured-ribbon">
             <IconStarFilled /> Featured
@@ -124,12 +125,36 @@ export default function ProjectCard({ project, openConsult, variant }) {
         )}
       </div>
       <div className="proj-card-body">
+        {/* ── Tier 1: Type ── */}
+        {projectType && (
+          <div className="proj-card-type-row">
+            <span className="proj-card-type-pill">
+              {projectType === 'Residential' ? <IconHouseChimney /> : <IconBuilding />}
+              {projectType}
+            </span>
+          </div>
+        )}
+
+        {/* ── Tier 2: Name ── */}
         <h3 className="proj-card-title">{name}</h3>
+
+        {/* ── Tier 3: Location ── */}
         {location && (
           <div className="proj-card-location">
             <IconLocation /> {location}
           </div>
         )}
+
+        {/* ── Tier 4: Categories ── */}
+        {projectCategories.length > 0 && (
+          <div className="proj-card-cat-chips">
+            {projectCategories.map(c => (
+              <span key={c} className="proj-cat-tag">{c}</span>
+            ))}
+          </div>
+        )}
+
+        {/* ── Tier 5: Detail chips ── */}
         {(area || duration || formattedDate) && (
           <div className="proj-card-chips">
             {area          && <span className="proj-chip"><IconRulerCombined />{area}</span>}
@@ -137,6 +162,7 @@ export default function ProjectCard({ project, openConsult, variant }) {
             {formattedDate && <span className="proj-chip"><IconCalendarDays />{formattedDate}</span>}
           </div>
         )}
+
         <button className="proj-card-btn" onClick={openModal}>
           See Details <IconArrowRight />
         </button>
@@ -178,7 +204,9 @@ export default function ProjectCard({ project, openConsult, variant }) {
                 {projectType === 'Residential' ? <IconHouseChimney /> : <IconBuilding />} {projectType}
               </span>
             )}
-            {category && <span className="proj-modal-tag">{category}</span>}
+            {projectCategories.map(c => (
+              <span key={c} className="proj-modal-tag">{c}</span>
+            ))}
           </div>
           <h2 className="proj-modal-title">{name}</h2>
           {location && (

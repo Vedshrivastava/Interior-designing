@@ -21,10 +21,20 @@ export default function DesignDisplayPage({
   categories     = null,
 }) {
   const router   = useRouter();
-  // Use prop categories if provided, otherwise fall back to hardcoded
-  const catList  = categories ?? CATEGORY_SLUGS.map(s => ({ slug: s, label: SLUG_LABELS[s], name: SLUG_TO_CATEGORY[s] }));
-  const category = catList.find(c => c.slug === slug)?.name || SLUG_TO_CATEGORY[slug] || slug;
   const mobileBarRef = useRef(null);
+
+  const FALLBACK_CATS = CATEGORY_SLUGS.map(s => ({ slug: s, label: SLUG_LABELS[s], name: SLUG_TO_CATEGORY[s] }));
+  const [catList, setCatList] = useState(categories ?? FALLBACK_CATS);
+  const category = catList.find(c => c.slug === slug)?.name || SLUG_TO_CATEGORY[slug] || slug;
+
+  const fetchCategories = useCallback(() => {
+    fetch(`${API_URL}/api/category/list`)
+      .then(r => r.json())
+      .then(d => { if (d.success && d.data?.length > 0) setCatList(d.data); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => { fetchCategories(); }, [fetchCategories]);
 
   const [designList,  setDesignList]  = useState(initialDesigns);
   const [total,       setTotal]       = useState(initialTotal);
@@ -69,8 +79,9 @@ export default function DesignDisplayPage({
 
   // WebSocket: instantly re-fetch when admin adds/edits/removes a design
   useWebSocket(useCallback((msg) => {
-    if (msg.type === 'designsChanged') fetchPage(1, true);
-  }, [fetchPage]));
+    if (msg.type === 'designsChanged')    fetchPage(1, true);
+    if (msg.type === 'categoriesChanged') fetchCategories();
+  }, [fetchPage, fetchCategories]));
 
   const loadMore = async () => {
     setLoadingMore(true);

@@ -1,4 +1,5 @@
 import Category from '../models/category.js';
+import { broadcast } from '../middlewares/webSocket.js';
 
 const SEED_CATEGORIES = [
     { name: 'Kitchen Designs',      slug: 'kitchen-designs',      label: 'Kitchen',   order: 1 },
@@ -48,6 +49,7 @@ const addCategory = async (req, res) => {
         const count = await Category.countDocuments();
         const category = new Category({ name: name.trim(), slug, label: label.trim(), order: count + 1 });
         await category.save();
+        broadcast({ type: 'categoriesChanged' });
 
         res.json({ success: true, message: 'Category added', data: category });
     } catch (error) {
@@ -66,6 +68,7 @@ const removeCategory = async (req, res) => {
         category.deletedAt = new Date();
         category.deletedBy = req.userName || 'Admin';
         await category.save();
+        broadcast({ type: 'categoriesChanged' });
 
         res.json({ success: true, message: `"${category.name}" moved to recovery bin` });
     } catch (error) {

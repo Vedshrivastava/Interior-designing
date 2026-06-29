@@ -125,7 +125,7 @@ export default function DesignDisplayPage({
               className={`dd-cat-pill${slug === cat.slug ? ' active' : ''}`}
               onClick={() => router.push(`/design/${cat.slug}`)}
             >
-              {cat.label || cat.name}
+              {cat.name.replace(' Designs', '').replace(' Design', '').trim() || cat.name}
             </button>
           ))}
         </nav>
@@ -137,7 +137,7 @@ export default function DesignDisplayPage({
               className={`dd-cat-chip${slug === cat.slug ? ' active' : ''}`}
               onClick={() => router.push(`/design/${cat.slug}`)}
             >
-              {cat.label || cat.name}
+              {cat.name.replace(' Designs', '').replace(' Design', '').trim() || cat.name}
             </button>
           ))}
         </div>
@@ -170,15 +170,19 @@ export default function DesignDisplayPage({
 
             <div className="dd-slider-viewport">
               <div className="dd-slider-track" style={{ '--slide-index': sliderIndex }}>
-                {featuredDesigns.map(item => (
-                  <div key={item._id} className="dd-featured-card-wrap">
-                    <div className="dd-featured-ribbon"><IconStarFilled /> Featured</div>
-                    <Design
-                      id={item._id} name={item.name} description={item.description}
-                      images={item.images} points={item.points} category={item.category}
-                    />
-                  </div>
-                ))}
+                {featuredDesigns.map(item => {
+                  const catObj = catList.find(c => c.name === item.category);
+                  return (
+                    <div key={item._id} className="dd-featured-card-wrap">
+                      <div className="dd-featured-ribbon"><IconStarFilled /> Featured</div>
+                      <Design
+                        id={item._id} name={item.name} description={item.description}
+                        images={item.images} points={item.points} category={item.category}
+                        categoryLabel={catObj?.label || undefined}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -198,13 +202,17 @@ export default function DesignDisplayPage({
           )}
           <div className="design-display-list">
             {designList.length > 0 ? (
-              regularDesigns.map(item => (
-                <Design
-                  key={item._id} id={item._id} name={item.name}
-                  description={item.description} images={item.images}
-                  points={item.points} category={item.category}
-                />
-              ))
+              regularDesigns.map(item => {
+                const catObj = catList.find(c => c.name === item.category);
+                return (
+                  <Design
+                    key={item._id} id={item._id} name={item.name}
+                    description={item.description} images={item.images}
+                    points={item.points} category={item.category}
+                    categoryLabel={catObj?.label || undefined}
+                  />
+                );
+              })
             ) : (
               <div className="dd-empty">
                 <div className="dd-empty-icon"><IconLayerGroup /></div>

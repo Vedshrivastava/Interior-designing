@@ -12,7 +12,7 @@ function cloudinaryThumb(url, width = 800) {
   return cloudinaryOptimize(url, { width, crop: 'fill' }) ?? url;
 }
 
-export default function Design({ id, name, description, images, points, category }) {
+export default function Design({ id, name, description, images, points, category, categoryLabel }) {
   const { openQuote } = useModal();
   const [modalOpen,     setModalOpen]     = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
@@ -81,7 +81,7 @@ export default function Design({ id, name, description, images, points, category
 
       <div className="dc-card-body">
         <span className="dc-category-tag">
-          {category?.replace(' Designs', '').replace(' Design', '') || 'Design'}
+          {categoryLabel || category?.replace(' Designs', '').replace(' Design', '').trim() || 'Design'}
         </span>
         <h3 className="dc-card-title">{name}</h3>
         <p className="dc-card-desc">{description}</p>

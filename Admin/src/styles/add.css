@@ -269,6 +269,50 @@
     font-size: 0.75rem;
 }
 
+/* ── Multi-select chips ── */
+.proj-cat-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.proj-cat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px 4px 12px;
+    border-radius: 999px;
+    background: var(--green);
+    color: var(--gold-lt);
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.proj-cat-chip button {
+    background: none;
+    border: none;
+    color: var(--gold);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0.8;
+    transition: opacity 0.15s;
+}
+
+.proj-cat-chip button:hover { opacity: 1; }
+
+.proj-cat-checkbox {
+    font-size: 0.82rem;
+    color: var(--text-lt);
+    flex-shrink: 0;
+    transition: color 0.15s;
+}
+
+.add-cat-option.active .proj-cat-checkbox { color: var(--gold-lt); }
+
 /* ── Category option actions (check + trash) ── */
 .add-cat-option-actions {
     display: flex;

@@ -83,6 +83,9 @@ export default function ProjectsPage({ initialProjects = [] }) {
     : projects.filter(p => p.projectType === activeFilter)
   ).sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
 
+  // Helper for category badges on cards (multi or legacy single)
+  // (used in ProjectCard via project.categories or project.category)
+
   return (
     <div className="project-display" id="project-display">
 

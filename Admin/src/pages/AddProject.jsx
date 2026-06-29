@@ -109,27 +109,59 @@ function useManageableList({ url, apiBase, token, fallback, broadcastEvent }) {
     return { objects, names, open, setOpen, adding, setAdding, newName, setNewName, saving, add, remove_, confirm, setConfirm, confirmRemove, deleting, showReorder, setShowReorder, dragIdx, dragOver, onDragStart, onDragOver, onDrop, onDragEnd, onTouchStart, onTouchMove, onTouchEnd, ref };
 }
 
-/* ── Dropdown with add/remove/reorder ── */
-function ManagedDropdown({ label: fieldLabel, value, onChange, list, dropdownOpen, setDropdownOpen, adding, setAdding, newName, setNewName, saving, onAdd, onRemove, showReorder, setShowReorder, reorderProps, dropRef, placeholder = '— Select —' }) {
+/* ── Dropdown with add/remove/reorder (single or multi-select) ── */
+function ManagedDropdown({ label: fieldLabel, value, values, onChange, multiSelect, list, dropdownOpen, setDropdownOpen, adding, setAdding, newName, setNewName, saving, onAdd, onRemove, showReorder, setShowReorder, reorderProps, dropRef, placeholder = '— Select —' }) {
+    const selected = multiSelect ? (values || []) : [];
+
+    const toggleMulti = (name) => {
+        const next = selected.includes(name) ? selected.filter(n => n !== name) : [...selected, name];
+        onChange(next);
+    };
+
+    const triggerLabel = multiSelect
+        ? (selected.length === 0 ? placeholder : selected.length === 1 ? selected[0] : `${selected.length} categories selected`)
+        : (value || placeholder);
+
     return (
         <div className="add-cat-dropdown-wrap flex-col">
             <h2>{fieldLabel}</h2>
+
+            {/* Selected chips (multi-select only) */}
+            {multiSelect && selected.length > 0 && (
+                <div className="proj-cat-chips">
+                    {selected.map(name => (
+                        <span key={name} className="proj-cat-chip">
+                            {name}
+                            <button type="button" onClick={() => toggleMulti(name)} aria-label={`Remove ${name}`}>×</button>
+                        </span>
+                    ))}
+                </div>
+            )}
+
             <div className="add-cat-dropdown" ref={dropRef}>
                 <button type="button" className={`add-cat-trigger${dropdownOpen ? ' open' : ''}`} onClick={() => { setDropdownOpen(o => !o); setAdding(false); }}>
-                    <span>{value || placeholder}</span>
+                    <span>{triggerLabel}</span>
                     <i className="fa fa-chevron-down" />
                 </button>
                 {dropdownOpen && (
                     <ul className="add-cat-list">
-                        {list.objects.map((obj, i) => (
-                            <li key={obj._id} className={`add-cat-option${value === obj.name ? ' active' : ''}`} onClick={() => { onChange(obj.name); setDropdownOpen(false); setAdding(false); }}>
+                        {list.objects.map((obj, i) => {
+                            const isSelected = multiSelect ? selected.includes(obj.name) : value === obj.name;
+                            return (
+                            <li key={obj._id} className={`add-cat-option${isSelected ? ' active' : ''}`}
+                                onClick={() => {
+                                    if (multiSelect) { toggleMulti(obj.name); }
+                                    else { onChange(obj.name); setDropdownOpen(false); setAdding(false); }
+                                }}>
+                                {multiSelect && <i className={`fa ${isSelected ? 'fa-square-check' : 'fa-square'} proj-cat-checkbox`} />}
                                 <span>{obj.name}</span>
                                 <div className="add-cat-option-actions" onClick={e => e.stopPropagation()}>
-                                    {value === obj.name && <i className="fa fa-check" />}
+                                    {!multiSelect && isSelected && <i className="fa fa-check" />}
                                     <i className="fa fa-trash add-cat-trash" title={`Remove "${obj.name}"`} onClick={e => { e.stopPropagation(); onRemove(obj); }} />
                                 </div>
                             </li>
-                        ))}
+                            );
+                        })}
                         {!adding ? (
                             <li className="add-cat-option add-cat-new-btn" onClick={e => { e.stopPropagation(); setAdding(true); }}>
                                 <i className="fa fa-plus" /><span>Add new</span>
@@ -185,7 +217,7 @@ const AddProject = ({ url, setIsLoading, isLoading }) => {
 
     const [images, setImages] = useState([]);
     const [data, setData] = useState({
-        name: '', description: '', category: '', projectType: '',
+        name: '', description: '', categories: [], projectType: '',
         location: '', area: '', duration: '', completedAt: '', clientTestimonial: '',
         isFeatured: false, showInCityPage: false, cityPage: '',
     });
@@ -198,8 +230,7 @@ const AddProject = ({ url, setIsLoading, isLoading }) => {
     const catList  = useManageableList({ url, apiBase: '/api/project-category', token, fallback: FALLBACK_CATEGORIES });
     const typeList = useManageableList({ url, apiBase: '/api/project-type',     token, fallback: FALLBACK_TYPES });
 
-    // Set defaults once lists load
-    useEffect(() => { if (!data.category  && catList.names.length)  setData(p => ({ ...p, category:    catList.names[0]  })); }, [catList.names]);
+    // Set default type once list loads
     useEffect(() => { if (!data.projectType && typeList.names.length) setData(p => ({ ...p, projectType: typeList.names[0] })); }, [typeList.names]);
 
     useEffect(() => {
@@ -224,7 +255,7 @@ const AddProject = ({ url, setIsLoading, isLoading }) => {
         setIsLoading(true);
         const fd = new FormData();
         fd.append('name', data.name); fd.append('description', data.description);
-        fd.append('category', data.category); fd.append('projectType', data.projectType);
+        fd.append('categories', JSON.stringify(data.categories)); fd.append('projectType', data.projectType);
         fd.append('location', data.location); fd.append('area', data.area);
         fd.append('duration', data.duration); fd.append('completedAt', data.completedAt);
         fd.append('clientTestimonial', data.clientTestimonial);
@@ -235,7 +266,7 @@ const AddProject = ({ url, setIsLoading, isLoading }) => {
         try {
             const res = await axios.post(`${url}/api/project/add`, fd, { headers: { Authorization: `Bearer ${token}` } });
             if (res.data.success) {
-                setData({ name: '', description: '', category: catList.names[0] || '', projectType: typeList.names[0] || '', location: '', area: '', duration: '', completedAt: '', clientTestimonial: '', isFeatured: false, showInCityPage: false, cityPage: '' });
+                setData({ name: '', description: '', categories: [], projectType: typeList.names[0] || '', location: '', area: '', duration: '', completedAt: '', clientTestimonial: '', isFeatured: false, showInCityPage: false, cityPage: '' });
                 setPoints(['']); setImages([]);
                 toast.success(res.data.message);
             } else { toast.error(res.data.message); }
@@ -279,8 +310,10 @@ const AddProject = ({ url, setIsLoading, isLoading }) => {
                 <div className="add-category-price" style={{ alignItems: 'flex-start' }}>
                     <ManagedDropdown
                         label="Category"
-                        value={data.category}
-                        onChange={v => setData(p => ({ ...p, category: v }))}
+                        multiSelect
+                        values={data.categories}
+                        onChange={v => setData(p => ({ ...p, categories: v }))}
+                        placeholder="— Select categories —"
                         list={catList}
                         dropdownOpen={catDropOpen}
                         setDropdownOpen={setCatDropOpen}

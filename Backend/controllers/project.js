@@ -27,10 +27,12 @@ const addProject = async (req, res) => {
             }
         }
 
+        const cats = req.body.categories ? JSON.parse(req.body.categories) : (req.body.category ? [req.body.category] : []);
         const project = new Project({
             name:              req.body.name,
             description:       req.body.description,
-            category:          req.body.category,
+            categories:        cats,
+            category:          cats[0] || req.body.category || '',
             images:            imageUrls,
             points:            req.body.points ? JSON.parse(req.body.points) : [],
             isFeatured:        req.body.isFeatured === 'true',
@@ -57,7 +59,7 @@ const listProjects = async (req, res) => {
         const { category, projectType } = req.query;
         const filter = {};
 
-        if (category)    filter.category    = category;
+        if (category)    filter.$or = [{ categories: category }, { category: category }];
         if (projectType) filter.projectType = projectType;
         filter.deleted = { $ne: true };
 
@@ -132,10 +134,12 @@ const updateProject = async (req, res) => {
             }
         }
 
+        const updatedCats = req.body.categories ? JSON.parse(req.body.categories) : (category ? [category] : []);
         const updateData = {
             name,
             description,
-            category,
+            categories:        updatedCats,
+            category:          updatedCats[0] || category || '',
             points:            parsedPoints,
             isFeatured:        req.body.isFeatured === 'true',
             images:            [...parsedExistingImages, ...newImageUrls],

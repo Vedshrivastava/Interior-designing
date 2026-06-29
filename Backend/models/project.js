@@ -5,7 +5,8 @@ const projectSchema = new mongoose.Schema({
     name:        { type: String, required: true },
     description: { type: String, required: true },
     images:      [{ type: String, required: true }],
-    category:    { type: String, required: true },
+    category:    { type: String },               // legacy single-category (kept for old data)
+    categories:  { type: [String], default: [] }, // multi-category (new)
     points:      [{ type: String }],
     isFeatured:  { type: Boolean, default: false },
 

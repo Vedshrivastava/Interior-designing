@@ -65,7 +65,7 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
 
     /* ── Edit modal ── */
     const blankEdit = {
-        _id: '', name: '', description: '', category: projectCategories[0] || '',
+        _id: '', name: '', description: '', categories: [], category: '',
         projectType: projectTypes[0] || '', location: '', area: '', duration: '',
         completedAt: '', clientTestimonial: '', isFeatured: false, points: [],
         showInCityPage: false, cityPage: '',
@@ -130,7 +130,8 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
             _id:               item._id,
             name:              item.name              || '',
             description:       item.description       || '',
-            category:          item.category          || projectCategories[0] || '',
+            categories:        item.categories?.length > 0 ? item.categories : (item.category ? [item.category] : []),
+            category:          item.category          || '',
             projectType:       item.projectType       || projectTypes[0]     || '',
             location:          item.location          || '',
             area:              item.area              || '',
@@ -169,7 +170,7 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
         fd.append('_id',               editData._id);
         fd.append('name',              editData.name);
         fd.append('description',       editData.description);
-        fd.append('category',          editData.category);
+        fd.append('categories',        JSON.stringify(editData.categories || []));
         fd.append('projectType',       editData.projectType);
         fd.append('location',          editData.location);
         fd.append('area',              editData.area);
@@ -238,12 +239,30 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
                                 <textarea name="description" rows="4" value={editData.description} onChange={onEditChange} required />
                             </div>
 
-                            <div className="add-category-price">
+                            <div className="add-category-price" style={{ alignItems: 'flex-start' }}>
                                 <div className="flex-col" style={{ flex: 1 }}>
-                                    <p>Category</p>
-                                    <select name="category" value={editData.category} onChange={onEditChange}>
-                                        {projectCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
+                                    <p>Categories <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>(select all that apply)</span></p>
+                                    {editData.categories?.length > 0 && (
+                                        <div className="proj-cat-chips" style={{ marginBottom: '8px' }}>
+                                            {editData.categories.map(c => (
+                                                <span key={c} className="proj-cat-chip">
+                                                    {c}
+                                                    <button type="button" onClick={() => setEditData(p => ({ ...p, categories: p.categories.filter(x => x !== c) }))}>×</button>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <div style={{ maxHeight: '140px', overflowY: 'auto', border: '1px solid rgba(201,168,124,0.2)', borderRadius: '8px', padding: '6px' }}>
+                                        {projectCategories.map(c => {
+                                            const checked = editData.categories?.includes(c);
+                                            return (
+                                                <label key={c} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', cursor: 'pointer', borderRadius: '4px', background: checked ? 'rgba(16,37,37,0.06)' : 'none', fontFamily: '"DM Sans", sans-serif', fontSize: '0.82rem', color: 'var(--green)' }}>
+                                                    <input type="checkbox" checked={checked} onChange={() => setEditData(p => ({ ...p, categories: checked ? p.categories.filter(x => x !== c) : [...(p.categories || []), c] }))} />
+                                                    {c}
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                                 <div className="flex-col" style={{ flex: 1 }}>
                                     <p>Project Type</p>
@@ -484,7 +503,12 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
                                     )}
                                 </div>
 
-                                <p className="item-category">{item.projectType}</p>
+                                <div>
+                                    <p className="item-category" style={{ marginBottom: '4px' }}>{item.projectType}</p>
+                                    {(item.categories?.length > 0 ? item.categories : item.category ? [item.category] : []).map(c => (
+                                        <span key={c} style={{ display: 'inline-block', fontSize: '0.68rem', fontFamily: '"DM Sans",sans-serif', background: 'rgba(201,168,124,0.1)', border: '1px solid rgba(201,168,124,0.25)', borderRadius: '999px', padding: '1px 8px', marginRight: '4px', marginBottom: '2px', color: 'var(--text-mid)' }}>{c}</span>
+                                    ))}
+                                </div>
 
                                 <div className="action-buttons">
                                     <p onClick={() => openEdit(item)} className="cursor edit-action">Edit</p>

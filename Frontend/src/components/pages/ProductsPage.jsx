@@ -171,11 +171,18 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appM
         {isFeatured && <div className="prod-card-featured-ribbon"><IconStar /> Featured</div>}
       </div>
       <div className="prod-card-body">
-        {(categoryList.length > 0 || subcategoryList.length > 0) && (
+        {categoryList.length > 0 && (
           <div className="prod-card-chip-group">
             <p className="prod-card-chip-label">Category</p>
             <div className="prod-card-tags">
               {categoryList.map(cat => <span key={cat} className="prod-card-cat-tag">{cat}</span>)}
+            </div>
+          </div>
+        )}
+        {subcategoryList.length > 0 && (
+          <div className="prod-card-chip-group">
+            <p className="prod-card-chip-label">Subcategory</p>
+            <div className="prod-card-tags">
               {subcategoryList.map(sub => <span key={sub} className="prod-card-subcat-tag">{sub}</span>)}
             </div>
           </div>
@@ -227,11 +234,18 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appM
         </div>
         <div className="prod-modal-content">
           <h2 className="prod-modal-title">{name}</h2>
-          {(categoryList.length > 0 || subcategoryList.length > 0) && (
+          {categoryList.length > 0 && (
             <div className="prod-modal-section">
               <h4 className="prod-modal-section-label">Category</h4>
               <div className="prod-modal-tag-row">
                 {categoryList.map(cat => <span key={cat} className="prod-modal-tag">{cat}</span>)}
+              </div>
+            </div>
+          )}
+          {subcategoryList.length > 0 && (
+            <div className="prod-modal-section">
+              <h4 className="prod-modal-section-label">Subcategory</h4>
+              <div className="prod-modal-tag-row">
                 {subcategoryList.map(sub => <span key={sub} className="prod-modal-tag prod-modal-tag--sub">{sub}</span>)}
               </div>
             </div>

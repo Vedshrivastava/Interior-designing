@@ -100,7 +100,7 @@ export default function ProjectsPage({ initialProjects = [] }) {
           </div>
           <div className="project-header-right">
             <p className="project-main-para">
-              A showcase of our finest work — each project a testament to
+              A showcase of our finest work, each project a testament to
               precision craftsmanship, premium materials and timeless design.
             </p>
             <div className="proj-count-badge">

@@ -16,7 +16,7 @@ const breadcrumbSchema = {
 const aboutPageSchema = {
   '@context': 'https://schema.org',
   '@type': 'AboutPage',
-  name: 'About Shrivastavas Elevate — Interior Designers in Satna',
+  name: 'About Shrivastavas Elevate, Interior Designers in Satna',
   url: `${SITE_URL}/about`,
   description: 'Shrivastavas Elevate is a premium interior design studio in Satna, Madhya Pradesh, founded by Ved and Shubh Shrivastava. 7+ years of experience, 50+ projects delivered.',
   mainEntity: {
@@ -40,10 +40,10 @@ const aboutPageSchema = {
 export const metadata = {
   title: 'About Us | Interior Designers in Satna MP | Shrivastavas Elevate',
   description:
-    'Meet the team behind Shrivastavas Elevate — Satna\'s premium interior design studio. 7+ years of experience, 50+ projects in Madhya Pradesh. Luxury interiors, turnkey execution, and a free consultation for every client.',
+    'Meet the team behind Shrivastavas Elevate, Satna\'s premium interior design studio. 7+ years of experience, 50+ projects in Madhya Pradesh. Luxury interiors, turnkey execution, and a free consultation for every client.',
   alternates: { canonical: `${SITE_URL}/about` },
   openGraph: {
-    title: 'About Shrivastavas Elevate — Interior Designers in Satna, MP',
+    title: 'About Shrivastavas Elevate, Interior Designers in Satna, MP',
     description:
       'Meet the founders of Shrivastavas Elevate. Premium interior design studio in Satna, MP with 7+ years experience and 50+ projects across Madhya Pradesh.',
     url: `${SITE_URL}/about`,
@@ -52,12 +52,12 @@ export const metadata = {
         url: `${SITE_URL}/og-image.png`,
         width: 1536,
         height: 1024,
-        alt: 'Shrivastavas Elevate Team — Interior Designers in Satna MP',
+        alt: 'Shrivastavas Elevate Team, Interior Designers in Satna MP',
       },
     ],
   },
   twitter: {
-    title: 'About Shrivastavas Elevate — Interior Designers in Satna MP',
+    title: 'About Shrivastavas Elevate, Interior Designers in Satna MP',
     description: 'Premium interior design studio in Satna MP. 7+ years experience, 50+ projects.',
     images: [`${SITE_URL}/og-image.png`],
   },

@@ -109,7 +109,7 @@ const serviceSchema = {
 export const metadata = {
   title: 'Interior Design Services in Satna MP | Modular Kitchen, Bedroom, Commercial',
   description:
-    'Complete interior design services in Satna, Madhya Pradesh — modular kitchens, bedrooms, bathrooms, commercial spaces, 3D visualization, space planning & renovation. Turnkey execution by Shrivastavas Elevate. Free consultation.',
+    'Complete interior design services in Satna, Madhya Pradesh: modular kitchens, bedrooms, bathrooms, commercial spaces, 3D visualization, space planning & renovation. Turnkey execution by Shrivastavas Elevate. Free consultation.',
   alternates: { canonical: `${SITE_URL}/services` },
   openGraph: {
     title: 'Interior Design Services in Satna MP | Shrivastavas Elevate',
@@ -121,7 +121,7 @@ export const metadata = {
         url: `${SITE_URL}/og-image.png`,
         width: 1536,
         height: 1024,
-        alt: 'Interior Design Services in Satna — Shrivastavas Elevate',
+        alt: 'Interior Design Services in Satna by Shrivastavas Elevate',
       },
     ],
   },

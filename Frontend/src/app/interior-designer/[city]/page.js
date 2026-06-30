@@ -15,7 +15,7 @@ export async function generateMetadata({ params }) {
   const { city: slug } = await params;
   const city = getCity(slug);
   const title = `Interior Designer in ${city.name} | Shrivastavas Elevate`;
-  const description = `Premium interior design services in ${city.name}, ${city.state} — modular kitchens, bedrooms, bathrooms, commercial spaces, 3D visualization and turnkey execution by Shrivastavas Elevate. Free consultation available.`;
+  const description = `Premium interior design services in ${city.name}, ${city.state}: modular kitchens, bedrooms, bathrooms, commercial spaces, 3D visualization and turnkey execution by Shrivastavas Elevate. Free consultation available.`;
 
   return {
     title,
@@ -37,7 +37,7 @@ export async function generateMetadata({ params }) {
       title,
       description,
       url: `${SITE_URL}/interior-designer/${slug}`,
-      images: [{ url: `${SITE_URL}/og-image.png`, width: 1536, height: 1024, alt: `Interior Designer in ${city.name} — Shrivastavas Elevate` }],
+      images: [{ url: `${SITE_URL}/og-image.png`, width: 1536, height: 1024, alt: `Interior Designer in ${city.name}, by Shrivastavas Elevate` }],
     },
     twitter: {
       title,
@@ -75,7 +75,7 @@ export default async function Page({ params }) {
     '@context': 'https://schema.org',
     '@type': ['LocalBusiness', 'InteriorDesigner'],
     name: 'Shrivastavas Elevate',
-    description: `Premium interior design services in ${city.name}, ${city.state} — residential and commercial interiors, modular kitchens, 3D visualization and turnkey execution.`,
+    description: `Premium interior design services in ${city.name}, ${city.state}: residential and commercial interiors, modular kitchens, 3D visualization and turnkey execution.`,
     url: `${SITE_URL}/interior-designer/${slug}`,
     telephone: '+918962053372',
     areaServed: [
@@ -129,7 +129,7 @@ export default async function Page({ params }) {
         name: `How much does interior design cost in ${city.name}?`,
         acceptedAnswer: {
           '@type': 'Answer',
-          text: `Interior design costs in ${city.name} vary based on scope, materials and space size. Shrivastavas Elevate provides a fully itemised quote upfront with no hidden costs — covering materials, labour and logistics. Contact us for a free estimate specific to your ${city.name} project.`,
+          text: `Interior design costs in ${city.name} vary based on scope, materials and space size. Shrivastavas Elevate provides a fully itemised quote upfront with no hidden costs, covering materials, labour and logistics. Contact us for a free estimate specific to your ${city.name} project.`,
         },
       },
       {
@@ -137,7 +137,7 @@ export default async function Page({ params }) {
         name: `Do you provide 3D visualization before starting work in ${city.name}?`,
         acceptedAnswer: {
           '@type': 'Answer',
-          text: `Yes. Every project includes photorealistic 3D visualization before any execution begins. You see your space in full detail — materials, lighting, furniture and finishes — and approve it before a single wall is touched. For clients who proceed with the full project, 3D design is included at no extra charge.`,
+          text: `Yes. Every project includes photorealistic 3D visualization before any execution begins. You see your space in full detail (materials, lighting, furniture and finishes) and approve it before a single wall is touched. For clients who proceed with the full project, 3D design is included at no extra charge.`,
         },
       },
       {
@@ -154,7 +154,7 @@ export default async function Page({ params }) {
   const imageGallerySchema = cityProjects.length > 0 ? {
     '@context': 'https://schema.org',
     '@type': 'ImageGallery',
-    name: `Interior Design Projects in ${city.name} — Shrivastavas Elevate`,
+    name: `Interior Design Projects in ${city.name} by Shrivastavas Elevate`,
     url: `${SITE_URL}/interior-designer/${slug}`,
     image: cityProjects
       .filter(p => p.images?.[0])
@@ -162,7 +162,7 @@ export default async function Page({ params }) {
         '@type': 'ImageObject',
         contentUrl: p.images[0],
         name: p.name,
-        description: `${p.name} — interior design project in ${city.name}, ${city.state} by Shrivastavas Elevate`,
+        description: `${p.name}, interior design project in ${city.name}, ${city.state} by Shrivastavas Elevate`,
       })),
   } : null;
 

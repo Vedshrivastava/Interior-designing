@@ -56,7 +56,7 @@ export default async function sitemap() {
     images: allProjects
       .flatMap(p => (p.images || []).map(imgUrl => ({
         url: imgUrl,
-        title: `${p.name}${p.location ? ` in ${p.location}` : ''} — interior design project by Shrivastavas Elevate, Satna MP`,
+        title: `${p.name}${p.location ? ` in ${p.location}` : ''}, interior design project by Shrivastavas Elevate, Satna MP`,
         caption: p.description || p.name,
       }))),
   };
@@ -70,7 +70,7 @@ export default async function sitemap() {
     images: allProducts
       .flatMap(p => (p.images || []).map(imgUrl => ({
         url: imgUrl,
-        title: `${p.name} — architectural interior product by Shrivastavas Elevate, Satna MP`,
+        title: `${p.name}, architectural interior product by Shrivastavas Elevate, Satna MP`,
         caption: p.description || p.name,
       }))),
   };
@@ -90,8 +90,8 @@ export default async function sitemap() {
       images: designs
         .flatMap(d => (d.images || []).map(imgUrl => ({
           url: imgUrl,
-          title: `${d.name} — ${categoryName} by Shrivastavas Elevate, Satna MP`,
-          caption: d.description || `${d.name} — ${categoryName} interior design in Satna, Madhya Pradesh`,
+          title: `${d.name}, ${categoryName} by Shrivastavas Elevate, Satna MP`,
+          caption: d.description || `${d.name}, ${categoryName} interior design in Satna, Madhya Pradesh`,
         }))),
     };
   });
@@ -114,7 +114,7 @@ export default async function sitemap() {
       images: cityProjects
         .flatMap(p => (p.images || []).map(imgUrl => ({
           url: imgUrl,
-          title: `${p.name} — interior design project by Shrivastavas Elevate`,
+          title: `${p.name}, interior design project by Shrivastavas Elevate`,
           caption: p.description || p.name,
         }))),
     };

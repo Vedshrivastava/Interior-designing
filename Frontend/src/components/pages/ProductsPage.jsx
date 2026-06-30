@@ -163,7 +163,7 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appM
     <div className="prod-card">
       <div className="prod-card-img-wrap" onClick={() => images?.length > 0 && openLb(0)}>
         {images?.[0]
-          ? <img src={cloudinaryOptimize(images[0], { width: 800 })} alt={`${name} — ${categoryList.join(', ')} by Shrivastavas Elevate, Satna MP`} loading="lazy" />
+          ? <img src={cloudinaryOptimize(images[0], { width: 800 })} alt={`${name}, ${categoryList.join(', ')} by Shrivastavas Elevate, Satna MP`} loading="lazy" />
           : <div className="prod-card-img-placeholder" />
         }
         {images.length > 1 && <div className="prod-card-img-count">+{images.length - 1}</div>}
@@ -200,7 +200,7 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appM
         <button className="prod-modal-close" onClick={closeModal} aria-label="Close">✕</button>
         <div className="prod-modal-gallery">
           <div className="prod-modal-main-img-wrap" onClick={() => openLb(activeThumb)}>
-            <img src={cloudinaryOptimize(images[activeThumb], { width: 1200 })} alt={`${name} — ${categoryList.join(', ')} product, image ${activeThumb + 1} | Shrivastavas Elevate, Satna MP`} className="prod-modal-main-img" />
+            <img src={cloudinaryOptimize(images[activeThumb], { width: 1200 })} alt={`${name}, ${categoryList.join(', ')} product, image ${activeThumb + 1} | Shrivastavas Elevate, Satna MP`} className="prod-modal-main-img" />
             <div className="prod-modal-img-hint">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
             </div>
@@ -307,7 +307,7 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appM
       <button className="prod-lb-close" onClick={closeLb} aria-label="Close">✕</button>
       {images.length > 1 && <button className="prod-lb-arrow prod-lb-arrow--prev" onClick={lbPrev}>&#8249;</button>}
       <div className="prod-lb-img-wrap" onClick={e => e.stopPropagation()}>
-        <img src={cloudinaryOptimize(images[lbIdx])} alt={`${name} — ${categoryList.join(', ')} product image ${lbIdx + 1} | Shrivastavas Elevate`} className="prod-lb-img" />
+        <img src={cloudinaryOptimize(images[lbIdx])} alt={`${name}, ${categoryList.join(', ')} product image ${lbIdx + 1} | Shrivastavas Elevate`} className="prod-lb-img" />
         <div className="prod-lb-caption"><span>{name}</span>{images.length > 1 && <span>{lbIdx + 1} / {images.length}</span>}</div>
       </div>
       {images.length > 1 && <button className="prod-lb-arrow prod-lb-arrow--next" onClick={lbNext}>&#8250;</button>}
@@ -511,7 +511,7 @@ export default function ProductsPage({ initialProducts = [] }) {
             <h2 className="products-heading">Product Catalogue</h2>
           </div>
           <div className="products-header-right">
-            <p>Explore our curated range of architectural and design products — each one selected for beauty, durability, and real-world performance.</p>
+            <p>Explore our curated range of architectural and design products, each one selected for beauty, durability, and real-world performance.</p>
             <div className="prod-header-bottom">
               <div className="prod-search-wrap">
                 <IconSearch className="prod-search-icon" />

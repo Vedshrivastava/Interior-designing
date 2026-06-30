@@ -56,7 +56,7 @@ export default function Footer() {
                 <div className="footer-social-popup-inner" onClick={e => e.stopPropagation()}>
                   <span className="footer-social-popup-icon">🚧</span>
                   <div>
-                    <p className="footer-social-popup-title">{comingSoon} — Coming Soon</p>
+                    <p className="footer-social-popup-title">{comingSoon}: Coming Soon</p>
                     <p className="footer-social-popup-sub">We&apos;re building our social presence. Stay tuned!</p>
                   </div>
                   <button className="footer-social-popup-close" onClick={() => setComingSoon(null)}>✕</button>

@@ -53,7 +53,7 @@ export default function ProjectCard({ project, openConsult, variant }) {
       <div className="proj-city-img" onClick={() => images?.length > 0 && openLb(0)}>
         {images?.[0]
           ? /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={cloudinaryOptimize(images[0], { width: 900 })} alt={`${name}${location ? ` in ${location}` : ''} — interior design project by Shrivastavas Elevate`} loading="lazy" />
+            <img src={cloudinaryOptimize(images[0], { width: 900 })} alt={`${name}${location ? ` in ${location}` : ''}, interior design project by Shrivastavas Elevate`} loading="lazy" />
           : <div className="proj-card-img-placeholder" />
         }
         {images.length > 1 && <div className="proj-city-img-count"><span>+{images.length - 1}</span> more photos</div>}
@@ -113,7 +113,7 @@ export default function ProjectCard({ project, openConsult, variant }) {
       <div className="proj-card-img-wrap" onClick={() => images?.length > 0 && openLb(0)}>
         {images?.[0]
           ? /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={cloudinaryOptimize(images[0], { width: 800 })} alt={`${name}${location ? ` in ${location}` : ''} — interior design project by Shrivastavas Elevate`} loading="lazy" />
+            <img src={cloudinaryOptimize(images[0], { width: 800 })} alt={`${name}${location ? ` in ${location}` : ''}, interior design project by Shrivastavas Elevate`} loading="lazy" />
           : <div className="proj-card-img-placeholder" />
         }
         {images.length > 1 && <div className="proj-card-img-count">+{images.length - 1}</div>}
@@ -176,7 +176,7 @@ export default function ProjectCard({ project, openConsult, variant }) {
         <div className="proj-modal-gallery">
           <div className="proj-modal-main-img-wrap" onClick={() => openLb(activeThumb)}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={cloudinaryOptimize(images[activeThumb], { width: 1200 })} alt={`${name} — project image ${activeThumb + 1}`} className="proj-modal-main-img" />
+            <img src={cloudinaryOptimize(images[activeThumb], { width: 1200 })} alt={`${name}, project image ${activeThumb + 1}`} className="proj-modal-main-img" />
             <div className="proj-modal-img-hint">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -190,7 +190,7 @@ export default function ProjectCard({ project, openConsult, variant }) {
                 <button key={i} className={`proj-modal-thumb${i === activeThumb ? ' active' : ''}`}
                   onClick={() => setActiveThumb(i)} aria-label={`Image ${i + 1}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={cloudinaryOptimize(src, { width: 200 })} alt={`${name} — image ${i + 1}`} />
+                  <img src={cloudinaryOptimize(src, { width: 200 })} alt={`${name}, image ${i + 1}`} />
                 </button>
               ))}
             </div>
@@ -266,7 +266,7 @@ export default function ProjectCard({ project, openConsult, variant }) {
       {images.length > 1 && <button className="proj-lb-arrow proj-lb-arrow--prev" onClick={lbPrev} aria-label="Previous">&#8249;</button>}
       <div className="proj-lb-img-wrap" onClick={e => e.stopPropagation()}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={cloudinaryOptimize(images[lbIdx])} alt={`${name} — project image ${lbIdx + 1}`} className="proj-lb-img" />
+        <img src={cloudinaryOptimize(images[lbIdx])} alt={`${name}, project image ${lbIdx + 1}`} className="proj-lb-img" />
         <div className="proj-lb-caption">
           <span>{name}</span>
           {images.length > 1 && <span>{lbIdx + 1} / {images.length}</span>}

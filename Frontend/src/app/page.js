@@ -19,7 +19,7 @@ export const metadata = {
         url: `${SITE_URL}/og-image.png`,
         width: 1536,
         height: 1024,
-        alt: 'Shrivastavas Elevate — Interior Designer in Satna, Madhya Pradesh',
+        alt: 'Shrivastavas Elevate, Interior Designer in Satna, Madhya Pradesh',
       },
     ],
   },
@@ -47,7 +47,7 @@ const faqSchema = {
       name: 'What interior design services do you offer in Satna?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Shrivastavas Elevate offers a full range of interior design services in Satna, MP — including modular kitchen design, bedroom interiors, bathroom design, living room and lounge area design, TV unit design, kids room design, commercial and office interiors, 3D visualization, space planning, lighting design, and complete turnkey execution.',
+        text: 'Shrivastavas Elevate offers a full range of interior design services in Satna, MP, including modular kitchen design, bedroom interiors, bathroom design, living room and lounge area design, TV unit design, kids room design, commercial and office interiors, 3D visualization, space planning, lighting design, and complete turnkey execution.',
       },
     },
     {
@@ -63,7 +63,7 @@ const faqSchema = {
       name: 'How much does interior design cost in Satna, MP?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Interior design costs in Satna vary based on scope, materials, and size. Shrivastavas Elevate offers tailored packages for every budget — from single-room makeovers to full-home turnkey projects. Contact us for a free estimate specific to your space.',
+        text: 'Interior design costs in Satna vary based on scope, materials, and size. Shrivastavas Elevate offers tailored packages for every budget, from single-room makeovers to full-home turnkey projects. Contact us for a free estimate specific to your space.',
       },
     },
     {

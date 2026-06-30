@@ -246,7 +246,7 @@ export default function ServicesPage() {
       )}
       <section className="hp-hero">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={bgimg.src} alt="Luxury interior design services in Satna, Madhya Pradesh — Shrivastavas Elevate" className="hp-hero-bg" />
+        <img src={bgimg.src} alt="Luxury interior design services in Satna, Madhya Pradesh by Shrivastavas Elevate" className="hp-hero-bg" />
         <div className="hp-hero-overlay" />
         <div className="hp-hero-inner">
           <div className="hp-hero-tag-box">Our Services</div>
@@ -301,7 +301,7 @@ export default function ServicesPage() {
             <h2>Every Service.<br />One Vision.</h2>
           </div>
           <div className="services-heading-right">
-            <p>From residential retreats to commercial landmarks across India — every interior design brief handled from the first sketch to the final handover.</p>
+            <p>From residential retreats to commercial landmarks across India, every interior design brief handled from the first sketch to the final handover.</p>
           </div>
         </div>
         <div className="svc-grid">
@@ -336,7 +336,7 @@ export default function ServicesPage() {
         <div className="svc-why-grid">
           {[
             { Icon: IconGem,      title: 'Affordable Luxury',   desc: 'Fully itemised quote upfront, direct sourcing from Kajaria, Asian Paints and CenturyPly with no middlemen, and no hidden costs added mid-project. You get a luxury finish at a price that\'s transparent from day one.'                                                },
-            { Icon: IconShield,   title: 'Free Consultation & Almost Free 3D', desc: 'Consultation fee credited back when you proceed. 3D visualisation included — minimal charge only for extra redesigns beyond the standard rounds.'                                                                                                    },
+            { Icon: IconShield,   title: 'Free Consultation & Almost Free 3D', desc: 'Consultation fee credited back when you proceed. 3D visualisation included, with a minimal charge only for extra redesigns beyond the standard rounds.'                                                                                                    },
             { Icon: IconPenRuler, title: '100% Bespoke',        desc: 'No templates, no catalogue layouts and nothing reused from another project. Every design starts with a real conversation about how you live and ends with something built specifically for your space.'                                                                                },
             { Icon: IconKey,      title: 'Turnkey Execution',   desc: 'From sign-off to handover we manage vendors, materials, labour, site supervision and quality checks. You don\'t chase a single contractor or make a site decision yourself.'                                                                                                          },
           ].map((item, i) => (
@@ -371,7 +371,7 @@ export default function ServicesPage() {
         <div className="svc-start-head reveal-item" ref={addRef}>
           <span className="svc-section-tag"><IconComments /> How It Works</span>
           <h2>Get Started in<br />3 Simple Steps</h2>
-          <p>From your first message to a fully transformed space — here&apos;s the journey.</p>
+          <p>From your first message to a fully transformed space, here&apos;s the journey.</p>
         </div>
         <div className="svc-start-grid">
           {[

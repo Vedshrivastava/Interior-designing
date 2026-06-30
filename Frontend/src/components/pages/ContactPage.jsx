@@ -55,7 +55,7 @@ export default function ContactPage() {
             <span className="contact-eyebrow-line" />
           </div>
           <h1>Let&apos;s Start Your<br /><span>Dream Project</span></h1>
-          <p>Tell us about your space — we&apos;ll get back to you within 24 hours with a tailored plan and transparent pricing.</p>
+          <p>Tell us about your space, and we&apos;ll get back to you within 24 hours with a tailored plan and transparent pricing.</p>
           <p className="contact-hero-links">
             Explore our <Link href="/services">interior design services</Link> or <Link href="/projects">view completed projects</Link> across Satna, MP.
           </p>
@@ -69,7 +69,7 @@ export default function ContactPage() {
             <div className="contact-details-inner">
               <h2>Contact Us</h2>
               <p className="contact-details-tagline">
-                Shrivastavas Elevate — luxury interior design and contracting, crafted around your lifestyle and vision.
+                Shrivastavas Elevate: luxury interior design and contracting, crafted around your lifestyle and vision.
               </p>
               <div className="contact-info-list">
                 {INFO_ITEMS.map(({ Icon, label, value, href }) => (

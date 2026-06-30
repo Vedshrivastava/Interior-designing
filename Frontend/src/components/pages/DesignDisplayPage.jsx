@@ -120,7 +120,7 @@ export default function DesignDisplayPage({
               <h1>{displayName}</h1>
             </div>
             <div className="dd-header-right">
-              <p>Explore our curated collection of {displayName.toLowerCase()} — each crafted with premium materials, precision and timeless elegance.</p>
+              <p>Explore our curated collection of {displayName.toLowerCase()}, each crafted with premium materials, precision and timeless elegance.</p>
               <div className="dd-count-badge">
                 <IconLayerGroup />
                 {total} design{total !== 1 ? 's' : ''}
@@ -161,7 +161,7 @@ export default function DesignDisplayPage({
                 <h2 className="dd-featured-heading">Handpicked for You</h2>
               </div>
               <div className="dd-featured-header-right">
-                <p className="dd-featured-subtext">Our team&apos;s top selections — standout designs with exceptional detailing and finish.</p>
+                <p className="dd-featured-subtext">Our team&apos;s top selections: standout designs with exceptional detailing and finish.</p>
                 {hasMoreThanView && (
                   <div className="dd-slider-controls">
                     <button className={`dd-slider-arrow${!canSlidePrev ? ' disabled' : ''}`} onClick={slidePrev} disabled={!canSlidePrev} aria-label="Previous">

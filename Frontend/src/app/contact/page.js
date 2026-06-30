@@ -14,7 +14,7 @@ const breadcrumbSchema = {
 const contactPageSchema = {
   '@context': 'https://schema.org',
   '@type': 'ContactPage',
-  name: 'Contact Shrivastavas Elevate — Interior Designer in Satna',
+  name: 'Contact Shrivastavas Elevate, Interior Designer in Satna',
   url: `${SITE_URL}/contact`,
   description: 'Book a free consultation with Shrivastavas Elevate, interior designers in Satna, Madhya Pradesh. Call +91 89620 53372 or fill the form.',
   mainEntity: {
@@ -49,7 +49,7 @@ const contactPageSchema = {
 export const metadata = {
   title: 'Contact Interior Designer in Satna | Free Consultation | +91 89620 53372',
   description:
-    'Contact Shrivastavas Elevate — interior designer in Satna, Madhya Pradesh. Book a free consultation, call +91 89620 53372, or WhatsApp us. We respond within 24 hours. Office open Mon–Sat 9AM–6PM.',
+    'Contact Shrivastavas Elevate, interior designer in Satna, Madhya Pradesh. Book a free consultation, call +91 89620 53372, or WhatsApp us. We respond within 24 hours. Office open Mon–Sat 9AM–6PM.',
   alternates: { canonical: `${SITE_URL}/contact` },
   openGraph: {
     title: 'Contact Interior Designer in Satna | Free Consultation | Shrivastavas Elevate',
@@ -61,7 +61,7 @@ export const metadata = {
         url: `${SITE_URL}/og-image.png`,
         width: 1536,
         height: 1024,
-        alt: 'Contact Shrivastavas Elevate — Interior Designer in Satna MP',
+        alt: 'Contact Shrivastavas Elevate, Interior Designer in Satna MP',
       },
     ],
   },

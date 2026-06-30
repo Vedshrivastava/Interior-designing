@@ -17,13 +17,13 @@ const breadcrumbSchema = {
 export const metadata = {
   title: 'Interior Design Portfolio Satna MP | 50+ Projects | Shrivastavas Elevate',
   description:
-    '50+ completed interior design projects in Satna and Madhya Pradesh — modular kitchens, luxury bedrooms, living rooms, commercial spaces and full-home makeovers. View our portfolio and get a free quote.',
+    '50+ completed interior design projects in Satna and Madhya Pradesh: modular kitchens, luxury bedrooms, living rooms, commercial spaces and full-home makeovers. View our portfolio and get a free quote.',
   alternates: { canonical: `${SITE_URL}/projects` },
   openGraph: {
     title: 'Interior Design Portfolio Satna MP | 50+ Projects | Shrivastavas Elevate',
-    description: '50+ completed interior design projects in Satna, MP — kitchens, bedrooms, living rooms, commercial spaces. View our portfolio.',
+    description: '50+ completed interior design projects in Satna, MP: kitchens, bedrooms, living rooms, commercial spaces. View our portfolio.',
     url: `${SITE_URL}/projects`,
-    images: [{ url: `${SITE_URL}/og-image.png`, width: 1536, height: 1024, alt: 'Interior Design Projects Portfolio — Shrivastavas Elevate, Satna MP' }],
+    images: [{ url: `${SITE_URL}/og-image.png`, width: 1536, height: 1024, alt: 'Interior Design Projects Portfolio by Shrivastavas Elevate, Satna MP' }],
   },
   twitter: {
     title: 'Interior Design Portfolio Satna MP | 50+ Projects',
@@ -46,7 +46,7 @@ export default async function Page() {
   const portfolioSchema = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: 'Interior Design Portfolio — Shrivastavas Elevate, Satna',
+    name: 'Interior Design Portfolio by Shrivastavas Elevate, Satna',
     url: `${SITE_URL}/projects`,
     description: `${initialProjects.length > 0 ? initialProjects.length + '+' : '50+'} completed interior design projects in Satna and Madhya Pradesh.`,
     provider: { '@type': 'LocalBusiness', name: 'Shrivastavas Elevate', url: SITE_URL },
@@ -55,7 +55,7 @@ export default async function Page() {
   const imageGallerySchema = initialProjects.length > 0 ? {
     '@context': 'https://schema.org',
     '@type': 'ImageGallery',
-    name: 'Interior Design Projects Portfolio — Shrivastavas Elevate, Satna MP',
+    name: 'Interior Design Projects Portfolio by Shrivastavas Elevate, Satna MP',
     description: 'Portfolio of completed interior design projects in Satna, Madhya Pradesh by Shrivastavas Elevate.',
     url: `${SITE_URL}/projects`,
     provider: { '@type': 'LocalBusiness', name: 'Shrivastavas Elevate', url: SITE_URL },
@@ -66,7 +66,7 @@ export default async function Page() {
         '@type': 'ImageObject',
         contentUrl: p.images[0],
         name: p.name,
-        description: `${p.name}${p.location ? ` in ${p.location}` : ''} — interior design project by Shrivastavas Elevate, Satna MP`,
+        description: `${p.name}${p.location ? ` in ${p.location}` : ''}, interior design project by Shrivastavas Elevate, Satna MP`,
         creator: { '@type': 'Organization', name: 'Shrivastavas Elevate' },
       })),
   } : null;
@@ -74,14 +74,14 @@ export default async function Page() {
   const itemListSchema = initialProjects.length > 0 ? {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: 'Interior Design Projects — Shrivastavas Elevate, Satna MP',
+    name: 'Interior Design Projects by Shrivastavas Elevate, Satna MP',
     url: `${SITE_URL}/projects`,
     numberOfItems: initialProjects.length,
     itemListElement: initialProjects.slice(0, 20).map((p, i) => ({
       '@type': 'ListItem',
       position: i + 1,
       name: p.name,
-      description: p.description || `${p.name} — interior design project in ${p.location || 'Satna'}, MP`,
+      description: p.description || `${p.name}, interior design project in ${p.location || 'Satna'}, MP`,
       image: p.images?.[0] || undefined,
     })),
   } : null;

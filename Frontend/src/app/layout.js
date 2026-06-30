@@ -50,7 +50,7 @@ export const metadata = {
         url: `${SITE_URL}/og-image.png`,
         width: 1536,
         height: 1024,
-        alt: 'Shrivastavas Elevate — Premium Interior Designer in Satna, Madhya Pradesh',
+        alt: 'Shrivastavas Elevate, Premium Interior Designer in Satna, Madhya Pradesh',
       },
     ],
   },
@@ -147,7 +147,7 @@ const websiteSchema = {
   '@type': 'WebSite',
   name: 'Shrivastavas Elevate',
   url: SITE_URL,
-  description: 'Premium interior design studio in Satna, Madhya Pradesh — modular kitchens, bedrooms, commercial spaces, 3D visualization and turnkey execution.',
+  description: 'Premium interior design studio in Satna, Madhya Pradesh: modular kitchens, bedrooms, commercial spaces, 3D visualization and turnkey execution.',
   potentialAction: {
     '@type': 'SearchAction',
     target: {

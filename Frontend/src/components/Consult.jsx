@@ -116,7 +116,7 @@ export default function Consult() {
                 <div className="cm-field">
                   <label htmlFor="c-message">Message <span>(optional)</span></label>
                   <textarea id="c-message" name="message" rows={3}
-                    placeholder="Tell us about your project — room type, budget, timeline..."
+                    placeholder="Tell us about your project: room type, budget, timeline..."
                     value={data.message} onChange={onChange} autoComplete="off" />
                 </div>
 

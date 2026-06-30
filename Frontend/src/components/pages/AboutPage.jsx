@@ -26,8 +26,8 @@ const FALLBACK_TESTIMONIALS = [
 const truncate = (text) => text.length > 100 ? text.slice(0, 97).trimEnd() + '…' : text;
 
 const founders = [
-  { initial: 'V', name: 'Ved Shrivastava',  role: 'Founder, Managing Director & Full Stack Developer',  quote: 'Building this studio has always been about more than design — it\'s about creating a seamless experience for every client, from the first conversation to the final handover.' },
-  { initial: 'S', name: 'Shubh Shrivastava',role: 'Founder, Director, Designer & Consultant',           quote: 'Every space I design is a reflection of the person who lives in it. Great design isn\'t just beautiful — it\'s deeply personal and completely functional.'                  },
+  { initial: 'V', name: 'Ved Shrivastava',  role: 'Founder, Managing Director & Full Stack Developer',  quote: 'Building this studio has always been about more than design. It\'s about creating a seamless experience for every client, from the first conversation to the final handover.' },
+  { initial: 'S', name: 'Shubh Shrivastava',role: 'Founder, Director, Designer & Consultant',           quote: 'Every space I design is a reflection of the person who lives in it. Great design isn\'t just beautiful. It\'s deeply personal and completely functional.'                  },
 ];
 
 const CountUp = ({ endValue, duration = 2300 }) => {
@@ -188,7 +188,7 @@ export default function AboutPage() {
 
       <section className="about-hero">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={bgimg.src} alt="Luxury interior design by Shrivastavas Elevate — premium interior designers in Satna, Madhya Pradesh" className="about-hero-bg" />
+        <img src={bgimg.src} alt="Luxury interior design by Shrivastavas Elevate, premium interior designers in Satna, Madhya Pradesh" className="about-hero-bg" />
         <div className="about-overlay" />
         <div className="about-hero-content">
           <div className="hp-hero-tag-box">About Us</div>
@@ -197,7 +197,7 @@ export default function AboutPage() {
             <span>Luxury</span>
           </h1>
           <div className="hp-hero-rule" />
-          <p>Two brothers, one vision — premium interiors crafted<br />for homes and businesses across India.</p>
+          <p>Two brothers, one vision: premium interiors crafted<br />for homes and businesses across India.</p>
           <div className="abt-hero-actions">
             <button className="abt-btn-primary" onClick={openConsult}>Book Consultation</button>
             <button className="abt-btn-ghost" onClick={() => router.push('/projects')}>See Our Work</button>
@@ -234,7 +234,7 @@ export default function AboutPage() {
             <h2>Elevating Spaces<br />With Purpose</h2>
           </div>
           <div className="abt-who-head-right">
-            <p>Shrivastavas Elevate is a premium interior design and contracting studio headquartered in Satna, Madhya Pradesh — founded on one belief: that every home deserves to feel extraordinary. Serving residential and commercial clients across India, we unite elite artistry with completely transparent project execution.</p>
+            <p>Shrivastavas Elevate is a premium interior design and contracting studio headquartered in Satna, Madhya Pradesh, founded on one belief: that every home deserves to feel extraordinary. Serving residential and commercial clients across India, we unite elite artistry with completely transparent project execution.</p>
             <div className="abt-founders">
               <div className="abt-founder-pill"><span className="abt-founder-pill-avatar">V</span>Ved Shrivastava</div>
               <div className="abt-founder-pill"><span className="abt-founder-pill-avatar">S</span>Shubh Shrivastava</div>
@@ -246,13 +246,13 @@ export default function AboutPage() {
           <div className="abt-feat-card abt-reveal" ref={sr}>
             <div className="abt-feat-img">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={storyImg.src} alt="Shrivastavas Elevate interior design studio — founded by Ved and Shubh Shrivastava in Satna, MP" />
+              <img src={storyImg.src} alt="Shrivastavas Elevate interior design studio founded by Ved and Shubh Shrivastava in Satna, MP" />
               <div className="abt-feat-img-overlay" />
               <div className="abt-feat-tag"><IconCrown /> Our Story</div>
             </div>
             <div className="abt-feat-body">
               <h3>Welcome to Shrivastavas Elevate</h3>
-              <p>A premium interior design and contracting studio in Satna, Madhya Pradesh — focused on creating elegant, functional, and timeless spaces built entirely around the way you live. From modular kitchens to full-home makeovers, we bring luxury interiors to homes across MP.</p>
+              <p>A premium interior design and contracting studio in Satna, Madhya Pradesh, focused on creating elegant, functional, and timeless spaces built entirely around the way you live. From modular kitchens to full-home makeovers, we bring luxury interiors to homes across MP.</p>
               <ul className="abt-card-list">
                 <li><span className="abt-card-dot" />Led by Ved &amp; Shubh Shrivastava</li>
                 <li><span className="abt-card-dot" />Residential &amp; commercial expertise</li>
@@ -295,7 +295,7 @@ export default function AboutPage() {
         <div className="abt-founders-head abt-reveal" ref={sr}>
           <span className="section-tag"><IconCrown /> The People Behind It</span>
           <h2>Meet Our Founders</h2>
-          <p>Two brothers based in Satna, MP — united by a shared passion for luxury design and a commitment to making every residential and commercial space extraordinary.</p>
+          <p>Two brothers based in Satna, MP, united by a shared passion for luxury design and a commitment to making every residential and commercial space extraordinary.</p>
         </div>
         <div className="abt-founders-grid">
           {founders.map((f, i) => (
@@ -322,7 +322,7 @@ export default function AboutPage() {
         <div className="abt-section-head abt-reveal" ref={sr}>
           <span className="section-tag"><IconComments /> Our Approach</span>
           <h2>How We Bring<br />Spaces To Life</h2>
-          <p>Four seamless phases — from your first idea to a finished, furnished dream home.</p>
+          <p>Four seamless phases that take you from your first idea to a finished, furnished dream home.</p>
         </div>
         <div className="about-process-grid">
           {[
@@ -412,7 +412,7 @@ export default function AboutPage() {
         <div className="about-cta-inner abt-reveal" ref={sr}>
           <span className="section-tag"><IconWand /> Begin Your Journey</span>
           <h2>Let&apos;s Design A Space<br />That Reflects You</h2>
-          <p>Elegant interiors crafted with premium materials, modern aesthetics, and timeless sophistication — built entirely around your life.</p>
+          <p>Elegant interiors crafted with premium materials, modern aesthetics, and timeless sophistication, built entirely around your life.</p>
           <div className="abt-cta-actions">
             <button className="about-cta-btn" onClick={openConsult}>Book Free Consultation <IconCalendar /></button>
             <button className="about-cta-btn-ghost" onClick={() => router.push('/projects')}>See Our Work <IconBuilding /></button>

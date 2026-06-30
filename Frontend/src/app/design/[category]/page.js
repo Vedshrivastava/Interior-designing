@@ -8,15 +8,15 @@ const PAGE_LIMIT = 20;
 
 const CATEGORY_META = {
   'kitchen-designs':     {
-    desc: 'Modern modular kitchen designs in Satna, Madhya Pradesh — L-shaped, U-shaped, island kitchens with premium fittings.',
+    desc: 'Modern modular kitchen designs in Satna, Madhya Pradesh: L-shaped, U-shaped, island kitchens with premium fittings.',
     keywords: 'modular kitchen design Satna, kitchen interior Satna MP, modular kitchen Madhya Pradesh',
   },
   'bedroom-designs':     {
-    desc: 'Elegant bedroom interior designs for homes in Satna, MP — master bedrooms, kids rooms, guest rooms with luxury finishes.',
+    desc: 'Elegant bedroom interior designs for homes in Satna, MP: master bedrooms, kids rooms, guest rooms with luxury finishes.',
     keywords: 'bedroom interior design Satna, luxury bedroom Satna MP, bedroom design Madhya Pradesh',
   },
   'bathroom-designs':    {
-    desc: 'Premium bathroom interior designs in Satna, MP — modern, minimalist and luxury bathrooms.',
+    desc: 'Premium bathroom interior designs in Satna, MP: modern, minimalist and luxury bathrooms.',
     keywords: 'bathroom interior design Satna, bathroom renovation Satna MP',
   },
   'lounge-area-designs': {
@@ -24,11 +24,11 @@ const CATEGORY_META = {
     keywords: 'living room interior design Satna, lounge design Satna MP',
   },
   'tv-unit-designs':     {
-    desc: 'Modern TV unit and entertainment wall designs in Satna — wall-mounted, floor-standing and floating units.',
+    desc: 'Modern TV unit and entertainment wall designs in Satna: wall-mounted, floor-standing and floating units.',
     keywords: 'TV unit design Satna, entertainment wall Satna MP',
   },
   'kids-room-designs':   {
-    desc: 'Creative and safe kids room interior designs in Satna, MP — playful themes, study zones, storage solutions.',
+    desc: 'Creative and safe kids room interior designs in Satna, MP: playful themes, study zones, storage solutions.',
     keywords: 'kids room interior design Satna, children room design Satna MP',
   },
   'commercial-designs':  {
@@ -36,15 +36,15 @@ const CATEGORY_META = {
     keywords: 'commercial interior designer Satna, office interior design Satna MP',
   },
   'house-exterior':      {
-    desc: 'House exterior and facade designs in Satna, Madhya Pradesh — modern, contemporary and traditional styles.',
+    desc: 'House exterior and facade designs in Satna, Madhya Pradesh: modern, contemporary and traditional styles.',
     keywords: 'house exterior design Satna, facade design Satna MP, house front design Madhya Pradesh',
   },
   'mandir-designs':      {
-    desc: 'Beautiful mandir and pooja room designs in Satna, MP — marble, wood and contemporary styles.',
+    desc: 'Beautiful mandir and pooja room designs in Satna, MP: marble, wood and contemporary styles.',
     keywords: 'mandir design Satna, pooja room interior Satna MP',
   },
   'garden-designs':      {
-    desc: 'Garden and outdoor landscape designs in Satna, Madhya Pradesh — terrace gardens, courtyards, vertical gardens.',
+    desc: 'Garden and outdoor landscape designs in Satna, Madhya Pradesh: terrace gardens, courtyards, vertical gardens.',
     keywords: 'garden design Satna, landscape design Satna MP',
   },
 };
@@ -58,7 +58,7 @@ export async function generateMetadata({ params }) {
   const { category: slug } = await params;
   const categoryName = SLUG_TO_CATEGORY[slug] || slug;
   const meta = CATEGORY_META[slug] || {};
-  const desc = meta.desc || `${categoryName} in Satna, Madhya Pradesh — premium designs by Shrivastavas Elevate.`;
+  const desc = meta.desc || `${categoryName} in Satna, Madhya Pradesh, premium designs by Shrivastavas Elevate.`;
   const title = `${categoryName} in Satna MP | Shrivastavas Elevate`;
 
   return {
@@ -76,7 +76,7 @@ export async function generateMetadata({ params }) {
           url: `${SITE_URL}/og-image.png`,
           width: 1536,
           height: 1024,
-          alt: `${categoryName} — Shrivastavas Elevate, Satna MP`,
+          alt: `${categoryName} by Shrivastavas Elevate, Satna MP`,
         },
       ],
     },
@@ -125,7 +125,7 @@ export default async function Page({ params }) {
   const imageGallerySchema = initialDesigns.length > 0 ? {
     '@context': 'https://schema.org',
     '@type': 'ImageGallery',
-    name: `${categoryName} Portfolio — Shrivastavas Elevate, Satna`,
+    name: `${categoryName} Portfolio by Shrivastavas Elevate, Satna`,
     description: `Portfolio of ${categoryName.toLowerCase()} designed by Shrivastavas Elevate in Satna, Madhya Pradesh.`,
     url: `${SITE_URL}/design/${slug}`,
     provider: {
@@ -140,7 +140,7 @@ export default async function Page({ params }) {
         '@type': 'ImageObject',
         contentUrl: d.images[0],
         name: d.name,
-        description: d.description || `${d.name} — ${categoryName} by Shrivastavas Elevate, Satna`,
+        description: d.description || `${d.name}, ${categoryName} by Shrivastavas Elevate, Satna`,
         creator: {
           '@type': 'Organization',
           name: 'Shrivastavas Elevate',
@@ -151,14 +151,14 @@ export default async function Page({ params }) {
   const itemListSchema = initialDesigns.length > 0 ? {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: `${categoryName} in Satna — Shrivastavas Elevate`,
+    name: `${categoryName} in Satna by Shrivastavas Elevate`,
     url: `${SITE_URL}/design/${slug}`,
     numberOfItems: initialTotal,
     itemListElement: initialDesigns.slice(0, 10).map((d, i) => ({
       '@type': 'ListItem',
       position: i + 1,
       name: d.name,
-      description: d.description || `${d.name} — ${categoryName} in Satna, MP`,
+      description: d.description || `${d.name}, ${categoryName} in Satna, MP`,
       image: d.images?.[0] || undefined,
     })),
   } : null;

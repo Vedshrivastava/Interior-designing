@@ -198,7 +198,7 @@ export default function HomePage() {
   return (
     <div className="home-page">
 
-      {/* ── Card detail modal — process + advantages ── */}
+      {/* Card detail modal: process + advantages */}
       {activeCard && (
         <div className="svc-modal-backdrop" onClick={() => setActiveCard(null)}>
           <div className="svc-modal" onClick={e => e.stopPropagation()}>
@@ -386,7 +386,7 @@ export default function HomePage() {
         <div className="hp-process-head sr-item" ref={sr}>
           <span className="hp-overline"><IconComments /> Our Process</span>
           <h2>How We Transform<br />Your Space</h2>
-          <p>Six seamless steps — from your first idea to a finished, furnished dream home.</p>
+          <p>Six seamless steps that take you from your first idea to a finished, furnished dream home.</p>
         </div>
         <div className="hp-process-grid">
           {[
@@ -433,7 +433,7 @@ export default function HomePage() {
           {[
             { Icon: IconGem,      title: 'Affordable Luxury',   desc: `Premium interiors shouldn't come with financial surprises.`,                               points: ['Fully itemised quote upfront covering materials, labour and logistics', 'Direct sourcing from Kajaria, Asian Paints and CenturyPly, no middlemen', 'No hidden costs added at any stage', "Luxury finish at a price that's honest and transparent"] },
             { Icon: IconShield,   title: 'Consultation Refund', desc: `The initial consultation fee isn't a cost, it's a credit.`,                                    points: ['Full fee adjusted against your project cost when you confirm', 'If you proceed with us, the consultation was essentially free', 'No financial risk to experiencing what we do', 'Reflects our confidence in the work'] },
-            { Icon: IconEye,      title: 'Almost Free 3D',     desc: `Photorealistic 3D included in your project — no separate charge.`,            points: ['3D design is complimentary when you proceed with the full interior project', 'A minimal revision fee applies only if you request redesigns beyond the standard approval rounds', 'Every room modelled to exact scale with real material textures and lighting', 'What you approve in the render is exactly what gets built — no surprises'] },
+            { Icon: IconEye,      title: 'Almost Free 3D',     desc: `Photorealistic 3D included in your project at no separate charge.`,            points: ['3D design is complimentary when you proceed with the full interior project', 'A minimal revision fee applies only if you request redesigns beyond the standard approval rounds', 'Every room modelled to exact scale with real material textures and lighting', 'What you approve in the render is exactly what gets built, with no surprises'] },
             { Icon: IconKey,      title: 'Turnkey Execution',   desc: `From sign-off to handover, we handle everything.`,                                               points: ['Vendor selection, materials and labour all coordinated by us', 'Site supervision and quality checks at every stage', 'Formal walkthrough before handover', "You don't make a single site decision yourself"] },
             { Icon: IconPenRuler, title: '100% Bespoke',        desc: `No templates, no catalogues, nothing reused from another project.`,                              points: ['Starts with a real conversation about how you live', 'Covers routines, storage needs, tastes and family', 'Every detail conceived specifically for your space', 'No two projects from us look the same'] },
             { Icon: IconBuilding, title: 'We Travel to You',    desc: `Our studio is in Satna, MP, but we work across India.`,                                          points: ['We travel for site visits, milestone reviews and handover', 'Virtual check-ins keep you in the loop between visits', 'Same standards and process as our local Satna projects', 'Distance has never been a reason to say no'] },

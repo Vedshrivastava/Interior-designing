@@ -211,7 +211,7 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
             <span className="cs-hero-highlight">in {cityName}</span>
           </h1>
           <p className="cs-hero-sub">
-            Shrivastavas Elevate brings luxury residential and commercial interior design to {cityName}, {stateName} — modular kitchens, bedrooms, living rooms, commercial offices and full-home makeovers, all with 3D visualization and turnkey execution.
+            Shrivastavas Elevate brings luxury residential and commercial interior design to {cityName}, {stateName}: modular kitchens, bedrooms, living rooms, commercial offices and full-home makeovers, all with 3D visualization and turnkey execution.
           </p>
           <div className="cs-hero-actions">
             <button onClick={openConsult} className="cs-btn-primary">
@@ -264,7 +264,7 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
               ? `Fetching our latest work in ${cityName}…`
               : projects.length > 0
               ? `${projects.length} project${projects.length !== 1 ? 's' : ''} completed in ${cityName}. Each one crafted with premium materials, precision and timeless design.`
-              : `We are actively accepting interior design projects in ${cityName}. Be among our first clients in the city — and receive our complete, undivided focus from consultation to handover.`}
+              : `We are actively accepting interior design projects in ${cityName}. Be among our first clients in the city, and receive our complete, undivided focus from consultation to handover.`}
           </p>
         </div>
 
@@ -293,10 +293,10 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
             <div className="cs-no-proj-inner">
               <h3>Be Our First Client in {cityName}</h3>
               <p>
-                Shrivastavas Elevate is now accepting interior design projects in {cityName}, {stateName}. Our team travels to client locations for site visits, measurements and execution oversight — distance is never an obstacle to premium design.
+                Shrivastavas Elevate is now accepting interior design projects in {cityName}, {stateName}. Our team travels to client locations for site visits, measurements and execution oversight, so distance is never an obstacle to premium design.
               </p>
               <ul className="cs-no-proj-list">
-                <li><span className="cs-dot" />Free initial consultation — in-person or virtual</li>
+                <li><span className="cs-dot" />Free initial consultation, in-person or virtual</li>
                 <li><span className="cs-dot" />Full 3D visualization before any work begins</li>
                 <li><span className="cs-dot" />Dedicated project manager for {cityName} clients</li>
                 <li><span className="cs-dot" />Consultation fee fully adjusted against project cost</li>
@@ -316,7 +316,7 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
         <div className="cs-section-head cs-sr" ref={sr}>
           <span className="cs-overline">Why Choose Us</span>
           <h2>Why {cityName} Clients Choose Shrivastavas Elevate</h2>
-          <p>Every advantage we offer in Satna is equally available to clients in {cityName} — same design standards, same team, same results.</p>
+          <p>Every advantage we offer in Satna is equally available to clients in {cityName}: same design standards, same team, same results.</p>
         </div>
         <div className="cs-why-grid">
           {advantages.map((a, i) => (
@@ -349,7 +349,7 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
           <span className="cs-overline light">Begin Your Journey</span>
           <h2>Ready to Transform Your {cityName} Space?</h2>
           <p>
-            Get a free consultation with our design team. We&apos;ll discuss your vision, budget and timeline for your {cityName} project — no obligation, no pressure.
+            Get a free consultation with our design team. We&apos;ll discuss your vision, budget and timeline for your {cityName} project, with no obligation and no pressure.
           </p>
           <div className="cs-cta-actions">
             <button onClick={openConsult} className="cs-cta-btn-primary">

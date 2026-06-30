@@ -317,7 +317,10 @@ export default function ProductsPage({ initialProducts = [] }) {
   }, [fetchProducts, fetchSpecialities, initialProducts.length]);
 
   useWebSocket(useCallback((msg) => {
-    if (msg.type === 'productsChanged')    fetchProducts();
+    // Also re-fetch specialities on productsChanged — a new product may
+    // reference a speciality created moments earlier in the same admin
+    // session, and the two WebSocket events can arrive/resolve out of order.
+    if (msg.type === 'productsChanged')    { fetchProducts(); fetchSpecialities(); }
     if (msg.type === 'specialitiesChanged') fetchSpecialities();
   }, [fetchProducts, fetchSpecialities]));
 

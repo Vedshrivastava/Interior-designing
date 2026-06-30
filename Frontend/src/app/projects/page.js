@@ -1,6 +1,6 @@
 import ProjectsPage from '@/components/pages/ProjectsPage';
 
-const SITE_URL = 'https://shrivastavaseelevate.com';
+const SITE_URL = 'https://www.shrivastavaselevate.com';
 const API_URL  = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export const revalidate = 60;
@@ -23,7 +23,7 @@ export const metadata = {
     title: 'Interior Design Portfolio Satna MP | 50+ Projects | Shrivastavas Elevate',
     description: '50+ completed interior design projects in Satna, MP — kitchens, bedrooms, living rooms, commercial spaces. View our portfolio.',
     url: `${SITE_URL}/projects`,
-    images: [{ url: `${SITE_URL}/og-image.png`, width: 1200, height: 630, alt: 'Interior Design Projects Portfolio — Shrivastavas Elevate, Satna MP' }],
+    images: [{ url: `${SITE_URL}/og-image.png`, width: 1536, height: 1024, alt: 'Interior Design Projects Portfolio — Shrivastavas Elevate, Satna MP' }],
   },
   twitter: {
     title: 'Interior Design Portfolio Satna MP | 50+ Projects',

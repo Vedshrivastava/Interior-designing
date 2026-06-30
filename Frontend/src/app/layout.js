@@ -2,7 +2,7 @@ import './globals.css';
 import { ModalProvider } from '@/context/ModalContext';
 import LayoutShell from '@/components/LayoutShell';
 
-const SITE_URL = 'https://shrivastavaseelevate.com';
+const SITE_URL = 'https://www.shrivastavaselevate.com';
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),
@@ -48,8 +48,8 @@ export const metadata = {
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
-        width: 1200,
-        height: 630,
+        width: 1536,
+        height: 1024,
         alt: 'Shrivastavas Elevate — Premium Interior Designer in Satna, Madhya Pradesh',
       },
     ],

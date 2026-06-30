@@ -2,7 +2,7 @@ import { preload } from 'react-dom';
 import HomePage from '@/components/pages/HomePage';
 import bgimg from '@/assets/home-img.png';
 
-const SITE_URL = 'https://shrivastavaseelevate.com';
+const SITE_URL = 'https://www.shrivastavaselevate.com';
 
 export const metadata = {
   title: 'Best Interior Designer in Satna MP | Free Consultation | Shrivastavas Elevate',
@@ -17,8 +17,8 @@ export const metadata = {
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
-        width: 1200,
-        height: 630,
+        width: 1536,
+        height: 1024,
         alt: 'Shrivastavas Elevate — Interior Designer in Satna, Madhya Pradesh',
       },
     ],

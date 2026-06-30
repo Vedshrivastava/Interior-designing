@@ -27,6 +27,6 @@ export default function robots() {
         disallow: '/',
       },
     ],
-    sitemap: 'https://shrivastavaseelevate.com/sitemap.xml',
+    sitemap: 'https://www.shrivastavaselevate.com/sitemap.xml',
   };
 }

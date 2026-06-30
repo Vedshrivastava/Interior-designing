@@ -1,6 +1,6 @@
 import ProductsPage from '@/components/pages/ProductsPage';
 
-const SITE_URL = 'https://shrivastavaseelevate.com';
+const SITE_URL = 'https://www.shrivastavaselevate.com';
 const API_URL  = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export const revalidate = 60;
@@ -24,7 +24,7 @@ export const metadata = {
     description:
       'Breeze blocks, jaali walls, louvers, WPC panels & more — premium architectural products used in interior projects across Satna, MP.',
     url: `${SITE_URL}/products`,
-    images: [{ url: `${SITE_URL}/og-image.png`, width: 1200, height: 630, alt: 'Interior Products — Shrivastavas Elevate, Satna MP' }],
+    images: [{ url: `${SITE_URL}/og-image.png`, width: 1536, height: 1024, alt: 'Interior Products — Shrivastavas Elevate, Satna MP' }],
   },
   twitter: {
     title: 'Interior Products & Materials Satna MP | Shrivastavas Elevate',

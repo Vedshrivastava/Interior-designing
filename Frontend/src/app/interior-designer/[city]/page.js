@@ -1,7 +1,7 @@
 import CityServicePage from '@/components/pages/CityServicePage';
 import { CITY_SLUGS, getCity, matchesCity, locationToSlug } from '@/lib/cities';
 
-const SITE_URL = 'https://shrivastavaseelevate.com';
+const SITE_URL = 'https://www.shrivastavaselevate.com';
 const API_URL  = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export const revalidate = 60;
@@ -37,7 +37,7 @@ export async function generateMetadata({ params }) {
       title,
       description,
       url: `${SITE_URL}/interior-designer/${slug}`,
-      images: [{ url: `${SITE_URL}/og-image.png`, width: 1200, height: 630, alt: `Interior Designer in ${city.name} — Shrivastavas Elevate` }],
+      images: [{ url: `${SITE_URL}/og-image.png`, width: 1536, height: 1024, alt: `Interior Designer in ${city.name} — Shrivastavas Elevate` }],
     },
     twitter: {
       title,

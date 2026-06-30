@@ -3,7 +3,7 @@ import { SLUG_TO_CATEGORY, CATEGORY_SLUGS, fetchCategoriesFromDB } from '@/lib/c
 
 export const revalidate = 60;
 
-const SITE_URL = 'https://shrivastavaseelevate.com';
+const SITE_URL = 'https://www.shrivastavaselevate.com';
 const PAGE_LIMIT = 20;
 
 const CATEGORY_META = {
@@ -74,8 +74,8 @@ export async function generateMetadata({ params }) {
       images: [
         {
           url: `${SITE_URL}/og-image.png`,
-          width: 1200,
-          height: 630,
+          width: 1536,
+          height: 1024,
           alt: `${categoryName} — Shrivastavas Elevate, Satna MP`,
         },
       ],

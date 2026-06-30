@@ -1,6 +1,6 @@
 import ContactPage from '@/components/pages/ContactPage';
 
-const SITE_URL = 'https://shrivastavaseelevate.com';
+const SITE_URL = 'https://www.shrivastavaselevate.com';
 
 const breadcrumbSchema = {
   '@context': 'https://schema.org',
@@ -59,8 +59,8 @@ export const metadata = {
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
-        width: 1200,
-        height: 630,
+        width: 1536,
+        height: 1024,
         alt: 'Contact Shrivastavas Elevate — Interior Designer in Satna MP',
       },
     ],

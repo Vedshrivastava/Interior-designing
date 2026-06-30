@@ -1,7 +1,7 @@
 import { CATEGORY_SLUGS, SLUG_TO_CATEGORY, CATEGORY_TO_SLUG, fetchCategoriesFromDB } from '@/lib/categories';
 import { CITY_SLUGS, locationToSlug, matchesCity } from '@/lib/cities';
 
-const BASE_URL = 'https://shrivastavaseelevate.com';
+const BASE_URL = 'https://www.shrivastavaselevate.com';
 const API_URL  = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export const revalidate = 3600; // rebuild sitemap every hour

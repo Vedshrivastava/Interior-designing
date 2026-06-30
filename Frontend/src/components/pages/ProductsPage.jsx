@@ -189,31 +189,6 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appM
         )}
         <h3 className="prod-card-title">{name}</h3>
         <p className="prod-card-desc">{description}</p>
-        {(materialList.length > 0 || finishList.length > 0) && (
-          <div className="prod-card-chip-group">
-            <p className="prod-card-chip-label">Material &amp; Finish</p>
-            <div className="prod-card-chips">
-              {materialList.map((m, i) => {
-                const meta = materialMeta[m] || { color: '#c9a87c', iconUrl: null };
-                return (
-                  <span key={`m-${i}`} className="prod-chip" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
-                    {meta.iconUrl ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} /> : <IconLayerGroup />}
-                    {m}
-                  </span>
-                );
-              })}
-              {finishList.map((f, i) => {
-                const meta = finishMeta[f] || { color: '#c9a87c', iconUrl: null };
-                return (
-                  <span key={`f-${i}`} className="prod-chip" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
-                    {meta.iconUrl ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} /> : <IconStar />}
-                    {f}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        )}
         <button className="prod-card-btn" onClick={openModal}>See Details →</button>
       </div>
     </div>

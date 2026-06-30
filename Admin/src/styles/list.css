@@ -567,7 +567,7 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 16px;
+    gap: 20px;
     margin-top: 12px;
 }
 .edit-modal .image-preview {
@@ -575,7 +575,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 .edit-modal .image-preview img.thumbnail {
     width: 90px;
@@ -607,36 +607,43 @@
     top: -8px; left: -8px;
     background: var(--green);
     color: var(--gold-lt, var(--gold));
-    width: 20px; height: 20px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px; font-weight: 700;
-    border: 2px solid var(--white);
-    z-index: 1;
-}
-
-.edit-modal .image-preview-toolbar {
-    display: flex;
-    gap: 4px;
-}
-.edit-modal .img-tool-btn {
     width: 22px; height: 22px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--ivory);
-    border: 1px solid var(--gold-line);
+    font-size: 11px; font-weight: 700;
+    line-height: 1;
+    border: 2px solid var(--white);
+    box-shadow: 0 1px 3px rgba(16,37,37,0.15);
+    z-index: 1;
+}
+
+.edit-modal .image-preview-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.edit-modal .img-tool-btn {
+    width: 26px; height: 26px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--white);
+    border: 1px solid rgba(16,37,37,0.16);
+    box-shadow: 0 1px 3px rgba(16,37,37,0.1);
     color: var(--text-mid);
-    font-size: 9px;
+    font-size: 11px;
+    line-height: 1;
     cursor: pointer;
     text-decoration: none;
-    transition: background 0.2s ease, color 0.2s ease;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
-.edit-modal .img-tool-btn:hover { background: var(--gold); color: var(--white); }
-.edit-modal .img-tool-btn:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+.edit-modal .img-tool-btn i { line-height: 1; }
+.edit-modal .img-tool-btn:hover { background: var(--gold); border-color: var(--gold); color: var(--white); transform: translateY(-1px); }
+.edit-modal .img-tool-btn:disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; box-shadow: none; transform: none; }
 
 /* Modal Footer Actions */
 .edit-modal-actions {

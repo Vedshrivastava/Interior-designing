@@ -410,6 +410,22 @@
   flex: 1;
 }
 
+.prod-card-chip-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.prod-card-chip-label {
+  font-family: "Inter", sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0;
+}
+
 .prod-card-chips {
   display: flex; gap: 6px; flex-wrap: wrap;
 }
@@ -566,7 +582,7 @@
 }
 .prod-modal-content::-webkit-scrollbar { display: none; }
 
-.prod-modal-tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.prod-modal-tag-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .prod-modal-tag {
   display: inline-flex; align-items: center; padding: 4px 12px;

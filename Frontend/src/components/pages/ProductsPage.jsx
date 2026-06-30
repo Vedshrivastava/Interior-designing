@@ -171,32 +171,40 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appM
         {isFeatured && <div className="prod-card-featured-ribbon"><IconStar /> Featured</div>}
       </div>
       <div className="prod-card-body">
-        <div className="prod-card-tags">
-          {categoryList.map(cat => <span key={cat} className="prod-card-cat-tag">{cat}</span>)}
-          {subcategoryList.map(sub => <span key={sub} className="prod-card-subcat-tag">{sub}</span>)}
-        </div>
+        {(categoryList.length > 0 || subcategoryList.length > 0) && (
+          <div className="prod-card-chip-group">
+            <p className="prod-card-chip-label">Category</p>
+            <div className="prod-card-tags">
+              {categoryList.map(cat => <span key={cat} className="prod-card-cat-tag">{cat}</span>)}
+              {subcategoryList.map(sub => <span key={sub} className="prod-card-subcat-tag">{sub}</span>)}
+            </div>
+          </div>
+        )}
         <h3 className="prod-card-title">{name}</h3>
         <p className="prod-card-desc">{description}</p>
         {(materialList.length > 0 || finishList.length > 0) && (
-          <div className="prod-card-chips">
-            {materialList.map((m, i) => {
-              const meta = materialMeta[m] || { color: '#c9a87c', iconUrl: null };
-              return (
-                <span key={`m-${i}`} className="prod-chip" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
-                  {meta.iconUrl ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} /> : <IconLayerGroup />}
-                  {m}
-                </span>
-              );
-            })}
-            {finishList.map((f, i) => {
-              const meta = finishMeta[f] || { color: '#c9a87c', iconUrl: null };
-              return (
-                <span key={`f-${i}`} className="prod-chip" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
-                  {meta.iconUrl ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} /> : <IconStar />}
-                  {f}
-                </span>
-              );
-            })}
+          <div className="prod-card-chip-group">
+            <p className="prod-card-chip-label">Material &amp; Finish</p>
+            <div className="prod-card-chips">
+              {materialList.map((m, i) => {
+                const meta = materialMeta[m] || { color: '#c9a87c', iconUrl: null };
+                return (
+                  <span key={`m-${i}`} className="prod-chip" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
+                    {meta.iconUrl ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} /> : <IconLayerGroup />}
+                    {m}
+                  </span>
+                );
+              })}
+              {finishList.map((f, i) => {
+                const meta = finishMeta[f] || { color: '#c9a87c', iconUrl: null };
+                return (
+                  <span key={`f-${i}`} className="prod-chip" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
+                    {meta.iconUrl ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} /> : <IconStar />}
+                    {f}
+                  </span>
+                );
+              })}
+            </div>
           </div>
         )}
         <button className="prod-card-btn" onClick={openModal}>See Details →</button>
@@ -218,29 +226,44 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appM
           {images.length > 1 && <div className="prod-modal-thumbs">{images.map((src, i) => <button key={i} className={`prod-modal-thumb${i === activeThumb ? ' active' : ''}`} onClick={() => setActiveThumb(i)} aria-label={`Image ${i + 1}`}><img src={cloudinaryOptimize(src, { width: 200 })} alt={`${name} thumbnail ${i + 1}`} /></button>)}</div>}
         </div>
         <div className="prod-modal-content">
-          <div className="prod-modal-tag-row">
-            {categoryList.map(cat => <span key={cat} className="prod-modal-tag">{cat}</span>)}
-            {subcategoryList.map(sub => <span key={sub} className="prod-modal-tag prod-modal-tag--sub">{sub}</span>)}
-          </div>
           <h2 className="prod-modal-title">{name}</h2>
-          {(materialList.length > 0 || finishList.length > 0) && (
-            <div className="prod-modal-meta-chips">
-              {materialList.map((m, i) => {
-                const meta = materialMeta[m] || { color: '#c9a87c', iconUrl: null };
-                return (
-                  <span key={`m-${i}`} className="prod-meta-chip" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
-                    {meta.iconUrl ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} /> : <IconLayerGroup />} {m}
-                  </span>
-                );
-              })}
-              {finishList.map((f, i) => {
-                const meta = finishMeta[f] || { color: '#c9a87c', iconUrl: null };
-                return (
-                  <span key={`f-${i}`} className="prod-meta-chip" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
-                    {meta.iconUrl ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} /> : <IconInfo />} {f}
-                  </span>
-                );
-              })}
+          {(categoryList.length > 0 || subcategoryList.length > 0) && (
+            <div className="prod-modal-section">
+              <h4 className="prod-modal-section-label">Category</h4>
+              <div className="prod-modal-tag-row">
+                {categoryList.map(cat => <span key={cat} className="prod-modal-tag">{cat}</span>)}
+                {subcategoryList.map(sub => <span key={sub} className="prod-modal-tag prod-modal-tag--sub">{sub}</span>)}
+              </div>
+            </div>
+          )}
+          {materialList.length > 0 && (
+            <div className="prod-modal-section">
+              <h4 className="prod-modal-section-label">Material</h4>
+              <div className="prod-modal-meta-chips">
+                {materialList.map((m, i) => {
+                  const meta = materialMeta[m] || { color: '#c9a87c', iconUrl: null };
+                  return (
+                    <span key={`m-${i}`} className="prod-meta-chip" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
+                      {meta.iconUrl ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} /> : <IconLayerGroup />} {m}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {finishList.length > 0 && (
+            <div className="prod-modal-section">
+              <h4 className="prod-modal-section-label">Finish</h4>
+              <div className="prod-modal-meta-chips">
+                {finishList.map((f, i) => {
+                  const meta = finishMeta[f] || { color: '#c9a87c', iconUrl: null };
+                  return (
+                    <span key={`f-${i}`} className="prod-meta-chip" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
+                      {meta.iconUrl ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} /> : <IconInfo />} {f}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
           )}
           {description && <div className="prod-modal-section"><h4 className="prod-modal-section-label">About this product</h4><p className="prod-modal-desc">{description}</p></div>}

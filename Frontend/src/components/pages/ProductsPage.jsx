@@ -131,7 +131,7 @@ const ICON_COMPONENT_MAP = {
   'sun-plant-wilt':IconSun,
 };
 
-const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appMeta = {}, materialMeta = {}, finishMeta = {} }) => {
+const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appMeta = {}, materialMeta = {}, finishMeta = {}, priority = false }) => {
   const [modalOpen,   setModalOpen]   = useState(false);
   const [activeThumb, setActiveThumb] = useState(0);
   const [lbIdx,       setLbIdx]       = useState(null);
@@ -163,7 +163,7 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appM
     <div className="prod-card">
       <div className="prod-card-img-wrap" onClick={() => images?.length > 0 && openLb(0)}>
         {images?.[0]
-          ? <img src={cloudinaryOptimize(images[0], { width: 800 })} alt={`${name}, ${categoryList.join(', ')} by Shrivastavas Elevate, Satna MP`} loading="lazy" />
+          ? <img src={cloudinaryOptimize(images[0], { width: 800 })} alt={`${name}, ${categoryList.join(', ')} by Shrivastavas Elevate, Satna MP`} loading={priority ? 'eager' : 'lazy'} />
           : <div className="prod-card-img-placeholder" />
         }
         {images.length > 1 && <div className="prod-card-img-count">+{images.length - 1}</div>}
@@ -546,7 +546,7 @@ export default function ProductsPage({ initialProducts = [] }) {
           ) : error ? (
             <div className="prod-empty"><div className="prod-empty-icon"><IconStore /></div><h3>Couldn&apos;t load products</h3><p>Please check your connection and try refreshing.</p></div>
           ) : filtered.length > 0 ? (
-            paginated.map(product => <ProductCard key={product._id} product={product} openConsult={openConsult} specMeta={specMeta} appMeta={appMeta} materialMeta={materialMeta} finishMeta={finishMeta} />)
+            paginated.map((product, i) => <ProductCard key={product._id} product={product} openConsult={openConsult} specMeta={specMeta} appMeta={appMeta} materialMeta={materialMeta} finishMeta={finishMeta} priority={i < 4} />)
           ) : (
             <div className="prod-empty"><div className="prod-empty-icon"><IconStore /></div><h3>No products here yet</h3><p>We&apos;re adding products to this section. Check back shortly.</p></div>
           )}

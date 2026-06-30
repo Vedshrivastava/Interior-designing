@@ -12,7 +12,7 @@ function cloudinaryThumb(url, width = 800) {
   return cloudinaryOptimize(url, { width, crop: 'fill' }) ?? url;
 }
 
-export default function Design({ id, name, description, images, points, category, categoryLabel }) {
+export default function Design({ id, name, description, images, points, category, categoryLabel, priority = false }) {
   const { openQuote } = useModal();
   const [modalOpen,     setModalOpen]     = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
@@ -64,12 +64,12 @@ export default function Design({ id, name, description, images, points, category
         <div className="dc-card-img-container">
           {images?.[0] ? (
             <Image
-              src={cloudinaryOptimize(images[0])}
+              src={cloudinaryOptimize(images[0], { width: 800 })}
               alt={`${name}, ${category || 'interior'} design by Shrivastavas Elevate, Satna MP`}
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="dc-card-img"
-              loading="lazy"
+              priority={priority}
             />
           ) : (
             <div className="dc-card-img-placeholder" />
@@ -107,7 +107,7 @@ export default function Design({ id, name, description, images, points, category
             <div className="dc-modal-main-img-container">
               {images?.[activeThumb] ? (
                 <Image
-                  src={cloudinaryOptimize(images[activeThumb])}
+                  src={cloudinaryOptimize(images[activeThumb], { width: 1200 })}
                   alt={`${name}, ${category || 'interior'} design, image ${activeThumb + 1} | Shrivastavas Elevate, Satna MP`}
                   fill
                   sizes="(max-width: 768px) 100vw, 60vw"

@@ -1,7 +1,7 @@
 'use client';
 import '@/styles/designDisplay.css';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import axios from 'axios';
 
 
@@ -20,7 +20,6 @@ export default function DesignDisplayPage({
   pageLimit      = 20,
   categories     = null,
 }) {
-  const router   = useRouter();
   const mobileBarRef = useRef(null);
 
   const FALLBACK_CATS = CATEGORY_SLUGS.map(s => ({ slug: s, label: SLUG_LABELS[s], name: SLUG_TO_CATEGORY[s] }));
@@ -34,7 +33,7 @@ export default function DesignDisplayPage({
       .catch(() => {});
   }, []);
 
-  useEffect(() => { fetchCategories(); }, [fetchCategories]);
+  useEffect(() => { if (!categories) fetchCategories(); }, [fetchCategories, categories]);
 
   const [designList,  setDesignList]  = useState(initialDesigns);
   const [total,       setTotal]       = useState(initialTotal);
@@ -144,25 +143,25 @@ export default function DesignDisplayPage({
 
         <nav className="dd-category-bar" aria-label="Design categories">
           {catList.map(cat => (
-            <button
+            <Link
               key={cat.slug}
+              href={`/design/${cat.slug}`}
               className={`dd-cat-pill${slug === cat.slug ? ' active' : ''}`}
-              onClick={() => router.push(`/design/${cat.slug}`)}
             >
               {cat.name}
-            </button>
+            </Link>
           ))}
         </nav>
 
         <div className="dd-cat-mobile" ref={mobileBarRef}>
           {catList.map(cat => (
-            <button
+            <Link
               key={cat.slug}
+              href={`/design/${cat.slug}`}
               className={`dd-cat-chip${slug === cat.slug ? ' active' : ''}`}
-              onClick={() => router.push(`/design/${cat.slug}`)}
             >
               {cat.name}
-            </button>
+            </Link>
           ))}
         </div>
 
@@ -194,7 +193,7 @@ export default function DesignDisplayPage({
 
             <div className="dd-slider-viewport">
               <div className="dd-slider-track" style={{ '--slide-index': sliderIndex }}>
-                {featuredDesigns.map(item => {
+                {featuredDesigns.map((item, i) => {
                   const catObj = catList.find(c => c.name === item.category);
                   return (
                     <div key={item._id} className="dd-featured-card-wrap">
@@ -203,6 +202,7 @@ export default function DesignDisplayPage({
                         id={item._id} name={item.name} description={item.description}
                         images={item.images} points={item.points} category={item.category}
                         categoryLabel={catObj?.label || undefined}
+                        priority={i < 3}
                       />
                     </div>
                   );
@@ -226,7 +226,7 @@ export default function DesignDisplayPage({
           )}
           <div className="design-display-list">
             {designList.length > 0 ? (
-              regularDesigns.map(item => {
+              regularDesigns.map((item, i) => {
                 const catObj = catList.find(c => c.name === item.category);
                 return (
                   <Design
@@ -234,6 +234,7 @@ export default function DesignDisplayPage({
                     description={item.description} images={item.images}
                     points={item.points} category={item.category}
                     categoryLabel={catObj?.label || undefined}
+                    priority={i < 6}
                   />
                 );
               })

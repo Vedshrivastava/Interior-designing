@@ -565,6 +565,7 @@ html { scroll-behavior: smooth; }
   overflow: hidden;
   cursor: pointer;
   aspect-ratio: 4/3;
+  background-color: var(--blush, #f0e6d3);
 }
 
 .proj-card-img-wrap img {

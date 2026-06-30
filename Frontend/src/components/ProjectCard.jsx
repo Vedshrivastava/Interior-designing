@@ -9,7 +9,7 @@ import {
   IconArrowRight, IconCalendar,
 } from '@/components/Icons';
 
-export default function ProjectCard({ project, openConsult, variant }) {
+export default function ProjectCard({ project, openConsult, variant, priority = false }) {
   const [modalOpen,   setModalOpen]   = useState(false);
   const [activeThumb, setActiveThumb] = useState(0);
   const [lbIdx,       setLbIdx]       = useState(null);
@@ -53,7 +53,7 @@ export default function ProjectCard({ project, openConsult, variant }) {
       <div className="proj-city-img" onClick={() => images?.length > 0 && openLb(0)}>
         {images?.[0]
           ? /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={cloudinaryOptimize(images[0], { width: 900 })} alt={`${name}${location ? ` in ${location}` : ''}, interior design project by Shrivastavas Elevate`} loading="lazy" />
+            <img src={cloudinaryOptimize(images[0], { width: 900 })} alt={`${name}${location ? ` in ${location}` : ''}, interior design project by Shrivastavas Elevate`} loading={priority ? 'eager' : 'lazy'} />
           : <div className="proj-card-img-placeholder" />
         }
         {images.length > 1 && <div className="proj-city-img-count"><span>+{images.length - 1}</span> more photos</div>}
@@ -113,7 +113,7 @@ export default function ProjectCard({ project, openConsult, variant }) {
       <div className="proj-card-img-wrap" onClick={() => images?.length > 0 && openLb(0)}>
         {images?.[0]
           ? /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={cloudinaryOptimize(images[0], { width: 800 })} alt={`${name}${location ? ` in ${location}` : ''}, interior design project by Shrivastavas Elevate`} loading="lazy" />
+            <img src={cloudinaryOptimize(images[0], { width: 800 })} alt={`${name}${location ? ` in ${location}` : ''}, interior design project by Shrivastavas Elevate`} loading={priority ? 'eager' : 'lazy'} />
           : <div className="proj-card-img-placeholder" />
         }
         {images.length > 1 && <div className="proj-card-img-count">+{images.length - 1}</div>}

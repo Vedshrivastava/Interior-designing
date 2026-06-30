@@ -157,8 +157,8 @@ export default function ProjectsPage({ initialProjects = [] }) {
               <p>Please check your connection and try refreshing the page.</p>
             </div>
           ) : filtered.length > 0 ? (
-            filtered.map(project => (
-              <ProjectCard key={project._id} project={project} openConsult={openConsult} />
+            filtered.map((project, i) => (
+              <ProjectCard key={project._id} project={project} openConsult={openConsult} priority={i < 4} />
             ))
           ) : (
             <div className="proj-empty">

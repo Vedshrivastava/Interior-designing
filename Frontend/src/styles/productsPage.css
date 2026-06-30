@@ -304,6 +304,7 @@
   overflow: hidden;
   aspect-ratio: 4/3;
   cursor: pointer;
+  background-color: var(--blush, #f0e6d3);
 }
 
 .prod-card-img-wrap img {

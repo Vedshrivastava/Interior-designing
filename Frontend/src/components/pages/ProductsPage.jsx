@@ -328,6 +328,8 @@ export default function ProductsPage({ initialProducts = [] }) {
       .catch(() => {});
   }, []);
 
+  const APP_GOLD = '#c9a87c'; // applications always use the golden theme, not a custom colour
+
   const fetchApplications = useCallback(() => {
     fetch(`${API_URL}/api/application/list`)
       .then(r => r.json())
@@ -337,9 +339,9 @@ export default function ProductsPage({ initialProducts = [] }) {
           d.data.forEach(a => {
             const isIconify = a.icon && a.icon.includes(':');
             const iconUrl = isIconify
-              ? `https://api.iconify.design/${a.icon.replace(':', '/')}.svg?color=${encodeURIComponent(a.color)}`
+              ? `https://api.iconify.design/${a.icon.replace(':', '/')}.svg?color=${encodeURIComponent(APP_GOLD)}`
               : null;
-            map[a.name] = { color: a.color, iconUrl };
+            map[a.name] = { color: APP_GOLD, iconUrl };
           });
           setAppMeta(prev => ({ ...prev, ...map }));
         }

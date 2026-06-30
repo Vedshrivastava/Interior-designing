@@ -345,13 +345,14 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                                 <div className="add-multi-grid">
                                     {applicationObjects.map(app => {
                                         const sel = editData.applications.includes(app.name);
+                                        const color = '#c9a87c'; // golden theme — same for every application badge
                                         const iconUrl = iconifyImgUrl(app.icon);
                                         return (
                                             <button key={app._id} type="button"
                                                 className={`add-multi-chip${sel ? ' active' : ''}`}
-                                                style={sel ? { background: `${app.color}22`, borderColor: `${app.color}88`, color: app.color } : {}}
+                                                style={sel ? { background: `${color}22`, borderColor: `${color}88`, color } : {}}
                                                 onClick={() => toggleEditChip('applications', app.name)}>
-                                                {iconUrl && <img src={sel ? `${iconUrl}?color=${encodeURIComponent(app.color)}` : iconUrl} width={13} height={13} alt="" style={{ marginRight: '5px', verticalAlign: 'middle' }} />}
+                                                {iconUrl && <img src={sel ? `${iconUrl}?color=${encodeURIComponent(color)}` : iconUrl} width={13} height={13} alt="" style={{ marginRight: '5px', verticalAlign: 'middle' }} />}
                                                 {app.name}
                                             </button>
                                         );

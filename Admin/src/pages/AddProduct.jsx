@@ -127,22 +127,25 @@ function useIconTagManager(url, token, apiBase, fallbackNames) {
     };
 }
 
-/* ── Reusable section: chip grid + inline "add new" form with Iconify search ── */
-function IconTagSection({ label, placeholder, manager, selected, onToggle }) {
+/* ── Reusable section: chip grid + inline "add new" form with Iconify search ──
+   fixedColor: when set, every badge (preset or new) uses this single colour
+   and the colour picker is hidden — used for Applications (golden theme). */
+function IconTagSection({ label, placeholder, manager, selected, onToggle, fixedColor }) {
     return (
         <div className="add-multi-section flex-col">
             <h2>{label}</h2>
             <div className="add-multi-grid">
                 {manager.objects.map(item => {
                     const sel = selected.includes(item.name);
+                    const color = fixedColor || item.color;
                     const iconUrl = iconifyImgUrl(item.icon);
                     return (
                         <div key={item._id} className="spec-chip-wrap">
                             <button type="button"
                                 className={`add-multi-chip spec-chip${sel ? ' active' : ''}`}
-                                style={sel ? { background: `${item.color}22`, borderColor: `${item.color}88`, color: item.color } : {}}
+                                style={sel ? { background: `${color}22`, borderColor: `${color}88`, color } : {}}
                                 onClick={() => onToggle(item.name)}>
-                                {iconUrl && <img src={sel ? `${iconUrl}?color=${encodeURIComponent(item.color)}` : iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} />}
+                                {iconUrl && <img src={sel ? `${iconUrl}?color=${encodeURIComponent(color)}` : iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} />}
                                 {item.name}
                             </button>
                             <button type="button" className="spec-trash-btn"
@@ -209,24 +212,30 @@ function IconTagSection({ label, placeholder, manager, selected, onToggle }) {
                         )}
                     </div>
 
-                    <p className="spec-form-label">Pick a colour</p>
-                    <div className="spec-color-row">
-                        {COLOR_OPTIONS.map(c => (
-                            <button key={c} type="button"
-                                className={`spec-color-swatch${manager.newColor === c ? ' active' : ''}`}
-                                style={{ background: c }}
-                                onClick={() => manager.setNewColor(c)} />
-                        ))}
-                    </div>
+                    {!fixedColor && (
+                        <>
+                            <p className="spec-form-label">Pick a colour</p>
+                            <div className="spec-color-row">
+                                {COLOR_OPTIONS.map(c => (
+                                    <button key={c} type="button"
+                                        className={`spec-color-swatch${manager.newColor === c ? ' active' : ''}`}
+                                        style={{ background: c }}
+                                        onClick={() => manager.setNewColor(c)} />
+                                ))}
+                            </div>
+                        </>
+                    )}
 
                     <div className="spec-preview">
                         Preview:{' '}
-                        <span className="spec-preview-badge" style={{ background: `${manager.newColor}22`, borderColor: `${manager.newColor}88`, color: manager.newColor }}>
+                        {(() => { const pc = fixedColor || manager.newColor; return (
+                        <span className="spec-preview-badge" style={{ background: `${pc}22`, borderColor: `${pc}88`, color: pc }}>
                             {manager.newIcon && iconifyImgUrl(manager.newIcon) && (
-                                <img src={`${iconifyImgUrl(manager.newIcon)}?color=${encodeURIComponent(manager.newColor)}`} width={13} height={13} alt="" />
+                                <img src={`${iconifyImgUrl(manager.newIcon)}?color=${encodeURIComponent(pc)}`} width={13} height={13} alt="" />
                             )}
                             {manager.newName || 'Name'}
                         </span>
+                        ); })()}
                         {!manager.newIcon && <span style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.72rem', color: 'var(--text-lt)', marginLeft: '8px' }}>← pick an icon above</span>}
                     </div>
 
@@ -471,6 +480,7 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
                     manager={appManager}
                     selected={data.applications}
                     onToggle={(name) => toggleChip('applications', name)}
+                    fixedColor="#c9a87c"
                 />
 
                 {/* ── Key Highlights ── */}

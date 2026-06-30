@@ -624,26 +624,9 @@
     align-items: center;
     gap: 8px;
 }
-.edit-modal .img-tool-btn {
-    width: 26px; height: 26px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--white);
-    border: 1px solid rgba(16,37,37,0.16);
-    box-shadow: 0 1px 3px rgba(16,37,37,0.1);
-    color: var(--text-mid);
-    font-size: 11px;
-    line-height: 1;
-    cursor: pointer;
-    text-decoration: none;
-    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-}
-.edit-modal .img-tool-btn i { line-height: 1; }
-.edit-modal .img-tool-btn:hover { background: var(--gold); border-color: var(--gold); color: var(--white); transform: translateY(-1px); }
-.edit-modal .img-tool-btn:disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; box-shadow: none; transform: none; }
+/* Image toolbar buttons (move/download) are inline-styled in
+   ListDesigns.jsx — see imgToolBtnStyle() — so they can't be
+   affected by any other rule in this app-wide stylesheet. */
 
 /* Modal Footer Actions */
 .edit-modal-actions {

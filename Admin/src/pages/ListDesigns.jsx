@@ -6,6 +6,41 @@ import { toast } from 'react-toastify';
 import '../index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
+// Inline-styled so they can never be affected by unrelated CSS rules
+// elsewhere in the bundle (this app ships one global stylesheet for
+// every page, so class-based styling here is exposed to the entire
+// app's CSS, not just this file).
+const imgToolBtnStyle = (disabled) => ({
+  width: 26, height: 26, minWidth: 26, minHeight: 26, maxWidth: 26, maxHeight: 26,
+  boxSizing: 'border-box',
+  borderRadius: '50%',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: disabled ? '#f3f1ec' : '#ffffff',
+  border: '1px solid rgba(16,37,37,0.16)',
+  boxShadow: disabled ? 'none' : '0 1px 3px rgba(16,37,37,0.1)',
+  color: disabled ? '#bdb6ab' : '#5a4e44',
+  padding: 0,
+  margin: 0,
+  cursor: disabled ? 'not-allowed' : 'pointer',
+  pointerEvents: disabled ? 'none' : 'auto',
+  textDecoration: 'none',
+  flexShrink: 0,
+});
+
+const ChevronIcon = ({ dir }) => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    {dir === 'left' ? <polyline points="15 18 9 12 15 6" /> : <polyline points="9 18 15 12 9 6" />}
+  </svg>
+);
+
+const DownloadIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3v12" /><polyline points="7 10 12 15 17 10" /><path d="M5 19h14" />
+  </svg>
+);
+
 // 1. Accept the prop here
 const ListDesigns = ({ url, setIsLoading, isLoading }) => {
   const [list, setList] = useState([]);
@@ -341,16 +376,16 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
                       <img src={imgUrl} alt={`Existing ${index}`} className="thumbnail" />
                       <button type="button" onClick={() => removeKeptImage(index)} className="remove-btn">X</button>
                       <div className="image-preview-toolbar">
-                        <button type="button" className="img-tool-btn" disabled={index === 0}
+                        <button type="button" style={imgToolBtnStyle(index === 0)} disabled={index === 0}
                           onClick={() => moveKeptImage(index, -1)} title="Move earlier">
-                          <i className="fa fa-chevron-left" />
+                          <ChevronIcon dir="left" />
                         </button>
-                        <a className="img-tool-btn" href={cloudinaryDownloadUrl(imgUrl)} target="_blank" rel="noopener noreferrer" title="Download image">
-                          <i className="fa fa-download" />
+                        <a style={imgToolBtnStyle(false)} href={cloudinaryDownloadUrl(imgUrl)} target="_blank" rel="noopener noreferrer" title="Download image">
+                          <DownloadIcon />
                         </a>
-                        <button type="button" className="img-tool-btn" disabled={index === keptImages.length - 1}
+                        <button type="button" style={imgToolBtnStyle(index === keptImages.length - 1)} disabled={index === keptImages.length - 1}
                           onClick={() => moveKeptImage(index, 1)} title="Move later">
-                          <i className="fa fa-chevron-right" />
+                          <ChevronIcon dir="right" />
                         </button>
                       </div>
                     </div>
@@ -362,16 +397,16 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
                       <img src={URL.createObjectURL(img)} alt={`New ${index}`} className="thumbnail" />
                       <button type="button" onClick={() => removeEditImage(index)} className="remove-btn">X</button>
                       <div className="image-preview-toolbar">
-                        <button type="button" className="img-tool-btn" disabled={index === 0}
+                        <button type="button" style={imgToolBtnStyle(index === 0)} disabled={index === 0}
                           onClick={() => moveEditImage(index, -1)} title="Move earlier">
-                          <i className="fa fa-chevron-left" />
+                          <ChevronIcon dir="left" />
                         </button>
-                        <a className="img-tool-btn" href={URL.createObjectURL(img)} download={img.name} title="Download image">
-                          <i className="fa fa-download" />
+                        <a style={imgToolBtnStyle(false)} href={URL.createObjectURL(img)} download={img.name} title="Download image">
+                          <DownloadIcon />
                         </a>
-                        <button type="button" className="img-tool-btn" disabled={index === editImages.length - 1}
+                        <button type="button" style={imgToolBtnStyle(index === editImages.length - 1)} disabled={index === editImages.length - 1}
                           onClick={() => moveEditImage(index, 1)} title="Move later">
-                          <i className="fa fa-chevron-right" />
+                          <ChevronIcon dir="right" />
                         </button>
                       </div>
                     </div>

@@ -70,12 +70,25 @@ export default function DesignDisplayPage({
     }
   }, [category, pageLimit]);
 
-  // Fetch fresh data on mount and whenever category changes (fetchPage is stable per category)
+  // Trust the server-rendered (ISR) data the first time we see a given
+  // category — re-fetching it immediately on mount just re-requested the
+  // same data a moment later, causing every design card (and its image)
+  // to re-render right after first paint. Only fetch client-side when we
+  // don't already have data for the current slug (e.g. a category switch
+  // where this component instance is reused rather than remounted).
+  const loadedSlugRef = useRef(null);
+
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     setPage(1);
+    if (loadedSlugRef.current !== slug) {
+      loadedSlugRef.current = slug;
+      setDesignList(initialDesigns);
+      setTotal(initialTotal);
+      return;
+    }
     fetchPage(1, true);
-  }, [fetchPage]);
+  }, [fetchPage, slug, initialDesigns, initialTotal]);
 
   // WebSocket: instantly re-fetch when admin adds/edits/removes a design
   useWebSocket(useCallback((msg) => {

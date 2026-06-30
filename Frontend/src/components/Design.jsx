@@ -64,7 +64,7 @@ export default function Design({ id, name, description, images, points, category
         <div className="dc-card-img-container">
           {images?.[0] ? (
             <Image
-              src={images[0]}
+              src={cloudinaryOptimize(images[0])}
               alt={`${name}, ${category || 'interior'} design by Shrivastavas Elevate, Satna MP`}
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -107,7 +107,7 @@ export default function Design({ id, name, description, images, points, category
             <div className="dc-modal-main-img-container">
               {images?.[activeThumb] ? (
                 <Image
-                  src={images[activeThumb]}
+                  src={cloudinaryOptimize(images[activeThumb])}
                   alt={`${name}, ${category || 'interior'} design, image ${activeThumb + 1} | Shrivastavas Elevate, Satna MP`}
                   fill
                   sizes="(max-width: 768px) 100vw, 60vw"

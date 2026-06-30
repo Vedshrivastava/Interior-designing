@@ -26,13 +26,18 @@ const addProduct = async (req, res) => {
             }
         }
 
+        const materials = req.body.materials ? JSON.parse(req.body.materials) : (req.body.material ? [req.body.material] : []);
+        const finishes  = req.body.finishes  ? JSON.parse(req.body.finishes)  : (req.body.finish  ? [req.body.finish]  : []);
+
         const product = new Product({
             name:         req.body.name,
             description:  req.body.description,
             categories:   req.body.categories   ? JSON.parse(req.body.categories)   : [],
             subcategory:  req.body.subcategory,
-            material:     req.body.material     || '',
-            finish:       req.body.finish        || '',
+            materials,
+            material:     materials[0] || '',
+            finishes,
+            finish:       finishes[0] || '',
             specialities: req.body.specialities  ? JSON.parse(req.body.specialities)  : [],
             applications: req.body.applications  ? JSON.parse(req.body.applications)  : [],
             points:       req.body.points        ? JSON.parse(req.body.points)        : [],
@@ -87,7 +92,7 @@ const updateProduct = async (req, res) => {
     try {
         const {
             _id, name, description, categories, subcategory,
-            material, finish, specialities, applications,
+            specialities, applications,
             points, existingImages,
         } = req.body;
 
@@ -124,10 +129,14 @@ const updateProduct = async (req, res) => {
         }
 
         const parsedCategories = categories ? JSON.parse(categories) : [];
+        const materials = req.body.materials ? JSON.parse(req.body.materials) : [];
+        const finishes  = req.body.finishes  ? JSON.parse(req.body.finishes)  : [];
         const updated = await Product.findByIdAndUpdate(_id, {
             name, description, categories: parsedCategories, subcategory,
-            material:     material     || '',
-            finish:       finish       || '',
+            materials,
+            material:     materials[0] || '',
+            finishes,
+            finish:       finishes[0] || '',
             specialities: parsedSpecialities,
             applications: parsedApplications,
             points:       parsedPoints,

@@ -131,13 +131,15 @@ const ICON_COMPONENT_MAP = {
   'sun-plant-wilt':IconSun,
 };
 
-const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appMeta = {} }) => {
+const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appMeta = {}, materialMeta = {}, finishMeta = {} }) => {
   const [modalOpen,   setModalOpen]   = useState(false);
   const [activeThumb, setActiveThumb] = useState(0);
   const [lbIdx,       setLbIdx]       = useState(null);
 
-  const { name, description, images = [], categories, category, subcategory, material, finish, specialities = [], applications = [], points = [], isFeatured } = product;
+  const { name, description, images = [], categories, category, subcategory, materials, material, finishes, finish, specialities = [], applications = [], points = [], isFeatured } = product;
   const categoryList = categories?.length ? categories : (category ? [category] : []);
+  const materialList = materials?.length ? materials : (material ? [material] : []);
+  const finishList   = finishes?.length  ? finishes  : (finish   ? [finish]   : []);
 
   const openModal  = () => { setModalOpen(true); document.body.style.overflow = 'hidden'; };
   const closeModal = useCallback(() => { setModalOpen(false); setActiveThumb(0); setLbIdx(null); document.body.style.overflow = ''; }, []);
@@ -174,10 +176,26 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appM
         </div>
         <h3 className="prod-card-title">{name}</h3>
         <p className="prod-card-desc">{description}</p>
-        {(material || finish) && (
+        {(materialList.length > 0 || finishList.length > 0) && (
           <div className="prod-card-chips">
-            {material && <span className="prod-chip"><IconLayerGroup />{material}</span>}
-            {finish   && <span className="prod-chip"><IconStar />{finish}</span>}
+            {materialList.map((m, i) => {
+              const meta = materialMeta[m] || { color: '#c9a87c', iconUrl: null };
+              return (
+                <span key={`m-${i}`} className="prod-chip" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
+                  {meta.iconUrl ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} /> : <IconLayerGroup />}
+                  {m}
+                </span>
+              );
+            })}
+            {finishList.map((f, i) => {
+              const meta = finishMeta[f] || { color: '#c9a87c', iconUrl: null };
+              return (
+                <span key={`f-${i}`} className="prod-chip" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
+                  {meta.iconUrl ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} /> : <IconStar />}
+                  {f}
+                </span>
+              );
+            })}
           </div>
         )}
         <button className="prod-card-btn" onClick={openModal}>See Details →</button>
@@ -204,10 +222,24 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appM
             {subcategory && <span className="prod-modal-tag prod-modal-tag--sub">{subcategory}</span>}
           </div>
           <h2 className="prod-modal-title">{name}</h2>
-          {(material || finish) && (
+          {(materialList.length > 0 || finishList.length > 0) && (
             <div className="prod-modal-meta-chips">
-              {material && <span className="prod-meta-chip"><IconLayerGroup /> {material}</span>}
-              {finish   && <span className="prod-meta-chip"><IconInfo /> {finish}</span>}
+              {materialList.map((m, i) => {
+                const meta = materialMeta[m] || { color: '#c9a87c', iconUrl: null };
+                return (
+                  <span key={`m-${i}`} className="prod-meta-chip" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
+                    {meta.iconUrl ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} /> : <IconLayerGroup />} {m}
+                  </span>
+                );
+              })}
+              {finishList.map((f, i) => {
+                const meta = finishMeta[f] || { color: '#c9a87c', iconUrl: null };
+                return (
+                  <span key={`f-${i}`} className="prod-meta-chip" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
+                    {meta.iconUrl ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} /> : <IconInfo />} {f}
+                  </span>
+                );
+              })}
             </div>
           )}
           {description && <div className="prod-modal-section"><h4 className="prod-modal-section-label">About this product</h4><p className="prod-modal-desc">{description}</p></div>}
@@ -294,6 +326,10 @@ export default function ProductsPage({ initialProducts = [] }) {
   // appMeta: name → { color, iconUrl } — built from DB
   const [appMeta, setAppMeta] = useState({});
 
+  // materialMeta / finishMeta: name → { color, iconUrl } — built from DB
+  const [materialMeta, setMaterialMeta] = useState({});
+  const [finishMeta, setFinishMeta] = useState({});
+
   const fetchProducts = useCallback(async () => {
     try {
       const res = await axios.get(`${API_URL}/api/product/list`);
@@ -342,6 +378,44 @@ export default function ProductsPage({ initialProducts = [] }) {
       .catch(() => {});
   }, []);
 
+  const fetchMaterialMeta = useCallback(() => {
+    fetch(`${API_URL}/api/material/list`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.data?.length > 0) {
+          const map = {};
+          d.data.forEach(m => {
+            const isIconify = m.icon && m.icon.includes(':');
+            const iconUrl = isIconify
+              ? `https://api.iconify.design/${m.icon.replace(':', '/')}.svg?color=${encodeURIComponent(m.color)}`
+              : null;
+            map[m.name] = { color: m.color, iconUrl };
+          });
+          setMaterialMeta(prev => ({ ...prev, ...map }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const fetchFinishMeta = useCallback(() => {
+    fetch(`${API_URL}/api/finish/list`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.data?.length > 0) {
+          const map = {};
+          d.data.forEach(f => {
+            const isIconify = f.icon && f.icon.includes(':');
+            const iconUrl = isIconify
+              ? `https://api.iconify.design/${f.icon.replace(':', '/')}.svg?color=${encodeURIComponent(f.color)}`
+              : null;
+            map[f.name] = { color: f.color, iconUrl };
+          });
+          setFinishMeta(prev => ({ ...prev, ...map }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const [productCategories,    setProductCategories]    = useState([]);
   const [productSubcategories, setProductSubcategories] = useState([]);
 
@@ -366,19 +440,22 @@ export default function ProductsPage({ initialProducts = [] }) {
     fetchApplications();
     fetchProductCategories();
     fetchProductSubcategories();
-  }, [fetchProducts, fetchSpecialities, fetchApplications, fetchProductCategories, fetchProductSubcategories, initialProducts.length]);
+    fetchMaterialMeta();
+    fetchFinishMeta();
+  }, [fetchProducts, fetchSpecialities, fetchApplications, fetchProductCategories, fetchProductSubcategories, fetchMaterialMeta, fetchFinishMeta, initialProducts.length]);
 
   useWebSocket(useCallback((msg) => {
-    // Also re-fetch specialities/applications on productsChanged — a new
-    // product may reference a speciality/application created moments earlier
-    // in the same admin session, and the WebSocket events can arrive/resolve
-    // out of order.
-    if (msg.type === 'productsChanged')           { fetchProducts(); fetchSpecialities(); fetchApplications(); }
+    // Also re-fetch specialities/applications/materials/finishes on productsChanged — a new
+    // product may reference a value created moments earlier in the same admin
+    // session, and the WebSocket events can arrive/resolve out of order.
+    if (msg.type === 'productsChanged')           { fetchProducts(); fetchSpecialities(); fetchApplications(); fetchMaterialMeta(); fetchFinishMeta(); }
     if (msg.type === 'specialitiesChanged')         fetchSpecialities();
     if (msg.type === 'applicationsChanged')         fetchApplications();
     if (msg.type === 'productCategoriesChanged')    fetchProductCategories();
     if (msg.type === 'productSubcategoriesChanged') fetchProductSubcategories();
-  }, [fetchProducts, fetchSpecialities, fetchApplications, fetchProductCategories, fetchProductSubcategories]));
+    if (msg.type === 'materialsChanged')            fetchMaterialMeta();
+    if (msg.type === 'finishesChanged')             fetchFinishMeta();
+  }, [fetchProducts, fetchSpecialities, fetchApplications, fetchProductCategories, fetchProductSubcategories, fetchMaterialMeta, fetchFinishMeta]));
 
   const handleCategoryChange = (cat) => { setActiveCategory(cat); setActiveSubcategory('All'); };
   const getCategories = (p) => p.categories?.length ? p.categories : (p.category ? [p.category] : []);
@@ -386,7 +463,12 @@ export default function ProductsPage({ initialProducts = [] }) {
   const filtered = products
     .filter(p => activeCategory === 'All' || getCategories(p).includes(activeCategory))
     .filter(p => activeSubcategory === 'All' || p.subcategory === activeSubcategory)
-    .filter(p => !query || p.name.toLowerCase().includes(query.toLowerCase()) || (p.material || '').toLowerCase().includes(query.toLowerCase()))
+    .filter(p => {
+      if (!query) return true;
+      const q = query.toLowerCase();
+      const materialList = p.materials?.length ? p.materials : (p.material ? [p.material] : []);
+      return p.name.toLowerCase().includes(q) || materialList.some(m => m.toLowerCase().includes(q));
+    })
     .sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
@@ -450,7 +532,7 @@ export default function ProductsPage({ initialProducts = [] }) {
           ) : error ? (
             <div className="prod-empty"><div className="prod-empty-icon"><IconStore /></div><h3>Couldn&apos;t load products</h3><p>Please check your connection and try refreshing.</p></div>
           ) : filtered.length > 0 ? (
-            paginated.map(product => <ProductCard key={product._id} product={product} openConsult={openConsult} specMeta={specMeta} appMeta={appMeta} />)
+            paginated.map(product => <ProductCard key={product._id} product={product} openConsult={openConsult} specMeta={specMeta} appMeta={appMeta} materialMeta={materialMeta} finishMeta={finishMeta} />)
           ) : (
             <div className="prod-empty"><div className="prod-empty-icon"><IconStore /></div><h3>No products here yet</h3><p>We&apos;re adding products to this section. Check back shortly.</p></div>
           )}

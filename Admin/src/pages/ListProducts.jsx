@@ -10,6 +10,9 @@ import { useWebSocket } from '../hooks/useWebSocket';
 const FALLBACK_CATEGORIES = ['Interior', 'Exterior', 'Functional Architecture'];
 const FALLBACK_SUBCATEGORIES = ['Ceilings', 'Wall Features', 'Flooring', 'Lighting', 'Furniture', 'Facades', 'Cladding', 'Landscaping', 'Pergolas', 'Breeze Blocks', 'Jaali Walls', 'Decorative Screens', 'Feature Walls', 'Privacy Screens'];
 
+const FALLBACK_MATERIALS = ['Concrete', 'Teak Wood', 'Mild Steel', 'Brass', 'Glass', 'Marble', 'Granite', 'MDF', 'Plywood', 'Laminate', 'Fabric', 'Leather', 'Aluminium', 'Stainless Steel'];
+const FALLBACK_FINISHES = ['Matte', 'Polished', 'Glossy', 'Textured', 'Brushed', 'Rough Cast', 'Natural', 'Lacquered', 'Antique', 'Powder Coated'];
+
 const FALLBACK_SPECIALITIES = [
     'Waterproof', 'UV Protection', 'Fire Resistant', 'Weather Resistant',
     'Eco-Friendly', 'Low Maintenance', 'Anti-Fungal', 'Sound Insulation',
@@ -43,6 +46,8 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
     const [applicationObjects, setApplicationObjects] = useState([]);
     const [productCategoryObjects, setProductCategoryObjects] = useState([]);
     const [productSubcategoryObjects, setProductSubcategoryObjects] = useState([]);
+    const [materialObjects, setMaterialObjects] = useState([]);
+    const [finishObjects, setFinishObjects] = useState([]);
 
     const fetchSpecialityObjects = useCallback(() => {
         axios.get(`${url}/api/speciality/list`)
@@ -68,19 +73,35 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
             .catch(() => setProductSubcategoryObjects(FALLBACK_SUBCATEGORIES.map((n, i) => ({ _id: n, name: n, icon: 'check', color: '#c9a87c', categories: [], order: i }))));
     }, [url]);
 
+    const fetchMaterialObjects = useCallback(() => {
+        axios.get(`${url}/api/material/list`)
+            .then(r => { if (r.data.success) setMaterialObjects(r.data.data); })
+            .catch(() => setMaterialObjects(FALLBACK_MATERIALS.map((n, i) => ({ _id: n, name: n, icon: 'check', color: '#c9a87c', order: i }))));
+    }, [url]);
+
+    const fetchFinishObjects = useCallback(() => {
+        axios.get(`${url}/api/finish/list`)
+            .then(r => { if (r.data.success) setFinishObjects(r.data.data); })
+            .catch(() => setFinishObjects(FALLBACK_FINISHES.map((n, i) => ({ _id: n, name: n, icon: 'check', color: '#c9a87c', order: i }))));
+    }, [url]);
+
     useEffect(() => {
         fetchSpecialityObjects();
         fetchApplicationObjects();
         fetchProductCategoryObjects();
         fetchProductSubcategoryObjects();
-    }, [fetchSpecialityObjects, fetchApplicationObjects, fetchProductCategoryObjects, fetchProductSubcategoryObjects]);
+        fetchMaterialObjects();
+        fetchFinishObjects();
+    }, [fetchSpecialityObjects, fetchApplicationObjects, fetchProductCategoryObjects, fetchProductSubcategoryObjects, fetchMaterialObjects, fetchFinishObjects]);
 
     useWebSocket(useCallback((msg) => {
         if (msg.type === 'specialitiesChanged')         fetchSpecialityObjects();
         if (msg.type === 'applicationsChanged')          fetchApplicationObjects();
         if (msg.type === 'productCategoriesChanged')     fetchProductCategoryObjects();
         if (msg.type === 'productSubcategoriesChanged')  fetchProductSubcategoryObjects();
-    }, [fetchSpecialityObjects, fetchApplicationObjects, fetchProductCategoryObjects, fetchProductSubcategoryObjects]));
+        if (msg.type === 'materialsChanged')             fetchMaterialObjects();
+        if (msg.type === 'finishesChanged')              fetchFinishObjects();
+    }, [fetchSpecialityObjects, fetchApplicationObjects, fetchProductCategoryObjects, fetchProductSubcategoryObjects, fetchMaterialObjects, fetchFinishObjects]));
 
     /* ── Lightbox ── */
     const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0, name: '' });
@@ -103,7 +124,7 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
     /* ── Edit modal ── */
     const blankEdit = {
         _id: '', name: '', description: '', categories: [],
-        subcategory: '', material: '', finish: '',
+        subcategory: '', materials: [], finishes: [],
         specialities: [], applications: [], points: [], isFeatured: false,
     };
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -158,14 +179,16 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
     /* ── Edit helpers ── */
     const openEdit = (item) => {
         const cats = item.categories?.length ? item.categories : (item.category ? [item.category] : []);
+        const materials = item.materials?.length ? item.materials : (item.material ? [item.material] : []);
+        const finishes  = item.finishes?.length  ? item.finishes  : (item.finish   ? [item.finish]   : []);
         setEditData({
             _id:          item._id,
             name:         item.name          || '',
             description:  item.description   || '',
             categories:   cats,
             subcategory:  item.subcategory   || '',
-            material:     item.material      || '',
-            finish:       item.finish        || '',
+            materials,
+            finishes,
             specialities: item.specialities  || [],
             applications: item.applications  || [],
             points:       item.points        || [],
@@ -222,8 +245,8 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
         fd.append('description',  editData.description);
         fd.append('categories',   JSON.stringify(editData.categories));
         fd.append('subcategory',  editData.subcategory);
-        fd.append('material',     editData.material);
-        fd.append('finish',       editData.finish);
+        fd.append('materials',    JSON.stringify(editData.materials));
+        fd.append('finishes',     JSON.stringify(editData.finishes));
         fd.append('specialities', JSON.stringify(editData.specialities));
         fd.append('applications', JSON.stringify(editData.applications));
         fd.append('points',       JSON.stringify(editData.points));
@@ -345,15 +368,43 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                                 </div>
                             )}
 
-                            {/* Material + Finish */}
-                            <div className="add-category-price">
-                                <div className="flex-col" style={{ flex: 1 }}>
-                                    <p>Material</p>
-                                    <input type="text" name="material" value={editData.material} onChange={onEditChange} placeholder="e.g. Concrete" />
+                            {/* Materials */}
+                            <div className="add-multi-section flex-col">
+                                <p>Materials</p>
+                                <div className="add-multi-grid">
+                                    {materialObjects.map(mat => {
+                                        const sel = editData.materials.includes(mat.name);
+                                        const iconUrl = iconifyImgUrl(mat.icon);
+                                        return (
+                                            <button key={mat._id} type="button"
+                                                className={`add-multi-chip${sel ? ' active' : ''}`}
+                                                style={sel ? { background: `${mat.color}22`, borderColor: `${mat.color}88`, color: mat.color } : {}}
+                                                onClick={() => toggleEditChip('materials', mat.name)}>
+                                                {iconUrl && <img src={sel ? `${iconUrl}?color=${encodeURIComponent(mat.color)}` : iconUrl} width={13} height={13} alt="" style={{ marginRight: '5px', verticalAlign: 'middle' }} />}
+                                                {mat.name}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
-                                <div className="flex-col" style={{ flex: 1 }}>
-                                    <p>Finish</p>
-                                    <input type="text" name="finish" value={editData.finish} onChange={onEditChange} placeholder="e.g. Matte" />
+                            </div>
+
+                            {/* Finishes */}
+                            <div className="add-multi-section flex-col">
+                                <p>Finishes</p>
+                                <div className="add-multi-grid">
+                                    {finishObjects.map(fin => {
+                                        const sel = editData.finishes.includes(fin.name);
+                                        const iconUrl = iconifyImgUrl(fin.icon);
+                                        return (
+                                            <button key={fin._id} type="button"
+                                                className={`add-multi-chip${sel ? ' active' : ''}`}
+                                                style={sel ? { background: `${fin.color}22`, borderColor: `${fin.color}88`, color: fin.color } : {}}
+                                                onClick={() => toggleEditChip('finishes', fin.name)}>
+                                                {iconUrl && <img src={sel ? `${iconUrl}?color=${encodeURIComponent(fin.color)}` : iconUrl} width={13} height={13} alt="" style={{ marginRight: '5px', verticalAlign: 'middle' }} />}
+                                                {fin.name}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 

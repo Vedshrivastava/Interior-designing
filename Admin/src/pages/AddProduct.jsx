@@ -22,6 +22,17 @@ const FALLBACK_APPLICATIONS = [
     'Rooftop', 'Balcony', 'Industrial', 'Education',
 ];
 
+const FALLBACK_MATERIALS = [
+    'Concrete', 'Teak Wood', 'Mild Steel', 'Brass', 'Glass', 'Marble',
+    'Granite', 'MDF', 'Plywood', 'Laminate', 'Fabric', 'Leather',
+    'Aluminium', 'Stainless Steel',
+];
+
+const FALLBACK_FINISHES = [
+    'Matte', 'Polished', 'Glossy', 'Textured', 'Brushed', 'Rough Cast',
+    'Natural', 'Lacquered', 'Antique', 'Powder Coated',
+];
+
 // Iconify helpers
 const iconifyImgUrl = (iconId) => {
   if (!iconId || !iconId.includes(':')) return null;
@@ -128,7 +139,7 @@ function useIconTagManager(url, token, apiBase, fallbackNames, getExtraPayload) 
 /* ── Reusable section: chip grid + inline "add new" form with Iconify search ──
    fixedColor: when set, every badge (preset or new) uses this single colour
    and the colour picker is hidden — used for Applications (golden theme). */
-function IconTagSection({ label, hint, placeholder, manager, selected, onToggle, fixedColor }) {
+function IconTagSection({ label, hint, placeholder, manager, selected, onToggle, fixedColor, singular }) {
     return (
         <div className="add-multi-section flex-col">
             <h2>{label} {hint && <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#888' }}>{hint}</span>}</h2>
@@ -158,7 +169,7 @@ function IconTagSection({ label, hint, placeholder, manager, selected, onToggle,
 
             {!manager.adding ? (
                 <button type="button" className="add-point-btn" style={{ marginTop: '10px' }} onClick={manager.openAdd}>
-                    <i className="fa fa-plus" /> Add new {label.toLowerCase().replace(/ies$/, 'y').replace(/s$/, '')}
+                    <i className="fa fa-plus" /> Add new {singular || label.toLowerCase().replace(/ies$/, 'y').replace(/s$/, '')}
                 </button>
             ) : (
                 <div className="spec-add-form">
@@ -403,8 +414,8 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
         description:  '',
         categories:   [],
         subcategory:  '',
-        material:     '',
-        finish:       '',
+        materials:    [],
+        finishes:     [],
         specialities: [],
         applications: [],
         isFeatured:   false,
@@ -421,6 +432,8 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
     const appManager  = useIconTagManager(url, token, '/api/application', FALLBACK_APPLICATIONS);
     const catManager  = useIconTagManager(url, token, '/api/product-category', FALLBACK_CATEGORIES);
     const subManager  = useIconTagManager(url, token, '/api/product-subcategory', FALLBACK_SUBCATEGORIES, () => ({ categories: newParentCats }));
+    const materialManager = useIconTagManager(url, token, '/api/material', FALLBACK_MATERIALS);
+    const finishManager   = useIconTagManager(url, token, '/api/finish',   FALLBACK_FINISHES);
 
     useEffect(() => {
         const handler = (e) => {
@@ -473,8 +486,8 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
         fd.append('description',  data.description);
         fd.append('categories',   JSON.stringify(data.categories));
         fd.append('subcategory',  data.subcategory);
-        fd.append('material',     data.material);
-        fd.append('finish',       data.finish);
+        fd.append('materials',    JSON.stringify(data.materials));
+        fd.append('finishes',     JSON.stringify(data.finishes));
         fd.append('specialities', JSON.stringify(data.specialities));
         fd.append('applications', JSON.stringify(data.applications));
         fd.append('points',       JSON.stringify(points.filter(p => p.trim())));
@@ -488,7 +501,7 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
             if (res.data.success) {
                 setData({
                     name: '', description: '', categories: [], subcategory: '',
-                    material: '', finish: '', specialities: [], applications: [], isFeatured: false,
+                    materials: [], finishes: [], specialities: [], applications: [], isFeatured: false,
                 });
                 setPoints(['']);
                 setImages([]);
@@ -563,17 +576,26 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
                     />
                 )}
 
-                {/* ── Material + Finish ── */}
-                <div className="add-category-price">
-                    <div className="add-category flex-col">
-                        <h2>Material</h2>
-                        <input name="material" value={data.material} onChange={onChange} type="text" placeholder="e.g. Concrete, Teak Wood, Mild Steel" />
-                    </div>
-                    <div className="add-category flex-col">
-                        <h2>Finish</h2>
-                        <input name="finish" value={data.finish} onChange={onChange} type="text" placeholder="e.g. Matte, Polished, Rough Cast" />
-                    </div>
-                </div>
+                {/* ── Materials ── */}
+                <IconTagSection
+                    label="Materials"
+                    hint="(select all that apply)"
+                    placeholder="Material name e.g. Walnut Wood"
+                    manager={materialManager}
+                    selected={data.materials}
+                    onToggle={(name) => toggleChip('materials', name)}
+                />
+
+                {/* ── Finishes ── */}
+                <IconTagSection
+                    label="Finishes"
+                    hint="(select all that apply)"
+                    placeholder="Finish name e.g. Satin"
+                    manager={finishManager}
+                    selected={data.finishes}
+                    onToggle={(name) => toggleChip('finishes', name)}
+                    singular="finish"
+                />
 
                 {/* ── Specialities ── */}
                 <IconTagSection
@@ -630,6 +652,8 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
         <ConfirmTagDeleteModal manager={appManager}  typeLabel="Application" onRemoved={(name) => setData(p => ({ ...p, applications: p.applications.filter(a => a !== name) }))} />
         <ConfirmTagDeleteModal manager={catManager}  typeLabel="Category"    onRemoved={(name) => setData(p => ({ ...p, categories: p.categories.filter(c => c !== name) }))} />
         <ConfirmTagDeleteModal manager={subManager}  typeLabel="Subcategory" onRemoved={(name) => setData(p => ({ ...p, subcategory: p.subcategory === name ? '' : p.subcategory }))} />
+        <ConfirmTagDeleteModal manager={materialManager} typeLabel="Material" onRemoved={(name) => setData(p => ({ ...p, materials: p.materials.filter(m => m !== name) }))} />
+        <ConfirmTagDeleteModal manager={finishManager}   typeLabel="Finish"   onRemoved={(name) => setData(p => ({ ...p, finishes: p.finishes.filter(f => f !== name) }))} />
         </>
     );
 };

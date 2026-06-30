@@ -4,10 +4,12 @@ const productSchema = new mongoose.Schema({
     name:          { type: String, required: true },
     description:   { type: String, required: true },
     images:        [{ type: String, required: true }],
-    categories:    [{ type: String, enum: ['Interior', 'Exterior', 'Functional Architecture'] }],
+    categories:    [{ type: String }],
     subcategory:   { type: String, required: true },
-    material:      { type: String },
-    finish:        { type: String },
+    material:      { type: String },              // legacy single (kept for old data)
+    materials:     { type: [String], default: [] }, // multi-select
+    finish:        { type: String },              // legacy single (kept for old data)
+    finishes:      { type: [String], default: [] }, // multi-select
     specialities:  [{ type: String }],
     applications:  [{ type: String }],
     points:        [{ type: String }],

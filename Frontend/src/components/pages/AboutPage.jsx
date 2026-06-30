@@ -277,7 +277,7 @@ export default function AboutPage() {
               >
                 <div className="abt-stack-img">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={c.src.src} alt={c.alt} loading="lazy" />
+                  <img src={c.src.src} alt={c.alt} />
                   <div className="abt-stack-img-overlay" />
                   <div className="abt-stack-tag"><c.Tag /> {c.tagLabel}</div>
                 </div>

@@ -12,7 +12,7 @@ function cloudinaryThumb(url, width = 800) {
   return cloudinaryOptimize(url, { width, crop: 'fill' }) ?? url;
 }
 
-export default function Design({ id, name, description, images, points, category, categoryLabel, priority = false }) {
+export default function Design({ id, name, description, images, points, category, categoryLabel, priority = false, blurDataURL = null }) {
   const { openQuote } = useModal();
   const [modalOpen,     setModalOpen]     = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
@@ -70,6 +70,8 @@ export default function Design({ id, name, description, images, points, category
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="dc-card-img"
               priority={priority}
+              placeholder={blurDataURL ? 'blur' : 'empty'}
+              blurDataURL={blurDataURL || undefined}
             />
           ) : (
             <div className="dc-card-img-placeholder" />
@@ -112,6 +114,8 @@ export default function Design({ id, name, description, images, points, category
                   fill
                   sizes="(max-width: 768px) 100vw, 60vw"
                   className="dc-modal-main-img"
+                  placeholder={activeThumb === 0 && blurDataURL ? 'blur' : 'empty'}
+                  blurDataURL={activeThumb === 0 && blurDataURL ? blurDataURL : undefined}
                 />
               ) : (
                 <div className="dc-card-img-placeholder" />

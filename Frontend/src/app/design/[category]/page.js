@@ -1,5 +1,6 @@
 import DesignDisplayPage from '@/components/pages/DesignDisplayPage';
 import { SLUG_TO_CATEGORY, CATEGORY_SLUGS, fetchCategoriesFromDB } from '@/lib/categories';
+import { getCloudinaryLQIP } from '@/lib/lqip';
 
 export const revalidate = 60;
 
@@ -50,8 +51,10 @@ const CATEGORY_META = {
 };
 
 export async function generateStaticParams() {
-  const cats = await fetchCategoriesFromDB();
-  return cats.map(c => ({ category: c.slug }));
+  // Use the hardcoded slug list so Next.js can pre-render all 10 category
+  // pages at build time without a network call (which would opt the route
+  // out of static generation). Admin-added categories still work via ISR.
+  return CATEGORY_SLUGS.map(slug => ({ category: slug }));
 }
 
 export async function generateMetadata({ params }) {
@@ -105,8 +108,11 @@ export default async function Page({ params }) {
     );
     const json = await res.json();
     if (json.success) {
-      initialDesigns = json.data;
-      initialTotal   = json.total ?? json.data.length;
+      const rawDesigns = json.data;
+      initialTotal     = json.total ?? rawDesigns.length;
+      // Generate blur placeholders in parallel at ISR time — runs once per revalidation, not per user
+      const lqips = await Promise.all(rawDesigns.map(d => getCloudinaryLQIP(d.images?.[0])));
+      initialDesigns   = rawDesigns.map((d, i) => lqips[i] ? { ...d, blurDataURL: lqips[i] } : d);
     }
   } catch {
     // fail silently — client will fetch on mount

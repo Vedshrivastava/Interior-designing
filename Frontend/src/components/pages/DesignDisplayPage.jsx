@@ -203,6 +203,7 @@ export default function DesignDisplayPage({
                         images={item.images} points={item.points} category={item.category}
                         categoryLabel={catObj?.label || undefined}
                         priority={i < 3}
+                        blurDataURL={item.blurDataURL || null}
                       />
                     </div>
                   );
@@ -235,6 +236,7 @@ export default function DesignDisplayPage({
                     points={item.points} category={item.category}
                     categoryLabel={catObj?.label || undefined}
                     priority={i < 6}
+                    blurDataURL={item.blurDataURL || null}
                   />
                 );
               })

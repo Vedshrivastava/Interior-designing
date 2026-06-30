@@ -1275,6 +1275,125 @@
   .t-modal-text { font-size: 1.05rem; }
 }
 
+/* ── Card detail modal (self-contained — do NOT rely on services.css
+   being loaded). HomePage reuses the .svc-modal* class names from
+   the Services page's card-detail modal, but never imports
+   services.css. Without these, the modal backdrop/box/header had no
+   structure on a fresh load — only .svc-modal-features happened to
+   already be duplicated here. Scoped under .home-page so it can't
+   leak into or be affected by the actual Services page. ── */
+@keyframes svcModalFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes svcModalSlide {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+@keyframes svcModalSheet {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.home-page .svc-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,20,20,0.65);
+  backdrop-filter: blur(6px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: svcModalFade 0.2s ease;
+}
+.home-page .svc-modal {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.22);
+  animation: svcModalSlide 0.28s cubic-bezier(.22,.61,.36,1);
+  scrollbar-width: none;
+}
+.home-page .svc-modal::-webkit-scrollbar { display: none; }
+.home-page .svc-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid rgba(201,168,124,0.15);
+}
+.home-page .svc-modal-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(201,168,124,0.1);
+  border: 1px solid rgba(201,168,124,0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.home-page .svc-modal-title {
+  font-family: "Playfair Display", serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--green);
+  margin: 0;
+  flex: 1;
+  line-height: 1.2;
+}
+.home-page .svc-modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(16,37,37,0.07);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.88rem;
+  color: var(--text-mid);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.home-page .svc-modal-close:hover { background: var(--green); color: var(--gold); }
+.home-page .svc-modal-desc {
+  font-family: "Inter", sans-serif;
+  font-size: 0.92rem;
+  color: var(--text-mid);
+  line-height: 1.75;
+  margin: 0;
+  padding: 20px 24px;
+}
+.home-page .svc-modal-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 24px 24px;
+  padding: 14px 20px;
+  background: var(--green);
+  color: var(--gold);
+  border-radius: 10px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+.home-page .svc-modal-link:hover { background: var(--forest); }
+@media (max-width: 480px) {
+  .home-page .svc-modal-backdrop { padding: 0; align-items: flex-end; }
+  .home-page .svc-modal {
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 88dvh;
+    animation: svcModalSheet 0.3s cubic-bezier(.22,.61,.36,1);
+  }
+}
+
 /* modal feature list — reused by home + about page modals */
 .svc-modal-features {
   list-style: none;

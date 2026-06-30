@@ -32,6 +32,53 @@ const iconifyImgUrl = (iconId) => {
     return `https://api.iconify.design/${prefix}/${name}.svg`;
 };
 
+// Inline-styled so they can never be affected by unrelated CSS rules
+// elsewhere in the bundle (this app ships one global stylesheet for
+// every page, so class-based styling here is exposed to the entire
+// app's CSS, not just this file).
+const imgToolBtnStyle = (disabled) => ({
+    width: 26, height: 26, minWidth: 26, minHeight: 26, maxWidth: 26, maxHeight: 26,
+    boxSizing: 'border-box',
+    borderRadius: '50%',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: disabled ? '#f3f1ec' : '#ffffff',
+    border: '1px solid rgba(16,37,37,0.16)',
+    boxShadow: disabled ? 'none' : '0 1px 3px rgba(16,37,37,0.1)',
+    color: disabled ? '#bdb6ab' : '#5a4e44',
+    padding: 0,
+    margin: 0,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    pointerEvents: disabled ? 'none' : 'auto',
+    textDecoration: 'none',
+    flexShrink: 0,
+});
+
+const ChevronIcon = ({ dir }) => (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        {dir === 'left' ? <polyline points="15 18 9 12 15 6" /> : <polyline points="9 18 15 12 9 6" />}
+    </svg>
+);
+
+const DownloadIcon = () => (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3v12" /><polyline points="7 10 12 15 17 10" /><path d="M5 19h14" />
+    </svg>
+);
+
+const imgOrderBadgeStyle = {
+    position: 'absolute', top: -8, left: -8,
+    width: 22, height: 22, minWidth: 22, minHeight: 22,
+    borderRadius: '50%',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: '#102525', color: '#e8d0a8',
+    fontSize: 11, fontWeight: 700, lineHeight: 1,
+    border: '2px solid #ffffff',
+    boxShadow: '0 1px 3px rgba(16,37,37,0.15)',
+    zIndex: 1,
+};
+
 const ListProducts = ({ url, setIsLoading, isLoading }) => {
     const [list,         setList]         = useState([]);
     const [activeFilter, setActiveFilter] = useState('All');
@@ -237,6 +284,30 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
     const onEditImageChange = (e)    => setEditImages(p => [...p, ...Array.from(e.target.files)]);
     const removeEditImage   = (i)    => setEditImages(editImages.filter((_, idx) => idx !== i));
     const removeKeptImage   = (i)    => setKeptImages(keptImages.filter((_, idx) => idx !== i));
+
+    const moveKeptImage = (index, direction) => {
+        setKeptImages(prev => {
+            const next = [...prev];
+            const target = index + direction;
+            if (target < 0 || target >= next.length) return prev;
+            [next[index], next[target]] = [next[target], next[index]];
+            return next;
+        });
+    };
+
+    const moveEditImage = (index, direction) => {
+        setEditImages(prev => {
+            const next = [...prev];
+            const target = index + direction;
+            if (target < 0 || target >= next.length) return prev;
+            [next[index], next[target]] = [next[target], next[index]];
+            return next;
+        });
+    };
+
+    // Cloudinary: inserting fl_attachment forces a real download (with
+    // correct headers) instead of the browser navigating to the image.
+    const cloudinaryDownloadUrl = (imgUrl) => imgUrl.replace('/upload/', '/upload/fl_attachment/');
 
     const submitEdit = async (e) => {
         e.preventDefault();
@@ -477,18 +548,46 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
 
                             {/* Images */}
                             <div className="add-img-upload flex-col" style={{ marginTop: '8px' }}>
-                                <p>Images</p>
+                                <p>Images — number shows display order on the site</p>
                                 <div className="selected-images" style={{ marginBottom: '10px' }}>
                                     {keptImages.map((u, i) => (
-                                        <div key={`kept-${i}`} className="image-preview">
+                                        <div key={`kept-${i}`} className="image-preview" style={{ alignItems: 'center', gap: '8px' }}>
+                                            <span style={imgOrderBadgeStyle}>{i + 1}</span>
                                             <img src={u} alt={`existing-${i}`} className="thumbnail" />
                                             <button type="button" onClick={() => removeKeptImage(i)} className="remove-btn">X</button>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <button type="button" style={imgToolBtnStyle(i === 0)} disabled={i === 0}
+                                                    onClick={() => moveKeptImage(i, -1)} title="Move earlier">
+                                                    <ChevronIcon dir="left" />
+                                                </button>
+                                                <a style={imgToolBtnStyle(false)} href={cloudinaryDownloadUrl(u)} target="_blank" rel="noopener noreferrer" title="Download image">
+                                                    <DownloadIcon />
+                                                </a>
+                                                <button type="button" style={imgToolBtnStyle(i === keptImages.length - 1)} disabled={i === keptImages.length - 1}
+                                                    onClick={() => moveKeptImage(i, 1)} title="Move later">
+                                                    <ChevronIcon dir="right" />
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                     {editImages.map((img, i) => (
-                                        <div key={`new-${i}`} className="image-preview">
+                                        <div key={`new-${i}`} className="image-preview" style={{ alignItems: 'center', gap: '8px' }}>
+                                            <span style={imgOrderBadgeStyle}>{keptImages.length + i + 1}</span>
                                             <img src={URL.createObjectURL(img)} alt={`new-${i}`} className="thumbnail" />
                                             <button type="button" onClick={() => removeEditImage(i)} className="remove-btn">X</button>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <button type="button" style={imgToolBtnStyle(i === 0)} disabled={i === 0}
+                                                    onClick={() => moveEditImage(i, -1)} title="Move earlier">
+                                                    <ChevronIcon dir="left" />
+                                                </button>
+                                                <a style={imgToolBtnStyle(false)} href={URL.createObjectURL(img)} download={img.name} title="Download image">
+                                                    <DownloadIcon />
+                                                </a>
+                                                <button type="button" style={imgToolBtnStyle(i === editImages.length - 1)} disabled={i === editImages.length - 1}
+                                                    onClick={() => moveEditImage(i, 1)} title="Move later">
+                                                    <ChevronIcon dir="right" />
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

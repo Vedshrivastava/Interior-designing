@@ -311,12 +311,7 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
 
       {/* ══════════════════════════════
           WHY US — dark card grid (same visual as services)
-          Hidden when there are no projects yet for this city — the
-          "Be Our First Client" card right above already covers this
-          ground (consultation, 3D visualization, fee adjustment),
-          so showing it again here is redundant.
       ══════════════════════════════ */}
-      {!(projects !== null && projects.length === 0) && (
       <section className="cs-why">
         <div className="cs-section-head cs-sr" ref={sr}>
           <span className="cs-overline">Why Choose Us</span>
@@ -342,11 +337,13 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
           ))}
         </div>
       </section>
-      )}
 
       {/* ══════════════════════════════
-          CTA
+          CTA — hidden when there are no projects yet for this city.
+          The "Be Our First Client" card already has its own
+          consultation CTA, so repeating it here is redundant.
       ══════════════════════════════ */}
+      {!(projects !== null && projects.length === 0) && (
       <section className="cs-cta">
         <div className="cs-cta-inner cs-sr" ref={sr}>
           <span className="cs-overline light">Begin Your Journey</span>
@@ -364,6 +361,7 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
           </div>
         </div>
       </section>
+      )}
 
       <Footer />
     </div>

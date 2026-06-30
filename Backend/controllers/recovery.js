@@ -84,7 +84,7 @@ const listBin = async (req, res) => {
 
         const productSubcategoryData = await Promise.all(
             productSubcategories.map(async sub => {
-                const productCount = await Product.countDocuments({ subcategory: sub.name, deleted: { $ne: true } });
+                const productCount = await Product.countDocuments({ subcategories: sub.name, deleted: { $ne: true } });
                 return { ...sub.toObject(), _type: 'productSubcategory', productCount };
             })
         );

@@ -124,7 +124,7 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
     /* ── Edit modal ── */
     const blankEdit = {
         _id: '', name: '', description: '', categories: [],
-        subcategory: '', materials: [], finishes: [],
+        subcategories: [], materials: [], finishes: [],
         specialities: [], applications: [], points: [], isFeatured: false,
     };
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -181,12 +181,13 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
         const cats = item.categories?.length ? item.categories : (item.category ? [item.category] : []);
         const materials = item.materials?.length ? item.materials : (item.material ? [item.material] : []);
         const finishes  = item.finishes?.length  ? item.finishes  : (item.finish   ? [item.finish]   : []);
+        const subcats   = item.subcategories?.length ? item.subcategories : (item.subcategory ? [item.subcategory] : []);
         setEditData({
             _id:          item._id,
             name:         item.name          || '',
             description:  item.description   || '',
             categories:   cats,
-            subcategory:  item.subcategory   || '',
+            subcategories: subcats,
             materials,
             finishes,
             specialities: item.specialities  || [],
@@ -209,11 +210,11 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
             const next = prev.categories.includes(cat)
                 ? prev.categories.filter(c => c !== cat)
                 : [...prev.categories, cat];
-            const nextSubNames = productSubcategoryObjects.filter(s => s.categories?.some(c => next.includes(c))).map(s => s.name);
+            const validSubNames = productSubcategoryObjects.filter(s => s.categories?.some(c => next.includes(c))).map(s => s.name);
             return {
                 ...prev,
                 categories: next,
-                subcategory: nextSubNames.includes(prev.subcategory) ? prev.subcategory : (nextSubNames[0] || ''),
+                subcategories: prev.subcategories.filter(s => validSubNames.includes(s)),
             };
         });
     };
@@ -244,7 +245,7 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
         fd.append('name',         editData.name);
         fd.append('description',  editData.description);
         fd.append('categories',   JSON.stringify(editData.categories));
-        fd.append('subcategory',  editData.subcategory);
+        fd.append('subcategories', JSON.stringify(editData.subcategories));
         fd.append('materials',    JSON.stringify(editData.materials));
         fd.append('finishes',     JSON.stringify(editData.finishes));
         fd.append('specialities', JSON.stringify(editData.specialities));
@@ -340,25 +341,26 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                                 </div>
                             </div>
 
-                            {/* Subcategory — only shown when categories selected */}
+                            {/* Subcategories — only shown when categories selected */}
                             {editAvailableSubcats.length > 0 && (
                                 <div className="add-cat-dropdown-wrap flex-col">
-                                    <p>Subcategory</p>
+                                    <p>Subcategories <span style={{ fontSize: '0.72rem', fontWeight: 400, color: '#888' }}>(select all that apply)</span></p>
                                     <div className="add-cat-dropdown" ref={editSubCatRef}>
                                         <button type="button" className={`add-cat-trigger${editSubCatOpen ? ' open' : ''}`} onClick={() => setEditSubCatOpen(o => !o)}>
-                                            <span>{editData.subcategory || 'Select subcategory'}</span>
+                                            <span>{editData.subcategories.length > 0 ? editData.subcategories.join(', ') : 'Select subcategories'}</span>
                                             <i className="fa fa-chevron-down" />
                                         </button>
                                         {editSubCatOpen && (
                                             <ul className="add-cat-list">
                                                 {editAvailableSubcats.map(sub => {
                                                     const iconUrl = iconifyImgUrl(sub.icon);
+                                                    const sel = editData.subcategories.includes(sub.name);
                                                     return (
-                                                        <li key={sub._id} className={`add-cat-option${editData.subcategory === sub.name ? ' active' : ''}`}
-                                                            onClick={() => { setEditData(prev => ({ ...prev, subcategory: sub.name })); setEditSubCatOpen(false); }}>
+                                                        <li key={sub._id} className={`add-cat-option${sel ? ' active' : ''}`}
+                                                            onClick={() => toggleEditChip('subcategories', sub.name)}>
                                                             {iconUrl && <img src={iconUrl} width={13} height={13} alt="" style={{ marginRight: '6px' }} />}
                                                             <span>{sub.name}</span>
-                                                            {editData.subcategory === sub.name && <i className="fa fa-check" />}
+                                                            {sel && <i className="fa fa-check" />}
                                                         </li>
                                                     );
                                                 })}
@@ -555,9 +557,9 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                                 </div>
                                 <div>
                                     <p className="item-name">{item.name}</p>
-                                    {item.subcategory && (
+                                    {(item.subcategories?.length ? item.subcategories : (item.subcategory ? [item.subcategory] : [])).length > 0 && (
                                         <p style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.78rem', color: 'var(--text-mid)', margin: '4px 0 0' }}>
-                                            {item.subcategory}
+                                            {(item.subcategories?.length ? item.subcategories : [item.subcategory]).join(', ')}
                                         </p>
                                     )}
                                 </div>

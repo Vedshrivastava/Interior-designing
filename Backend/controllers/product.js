@@ -28,12 +28,14 @@ const addProduct = async (req, res) => {
 
         const materials = req.body.materials ? JSON.parse(req.body.materials) : (req.body.material ? [req.body.material] : []);
         const finishes  = req.body.finishes  ? JSON.parse(req.body.finishes)  : (req.body.finish  ? [req.body.finish]  : []);
+        const subcategories = req.body.subcategories ? JSON.parse(req.body.subcategories) : (req.body.subcategory ? [req.body.subcategory] : []);
 
         const product = new Product({
             name:         req.body.name,
             description:  req.body.description,
             categories:   req.body.categories   ? JSON.parse(req.body.categories)   : [],
-            subcategory:  req.body.subcategory,
+            subcategories,
+            subcategory:  subcategories[0] || '',
             materials,
             material:     materials[0] || '',
             finishes,
@@ -59,7 +61,7 @@ const listProducts = async (req, res) => {
         const { category, subcategory } = req.query;
         const filter = {};
         if (category)    filter.categories  = { $in: [category] };
-        if (subcategory) filter.subcategory = subcategory;
+        if (subcategory) filter.$or = [{ subcategories: { $in: [subcategory] } }, { subcategory }];
         filter.deleted = { $ne: true };
 
         const products = await Product.find(filter).sort({ createdAt: -1 });
@@ -91,7 +93,7 @@ const removeProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
     try {
         const {
-            _id, name, description, categories, subcategory,
+            _id, name, description, categories,
             specialities, applications,
             points, existingImages,
         } = req.body;
@@ -131,8 +133,11 @@ const updateProduct = async (req, res) => {
         const parsedCategories = categories ? JSON.parse(categories) : [];
         const materials = req.body.materials ? JSON.parse(req.body.materials) : [];
         const finishes  = req.body.finishes  ? JSON.parse(req.body.finishes)  : [];
+        const subcategories = req.body.subcategories ? JSON.parse(req.body.subcategories) : [];
         const updated = await Product.findByIdAndUpdate(_id, {
-            name, description, categories: parsedCategories, subcategory,
+            name, description, categories: parsedCategories,
+            subcategories,
+            subcategory:  subcategories[0] || '',
             materials,
             material:     materials[0] || '',
             finishes,

@@ -260,28 +260,29 @@ function IconTagSection({ label, hint, placeholder, manager, selected, onToggle,
 
 /* ── Subcategory dropdown: single-select, icon-aware, with inline
    "add new" form that includes a parent-category multi-select checklist ── */
-function SubcategorySection({ subManager, catManager, value, onChange, availableForCategories, dropdownOpen, setDropdownOpen, dropRef, newParentCats, setNewParentCats }) {
+function SubcategorySection({ subManager, catManager, values, onToggle, availableForCategories, dropdownOpen, setDropdownOpen, dropRef, newParentCats, setNewParentCats }) {
     const visibleSubs = subManager.objects.filter(s => s.categories?.some(c => availableForCategories.includes(c)));
 
     return (
         <div className="add-cat-dropdown-wrap flex-col">
-            <h2>Subcategory</h2>
+            <h2>Subcategories <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#888' }}>(select all that apply)</span></h2>
             <div className="add-cat-dropdown" ref={dropRef}>
                 <button type="button" className={`add-cat-trigger${dropdownOpen ? ' open' : ''}`} onClick={() => setDropdownOpen(o => !o)}>
-                    <span>{value || 'Select subcategory'}</span>
+                    <span>{values.length > 0 ? values.join(', ') : 'Select subcategories'}</span>
                     <i className="fa fa-chevron-down" />
                 </button>
                 {dropdownOpen && (
                     <ul className="add-cat-list">
                         {visibleSubs.map(sub => {
                             const iconUrl = iconifyImgUrl(sub.icon);
+                            const sel = values.includes(sub.name);
                             return (
-                                <li key={sub._id} className={`add-cat-option${value === sub.name ? ' active' : ''}`}
-                                    onClick={() => { onChange(sub.name); setDropdownOpen(false); }}>
+                                <li key={sub._id} className={`add-cat-option${sel ? ' active' : ''}`}
+                                    onClick={() => onToggle(sub.name)}>
                                     {iconUrl && <img src={iconUrl} width={13} height={13} alt="" style={{ marginRight: '6px', flexShrink: 0 }} />}
                                     <span>{sub.name}</span>
                                     <div className="add-cat-option-actions" onClick={e => e.stopPropagation()}>
-                                        {value === sub.name && <i className="fa fa-check" />}
+                                        {sel && <i className="fa fa-check" />}
                                         <i className="fa fa-trash add-cat-trash" title={`Remove "${sub.name}"`} onClick={e => { e.stopPropagation(); subManager.setConfirmItem(sub); }} />
                                     </div>
                                 </li>
@@ -413,7 +414,7 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
         name:         '',
         description:  '',
         categories:   [],
-        subcategory:  '',
+        subcategories: [],
         materials:    [],
         finishes:     [],
         specialities: [],
@@ -448,11 +449,11 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
             const next = prev.categories.includes(cat)
                 ? prev.categories.filter(c => c !== cat)
                 : [...prev.categories, cat];
-            const nextSubNames = subManager.objects.filter(s => s.categories?.some(c => next.includes(c))).map(s => s.name);
+            const validSubNames = subManager.objects.filter(s => s.categories?.some(c => next.includes(c))).map(s => s.name);
             return {
                 ...prev,
                 categories: next,
-                subcategory: nextSubNames.includes(prev.subcategory) ? prev.subcategory : (nextSubNames[0] || ''),
+                subcategories: prev.subcategories.filter(s => validSubNames.includes(s)),
             };
         });
     };
@@ -485,7 +486,7 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
         fd.append('name',         data.name);
         fd.append('description',  data.description);
         fd.append('categories',   JSON.stringify(data.categories));
-        fd.append('subcategory',  data.subcategory);
+        fd.append('subcategories', JSON.stringify(data.subcategories));
         fd.append('materials',    JSON.stringify(data.materials));
         fd.append('finishes',     JSON.stringify(data.finishes));
         fd.append('specialities', JSON.stringify(data.specialities));
@@ -500,7 +501,7 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
             });
             if (res.data.success) {
                 setData({
-                    name: '', description: '', categories: [], subcategory: '',
+                    name: '', description: '', categories: [], subcategories: [],
                     materials: [], finishes: [], specialities: [], applications: [], isFeatured: false,
                 });
                 setPoints(['']);
@@ -560,13 +561,13 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
                     onToggle={toggleCategory}
                 />
 
-                {/* ── Subcategory ── */}
+                {/* ── Subcategories ── */}
                 {data.categories.length > 0 && (
                     <SubcategorySection
                         subManager={subManager}
                         catManager={catManager}
-                        value={data.subcategory}
-                        onChange={(name) => setData(prev => ({ ...prev, subcategory: name }))}
+                        values={data.subcategories}
+                        onToggle={(name) => toggleChip('subcategories', name)}
                         availableForCategories={data.categories}
                         dropdownOpen={subCatOpen}
                         setDropdownOpen={setSubCatOpen}
@@ -651,7 +652,7 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
         <ConfirmTagDeleteModal manager={specManager} typeLabel="Speciality" onRemoved={(name) => setData(p => ({ ...p, specialities: p.specialities.filter(s => s !== name) }))} />
         <ConfirmTagDeleteModal manager={appManager}  typeLabel="Application" onRemoved={(name) => setData(p => ({ ...p, applications: p.applications.filter(a => a !== name) }))} />
         <ConfirmTagDeleteModal manager={catManager}  typeLabel="Category"    onRemoved={(name) => setData(p => ({ ...p, categories: p.categories.filter(c => c !== name) }))} />
-        <ConfirmTagDeleteModal manager={subManager}  typeLabel="Subcategory" onRemoved={(name) => setData(p => ({ ...p, subcategory: p.subcategory === name ? '' : p.subcategory }))} />
+        <ConfirmTagDeleteModal manager={subManager}  typeLabel="Subcategory" onRemoved={(name) => setData(p => ({ ...p, subcategories: p.subcategories.filter(s => s !== name) }))} />
         <ConfirmTagDeleteModal manager={materialManager} typeLabel="Material" onRemoved={(name) => setData(p => ({ ...p, materials: p.materials.filter(m => m !== name) }))} />
         <ConfirmTagDeleteModal manager={finishManager}   typeLabel="Finish"   onRemoved={(name) => setData(p => ({ ...p, finishes: p.finishes.filter(f => f !== name) }))} />
         </>

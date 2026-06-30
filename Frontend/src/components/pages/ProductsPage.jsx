@@ -136,10 +136,11 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appM
   const [activeThumb, setActiveThumb] = useState(0);
   const [lbIdx,       setLbIdx]       = useState(null);
 
-  const { name, description, images = [], categories, category, subcategory, materials, material, finishes, finish, specialities = [], applications = [], points = [], isFeatured } = product;
+  const { name, description, images = [], categories, category, subcategories, subcategory, materials, material, finishes, finish, specialities = [], applications = [], points = [], isFeatured } = product;
   const categoryList = categories?.length ? categories : (category ? [category] : []);
   const materialList = materials?.length ? materials : (material ? [material] : []);
   const finishList   = finishes?.length  ? finishes  : (finish   ? [finish]   : []);
+  const subcategoryList = subcategories?.length ? subcategories : (subcategory ? [subcategory] : []);
 
   const openModal  = () => { setModalOpen(true); document.body.style.overflow = 'hidden'; };
   const closeModal = useCallback(() => { setModalOpen(false); setActiveThumb(0); setLbIdx(null); document.body.style.overflow = ''; }, []);
@@ -172,7 +173,7 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appM
       <div className="prod-card-body">
         <div className="prod-card-tags">
           {categoryList.map(cat => <span key={cat} className="prod-card-cat-tag">{cat}</span>)}
-          {subcategory && <span className="prod-card-subcat-tag">{subcategory}</span>}
+          {subcategoryList.map(sub => <span key={sub} className="prod-card-subcat-tag">{sub}</span>)}
         </div>
         <h3 className="prod-card-title">{name}</h3>
         <p className="prod-card-desc">{description}</p>
@@ -219,7 +220,7 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appM
         <div className="prod-modal-content">
           <div className="prod-modal-tag-row">
             {categoryList.map(cat => <span key={cat} className="prod-modal-tag">{cat}</span>)}
-            {subcategory && <span className="prod-modal-tag prod-modal-tag--sub">{subcategory}</span>}
+            {subcategoryList.map(sub => <span key={sub} className="prod-modal-tag prod-modal-tag--sub">{sub}</span>)}
           </div>
           <h2 className="prod-modal-title">{name}</h2>
           {(materialList.length > 0 || finishList.length > 0) && (
@@ -459,10 +460,11 @@ export default function ProductsPage({ initialProducts = [] }) {
 
   const handleCategoryChange = (cat) => { setActiveCategory(cat); setActiveSubcategory('All'); };
   const getCategories = (p) => p.categories?.length ? p.categories : (p.category ? [p.category] : []);
+  const getSubcategories = (p) => p.subcategories?.length ? p.subcategories : (p.subcategory ? [p.subcategory] : []);
 
   const filtered = products
     .filter(p => activeCategory === 'All' || getCategories(p).includes(activeCategory))
-    .filter(p => activeSubcategory === 'All' || p.subcategory === activeSubcategory)
+    .filter(p => activeSubcategory === 'All' || getSubcategories(p).includes(activeSubcategory))
     .filter(p => {
       if (!query) return true;
       const q = query.toLowerCase();

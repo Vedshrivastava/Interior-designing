@@ -5,7 +5,8 @@ const productSchema = new mongoose.Schema({
     description:   { type: String, required: true },
     images:        [{ type: String, required: true }],
     categories:    [{ type: String }],
-    subcategory:   { type: String, required: true },
+    subcategory:   { type: String },               // legacy single (kept for old data)
+    subcategories: { type: [String], default: [] }, // multi-select
     material:      { type: String },              // legacy single (kept for old data)
     materials:     { type: [String], default: [] }, // multi-select
     finish:        { type: String },              // legacy single (kept for old data)

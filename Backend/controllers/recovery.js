@@ -6,6 +6,8 @@ import ProjectCategory from '../models/projectCategory.js';
 import ProjectType     from '../models/projectType.js';
 import Speciality      from '../models/speciality.js';
 import Application     from '../models/application.js';
+import ProductCategory    from '../models/productCategory.js';
+import ProductSubcategory from '../models/productSubcategory.js';
 import { v2 as cloudinary } from 'cloudinary';
 import { broadcast } from '../middlewares/webSocket.js';
 import dotenv from 'dotenv';
@@ -20,6 +22,8 @@ const TYPE_BROADCAST = {
     projectType:       'projectTypesChanged',
     speciality:        'specialitiesChanged',
     application:       'applicationsChanged',
+    productCategory:    'productCategoriesChanged',
+    productSubcategory: 'productSubcategoriesChanged',
 };
 
 cloudinary.config({
@@ -31,15 +35,17 @@ cloudinary.config({
 /* ── List all soft-deleted items across all 3 collections ── */
 const listBin = async (req, res) => {
     try {
-        const [designs, products, projects, categories, projectCategories, projectTypes, specialities, applications] = await Promise.all([
-            Design         .find({ deleted: true }).sort({ deletedAt: -1 }),
-            Product        .find({ deleted: true }).sort({ deletedAt: -1 }),
-            Project        .find({ deleted: true }).sort({ deletedAt: -1 }),
-            Category       .find({ deleted: true }).sort({ deletedAt: -1 }),
-            ProjectCategory.find({ deleted: true }).sort({ deletedAt: -1 }),
-            ProjectType    .find({ deleted: true }).sort({ deletedAt: -1 }),
-            Speciality     .find({ deleted: true }).sort({ deletedAt: -1 }),
-            Application    .find({ deleted: true }).sort({ deletedAt: -1 }),
+        const [designs, products, projects, categories, projectCategories, projectTypes, specialities, applications, productCategories, productSubcategories] = await Promise.all([
+            Design             .find({ deleted: true }).sort({ deletedAt: -1 }),
+            Product            .find({ deleted: true }).sort({ deletedAt: -1 }),
+            Project            .find({ deleted: true }).sort({ deletedAt: -1 }),
+            Category           .find({ deleted: true }).sort({ deletedAt: -1 }),
+            ProjectCategory    .find({ deleted: true }).sort({ deletedAt: -1 }),
+            ProjectType        .find({ deleted: true }).sort({ deletedAt: -1 }),
+            Speciality         .find({ deleted: true }).sort({ deletedAt: -1 }),
+            Application        .find({ deleted: true }).sort({ deletedAt: -1 }),
+            ProductCategory    .find({ deleted: true }).sort({ deletedAt: -1 }),
+            ProductSubcategory .find({ deleted: true }).sort({ deletedAt: -1 }),
         ]);
 
         const categoryData = await Promise.all(
@@ -63,6 +69,20 @@ const listBin = async (req, res) => {
             })
         );
 
+        const productCategoryData = await Promise.all(
+            productCategories.map(async cat => {
+                const productCount = await Product.countDocuments({ categories: cat.name, deleted: { $ne: true } });
+                return { ...cat.toObject(), _type: 'productCategory', productCount };
+            })
+        );
+
+        const productSubcategoryData = await Promise.all(
+            productSubcategories.map(async sub => {
+                const productCount = await Product.countDocuments({ subcategory: sub.name, deleted: { $ne: true } });
+                return { ...sub.toObject(), _type: 'productSubcategory', productCount };
+            })
+        );
+
         return res.json({
             success: true,
             data: {
@@ -74,6 +94,8 @@ const listBin = async (req, res) => {
                 projectTypes:      projectTypeData,
                 specialities:      specialities.map(s => ({ ...s.toObject(), _type: 'speciality' })),
                 applications:      applications.map(a => ({ ...a.toObject(), _type: 'application' })),
+                productCategories:    productCategoryData,
+                productSubcategories: productSubcategoryData,
             },
         });
     } catch (error) {
@@ -86,7 +108,7 @@ const listBin = async (req, res) => {
 const restoreItem = async (req, res) => {
     const { _id, _type } = req.body;
     try {
-        const Model = _type === 'design' ? Design : _type === 'product' ? Product : _type === 'category' ? Category : _type === 'projectCategory' ? ProjectCategory : _type === 'projectType' ? ProjectType : _type === 'speciality' ? Speciality : _type === 'application' ? Application : Project;
+        const Model = _type === 'design' ? Design : _type === 'product' ? Product : _type === 'category' ? Category : _type === 'projectCategory' ? ProjectCategory : _type === 'projectType' ? ProjectType : _type === 'speciality' ? Speciality : _type === 'application' ? Application : _type === 'productCategory' ? ProductCategory : _type === 'productSubcategory' ? ProductSubcategory : Project;
         const item  = await Model.findById(_id);
         if (!item) return res.status(404).json({ success: false, message: 'Item not found.' });
 
@@ -108,7 +130,7 @@ const restoreItem = async (req, res) => {
 const permanentDelete = async (req, res) => {
     const { _id, _type } = req.body;
     try {
-        const Model  = _type === 'design' ? Design : _type === 'product' ? Product : _type === 'category' ? Category : _type === 'projectCategory' ? ProjectCategory : _type === 'projectType' ? ProjectType : _type === 'speciality' ? Speciality : _type === 'application' ? Application : Project;
+        const Model  = _type === 'design' ? Design : _type === 'product' ? Product : _type === 'category' ? Category : _type === 'projectCategory' ? ProjectCategory : _type === 'projectType' ? ProjectType : _type === 'speciality' ? Speciality : _type === 'application' ? Application : _type === 'productCategory' ? ProductCategory : _type === 'productSubcategory' ? ProductSubcategory : Project;
         const folder = _type === 'design' ? 'design_images' : _type === 'product' ? 'product_images' : _type === 'project' ? 'project_images' : null;
 
         const item = await Model.findById(_id);

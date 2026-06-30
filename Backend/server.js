@@ -17,6 +17,8 @@ import projectCategoryRouter from "./routes/projectCategory.js";
 import projectTypeRouter     from "./routes/projectType.js";
 import specialityRouter      from "./routes/speciality.js";
 import applicationRouter     from "./routes/application.js";
+import productCategoryRouter    from "./routes/productCategory.js";
+import productSubcategoryRouter from "./routes/productSubcategory.js";
 import dotenv from 'dotenv';
 import { wss } from './middlewares/webSocket.js'; // Import WebSocket server setup
 
@@ -67,6 +69,8 @@ app.use('/api/project-category', projectCategoryRouter);
 app.use('/api/project-type',     projectTypeRouter);
 app.use('/api/speciality',       specialityRouter);
 app.use('/api/application',      applicationRouter);
+app.use('/api/product-category',    productCategoryRouter);
+app.use('/api/product-subcategory', productSubcategoryRouter);
 
 // Serve static files
 app.use('/images', express.static('uploads'));

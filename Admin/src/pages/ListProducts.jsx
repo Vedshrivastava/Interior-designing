@@ -5,13 +5,10 @@ import '../styles/add.css';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import { useWebSocket } from '../hooks/useWebSocket';
 
-const SUBCATEGORIES = {
-    'Interior':               ['Ceilings', 'Wall Features', 'Flooring', 'Lighting', 'Furniture'],
-    'Exterior':               ['Facades', 'Cladding', 'Landscaping', 'Pergolas'],
-    'Functional Architecture':['Breeze Blocks', 'Jaali Walls', 'Decorative Screens', 'Feature Walls', 'Privacy Screens'],
-};
-const CATEGORIES = Object.keys(SUBCATEGORIES);
+const FALLBACK_CATEGORIES = ['Interior', 'Exterior', 'Functional Architecture'];
+const FALLBACK_SUBCATEGORIES = ['Ceilings', 'Wall Features', 'Flooring', 'Lighting', 'Furniture', 'Facades', 'Cladding', 'Landscaping', 'Pergolas', 'Breeze Blocks', 'Jaali Walls', 'Decorative Screens', 'Feature Walls', 'Privacy Screens'];
 
 const FALLBACK_SPECIALITIES = [
     'Waterproof', 'UV Protection', 'Fire Resistant', 'Weather Resistant',
@@ -41,18 +38,49 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
     const mobileBarRef = useRef(null);
     const token = localStorage.getItem('token');
 
-    /* ── Specialities / Applications (DB-driven, for edit modal) ── */
+    /* ── Specialities / Applications / Categories / Subcategories (DB-driven, for edit modal + filters) ── */
     const [specialityObjects, setSpecialityObjects] = useState([]);
     const [applicationObjects, setApplicationObjects] = useState([]);
+    const [productCategoryObjects, setProductCategoryObjects] = useState([]);
+    const [productSubcategoryObjects, setProductSubcategoryObjects] = useState([]);
 
-    useEffect(() => {
+    const fetchSpecialityObjects = useCallback(() => {
         axios.get(`${url}/api/speciality/list`)
             .then(r => { if (r.data.success) setSpecialityObjects(r.data.data); })
             .catch(() => setSpecialityObjects(FALLBACK_SPECIALITIES.map((n, i) => ({ _id: n, name: n, icon: 'check', color: '#c9a87c', order: i }))));
+    }, [url]);
+
+    const fetchApplicationObjects = useCallback(() => {
         axios.get(`${url}/api/application/list`)
             .then(r => { if (r.data.success) setApplicationObjects(r.data.data); })
             .catch(() => setApplicationObjects(FALLBACK_APPLICATIONS.map((n, i) => ({ _id: n, name: n, icon: 'check', color: '#c9a87c', order: i }))));
     }, [url]);
+
+    const fetchProductCategoryObjects = useCallback(() => {
+        axios.get(`${url}/api/product-category/list`)
+            .then(r => { if (r.data.success) setProductCategoryObjects(r.data.data); })
+            .catch(() => setProductCategoryObjects(FALLBACK_CATEGORIES.map((n, i) => ({ _id: n, name: n, icon: 'check', color: '#c9a87c', order: i }))));
+    }, [url]);
+
+    const fetchProductSubcategoryObjects = useCallback(() => {
+        axios.get(`${url}/api/product-subcategory/list`)
+            .then(r => { if (r.data.success) setProductSubcategoryObjects(r.data.data); })
+            .catch(() => setProductSubcategoryObjects(FALLBACK_SUBCATEGORIES.map((n, i) => ({ _id: n, name: n, icon: 'check', color: '#c9a87c', categories: [], order: i }))));
+    }, [url]);
+
+    useEffect(() => {
+        fetchSpecialityObjects();
+        fetchApplicationObjects();
+        fetchProductCategoryObjects();
+        fetchProductSubcategoryObjects();
+    }, [fetchSpecialityObjects, fetchApplicationObjects, fetchProductCategoryObjects, fetchProductSubcategoryObjects]);
+
+    useWebSocket(useCallback((msg) => {
+        if (msg.type === 'specialitiesChanged')         fetchSpecialityObjects();
+        if (msg.type === 'applicationsChanged')          fetchApplicationObjects();
+        if (msg.type === 'productCategoriesChanged')     fetchProductCategoryObjects();
+        if (msg.type === 'productSubcategoriesChanged')  fetchProductSubcategoryObjects();
+    }, [fetchSpecialityObjects, fetchApplicationObjects, fetchProductCategoryObjects, fetchProductSubcategoryObjects]));
 
     /* ── Lightbox ── */
     const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0, name: '' });
@@ -95,7 +123,7 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
     }, []);
 
     const editAvailableSubcats = editData.categories.length > 0
-        ? [...new Set(editData.categories.flatMap(cat => SUBCATEGORIES[cat] || []))]
+        ? productSubcategoryObjects.filter(s => s.categories?.some(c => editData.categories.includes(c)))
         : [];
 
     /* ── Fetch ── */
@@ -158,11 +186,11 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
             const next = prev.categories.includes(cat)
                 ? prev.categories.filter(c => c !== cat)
                 : [...prev.categories, cat];
-            const nextSubcats = [...new Set(next.flatMap(c => SUBCATEGORIES[c] || []))];
+            const nextSubNames = productSubcategoryObjects.filter(s => s.categories?.some(c => next.includes(c))).map(s => s.name);
             return {
                 ...prev,
                 categories: next,
-                subcategory: nextSubcats.includes(prev.subcategory) ? prev.subcategory : (nextSubcats[0] || ''),
+                subcategory: nextSubNames.includes(prev.subcategory) ? prev.subcategory : (nextSubNames[0] || ''),
             };
         });
     };
@@ -214,7 +242,7 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
     };
 
     /* ── Filter ── */
-    const filters     = ['All', ...CATEGORIES];
+    const filters     = ['All', ...productCategoryObjects.map(c => c.name)];
     const getCategories = (p) => p.categories?.length ? p.categories : (p.category ? [p.category] : []);
     const visibleList = list
         .filter(p => activeFilter === 'All' || getCategories(p).includes(activeFilter))
@@ -273,13 +301,19 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                             <div className="add-multi-section flex-col">
                                 <p>Categories <span style={{ fontSize: '0.72rem', fontWeight: 400, color: '#888' }}>(select all that apply)</span></p>
                                 <div className="add-multi-grid">
-                                    {CATEGORIES.map(cat => (
-                                        <button key={cat} type="button"
-                                            className={`add-multi-chip${editData.categories.includes(cat) ? ' active' : ''}`}
-                                            onClick={() => toggleEditCategory(cat)}>
-                                            {cat}
-                                        </button>
-                                    ))}
+                                    {productCategoryObjects.map(cat => {
+                                        const sel = editData.categories.includes(cat.name);
+                                        const iconUrl = iconifyImgUrl(cat.icon);
+                                        return (
+                                            <button key={cat._id} type="button"
+                                                className={`add-multi-chip${sel ? ' active' : ''}`}
+                                                style={sel ? { background: `${cat.color}22`, borderColor: `${cat.color}88`, color: cat.color } : {}}
+                                                onClick={() => toggleEditCategory(cat.name)}>
+                                                {iconUrl && <img src={sel ? `${iconUrl}?color=${encodeURIComponent(cat.color)}` : iconUrl} width={13} height={13} alt="" style={{ marginRight: '5px', verticalAlign: 'middle' }} />}
+                                                {cat.name}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -294,13 +328,17 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                                         </button>
                                         {editSubCatOpen && (
                                             <ul className="add-cat-list">
-                                                {editAvailableSubcats.map((sub, i) => (
-                                                    <li key={i} className={`add-cat-option${editData.subcategory === sub ? ' active' : ''}`}
-                                                        onClick={() => { setEditData(prev => ({ ...prev, subcategory: sub })); setEditSubCatOpen(false); }}>
-                                                        <span>{sub}</span>
-                                                        {editData.subcategory === sub && <i className="fa fa-check" />}
-                                                    </li>
-                                                ))}
+                                                {editAvailableSubcats.map(sub => {
+                                                    const iconUrl = iconifyImgUrl(sub.icon);
+                                                    return (
+                                                        <li key={sub._id} className={`add-cat-option${editData.subcategory === sub.name ? ' active' : ''}`}
+                                                            onClick={() => { setEditData(prev => ({ ...prev, subcategory: sub.name })); setEditSubCatOpen(false); }}>
+                                                            {iconUrl && <img src={iconUrl} width={13} height={13} alt="" style={{ marginRight: '6px' }} />}
+                                                            <span>{sub.name}</span>
+                                                            {editData.subcategory === sub.name && <i className="fa fa-check" />}
+                                                        </li>
+                                                    );
+                                                })}
                                             </ul>
                                         )}
                                     </div>

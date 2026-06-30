@@ -10,7 +10,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 const TYPE_LABEL = { design: 'Design', product: 'Product', project: 'Project' };
 
 const RecoveryBin = ({ url }) => {
-    const [bin,          setBin]          = useState({ designs: [], products: [], projects: [], categories: [], projectCategories: [], projectTypes: [], specialities: [], applications: [] });
+    const [bin,          setBin]          = useState({ designs: [], products: [], projects: [], categories: [], projectCategories: [], projectTypes: [], specialities: [], applications: [], productCategories: [], productSubcategories: [] });
     const [loading,      setLoading]      = useState(true);
     const [activeTab,    setActiveTab]    = useState('designs');
     const [query,        setQuery]        = useState('');
@@ -86,9 +86,11 @@ const RecoveryBin = ({ url }) => {
         { key: 'projectTypes',      label: `Project Types (${(bin.projectTypes||[]).length})`    },
         { key: 'specialities',      label: `Specialities (${(bin.specialities||[]).length})`     },
         { key: 'applications',      label: `Applications (${(bin.applications||[]).length})`     },
+        { key: 'productCategories',    label: `Product Categories (${(bin.productCategories||[]).length})` },
+        { key: 'productSubcategories', label: `Product Subcategories (${(bin.productSubcategories||[]).length})` },
     ];
 
-    const total = bin.designs.length + bin.products.length + bin.projects.length + bin.categories.length + (bin.projectCategories||[]).length + (bin.projectTypes||[]).length + (bin.specialities||[]).length + (bin.applications||[]).length;
+    const total = bin.designs.length + bin.products.length + bin.projects.length + bin.categories.length + (bin.projectCategories||[]).length + (bin.projectTypes||[]).length + (bin.specialities||[]).length + (bin.applications||[]).length + (bin.productCategories||[]).length + (bin.productSubcategories||[]).length;
     const items = (bin[activeTab] || [])
         .filter(item => !query || item.name.toLowerCase().includes(query.toLowerCase()));
 
@@ -151,12 +153,20 @@ const RecoveryBin = ({ url }) => {
                                 projectTypes: 'No deleted project types — all clear.',
                                 specialities: 'No deleted specialities — all clear.',
                                 applications: 'No deleted applications — all clear.',
+                                productCategories: 'No deleted product categories — all clear.',
+                                productSubcategories: 'No deleted product subcategories — all clear.',
                             }[activeTab] || `Nothing in ${TYPE_LABEL[activeTab.slice(0, -1)]} bin — all clear.`}
                         </div>
-                    ) : (activeTab === 'categories' || activeTab === 'projectCategories' || activeTab === 'projectTypes' || activeTab === 'specialities' || activeTab === 'applications') ? (
+                    ) : (['categories','projectCategories','projectTypes','specialities','applications','productCategories','productSubcategories'].includes(activeTab)) ? (
                         items.map((item) => {
-                            const count = item.designCount ?? item.projectCount ?? 0;
-                            const countLabel = activeTab === 'categories' ? `${count} design${count !== 1 ? 's' : ''}` : (activeTab === 'specialities' || activeTab === 'applications') ? 'used in products' : `${count} project${count !== 1 ? 's' : ''}`;
+                            const count = item.designCount ?? item.projectCount ?? item.productCount ?? 0;
+                            const countLabel = activeTab === 'categories'
+                                ? `${count} design${count !== 1 ? 's' : ''}`
+                                : (activeTab === 'productCategories' || activeTab === 'productSubcategories')
+                                ? `used in ${count} product${count !== 1 ? 's' : ''}`
+                                : (activeTab === 'specialities' || activeTab === 'applications')
+                                ? 'used in products'
+                                : `${count} project${count !== 1 ? 's' : ''}`;
                             return (
                                 <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 190px', gap: '24px', padding: '16px 28px', alignItems: 'center' }}>
                                     <div style={{ minWidth: 0 }}>
@@ -240,8 +250,11 @@ const RecoveryBin = ({ url }) => {
                         <h3>Delete Forever?</h3>
                         <p className="bin-confirm-name">"{confirmItem.name}"</p>
                         <p className="bin-confirm-warning">
-                            {['category','projectCategory','projectType','speciality','application'].includes(confirmItem?._type)
-                                ? <>This permanently removes the {confirmItem?._type === 'projectType' ? 'project type' : confirmItem?._type === 'speciality' ? 'speciality' : confirmItem?._type === 'application' ? 'application' : 'category'}. Products/projects/designs using it are <strong>not deleted</strong>.<br /><strong>This action cannot be undone.</strong></>
+                            {['category','projectCategory','projectType','speciality','application','productCategory','productSubcategory'].includes(confirmItem?._type)
+                                ? <>This permanently removes the {{
+                                    projectType: 'project type', speciality: 'speciality', application: 'application',
+                                    productCategory: 'product category', productSubcategory: 'product subcategory',
+                                  }[confirmItem?._type] || 'category'}. Products/projects/designs using it are <strong>not deleted</strong>.<br /><strong>This action cannot be undone.</strong></>
                                 : <>This will permanently remove the item and all its images from storage.<br /><strong>This action cannot be undone.</strong></>
                             }
                         </p>

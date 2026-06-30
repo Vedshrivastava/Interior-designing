@@ -6,12 +6,8 @@ import { toast } from 'react-toastify';
 import '../index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
-const SUBCATEGORIES = {
-    'Interior':               ['Ceilings', 'Wall Features', 'Flooring', 'Lighting', 'Furniture'],
-    'Exterior':               ['Facades', 'Cladding', 'Landscaping', 'Pergolas'],
-    'Functional Architecture':['Breeze Blocks', 'Jaali Walls', 'Decorative Screens', 'Feature Walls', 'Privacy Screens'],
-};
-const CATEGORIES = Object.keys(SUBCATEGORIES);
+const FALLBACK_CATEGORIES = ['Interior', 'Exterior', 'Functional Architecture'];
+const FALLBACK_SUBCATEGORIES = ['Ceilings', 'Wall Features', 'Flooring', 'Lighting', 'Furniture', 'Facades', 'Cladding', 'Landscaping', 'Pergolas', 'Breeze Blocks', 'Jaali Walls', 'Decorative Screens', 'Feature Walls', 'Privacy Screens'];
 
 const FALLBACK_SPECIALITIES = [
     'Waterproof', 'UV Protection', 'Fire Resistant', 'Weather Resistant',
@@ -40,8 +36,9 @@ const COLOR_OPTIONS = [
     '#dc2626', '#16a34a', '#9333ea', '#0891b2', '#d97706',
 ];
 
-/* ── Reusable manager hook for DB-driven icon+colour tag lists (specialities, applications) ── */
-function useIconTagManager(url, token, apiBase, fallbackNames) {
+/* ── Reusable manager hook for DB-driven icon+colour tag lists (specialities, applications, categories, subcategories) ──
+   getExtraPayload: optional fn returning extra fields merged into the POST body on save (e.g. parent categories for subcategories) */
+function useIconTagManager(url, token, apiBase, fallbackNames, getExtraPayload) {
     const [objects,     setObjects]     = useState([]);
     const [adding,      setAdding]      = useState(false);
     const [newName,     setNewName]     = useState('');
@@ -91,8 +88,9 @@ function useIconTagManager(url, token, apiBase, fallbackNames) {
         if (!newName.trim()) { toast.error('Name is required'); return; }
         setSaving(true);
         try {
+            const extra = getExtraPayload ? getExtraPayload() : {};
             const res = await axios.post(`${url}${apiBase}/add`,
-                { name: newName.trim(), icon: newIcon, color: newColor },
+                { name: newName.trim(), icon: newIcon, color: newColor, ...extra },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             if (res.data.success) { toast.success(res.data.message); closeAdd(); await fetchList(); }
@@ -130,10 +128,10 @@ function useIconTagManager(url, token, apiBase, fallbackNames) {
 /* ── Reusable section: chip grid + inline "add new" form with Iconify search ──
    fixedColor: when set, every badge (preset or new) uses this single colour
    and the colour picker is hidden — used for Applications (golden theme). */
-function IconTagSection({ label, placeholder, manager, selected, onToggle, fixedColor }) {
+function IconTagSection({ label, hint, placeholder, manager, selected, onToggle, fixedColor }) {
     return (
         <div className="add-multi-section flex-col">
-            <h2>{label}</h2>
+            <h2>{label} {hint && <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#888' }}>{hint}</span>}</h2>
             <div className="add-multi-grid">
                 {manager.objects.map(item => {
                     const sel = selected.includes(item.name);
@@ -249,6 +247,133 @@ function IconTagSection({ label, placeholder, manager, selected, onToggle, fixed
     );
 }
 
+/* ── Subcategory dropdown: single-select, icon-aware, with inline
+   "add new" form that includes a parent-category multi-select checklist ── */
+function SubcategorySection({ subManager, catManager, value, onChange, availableForCategories, dropdownOpen, setDropdownOpen, dropRef, newParentCats, setNewParentCats }) {
+    const visibleSubs = subManager.objects.filter(s => s.categories?.some(c => availableForCategories.includes(c)));
+
+    return (
+        <div className="add-cat-dropdown-wrap flex-col">
+            <h2>Subcategory</h2>
+            <div className="add-cat-dropdown" ref={dropRef}>
+                <button type="button" className={`add-cat-trigger${dropdownOpen ? ' open' : ''}`} onClick={() => setDropdownOpen(o => !o)}>
+                    <span>{value || 'Select subcategory'}</span>
+                    <i className="fa fa-chevron-down" />
+                </button>
+                {dropdownOpen && (
+                    <ul className="add-cat-list">
+                        {visibleSubs.map(sub => {
+                            const iconUrl = iconifyImgUrl(sub.icon);
+                            return (
+                                <li key={sub._id} className={`add-cat-option${value === sub.name ? ' active' : ''}`}
+                                    onClick={() => { onChange(sub.name); setDropdownOpen(false); }}>
+                                    {iconUrl && <img src={iconUrl} width={13} height={13} alt="" style={{ marginRight: '6px', flexShrink: 0 }} />}
+                                    <span>{sub.name}</span>
+                                    <div className="add-cat-option-actions" onClick={e => e.stopPropagation()}>
+                                        {value === sub.name && <i className="fa fa-check" />}
+                                        <i className="fa fa-trash add-cat-trash" title={`Remove "${sub.name}"`} onClick={e => { e.stopPropagation(); subManager.setConfirmItem(sub); }} />
+                                    </div>
+                                </li>
+                            );
+                        })}
+
+                        {!subManager.adding ? (
+                            <li className="add-cat-option add-cat-new-btn" onClick={e => { e.stopPropagation(); setNewParentCats([]); subManager.openAdd(); }}>
+                                <i className="fa fa-plus" /><span>Add new subcategory</span>
+                            </li>
+                        ) : (
+                            <li className="add-cat-new-form" onClick={e => e.stopPropagation()}>
+                                <input
+                                    type="text" placeholder="Subcategory name e.g. Skylights"
+                                    value={subManager.newName} onChange={e => subManager.setNewName(e.target.value)}
+                                    autoFocus
+                                />
+                                <p className="spec-form-label">Belongs to category</p>
+                                <div className="sub-parent-cat-list">
+                                    {catManager.objects.map(cat => {
+                                        const checked = newParentCats.includes(cat.name);
+                                        return (
+                                            <label key={cat._id} className={`sub-parent-cat-item${checked ? ' active' : ''}`}>
+                                                <input type="checkbox" checked={checked}
+                                                    onChange={() => setNewParentCats(prev => checked ? prev.filter(c => c !== cat.name) : [...prev, cat.name])} />
+                                                {cat.name}
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+
+                                <p className="spec-form-label">Pick an icon</p>
+                                <div className="spec-icon-search-wrap">
+                                    <i className="fa-solid fa-magnifying-glass" />
+                                    <input
+                                        type="text" placeholder="Search 200,000+ icons…"
+                                        value={subManager.iconSearch} onChange={e => subManager.setIconSearch(e.target.value)}
+                                    />
+                                    {subManager.iconLoading && <i className="fa-solid fa-circle-notch fa-spin" style={{ color: 'var(--text-lt)', fontSize: '0.75rem', flexShrink: 0 }} />}
+                                    {subManager.iconSearch && !subManager.iconLoading && <button type="button" className="spec-icon-search-clear" onClick={() => subManager.setIconSearch('')}>×</button>}
+                                </div>
+                                <div className="spec-icon-grid-wrap">
+                                    {subManager.iconResults.length === 0 && !subManager.iconLoading && subManager.iconSearch && (
+                                        <p style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.78rem', color: 'var(--text-lt)', textAlign: 'center', padding: '16px 0', margin: 0 }}>No icons found — try a different word</p>
+                                    )}
+                                    {subManager.iconResults.length === 0 && !subManager.iconLoading && !subManager.iconSearch && (
+                                        <p style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.78rem', color: 'var(--text-lt)', textAlign: 'center', padding: '16px 0', margin: 0 }}>
+                                            <i className="fa-solid fa-wand-magic-sparkles" style={{ marginRight: '6px', color: 'var(--gold)' }} />
+                                            Type the name above — icons will auto-appear
+                                        </p>
+                                    )}
+                                    {subManager.iconResults.length > 0 && (
+                                        <div className="spec-icon-grid spec-icon-grid--full">
+                                            {subManager.iconResults.map(iconId => {
+                                                const url = iconifyImgUrl(iconId);
+                                                const shortName = iconId.split(':')[1] || iconId;
+                                                return (
+                                                    <button key={iconId} type="button"
+                                                        className={`spec-icon-btn${subManager.newIcon === iconId ? ' active' : ''}`}
+                                                        title={iconId}
+                                                        onClick={() => subManager.setNewIcon(iconId)}>
+                                                        <img src={subManager.newIcon === iconId ? `${url}?color=%23fff` : url} width={20} height={20} alt={shortName} />
+                                                        <span>{shortName.slice(0, 8)}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <p className="spec-form-label">Pick a colour</p>
+                                <div className="spec-color-row">
+                                    {COLOR_OPTIONS.map(c => (
+                                        <button key={c} type="button"
+                                            className={`spec-color-swatch${subManager.newColor === c ? ' active' : ''}`}
+                                            style={{ background: c }}
+                                            onClick={() => subManager.setNewColor(c)} />
+                                    ))}
+                                </div>
+
+                                <div className="spec-preview">
+                                    Preview:{' '}
+                                    <span className="spec-preview-badge" style={{ background: `${subManager.newColor}22`, borderColor: `${subManager.newColor}88`, color: subManager.newColor }}>
+                                        {subManager.newIcon && iconifyImgUrl(subManager.newIcon) && (
+                                            <img src={`${iconifyImgUrl(subManager.newIcon)}?color=${encodeURIComponent(subManager.newColor)}`} width={13} height={13} alt="" />
+                                        )}
+                                        {subManager.newName || 'Name'}
+                                    </span>
+                                </div>
+
+                                <div className="add-cat-new-actions" style={{ marginTop: '10px' }}>
+                                    <button type="button" className="add-cat-save-btn" onClick={subManager.save} disabled={subManager.saving}>{subManager.saving ? 'Saving…' : 'Save'}</button>
+                                    <button type="button" className="add-cat-cancel-btn" onClick={subManager.closeAdd}>Cancel</button>
+                                </div>
+                            </li>
+                        )}
+                    </ul>
+                )}
+            </div>
+        </div>
+    );
+}
+
 /* ── Shared confirm-delete modal ── */
 function ConfirmTagDeleteModal({ manager, typeLabel, onRemoved }) {
     if (!manager.confirmItem) return null;
@@ -288,16 +413,14 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
 
     const [subCatOpen, setSubCatOpen] = useState(false);
     const subCatRef = useRef(null);
+    const [newParentCats, setNewParentCats] = useState([]);
 
     const token = localStorage.getItem('token');
 
     const specManager = useIconTagManager(url, token, '/api/speciality',  FALLBACK_SPECIALITIES);
     const appManager  = useIconTagManager(url, token, '/api/application', FALLBACK_APPLICATIONS);
-
-    // Merge subcategories from all selected categories
-    const availableSubcats = data.categories.length > 0
-        ? [...new Set(data.categories.flatMap(cat => SUBCATEGORIES[cat] || []))]
-        : [];
+    const catManager  = useIconTagManager(url, token, '/api/product-category', FALLBACK_CATEGORIES);
+    const subManager  = useIconTagManager(url, token, '/api/product-subcategory', FALLBACK_SUBCATEGORIES, () => ({ categories: newParentCats }));
 
     useEffect(() => {
         const handler = (e) => {
@@ -312,11 +435,11 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
             const next = prev.categories.includes(cat)
                 ? prev.categories.filter(c => c !== cat)
                 : [...prev.categories, cat];
-            const nextSubcats = [...new Set(next.flatMap(c => SUBCATEGORIES[c] || []))];
+            const nextSubNames = subManager.objects.filter(s => s.categories?.some(c => next.includes(c))).map(s => s.name);
             return {
                 ...prev,
                 categories: next,
-                subcategory: nextSubcats.includes(prev.subcategory) ? prev.subcategory : (nextSubcats[0] || ''),
+                subcategory: nextSubNames.includes(prev.subcategory) ? prev.subcategory : (nextSubNames[0] || ''),
             };
         });
     };
@@ -415,41 +538,29 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
                 </div>
 
                 {/* ── Categories (multi-select) ── */}
-                <div className="add-multi-section flex-col">
-                    <h2>Categories <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#888' }}>(select all that apply)</span></h2>
-                    <div className="add-multi-grid">
-                        {CATEGORIES.map(cat => (
-                            <button key={cat} type="button"
-                                className={`add-multi-chip${data.categories.includes(cat) ? ' active' : ''}`}
-                                onClick={() => toggleCategory(cat)}>
-                                {cat}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+                <IconTagSection
+                    label="Categories"
+                    hint="(select all that apply)"
+                    placeholder="Category name e.g. Landscaping Elements"
+                    manager={catManager}
+                    selected={data.categories}
+                    onToggle={toggleCategory}
+                />
 
                 {/* ── Subcategory ── */}
-                {availableSubcats.length > 0 && (
-                    <div className="add-cat-dropdown-wrap flex-col">
-                        <h2>Subcategory</h2>
-                        <div className="add-cat-dropdown" ref={subCatRef}>
-                            <button type="button" className={`add-cat-trigger${subCatOpen ? ' open' : ''}`} onClick={() => setSubCatOpen(o => !o)}>
-                                <span>{data.subcategory || 'Select subcategory'}</span>
-                                <i className="fa fa-chevron-down" />
-                            </button>
-                            {subCatOpen && (
-                                <ul className="add-cat-list">
-                                    {availableSubcats.map((sub, i) => (
-                                        <li key={i} className={`add-cat-option${data.subcategory === sub ? ' active' : ''}`}
-                                            onClick={() => { setData(prev => ({ ...prev, subcategory: sub })); setSubCatOpen(false); }}>
-                                            <span>{sub}</span>
-                                            {data.subcategory === sub && <i className="fa fa-check" />}
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
-                    </div>
+                {data.categories.length > 0 && (
+                    <SubcategorySection
+                        subManager={subManager}
+                        catManager={catManager}
+                        value={data.subcategory}
+                        onChange={(name) => setData(prev => ({ ...prev, subcategory: name }))}
+                        availableForCategories={data.categories}
+                        dropdownOpen={subCatOpen}
+                        setDropdownOpen={setSubCatOpen}
+                        dropRef={subCatRef}
+                        newParentCats={newParentCats}
+                        setNewParentCats={setNewParentCats}
+                    />
                 )}
 
                 {/* ── Material + Finish ── */}
@@ -517,6 +628,8 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
 
         <ConfirmTagDeleteModal manager={specManager} typeLabel="Speciality" onRemoved={(name) => setData(p => ({ ...p, specialities: p.specialities.filter(s => s !== name) }))} />
         <ConfirmTagDeleteModal manager={appManager}  typeLabel="Application" onRemoved={(name) => setData(p => ({ ...p, applications: p.applications.filter(a => a !== name) }))} />
+        <ConfirmTagDeleteModal manager={catManager}  typeLabel="Category"    onRemoved={(name) => setData(p => ({ ...p, categories: p.categories.filter(c => c !== name) }))} />
+        <ConfirmTagDeleteModal manager={subManager}  typeLabel="Subcategory" onRemoved={(name) => setData(p => ({ ...p, subcategory: p.subcategory === name ? '' : p.subcategory }))} />
         </>
     );
 };

@@ -16,13 +16,6 @@ import { cloudinaryOptimize } from '@/lib/cloudinary';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-const SUBCATEGORIES = {
-  'Interior':                 ['Ceilings', 'Wall Features', 'Flooring', 'Lighting', 'Furniture'],
-  'Exterior':                 ['Facades', 'Cladding', 'Landscaping', 'Pergolas'],
-  'Functional Architecture':  ['Breeze Blocks', 'Jaali Walls', 'Decorative Screens', 'Feature Walls', 'Privacy Screens'],
-};
-const CATEGORIES = Object.keys(SUBCATEGORIES);
-
 // Hardcoded fallback — used when DB hasn't loaded yet or for legacy data
 const SPEC_META_FALLBACK = {
   'Waterproof':          { Icon: IconDroplet,          color: '#3b82f6' },
@@ -349,22 +342,43 @@ export default function ProductsPage({ initialProducts = [] }) {
       .catch(() => {});
   }, []);
 
+  const [productCategories,    setProductCategories]    = useState([]);
+  const [productSubcategories, setProductSubcategories] = useState([]);
+
+  const fetchProductCategories = useCallback(() => {
+    fetch(`${API_URL}/api/product-category/list`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setProductCategories(d.data || []); })
+      .catch(() => {});
+  }, []);
+
+  const fetchProductSubcategories = useCallback(() => {
+    fetch(`${API_URL}/api/product-subcategory/list`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setProductSubcategories(d.data || []); })
+      .catch(() => {});
+  }, []);
+
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (initialProducts.length === 0) fetchProducts();
     fetchSpecialities();
     fetchApplications();
-  }, [fetchProducts, fetchSpecialities, fetchApplications, initialProducts.length]);
+    fetchProductCategories();
+    fetchProductSubcategories();
+  }, [fetchProducts, fetchSpecialities, fetchApplications, fetchProductCategories, fetchProductSubcategories, initialProducts.length]);
 
   useWebSocket(useCallback((msg) => {
     // Also re-fetch specialities/applications on productsChanged — a new
     // product may reference a speciality/application created moments earlier
     // in the same admin session, and the WebSocket events can arrive/resolve
     // out of order.
-    if (msg.type === 'productsChanged')     { fetchProducts(); fetchSpecialities(); fetchApplications(); }
-    if (msg.type === 'specialitiesChanged')  fetchSpecialities();
-    if (msg.type === 'applicationsChanged')  fetchApplications();
-  }, [fetchProducts, fetchSpecialities, fetchApplications]));
+    if (msg.type === 'productsChanged')           { fetchProducts(); fetchSpecialities(); fetchApplications(); }
+    if (msg.type === 'specialitiesChanged')         fetchSpecialities();
+    if (msg.type === 'applicationsChanged')         fetchApplications();
+    if (msg.type === 'productCategoriesChanged')    fetchProductCategories();
+    if (msg.type === 'productSubcategoriesChanged') fetchProductSubcategories();
+  }, [fetchProducts, fetchSpecialities, fetchApplications, fetchProductCategories, fetchProductSubcategories]));
 
   const handleCategoryChange = (cat) => { setActiveCategory(cat); setActiveSubcategory('All'); };
   const getCategories = (p) => p.categories?.length ? p.categories : (p.category ? [p.category] : []);
@@ -387,7 +401,10 @@ export default function ProductsPage({ initialProducts = [] }) {
     return [1, '…', cur - 1, cur, cur + 1, '…', total];
   };
 
-  const subcats = activeCategory !== 'All' ? SUBCATEGORIES[activeCategory] || [] : [];
+  const subcats = activeCategory !== 'All'
+    ? productSubcategories.filter(s => s.categories?.includes(activeCategory)).map(s => s.name)
+    : [];
+  const categoryNames = productCategories.map(c => c.name);
 
   return (
     <div className="products-page">
@@ -412,11 +429,11 @@ export default function ProductsPage({ initialProducts = [] }) {
       </div>
 
       <nav className="prod-category-bar" aria-label="Product categories">
-        {['All', ...CATEGORIES].map(cat => <button key={cat} className={`prod-cat-pill${activeCategory === cat ? ' active' : ''}`} onClick={() => handleCategoryChange(cat)}>{cat}</button>)}
+        {['All', ...categoryNames].map(cat => <button key={cat} className={`prod-cat-pill${activeCategory === cat ? ' active' : ''}`} onClick={() => handleCategoryChange(cat)}>{cat}</button>)}
       </nav>
 
       <div className="prod-cat-mobile">
-        {['All', ...CATEGORIES].map(cat => <button key={cat} className={`prod-cat-chip${activeCategory === cat ? ' active' : ''}`} onClick={() => handleCategoryChange(cat)}>{cat}</button>)}
+        {['All', ...categoryNames].map(cat => <button key={cat} className={`prod-cat-chip${activeCategory === cat ? ' active' : ''}`} onClick={() => handleCategoryChange(cat)}>{cat}</button>)}
       </div>
 
       {subcats.length > 0 && (

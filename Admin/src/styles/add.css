@@ -1076,6 +1076,41 @@
     margin: 0;
 }
 
+/* ── Subcategory parent-category checklist (in the add form) ── */
+.sub-parent-cat-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 120px;
+    overflow-y: auto;
+    border: 1px solid rgba(201,168,124,0.18);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+}
+
+.sub-parent-cat-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(201,168,124,0.25);
+    background: var(--ivory);
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.76rem;
+    color: var(--text-mid);
+    cursor: pointer;
+}
+
+.sub-parent-cat-item input { margin: 0; }
+
+.sub-parent-cat-item.active {
+    background: var(--green);
+    border-color: var(--green);
+    color: var(--gold-lt);
+    font-weight: 600;
+}
+
 /* ── Icon search bar ── */
 .spec-icon-search-wrap {
     display: flex;

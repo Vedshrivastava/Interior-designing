@@ -18,12 +18,34 @@ const SEED = [
     { name: 'Rust Resistant',     icon: 'mdi:shield-half-full',          color: '#78716c', order: 14 },
 ];
 
+// Legacy short icon keys (pre-Iconify) → Iconify ID, for one-time auto-migration
+const LEGACY_ICON_MAP = {
+    'droplet':     'mdi:water',
+    'sun':         'mdi:weather-sunny',
+    'fire':        'mdi:fire',
+    'cloud':       'mdi:weather-cloudy',
+    'leaf':        'mdi:leaf',
+    'wrench':      'mdi:wrench',
+    'shield':      'mdi:shield-check',
+    'volume-off':  'mdi:volume-off',
+    'thermometer': 'mdi:thermometer',
+    'pen':         'mdi:pencil',
+    'check':       'mdi:check-circle',
+};
+
 const listSpecialities = async (req, res) => {
     try {
         let items = await Speciality.find({ deleted: { $ne: true } }).sort({ order: 1, createdAt: 1 });
         if (items.length === 0) {
             await Speciality.insertMany(SEED);
             items = await Speciality.find({ deleted: { $ne: true } }).sort({ order: 1 });
+        } else {
+            // Auto-heal any legacy (pre-Iconify) icon keys still in the DB
+            const legacyItems = items.filter(i => i.icon && !i.icon.includes(':') && LEGACY_ICON_MAP[i.icon]);
+            if (legacyItems.length > 0) {
+                await Promise.all(legacyItems.map(i => Speciality.findByIdAndUpdate(i._id, { icon: LEGACY_ICON_MAP[i.icon] })));
+                items = await Speciality.find({ deleted: { $ne: true } }).sort({ order: 1, createdAt: 1 });
+            }
         }
         res.json({ success: true, data: items });
     } catch (err) {

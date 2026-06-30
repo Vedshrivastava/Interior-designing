@@ -10,7 +10,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 const TYPE_LABEL = { design: 'Design', product: 'Product', project: 'Project' };
 
 const RecoveryBin = ({ url }) => {
-    const [bin,          setBin]          = useState({ designs: [], products: [], projects: [], categories: [], projectCategories: [], projectTypes: [], specialities: [] });
+    const [bin,          setBin]          = useState({ designs: [], products: [], projects: [], categories: [], projectCategories: [], projectTypes: [], specialities: [], applications: [] });
     const [loading,      setLoading]      = useState(true);
     const [activeTab,    setActiveTab]    = useState('designs');
     const [query,        setQuery]        = useState('');
@@ -85,9 +85,10 @@ const RecoveryBin = ({ url }) => {
         { key: 'projectCategories', label: `Project Categories (${(bin.projectCategories||[]).length})` },
         { key: 'projectTypes',      label: `Project Types (${(bin.projectTypes||[]).length})`    },
         { key: 'specialities',      label: `Specialities (${(bin.specialities||[]).length})`     },
+        { key: 'applications',      label: `Applications (${(bin.applications||[]).length})`     },
     ];
 
-    const total = bin.designs.length + bin.products.length + bin.projects.length + bin.categories.length + (bin.projectCategories||[]).length + (bin.projectTypes||[]).length + (bin.specialities||[]).length;
+    const total = bin.designs.length + bin.products.length + bin.projects.length + bin.categories.length + (bin.projectCategories||[]).length + (bin.projectTypes||[]).length + (bin.specialities||[]).length + (bin.applications||[]).length;
     const items = (bin[activeTab] || [])
         .filter(item => !query || item.name.toLowerCase().includes(query.toLowerCase()));
 
@@ -144,12 +145,18 @@ const RecoveryBin = ({ url }) => {
                         <div className="admin-empty-state">Loading…</div>
                     ) : items.length === 0 ? (
                         <div className="admin-empty-state">
-                            {activeTab === 'categories' ? 'No deleted categories — all clear.' : `Nothing in ${TYPE_LABEL[activeTab.slice(0, -1)]} bin — all clear.`}
+                            {{
+                                categories: 'No deleted categories — all clear.',
+                                projectCategories: 'No deleted project categories — all clear.',
+                                projectTypes: 'No deleted project types — all clear.',
+                                specialities: 'No deleted specialities — all clear.',
+                                applications: 'No deleted applications — all clear.',
+                            }[activeTab] || `Nothing in ${TYPE_LABEL[activeTab.slice(0, -1)]} bin — all clear.`}
                         </div>
-                    ) : (activeTab === 'categories' || activeTab === 'projectCategories' || activeTab === 'projectTypes' || activeTab === 'specialities') ? (
+                    ) : (activeTab === 'categories' || activeTab === 'projectCategories' || activeTab === 'projectTypes' || activeTab === 'specialities' || activeTab === 'applications') ? (
                         items.map((item) => {
                             const count = item.designCount ?? item.projectCount ?? 0;
-                            const countLabel = activeTab === 'categories' ? `${count} design${count !== 1 ? 's' : ''}` : activeTab === 'specialities' ? 'used in products' : `${count} project${count !== 1 ? 's' : ''}`;
+                            const countLabel = activeTab === 'categories' ? `${count} design${count !== 1 ? 's' : ''}` : (activeTab === 'specialities' || activeTab === 'applications') ? 'used in products' : `${count} project${count !== 1 ? 's' : ''}`;
                             return (
                                 <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 190px', gap: '24px', padding: '16px 28px', alignItems: 'center' }}>
                                     <div style={{ minWidth: 0 }}>
@@ -233,8 +240,8 @@ const RecoveryBin = ({ url }) => {
                         <h3>Delete Forever?</h3>
                         <p className="bin-confirm-name">"{confirmItem.name}"</p>
                         <p className="bin-confirm-warning">
-                            {['category','projectCategory','projectType'].includes(confirmItem?._type)
-                                ? <>This permanently removes the {confirmItem?._type === 'projectType' ? 'project type' : 'category'}. Projects/designs inside are <strong>not deleted</strong>.<br /><strong>This action cannot be undone.</strong></>
+                            {['category','projectCategory','projectType','speciality','application'].includes(confirmItem?._type)
+                                ? <>This permanently removes the {confirmItem?._type === 'projectType' ? 'project type' : confirmItem?._type === 'speciality' ? 'speciality' : confirmItem?._type === 'application' ? 'application' : 'category'}. Products/projects/designs using it are <strong>not deleted</strong>.<br /><strong>This action cannot be undone.</strong></>
                                 : <>This will permanently remove the item and all its images from storage.<br /><strong>This action cannot be undone.</strong></>
                             }
                         </p>

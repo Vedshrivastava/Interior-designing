@@ -13,18 +13,24 @@ const SUBCATEGORIES = {
 };
 const CATEGORIES = Object.keys(SUBCATEGORIES);
 
-const SPECIALITIES = [
+const FALLBACK_SPECIALITIES = [
     'Waterproof', 'UV Protection', 'Fire Resistant', 'Weather Resistant',
     'Eco-Friendly', 'Low Maintenance', 'Anti-Fungal', 'Sound Insulation',
     'Thermal Insulation', 'Scratch Resistant', 'Fade Resistant',
     'Customizable', 'Non-Toxic', 'Rust Resistant',
 ];
 
-const APPLICATIONS = [
+const FALLBACK_APPLICATIONS = [
     'Residential', 'Commercial', 'Hospitality', 'Office',
     'Retail', 'Healthcare', 'Outdoor', 'Garden',
     'Rooftop', 'Balcony', 'Industrial', 'Education',
 ];
+
+const iconifyImgUrl = (iconId) => {
+    if (!iconId || !iconId.includes(':')) return null;
+    const [prefix, name] = iconId.split(':');
+    return `https://api.iconify.design/${prefix}/${name}.svg`;
+};
 
 const ListProducts = ({ url, setIsLoading, isLoading }) => {
     const [list,         setList]         = useState([]);
@@ -34,6 +40,19 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
     const ITEMS_PER_PAGE = 20;
     const mobileBarRef = useRef(null);
     const token = localStorage.getItem('token');
+
+    /* ── Specialities / Applications (DB-driven, for edit modal) ── */
+    const [specialityObjects, setSpecialityObjects] = useState([]);
+    const [applicationObjects, setApplicationObjects] = useState([]);
+
+    useEffect(() => {
+        axios.get(`${url}/api/speciality/list`)
+            .then(r => { if (r.data.success) setSpecialityObjects(r.data.data); })
+            .catch(() => setSpecialityObjects(FALLBACK_SPECIALITIES.map((n, i) => ({ _id: n, name: n, icon: 'check', color: '#c9a87c', order: i }))));
+        axios.get(`${url}/api/application/list`)
+            .then(r => { if (r.data.success) setApplicationObjects(r.data.data); })
+            .catch(() => setApplicationObjects(FALLBACK_APPLICATIONS.map((n, i) => ({ _id: n, name: n, icon: 'check', color: '#c9a87c', order: i }))));
+    }, [url]);
 
     /* ── Lightbox ── */
     const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0, name: '' });
@@ -304,13 +323,19 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                             <div className="add-multi-section flex-col">
                                 <p>Specialities</p>
                                 <div className="add-multi-grid">
-                                    {SPECIALITIES.map(spec => (
-                                        <button key={spec} type="button"
-                                            className={`add-multi-chip${editData.specialities.includes(spec) ? ' active' : ''}`}
-                                            onClick={() => toggleEditChip('specialities', spec)}>
-                                            {spec}
-                                        </button>
-                                    ))}
+                                    {specialityObjects.map(spec => {
+                                        const sel = editData.specialities.includes(spec.name);
+                                        const iconUrl = iconifyImgUrl(spec.icon);
+                                        return (
+                                            <button key={spec._id} type="button"
+                                                className={`add-multi-chip${sel ? ' active' : ''}`}
+                                                style={sel ? { background: `${spec.color}22`, borderColor: `${spec.color}88`, color: spec.color } : {}}
+                                                onClick={() => toggleEditChip('specialities', spec.name)}>
+                                                {iconUrl && <img src={sel ? `${iconUrl}?color=${encodeURIComponent(spec.color)}` : iconUrl} width={13} height={13} alt="" style={{ marginRight: '5px', verticalAlign: 'middle' }} />}
+                                                {spec.name}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -318,13 +343,19 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                             <div className="add-multi-section flex-col">
                                 <p>Applications</p>
                                 <div className="add-multi-grid">
-                                    {APPLICATIONS.map(app => (
-                                        <button key={app} type="button"
-                                            className={`add-multi-chip${editData.applications.includes(app) ? ' active' : ''}`}
-                                            onClick={() => toggleEditChip('applications', app)}>
-                                            {app}
-                                        </button>
-                                    ))}
+                                    {applicationObjects.map(app => {
+                                        const sel = editData.applications.includes(app.name);
+                                        const iconUrl = iconifyImgUrl(app.icon);
+                                        return (
+                                            <button key={app._id} type="button"
+                                                className={`add-multi-chip${sel ? ' active' : ''}`}
+                                                style={sel ? { background: `${app.color}22`, borderColor: `${app.color}88`, color: app.color } : {}}
+                                                onClick={() => toggleEditChip('applications', app.name)}>
+                                                {iconUrl && <img src={sel ? `${iconUrl}?color=${encodeURIComponent(app.color)}` : iconUrl} width={13} height={13} alt="" style={{ marginRight: '5px', verticalAlign: 'middle' }} />}
+                                                {app.name}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 

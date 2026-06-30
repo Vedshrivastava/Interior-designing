@@ -138,7 +138,7 @@ const ICON_COMPONENT_MAP = {
   'sun-plant-wilt':IconSun,
 };
 
-const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK }) => {
+const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK, appMeta = {} }) => {
   const [modalOpen,   setModalOpen]   = useState(false);
   const [activeThumb, setActiveThumb] = useState(0);
   const [lbIdx,       setLbIdx]       = useState(null);
@@ -236,7 +236,22 @@ const ProductCard = ({ product, openConsult, specMeta = SPEC_META_FALLBACK }) =>
               </div>
             </div>
           )}
-          {applications.length > 0 && <div className="prod-modal-section"><h4 className="prod-modal-section-label">Applications</h4><div className="prod-app-chips">{applications.map((app, i) => <span key={i} className="prod-app-chip"><IconCheck />{app}</span>)}</div></div>}
+          {applications.length > 0 && (
+            <div className="prod-modal-section">
+              <h4 className="prod-modal-section-label">Applications</h4>
+              <div className="prod-app-chips">
+                {applications.map((app, i) => {
+                  const meta = appMeta[app] || { color: '#c9a87c', iconUrl: null };
+                  return (
+                    <span key={i} className="prod-app-chip" style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}4d`, color: meta.color }}>
+                      {meta.iconUrl ? <img src={meta.iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} /> : <IconCheck />}
+                      {app}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {points.length > 0 && <div className="prod-modal-section"><h4 className="prod-modal-section-label">Key highlights</h4><ul className="prod-modal-points">{points.map((pt, i) => <li key={i} className="prod-modal-point"><span className="prod-point-dot" />{pt}</li>)}</ul></div>}
           <div className="prod-modal-cta">
             <button className="prod-modal-cta-btn" onClick={() => { closeModal(); openConsult(); }}>Get Free Consultation <IconCalendar /></button>
@@ -283,6 +298,9 @@ export default function ProductsPage({ initialProducts = [] }) {
     return m;
   });
 
+  // appMeta: name → { color, iconUrl } — built from DB
+  const [appMeta, setAppMeta] = useState({});
+
   const fetchProducts = useCallback(async () => {
     try {
       const res = await axios.get(`${API_URL}/api/product/list`);
@@ -310,19 +328,41 @@ export default function ProductsPage({ initialProducts = [] }) {
       .catch(() => {});
   }, []);
 
+  const fetchApplications = useCallback(() => {
+    fetch(`${API_URL}/api/application/list`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.data?.length > 0) {
+          const map = {};
+          d.data.forEach(a => {
+            const isIconify = a.icon && a.icon.includes(':');
+            const iconUrl = isIconify
+              ? `https://api.iconify.design/${a.icon.replace(':', '/')}.svg?color=${encodeURIComponent(a.color)}`
+              : null;
+            map[a.name] = { color: a.color, iconUrl };
+          });
+          setAppMeta(prev => ({ ...prev, ...map }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (initialProducts.length === 0) fetchProducts();
     fetchSpecialities();
-  }, [fetchProducts, fetchSpecialities, initialProducts.length]);
+    fetchApplications();
+  }, [fetchProducts, fetchSpecialities, fetchApplications, initialProducts.length]);
 
   useWebSocket(useCallback((msg) => {
-    // Also re-fetch specialities on productsChanged — a new product may
-    // reference a speciality created moments earlier in the same admin
-    // session, and the two WebSocket events can arrive/resolve out of order.
-    if (msg.type === 'productsChanged')    { fetchProducts(); fetchSpecialities(); }
-    if (msg.type === 'specialitiesChanged') fetchSpecialities();
-  }, [fetchProducts, fetchSpecialities]));
+    // Also re-fetch specialities/applications on productsChanged — a new
+    // product may reference a speciality/application created moments earlier
+    // in the same admin session, and the WebSocket events can arrive/resolve
+    // out of order.
+    if (msg.type === 'productsChanged')     { fetchProducts(); fetchSpecialities(); fetchApplications(); }
+    if (msg.type === 'specialitiesChanged')  fetchSpecialities();
+    if (msg.type === 'applicationsChanged')  fetchApplications();
+  }, [fetchProducts, fetchSpecialities, fetchApplications]));
 
   const handleCategoryChange = (cat) => { setActiveCategory(cat); setActiveSubcategory('All'); };
   const getCategories = (p) => p.categories?.length ? p.categories : (p.category ? [p.category] : []);
@@ -391,7 +431,7 @@ export default function ProductsPage({ initialProducts = [] }) {
           ) : error ? (
             <div className="prod-empty"><div className="prod-empty-icon"><IconStore /></div><h3>Couldn&apos;t load products</h3><p>Please check your connection and try refreshing.</p></div>
           ) : filtered.length > 0 ? (
-            paginated.map(product => <ProductCard key={product._id} product={product} openConsult={openConsult} specMeta={specMeta} />)
+            paginated.map(product => <ProductCard key={product._id} product={product} openConsult={openConsult} specMeta={specMeta} appMeta={appMeta} />)
           ) : (
             <div className="prod-empty"><div className="prod-empty-icon"><IconStore /></div><h3>No products here yet</h3><p>We&apos;re adding products to this section. Check back shortly.</p></div>
           )}

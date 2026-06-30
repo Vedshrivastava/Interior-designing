@@ -20,15 +20,17 @@ const FALLBACK_SPECIALITIES = [
     'Customizable', 'Non-Toxic', 'Rust Resistant',
 ];
 
+const FALLBACK_APPLICATIONS = [
+    'Residential', 'Commercial', 'Hospitality', 'Office',
+    'Retail', 'Healthcare', 'Outdoor', 'Garden',
+    'Rooftop', 'Balcony', 'Industrial', 'Education',
+];
+
 // Iconify helpers
 const iconifyImgUrl = (iconId) => {
   if (!iconId || !iconId.includes(':')) return null;
   const [prefix, name] = iconId.split(':');
   return `https://api.iconify.design/${prefix}/${name}.svg`;
-};
-const iconifyColorUrl = (iconId, color) => {
-  const base = iconifyImgUrl(iconId);
-  return base ? `${base}?color=${encodeURIComponent(color)}` : null;
 };
 
 const COLOR_OPTIONS = [
@@ -38,11 +40,227 @@ const COLOR_OPTIONS = [
     '#dc2626', '#16a34a', '#9333ea', '#0891b2', '#d97706',
 ];
 
-const APPLICATIONS = [
-    'Residential', 'Commercial', 'Hospitality', 'Office',
-    'Retail', 'Healthcare', 'Outdoor', 'Garden',
-    'Rooftop', 'Balcony', 'Industrial', 'Education',
-];
+/* ── Reusable manager hook for DB-driven icon+colour tag lists (specialities, applications) ── */
+function useIconTagManager(url, token, apiBase, fallbackNames) {
+    const [objects,     setObjects]     = useState([]);
+    const [adding,      setAdding]      = useState(false);
+    const [newName,     setNewName]     = useState('');
+    const [newIcon,     setNewIcon]     = useState('');
+    const [newColor,    setNewColor]    = useState('#c9a87c');
+    const [iconSearch,  setIconSearch]  = useState('');
+    const [iconResults, setIconResults] = useState([]);
+    const [iconLoading, setIconLoading] = useState(false);
+    const [saving,      setSaving]      = useState(false);
+    const [confirmItem, setConfirmItem] = useState(null);
+    const [deleting,    setDeleting]    = useState(false);
+    const debounceRef = useRef(null);
+
+    const fetchList = async () => {
+        try {
+            const res = await axios.get(`${url}${apiBase}/list`);
+            if (res.data.success) setObjects(res.data.data);
+        } catch {
+            setObjects(fallbackNames.map((n, i) => ({ _id: n, name: n, icon: 'check', color: '#c9a87c', order: i })));
+        }
+    };
+    useEffect(() => { fetchList(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(async () => {
+            if (!iconSearch.trim()) { setIconResults([]); return; }
+            setIconLoading(true);
+            try {
+                const res = await fetch(`https://api.iconify.design/search?query=${encodeURIComponent(iconSearch)}&limit=60`);
+                const d = await res.json();
+                setIconResults(d.icons || []);
+            } catch { setIconResults([]); }
+            finally { setIconLoading(false); }
+        }, 350);
+        return () => clearTimeout(debounceRef.current);
+    }, [iconSearch]);
+
+    useEffect(() => {
+        if (adding && newName.trim()) setIconSearch(newName.trim().split(/\s+/)[0]);
+    }, [newName, adding]);
+
+    const openAdd  = () => { setAdding(true); setNewName(''); setNewIcon(''); setNewColor('#c9a87c'); setIconSearch(''); setIconResults([]); };
+    const closeAdd = () => { setAdding(false); setNewName(''); setNewIcon(''); setNewColor('#c9a87c'); setIconSearch(''); setIconResults([]); };
+
+    const save = async () => {
+        if (!newName.trim()) { toast.error('Name is required'); return; }
+        setSaving(true);
+        try {
+            const res = await axios.post(`${url}${apiBase}/add`,
+                { name: newName.trim(), icon: newIcon, color: newColor },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (res.data.success) { toast.success(res.data.message); closeAdd(); await fetchList(); }
+            else toast.error(res.data.message);
+        } catch { toast.error('Failed to add'); }
+        finally { setSaving(false); }
+    };
+
+    const confirmDelete = async (onRemoved) => {
+        if (!confirmItem || deleting) return;
+        setDeleting(true);
+        try {
+            const res = await axios.post(`${url}${apiBase}/remove`,
+                { _id: confirmItem._id },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (res.data.success) {
+                toast.success(res.data.message);
+                onRemoved?.(confirmItem.name);
+                setConfirmItem(null);
+                await fetchList();
+            } else { toast.error(res.data.message); }
+        } catch { toast.error('Failed to remove'); }
+        finally { setDeleting(false); }
+    };
+
+    return {
+        objects, adding, openAdd, closeAdd,
+        newName, setNewName, newIcon, setNewIcon, newColor, setNewColor,
+        iconSearch, setIconSearch, iconResults, iconLoading,
+        saving, save, confirmItem, setConfirmItem, deleting, confirmDelete,
+    };
+}
+
+/* ── Reusable section: chip grid + inline "add new" form with Iconify search ── */
+function IconTagSection({ label, placeholder, manager, selected, onToggle }) {
+    return (
+        <div className="add-multi-section flex-col">
+            <h2>{label}</h2>
+            <div className="add-multi-grid">
+                {manager.objects.map(item => {
+                    const sel = selected.includes(item.name);
+                    const iconUrl = iconifyImgUrl(item.icon);
+                    return (
+                        <div key={item._id} className="spec-chip-wrap">
+                            <button type="button"
+                                className={`add-multi-chip spec-chip${sel ? ' active' : ''}`}
+                                style={sel ? { background: `${item.color}22`, borderColor: `${item.color}88`, color: item.color } : {}}
+                                onClick={() => onToggle(item.name)}>
+                                {iconUrl && <img src={sel ? `${iconUrl}?color=${encodeURIComponent(item.color)}` : iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} />}
+                                {item.name}
+                            </button>
+                            <button type="button" className="spec-trash-btn"
+                                title={`Remove "${item.name}"`}
+                                onClick={() => manager.setConfirmItem(item)}>
+                                <i className="fa-solid fa-trash" />
+                            </button>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {!manager.adding ? (
+                <button type="button" className="add-point-btn" style={{ marginTop: '10px' }} onClick={manager.openAdd}>
+                    <i className="fa fa-plus" /> Add new {label.toLowerCase().replace(/ies$/, 'y').replace(/s$/, '')}
+                </button>
+            ) : (
+                <div className="spec-add-form">
+                    <input
+                        type="text" placeholder={placeholder}
+                        value={manager.newName} onChange={e => manager.setNewName(e.target.value)}
+                        autoFocus
+                    />
+                    <p className="spec-form-label">Pick an icon</p>
+
+                    <div className="spec-icon-search-wrap">
+                        <i className="fa-solid fa-magnifying-glass" />
+                        <input
+                            type="text"
+                            placeholder="Search 200,000+ icons…"
+                            value={manager.iconSearch}
+                            onChange={e => manager.setIconSearch(e.target.value)}
+                        />
+                        {manager.iconLoading && <i className="fa-solid fa-circle-notch fa-spin" style={{ color: 'var(--text-lt)', fontSize: '0.75rem', flexShrink: 0 }} />}
+                        {manager.iconSearch && !manager.iconLoading && <button type="button" className="spec-icon-search-clear" onClick={() => manager.setIconSearch('')}>×</button>}
+                    </div>
+
+                    <div className="spec-icon-grid-wrap">
+                        {manager.iconResults.length === 0 && !manager.iconLoading && manager.iconSearch && (
+                            <p style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.78rem', color: 'var(--text-lt)', textAlign: 'center', padding: '16px 0', margin: 0 }}>No icons found — try a different word</p>
+                        )}
+                        {manager.iconResults.length === 0 && !manager.iconLoading && !manager.iconSearch && (
+                            <p style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.78rem', color: 'var(--text-lt)', textAlign: 'center', padding: '16px 0', margin: 0 }}>
+                                <i className="fa-solid fa-wand-magic-sparkles" style={{ marginRight: '6px', color: 'var(--gold)' }} />
+                                Type the name above — icons will auto-appear
+                            </p>
+                        )}
+                        {manager.iconResults.length > 0 && (
+                            <div className="spec-icon-grid spec-icon-grid--full">
+                                {manager.iconResults.map(iconId => {
+                                    const url = iconifyImgUrl(iconId);
+                                    const shortName = iconId.split(':')[1] || iconId;
+                                    return (
+                                        <button key={iconId} type="button"
+                                            className={`spec-icon-btn${manager.newIcon === iconId ? ' active' : ''}`}
+                                            title={iconId}
+                                            onClick={() => manager.setNewIcon(iconId)}>
+                                            <img src={manager.newIcon === iconId ? `${url}?color=%23fff` : url} width={20} height={20} alt={shortName} />
+                                            <span>{shortName.slice(0, 8)}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    <p className="spec-form-label">Pick a colour</p>
+                    <div className="spec-color-row">
+                        {COLOR_OPTIONS.map(c => (
+                            <button key={c} type="button"
+                                className={`spec-color-swatch${manager.newColor === c ? ' active' : ''}`}
+                                style={{ background: c }}
+                                onClick={() => manager.setNewColor(c)} />
+                        ))}
+                    </div>
+
+                    <div className="spec-preview">
+                        Preview:{' '}
+                        <span className="spec-preview-badge" style={{ background: `${manager.newColor}22`, borderColor: `${manager.newColor}88`, color: manager.newColor }}>
+                            {manager.newIcon && iconifyImgUrl(manager.newIcon) && (
+                                <img src={`${iconifyImgUrl(manager.newIcon)}?color=${encodeURIComponent(manager.newColor)}`} width={13} height={13} alt="" />
+                            )}
+                            {manager.newName || 'Name'}
+                        </span>
+                        {!manager.newIcon && <span style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.72rem', color: 'var(--text-lt)', marginLeft: '8px' }}>← pick an icon above</span>}
+                    </div>
+
+                    <div className="add-cat-new-actions" style={{ marginTop: '10px' }}>
+                        <button type="button" className="add-cat-save-btn" onClick={manager.save} disabled={manager.saving}>{manager.saving ? 'Saving…' : 'Save'}</button>
+                        <button type="button" className="add-cat-cancel-btn" onClick={manager.closeAdd}>Cancel</button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ── Shared confirm-delete modal ── */
+function ConfirmTagDeleteModal({ manager, typeLabel, onRemoved }) {
+    if (!manager.confirmItem) return null;
+    return ReactDOM.createPortal(
+        <div className="bin-confirm-backdrop" onClick={() => !manager.deleting && manager.setConfirmItem(null)}>
+            <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                <h3>Remove {typeLabel}?</h3>
+                <p className="bin-confirm-name">"{manager.confirmItem.name}"</p>
+                <p className="bin-confirm-warning">Moved to Recovery Bin. Products using it are unaffected.</p>
+                <div className="bin-confirm-actions">
+                    <button className="bin-btn-cancel" onClick={() => manager.setConfirmItem(null)} disabled={manager.deleting}>Cancel</button>
+                    <button className="bin-btn-delete" onClick={() => manager.confirmDelete(onRemoved)} disabled={manager.deleting}>
+                        {manager.deleting ? <><i className="fa-solid fa-circle-notch fa-spin" /> Removing…</> : <><i className="fa-solid fa-trash" /> Yes, Remove</>}
+                    </button>
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+}
 
 const AddProduct = ({ url, setIsLoading, isLoading }) => {
     const [images, setImages] = useState([]);
@@ -62,21 +280,10 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
     const [subCatOpen, setSubCatOpen] = useState(false);
     const subCatRef = useRef(null);
 
-    // ── Specialities (DB-driven) ──
-    const [specialityObjects, setSpecialityObjects] = useState([]);
-    const [addingSpec,   setAddingSpec]   = useState(false);
-    const [newSpecName,  setNewSpecName]  = useState('');
-    const [newSpecIcon,  setNewSpecIcon]  = useState('');
-    const [iconSearch,   setIconSearch]   = useState('');
-    const [iconResults,  setIconResults]  = useState([]);
-    const [iconLoading,  setIconLoading]  = useState(false);
-    const iconDebounceRef = useRef(null);
-    const [newSpecColor, setNewSpecColor] = useState('#c9a87c');
-    const [specSaving,   setSpecSaving]   = useState(false);
-    const [confirmSpec,  setConfirmSpec]  = useState(null);
-    const [specDeleting, setSpecDeleting] = useState(false);
-
     const token = localStorage.getItem('token');
+
+    const specManager = useIconTagManager(url, token, '/api/speciality',  FALLBACK_SPECIALITIES);
+    const appManager  = useIconTagManager(url, token, '/api/application', FALLBACK_APPLICATIONS);
 
     // Merge subcategories from all selected categories
     const availableSubcats = data.categories.length > 0
@@ -91,82 +298,11 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    const fetchSpecialities = async () => {
-        try {
-            const res = await axios.get(`${url}/api/speciality/list`);
-            if (res.data.success) setSpecialityObjects(res.data.data);
-        } catch { setSpecialityObjects(FALLBACK_SPECIALITIES.map((n, i) => ({ _id: n, name: n, icon: 'check', color: '#c9a87c', order: i }))); }
-    };
-    useEffect(() => { fetchSpecialities(); }, []);
-
-    const searchIcons = async (query) => {
-        if (!query.trim()) { setIconResults([]); return; }
-        setIconLoading(true);
-        try {
-            const res = await fetch(`https://api.iconify.design/search?query=${encodeURIComponent(query)}&limit=60`);
-            const data = await res.json();
-            setIconResults(data.icons || []);
-        } catch { setIconResults([]); }
-        finally { setIconLoading(false); }
-    };
-
-    // Debounce icon search
-    useEffect(() => {
-        clearTimeout(iconDebounceRef.current);
-        iconDebounceRef.current = setTimeout(() => searchIcons(iconSearch), 350);
-        return () => clearTimeout(iconDebounceRef.current);
-    }, [iconSearch]);
-
-    // Auto-search when name changes and form is open
-    useEffect(() => {
-        if (addingSpec && newSpecName.trim()) {
-            const firstWord = newSpecName.trim().split(/\s+/)[0];
-            setIconSearch(firstWord);
-        }
-    }, [newSpecName, addingSpec]);
-
-    const saveNewSpec = async () => {
-        if (!newSpecName.trim()) { toast.error('Name is required'); return; }
-        setSpecSaving(true);
-        try {
-            const res = await axios.post(`${url}/api/speciality/add`,
-                { name: newSpecName.trim(), icon: newSpecIcon, color: newSpecColor },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            if (res.data.success) {
-                toast.success(res.data.message);
-                setNewSpecName(''); setNewSpecIcon('check'); setNewSpecColor('#c9a87c');
-                setAddingSpec(false);
-                await fetchSpecialities();
-            } else { toast.error(res.data.message); }
-        } catch { toast.error('Failed to add speciality'); }
-        finally { setSpecSaving(false); }
-    };
-
-    const confirmDeleteSpec = async () => {
-        if (!confirmSpec || specDeleting) return;
-        setSpecDeleting(true);
-        try {
-            const res = await axios.post(`${url}/api/speciality/remove`,
-                { _id: confirmSpec._id },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            if (res.data.success) {
-                toast.success(res.data.message);
-                setData(p => ({ ...p, specialities: p.specialities.filter(s => s !== confirmSpec.name) }));
-                setConfirmSpec(null);
-                await fetchSpecialities();
-            } else { toast.error(res.data.message); }
-        } catch { toast.error('Failed to remove'); }
-        finally { setSpecDeleting(false); }
-    };
-
     const toggleCategory = (cat) => {
         setData(prev => {
             const next = prev.categories.includes(cat)
                 ? prev.categories.filter(c => c !== cat)
                 : [...prev.categories, cat];
-            // Reset subcategory if it no longer belongs to selected cats
             const nextSubcats = [...new Set(next.flatMap(c => SUBCATEGORIES[c] || []))];
             return {
                 ...prev,
@@ -320,131 +456,22 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
                 </div>
 
                 {/* ── Specialities ── */}
-                <div className="add-multi-section flex-col">
-                    <h2>Specialities</h2>
-                    <div className="add-multi-grid">
-                        {specialityObjects.map(spec => {
-                            const selected = data.specialities.includes(spec.name);
-                            const iconUrl = iconifyImgUrl(spec.icon);
-                            return (
-                                <div key={spec._id} className="spec-chip-wrap">
-                                    <button type="button"
-                                        className={`add-multi-chip spec-chip${selected ? ' active' : ''}`}
-                                        style={selected ? { background: `${spec.color}22`, borderColor: `${spec.color}88`, color: spec.color } : {}}
-                                        onClick={() => toggleChip('specialities', spec.name)}>
-                                        {iconUrl && <img src={selected ? `${iconUrl}?color=${encodeURIComponent(spec.color)}` : iconUrl} width={13} height={13} alt="" style={{ flexShrink: 0 }} />}
-                                        {spec.name}
-                                    </button>
-                                    <button type="button" className="spec-trash-btn"
-                                        title={`Remove "${spec.name}"`}
-                                        onClick={() => setConfirmSpec(spec)}>
-                                        <i className="fa-solid fa-trash" />
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* Add new speciality */}
-                    {!addingSpec ? (
-                        <button type="button" className="add-point-btn" style={{ marginTop: '10px' }} onClick={() => { setAddingSpec(true); setNewSpecIcon(''); setIconSearch(''); setIconResults([]); }}>
-                            <i className="fa fa-plus" /> Add new speciality
-                        </button>
-                    ) : (
-                        <div className="spec-add-form">
-                            <input
-                                type="text" placeholder="Speciality name e.g. Anti-Static"
-                                value={newSpecName} onChange={e => setNewSpecName(e.target.value)}
-                                autoFocus
-                            />
-                            <p className="spec-form-label">Pick an icon</p>
-
-                            {/* Iconify live search */}
-                            <div className="spec-icon-search-wrap">
-                                <i className="fa-solid fa-magnifying-glass" />
-                                <input
-                                    type="text"
-                                    placeholder="Search 200,000+ icons… e.g. water, fire, eco, shield"
-                                    value={iconSearch}
-                                    onChange={e => setIconSearch(e.target.value)}
-                                />
-                                {iconLoading && <i className="fa-solid fa-circle-notch fa-spin" style={{ color: 'var(--text-lt)', fontSize: '0.75rem', flexShrink: 0 }} />}
-                                {iconSearch && !iconLoading && <button type="button" className="spec-icon-search-clear" onClick={() => { setIconSearch(''); setIconResults([]); }}>×</button>}
-                            </div>
-
-                            {/* Results grid */}
-                            <div className="spec-icon-grid-wrap">
-                                {iconResults.length === 0 && !iconLoading && iconSearch && (
-                                    <p style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.78rem', color: 'var(--text-lt)', textAlign: 'center', padding: '16px 0', margin: 0 }}>No icons found — try a different word</p>
-                                )}
-                                {iconResults.length === 0 && !iconLoading && !iconSearch && (
-                                    <p style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.78rem', color: 'var(--text-lt)', textAlign: 'center', padding: '16px 0', margin: 0 }}>
-                                        <i className="fa-solid fa-wand-magic-sparkles" style={{ marginRight: '6px', color: 'var(--gold)' }} />
-                                        Type the speciality name — icons will auto-appear
-                                    </p>
-                                )}
-                                {iconResults.length > 0 && (
-                                    <div className="spec-icon-grid spec-icon-grid--full">
-                                        {iconResults.map(iconId => {
-                                            const url = iconifyImgUrl(iconId);
-                                            const shortName = iconId.split(':')[1] || iconId;
-                                            return (
-                                                <button key={iconId} type="button"
-                                                    className={`spec-icon-btn${newSpecIcon === iconId ? ' active' : ''}`}
-                                                    title={iconId}
-                                                    onClick={() => setNewSpecIcon(iconId)}>
-                                                    <img src={newSpecIcon === iconId ? `${url}?color=%23fff` : url} width={20} height={20} alt={shortName} />
-                                                    <span>{shortName.slice(0, 8)}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-
-                            <p className="spec-form-label">Pick a colour</p>
-                            <div className="spec-color-row">
-                                {COLOR_OPTIONS.map(c => (
-                                    <button key={c} type="button"
-                                        className={`spec-color-swatch${newSpecColor === c ? ' active' : ''}`}
-                                        style={{ background: c }}
-                                        onClick={() => setNewSpecColor(c)} />
-                                ))}
-                            </div>
-
-                            {/* Live preview */}
-                            <div className="spec-preview">
-                                Preview:{' '}
-                                <span className="spec-preview-badge" style={{ background: `${newSpecColor}22`, borderColor: `${newSpecColor}88`, color: newSpecColor }}>
-                                    {newSpecIcon && iconifyImgUrl(newSpecIcon) && (
-                                        <img src={`${iconifyImgUrl(newSpecIcon)}?color=${encodeURIComponent(newSpecColor)}`} width={13} height={13} alt="" />
-                                    )}
-                                    {newSpecName || 'Name'}
-                                </span>
-                                {!newSpecIcon && <span style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.72rem', color: 'var(--text-lt)', marginLeft: '8px' }}>← pick an icon above</span>}
-                            </div>
-
-                            <div className="add-cat-new-actions" style={{ marginTop: '10px' }}>
-                                <button type="button" className="add-cat-save-btn" onClick={saveNewSpec} disabled={specSaving}>{specSaving ? 'Saving…' : 'Save'}</button>
-                                <button type="button" className="add-cat-cancel-btn" onClick={() => { setAddingSpec(false); setNewSpecName(''); setNewSpecIcon(''); setNewSpecColor('#c9a87c'); setIconSearch(''); setIconResults([]); }}>Cancel</button>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                <IconTagSection
+                    label="Specialities"
+                    placeholder="Speciality name e.g. Anti-Static"
+                    manager={specManager}
+                    selected={data.specialities}
+                    onToggle={(name) => toggleChip('specialities', name)}
+                />
 
                 {/* ── Applications ── */}
-                <div className="add-multi-section flex-col">
-                    <h2>Applications</h2>
-                    <div className="add-multi-grid">
-                        {APPLICATIONS.map(app => (
-                            <button key={app} type="button"
-                                className={`add-multi-chip${data.applications.includes(app) ? ' active' : ''}`}
-                                onClick={() => toggleChip('applications', app)}>
-                                {app}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+                <IconTagSection
+                    label="Applications"
+                    placeholder="Application name e.g. Spa"
+                    manager={appManager}
+                    selected={data.applications}
+                    onToggle={(name) => toggleChip('applications', name)}
+                />
 
                 {/* ── Key Highlights ── */}
                 <div className="add-product-points flex-col">
@@ -478,23 +505,8 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
             </form>
         </div>
 
-        {confirmSpec && ReactDOM.createPortal(
-            <div className="bin-confirm-backdrop" onClick={() => !specDeleting && setConfirmSpec(null)}>
-                <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
-                    <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
-                    <h3>Remove Speciality?</h3>
-                    <p className="bin-confirm-name">"{confirmSpec.name}"</p>
-                    <p className="bin-confirm-warning">Moved to Recovery Bin. Products using it are unaffected.</p>
-                    <div className="bin-confirm-actions">
-                        <button className="bin-btn-cancel" onClick={() => setConfirmSpec(null)} disabled={specDeleting}>Cancel</button>
-                        <button className="bin-btn-delete" onClick={confirmDeleteSpec} disabled={specDeleting}>
-                            {specDeleting ? <><i className="fa-solid fa-circle-notch fa-spin" /> Removing…</> : <><i className="fa-solid fa-trash" /> Yes, Remove</>}
-                        </button>
-                    </div>
-                </div>
-            </div>,
-            document.body
-        )}
+        <ConfirmTagDeleteModal manager={specManager} typeLabel="Speciality" onRemoved={(name) => setData(p => ({ ...p, specialities: p.specialities.filter(s => s !== name) }))} />
+        <ConfirmTagDeleteModal manager={appManager}  typeLabel="Application" onRemoved={(name) => setData(p => ({ ...p, applications: p.applications.filter(a => a !== name) }))} />
         </>
     );
 };

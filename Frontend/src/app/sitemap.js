@@ -1,5 +1,5 @@
 import { CATEGORY_SLUGS, SLUG_TO_CATEGORY, CATEGORY_TO_SLUG, fetchCategoriesFromDB } from '@/lib/categories';
-import { CITY_SLUGS, locationToSlug, matchesCity } from '@/lib/cities';
+import { getAllCitySlugs, locationToSlug, matchesCity } from '@/lib/cities';
 
 const BASE_URL = 'https://www.shrivastavaselevate.com';
 const API_URL  = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -97,15 +97,16 @@ export default async function sitemap() {
   });
 
   // ── City service area pages ───────────────────────────────────
-  // Always include core cities; also discover any new cities from project locations
-  const citySlugSet = new Set(CITY_SLUGS);
+  // Core + admin-added cities; also discover any new cities from project locations
+  const citySlugSet = new Set(await getAllCitySlugs());
   for (const project of allProjects) {
-    const slug = locationToSlug(project.location);
+    const slug = await locationToSlug(project.location);
     if (slug) citySlugSet.add(slug);
   }
 
-  const cityRoutes = [...citySlugSet].map(slug => {
-    const cityProjects = allProjects.filter(p => matchesCity(p.location, slug));
+  const cityRoutes = await Promise.all([...citySlugSet].map(async slug => {
+    const matchFlags = await Promise.all(allProjects.map(p => matchesCity(p.location, slug)));
+    const cityProjects = allProjects.filter((p, i) => matchFlags[i]);
     return {
       url: `${BASE_URL}/interior-designer/${slug}`,
       lastModified: new Date(),
@@ -118,7 +119,7 @@ export default async function sitemap() {
           caption: p.description || p.name,
         }))),
     };
-  });
+  }));
 
   return [...staticRoutes, projectsRoute, productsRoute, ...designRoutes, ...cityRoutes];
 }

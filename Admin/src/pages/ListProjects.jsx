@@ -8,17 +8,6 @@ import moment from 'moment';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { useWebSocket } from '../hooks/useWebSocket';
 
-const CITY_OPTIONS = [
-    { slug: 'satna',    label: 'Satna'    },
-    { slug: 'nagod',    label: 'Nagod'    },
-    { slug: 'indore',   label: 'Indore'   },
-    { slug: 'bhopal',   label: 'Bhopal'   },
-    { slug: 'jabalpur', label: 'Jabalpur' },
-    { slug: 'rewa',     label: 'Rewa'     },
-    { slug: 'mumbai',   label: 'Mumbai'   },
-    { slug: 'pune',     label: 'Pune'     },
-];
-
 const FALLBACK_CATEGORIES = ['Full Home Interior','Kitchen','Bedroom','Living Room','Bathroom','TV Unit','Kids Room','Commercial','Office','Villa / Bungalow','Apartment','Renovation'];
 const FALLBACK_TYPES      = ['Residential','Commercial'];
 
@@ -80,9 +69,12 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
     const [projectCategories, setProjectCategories] = useState(FALLBACK_CATEGORIES);
     const [projectTypes,      setProjectTypes]      = useState(FALLBACK_TYPES);
 
+    const [cityObjects, setCityObjects] = useState([]);
+
     useEffect(() => {
         axios.get(`${url}/api/project-category/list`).then(r => { if (r.data.success) setProjectCategories(r.data.data.map(c => c.name)); }).catch(() => {});
         axios.get(`${url}/api/project-type/list`).then(r => { if (r.data.success) setProjectTypes(r.data.data.map(t => t.name)); }).catch(() => {});
+        axios.get(`${url}/api/city/list`).then(r => { if (r.data.success) setCityObjects(r.data.data); }).catch(() => {});
     }, [url]);
     const [cityMode,      setCityMode]      = useState(false);
     const [cityFilter,    setCityFilter]    = useState('');
@@ -148,11 +140,16 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
         axios.get(`${url}/api/project-category/list`).then(r => { if (r.data.success) setProjectCategories(r.data.data.map(c => c.name)); }).catch(() => {});
     }, [url]);
 
+    const fetchCities_ = useCallback(() => {
+        axios.get(`${url}/api/city/list`).then(r => { if (r.data.success) setCityObjects(r.data.data); }).catch(() => {});
+    }, [url]);
+
     useWebSocket(useCallback((msg) => {
         if (msg.type === 'projectsChanged')          fetchList();
         if (msg.type === 'projectTypesChanged')      fetchProjectTypes_();
         if (msg.type === 'projectCategoriesChanged') fetchProjectCategories_();
-    }, [fetchProjectTypes_, fetchProjectCategories_]));
+        if (msg.type === 'citiesChanged')            fetchCities_();
+    }, [fetchProjectTypes_, fetchProjectCategories_, fetchCities_]));
 
     /* ── Delete ── */
     const removeProject = async (id) => {
@@ -393,21 +390,21 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
                                             className={`add-cat-trigger${editCityOpen ? ' open' : ''}`}
                                             onClick={() => setEditCityOpen(o => !o)}
                                         >
-                                            <span>{editData.cityPage ? CITY_OPTIONS.find(c => c.slug === editData.cityPage)?.label : '— Pick a city —'}</span>
+                                            <span>{editData.cityPage ? (cityObjects.find(c => c.slug === editData.cityPage)?.name || editData.cityPage) : '— Pick a city —'}</span>
                                             <i className="fa fa-chevron-down" />
                                         </button>
                                         {editCityOpen && (
                                             <ul className="add-cat-list">
-                                                {CITY_OPTIONS.map(c => (
+                                                {cityObjects.map(c => (
                                                     <li
-                                                        key={c.slug}
+                                                        key={c._id}
                                                         className={`add-cat-option${editData.cityPage === c.slug ? ' active' : ''}`}
                                                         onClick={() => {
                                                             setEditData(p => ({ ...p, cityPage: c.slug }));
                                                             setEditCityOpen(false);
                                                         }}
                                                     >
-                                                        <span>{c.label}</span>
+                                                        <span>{c.name}, {c.state}</span>
                                                         {editData.cityPage === c.slug && <i className="fa fa-check" />}
                                                     </li>
                                                 ))}
@@ -528,13 +525,13 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
                         >
                             All Cities
                         </button>
-                        {CITY_OPTIONS.map(c => (
+                        {cityObjects.map(c => (
                             <button
-                                key={c.slug}
+                                key={c._id}
                                 className={`admin-cat-pill${cityFilter === c.slug ? ' active' : ''}`}
                                 onClick={() => setCityFilter(c.slug)}
                             >
-                                {c.label}
+                                {c.name}
                             </button>
                         ))}
                     </div>
@@ -597,7 +594,7 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
                                     {item.cityPage && (
                                         <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.7rem', color: 'var(--color-accent)', margin: '3px 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                             <i className="fa fa-location-dot" style={{ fontSize: '0.65rem' }} />
-                                            {CITY_OPTIONS.find(c => c.slug === item.cityPage)?.label || item.cityPage} city page
+                                            {cityObjects.find(c => c.slug === item.cityPage)?.name || item.cityPage} city page
                                         </p>
                                     )}
                                 </div>

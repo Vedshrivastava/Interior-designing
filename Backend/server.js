@@ -21,6 +21,7 @@ import productCategoryRouter    from "./routes/productCategory.js";
 import productSubcategoryRouter from "./routes/productSubcategory.js";
 import materialRouter from "./routes/material.js";
 import finishRouter   from "./routes/finish.js";
+import cityRouter     from "./routes/city.js";
 import dotenv from 'dotenv';
 import { wss } from './middlewares/webSocket.js'; // Import WebSocket server setup
 
@@ -75,6 +76,7 @@ app.use('/api/product-category',    productCategoryRouter);
 app.use('/api/product-subcategory', productSubcategoryRouter);
 app.use('/api/material', materialRouter);
 app.use('/api/finish',   finishRouter);
+app.use('/api/city',     cityRouter);
 
 // Serve static files
 app.use('/images', express.static('uploads'));

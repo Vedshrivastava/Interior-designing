@@ -1,5 +1,5 @@
 import CityServicePage from '@/components/pages/CityServicePage';
-import { CITY_SLUGS, getCity, matchesCity, locationToSlug } from '@/lib/cities';
+import { getAllCitySlugs, getCity } from '@/lib/cities';
 
 const SITE_URL = 'https://www.shrivastavaselevate.com';
 const API_URL  = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -7,13 +7,14 @@ const API_URL  = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 export const revalidate = 60;
 
 export async function generateStaticParams() {
-  // Only use core slugs at build time — new cities discovered at revalidation
-  return CITY_SLUGS.map(city => ({ city }));
+  // Core + admin-added city slugs — new cities are also discovered at revalidation
+  const slugs = await getAllCitySlugs();
+  return slugs.map(city => ({ city }));
 }
 
 export async function generateMetadata({ params }) {
   const { city: slug } = await params;
-  const city = getCity(slug);
+  const city = await getCity(slug);
   const title = `Interior Designer in ${city.name} | Shrivastavas Elevate`;
   const description = `Premium interior design services in ${city.name}, ${city.state}: modular kitchens, bedrooms, bathrooms, commercial spaces, 3D visualization and turnkey execution by Shrivastavas Elevate. Free consultation available.`;
 
@@ -49,7 +50,7 @@ export async function generateMetadata({ params }) {
 
 export default async function Page({ params }) {
   const { city: slug } = await params;
-  const city = getCity(slug);
+  const city = await getCity(slug);
 
   let allProjects = [];
   try {

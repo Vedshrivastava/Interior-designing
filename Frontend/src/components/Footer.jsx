@@ -2,10 +2,24 @@
 import '@/styles/footer.css';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 import { IconPhone, IconEnvelope, IconLocation, IconCopy } from "@/components/Icons";
 import logo from '@/assets/logo.png';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+// Fallback — used only if the API is unreachable
+const FALLBACK_CITIES = [
+  { slug: 'satna',    name: 'Satna'    },
+  { slug: 'indore',   name: 'Indore'   },
+  { slug: 'mumbai',   name: 'Mumbai'   },
+  { slug: 'bhopal',   name: 'Bhopal'   },
+  { slug: 'jabalpur', name: 'Jabalpur' },
+  { slug: 'nagod',    name: 'Nagod'    },
+  { slug: 'kolhapur', name: 'Kolhapur' },
+];
 
 const FOOTER_CONTACT_INFO = [
   { Icon: IconPhone,       label: 'Phone',   value: '+91 89620 53372',                           href: 'tel:+918962053372'  },
@@ -22,6 +36,20 @@ const SOCIAL_PLATFORMS = [
 
 export default function Footer() {
   const [comingSoon, setComingSoon] = useState(null);
+  const [cities, setCities] = useState(FALLBACK_CITIES);
+
+  const fetchCities = useCallback(() => {
+    fetch(`${API_URL}/api/city/list`)
+      .then(r => r.json())
+      .then(d => { if (d.success && d.data?.length > 0) setCities(d.data); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => { fetchCities(); }, [fetchCities]);
+
+  useWebSocket(useCallback((msg) => {
+    if (msg.type === 'citiesChanged') fetchCities();
+  }, [fetchCities]));
 
   return (
     <footer className="footer" id="footer">
@@ -81,13 +109,11 @@ export default function Footer() {
         <div className="footer-content-cities">
           <h2>Cities We Serve</h2>
           <ul>
-            <li><Link href="/interior-designer/satna" title="Interior Designer Satna">Satna</Link></li>
-            <li><Link href="/interior-designer/indore" title="Interior Designer Indore">Indore</Link></li>
-            <li><Link href="/interior-designer/mumbai" title="Interior Designer Mumbai">Mumbai</Link></li>
-            <li><Link href="/interior-designer/bhopal" title="Interior Designer Bhopal">Bhopal</Link></li>
-            <li><Link href="/interior-designer/jabalpur" title="Interior Designer Jabalpur">Jabalpur</Link></li>
-            <li><Link href="/interior-designer/nagod" title="Interior Designer Nagod">Nagod</Link></li>
-            <li><Link href="/interior-designer/kolhapur" title="Interior Designer Kolhapur">Kolhapur</Link></li>
+            {cities.map(c => (
+              <li key={c.slug}>
+                <Link href={`/interior-designer/${c.slug}`} title={`Interior Designer ${c.name}`}>{c.name}</Link>
+              </li>
+            ))}
           </ul>
         </div>
 

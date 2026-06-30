@@ -10,6 +10,7 @@ import ProductCategory    from '../models/productCategory.js';
 import ProductSubcategory from '../models/productSubcategory.js';
 import Material from '../models/material.js';
 import Finish   from '../models/finish.js';
+import City     from '../models/city.js';
 import { v2 as cloudinary } from 'cloudinary';
 import { broadcast } from '../middlewares/webSocket.js';
 import dotenv from 'dotenv';
@@ -28,6 +29,7 @@ const TYPE_BROADCAST = {
     productSubcategory: 'productSubcategoriesChanged',
     material:           'materialsChanged',
     finish:              'finishesChanged',
+    city:                'citiesChanged',
 };
 
 cloudinary.config({
@@ -39,7 +41,7 @@ cloudinary.config({
 /* ── List all soft-deleted items across all 3 collections ── */
 const listBin = async (req, res) => {
     try {
-        const [designs, products, projects, categories, projectCategories, projectTypes, specialities, applications, productCategories, productSubcategories, materials, finishes] = await Promise.all([
+        const [designs, products, projects, categories, projectCategories, projectTypes, specialities, applications, productCategories, productSubcategories, materials, finishes, cities] = await Promise.all([
             Design             .find({ deleted: true }).sort({ deletedAt: -1 }),
             Product            .find({ deleted: true }).sort({ deletedAt: -1 }),
             Project            .find({ deleted: true }).sort({ deletedAt: -1 }),
@@ -52,6 +54,7 @@ const listBin = async (req, res) => {
             ProductSubcategory .find({ deleted: true }).sort({ deletedAt: -1 }),
             Material           .find({ deleted: true }).sort({ deletedAt: -1 }),
             Finish             .find({ deleted: true }).sort({ deletedAt: -1 }),
+            City               .find({ deleted: true }).sort({ deletedAt: -1 }),
         ]);
 
         const categoryData = await Promise.all(
@@ -103,6 +106,13 @@ const listBin = async (req, res) => {
             })
         );
 
+        const cityData = await Promise.all(
+            cities.map(async c => {
+                const projectCount = await Project.countDocuments({ cityPage: c.slug, deleted: { $ne: true } });
+                return { ...c.toObject(), _type: 'city', projectCount };
+            })
+        );
+
         return res.json({
             success: true,
             data: {
@@ -118,6 +128,7 @@ const listBin = async (req, res) => {
                 productSubcategories: productSubcategoryData,
                 materials: materialData,
                 finishes:  finishData,
+                cities:    cityData,
             },
         });
     } catch (error) {
@@ -130,7 +141,7 @@ const listBin = async (req, res) => {
 const restoreItem = async (req, res) => {
     const { _id, _type } = req.body;
     try {
-        const Model = _type === 'design' ? Design : _type === 'product' ? Product : _type === 'category' ? Category : _type === 'projectCategory' ? ProjectCategory : _type === 'projectType' ? ProjectType : _type === 'speciality' ? Speciality : _type === 'application' ? Application : _type === 'productCategory' ? ProductCategory : _type === 'productSubcategory' ? ProductSubcategory : _type === 'material' ? Material : _type === 'finish' ? Finish : Project;
+        const Model = _type === 'design' ? Design : _type === 'product' ? Product : _type === 'category' ? Category : _type === 'projectCategory' ? ProjectCategory : _type === 'projectType' ? ProjectType : _type === 'speciality' ? Speciality : _type === 'application' ? Application : _type === 'productCategory' ? ProductCategory : _type === 'productSubcategory' ? ProductSubcategory : _type === 'material' ? Material : _type === 'finish' ? Finish : _type === 'city' ? City : Project;
         const item  = await Model.findById(_id);
         if (!item) return res.status(404).json({ success: false, message: 'Item not found.' });
 
@@ -152,7 +163,7 @@ const restoreItem = async (req, res) => {
 const permanentDelete = async (req, res) => {
     const { _id, _type } = req.body;
     try {
-        const Model  = _type === 'design' ? Design : _type === 'product' ? Product : _type === 'category' ? Category : _type === 'projectCategory' ? ProjectCategory : _type === 'projectType' ? ProjectType : _type === 'speciality' ? Speciality : _type === 'application' ? Application : _type === 'productCategory' ? ProductCategory : _type === 'productSubcategory' ? ProductSubcategory : _type === 'material' ? Material : _type === 'finish' ? Finish : Project;
+        const Model  = _type === 'design' ? Design : _type === 'product' ? Product : _type === 'category' ? Category : _type === 'projectCategory' ? ProjectCategory : _type === 'projectType' ? ProjectType : _type === 'speciality' ? Speciality : _type === 'application' ? Application : _type === 'productCategory' ? ProductCategory : _type === 'productSubcategory' ? ProductSubcategory : _type === 'material' ? Material : _type === 'finish' ? Finish : _type === 'city' ? City : Project;
         const folder = _type === 'design' ? 'design_images' : _type === 'product' ? 'product_images' : _type === 'project' ? 'project_images' : null;
 
         const item = await Model.findById(_id);

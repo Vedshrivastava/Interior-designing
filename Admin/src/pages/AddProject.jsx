@@ -6,18 +6,8 @@ import { toast } from 'react-toastify';
 import '../index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
-const CITY_OPTIONS = [
-    { slug: 'satna',    label: 'Satna, MP'    },
-    { slug: 'nagod',    label: 'Nagod, MP'    },
-    { slug: 'indore',   label: 'Indore, MP'   },
-    { slug: 'bhopal',   label: 'Bhopal, MP'   },
-    { slug: 'jabalpur', label: 'Jabalpur, MP' },
-    { slug: 'rewa',     label: 'Rewa, MP'     },
-    { slug: 'mumbai',   label: 'Mumbai, MH'   },
-    { slug: 'pune',     label: 'Pune, MH'     },
-];
-
 const FALLBACK_CATEGORIES = ['Full Home Interior','Kitchen','Bedroom','Living Room','Bathroom','TV Unit','Kids Room','Commercial','Office','Villa / Bungalow','Apartment','Renovation','Housing Society'];
+const FALLBACK_CITIES = ['Satna', 'Nagod', 'Indore', 'Bhopal', 'Jabalpur', 'Rewa', 'Mumbai', 'Pune', 'Kolhapur'];
 
 // Inline-styled so they can never be affected by unrelated CSS rules
 // elsewhere in the bundle (this app ships one global stylesheet for
@@ -61,12 +51,13 @@ const imgOrderBadgeStyle = {
 const FALLBACK_TYPES      = ['Residential','Commercial'];
 
 /* ── Reusable inline-add + drag-reorder hook ── */
-function useManageableList({ url, apiBase, token, fallback, broadcastEvent }) {
+function useManageableList({ url, apiBase, token, fallback, extraFieldKey }) {
     const [objects,   setObjects]   = useState([]);
     const [names,     setNames]     = useState(fallback);
     const [open,      setOpen]      = useState(false);
     const [adding,    setAdding]    = useState(false);
     const [newName,   setNewName]   = useState('');
+    const [newExtra,  setNewExtra]  = useState('');
     const [saving,    setSaving]    = useState(false);
     const [confirm,   setConfirm]   = useState(null);
     const [deleting,  setDeleting]  = useState(false);
@@ -95,10 +86,12 @@ function useManageableList({ url, apiBase, token, fallback, broadcastEvent }) {
 
     const add = async () => {
         if (!newName.trim()) { toast.error('Name is required'); return; }
+        if (extraFieldKey && !newExtra.trim()) { toast.error(`${extraFieldKey[0].toUpperCase()}${extraFieldKey.slice(1)} is required`); return; }
         setSaving(true);
         try {
-            const res = await axios.post(`${url}${apiBase}/add`, { name: newName.trim() }, { headers: { Authorization: `Bearer ${token}` } });
-            if (res.data.success) { toast.success(res.data.message); setNewName(''); setAdding(false); await fetch_(); setOpen(false); return res.data.data.name; }
+            const payload = { name: newName.trim(), ...(extraFieldKey ? { [extraFieldKey]: newExtra.trim() } : {}) };
+            const res = await axios.post(`${url}${apiBase}/add`, payload, { headers: { Authorization: `Bearer ${token}` } });
+            if (res.data.success) { toast.success(res.data.message); setNewName(''); setNewExtra(''); setAdding(false); await fetch_(); setOpen(false); return res.data.data.name; }
             else toast.error(res.data.message);
         } catch { toast.error('Failed to add'); }
         finally { setSaving(false); }
@@ -146,21 +139,28 @@ function useManageableList({ url, apiBase, token, fallback, broadcastEvent }) {
         } else { onDragEnd(); }
     };
 
-    return { objects, names, open, setOpen, adding, setAdding, newName, setNewName, saving, add, remove_, confirm, setConfirm, confirmRemove, deleting, showReorder, setShowReorder, dragIdx, dragOver, onDragStart, onDragOver, onDrop, onDragEnd, onTouchStart, onTouchMove, onTouchEnd, ref };
+    return { objects, names, open, setOpen, adding, setAdding, newName, setNewName, newExtra, setNewExtra, saving, add, remove_, confirm, setConfirm, confirmRemove, deleting, showReorder, setShowReorder, dragIdx, dragOver, onDragStart, onDragOver, onDrop, onDragEnd, onTouchStart, onTouchMove, onTouchEnd, ref };
 }
 
 /* ── Dropdown with add/remove/reorder (single or multi-select) ── */
-function ManagedDropdown({ label: fieldLabel, value, values, onChange, multiSelect, list, dropdownOpen, setDropdownOpen, adding, setAdding, newName, setNewName, saving, onAdd, onRemove, showReorder, setShowReorder, reorderProps, dropRef, placeholder = '— Select —' }) {
+function ManagedDropdown({ label: fieldLabel, value, values, onChange, multiSelect, list, dropdownOpen, setDropdownOpen, adding, setAdding, newName, setNewName, newExtra, setNewExtra, extraField, saving, onAdd, onRemove, showReorder, setShowReorder, reorderProps, dropRef, placeholder = '— Select —', valueKey = 'name', formatLabel }) {
     const selected = multiSelect ? (values || []) : [];
+    const getValue = (obj) => obj[valueKey];
+    const getLabel = (obj) => formatLabel ? formatLabel(obj) : obj.name;
 
-    const toggleMulti = (name) => {
-        const next = selected.includes(name) ? selected.filter(n => n !== name) : [...selected, name];
+    const toggleMulti = (val) => {
+        const next = selected.includes(val) ? selected.filter(v => v !== val) : [...selected, val];
         onChange(next);
     };
 
+    const selectedLabel = (val) => {
+        const obj = list.objects.find(o => getValue(o) === val);
+        return obj ? getLabel(obj) : val;
+    };
+
     const triggerLabel = multiSelect
-        ? (selected.length === 0 ? placeholder : selected.length === 1 ? selected[0] : `${selected.length} categories selected`)
-        : (value || placeholder);
+        ? (selected.length === 0 ? placeholder : selected.length === 1 ? selectedLabel(selected[0]) : `${selected.length} categories selected`)
+        : (value ? selectedLabel(value) : placeholder);
 
     return (
         <div className="add-cat-dropdown-wrap flex-col">
@@ -169,10 +169,10 @@ function ManagedDropdown({ label: fieldLabel, value, values, onChange, multiSele
             {/* Selected chips (multi-select only) */}
             {multiSelect && selected.length > 0 && (
                 <div className="proj-cat-chips">
-                    {selected.map(name => (
-                        <span key={name} className="proj-cat-chip">
-                            {name}
-                            <button type="button" onClick={() => toggleMulti(name)} aria-label={`Remove ${name}`}>×</button>
+                    {selected.map(val => (
+                        <span key={val} className="proj-cat-chip">
+                            {selectedLabel(val)}
+                            <button type="button" onClick={() => toggleMulti(val)} aria-label={`Remove ${selectedLabel(val)}`}>×</button>
                         </span>
                     ))}
                 </div>
@@ -186,18 +186,19 @@ function ManagedDropdown({ label: fieldLabel, value, values, onChange, multiSele
                 {dropdownOpen && (
                     <ul className="add-cat-list">
                         {list.objects.map((obj, i) => {
-                            const isSelected = multiSelect ? selected.includes(obj.name) : value === obj.name;
+                            const optVal = getValue(obj);
+                            const isSelected = multiSelect ? selected.includes(optVal) : value === optVal;
                             return (
                             <li key={obj._id} className={`add-cat-option${isSelected ? ' active' : ''}`}
                                 onClick={() => {
-                                    if (multiSelect) { toggleMulti(obj.name); }
-                                    else { onChange(obj.name); setDropdownOpen(false); setAdding(false); }
+                                    if (multiSelect) { toggleMulti(optVal); }
+                                    else { onChange(optVal); setDropdownOpen(false); setAdding(false); }
                                 }}>
                                 {multiSelect && <i className={`fa ${isSelected ? 'fa-square-check' : 'fa-square'} proj-cat-checkbox`} />}
-                                <span>{obj.name}</span>
+                                <span>{getLabel(obj)}</span>
                                 <div className="add-cat-option-actions" onClick={e => e.stopPropagation()}>
                                     {!multiSelect && isSelected && <i className="fa fa-check" />}
-                                    <i className="fa fa-trash add-cat-trash" title={`Remove "${obj.name}"`} onClick={e => { e.stopPropagation(); onRemove(obj); }} />
+                                    <i className="fa fa-trash add-cat-trash" title={`Remove "${getLabel(obj)}"`} onClick={e => { e.stopPropagation(); onRemove(obj); }} />
                                 </div>
                             </li>
                             );
@@ -209,9 +210,12 @@ function ManagedDropdown({ label: fieldLabel, value, values, onChange, multiSele
                         ) : (
                             <li className="add-cat-new-form" onClick={e => e.stopPropagation()}>
                                 <input type="text" placeholder={`e.g. ${fieldLabel}`} value={newName} onChange={e => setNewName(e.target.value)} autoFocus />
+                                {extraField && (
+                                    <input type="text" placeholder={extraField.placeholder} value={newExtra} onChange={e => setNewExtra(e.target.value)} style={{ marginTop: '8px' }} />
+                                )}
                                 <div className="add-cat-new-actions">
                                     <button type="button" className="add-cat-save-btn" onClick={onAdd} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                                    <button type="button" className="add-cat-cancel-btn" onClick={() => { setAdding(false); setNewName(''); }}>Cancel</button>
+                                    <button type="button" className="add-cat-cancel-btn" onClick={() => { setAdding(false); setNewName(''); if (setNewExtra) setNewExtra(''); }}>Cancel</button>
                                 </div>
                             </li>
                         )}
@@ -241,7 +245,7 @@ function ManagedDropdown({ label: fieldLabel, value, values, onChange, multiSele
                                 onTouchEnd={reorderProps.onTouchEnd}
                             >
                                 <i className="fa fa-grip-vertical cat-drag-handle" />
-                                <span className="cat-reorder-name">{obj.name}</span>
+                                <span className="cat-reorder-name">{getLabel(obj)}</span>
                                 <span className="cat-reorder-pos">{i + 1}</span>
                             </li>
                         ))}
@@ -269,6 +273,7 @@ const AddProject = ({ url, setIsLoading, isLoading }) => {
 
     const catList  = useManageableList({ url, apiBase: '/api/project-category', token, fallback: FALLBACK_CATEGORIES });
     const typeList = useManageableList({ url, apiBase: '/api/project-type',     token, fallback: FALLBACK_TYPES });
+    const cityList = useManageableList({ url, apiBase: '/api/city', token, fallback: FALLBACK_CITIES, extraFieldKey: 'state' });
 
     // Set default type once list loads
     useEffect(() => { if (!data.projectType && typeList.names.length) setData(p => ({ ...p, projectType: typeList.names[0] })); }, [typeList.names]);
@@ -462,25 +467,31 @@ const AddProject = ({ url, setIsLoading, isLoading }) => {
                     <span className="toggle-slider" />
                 </label>
                 {data.showInCityPage && (
-                    <div className="add-cat-dropdown-wrap flex-col">
-                        <h2>Select City</h2>
-                        <div className="add-cat-dropdown" ref={cityRef}>
-                            <button type="button" className={`add-cat-trigger${cityOpen ? ' open' : ''}`} onClick={() => setCityOpen(o => !o)}>
-                                <span>{data.cityPage ? CITY_OPTIONS.find(c => c.slug === data.cityPage)?.label : '— Pick a city —'}</span>
-                                <i className="fa fa-chevron-down" />
-                            </button>
-                            {cityOpen && (
-                                <ul className="add-cat-list">
-                                    {CITY_OPTIONS.map(c => (
-                                        <li key={c.slug} className={`add-cat-option${data.cityPage === c.slug ? ' active' : ''}`} onClick={() => { setData(p => ({ ...p, cityPage: c.slug })); setCityOpen(false); }}>
-                                            <span>{c.label}</span>
-                                            {data.cityPage === c.slug && <i className="fa fa-check" />}
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
-                    </div>
+                    <ManagedDropdown
+                        label="Select City"
+                        value={data.cityPage}
+                        onChange={v => setData(p => ({ ...p, cityPage: v }))}
+                        placeholder="— Pick a city —"
+                        list={cityList}
+                        valueKey="slug"
+                        formatLabel={obj => `${obj.name}, ${obj.state}`}
+                        extraField={{ placeholder: 'State e.g. Maharashtra' }}
+                        dropdownOpen={cityOpen}
+                        setDropdownOpen={setCityOpen}
+                        adding={cityList.adding}
+                        setAdding={cityList.setAdding}
+                        newName={cityList.newName}
+                        setNewName={cityList.setNewName}
+                        newExtra={cityList.newExtra}
+                        setNewExtra={cityList.setNewExtra}
+                        saving={cityList.saving}
+                        onAdd={cityList.add}
+                        onRemove={cityList.remove_}
+                        showReorder={cityList.showReorder}
+                        setShowReorder={cityList.setShowReorder}
+                        reorderProps={{ dragIdx: cityList.dragIdx, dragOver: cityList.dragOver, onDragStart: cityList.onDragStart, onDragOver: cityList.onDragOver, onDrop: cityList.onDrop, onDragEnd: cityList.onDragEnd, onTouchStart: cityList.onTouchStart, onTouchMove: cityList.onTouchMove, onTouchEnd: cityList.onTouchEnd }}
+                        dropRef={cityRef}
+                    />
                 )}
 
                 {/* ── Points ── */}
@@ -508,11 +519,11 @@ const AddProject = ({ url, setIsLoading, isLoading }) => {
         </div>
 
         {/* ── Confirm delete modals ── */}
-        {[catList, typeList].map((list, idx) => list.confirm && ReactDOM.createPortal(
+        {[catList, typeList, cityList].map((list, idx) => list.confirm && ReactDOM.createPortal(
             <div key={idx} className="bin-confirm-backdrop" onClick={() => !list.deleting && list.setConfirm(null)}>
                 <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
                     <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
-                    <h3>Remove {idx === 0 ? 'Category' : 'Type'}?</h3>
+                    <h3>Remove {['Category', 'Type', 'City'][idx]}?</h3>
                     <p className="bin-confirm-name">"{list.confirm.name}"</p>
                     <p className="bin-confirm-warning">
                         Moved to Recovery Bin. <strong>Projects inside are kept safe.</strong>

@@ -48,7 +48,7 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
     );
     revealRefs.current.forEach(el => el && io.observe(el));
     return () => io.disconnect();
-  }, []);
+  }, [projects]);
   const sr = el => { if (el && !revealRefs.current.includes(el)) revealRefs.current.push(el); };
 
   /* ── Advantage card modal ─────────────────────────────────── */

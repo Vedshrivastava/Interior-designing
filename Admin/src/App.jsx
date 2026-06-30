@@ -227,7 +227,10 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-            <Route path='/verify-email' element={<Email_verification />} />
+            <Route
+              path='/verify-email'
+              element={<Email_verification setShowLogin={setShowLogin} setAuthType={setAuthType} />}
+            />
             <Route path='/pending' element={<PendingApproval />} />
             <Route
               path='/reset-password/:token'

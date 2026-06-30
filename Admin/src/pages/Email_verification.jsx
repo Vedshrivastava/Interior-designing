@@ -4,13 +4,14 @@ import { useAuthStore } from "../store/authStore";
 import { toast, ToastContainer } from "react-toastify";
 import "../styles/email_verification.css";
 
-const EmailVerificationPage = () => {
+const EmailVerificationPage = ({ setShowLogin, setAuthType }) => {
     const [code, setCode] = useState(["", "", "", "", "", ""]);
     const inputRefs = useRef([]);
     const navigate = useNavigate();
     const { error, isLoading, verifyEmail } = useAuthStore();
     const [success, setSuccess] = useState(false);
     const [shake, setShake] = useState(false);
+    const [countdown, setCountdown] = useState(3);
 
     const handleChange = (index, value) => {
         const newCode = [...code];
@@ -40,7 +41,6 @@ const EmailVerificationPage = () => {
             await verifyEmail(verificationCode);
             toast.success("Email verified successfully");
             setSuccess(true);
-            setTimeout(() => navigate("/"), 2000);
         } catch (err) {
             setShake(true);
             setCode(["", "", "", "", "", ""]);
@@ -48,13 +48,28 @@ const EmailVerificationPage = () => {
                 setShake(false);
                 inputRefs.current[0]?.focus();
             }, 600);
-            toast.error(err?.response?.data?.message || "Incorrect code — please try again.");
+            toast.error(err?.response?.data?.message || "Incorrect code, please try again.");
         }
     };
 
     useEffect(() => {
         if (code.every((d) => d !== "")) handleSubmit();
     }, [code]);
+
+    // Once verified, count down 3s then hand off to the Login modal.
+    // verify-email only confirms the email server-side, it does not
+    // issue a token, so the user still needs to actually log in.
+    useEffect(() => {
+        if (!success) return;
+        if (countdown === 0) {
+            navigate("/");
+            if (setAuthType) setAuthType("Login");
+            if (setShowLogin) setShowLogin(true);
+            return;
+        }
+        const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
+        return () => clearTimeout(timer);
+    }, [success, countdown, navigate, setAuthType, setShowLogin]);
 
     return (
         <div className="ev-page">
@@ -86,8 +101,11 @@ const EmailVerificationPage = () => {
                                 <path className="ev-checkmark-path" fill="none" d="M14 26 l8 8 l16-16" />
                             </svg>
                         </div>
-                        <h2 className="ev-success-title">Verified!</h2>
-                        <p className="ev-success-sub">Redirecting to your dashboard…</p>
+                        <h2 className="ev-success-title">Email Verified!</h2>
+                        <p className="ev-success-sub">Your account has been created successfully.</p>
+                        <div className="ev-redirect-pill">
+                            Redirecting to login in {countdown}s
+                        </div>
                     </div>
                 ) : (
                     <>

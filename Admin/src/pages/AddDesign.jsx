@@ -12,6 +12,46 @@ const FALLBACK_CATEGORIES = [
     'Commercial Designs', 'Mandir Designs', 'Garden Designs', 'House Exterior',
 ];
 
+// Inline-styled so they can never be affected by unrelated CSS rules
+// elsewhere in the bundle (this app ships one global stylesheet for
+// every page, so class-based styling here is exposed to the entire
+// app's CSS, not just this file).
+const imgToolBtnStyle = (disabled) => ({
+    width: 26, height: 26, minWidth: 26, minHeight: 26, maxWidth: 26, maxHeight: 26,
+    boxSizing: 'border-box',
+    borderRadius: '50%',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: disabled ? '#f3f1ec' : '#ffffff',
+    border: '1px solid rgba(16,37,37,0.16)',
+    boxShadow: disabled ? 'none' : '0 1px 3px rgba(16,37,37,0.1)',
+    color: disabled ? '#bdb6ab' : '#5a4e44',
+    padding: 0,
+    margin: 0,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    pointerEvents: disabled ? 'none' : 'auto',
+    flexShrink: 0,
+});
+
+const ChevronIcon = ({ dir }) => (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        {dir === 'left' ? <polyline points="15 18 9 12 15 6" /> : <polyline points="9 18 15 12 9 6" />}
+    </svg>
+);
+
+const imgOrderBadgeStyle = {
+    position: 'absolute', top: -8, left: -8,
+    width: 22, height: 22, minWidth: 22, minHeight: 22,
+    borderRadius: '50%',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: '#102525', color: '#e8d0a8',
+    fontSize: 11, fontWeight: 700, lineHeight: 1,
+    border: '2px solid #ffffff',
+    boxShadow: '0 1px 3px rgba(16,37,37,0.15)',
+    zIndex: 1,
+};
+
 const AddDesign = ({ url, setIsLoading, isLoading }) => {
     const [images, setImages] = useState([]);
     const [data, setData] = useState({
@@ -104,6 +144,15 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
     const removePoint     = (i)    => setPoints(points.filter((_, idx) => idx !== i));
     const onImageChange   = (e)    => setImages(p => [...p, ...Array.from(e.target.files)]);
     const removeImage     = (i)    => setImages(images.filter((_, idx) => idx !== i));
+    const moveImage = (index, direction) => {
+        setImages(prev => {
+            const next = [...prev];
+            const target = index + direction;
+            if (target < 0 || target >= next.length) return prev;
+            [next[index], next[target]] = [next[target], next[index]];
+            return next;
+        });
+    };
 
     const saveNewCategory = async () => {
         if (!newCatName.trim() || !newCatLabel.trim()) {
@@ -224,16 +273,29 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
 
                 {/* ── Images ── */}
                 <div className="add-img-upload flex-col">
-                    <h2>Upload Image</h2>
+                    <h2>Upload Image {images.length > 1 && <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#888' }}>— number shows display order on the site</span>}</h2>
                     <label htmlFor="image" className="upload-icon">
                         <i className="fa fa-upload" />
                     </label>
                     <input onChange={onImageChange} type="file" id="image" multiple hidden />
                     <div className="selected-images">
                         {images.map((img, i) => (
-                            <div key={i} className="image-preview">
+                            <div key={i} className="image-preview" style={{ alignItems: 'center', gap: '8px' }}>
+                                {images.length > 1 && <span style={imgOrderBadgeStyle}>{i + 1}</span>}
                                 <img src={URL.createObjectURL(img)} alt={`img-${i}`} className="thumbnail" />
                                 <button type="button" onClick={() => removeImage(i)} className="remove-btn">X</button>
+                                {images.length > 1 && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <button type="button" style={imgToolBtnStyle(i === 0)} disabled={i === 0}
+                                            onClick={() => moveImage(i, -1)} title="Move earlier">
+                                            <ChevronIcon dir="left" />
+                                        </button>
+                                        <button type="button" style={imgToolBtnStyle(i === images.length - 1)} disabled={i === images.length - 1}
+                                            onClick={() => moveImage(i, 1)} title="Move later">
+                                            <ChevronIcon dir="right" />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

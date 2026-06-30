@@ -4,6 +4,7 @@ import '../styles/list.css';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../index.css';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 // 1. Accept the prop here
 const ListDesigns = ({ url, setIsLoading, isLoading }) => {
@@ -169,6 +170,30 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
     setKeptImages(keptImages.filter((_, idx) => idx !== indexToRemove));
   }
 
+  const moveKeptImage = (index, direction) => {
+    setKeptImages(prev => {
+      const next = [...prev];
+      const target = index + direction;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  }
+
+  const moveEditImage = (index, direction) => {
+    setEditImages(prev => {
+      const next = [...prev];
+      const target = index + direction;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  }
+
+  // Cloudinary: inserting fl_attachment forces a real download (with
+  // correct headers) instead of the browser navigating to the image.
+  const cloudinaryDownloadUrl = (imgUrl) => imgUrl.replace('/upload/', '/upload/fl_attachment/');
+
   const submitEdit = async (e) => {
     e.preventDefault();
     setIsEditModalOpen(false);
@@ -307,20 +332,48 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
               </div>
 
               <div className="add-img-upload flex-col" style={{ marginTop: '10px' }}>
-                <p>Images (Existing & New)</p>
+                <p>Images (Existing &amp; New) — number shows display order on the site</p>
 
                 <div className="selected-images" style={{ marginBottom: '10px' }}>
                   {keptImages.map((imgUrl, index) => (
                     <div key={`kept-${index}`} className="image-preview">
+                      <span className="img-order-badge">{index + 1}</span>
                       <img src={imgUrl} alt={`Existing ${index}`} className="thumbnail" />
                       <button type="button" onClick={() => removeKeptImage(index)} className="remove-btn">X</button>
+                      <div className="image-preview-toolbar">
+                        <button type="button" className="img-tool-btn" disabled={index === 0}
+                          onClick={() => moveKeptImage(index, -1)} title="Move earlier">
+                          <i className="fa fa-chevron-left" />
+                        </button>
+                        <a className="img-tool-btn" href={cloudinaryDownloadUrl(imgUrl)} target="_blank" rel="noopener noreferrer" title="Download image">
+                          <i className="fa fa-download" />
+                        </a>
+                        <button type="button" className="img-tool-btn" disabled={index === keptImages.length - 1}
+                          onClick={() => moveKeptImage(index, 1)} title="Move later">
+                          <i className="fa fa-chevron-right" />
+                        </button>
+                      </div>
                     </div>
                   ))}
 
                   {editImages.map((img, index) => (
                     <div key={`new-${index}`} className="image-preview">
+                      <span className="img-order-badge">{keptImages.length + index + 1}</span>
                       <img src={URL.createObjectURL(img)} alt={`New ${index}`} className="thumbnail" />
                       <button type="button" onClick={() => removeEditImage(index)} className="remove-btn">X</button>
+                      <div className="image-preview-toolbar">
+                        <button type="button" className="img-tool-btn" disabled={index === 0}
+                          onClick={() => moveEditImage(index, -1)} title="Move earlier">
+                          <i className="fa fa-chevron-left" />
+                        </button>
+                        <a className="img-tool-btn" href={URL.createObjectURL(img)} download={img.name} title="Download image">
+                          <i className="fa fa-download" />
+                        </a>
+                        <button type="button" className="img-tool-btn" disabled={index === editImages.length - 1}
+                          onClick={() => moveEditImage(index, 1)} title="Move later">
+                          <i className="fa fa-chevron-right" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

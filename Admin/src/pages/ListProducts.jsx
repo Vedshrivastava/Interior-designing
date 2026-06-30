@@ -134,10 +134,13 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
 
     const [editSubCatOpen, setEditSubCatOpen] = useState(false);
     const editSubCatRef = useRef(null);
+    const editCatSectionRef = useRef(null);
 
     useEffect(() => {
         const handler = (e) => {
-            if (editSubCatRef.current && !editSubCatRef.current.contains(e.target)) setEditSubCatOpen(false);
+            const insideSubCat = editSubCatRef.current && editSubCatRef.current.contains(e.target);
+            const insideCatSection = editCatSectionRef.current && editCatSectionRef.current.contains(e.target);
+            if (!insideSubCat && !insideCatSection) setEditSubCatOpen(false);
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
@@ -322,7 +325,7 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                             </div>
 
                             {/* Categories (multi-select chips) */}
-                            <div className="add-multi-section flex-col">
+                            <div className="add-multi-section flex-col" ref={editCatSectionRef}>
                                 <p>Categories <span style={{ fontSize: '0.72rem', fontWeight: 400, color: '#888' }}>(select all that apply)</span></p>
                                 <div className="add-multi-grid">
                                     {productCategoryObjects.map(cat => {

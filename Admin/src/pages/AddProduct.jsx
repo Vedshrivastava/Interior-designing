@@ -425,6 +425,7 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
 
     const [subCatOpen, setSubCatOpen] = useState(false);
     const subCatRef = useRef(null);
+    const catSectionRef = useRef(null);
     const [newParentCats, setNewParentCats] = useState([]);
 
     const token = localStorage.getItem('token');
@@ -438,7 +439,9 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
 
     useEffect(() => {
         const handler = (e) => {
-            if (subCatRef.current && !subCatRef.current.contains(e.target)) setSubCatOpen(false);
+            const insideSubCat = subCatRef.current && subCatRef.current.contains(e.target);
+            const insideCatSection = catSectionRef.current && catSectionRef.current.contains(e.target);
+            if (!insideSubCat && !insideCatSection) setSubCatOpen(false);
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
@@ -552,14 +555,16 @@ const AddProduct = ({ url, setIsLoading, isLoading }) => {
                 </div>
 
                 {/* ── Categories (multi-select) ── */}
-                <IconTagSection
-                    label="Categories"
-                    hint="(select all that apply)"
-                    placeholder="Category name e.g. Landscaping Elements"
-                    manager={catManager}
-                    selected={data.categories}
-                    onToggle={toggleCategory}
-                />
+                <div ref={catSectionRef}>
+                    <IconTagSection
+                        label="Categories"
+                        hint="(select all that apply)"
+                        placeholder="Category name e.g. Landscaping Elements"
+                        manager={catManager}
+                        selected={data.categories}
+                        onToggle={toggleCategory}
+                    />
+                </div>
 
                 {/* ── Subcategories ── */}
                 {data.categories.length > 0 && (

@@ -87,6 +87,7 @@ export default function Footer() {
             <li><Link href="/interior-designer/bhopal" title="Interior Designer Bhopal">Bhopal</Link></li>
             <li><Link href="/interior-designer/jabalpur" title="Interior Designer Jabalpur">Jabalpur</Link></li>
             <li><Link href="/interior-designer/nagod" title="Interior Designer Nagod">Nagod</Link></li>
+            <li><Link href="/interior-designer/kolhapur" title="Interior Designer Kolhapur">Kolhapur</Link></li>
           </ul>
         </div>
 

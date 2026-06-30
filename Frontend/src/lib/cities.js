@@ -12,6 +12,7 @@ export const CITIES = {
   'jabalpur':  { name: 'Jabalpur',  state: 'Madhya Pradesh', variations: ['jabalpur']                        },
   'rewa':      { name: 'Rewa',      state: 'Madhya Pradesh', variations: ['rewa']                            },
   'pune':      { name: 'Pune',      state: 'Maharashtra',    variations: ['pune']                            },
+  'kolhapur':  { name: 'Kolhapur',  state: 'Maharashtra',    variations: ['kolhapur']                        },
 };
 
 export const CITY_SLUGS = Object.keys(CITIES);

@@ -1091,6 +1091,7 @@
 .sub-parent-cat-item {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
     gap: 6px;
     padding: 5px 10px;
     border-radius: 999px;
@@ -1099,6 +1100,7 @@
     font-family: "DM Sans", sans-serif;
     font-size: 0.76rem;
     color: var(--text-mid);
+    white-space: nowrap;
     cursor: pointer;
 }
 
@@ -1408,6 +1410,10 @@
 }
 .bin-btn-cancel { background: transparent; border-color: rgba(201,168,124,0.4); color: var(--green); }
 .bin-btn-cancel:hover:not(:disabled) { background: rgba(201,168,124,0.1); }
-.bin-btn-delete { background: #c0392b; border-color: #c0392b; color: #fff; }
+/* min-width covers the widest label pair ("Yes, Remove" ⇄ "Removing…") so the
+   button doesn't shrink/shift when the label swaps on click — a narrower
+   min-width let it visibly jitter mid-click (see RecoveryBin's delete button,
+   which needed the same fix). */
+.bin-btn-delete { background: #c0392b; border-color: #c0392b; color: #fff; min-width: 160px; }
 .bin-btn-delete:hover:not(:disabled) { background: #a93226; border-color: #a93226; }
 .bin-btn-cancel:disabled, .bin-btn-delete:disabled { opacity: 0.55; cursor: not-allowed; }

@@ -465,7 +465,7 @@ const RecoveryBin = ({ url }) => {
                     background: #c0392b;
                     border-color: #c0392b;
                     color: #fff;
-                    min-width: 175px;
+                    min-width: 190px;
                 }
                 .bin-btn-delete:hover:not(:disabled) {
                     background: #a93226;

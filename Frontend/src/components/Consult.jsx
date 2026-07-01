@@ -10,7 +10,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export default function Consult() {
   const { closeConsult } = useModal();
-  const [data, setData]         = useState({ name: '', email: '', phone: '', address: '', message: '' });
+  const [data, setData]         = useState({ name: '', email: '', phone: '', address: '', message: '', website: '' });
   const [loading, setLoading]   = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -18,12 +18,13 @@ export default function Consult() {
 
   const onSubmit = async e => {
     e.preventDefault();
+    if (data.website) { setSubmitted(true); return; } // honeypot triggered
     setLoading(true);
     try {
       await axios.post(`${API_URL}/api/appointment/add`, {
         name: data.name, email: data.email,
         phoneNumber: data.phone, address: data.address,
-        message: data.message,
+        message: data.message, website: data.website,
       });
       setSubmitted(true);
     } catch {
@@ -118,6 +119,11 @@ export default function Consult() {
                   <textarea id="c-message" name="message" rows={3}
                     placeholder="Tell us about your project: room type, budget, timeline..."
                     value={data.message} onChange={onChange} autoComplete="off" />
+                </div>
+
+                {/* Honeypot — invisible to humans, bots fill it */}
+                <div style={{ position: 'absolute', left: '-9999px', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+                  <input name="website" type="text" value={data.website} onChange={onChange} tabIndex={-1} autoComplete="off" />
                 </div>
 
                 <button type="submit" className="cm-submit" disabled={loading}>

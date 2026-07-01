@@ -19,7 +19,7 @@ const INFO_ITEMS = [
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({ name: '', email: '', phoneNumber: '', message: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', phoneNumber: '', message: '', website: '' });
   const [loading, setLoading]   = useState(false);
 
   const onChange = e => {
@@ -29,15 +29,20 @@ export default function ContactPage() {
 
   const onSubmit = async e => {
     e.preventDefault();
+    if (formData.website) {
+      toast.success('Message sent! We\'ll get back to you shortly.');
+      setFormData({ name: '', email: '', phoneNumber: '', message: '', website: '' });
+      return; // honeypot triggered — fake success, no API call
+    }
     setLoading(true);
     try {
       await axios.post(`${API_URL}/api/appointment/add`, {
         name: formData.name, email: formData.email,
         phoneNumber: formData.phoneNumber, message: formData.message,
-        address: 'No Address Provided',
+        address: 'No Address Provided', website: formData.website,
       });
       toast.success('Message sent! We\'ll get back to you shortly.');
-      setFormData({ name: '', email: '', phoneNumber: '', message: '' });
+      setFormData({ name: '', email: '', phoneNumber: '', message: '', website: '' });
     } catch (err) {
       toast.error('Failed to send. Please try again.');
     } finally {
@@ -126,6 +131,11 @@ export default function ContactPage() {
                   <label htmlFor="message">Message</label>
                   <textarea id="message" name="message" placeholder="Tell us about your project, space size, budget range…" value={formData.message} onChange={onChange} rows="5" required />
                 </div>
+                {/* Honeypot — invisible to humans, bots fill it */}
+                <div style={{ position: 'absolute', left: '-9999px', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+                  <input name="website" type="text" value={formData.website} onChange={onChange} tabIndex={-1} autoComplete="off" />
+                </div>
+
                 <button type="submit" className="contact-submit" disabled={loading}>
                   {loading ? 'Sending…' : <><IconPaperPlane /> Send Message</>}
                 </button>

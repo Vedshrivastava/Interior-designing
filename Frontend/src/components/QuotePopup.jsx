@@ -10,7 +10,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export default function QuotePopup() {
   const { closeQuote, consultData } = useModal();
-  const [data, setData]           = useState({ name: '', email: '', phone: '', address: '', length: '', width: '', message: '' });
+  const [data, setData]           = useState({ name: '', email: '', phone: '', address: '', length: '', width: '', message: '', website: '' });
   const [loading, setLoading]     = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -18,6 +18,7 @@ export default function QuotePopup() {
 
   const onSubmit = async e => {
     e.preventDefault();
+    if (data.website) { setSubmitted(true); return; } // honeypot triggered
     setLoading(true);
     const formattedMeasurements = (data.length || data.width)
       ? `${data.length || 0} ft x ${data.width || 0} ft` : '';
@@ -27,7 +28,7 @@ export default function QuotePopup() {
         phoneNumber: data.phone, address: data.address,
         measurements: formattedMeasurements,
         message: data.message,
-        consultData,
+        consultData, website: data.website,
       });
       setSubmitted(true);
     } catch {
@@ -147,6 +148,11 @@ export default function QuotePopup() {
                   <textarea id="q-message" name="message" rows={2}
                     placeholder="Any specific requirements or questions..."
                     value={data.message} onChange={onChange} autoComplete="off" />
+                </div>
+
+                {/* Honeypot — invisible to humans, bots fill it */}
+                <div style={{ position: 'absolute', left: '-9999px', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+                  <input name="website" type="text" value={data.website} onChange={onChange} tabIndex={-1} autoComplete="off" />
                 </div>
 
                 <button type="submit" className="cm-submit" disabled={loading}>

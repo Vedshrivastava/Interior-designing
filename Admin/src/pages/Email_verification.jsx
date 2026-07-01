@@ -9,10 +9,10 @@ const EmailVerificationPage = ({ setShowLogin, setAuthType, setAutoOpenRequest, 
     const inputRefs = useRef([]);
     const isSubmitting = useRef(false);
     const navigate = useNavigate();
-    const error = useAuthStore(state => state.error);
-    const isLoading = useAuthStore(state => state.isLoading);
-    const verifyEmail = useAuthStore(state => state.verifyEmail);
-    const resendVerification = useAuthStore(state => state.resendVerification);
+    // Use local state instead of Zustand hook subscriptions — avoids Zustand 5
+    // useSyncExternalStore crash when store updates isLoading during mount/unmount.
+    const [error, setError] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
     const [pendingEmail] = useState(() => sessionStorage.getItem('pendingEmail') || '');
     const [resendLoading, setResendLoading] = useState(false);
     const [resendSent, setResendSent] = useState(false);
@@ -45,7 +45,7 @@ const EmailVerificationPage = ({ setShowLogin, setAuthType, setAutoOpenRequest, 
         if (!pendingEmail || resendLoading || resendSent) return;
         setResendLoading(true);
         try {
-            await resendVerification(pendingEmail);
+            await useAuthStore.getState().resendVerification(pendingEmail);
             setResendSent(true);
             toast.success('New verification code sent!');
             setTimeout(() => setResendSent(false), 30000);
@@ -60,20 +60,26 @@ const EmailVerificationPage = ({ setShowLogin, setAuthType, setAutoOpenRequest, 
         e?.preventDefault();
         if (isSubmitting.current) return;
         isSubmitting.current = true;
+        setError(null);
+        setIsLoading(true);
         const verificationCode = code.join("");
         try {
-            await verifyEmail(verificationCode);
+            await useAuthStore.getState().verifyEmail(verificationCode);
             toast.success("Email verified successfully");
             setSuccess(true);
         } catch (err) {
             isSubmitting.current = false;
+            const msg = err?.response?.data?.message || err?.message || "Incorrect code, please try again.";
+            setError(msg);
             setShake(true);
             setCode(["", "", "", "", "", ""]);
             setTimeout(() => {
                 setShake(false);
                 inputRefs.current[0]?.focus();
             }, 600);
-            toast.error(err?.response?.data?.message || err?.message || "Incorrect code, please try again.");
+            toast.error(msg);
+        } finally {
+            setIsLoading(false);
         }
     };
 

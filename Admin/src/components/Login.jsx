@@ -20,9 +20,9 @@ const TITLES = {
 };
 
 const Login = ({ setShowLogin, authType = 'Login' }) => {
-  const signup       = useAuthStore(state => state.signup);
-  const login        = useAuthStore(state => state.login);
-  const forgotPassword = useAuthStore(state => state.forgotPassword);
+  // Use getState() (vanilla API) instead of hook subscriptions to avoid
+  // Zustand 5 useSyncExternalStore crashes when the store updates isLoading
+  // while this modal is mounted.
   const { token, setToken, setUserId, setUserName, setUserEmail, setIsLoggedIn } = useContext(StoreContext);
 
   // Read ?reason=expired from URL — set once on mount, never changes
@@ -68,16 +68,14 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
     try {
       /* ── Sign Up ── */
       if (currState === 'Sign Up') {
-        await signup(data.email, data.password, data.name);
+        await useAuthStore.getState().signup(data.email, data.password, data.name);
         toast.success('Account created! Please verify your email.');
         setShowLogin(false);
-        // Defer navigation so Login fully unmounts before Email_verification mounts,
-        // preventing a Zustand useSyncExternalStore crash during the concurrent transition.
         setTimeout(() => navigate('/verify-email'), 0);
 
       /* ── Forgot Password ── */
       } else if (currState === 'Forgot Password') {
-        const response = await forgotPassword(forgotEmail);
+        const response = await useAuthStore.getState().forgotPassword(forgotEmail);
         if (response?.data?.success) {
           toast.success('Password reset link sent.');
           setIsSubmitted(true);
@@ -88,7 +86,7 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
 
       /* ── Login ── */
       } else {
-        const response = await login(data.email, data.password);
+        const response = await useAuthStore.getState().login(data.email, data.password);
         if (!response?.data?.success) {
           const msg = response?.data?.message;
           if (msg === 'no_account') {

@@ -30,6 +30,9 @@ import { Navigate } from "react-router-dom";
 
 const App = () => {
   const [showLogin, setShowLogin] = useState(false);
+  const [autoOpenRequest, setAutoOpenRequest] = useState(false);
+  const [autoOpenEmail, setAutoOpenEmail]     = useState('');
+  const [autoOpenName, setAutoOpenName]       = useState('');
 
   // Global 401 interceptor — catches token expiry mid-session on any API call
   useEffect(() => {
@@ -111,6 +114,10 @@ const App = () => {
                   <Guest
                     setShowLogin={setShowLogin}
                     setAuthType={setAuthType}
+                    autoOpenRequest={autoOpenRequest}
+                    setAutoOpenRequest={setAutoOpenRequest}
+                    autoOpenEmail={autoOpenEmail}
+                    autoOpenName={autoOpenName}
                   />
                 )
               }
@@ -229,7 +236,15 @@ const App = () => {
             />
             <Route
               path='/verify-email'
-              element={<Email_verification setShowLogin={setShowLogin} setAuthType={setAuthType} />}
+              element={
+                <Email_verification
+                  setShowLogin={setShowLogin}
+                  setAuthType={setAuthType}
+                  setAutoOpenRequest={setAutoOpenRequest}
+                  setAutoOpenEmail={setAutoOpenEmail}
+                  setAutoOpenName={setAutoOpenName}
+                />
+              }
             />
             <Route path='/pending' element={<PendingApproval />} />
             <Route

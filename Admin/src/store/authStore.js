@@ -11,30 +11,25 @@ export const useAuthStore = create((set) => ({
 
     signup: async (email, password, name) => {
         set({ isLoading: true, error: null });
-        console.log("isLoading (signup start):", true); 
         try {
             const response = await axios.post(`${API_URL}/api/admin/register-admin`, { email, password, name });
-            
+
             if (response.data && response.data.success === false) {
                 set({ error: response.data.message, isLoading: false });
-                console.log("isLoading (signup error):", false);
-                throw new Error(response.data.message); 
+                throw new Error(response.data.message);
             }
 
-            const { user } = response.data;
-            localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('isAuthenticated', 'true');
-            
-            set({ user, isAuthenticated: true, isLoading: false });
-            console.log("Signup response :--->> ", response.data);
-            console.log("isLoading (signup end):", false); 
-
+            // Registration does not issue a JWT — email verification and login come next.
+            // Do not set isAuthenticated here.
+            // Store name+email in sessionStorage so the Request Access modal can pre-fill them.
+            sessionStorage.setItem('pendingEmail', email);
+            sessionStorage.setItem('pendingName', name);
+            set({ isLoading: false });
             return response;
         } catch (error) {
-            console.log("Full error object:", error);
             const errorMessage = error.response?.data?.message || error.message || "Error signing up";
             set({ error: errorMessage, isLoading: false });
-            throw error; 
+            throw error;
         }
     },
 
@@ -62,22 +57,20 @@ export const useAuthStore = create((set) => ({
 
     verifyEmail: async (code) => {
         set({ isLoading: true, error: null });
-        console.log("isLoading (verifyEmail start):", true); 
         try {
             const response = await axios.post(`${API_URL}/api/user/verify-email`, { code });
-            const { user } = response.data;
-
-            localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('isAuthenticated', 'true');
-            
-            set({ user, isAuthenticated: true, isLoading: false });
-            console.log("Email verification response :--->> ", response.data);
-            console.log("isLoading (verifyEmail end):", false); 
-
+            if (!response.data?.success) {
+                const msg = response.data?.message || "Verification failed";
+                set({ error: msg, isLoading: false });
+                throw new Error(msg);
+            }
+            // Email verification does not issue a JWT — the user still needs to log in.
+            // Do not set isAuthenticated here; that would trigger spurious re-renders and
+            // could cause the auto-submit effect to fire a second time with the now-used OTP.
+            set({ isLoading: false });
             return response;
         } catch (error) {
-            set({ error: error.response?.data?.message || "Error verifying email", isLoading: false });
-            console.log("isLoading (verifyEmail error):", false); 
+            set({ error: error.response?.data?.message || error.message || "Error verifying email", isLoading: false });
             throw error;
         }
     },

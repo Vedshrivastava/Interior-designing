@@ -587,20 +587,27 @@
   max-width: 340px;
 }
 
+.request-success-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 .request-close-btn {
-  padding: 11px 32px;
-  background: #102525;
-  color: #e8d0a8;
-  border: none;
+  padding: 11px 28px;
+  background: transparent;
+  color: #102525;
+  border: 1.5px solid #102525;
   border-radius: 8px;
   font-family: "Inter", sans-serif;
   font-weight: 600;
   font-size: 0.82rem;
   cursor: pointer;
-  transition: background 0.22s ease;
-  margin-top: 6px;
+  transition: background 0.22s ease, color 0.22s ease;
 }
-.request-close-btn:hover { background: #1e3a2a; }
+.request-close-btn:hover { background: rgba(16,37,37,0.06); }
 
 /* ── No-account state ── */
 .request-no-account {

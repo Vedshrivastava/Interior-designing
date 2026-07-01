@@ -4,9 +4,10 @@ import { useAuthStore } from "../store/authStore";
 import { toast, ToastContainer } from "react-toastify";
 import "../styles/email_verification.css";
 
-const EmailVerificationPage = ({ setShowLogin, setAuthType }) => {
+const EmailVerificationPage = ({ setShowLogin, setAuthType, setAutoOpenRequest, setAutoOpenEmail, setAutoOpenName }) => {
     const [code, setCode] = useState(["", "", "", "", "", ""]);
     const inputRefs = useRef([]);
+    const isSubmitting = useRef(false);
     const navigate = useNavigate();
     const { error, isLoading, verifyEmail } = useAuthStore();
     const [success, setSuccess] = useState(false);
@@ -36,40 +37,47 @@ const EmailVerificationPage = ({ setShowLogin, setAuthType }) => {
 
     const handleSubmit = async (e) => {
         e?.preventDefault();
+        if (isSubmitting.current) return;
+        isSubmitting.current = true;
         const verificationCode = code.join("");
         try {
             await verifyEmail(verificationCode);
             toast.success("Email verified successfully");
             setSuccess(true);
         } catch (err) {
+            isSubmitting.current = false;
             setShake(true);
             setCode(["", "", "", "", "", ""]);
             setTimeout(() => {
                 setShake(false);
                 inputRefs.current[0]?.focus();
             }, 600);
-            toast.error(err?.response?.data?.message || "Incorrect code, please try again.");
+            toast.error(err?.response?.data?.message || err?.message || "Incorrect code, please try again.");
         }
     };
 
     useEffect(() => {
-        if (code.every((d) => d !== "")) handleSubmit();
+        if (code.every((d) => d !== "") && !isSubmitting.current) handleSubmit();
     }, [code]);
 
-    // Once verified, count down 3s then hand off to the Login modal.
-    // verify-email only confirms the email server-side, it does not
-    // issue a token, so the user still needs to actually log in.
+    // Once verified, count down 3s then open the Request Access modal so the
+    // user can request admin approval before they sign in.
     useEffect(() => {
         if (!success) return;
         if (countdown === 0) {
+            const email = sessionStorage.getItem('pendingEmail') || '';
+            const name  = sessionStorage.getItem('pendingName')  || '';
+            sessionStorage.removeItem('pendingEmail');
+            sessionStorage.removeItem('pendingName');
             navigate("/");
-            if (setAuthType) setAuthType("Login");
-            if (setShowLogin) setShowLogin(true);
+            if (setAutoOpenEmail) setAutoOpenEmail(email);
+            if (setAutoOpenName)  setAutoOpenName(name);
+            if (setAutoOpenRequest) setAutoOpenRequest(true);
             return;
         }
         const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
         return () => clearTimeout(timer);
-    }, [success, countdown, navigate, setAuthType, setShowLogin]);
+    }, [success, countdown, navigate, setAutoOpenRequest, setAutoOpenEmail, setAutoOpenName]);
 
     return (
         <div className="ev-page">

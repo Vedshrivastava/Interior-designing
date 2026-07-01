@@ -1,16 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../styles/guest.css';
 
 const url = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-const WelcomeGuest = ({ setShowLogin, setAuthType }) => {
+const WelcomeGuest = ({ setShowLogin, setAuthType, autoOpenRequest, setAutoOpenRequest, autoOpenEmail, autoOpenName }) => {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm]     = useState({ name: '', email: '', reason: '' });
   const [loading, setLoading]   = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [noAccount, setNoAccount] = useState(false);
+
+  useEffect(() => {
+    if (!autoOpenRequest) return;
+    setForm({ name: autoOpenName || '', email: autoOpenEmail || '', reason: '' });
+    setShowModal(true);
+    if (setAutoOpenRequest) setAutoOpenRequest(false);
+  }, [autoOpenRequest]);
 
   const handleOpenAuth = (type) => {
     if (setAuthType) setAuthType(type);
@@ -92,7 +99,15 @@ const WelcomeGuest = ({ setShowLogin, setAuthType }) => {
                   Your request has been received. The master admin will review
                   it and notify you once a decision is made.
                 </p>
-                <button className="request-close-btn" onClick={closeModal}>Close</button>
+                <div className="request-success-actions">
+                  <button className="request-close-btn" onClick={closeModal}>Close</button>
+                  <button
+                    className="request-auth-btn request-auth-btn--primary"
+                    onClick={() => { closeModal(); handleOpenAuth('Login'); }}
+                  >
+                    Sign In
+                  </button>
+                </div>
               </div>
 
             ) : noAccount ? (

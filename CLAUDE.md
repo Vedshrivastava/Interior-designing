@@ -95,7 +95,7 @@ Role-gated: only users with `role === "ADMIN"` in MongoDB can access protected r
 | File | Route | Purpose |
 |---|---|---|
 | [Welcome.jsx](Admin/src/pages/Welcome.jsx) | `/welcome` | Dashboard landing after login |
-| [Add.jsx](Admin/src/pages/Add.jsx) | Upload designs → Cloudinary, with name, description, bullet points, category, "Feature on Homepage" toggle |
+| [AddDesign.jsx](Admin/src/pages/AddDesign.jsx) | Upload designs → Cloudinary, with name, description, bullet points, category + subcategories (multi-select, DB-driven with inline add/delete), "Feature on Homepage" toggle |
 | [ListDesigns.jsx](Admin/src/pages/ListDesigns.jsx) | `/list` | View/edit/delete designs; newest first |
 | [ListProjects.jsx](Admin/src/pages/ListProjects.jsx) | `/projects` | View/edit/delete projects; newest first |
 | [ListProducts.jsx](Admin/src/pages/ListProducts.jsx) | `/products` | View/edit/delete products; newest first |
@@ -121,6 +121,7 @@ Entry point: [server.js](Backend/server.js) — Express app wrapped in an `http.
 | Prefix | Router file | Key endpoints |
 |---|---|---|
 | `/api/design` | [routes/design.js](Backend/routes/design.js) | `POST /add`, `GET /list?category=&page=&limit=`, `POST /remove`, `POST /update` |
+| `/api/design-subcategory` | [routes/designSubcategory.js](Backend/routes/designSubcategory.js) | `GET /list`, `POST /add`, `POST /remove`, `POST /reorder` — DB-driven design subcategories, scoped to parent design categories, mirrors `/api/product-subcategory` — WebSocket fires `designSubcategoriesChanged` |
 | `/api/project` | [routes/project.js](Backend/routes/project.js) | `GET /list`, `POST /add`, `POST /remove`, `POST /update` — WebSocket fires `projectsChanged` |
 | `/api/product` | [routes/product.js](Backend/routes/product.js) | `GET /list`, `POST /add`, `POST /remove`, `POST /update` — WebSocket fires `productsChanged` |
 | `/api/appointment` | [routes/appointments.js](Backend/routes/appointments.js) | `POST /add`, `GET /list`, `POST /quote`, `GET /listquotes`, `POST /status` |
@@ -132,6 +133,7 @@ Entry point: [server.js](Backend/server.js) — Express app wrapped in an `http.
 | Event | Triggered by | Listeners |
 |---|---|---|
 | `designsChanged` | design add/update/remove | `DesignDisplayPage` |
+| `designSubcategoriesChanged` | design subcategory add/remove/reorder | `AddDesign.jsx`, `ListDesigns.jsx`, Recovery Bin |
 | `projectsChanged` | project add/update/remove | `ProjectsPage` |
 | `productsChanged` | product add/update/remove | `ProductsPage` |
 | `newOrder` | consultation form submit | Admin `Appointments` |
@@ -141,7 +143,13 @@ Entry point: [server.js](Backend/server.js) — Express app wrapped in an `http.
 
 **`design`** ([models/design.js](Backend/models/design.js))
 ```js
-{ name, description, images: [String], category, points: [String], isFeatured: Boolean }
+{ name, description, images: [String], category, subcategories: [String], points: [String], isFeatured: Boolean }
+```
+
+**`designSubcategory`** ([models/designSubcategory.js](Backend/models/designSubcategory.js))
+Second-level taxonomy under `category`, managed inline from `AddDesign.jsx` (icon + colour, parented to one or more design categories). Soft-deletable, feeds the Recovery Bin.
+```js
+{ name, icon, color, categories: [String], order, deleted: Boolean }
 ```
 
 **`appointment`** ([models/appointments.js](Backend/models/appointments.js))

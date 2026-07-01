@@ -36,11 +36,13 @@ const addDesign = async (req, res) => {
 
         // Capture the points field from the request body (as an array of strings)
         const points = req.body.points ? JSON.parse(req.body.points) : [];
+        const subcategories = req.body.subcategories ? JSON.parse(req.body.subcategories) : [];
 
         const design = new Design({
             name: req.body.name,
             description: req.body.description,
             category: req.body.category,
+            subcategories: subcategories,
             images: imageUrls,
             points: points,
             // Add this new line:
@@ -117,8 +119,9 @@ const removeDesign = async (req, res) => {
 // --- ADD THIS NEW FUNCTION ---
 const updateDesign = async (req, res) => {
     try {
-        const { _id, name, description, category, points, existingImages } = req.body;
+        const { _id, name, description, category, points, subcategories, existingImages } = req.body;
         const parsedPoints = points ? JSON.parse(points) : [];
+        const parsedSubcategories = subcategories ? JSON.parse(subcategories) : [];
         const parsedExistingImages = existingImages ? JSON.parse(existingImages) : []; // Images user chose to KEEP
 
 // Find this block in updateDesign
@@ -126,6 +129,7 @@ let updateData = {
     name,
     description,
     category,
+    subcategories: parsedSubcategories,
     points: parsedPoints,
     // Add this new line:
     isFeatured: req.body.isFeatured === 'true'

@@ -5,11 +5,19 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import { useIconTagManager, SubcategorySection, ConfirmTagDeleteModal } from '../components/IconTagManager';
 
 const FALLBACK_CATEGORIES = [
     'Kitchen Designs', 'Bedroom Designs', 'Bathroom Designs',
     'Lounge area Designs', 'Kids Room Designs', 'TV Unit Designs',
     'Commercial Designs', 'Mandir Designs', 'Garden Designs', 'House Exterior',
+];
+
+const FALLBACK_SUBCATEGORIES = [
+    'Modular Kitchen', 'Island Kitchen', 'Master Bedroom', 'Walk-in Wardrobe',
+    'Vanity Units', 'Shower Cubicles', 'Seating Area', 'TV Panel',
+    'Bunk Beds', 'Study Corner', 'Office Cabins', 'Reception Area',
+    'Pooja Unit', 'Vertical Garden', 'Facade',
 ];
 
 // Inline-styled so they can never be affected by unrelated CSS rules
@@ -55,11 +63,15 @@ const imgOrderBadgeStyle = {
 const AddDesign = ({ url, setIsLoading, isLoading }) => {
     const [images, setImages] = useState([]);
     const [data, setData] = useState({
-        name: '', description: '', category: '', isFeatured: false,
+        name: '', description: '', category: '', subcategories: [], isFeatured: false,
     });
     const [points,     setPoints]     = useState(['']);
     const [catOpen,    setCatOpen]    = useState(false);
     const [categories, setCategories] = useState(FALLBACK_CATEGORIES);
+
+    const [subCatOpen, setSubCatOpen] = useState(false);
+    const subCatRef = useRef(null);
+    const [newParentCats, setNewParentCats] = useState([]);
 
     // inline add-category state
     const [addingCat,    setAddingCat]    = useState(false);
@@ -76,6 +88,8 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
     const [showReorder,    setShowReorder]    = useState(false);
     const [dragIndex,      setDragIndex]      = useState(null);
     const [dragOverIndex,  setDragOverIndex]  = useState(null);
+
+    const subManager = useIconTagManager(url, token, '/api/design-subcategory', FALLBACK_SUBCATEGORIES, () => ({ categories: newParentCats }));
 
     const fetchCategories = async () => {
         try {
@@ -129,6 +143,9 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
                 setCatOpen(false);
                 setAddingCat(false);
             }
+            if (subCatRef.current && !subCatRef.current.contains(e.target)) {
+                setSubCatOpen(false);
+            }
         };
         document.addEventListener('mousedown', handleOutside);
         return () => document.removeEventListener('mousedown', handleOutside);
@@ -137,6 +154,24 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
     const onChangeHandler = (e) => {
         const { name, value, type, checked } = e.target;
         setData(p => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
+    };
+
+    const selectCategory = (cat) => {
+        setData(prev => {
+            const validSubNames = subManager.objects.filter(s => s.categories?.includes(cat)).map(s => s.name);
+            return { ...prev, category: cat, subcategories: prev.subcategories.filter(s => validSubNames.includes(s)) };
+        });
+        setCatOpen(false);
+        setAddingCat(false);
+    };
+
+    const toggleSubcategory = (name) => {
+        setData(prev => ({
+            ...prev,
+            subcategories: prev.subcategories.includes(name)
+                ? prev.subcategories.filter(s => s !== name)
+                : [...prev.subcategories, name],
+        }));
     };
 
     const onPointChange   = (i, v) => { const p = [...points]; p[i] = v; setPoints(p); };
@@ -244,6 +279,7 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
         formData.append('name',        data.name);
         formData.append('description', data.description);
         formData.append('category',    data.category);
+        formData.append('subcategories', JSON.stringify(data.subcategories));
         formData.append('isFeatured',  data.isFeatured);
         formData.append('points',      JSON.stringify(points.filter(p => p.trim())));
         images.forEach(img => formData.append('images', img));
@@ -253,7 +289,7 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.data.success) {
-                setData({ name: '', description: '', category: categories[0] || '', isFeatured: false });
+                setData({ name: '', description: '', category: categories[0] || '', subcategories: [], isFeatured: false });
                 setPoints(['']); setImages([]);
                 toast.success(res.data.message);
             } else {
@@ -346,7 +382,7 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
                                         <li
                                             key={i}
                                             className={`add-cat-option${data.category === cat ? ' active' : ''}`}
-                                            onClick={() => { setData(p => ({ ...p, category: cat })); setCatOpen(false); setAddingCat(false); }}
+                                            onClick={() => selectCategory(cat)}
                                         >
                                             <span>{cat}</span>
                                             <div className="add-cat-option-actions" onClick={e => e.stopPropagation()}>
@@ -401,6 +437,22 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
                         )}
                     </div>
                 </div>
+
+                {/* ── Subcategories ── */}
+                {data.category && (
+                    <SubcategorySection
+                        subManager={subManager}
+                        catManager={{ objects: categoryObjects }}
+                        values={data.subcategories}
+                        onToggle={toggleSubcategory}
+                        availableForCategories={[data.category]}
+                        dropdownOpen={subCatOpen}
+                        setDropdownOpen={setSubCatOpen}
+                        dropRef={subCatRef}
+                        newParentCats={newParentCats}
+                        setNewParentCats={setNewParentCats}
+                    />
+                )}
 
                 {/* ── Reorder categories ── */}
                 <div className="cat-reorder-wrap">
@@ -487,6 +539,8 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
             </div>,
             document.body
         )}
+
+        <ConfirmTagDeleteModal manager={subManager} typeLabel="Subcategory" onRemoved={(name) => setData(p => ({ ...p, subcategories: p.subcategories.filter(s => s !== name) }))} />
         </>
     );
 };

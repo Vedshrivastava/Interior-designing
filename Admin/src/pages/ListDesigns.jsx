@@ -5,6 +5,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import { iconifyImgUrl } from '../components/IconTagManager';
 
 // Inline-styled so they can never be affected by unrelated CSS rules
 // elsewhere in the bundle (this app ships one global stylesheet for
@@ -94,10 +95,32 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
   // --- EDIT MODAL STATES ---
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editData, setEditData] = useState({
-    _id: '', name: '', category: '', description: '', points: [], isFeatured: false
+    _id: '', name: '', category: '', subcategories: [], description: '', points: [], isFeatured: false
   });
   const [keptImages, setKeptImages] = useState([]);
   const [editImages, setEditImages] = useState([]);
+
+  const [subcategoryObjects, setSubcategoryObjects] = useState([]);
+  const [editSubCatOpen, setEditSubCatOpen] = useState(false);
+  const editSubCatRef = useRef(null);
+
+  useEffect(() => {
+    axios.get(`${url}/api/design-subcategory/list`)
+      .then(res => { if (res.data.success) setSubcategoryObjects(res.data.data); })
+      .catch(() => {});
+  }, [url]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (editSubCatRef.current && !editSubCatRef.current.contains(e.target)) setEditSubCatOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const editAvailableSubcats = editData.category
+    ? subcategoryObjects.filter(s => s.categories?.includes(editData.category))
+    : [];
 
   const [formCategories, setFormCategories] = useState([
     { name: 'Kitchen Designs',     label: 'Kitchen'    },
@@ -163,6 +186,7 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
       _id: item._id,
       name: item.name,
       category: item.category,
+      subcategories: item.subcategories || [],
       description: item.description,
       points: item.points || [],
       isFeatured: item.isFeatured || false // Add this
@@ -174,9 +198,23 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
 
   const handleEditChange = (e) => {
     const { name, value, type, checked } = e.target;
+    if (name === 'category') {
+      const validSubNames = subcategoryObjects.filter(s => s.categories?.includes(value)).map(s => s.name);
+      setEditData(prev => ({ ...prev, category: value, subcategories: prev.subcategories.filter(s => validSubNames.includes(s)) }));
+      return;
+    }
     setEditData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
+    }));
+  }
+
+  const toggleEditSubcategory = (name) => {
+    setEditData(prev => ({
+      ...prev,
+      subcategories: prev.subcategories.includes(name)
+        ? prev.subcategories.filter(s => s !== name)
+        : [...prev.subcategories, name],
     }));
   }
 
@@ -239,6 +277,7 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
     formData.append("name", editData.name);
     formData.append("description", editData.description);
     formData.append("category", editData.category);
+    formData.append("subcategories", JSON.stringify(editData.subcategories));
     formData.append("points", JSON.stringify(editData.points));
     formData.append("isFeatured", editData.isFeatured);
     formData.append("existingImages", JSON.stringify(keptImages));
@@ -341,6 +380,34 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
                   ))}
                 </select>
               </div>
+
+              {editAvailableSubcats.length > 0 && (
+                <div className="add-cat-dropdown-wrap flex-col">
+                  <p>Subcategories <span style={{ fontSize: '0.72rem', fontWeight: 400, color: '#888' }}>(select all that apply)</span></p>
+                  <div className="add-cat-dropdown" ref={editSubCatRef}>
+                    <button type="button" className={`add-cat-trigger${editSubCatOpen ? ' open' : ''}`} onClick={() => setEditSubCatOpen(o => !o)}>
+                      <span>{editData.subcategories.length > 0 ? editData.subcategories.join(', ') : 'Select subcategories'}</span>
+                      <i className="fa fa-chevron-down" />
+                    </button>
+                    {editSubCatOpen && (
+                      <ul className="add-cat-list">
+                        {editAvailableSubcats.map(sub => {
+                          const iconUrl = iconifyImgUrl(sub.icon);
+                          const sel = editData.subcategories.includes(sub.name);
+                          return (
+                            <li key={sub._id} className={`add-cat-option${sel ? ' active' : ''}`}
+                              onClick={() => toggleEditSubcategory(sub.name)}>
+                              {iconUrl && <img src={iconUrl} width={13} height={13} alt="" style={{ marginRight: '6px' }} />}
+                              <span>{sub.name}</span>
+                              {sel && <i className="fa fa-check" />}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="add-featured flex-col" style={{ marginTop: '10px' }}>
                 <label className="featured-toggle">
@@ -495,7 +562,14 @@ const ListDesigns = ({ url, setIsLoading, isLoading }) => {
                       <div className="placeholder-img"></div>
                     )}
                   </div>
-                  <p className="item-name">{item.name}</p>
+                  <div>
+                    <p className="item-name">{item.name}</p>
+                    {item.subcategories?.length > 0 && (
+                      <p style={{ fontFamily: '"DM Sans",sans-serif', fontSize: '0.78rem', color: 'var(--text-mid)', margin: '4px 0 0' }}>
+                        {item.subcategories.join(', ')}
+                      </p>
+                    )}
+                  </div>
                   <p className="item-category">{getCatLabel(item.category)}</p>
 
                   <div className="action-buttons">

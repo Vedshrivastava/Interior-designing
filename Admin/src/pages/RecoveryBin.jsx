@@ -10,7 +10,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 const TYPE_LABEL = { design: 'Design', product: 'Product', project: 'Project' };
 
 const RecoveryBin = ({ url }) => {
-    const [bin,          setBin]          = useState({ designs: [], products: [], projects: [], categories: [], projectCategories: [], projectTypes: [], specialities: [], applications: [], productCategories: [], productSubcategories: [], materials: [], finishes: [], cities: [] });
+    const [bin,          setBin]          = useState({ designs: [], products: [], projects: [], categories: [], projectCategories: [], projectTypes: [], specialities: [], applications: [], productCategories: [], productSubcategories: [], designSubcategories: [], materials: [], finishes: [], cities: [] });
     const [loading,      setLoading]      = useState(true);
     const [activeTab,    setActiveTab]    = useState('designs');
     const [query,        setQuery]        = useState('');
@@ -88,12 +88,13 @@ const RecoveryBin = ({ url }) => {
         { key: 'applications',      label: `Applications (${(bin.applications||[]).length})`     },
         { key: 'productCategories',    label: `Product Categories (${(bin.productCategories||[]).length})` },
         { key: 'productSubcategories', label: `Product Subcategories (${(bin.productSubcategories||[]).length})` },
+        { key: 'designSubcategories',  label: `Design Subcategories (${(bin.designSubcategories||[]).length})` },
         { key: 'materials',            label: `Materials (${(bin.materials||[]).length})` },
         { key: 'finishes',             label: `Finishes (${(bin.finishes||[]).length})` },
         { key: 'cities',               label: `Cities (${(bin.cities||[]).length})` },
     ];
 
-    const total = bin.designs.length + bin.products.length + bin.projects.length + bin.categories.length + (bin.projectCategories||[]).length + (bin.projectTypes||[]).length + (bin.specialities||[]).length + (bin.applications||[]).length + (bin.productCategories||[]).length + (bin.productSubcategories||[]).length + (bin.materials||[]).length + (bin.finishes||[]).length + (bin.cities||[]).length;
+    const total = bin.designs.length + bin.products.length + bin.projects.length + bin.categories.length + (bin.projectCategories||[]).length + (bin.projectTypes||[]).length + (bin.specialities||[]).length + (bin.applications||[]).length + (bin.productCategories||[]).length + (bin.productSubcategories||[]).length + (bin.designSubcategories||[]).length + (bin.materials||[]).length + (bin.finishes||[]).length + (bin.cities||[]).length;
     const items = (bin[activeTab] || [])
         .filter(item => !query || item.name.toLowerCase().includes(query.toLowerCase()));
 
@@ -158,15 +159,16 @@ const RecoveryBin = ({ url }) => {
                                 applications: 'No deleted applications — all clear.',
                                 productCategories: 'No deleted product categories — all clear.',
                                 productSubcategories: 'No deleted product subcategories — all clear.',
+                                designSubcategories: 'No deleted design subcategories — all clear.',
                                 materials: 'No deleted materials — all clear.',
                                 finishes: 'No deleted finishes — all clear.',
                                 cities: 'No deleted cities — all clear.',
                             }[activeTab] || `Nothing in ${TYPE_LABEL[activeTab.slice(0, -1)]} bin — all clear.`}
                         </div>
-                    ) : (['categories','projectCategories','projectTypes','specialities','applications','productCategories','productSubcategories','materials','finishes','cities'].includes(activeTab)) ? (
+                    ) : (['categories','projectCategories','projectTypes','specialities','applications','productCategories','productSubcategories','designSubcategories','materials','finishes','cities'].includes(activeTab)) ? (
                         items.map((item) => {
                             const count = item.designCount ?? item.projectCount ?? item.productCount ?? 0;
-                            const countLabel = activeTab === 'categories'
+                            const countLabel = (activeTab === 'categories' || activeTab === 'designSubcategories')
                                 ? `${count} design${count !== 1 ? 's' : ''}`
                                 : (activeTab === 'productCategories' || activeTab === 'productSubcategories' || activeTab === 'materials' || activeTab === 'finishes')
                                 ? `used in ${count} product${count !== 1 ? 's' : ''}`
@@ -256,10 +258,11 @@ const RecoveryBin = ({ url }) => {
                         <h3>Delete Forever?</h3>
                         <p className="bin-confirm-name">"{confirmItem.name}"</p>
                         <p className="bin-confirm-warning">
-                            {['category','projectCategory','projectType','speciality','application','productCategory','productSubcategory','material','finish','city'].includes(confirmItem?._type)
+                            {['category','projectCategory','projectType','speciality','application','productCategory','productSubcategory','designSubcategory','material','finish','city'].includes(confirmItem?._type)
                                 ? <>This permanently removes the {{
                                     projectType: 'project type', speciality: 'speciality', application: 'application',
                                     productCategory: 'product category', productSubcategory: 'product subcategory',
+                                    designSubcategory: 'design subcategory',
                                     material: 'material', finish: 'finish', city: 'city',
                                   }[confirmItem?._type] || 'category'}. Products/projects/designs using it are <strong>not deleted</strong>.<br /><strong>This action cannot be undone.</strong></>
                                 : <>This will permanently remove the item and all its images from storage.<br /><strong>This action cannot be undone.</strong></>

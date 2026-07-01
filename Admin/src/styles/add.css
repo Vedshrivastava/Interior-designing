@@ -359,7 +359,10 @@
     gap: 8px;
 }
 
-.add-cat-new-form input {
+/* Direct-child combinator — a plain descendant selector here also reaches the
+   checkbox <input>s nested inside .sub-parent-cat-list pills further down and
+   forces them to width:100%, squeezing the pill's label text into overflow. */
+.add-cat-new-form > input {
     width: 100%;
     padding: 9px 12px;
     border: 1px solid rgba(201,168,124,0.3);
@@ -373,7 +376,7 @@
     box-sizing: border-box;
 }
 
-.add-cat-new-form input:focus { border-color: var(--gold); }
+.add-cat-new-form > input:focus { border-color: var(--gold); }
 
 .add-cat-new-actions {
     display: flex;

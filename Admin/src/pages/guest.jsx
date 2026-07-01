@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 import '../styles/guest.css';
 
 const url = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const WelcomeGuest = ({ setShowLogin, setAuthType, autoOpenRequest, setAutoOpenRequest, autoOpenEmail, autoOpenName }) => {
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm]     = useState({ name: '', email: '', reason: '' });
-  const [loading, setLoading]   = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [noAccount, setNoAccount] = useState(false);
+  const [form, setForm]             = useState({ name: '', email: '', reason: '' });
+  const [loading, setLoading]       = useState(false);
+  const [submitted, setSubmitted]   = useState(false);
+  const [noAccount, setNoAccount]   = useState(false);
+  const [emailNotVerified, setEmailNotVerified] = useState(false);
 
   useEffect(() => {
     if (!autoOpenRequest) return;
@@ -38,8 +41,11 @@ const WelcomeGuest = ({ setShowLogin, setAuthType, autoOpenRequest, setAutoOpenR
         toast.error(res.data.message || 'Failed to submit request.');
       }
     } catch (err) {
-      const msg = err.response?.data?.message || '';
-      if (err.response?.status === 400 && msg.toLowerCase().includes('no account')) {
+      const msg    = err.response?.data?.message || '';
+      const status = err.response?.status;
+      if (status === 403 && msg === 'email_not_verified') {
+        setEmailNotVerified(true);
+      } else if (status === 400 && msg.toLowerCase().includes('no account')) {
         setNoAccount(true);
       } else {
         toast.error(msg || 'Something went wrong. Please try again.');
@@ -53,7 +59,15 @@ const WelcomeGuest = ({ setShowLogin, setAuthType, autoOpenRequest, setAutoOpenR
     setShowModal(false);
     setSubmitted(false);
     setNoAccount(false);
+    setEmailNotVerified(false);
     setForm({ name: '', email: '', reason: '' });
+  };
+
+  const handleVerifyEmail = () => {
+    sessionStorage.setItem('pendingEmail', form.email || '');
+    sessionStorage.setItem('pendingName', form.name || '');
+    closeModal();
+    navigate('/verify-email');
   };
 
   return (
@@ -108,6 +122,35 @@ const WelcomeGuest = ({ setShowLogin, setAuthType, autoOpenRequest, setAutoOpenR
                     Sign In
                   </button>
                 </div>
+              </div>
+
+            ) : emailNotVerified ? (
+              /* ── Email not verified state ── */
+              <div className="request-no-account">
+                <button className="request-modal-x request-modal-x--top" onClick={closeModal} aria-label="Close">✕</button>
+                <div className="request-no-account-icon">✉</div>
+                <h3>Email Not Verified</h3>
+                <p>
+                  Your email <strong>{form.email || 'address'}</strong> hasn't been verified yet.
+                  Please verify your email before submitting a request.
+                </p>
+                <div className="request-no-account-actions">
+                  <button
+                    className="request-auth-btn request-auth-btn--primary"
+                    onClick={handleVerifyEmail}
+                  >
+                    Verify Email
+                  </button>
+                  <button
+                    className="request-auth-btn request-auth-btn--ghost"
+                    onClick={closeModal}
+                  >
+                    Close
+                  </button>
+                </div>
+                <p className="request-no-account-hint">
+                  Once your email is verified, come back and submit the request using the same email.
+                </p>
               </div>
 
             ) : noAccount ? (

@@ -249,6 +249,18 @@
     color: #7a8a8a;
 }
 
+.ev-resend-link {
+    color: #c9a87c;
+    cursor: pointer;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+.ev-resend-link:hover { color: #e8d0a8; }
+.ev-resend-link--disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
 /* ── Success state ── */
 .ev-success {
     padding: 20px 0 12px;

@@ -9,7 +9,13 @@ const EmailVerificationPage = ({ setShowLogin, setAuthType, setAutoOpenRequest, 
     const inputRefs = useRef([]);
     const isSubmitting = useRef(false);
     const navigate = useNavigate();
-    const { error, isLoading, verifyEmail } = useAuthStore();
+    const error = useAuthStore(state => state.error);
+    const isLoading = useAuthStore(state => state.isLoading);
+    const verifyEmail = useAuthStore(state => state.verifyEmail);
+    const resendVerification = useAuthStore(state => state.resendVerification);
+    const [pendingEmail] = useState(() => sessionStorage.getItem('pendingEmail') || '');
+    const [resendLoading, setResendLoading] = useState(false);
+    const [resendSent, setResendSent] = useState(false);
     const [success, setSuccess] = useState(false);
     const [shake, setShake] = useState(false);
     const [countdown, setCountdown] = useState(3);
@@ -32,6 +38,21 @@ const EmailVerificationPage = ({ setShowLogin, setAuthType, setAutoOpenRequest, 
     const handleKeyDown = (index, e) => {
         if (e.key === "Backspace" && !code[index] && index > 0) {
             inputRefs.current[index - 1]?.focus();
+        }
+    };
+
+    const handleResend = async () => {
+        if (!pendingEmail || resendLoading || resendSent) return;
+        setResendLoading(true);
+        try {
+            await resendVerification(pendingEmail);
+            setResendSent(true);
+            toast.success('New verification code sent!');
+            setTimeout(() => setResendSent(false), 30000);
+        } catch (err) {
+            toast.error(err?.response?.data?.message || 'Failed to resend code. Please try again.');
+        } finally {
+            setResendLoading(false);
         }
     };
 
@@ -182,7 +203,17 @@ const EmailVerificationPage = ({ setShowLogin, setAuthType, setAutoOpenRequest, 
 
                         <p className="ev-footer-hint">
                             Didn't receive the code?{" "}
-                            <span>Check your spam folder or create a new account.</span>
+                            {pendingEmail ? (
+                                <span
+                                    className={`ev-resend-link${resendLoading || resendSent ? ' ev-resend-link--disabled' : ''}`}
+                                    role="button"
+                                    onClick={handleResend}
+                                >
+                                    {resendLoading ? 'Sending…' : resendSent ? 'Sent ✓' : 'Resend code'}
+                                </span>
+                            ) : (
+                                <span>Check your spam folder.</span>
+                            )}
                         </p>
                     </>
                 )}

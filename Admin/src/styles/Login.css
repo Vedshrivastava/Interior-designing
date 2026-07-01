@@ -244,6 +244,74 @@
   margin: 0;
 }
 
+/* ── Session expired banner ── */
+.session-expired-banner {
+  background: rgba(201,168,124,0.1);
+  border: 1px solid rgba(201,168,124,0.3);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.82rem;
+  color: var(--gold-lt);
+  text-align: center;
+}
+
+/* ── Email not verified notice ── */
+.login-unverified-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(201,100,50,0.12);
+  border: 1px solid rgba(201,100,50,0.35);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.login-unverified-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.login-unverified-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.login-unverified-text strong {
+  font-family: "Inter", sans-serif;
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: #f0c080;
+}
+
+.login-unverified-text span {
+  font-family: "Inter", sans-serif;
+  font-size: 0.77rem;
+  color: rgba(240,192,128,0.75);
+}
+
+.login-verify-btn {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border: 1px solid rgba(201,168,124,0.5);
+  border-radius: 8px;
+  background: rgba(201,168,124,0.12);
+  color: var(--gold-lt);
+  font-family: "Inter", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+.login-verify-btn:hover {
+  background: rgba(201,168,124,0.22);
+  border-color: rgba(201,168,124,0.7);
+}
+
 /* ── Responsive ── */
 @media (max-width: 480px) {
   .login { align-items: flex-end; padding: 0; }

@@ -100,6 +100,13 @@ const loginAdmin = async (req, res) => {
       });
     }
 
+    if (!admin.isVerified) {
+      return res.status(403).json({
+        success: false,
+        message: "email_not_verified",
+      });
+    }
+
     const tokenData = {
       id:    admin._id,
       name:  admin.name,

@@ -148,4 +148,30 @@ const verifyResetToken = async (req, res) => {
   }
 };
 
-export { verifyEmail, forgotPassword, resetPassword, checkAuth, verifyResetToken };
+const resendVerification = async (req, res) => {
+  const email = req.body.email?.toLowerCase().trim();
+  try {
+    if (!email || !validator.isEmail(email))
+      return res.status(400).json({ success: false, message: 'Valid email is required.' });
+
+    const user = await userModel.findOne({ email });
+    if (!user)
+      return res.status(404).json({ success: false, message: 'No account found with this email.' });
+    if (user.isVerified)
+      return res.status(400).json({ success: false, message: 'This email is already verified.' });
+
+    const verificationCode = generateVerificationCode();
+    user.verificationToken = verificationCode;
+    user.verificationTokenExpiresAt = Date.now() + 24 * 60 * 60 * 1000;
+    await user.save();
+
+    await sendVerificationEmail(email, verificationCode);
+
+    return res.json({ success: true, message: 'Verification code resent successfully.' });
+  } catch (error) {
+    console.error('resendVerification error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to resend verification email.' });
+  }
+};
+
+export { verifyEmail, forgotPassword, resetPassword, checkAuth, verifyResetToken, resendVerification };

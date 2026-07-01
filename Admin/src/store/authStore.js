@@ -133,6 +133,19 @@ export const useAuthStore = create((set) => ({
         }
     },
 
+    resendVerification: async (email) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await axios.post(`${API_URL}/api/user/resend-verification`, { email });
+            set({ isLoading: false });
+            return response;
+        } catch (error) {
+            const msg = error.response?.data?.message || 'Failed to resend verification email.';
+            set({ error: msg, isLoading: false });
+            throw error;
+        }
+    },
+
     logout: () => {
         localStorage.removeItem('user');
         localStorage.removeItem('isAuthenticated');

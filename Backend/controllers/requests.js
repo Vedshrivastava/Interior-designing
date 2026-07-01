@@ -21,6 +21,13 @@ const submitRequest = async (req, res) => {
                 message: 'No account found for this email. Please create an account first, then request admin access.',
             });
 
+        // Email must be verified before requesting access
+        if (!account.isVerified)
+            return res.status(403).json({
+                success: false,
+                message: 'email_not_verified',
+            });
+
         // Already an admin or master — no need to request
         if (account.role === 'ADMIN' || account.role === 'MASTER')
             return res.status(400).json({ success: false, message: 'This account already has admin access.' });

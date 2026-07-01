@@ -28,13 +28,14 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
   // Read ?reason=expired from URL — set once on mount, never changes
   const sessionExpired = new URLSearchParams(window.location.search).get('reason') === 'expired';
 
-  const [currState, setCurrState]       = useState(authType);
-  const [data, setData]                 = useState({ name: '', email: '', password: '' });
-  const [forgotEmail, setForgotEmail]   = useState('');
-  const [isSubmitted, setIsSubmitted]   = useState(false);
-  const [resetMessage, setResetMessage] = useState('');
-  const [pageLoading, setPageLoading]   = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [currState, setCurrState]         = useState(authType);
+  const [data, setData]                   = useState({ name: '', email: '', password: '' });
+  const [forgotEmail, setForgotEmail]     = useState('');
+  const [isSubmitted, setIsSubmitted]     = useState(false);
+  const [resetMessage, setResetMessage]   = useState('');
+  const [pageLoading, setPageLoading]     = useState(false);
+  const [showPassword, setShowPassword]   = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
 
   const navigate = useNavigate();
 
@@ -46,12 +47,23 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
   // The Navbar now owns all expiry logic (3-layer: mount check, setTimeout, setInterval).
   // The axios interceptor in StoreContext handles backend 401s.
 
-  const onChange = e => setData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const onChange = e => {
+    setData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    if (unverifiedEmail) setUnverifiedEmail('');
+  };
+
+  const handleGoVerify = () => {
+    sessionStorage.setItem('pendingEmail', data.email || unverifiedEmail);
+    sessionStorage.setItem('pendingName', '');
+    setShowLogin(false);
+    setTimeout(() => navigate('/verify-email'), 0);
+  };
 
   /* ── submit ── */
   const onLogin = async e => {
     e.preventDefault();
     setPageLoading(true);
+    setUnverifiedEmail('');
 
     try {
       /* ── Sign Up ── */
@@ -59,7 +71,9 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
         await signup(data.email, data.password, data.name);
         toast.success('Account created! Please verify your email.');
         setShowLogin(false);
-        navigate('/verify-email');
+        // Defer navigation so Login fully unmounts before Email_verification mounts,
+        // preventing a Zustand useSyncExternalStore crash during the concurrent transition.
+        setTimeout(() => navigate('/verify-email'), 0);
 
       /* ── Forgot Password ── */
       } else if (currState === 'Forgot Password') {
@@ -125,6 +139,8 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
         const message = err.response?.data?.message;
         if (status === 404 || message === 'no_account') {
           toast.error("No account found with this email. Please create an account first.");
+        } else if (status === 403 && message === 'email_not_verified') {
+          setUnverifiedEmail(data.email);
         } else {
           toast.error(err.response?.data?.message || err?.message || 'Login failed. Please try again.');
         }
@@ -199,6 +215,19 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
                 </>
               )}
             </div>
+
+            {unverifiedEmail && (
+              <div className="login-unverified-notice">
+                <span className="login-unverified-icon">✉</span>
+                <div className="login-unverified-text">
+                  <strong>Email not verified</strong>
+                  <span>Verify your email before signing in.</span>
+                </div>
+                <button type="button" className="login-verify-btn" onClick={handleGoVerify}>
+                  Verify →
+                </button>
+              </div>
+            )}
 
             <button type="submit" disabled={pageLoading}>
               {pageLoading ? (

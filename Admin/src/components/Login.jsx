@@ -20,7 +20,9 @@ const TITLES = {
 };
 
 const Login = ({ setShowLogin, authType = 'Login' }) => {
-  const { signup, isLoading, login, forgotPassword } = useAuthStore();
+  const signup       = useAuthStore(state => state.signup);
+  const login        = useAuthStore(state => state.login);
+  const forgotPassword = useAuthStore(state => state.forgotPassword);
   const { token, setToken, setUserId, setUserName, setUserEmail, setIsLoggedIn } = useContext(StoreContext);
 
   // Read ?reason=expired from URL — set once on mount, never changes
@@ -198,8 +200,8 @@ const Login = ({ setShowLogin, authType = 'Login' }) => {
               )}
             </div>
 
-            <button type="submit" disabled={isLoading || pageLoading}>
-              {isLoading || pageLoading ? (
+            <button type="submit" disabled={pageLoading}>
+              {pageLoading ? (
                 'Please wait…'
               ) : currState === 'Sign Up' ? (
                 <><FontAwesomeIcon icon={faUser} /> Create Account</>

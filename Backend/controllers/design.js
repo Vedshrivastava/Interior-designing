@@ -60,9 +60,10 @@ const addDesign = async (req, res) => {
 
 const listDesigns = async (req, res) => {
     try {
-        const { category, page, limit } = req.query;
+        const { category, subcategory, page, limit } = req.query;
         const filter = { deleted: { $ne: true } };
         if (category) filter.category = category;
+        if (subcategory) filter.subcategories = subcategory;
 
         if (page || limit) {
             const pageNum  = Math.max(1, parseInt(page,  10) || 1);

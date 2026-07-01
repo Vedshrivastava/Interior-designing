@@ -35,6 +35,20 @@ export default function DesignDisplayPage({
 
   useEffect(() => { if (!categories) fetchCategories(); }, [fetchCategories, categories]);
 
+  const [subcatList, setSubcatList] = useState([]);
+  const [activeSubcategory, setActiveSubcategory] = useState('All');
+
+  const fetchSubcategories = useCallback(() => {
+    fetch(`${API_URL}/api/design-subcategory/list`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setSubcatList(d.data); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => { fetchSubcategories(); }, [fetchSubcategories]);
+
+  const availableSubcats = subcatList.filter(s => s.categories?.includes(category));
+
   const [designList,  setDesignList]  = useState(initialDesigns);
   const [total,       setTotal]       = useState(initialTotal);
   const [page,        setPage]        = useState(1);
@@ -57,8 +71,9 @@ export default function DesignDisplayPage({
 
   const fetchPage = useCallback(async (pageNum, replace = false) => {
     try {
+      const subParam = activeSubcategory !== 'All' ? `&subcategory=${encodeURIComponent(activeSubcategory)}` : '';
       const res = await axios.get(
-        `${API_URL}/api/design/list?category=${encodeURIComponent(category)}&page=${pageNum}&limit=${pageLimit}`
+        `${API_URL}/api/design/list?category=${encodeURIComponent(category)}&page=${pageNum}&limit=${pageLimit}${subParam}`
       );
       const { data, total: newTotal } = res.data;
       setTotal(newTotal ?? data.length);
@@ -67,7 +82,7 @@ export default function DesignDisplayPage({
     } catch (err) {
       console.error('Error fetching designs:', err);
     }
-  }, [category, pageLimit]);
+  }, [category, pageLimit, activeSubcategory]);
 
   // Trust the server-rendered (ISR) data the first time we see a given
   // category — re-fetching it immediately on mount just re-requested the
@@ -76,6 +91,7 @@ export default function DesignDisplayPage({
   // don't already have data for the current slug (e.g. a category switch
   // where this component instance is reused rather than remounted).
   const loadedSlugRef = useRef(null);
+  const subcatMountRef = useRef(true);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
@@ -84,16 +100,27 @@ export default function DesignDisplayPage({
       loadedSlugRef.current = slug;
       setDesignList(initialDesigns);
       setTotal(initialTotal);
+      setActiveSubcategory('All');
+      subcatMountRef.current = true;
       return;
     }
     fetchPage(1, true);
   }, [fetchPage, slug, initialDesigns, initialTotal]);
 
+  // Re-fetch page 1 when the subcategory filter changes (skip the very first
+  // run so we don't immediately re-request the SSR-hydrated data).
+  useEffect(() => {
+    if (subcatMountRef.current) { subcatMountRef.current = false; return; }
+    fetchPage(1, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSubcategory]);
+
   // WebSocket: instantly re-fetch when admin adds/edits/removes a design
   useWebSocket(useCallback((msg) => {
-    if (msg.type === 'designsChanged')    fetchPage(1, true);
-    if (msg.type === 'categoriesChanged') fetchCategories();
-  }, [fetchPage, fetchCategories]));
+    if (msg.type === 'designsChanged')             fetchPage(1, true);
+    if (msg.type === 'categoriesChanged')          fetchCategories();
+    if (msg.type === 'designSubcategoriesChanged') fetchSubcategories();
+  }, [fetchPage, fetchCategories, fetchSubcategories]));
 
   const loadMore = async () => {
     setLoadingMore(true);
@@ -165,6 +192,26 @@ export default function DesignDisplayPage({
           ))}
         </div>
 
+        {availableSubcats.length > 0 && (
+          <div className="dd-subcat-bar" aria-label="Design subcategories">
+            <button
+              className={`dd-subcat-chip${activeSubcategory === 'All' ? ' active' : ''}`}
+              onClick={() => setActiveSubcategory('All')}
+            >
+              All
+            </button>
+            {availableSubcats.map(sub => (
+              <button
+                key={sub._id}
+                className={`dd-subcat-chip${activeSubcategory === sub.name ? ' active' : ''}`}
+                onClick={() => setActiveSubcategory(sub.name)}
+              >
+                {sub.name}
+              </button>
+            ))}
+          </div>
+        )}
+
         {featuredDesigns.length > 0 && (
           <section className="dd-featured-section">
             <div className="dd-featured-header">
@@ -202,6 +249,7 @@ export default function DesignDisplayPage({
                         id={item._id} name={item.name} description={item.description}
                         images={item.images} points={item.points} category={item.category}
                         categoryLabel={catObj?.label || undefined}
+                        subcategories={item.subcategories}
                         priority={i < 3}
                         blurDataURL={item.blurDataURL || null}
                       />
@@ -235,6 +283,7 @@ export default function DesignDisplayPage({
                     description={item.description} images={item.images}
                     points={item.points} category={item.category}
                     categoryLabel={catObj?.label || undefined}
+                    subcategories={item.subcategories}
                     priority={i < 6}
                     blurDataURL={item.blurDataURL || null}
                   />

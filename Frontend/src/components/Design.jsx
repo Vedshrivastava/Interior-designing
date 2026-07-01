@@ -12,7 +12,7 @@ function cloudinaryThumb(url, width = 800) {
   return cloudinaryOptimize(url, { width, crop: 'fill' }) ?? url;
 }
 
-export default function Design({ id, name, description, images, points, category, categoryLabel, priority = false, blurDataURL = null }) {
+export default function Design({ id, name, description, images, points, category, categoryLabel, subcategories, priority = false, blurDataURL = null }) {
   const { openQuote } = useModal();
   const [modalOpen,     setModalOpen]     = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
@@ -85,6 +85,13 @@ export default function Design({ id, name, description, images, points, category
         <span className="dc-category-tag">
           {categoryLabel || category || 'Design'}
         </span>
+        {subcategories?.length > 0 && (
+          <div className="dc-subcat-tags">
+            {subcategories.map(sub => (
+              <span key={sub} className="dc-subcat-tag">{sub}</span>
+            ))}
+          </div>
+        )}
         <h3 className="dc-card-title">{name}</h3>
         <p className="dc-card-desc">{description}</p>
 
@@ -149,7 +156,12 @@ export default function Design({ id, name, description, images, points, category
 
         <div className="dc-modal-content">
           <button className="dc-modal-close" onClick={closeModal} aria-label="Close">✕</button>
-          <div className="dc-modal-tags"><span className="dc-modal-tag">{category}</span></div>
+          <div className="dc-modal-tags">
+            <span className="dc-modal-tag">{category}</span>
+            {subcategories?.map(sub => (
+              <span key={sub} className="dc-modal-tag dc-modal-tag--sub">{sub}</span>
+            ))}
+          </div>
           <h2 className="dc-modal-title">{name}</h2>
           {description && (
             <div className="dc-modal-section">

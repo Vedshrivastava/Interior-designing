@@ -5,6 +5,7 @@ import { IconCalendar, IconArrowRight, IconCrown, IconComments, IconEye, IconKey
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 import Footer from '@/components/Footer';
 import { useModal } from '@/context/ModalContext';
@@ -247,8 +248,7 @@ export default function ServicesPage({ initialTestimonials = null }) {
         </div>
       )}
       <section className="hp-hero">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={bgimg.src} alt="Luxury interior design services in Satna, Madhya Pradesh by Shrivastavas Elevate" className="hp-hero-bg" />
+        <Image src={bgimg} alt="Luxury interior design services in Satna, Madhya Pradesh by Shrivastavas Elevate" fill priority sizes="100vw" className="hp-hero-bg" style={{ objectFit: 'cover' }} />
         <div className="hp-hero-overlay" />
         <div className="hp-hero-inner">
           <div className="hp-hero-tag-box">Our Services</div>
@@ -406,7 +406,7 @@ export default function ServicesPage({ initialTestimonials = null }) {
             <div className="t-modal-stars">{Array.from({ length: activeTCard.rating }).map((_, i) => <IconStarFilled key={i} />)}</div>
             <p className="t-modal-text">{activeTCard.text}</p>
             <div className="t-modal-author">
-              <div className="t-modal-avatar">{activeTCard.image ? <img src={activeTCard.image.src} alt={activeTCard.name} /> : activeTCard.name.charAt(0)}</div>
+              <div className="t-modal-avatar">{activeTCard.image ? <Image src={activeTCard.image} alt={activeTCard.name} width={42} height={42} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : activeTCard.name.charAt(0)}</div>
               <div className="t-modal-author-info"><strong>{activeTCard.name}</strong><span>{activeTCard.location}</span></div>
             </div>
           </div>
@@ -427,7 +427,7 @@ export default function ServicesPage({ initialTestimonials = null }) {
                   <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
                   <p className="t-card-text">{truncate(t.text)}</p>
                   <div className="t-card-author">
-                    <div className="t-card-avatar">{t.image ? <img src={t.image.src} alt={t.name} /> : t.name.charAt(0)}</div>
+                    <div className="t-card-avatar">{t.image ? <Image src={t.image} alt={t.name} width={42} height={42} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : t.name.charAt(0)}</div>
                     <div className="t-card-author-info"><strong>{t.name}</strong><span>{t.location}</span></div>
                   </div>
                 </div>
@@ -441,7 +441,7 @@ export default function ServicesPage({ initialTestimonials = null }) {
                   <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
                   <p className="t-card-text">{truncate(t.text)}</p>
                   <div className="t-card-author">
-                    <div className="t-card-avatar">{t.image ? <img src={t.image.src} alt={t.name} /> : t.name.charAt(0)}</div>
+                    <div className="t-card-avatar">{t.image ? <Image src={t.image} alt={t.name} width={42} height={42} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : t.name.charAt(0)}</div>
                     <div className="t-card-author-info"><strong>{t.name}</strong><span>{t.location}</span></div>
                   </div>
                 </div>

@@ -3,6 +3,7 @@ import '@/styles/home.css';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   IconCrown, IconLayerGroup, IconBuilding, IconArrowRight, IconCalendar,
@@ -102,10 +103,10 @@ function useDraggableMarquee({ speed = 0.55, reverse = false } = {}) {
 }
 
 const brandLogos = [
-  { src: kajaria.src,      alt: 'Kajaria'      },
-  { src: saint_gobain.src, alt: 'Saint-Gobain' },
-  { src: asian_paints.src, alt: 'Asian Paints' },
-  { src: centuryply.src,   alt: 'CenturyPly'   },
+  { src: kajaria,      alt: 'Kajaria'      },
+  { src: saint_gobain, alt: 'Saint-Gobain' },
+  { src: asian_paints, alt: 'Asian Paints' },
+  { src: centuryply,   alt: 'CenturyPly'   },
 ];
 
 const CountUp = ({ endValue, duration = 2300 }) => {
@@ -242,8 +243,7 @@ export default function HomePage({ initialTestimonials = null }) {
             <p className="t-modal-text">{activeTCard.text}</p>
             <div className="t-modal-author">
               <div className="t-modal-avatar">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {activeTCard.image ? <img src={activeTCard.image.src} alt={activeTCard.name} /> : activeTCard.name.charAt(0)}
+                {activeTCard.image ? <Image src={activeTCard.image} alt={activeTCard.name} width={42} height={42} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : activeTCard.name.charAt(0)}
               </div>
               <div className="t-modal-author-info">
                 <strong>{activeTCard.name}</strong>
@@ -258,8 +258,7 @@ export default function HomePage({ initialTestimonials = null }) {
           HERO
       ══════════════════════════════ */}
       <section className="hp-hero">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={bgimg.src} alt="" className="hp-hero-bg" fetchPriority="high" loading="eager" />
+        <Image src={bgimg} alt="" fill priority sizes="100vw" className="hp-hero-bg" style={{ objectFit: 'cover' }} />
         <div className="hp-hero-overlay" />
         <div className="hp-hero-grid-lines"><span /><span /><span /><span /></div>
 
@@ -357,8 +356,7 @@ export default function HomePage({ initialTestimonials = null }) {
               style={{ '--sr-delay': `${i * 60}ms` }}
             >
               <div className="hp-dc-img">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={d.img.src} alt={d.alt} />
+                <Image src={d.img} alt={d.alt} fill placeholder="blur" sizes="(max-width: 600px) 100vw, (max-width: 1000px) 50vw, 33vw" style={{ objectFit: 'cover' }} />
                 <div className="hp-dc-overlay" />
               </div>
               <div className="hp-dc-info">
@@ -478,8 +476,7 @@ export default function HomePage({ initialTestimonials = null }) {
                   <p className="t-card-text">{t.text}</p>
                   <div className="t-card-author">
                     <div className="t-card-avatar">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {t.image ? <img src={t.image.src} alt={t.name} /> : t.name.charAt(0)}
+                      {t.image ? <Image src={t.image} alt={t.name} width={42} height={42} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : t.name.charAt(0)}
                     </div>
                     <div className="t-card-author-info">
                       <strong>{t.name}</strong>
@@ -502,8 +499,7 @@ export default function HomePage({ initialTestimonials = null }) {
                   <p className="t-card-text">{t.text}</p>
                   <div className="t-card-author">
                     <div className="t-card-avatar">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {t.image ? <img src={t.image.src} alt={t.name} /> : t.name.charAt(0)}
+                      {t.image ? <Image src={t.image} alt={t.name} width={42} height={42} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : t.name.charAt(0)}
                     </div>
                     <div className="t-card-author-info">
                       <strong>{t.name}</strong>
@@ -535,8 +531,7 @@ export default function HomePage({ initialTestimonials = null }) {
         <div className="hp-brands-row">
           {brandLogos.map((b, i) => (
             <div className="hp-brand-card sr-item" key={i} ref={sr} style={{ '--sr-delay': `${i * 70}ms` }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={b.src} alt={b.alt} />
+              <Image src={b.src} alt={b.alt} sizes="154px" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
             </div>
           ))}
         </div>

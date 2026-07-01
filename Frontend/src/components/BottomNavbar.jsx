@@ -1,7 +1,7 @@
 'use client';
 import '@/styles/bottomNavbar.css';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useModal } from '@/context/ModalContext';
 
 const IconHome = () => (
@@ -36,7 +36,6 @@ const IconConsult = () => (
 
 export default function BottomNavbar() {
   const pathname     = usePathname();
-  const router       = useRouter();
   const { openConsult } = useModal();
 
   const isDesignActive = pathname.startsWith('/design');
@@ -48,14 +47,14 @@ export default function BottomNavbar() {
         <span className="bn-label">Home</span>
       </Link>
 
-      <button
+      <Link
+        href="/design/kitchen-designs"
         className={`bn-item${isDesignActive ? ' active' : ''}`}
-        onClick={() => router.push('/design/kitchen-designs')}
         aria-label="Designs"
       >
         <span className="bn-icon"><IconDesigns /></span>
         <span className="bn-label">Designs</span>
-      </button>
+      </Link>
 
       <Link href="/products" className={`bn-item${pathname === '/products' ? ' active' : ''}`}>
         <span className="bn-icon"><IconProducts /></span>

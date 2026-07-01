@@ -2,6 +2,7 @@
 import '@/styles/home.css';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   IconCrown, IconLayerGroup, IconBuilding, IconArrowRight, IconCalendar,
@@ -145,7 +146,7 @@ const CountUp = ({ endValue, duration = 2300 }) => {
   return <span ref={ref}>{prefix}<span className="hp-prof-num">{d}</span>{suffix}</span>;
 };
 
-export default function HomePage() {
+export default function HomePage({ initialTestimonials = null }) {
   const router = useRouter();
   const { openConsult } = useModal();
   const [activeCard, setActiveCard] = useState(null);
@@ -165,7 +166,9 @@ export default function HomePage() {
   const sr = el => { if (el && !revealRefs.current.includes(el)) revealRefs.current.push(el); };
 
   const [activeTCard, setActiveTCard] = useState(null);
-  const [testimonials, setTestimonials] = useState(FALLBACK_TESTIMONIALS);
+  const [testimonials, setTestimonials] = useState(
+    initialTestimonials?.length > 0 ? initialTestimonials : FALLBACK_TESTIMONIALS
+  );
 
   const fetchTestimonials = useCallback(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/testimonial/list?activeOnly=true`)
@@ -174,7 +177,7 @@ export default function HomePage() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => { fetchTestimonials(); }, [fetchTestimonials]);
+  useEffect(() => { if (!initialTestimonials?.length) fetchTestimonials(); }, [fetchTestimonials, initialTestimonials]);
 
   useWebSocket(useCallback(msg => {
     if (msg.type === 'testimonialsChanged') fetchTestimonials();
@@ -346,15 +349,12 @@ export default function HomePage() {
             { img: lounge_img,   Icon: IconCouch,    label: 'Lounge',   desc: 'Luxury living spaces',    slug: 'lounge-area-designs', alt: 'Luxury lounge and living room interior design in Satna, MP'         },
             { img: TV_unit_img,  Icon: IconTv,       label: 'TV Unit',  desc: 'Entertainment walls',     slug: 'tv-unit-designs',     alt: 'Modern TV unit and entertainment wall design in Satna, Madhya Pradesh' },
           ].map((d, i) => (
-            <div
+            <Link
+              href={`/design/${d.slug}`}
               className={`hp-design-card sr-item${i === 0 ? ' hp-design-card--featured' : ''}`}
               key={i}
               ref={sr}
               style={{ '--sr-delay': `${i * 60}ms` }}
-              onClick={() => router.push(`/design/${d.slug}`)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={e => e.key === 'Enter' && router.push(`/design/${d.slug}`)}
             >
               <div className="hp-dc-img">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -368,7 +368,7 @@ export default function HomePage() {
                   <p>{d.desc}</p>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 

@@ -149,7 +149,7 @@ function useDraggableMarquee({ speed = 0.75, reverse = false } = {}) {
   return { innerRef, onPointerDown: handlePointerDown, wasDragged: () => stateRef.current.moved };
 }
 
-export default function ServicesPage() {
+export default function ServicesPage({ initialTestimonials = null }) {
   const router = useRouter();
   const { openConsult } = useModal();
   const revealRefs = useRef([]);
@@ -158,7 +158,9 @@ export default function ServicesPage() {
   const [activeService,  setActiveService]  = useState(null);
   const [activeTCard,    setActiveTCard]    = useState(null);
   const [activeInfoCard, setActiveInfoCard] = useState(null);
-  const [testimonials,   setTestimonials]   = useState(FALLBACK_TESTIMONIALS);
+  const [testimonials,   setTestimonials]   = useState(
+    initialTestimonials?.length > 0 ? initialTestimonials : FALLBACK_TESTIMONIALS
+  );
 
   const fetchTestimonials = useCallback(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/testimonial/list?activeOnly=true`)
@@ -167,7 +169,7 @@ export default function ServicesPage() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => { fetchTestimonials(); }, [fetchTestimonials]);
+  useEffect(() => { if (!initialTestimonials?.length) fetchTestimonials(); }, [fetchTestimonials, initialTestimonials]);
 
   useWebSocket(useCallback(msg => {
     if (msg.type === 'testimonialsChanged') fetchTestimonials();

@@ -87,15 +87,30 @@ const faqSchema = {
 
 export const revalidate = 60;
 
-export default function Page() {
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+export default async function Page() {
   preload(bgimg.src, { as: 'image', fetchPriority: 'high' });
+
+  let initialTestimonials = [];
+  try {
+    const res = await fetch(
+      `${API_URL}/api/testimonial/list?activeOnly=true`,
+      { next: { revalidate: 3600 }, signal: AbortSignal.timeout(5000) }
+    );
+    const json = await res.json();
+    if (json.success) initialTestimonials = json.data ?? [];
+  } catch {
+    // fail silently — client will fetch on mount
+  }
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      <HomePage />
+      <HomePage initialTestimonials={initialTestimonials} />
     </>
   );
 }

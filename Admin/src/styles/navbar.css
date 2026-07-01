@@ -250,10 +250,11 @@
   to   { opacity: 0; pointer-events: none; }
 }
 
-/* On the dark overlay the white ::after centre fill would be visible —
-   make it transparent so the ring stays a true donut shape */
+/* The white ::after centre creates the donut hole on the white card.
+   Here we fill it with the admin dark-green so it reads as a ring
+   against the frosted overlay. */
 .page-loader .loader-ring::after {
-  background: transparent;
+  background: var(--green, #102525);
 }
 
 

@@ -123,6 +123,7 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
             if (res.data.success) {
                 toast.success(res.data.message);
                 if (data.category === confirmCatDel.name) setData(p => ({ ...p, category: '' }));
+                setConfirmCatDel(null);
                 await fetchCategories();
             } else {
                 toast.error(res.data.message);
@@ -131,7 +132,6 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
             toast.error('Failed to remove category');
         } finally {
             setCatDeleting(false);
-            setConfirmCatDel(null);
         }
     };
 

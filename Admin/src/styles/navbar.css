@@ -250,6 +250,12 @@
   to   { opacity: 0; pointer-events: none; }
 }
 
+/* On the dark overlay the white ::after centre fill would be visible —
+   make it transparent so the ring stays a true donut shape */
+.page-loader .loader-ring::after {
+  background: transparent;
+}
+
 
 /* ════════════════════════════════════════════
    RESPONSIVE

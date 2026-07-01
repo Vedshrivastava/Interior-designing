@@ -49,6 +49,10 @@ export default function DesignDisplayPage({
 
   const availableSubcats = subcatList.filter(s => s.categories?.includes(category));
 
+  // name → { icon, color } lookup so design cards can render each
+  // subcategory's own Iconify icon + colour, not just plain text.
+  const subcatMeta = subcatList.reduce((acc, s) => { acc[s.name] = { icon: s.icon, color: s.color }; return acc; }, {});
+
   const [designList,  setDesignList]  = useState(initialDesigns);
   const [total,       setTotal]       = useState(initialTotal);
   const [page,        setPage]        = useState(1);
@@ -250,6 +254,7 @@ export default function DesignDisplayPage({
                         images={item.images} points={item.points} category={item.category}
                         categoryLabel={catObj?.label || undefined}
                         subcategories={item.subcategories}
+                        subcategoryMeta={subcatMeta}
                         priority={i < 3}
                         blurDataURL={item.blurDataURL || null}
                       />
@@ -284,6 +289,7 @@ export default function DesignDisplayPage({
                     points={item.points} category={item.category}
                     categoryLabel={catObj?.label || undefined}
                     subcategories={item.subcategories}
+                    subcategoryMeta={subcatMeta}
                     priority={i < 6}
                     blurDataURL={item.blurDataURL || null}
                   />

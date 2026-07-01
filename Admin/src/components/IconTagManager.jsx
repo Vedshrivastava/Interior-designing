@@ -271,7 +271,19 @@ export function SubcategorySection({ subManager, catManager, values, onToggle, a
                                     value={subManager.newName} onChange={e => subManager.setNewName(e.target.value)}
                                     autoFocus
                                 />
-                                <p className="spec-form-label">Belongs to category</p>
+                                <div className="spec-form-label-row">
+                                    <p className="spec-form-label">Belongs to category</p>
+                                    {catManager.objects.length > 0 && (
+                                        <button type="button" className="sub-select-all-btn"
+                                            onClick={() => setNewParentCats(prev =>
+                                                prev.length === catManager.objects.length
+                                                    ? []
+                                                    : catManager.objects.map(c => c.name)
+                                            )}>
+                                            {newParentCats.length === catManager.objects.length ? 'Clear All' : 'Select All'}
+                                        </button>
+                                    )}
+                                </div>
                                 <div className="sub-parent-cat-list">
                                     {catManager.objects.map(cat => {
                                         const checked = newParentCats.includes(cat.name);

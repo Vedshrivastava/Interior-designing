@@ -147,6 +147,9 @@
 }
 
 .dc-subcat-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-family: "Inter", sans-serif;
   font-size: 0.65rem;
   font-weight: 600;
@@ -157,6 +160,7 @@
   padding: 3px 9px;
   border-radius: 20px;
 }
+.dc-subcat-tag img { flex-shrink: 0; }
 
 .dc-card-title {
   font-family: "Playfair Display", serif;
@@ -417,6 +421,7 @@
 .dc-modal-tag {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   padding: 4px 12px;
   border-radius: 20px;
   background: rgba(201,168,124,0.1);
@@ -428,6 +433,7 @@
   letter-spacing: 0.3px;
 
 }
+.dc-modal-tag img { flex-shrink: 0; }
 
 .dc-modal-tag--sub {
   background: rgba(90,78,68,0.07);

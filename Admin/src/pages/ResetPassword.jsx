@@ -11,8 +11,9 @@ const ResetPasswordPage = ({ setShowLogin }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [tokenStatus, setTokenStatus] = useState("checking"); // "checking" | "valid" | "expired"
   const [succeeded, setSucceeded] = useState(false);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { resetPassword, error, isLoading } = useAuthStore();
   const { token } = useParams();
   const navigate = useNavigate();
 
@@ -38,8 +39,10 @@ const ResetPasswordPage = ({ setShowLogin }) => {
       toast.error("Passwords do not match");
       return;
     }
+    setIsLoading(true);
+    setError(null);
     try {
-      await resetPassword(token, password);
+      await useAuthStore.getState().resetPassword(token, password);
       setSucceeded(true);
       toast.success("Password reset successfully!");
       setTimeout(() => {
@@ -47,7 +50,11 @@ const ResetPasswordPage = ({ setShowLogin }) => {
         setShowLogin(true);
       }, 2500);
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Error resetting password");
+      const msg = err?.response?.data?.message || "Error resetting password";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setIsLoading(false);
     }
   };
 

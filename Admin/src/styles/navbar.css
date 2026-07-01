@@ -222,16 +222,15 @@
 }
 
 /* ════════════════════════════════════════════
-   PAGE LOADER — pre-login full-screen (green bg, gold ring only)
+   PAGE LOADER — pre-login (frosted overlay, gold ring only)
 ════════════════════════════════════════════ */
 .page-loader {
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: var(--green);
-  background-image:
-    repeating-linear-gradient(45deg,  rgba(201,168,124,0.04) 0, rgba(201,168,124,0.04) 1px, transparent 0, transparent 28px),
-    repeating-linear-gradient(-45deg, rgba(201,168,124,0.04) 0, rgba(201,168,124,0.04) 1px, transparent 0, transparent 28px);
+  background: rgba(11, 26, 26, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -222,24 +222,18 @@
 }
 
 /* ════════════════════════════════════════════
-   PAGE LOADER — full-screen buffering spinner
+   PAGE LOADER — frosted overlay (matches global submit-loader-overlay)
 ════════════════════════════════════════════ */
 .page-loader {
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: var(--green);
+  background: rgba(11, 26, 26, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24px;
-
-  /* texture */
-  background-image:
-    repeating-linear-gradient(45deg,  rgba(201,168,124,0.04) 0, rgba(201,168,124,0.04) 1px, transparent 0, transparent 28px),
-    repeating-linear-gradient(-45deg, rgba(201,168,124,0.04) 0, rgba(201,168,124,0.04) 1px, transparent 0, transparent 28px);
-
   animation: loaderFadeIn 0.2s ease both;
 }
 
@@ -248,69 +242,12 @@
   to   { opacity: 1; }
 }
 
-/* fade out when dismissed */
 .page-loader.fade-out {
   animation: loaderFadeOut 0.4s ease both;
 }
 @keyframes loaderFadeOut {
   from { opacity: 1; }
   to   { opacity: 0; pointer-events: none; }
-}
-
-/* spinner ring */
-.loader-ring {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: 3px solid rgba(201,168,124,0.15);
-  border-top-color: var(--gold);
-  animation: spin 0.85s linear infinite;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* brand mark inside loader */
-.loader-brand {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-.loader-brand strong {
-  font-family: "Playfair Display", serif;
-  font-size: 1.1rem;
-  color: #f5ede0;
-  letter-spacing: 0.3px;
-}
-.loader-brand span {
-  font-family: "Inter", sans-serif;
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--gold);
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  opacity: 0.8;
-}
-
-/* dot pulse below ring */
-.loader-dots {
-  display: flex;
-  gap: 6px;
-}
-.loader-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--gold);
-  opacity: 0.3;
-  animation: dotPulse 1.2s ease infinite;
-}
-.loader-dot:nth-child(2) { animation-delay: 0.2s; }
-.loader-dot:nth-child(3) { animation-delay: 0.4s; }
-@keyframes dotPulse {
-  0%, 100% { opacity: 0.2; transform: scale(0.85); }
-  50%       { opacity: 1;   transform: scale(1.15); }
 }
 
 /* ════════════════════════════════════════════

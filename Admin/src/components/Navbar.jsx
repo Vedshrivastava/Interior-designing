@@ -78,15 +78,17 @@ export const PageLoader = ({ visible }) => {
 
   return (
     <div className={`page-loader${fading ? ' fade-out' : ''}`}>
-      <div className="loader-brand">
-        <strong>Shrivastava's</strong>
-        <span>Elevate</span>
-      </div>
-      <div className="loader-ring" />
-      <div className="loader-dots">
-        <span className="loader-dot" />
-        <span className="loader-dot" />
-        <span className="loader-dot" />
+      <div className="loader-modal-box">
+        <div className="loader-ring" />
+        <div className="loader-brand">
+          <strong>Curating Details</strong>
+          <span>Please wait</span>
+        </div>
+        <div className="loader-dots">
+          <span className="loader-dot" />
+          <span className="loader-dot" />
+          <span className="loader-dot" />
+        </div>
       </div>
     </div>
   );

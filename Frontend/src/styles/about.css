@@ -652,6 +652,7 @@
   height: 300px;
   overflow: hidden;
   flex-shrink: 0;
+  background-color: var(--blush, #f0e6d3);
 }
 .abt-feat-img img {
   width: 100%; height: 100%;
@@ -832,6 +833,7 @@
   width: 155px;
   flex-shrink: 0;
   overflow: hidden;
+  background-color: var(--blush, #f0e6d3);
 }
 .abt-stack-img img {
   width: 100%; height: 100%;

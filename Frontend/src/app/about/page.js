@@ -1,6 +1,4 @@
-import { preload } from 'react-dom';
 import AboutPage from '@/components/pages/AboutPage';
-import bgimg from '@/assets/home-img.png';
 
 const SITE_URL = 'https://www.shrivastavaselevate.com';
 
@@ -68,8 +66,6 @@ export const revalidate = 3600;
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export default async function Page() {
-  preload(bgimg.src, { as: 'image', fetchPriority: 'high' });
-
   let initialTestimonials = [];
   try {
     const res = await fetch(

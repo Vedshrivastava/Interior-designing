@@ -4,6 +4,7 @@ import { IconCalendar, IconArrowRight, IconGem, IconCrown, IconHouseChimney, Ico
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 import Footer from '@/components/Footer';
 import { useModal } from '@/context/ModalContext';
@@ -189,8 +190,15 @@ export default function AboutPage({ initialTestimonials = null }) {
       )}
 
       <section className="about-hero">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={bgimg.src} alt="Luxury interior design by Shrivastavas Elevate, premium interior designers in Satna, Madhya Pradesh" className="about-hero-bg" />
+        <Image
+          src={bgimg}
+          alt="Luxury interior design by Shrivastavas Elevate, premium interior designers in Satna, Madhya Pradesh"
+          fill
+          priority
+          sizes="100vw"
+          className="about-hero-bg"
+          style={{ objectFit: 'cover' }}
+        />
         <div className="about-overlay" />
         <div className="about-hero-content">
           <div className="hp-hero-tag-box">About Us</div>
@@ -247,8 +255,14 @@ export default function AboutPage({ initialTestimonials = null }) {
         <div className="abt-who-layout">
           <div className="abt-feat-card abt-reveal" ref={sr}>
             <div className="abt-feat-img">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={storyImg.src} alt="Shrivastavas Elevate interior design studio founded by Ved and Shubh Shrivastava in Satna, MP" />
+              <Image
+                src={storyImg}
+                alt="Shrivastavas Elevate interior design studio founded by Ved and Shubh Shrivastava in Satna, MP"
+                fill
+                placeholder="blur"
+                sizes="(max-width: 900px) 100vw, 45vw"
+                style={{ objectFit: 'cover' }}
+              />
               <div className="abt-feat-img-overlay" />
               <div className="abt-feat-tag"><IconCrown /> Our Story</div>
             </div>
@@ -278,8 +292,13 @@ export default function AboutPage({ initialTestimonials = null }) {
                 onKeyDown={e => e.key === 'Enter' && setActiveCard({ Icon: c.Tag, title: c.title, desc: c.desc, points: c.points, href: c.href })}
               >
                 <div className="abt-stack-img">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={c.src.src} alt={c.alt} />
+                  <Image
+                    src={c.src}
+                    alt={c.alt}
+                    placeholder="blur"
+                    sizes="(max-width: 900px) 100vw, 155px"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
                   <div className="abt-stack-img-overlay" />
                   <div className="abt-stack-tag"><c.Tag /> {c.tagLabel}</div>
                 </div>

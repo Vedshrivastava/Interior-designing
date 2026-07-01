@@ -448,7 +448,8 @@ const RecoveryBin = ({ url }) => {
                     font-weight: 500;
                     cursor: pointer;
                     border: 1px solid;
-                    transition: background 0.15s, opacity 0.15s;
+                    /* opacity intentionally not transitioned — see add.css .bin-btn-delete */
+                    transition: background 0.15s;
                     display: flex;
                     align-items: center;
                     gap: 7px;

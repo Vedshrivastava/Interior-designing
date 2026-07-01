@@ -1428,7 +1428,12 @@
     padding: 10px 22px; min-width: 140px; justify-content: center;
     border-radius: 8px; font-family: 'DM Sans', sans-serif;
     font-size: 0.88rem; font-weight: 500; cursor: pointer; border: 1px solid;
-    transition: background 0.15s, opacity 0.15s;
+    /* opacity is intentionally NOT transitioned — animating opacity on a button
+       with text/icon content forces the browser onto a compositor layer, and the
+       in-between frame of that animation can render visibly blurred/soft before
+       snapping crisp once the transition ends. The disabled/"pending" state
+       should switch instantly, not fade. */
+    transition: background 0.15s;
     display: flex; align-items: center; gap: 7px;
 }
 .bin-btn-cancel { background: transparent; border-color: rgba(201,168,124,0.4); color: var(--green); }

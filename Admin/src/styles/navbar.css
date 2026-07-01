@@ -250,17 +250,6 @@
   to   { opacity: 0; pointer-events: none; }
 }
 
-.page-loader-ring {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  border: 3px solid rgba(201,168,124,0.15);
-  border-top-color: var(--gold);
-  animation: plSpin 0.85s linear infinite;
-}
-@keyframes plSpin {
-  to { transform: rotate(360deg); }
-}
 
 /* ════════════════════════════════════════════
    RESPONSIVE

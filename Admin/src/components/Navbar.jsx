@@ -78,7 +78,7 @@ export const PageLoader = ({ visible }) => {
 
   return (
     <div className={`page-loader${fading ? ' fade-out' : ''}`}>
-      <div className="page-loader-ring" />
+      <div className="loader-ring" />
     </div>
   );
 };

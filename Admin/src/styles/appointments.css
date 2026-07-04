@@ -300,6 +300,7 @@
 
     .appointment-address,
     .appointment-message-box {
+        display: block;
         background: rgba(248,244,238,0.7);
         padding: 12px;
         border-radius: var(--radius-sm);

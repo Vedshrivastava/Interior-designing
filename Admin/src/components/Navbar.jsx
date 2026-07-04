@@ -195,7 +195,7 @@ const Navbar = ({ setShowLogin, setAuthType }) => {
             <>
               <div className="navbar-admin-badge">
                 <FontAwesomeIcon icon={faShield} />
-                Admin
+                {isMaster ? 'Master' : 'Admin'}
               </div>
 
               <div className="navbar-profile">

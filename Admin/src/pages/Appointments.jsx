@@ -9,10 +9,12 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const Appointments = ({ url }) => {
   const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [query,  setQuery]  = useState('');
   const token = localStorage.getItem('token');
 
   const fetchAllAppointments = async () => {
+    setIsLoading(true);
     try {
       const response = await axios.get(`${url}/api/appointment/list`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -25,6 +27,8 @@ const Appointments = ({ url }) => {
       }
     } catch (error) {
       toast.error('Failed to fetch appointments');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -84,6 +88,16 @@ const Appointments = ({ url }) => {
 
   return (
     <div className='appointments-container'>
+      {isLoading && (
+        <div className="submit-loader-overlay">
+          <div className="loader-modal-box">
+            <div className="loader-ring"></div>
+            <p>Curating Details</p>
+            <span>Please wait a moment...</span>
+          </div>
+        </div>
+      )}
+
       <div className="admin-search-header">
         <div>
           <h2 className="admin-search-title">Appointments</h2>
@@ -101,7 +115,7 @@ const Appointments = ({ url }) => {
         </div>
       </div>
       <div className='appointment-list'>
-        {Object.keys(groupedOrders).length === 0 ? (
+        {Object.keys(groupedOrders).length === 0 && !isLoading ? (
           <div className="empty-state">
             <i className="fa-solid fa-calendar-xmark empty-state-icon"></i>
             <p className="empty-state-title">No appointments yet</p>

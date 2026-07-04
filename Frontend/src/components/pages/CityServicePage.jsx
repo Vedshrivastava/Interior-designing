@@ -11,11 +11,12 @@ import {
   IconCalendar, IconArrowRight, IconBuilding, IconHouseChimney,
   IconEye, IconRuler, IconLightbulb, IconScrewdriverWrench,
   IconLocation, IconKey, IconShield, IconGem, IconPenRuler, IconXMark,
+  IconChevronRight,
 } from '@/components/Icons';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-export default function CityServicePage({ cityName, stateName, citySlug, projects: initialProjects }) {
+export default function CityServicePage({ cityName, stateName, citySlug, projects: initialProjects, faqs = [] }) {
   const router   = useRouter();
   const { openConsult } = useModal();
 
@@ -50,6 +51,9 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
     return () => io.disconnect();
   }, [projects]);
   const sr = el => { if (el && !revealRefs.current.includes(el)) revealRefs.current.push(el); };
+
+  /* ── FAQ accordion ─────────────────────────────────────────── */
+  const [openFaq, setOpenFaq] = useState(null);
 
   /* ── Advantage card modal ─────────────────────────────────── */
   const [activeAdv, setActiveAdv] = useState(null);
@@ -337,6 +341,37 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
           ))}
         </div>
       </section>
+
+      {/* ══════════════════════════════
+          FAQ
+      ══════════════════════════════ */}
+      {faqs.length > 0 && (
+        <section className="cs-faq">
+          <div className="cs-section-head cs-sr" ref={sr}>
+            <span className="cs-overline">Frequently Asked Questions</span>
+            <h2>Interior Design in {cityName}, Answered</h2>
+            <p>Common questions from clients in {cityName} about our process, pricing and turnaround.</p>
+          </div>
+          <div className="cs-faq-list cs-sr" ref={sr}>
+            {faqs.map((faq, i) => {
+              const isOpen = openFaq === i;
+              return (
+                <div className={`cs-faq-item${isOpen ? ' cs-faq-open' : ''}`} key={i}>
+                  <button
+                    className="cs-faq-question"
+                    onClick={() => setOpenFaq(isOpen ? null : i)}
+                    aria-expanded={isOpen}
+                  >
+                    <span>{faq.question}</span>
+                    <span className="cs-faq-chevron"><IconChevronRight /></span>
+                  </button>
+                  {isOpen && <p className="cs-faq-answer">{faq.answer}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ══════════════════════════════
           CTA — hidden when there are no projects yet for this city.

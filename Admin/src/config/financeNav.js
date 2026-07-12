@@ -62,12 +62,14 @@ export const FINANCE_NAV_SECTIONS = [
     label: 'Operations',
     items: [
       {
-        to: '/finance/site-operations', icon: faClipboardList, label: 'Site Operations', phase: 'Phase 1',
-        // Renamed/repositioned from "Daily Site Entry".
+        to: '/finance/site-operations', icon: faClipboardList, label: 'Site Operations',
+        // Renamed/repositioned from "Daily Site Entry". Real as of the Works +
+        // Measurements + Site Inventory build — Daily Measurements and
+        // Material Consumption are both live; Site Diary stays a placeholder.
         tabs: [
-          { key: 'measurements', label: 'Daily Measurements', description: 'Mobile-first site entry — date, project, team, work type, area covered.' },
-          { key: 'diary',        label: 'Site Diary',         description: 'Daily site notes and issues log.' },
-          { key: 'consumption',  label: 'Material Consumption', description: 'Material received and issue logs, including margin % and issue type (used / wasted / damaged / lost).' },
+          { key: 'measurements', label: 'Daily Measurements',   description: 'Mobile-first site entry — project, work, supervisor, area covered, materials used, photos. Saving updates the work\'s completed area and (if material tracking is on) logs stock consumption automatically.' },
+          { key: 'consumption',  label: 'Material Consumption', description: 'Read-only log of material consumed, generated only by measurement saves.' },
+          { key: 'diary',        label: 'Site Diary',           description: 'Daily site notes and issues log.' },
         ],
       },
       {
@@ -79,10 +81,13 @@ export const FINANCE_NAV_SECTIONS = [
         tabs: [{ key: 'vendors', label: 'Vendors', description: 'Material suppliers and other non-contractor vendors — labour contractors live under Contractors instead.' }],
       },
       {
-        to: '/finance/site-inventory', icon: faWarehouse, label: 'Site Inventory', phase: 'Phase 1',
-        // The stock-movement ledger — separate from the material catalog,
-        // which stays under Masters → Material Master.
-        tabs: [{ key: 'ledger', label: 'Stock Ledger', description: 'Stock movement — dumped, consumed, returned, wasted, and current balance per material per project. The material catalog itself (name, unit, minimum stock) lives under Masters → Material Master.' }],
+        to: '/finance/site-inventory', icon: faWarehouse, label: 'Site Inventory',
+        // Real as of the Works + Measurements + Site Inventory build — current
+        // stock is computed on the fly (never stored), with a manual
+        // dump/return/waste entry form and full movement history per project.
+        // The material catalog itself (name, unit, minimum stock) stays under
+        // Masters → Material Master.
+        tabs: [{ key: 'ledger', label: 'Stock Ledger', description: 'Current stock, manual Dump/Return/Waste entry, and movement history per project + material.' }],
       },
     ],
   },

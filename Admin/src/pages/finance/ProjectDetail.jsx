@@ -4,18 +4,12 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import WorkTypeRatesManager from '../../components/finance/WorkTypeRatesManager';
 import TeamRatesManager from '../../components/finance/TeamRatesManager';
+import WorksManager from '../../components/finance/WorksManager';
+import MeasurementsManager from '../../components/finance/MeasurementsManager';
+import StockMovementsManager from '../../components/finance/StockMovementsManager';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import '../../styles/list.css';
 
-/*
- * Reordered/expanded from the original 6 tabs (Basic Info, Work Type Rates,
- * Team Rates, BOQ Estimate, Material Stock, Lifetime Summary) to the target
- * 13-tab structure. Nothing real was dropped: Work Type Rates + Team Rates
- * (both fully working, Phase 0.5) now live together under "Works"; the
- * Labour Contractor / Referral Vendor fields moved out of Overview into
- * their own "Contractors" tab, and Assigned Supervisor into "Supervisors" —
- * both still the same project fields, just surfaced in their new home.
- */
 const TABS = [
     { key: 'overview',     label: 'Overview' },
     { key: 'works',        label: 'Works' },
@@ -46,6 +40,10 @@ const ProjectDetail = ({ url }) => {
     const [loading, setLoading] = useState(true);
     const [activating, setActivating] = useState(false);
 
+    // Progress % is never stored — computed here from the same works list
+    // WorksManager fetches, just so it's visible without switching tabs.
+    const [progressPct, setProgressPct] = useState(null);
+
     const fetchProject = async () => {
         setLoading(true);
         try {
@@ -57,6 +55,18 @@ const ProjectDetail = ({ url }) => {
     };
 
     useEffect(() => { fetchProject(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: id } })
+            .then(res => {
+                if (!res.data.success) return;
+                const works = res.data.data;
+                const estimated = works.reduce((sum, w) => sum + (w.estimatedAreaSqft || 0), 0);
+                const completed = works.reduce((sum, w) => sum + (w.completedAreaSqft || 0), 0);
+                setProgressPct(estimated > 0 ? Math.round((completed / estimated) * 100) : null);
+            })
+            .catch(() => {});
+    }, [url, id, activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const activate = async () => {
         setActivating(true);
@@ -84,6 +94,7 @@ const ProjectDetail = ({ url }) => {
                         <h1>{project.name}</h1>
                         <p className="admin-subtitle">
                             {project.clientId?.name || 'No client'} · <span className="item-category">{CONTRACT_TYPE_LABEL[project.contractType]}</span> · <span className="item-category">{STATUS_LABEL[project.status]}</span>
+                            {progressPct != null && <> · <span className="item-category">{progressPct}% complete</span></>}
                         </p>
                     </div>
                     {project.status === 'draft' && (
@@ -121,19 +132,17 @@ const ProjectDetail = ({ url }) => {
 
                 {activeTab === 'works' && (
                     <div>
-                        <h3 style={{ marginBottom: '8px' }}>Work Type Rates</h3>
+                        <WorksManager url={url} projectId={id} />
+                        <h3 style={{ margin: '32px 0 8px' }}>Work Type Rates</h3>
                         <WorkTypeRatesManager url={url} projectId={id} />
                         <h3 style={{ margin: '28px 0 8px' }}>Team Rates</h3>
                         <TeamRatesManager url={url} projectId={id} />
-                        <p className="admin-subtitle" style={{ marginTop: '16px' }}>
-                            Individual per-work tracking (measurements, completion status) — the full "Works" entity — is future work; rates are set here today.
-                        </p>
                     </div>
                 )}
 
-                {activeTab === 'measurements' && <PlaceholderTab text="Site measurements recorded against this project's works." />}
+                {activeTab === 'measurements' && <MeasurementsManager url={url} projectId={id} />}
 
-                {activeTab === 'materials' && <PlaceholderTab text="Material stock and consumption for this project." phase="Phase 2" />}
+                {activeTab === 'materials' && <StockMovementsManager url={url} projectId={id} />}
 
                 {activeTab === 'contractors' && (
                     <div className="list-table">

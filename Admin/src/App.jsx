@@ -35,6 +35,8 @@ import ClientsPage from './pages/finance/ClientsPage';
 import ClientDetail from './pages/finance/ClientDetail';
 import ProcurementPage from './pages/finance/ProcurementPage';
 import ContractorsPage from './pages/finance/ContractorsPage';
+import SiteOperationsPage from './pages/finance/SiteOperationsPage';
+import SiteInventoryPage from './pages/finance/SiteInventoryPage';
 import { FINANCE_ROUTES } from './config/financeNav';
 import Guest from './pages/guest';
 import { Navigate } from "react-router-dom";
@@ -261,9 +263,26 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path='/finance/site-operations'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <SiteOperationsPage url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/finance/site-inventory'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <SiteInventoryPage url={url} />
+                </ProtectedRoute>
+              }
+            />
             {FINANCE_ROUTES.filter(r => ![
               '/finance', '/finance/masters', '/finance/projects', '/finance/projects/new',
               '/finance/clients', '/finance/procurement', '/finance/contractors',
+              '/finance/site-operations', '/finance/site-inventory',
             ].includes(r.to)).map(({ to, label, phase, tabs }) => (
               <Route
                 key={to}

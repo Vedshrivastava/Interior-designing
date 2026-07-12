@@ -39,6 +39,8 @@ import SiteOperationsPage from './pages/finance/SiteOperationsPage';
 import SiteInventoryPage from './pages/finance/SiteInventoryPage';
 import ReceivablesPage from './pages/finance/ReceivablesPage';
 import ReceiptsPage from './pages/finance/ReceiptsPage';
+import PayablesPage from './pages/finance/PayablesPage';
+import PaymentsPage from './pages/finance/PaymentsPage';
 import { FINANCE_ROUTES } from './config/financeNav';
 import Guest from './pages/guest';
 import { Navigate } from "react-router-dom";
@@ -297,11 +299,28 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path='/finance/payables'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <PayablesPage url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/finance/payments'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <PaymentsPage url={url} />
+                </ProtectedRoute>
+              }
+            />
             {FINANCE_ROUTES.filter(r => ![
               '/finance', '/finance/masters', '/finance/projects', '/finance/projects/new',
               '/finance/clients', '/finance/procurement', '/finance/contractors',
               '/finance/site-operations', '/finance/site-inventory',
               '/finance/receivables', '/finance/receipts',
+              '/finance/payables', '/finance/payments',
             ].includes(r.to)).map(({ to, label, phase, tabs }) => (
               <Route
                 key={to}

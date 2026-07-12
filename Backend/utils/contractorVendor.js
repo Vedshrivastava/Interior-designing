@@ -1,0 +1,12 @@
+import FinanceVendor from '../models/financeVendor.js';
+
+// Shared by every contractor-money controller (advances, deductions,
+// payments, ledger) — money in this ledger always settles with the
+// contractor company (a financeVendor with vendorType 'labour_contractor'),
+// never with an individual team.
+export const assertContractorVendor = async (vendorId) => {
+    const vendor = await FinanceVendor.findById(vendorId);
+    if (!vendor) throw new Error('Vendor not found');
+    if (vendor.vendorType !== 'labour_contractor') throw new Error('This vendor is not a labour contractor');
+    return vendor;
+};

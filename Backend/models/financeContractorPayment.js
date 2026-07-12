@@ -1,0 +1,24 @@
+import mongoose from 'mongoose';
+
+// An actual payout to a labour contractor, settling part of the balance
+// the ledger computes.
+const financeContractorPaymentSchema = new mongoose.Schema({
+    vendorId:  { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', required: true },
+    projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', default: null },
+
+    amount: { type: Number, required: true },
+    date:   { type: Date, required: true },
+
+    paymentMode:     { type: String, default: '' },
+    bankOrCashLabel: { type: String, default: '' },
+    utrNumber:       { type: String, default: '' },
+    attachmentUrl:   { type: String, default: '' }, // Cloudinary URL, same upload pattern as design/product images
+    notes:           { type: String, default: '' },
+
+    deleted:   { type: Boolean, default: false },
+    deletedAt: { type: Date },
+    deletedBy: { type: String },
+}, { timestamps: true });
+
+const FinanceContractorPayment = mongoose.models.financeContractorPayment || mongoose.model('financeContractorPayment', financeContractorPaymentSchema);
+export default FinanceContractorPayment;

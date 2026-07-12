@@ -98,7 +98,11 @@ export const FINANCE_NAV_SECTIONS = [
         to: '/finance/contractors', icon: faHardHat, label: 'Contractors',
         // Bespoke component, built on the same vendor data as Procurement,
         // filtered to vendorType 'labour_contractor'. Settlements absorbs the
-        // old standalone "Month-End Settlements" (Phase 2) nav item.
+        // old standalone "Month-End Settlements" (Phase 2) nav item — as of
+        // the Contractor Ledger build, Ledger and Settlements both render
+        // the same computed earnings/advances/deductions/payments/balance
+        // view (GET /api/finance/contractors/:vendorId/ledger); Works and
+        // Measurements are real too, resolved via this contractor's teams.
         tabs: [{ key: 'overview', label: 'Overview', description: 'Vendors with type Labour Contractor.' }],
       },
       {
@@ -149,26 +153,35 @@ export const FINANCE_NAV_SECTIONS = [
         tabs: [{ key: 'received', label: 'Money Received', description: 'Client payments received — entry form and history, filterable by project.' }],
       },
       {
-        to: '/finance/payables', icon: faMoneyBillWave, label: 'Payables', phase: 'Phase 3',
-        // NOTE for whoever builds this: Payables must end up COMPUTED —
+        to: '/finance/payables', icon: faMoneyBillWave, label: 'Payables',
+        // Bespoke component as of the Contractor Ledger build — Contractor
+        // tab is real (pulls balancePayable per contractor from
+        // GET /api/finance/contractors/:vendorId/ledger). Vendor/Salary/
+        // Commission/Other stay placeholder until their own ledgers exist.
+        // NOTE for whoever builds those: Payables must end up COMPUTED —
         // vendor balance + contractor balance + unpaid salary + unpaid
         // commission + unpaid expense heads — never a directly-writable
         // collection. Do not add a "financePayable" model that a user can
-        // create or edit by hand.
+        // create or edit by hand (the Contractor tab already proves this
+        // pattern out: no balance field is stored anywhere).
         tabs: [
           { key: 'vendor',     label: 'Vendor',          description: 'Computed from unpaid vendor purchases.' },
-          { key: 'contractor', label: 'Contractor',      description: 'Computed from unsettled contractor/team balances.' },
+          { key: 'contractor', label: 'Contractor',      description: 'Balance payable per contractor — earnings minus advances, deductions, and payments already made.' },
           { key: 'salary',     label: 'Salary',          description: 'Computed from unpaid employee salary.' },
           { key: 'commission', label: 'Commission',      description: 'Computed from unpaid referral commission.' },
           { key: 'other',      label: 'Other Expenses',  description: 'Computed from unpaid expense heads.' },
         ],
       },
       {
-        to: '/finance/payments', icon: faMoneyBillTransfer, label: 'Payments', phase: 'Phase 3',
-        // Renamed/repositioned from "Payment Tracker".
+        to: '/finance/payments', icon: faMoneyBillTransfer, label: 'Payments',
+        // Renamed/repositioned from "Payment Tracker". Bespoke component as
+        // of the Contractor Ledger build — Contractor Payment tab is real
+        // (same financeContractorPayment data as Contractors' Ledger tab,
+        // reachable from here too). Vendor/Salary/Commission/Misc stay
+        // placeholder until their own money flows exist.
         tabs: [
           { key: 'vendor',     label: 'Vendor Payment',     description: 'Payments made to material vendors.' },
-          { key: 'contractor', label: 'Contractor Payment', description: 'Payments made to labour contractors.' },
+          { key: 'contractor', label: 'Contractor Payment', description: 'Payments made to labour contractors — entry form and history.' },
           { key: 'salary',     label: 'Salary',             description: 'Salary payouts to employees.' },
           { key: 'commission', label: 'Commission',         description: 'Referral commission payouts.' },
           { key: 'misc',       label: 'Miscellaneous',      description: 'Any other outgoing payment.' },

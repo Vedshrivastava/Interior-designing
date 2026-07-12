@@ -27,6 +27,7 @@ import PendingApproval from './pages/PendingApproval';
 import WelcomeScreen from './pages/Welcome';
 import FinanceHome from './pages/FinanceHome';
 import FinancePage from './pages/finance/FinancePage';
+import MasterData from './pages/finance/MasterData';
 import { FINANCE_ROUTES, FINANCE_PROJECT_DETAIL } from './config/financeNav';
 import Guest from './pages/guest';
 import { Navigate } from "react-router-dom";
@@ -205,7 +206,15 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-            {FINANCE_ROUTES.filter(r => r.to !== '/finance').map(({ to, label, phase, tabs }) => (
+            <Route
+              path='/finance/masters'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <MasterData url={url} />
+                </ProtectedRoute>
+              }
+            />
+            {FINANCE_ROUTES.filter(r => r.to !== '/finance' && r.to !== '/finance/masters').map(({ to, label, phase, tabs }) => (
               <Route
                 key={to}
                 path={to}

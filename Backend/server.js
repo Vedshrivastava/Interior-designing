@@ -23,6 +23,12 @@ import designSubcategoryRouter  from "./routes/designSubcategory.js";
 import materialRouter from "./routes/material.js";
 import finishRouter   from "./routes/finish.js";
 import cityRouter     from "./routes/city.js";
+import financeClientRouter   from "./routes/financeClient.js";
+import financeVendorRouter   from "./routes/financeVendor.js";
+import financeEmployeeRouter from "./routes/financeEmployee.js";
+import financeMaterialRouter from "./routes/financeMaterial.js";
+import financeTeamRouter     from "./routes/financeTeam.js";
+import financeSettingRouter  from "./routes/financeSetting.js";
 import dotenv from 'dotenv';
 import { wss } from './middlewares/webSocket.js'; // Import WebSocket server setup
 
@@ -79,6 +85,12 @@ app.use('/api/design-subcategory',  designSubcategoryRouter);
 app.use('/api/material', materialRouter);
 app.use('/api/finish',   finishRouter);
 app.use('/api/city',     cityRouter);
+app.use('/api/finance/clients',   financeClientRouter);
+app.use('/api/finance/vendors',   financeVendorRouter);
+app.use('/api/finance/employees', financeEmployeeRouter);
+app.use('/api/finance/materials', financeMaterialRouter);
+app.use('/api/finance/teams',     financeTeamRouter);
+app.use('/api/finance/settings',  financeSettingRouter);
 
 // Serve static files
 app.use('/images', express.static('uploads'));

@@ -1,0 +1,251 @@
+import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import { FINANCE_MASTERS } from '../../config/financeMasters';
+import '../../styles/list.css';
+import '../../styles/add.css';
+
+const emptyFormFromFields = (fields) =>
+    fields.reduce((acc, f) => {
+        acc[f.key] = f.type === 'stringArray' ? [] : (f.default ?? '');
+        return acc;
+    }, {});
+
+/* Generic add/list/edit/delete table for the simple Phase 0 masters
+   (Clients, Vendors, Employees, Materials, Labour Teams) — one config-driven
+   component instead of five near-identical bespoke pages. */
+const MasterCrudTable = ({ url, resourceKey }) => {
+    const resource = FINANCE_MASTERS[resourceKey];
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+
+    const [list, setList] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [vendors, setVendors] = useState([]);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [form, setForm] = useState(emptyFormFromFields(resource.fields));
+    const [editingId, setEditingId] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const [confirmItem, setConfirmItem] = useState(null);
+    const [deleting, setDeleting] = useState(false);
+
+    const needsVendors = resource.fields.some(f => f.type === 'vendorSelect') ||
+        resource.columns.some(c => c.vendorRef);
+
+    const fetchList = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get(`${url}${resource.apiBase}/list`, authHeader);
+            if (res.data.success) setList(res.data.data);
+        } catch {
+            toast.error(`Error fetching ${resource.labelPlural.toLowerCase()}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchList(); }, [resourceKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        if (!needsVendors) return;
+        axios.get(`${url}/api/finance/vendors/list`, authHeader)
+            .then(res => { if (res.data.success) setVendors(res.data.data); })
+            .catch(() => {});
+    }, [needsVendors]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const vendorName = (id) => vendors.find(v => v._id === (id?._id || id))?.name || '—';
+
+    const openAdd = () => {
+        setEditingId(null);
+        setForm(emptyFormFromFields(resource.fields));
+        setModalOpen(true);
+    };
+
+    const openEdit = (item) => {
+        setEditingId(item._id);
+        const next = emptyFormFromFields(resource.fields);
+        resource.fields.forEach(f => {
+            let v = item[f.key];
+            if (f.type === 'vendorSelect') v = v?._id || v || '';
+            if (f.type === 'date' && v) v = new Date(v).toISOString().slice(0, 10);
+            next[f.key] = v ?? next[f.key];
+        });
+        setForm(next);
+        setModalOpen(true);
+    };
+
+    const closeModal = () => { setModalOpen(false); setEditingId(null); };
+
+    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
+    const addStringArrayItem = (key) => setField(key, [...(form[key] || []), '']);
+    const setStringArrayItem = (key, idx, value) =>
+        setField(key, form[key].map((v, i) => (i === idx ? value : v)));
+    const removeStringArrayItem = (key, idx) =>
+        setField(key, form[key].filter((_, i) => i !== idx));
+
+    const submit = async (e) => {
+        e.preventDefault();
+        const requiredField = resource.fields.find(f => f.required && !String(form[f.key] || '').trim());
+        if (requiredField) { toast.error(`${requiredField.label} is required`); return; }
+
+        setSaving(true);
+        try {
+            const payload = editingId ? { ...form, _id: editingId } : form;
+            const endpoint = editingId ? 'update' : 'add';
+            const res = await axios.post(`${url}${resource.apiBase}/${endpoint}`, payload, authHeader);
+            if (res.data.success) {
+                toast.success(res.data.message || `${resource.label} saved`);
+                closeModal();
+                await fetchList();
+            } else {
+                toast.error(res.data.message);
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || `Error saving ${resource.label.toLowerCase()}`);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const confirmDelete = async () => {
+        if (!confirmItem) return;
+        setDeleting(true);
+        try {
+            const res = await axios.post(`${url}${resource.apiBase}/remove`, { _id: confirmItem._id }, authHeader);
+            if (res.data.success) {
+                toast.success(res.data.message);
+                setConfirmItem(null);
+                await fetchList();
+            } else {
+                toast.error(res.data.message);
+            }
+        } catch {
+            toast.error(`Error removing ${resource.label.toLowerCase()}`);
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    const renderCell = (item, col) => {
+        const value = item[col.key];
+        if (col.vendorRef) return vendorName(value);
+        if (col.joinArray) return Array.isArray(value) && value.length > 0 ? value.join(', ') : '—';
+        if (col.badge) {
+            const opt = resource.fields.find(f => f.key === col.key)?.options?.find(o => o.value === value);
+            return value ? <span className="item-category">{opt?.label || value}</span> : '—';
+        }
+        return value || '—';
+    };
+
+    const renderField = (f) => {
+        const value = form[f.key];
+        switch (f.type) {
+            case 'textarea':
+                return <textarea rows="3" value={value} onChange={e => setField(f.key, e.target.value)} placeholder={f.placeholder} />;
+            case 'select':
+                return (
+                    <select value={value} onChange={e => setField(f.key, e.target.value)}>
+                        {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                );
+            case 'vendorSelect':
+                return (
+                    <select value={value} onChange={e => setField(f.key, e.target.value)}>
+                        <option value="">— None —</option>
+                        {vendors.map(v => <option key={v._id} value={v._id}>{v.name}</option>)}
+                    </select>
+                );
+            case 'stringArray':
+                return (
+                    <div className="add-product-points">
+                        {(value || []).map((v, idx) => (
+                            <div key={idx} className="point-input">
+                                <input type="text" value={v} placeholder={f.placeholder}
+                                    onChange={e => setStringArrayItem(f.key, idx, e.target.value)} />
+                                <button type="button" className="remove-point-btn" onClick={() => removeStringArrayItem(f.key, idx)}>X</button>
+                            </div>
+                        ))}
+                        <button type="button" className="add-point-btn" onClick={() => addStringArrayItem(f.key)}>+ Add {f.label.replace(/s$/, '')}</button>
+                    </div>
+                );
+            default:
+                return <input type={f.type} value={value} placeholder={f.placeholder} onChange={e => setField(f.key, e.target.value)} />;
+        }
+    };
+
+    return (
+        <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                <button type="button" className="add-point-btn" onClick={openAdd}>+ Add {resource.label}</button>
+            </div>
+
+            <div className="list-table">
+                <div className="list-table-format title"
+                    style={{ gridTemplateColumns: `repeat(${resource.columns.length}, 1fr) 140px` }}>
+                    {resource.columns.map(c => <b key={c.key}>{c.label}</b>)}
+                    <b>Action</b>
+                </div>
+
+                {loading ? (
+                    <div className="admin-empty-state"><p>Loading…</p></div>
+                ) : list.length === 0 ? (
+                    <div className="admin-empty-state"><p>No {resource.labelPlural.toLowerCase()} yet.</p></div>
+                ) : (
+                    list.map(item => (
+                        <div key={item._id} className="list-table-format row-item"
+                            style={{ gridTemplateColumns: `repeat(${resource.columns.length}, 1fr) 140px` }}>
+                            {resource.columns.map(c => <p key={c.key}>{renderCell(item, c)}</p>)}
+                            <div className="action-buttons">
+                                <p onClick={() => openEdit(item)} className="cursor edit-action">Edit</p>
+                                <p onClick={() => setConfirmItem(item)} className="cursor delete-action">X</p>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {modalOpen && ReactDOM.createPortal(
+                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal">
+                        <h2>{editingId ? `Edit ${resource.label}` : `Add ${resource.label}`}</h2>
+                        <form className="flex-col" onSubmit={submit}>
+                            {resource.fields.map(f => (
+                                <div key={f.key} className="add-product-name flex-col">
+                                    <p>{f.label}{f.required ? ' *' : ''}</p>
+                                    {renderField(f)}
+                                </div>
+                            ))}
+                            <div className="edit-modal-actions">
+                                <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
+                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {confirmItem && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmItem(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>Remove {resource.label}?</h3>
+                        <p className="bin-confirm-name">"{confirmItem.name}"</p>
+                        <p className="bin-confirm-warning">Moved to Recovery Bin.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={confirmDelete} disabled={deleting}>
+                                {deleting ? 'Removing…' : 'Yes, Remove'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+        </div>
+    );
+};
+
+export default MasterCrudTable;

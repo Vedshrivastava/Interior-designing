@@ -462,6 +462,10 @@
 }
 
 .edit-modal input[type="text"],
+.edit-modal input[type="tel"],
+.edit-modal input[type="email"],
+.edit-modal input[type="number"],
+.edit-modal input[type="date"],
 .edit-modal textarea,
 .edit-modal select {
     width: 100%;
@@ -474,8 +478,13 @@
     font-family: "DM Sans", sans-serif;
     outline: none;
     transition: all 0.22s ease;
+    box-sizing: border-box;
 }
 .edit-modal input[type="text"]:focus,
+.edit-modal input[type="tel"]:focus,
+.edit-modal input[type="email"]:focus,
+.edit-modal input[type="number"]:focus,
+.edit-modal input[type="date"]:focus,
 .edit-modal textarea:focus,
 .edit-modal select:focus {
     border-color: var(--gold);

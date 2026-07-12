@@ -1,48 +1,27 @@
 import React, { useState } from 'react';
-import '../../styles/list.css';
+import FinanceTabShell from '../../components/finance/FinanceTabShell';
+import PlaceholderTab from '../../components/finance/PlaceholderTab';
 
 /*
- * Generic shell for every Finance page — same header + category-pill
- * pattern as ListDesigns ('.admin-category-scroll' / '.admin-cat-pill').
- * Each Finance page is one route with N tabs instead of N separate
- * routes; tabs render as pills when there's more than one.
+ * Generic shell for every nav-only Finance page — one route with N tabs
+ * instead of N separate routes, rendered off FINANCE_NAV_SECTIONS' `tabs`
+ * metadata. See FinanceTabShell for the shared header/pill markup.
  */
 const FinancePage = ({ label, phase, tabs = [] }) => {
   const [activeKey, setActiveKey] = useState(tabs[0]?.key);
   const active = tabs.find(t => t.key === activeKey) || tabs[0];
 
   return (
-    <div className="list add flex-col">
-      <div className="admin-list-container">
-        <div className="admin-header-split">
-          <div>
-            <h1>{label}</h1>
-            <p className="admin-subtitle">
-              {tabs.length > 1 ? 'Select a tab below.' : "This section isn't built yet — it's on the roadmap."}
-            </p>
-          </div>
-          {phase && <div className="admin-count-badge">{phase} — coming soon</div>}
-        </div>
-
-        {tabs.length > 1 && (
-          <div className="admin-category-scroll">
-            {tabs.map(t => (
-              <button
-                key={t.key}
-                className={`admin-cat-pill${activeKey === t.key ? ' active' : ''}`}
-                onClick={() => setActiveKey(t.key)}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="admin-empty-state">
-          <p>{active?.description || "This section isn't built yet — it's on the roadmap."}</p>
-        </div>
-      </div>
-    </div>
+    <FinanceTabShell
+      label={label}
+      subtitle={tabs.length > 1 ? 'Select a tab below.' : "This section isn't built yet — it's on the roadmap."}
+      badge={phase && `${phase} — coming soon`}
+      tabs={tabs}
+      activeKey={activeKey}
+      onTabChange={setActiveKey}
+    >
+      <PlaceholderTab text={active?.description} phase={active?.phase} />
+    </FinanceTabShell>
   );
 };
 

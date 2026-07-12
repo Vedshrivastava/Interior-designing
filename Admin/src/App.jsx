@@ -31,6 +31,10 @@ import MasterData from './pages/finance/MasterData';
 import ProjectsList from './pages/finance/ProjectsList';
 import NewProjectWizard from './pages/finance/NewProjectWizard';
 import ProjectDetail from './pages/finance/ProjectDetail';
+import ClientsPage from './pages/finance/ClientsPage';
+import ClientDetail from './pages/finance/ClientDetail';
+import ProcurementPage from './pages/finance/ProcurementPage';
+import ContractorsPage from './pages/finance/ContractorsPage';
 import { FINANCE_ROUTES } from './config/financeNav';
 import Guest from './pages/guest';
 import { Navigate } from "react-router-dom";
@@ -233,7 +237,34 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-            {FINANCE_ROUTES.filter(r => !['/finance', '/finance/masters', '/finance/projects', '/finance/projects/new'].includes(r.to)).map(({ to, label, phase, tabs }) => (
+            <Route
+              path='/finance/clients'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <ClientsPage url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/finance/procurement'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <ProcurementPage url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/finance/contractors'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <ContractorsPage url={url} />
+                </ProtectedRoute>
+              }
+            />
+            {FINANCE_ROUTES.filter(r => ![
+              '/finance', '/finance/masters', '/finance/projects', '/finance/projects/new',
+              '/finance/clients', '/finance/procurement', '/finance/contractors',
+            ].includes(r.to)).map(({ to, label, phase, tabs }) => (
               <Route
                 key={to}
                 path={to}
@@ -249,6 +280,14 @@ const App = () => {
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
                   <ProjectDetail url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/finance/clients/:id'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <ClientDetail url={url} />
                 </ProtectedRoute>
               }
             />

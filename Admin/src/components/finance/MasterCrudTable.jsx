@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
@@ -14,8 +15,16 @@ const emptyFormFromFields = (fields) =>
 
 /* Generic add/list/edit/delete table for the simple Phase 0 masters
    (Clients, Vendors, Employees, Materials, Labour Teams) — one config-driven
-   component instead of five near-identical bespoke pages. */
-const MasterCrudTable = ({ url, resourceKey }) => {
+   component instead of five near-identical bespoke pages.
+
+   `filter` (optional): client-side predicate applied to the fetched list
+   before rendering — used by Procurement/Contractors to show the same
+   Vendors data split by vendorType without a second API endpoint.
+
+   `getDetailLink` (optional): (item) => path — when set, the first column
+   renders as a clickable link into a detail route (used by Clients). */
+const MasterCrudTable = ({ url, resourceKey, filter, getDetailLink }) => {
+    const navigate = useNavigate();
     const resource = FINANCE_MASTERS[resourceKey];
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -128,16 +137,23 @@ const MasterCrudTable = ({ url, resourceKey }) => {
         }
     };
 
-    const renderCell = (item, col) => {
+    const renderCell = (item, col, isFirst) => {
         const value = item[col.key];
-        if (col.vendorRef) return vendorName(value);
-        if (col.joinArray) return Array.isArray(value) && value.length > 0 ? value.join(', ') : '—';
-        if (col.badge) {
+        let content;
+        if (col.vendorRef) content = vendorName(value);
+        else if (col.joinArray) content = Array.isArray(value) && value.length > 0 ? value.join(', ') : '—';
+        else if (col.badge) {
             const opt = resource.fields.find(f => f.key === col.key)?.options?.find(o => o.value === value);
-            return value ? <span className="item-category">{opt?.label || value}</span> : '—';
+            content = value ? <span className="item-category">{opt?.label || value}</span> : '—';
+        } else content = value || '—';
+
+        if (isFirst && getDetailLink) {
+            return <span className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(getDetailLink(item))}>{content}</span>;
         }
-        return value || '—';
+        return content;
     };
+
+    const displayList = filter ? list.filter(filter) : list;
 
     const renderField = (f) => {
         const value = form[f.key];
@@ -190,13 +206,13 @@ const MasterCrudTable = ({ url, resourceKey }) => {
 
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
-                ) : list.length === 0 ? (
+                ) : displayList.length === 0 ? (
                     <div className="admin-empty-state"><p>No {resource.labelPlural.toLowerCase()} yet.</p></div>
                 ) : (
-                    list.map(item => (
+                    displayList.map(item => (
                         <div key={item._id} className="list-table-format row-item"
                             style={{ gridTemplateColumns: `repeat(${resource.columns.length}, 1fr) 140px` }}>
-                            {resource.columns.map(c => <p key={c.key}>{renderCell(item, c)}</p>)}
+                            {resource.columns.map((c, i) => <p key={c.key}>{renderCell(item, c, i === 0)}</p>)}
                             <div className="action-buttons">
                                 <p onClick={() => openEdit(item)} className="cursor edit-action">Edit</p>
                                 <p onClick={() => setConfirmItem(item)} className="cursor delete-action">X</p>

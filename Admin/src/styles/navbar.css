@@ -3,7 +3,7 @@
    Deep green · gold accents · Inter font
 ================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap');
 
 :root {
   --green:   #102525;
@@ -425,7 +425,7 @@
   }
 
   .admin-mobile-nav-section-label {
-    font-family: "Inter", sans-serif;
+    font-family: "DM Sans", sans-serif;
     font-size: 0.58rem;
     font-weight: 700;
     letter-spacing: 2.5px;
@@ -443,7 +443,7 @@
     padding: 11px 12px;
     border-radius: 11px;
     color: rgba(240,230,211,0.62);
-    font-family: "Inter", sans-serif;
+    font-family: "DM Sans", sans-serif;
     font-size: 0.87rem;
     font-weight: 500;
     text-decoration: none;

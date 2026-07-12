@@ -4,11 +4,15 @@ import { toast } from 'react-toastify';
 import { FINANCE_SETTING_TYPES } from '../../config/financeMasters';
 import '../../styles/list.css';
 
-const SettingsCrudList = ({ url }) => {
+/* `lockedType` (optional): when set, this renders as a single-type list with
+   no internal switcher pills — used now that each setting type (Work Types,
+   Payment Modes, Expense Heads, TDS Sections) is its own Masters tab instead
+   of living together under one dissolved "Settings & Lists" tab. */
+const SettingsCrudList = ({ url, lockedType }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-    const [activeType, setActiveType] = useState(FINANCE_SETTING_TYPES[0].key);
+    const [activeType, setActiveType] = useState(lockedType || FINANCE_SETTING_TYPES[0].key);
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
     const [name, setName] = useState('');
@@ -70,13 +74,15 @@ const SettingsCrudList = ({ url }) => {
 
     return (
         <div>
-            <div className="admin-category-scroll" style={{ paddingTop: 0 }}>
-                {FINANCE_SETTING_TYPES.map(t => (
-                    <button key={t.key} className={`admin-cat-pill${activeType === t.key ? ' active' : ''}`} onClick={() => setActiveType(t.key)}>
-                        {t.label}
-                    </button>
-                ))}
-            </div>
+            {!lockedType && (
+                <div className="admin-category-scroll" style={{ paddingTop: 0 }}>
+                    {FINANCE_SETTING_TYPES.map(t => (
+                        <button key={t.key} className={`admin-cat-pill${activeType === t.key ? ' active' : ''}`} onClick={() => setActiveType(t.key)}>
+                            {t.label}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             <form onSubmit={addItem} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
                 <input type="text" placeholder={`New ${typeConfig.label.toLowerCase().replace(/s$/, '')} name`}

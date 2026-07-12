@@ -11,6 +11,7 @@ import {
   faCubes, faBoxesStacked, faUsers, faTrash,
   faSackDollar, faGaugeHigh,
 } from '@fortawesome/free-solid-svg-icons';
+import { FINANCE_NAV_SECTIONS } from '../config/financeNav';
 
 const NAV_SECTIONS = [
   {
@@ -92,16 +93,6 @@ const MASTER_SECTION = {
     { to: '/recovery-bin',   icon: faTrash, label: 'Recovery Bin' },
   ],
 };
-
-/* ── Finance workspace nav — swaps in fully for /finance/* routes ── */
-const FINANCE_NAV_SECTIONS = [
-  {
-    label: 'Finance',
-    items: [
-      { to: '/finance', icon: faSackDollar, label: 'Overview' },
-    ],
-  },
-];
 
 const Navbar = ({ setShowLogin, setAuthType }) => {
   const { token, setToken, setUserId, setUserEmail, setUserName, setIsLoggedIn } = useContext(StoreContext);

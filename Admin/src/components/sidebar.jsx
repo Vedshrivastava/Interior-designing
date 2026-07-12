@@ -5,8 +5,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPlus, faList, faIdBadge, faMessage, faFolderPlus, faFolderOpen,
   faCubes, faBoxesStacked, faUsers, faTrash, faStar, faStarHalfStroke,
-  faSackDollar,
 } from '@fortawesome/free-solid-svg-icons';
+import { FINANCE_NAV_SECTIONS } from '../config/financeNav';
 
 const NAV_SECTIONS = [
   {
@@ -53,16 +53,6 @@ const MASTER_SECTION = {
     { to: '/recovery-bin',   icon: faTrash, label: 'Recovery Bin' },
   ],
 };
-
-/* ── Finance workspace sidebar — swaps in fully for /finance/* routes ── */
-const FINANCE_NAV_SECTIONS = [
-  {
-    label: 'Finance',
-    items: [
-      { to: '/finance', icon: faSackDollar, label: 'Overview' },
-    ],
-  },
-];
 
 const Sidebar = () => {
   const location = useLocation();

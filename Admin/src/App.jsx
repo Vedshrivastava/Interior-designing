@@ -26,6 +26,8 @@ import ResetPassword from './pages/ResetPassword';
 import PendingApproval from './pages/PendingApproval';
 import WelcomeScreen from './pages/Welcome';
 import FinanceHome from './pages/FinanceHome';
+import FinanceComingSoon from './pages/finance/ComingSoon';
+import { FINANCE_ROUTES } from './config/financeNav';
 import Guest from './pages/guest';
 import { Navigate } from "react-router-dom";
 
@@ -203,6 +205,17 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+            {FINANCE_ROUTES.filter(r => r.to !== '/finance').map(({ to, label, phase, description }) => (
+              <Route
+                key={to}
+                path={to}
+                element={
+                  <ProtectedRoute setShowLogin={setShowLogin}>
+                    <FinanceComingSoon label={label} phase={phase} description={description} />
+                  </ProtectedRoute>
+                }
+              />
+            ))}
             <Route
               path='/my-account'
               element={

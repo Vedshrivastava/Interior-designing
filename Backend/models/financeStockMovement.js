@@ -1,0 +1,27 @@
+import mongoose from 'mongoose';
+
+// Site Inventory ledger — inventory is tracked per project (site), not
+// globally. Current stock is never stored; it's always computed on read as
+// SUM(dump) − SUM(consume) − SUM(return) − SUM(waste), grouped by
+// (projectId, materialId) — see controllers/financeStockMovement.js.
+const financeStockMovementSchema = new mongoose.Schema({
+    projectId:  { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', required: true },
+    materialId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeMaterial', required: true },
+
+    movementType: { type: String, enum: ['dump', 'consume', 'return', 'waste'], required: true },
+    quantity:     { type: Number, required: true },
+    date:         { type: Date, required: true },
+
+    // Set automatically by the measurement-save automation on `consume`
+    // movements it creates — never set by the manual entry form.
+    relatedMeasurementId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeMeasurement', default: null },
+
+    notes: { type: String, default: '' },
+
+    deleted:   { type: Boolean, default: false },
+    deletedAt: { type: Date },
+    deletedBy: { type: String },
+}, { timestamps: true });
+
+const FinanceStockMovement = mongoose.models.financeStockMovement || mongoose.model('financeStockMovement', financeStockMovementSchema);
+export default FinanceStockMovement;

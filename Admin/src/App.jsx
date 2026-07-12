@@ -25,6 +25,7 @@ import Email_verification from './pages/Email_verification';
 import ResetPassword from './pages/ResetPassword';
 import PendingApproval from './pages/PendingApproval';
 import WelcomeScreen from './pages/Welcome';
+import FinanceHome from './pages/FinanceHome';
 import Guest from './pages/guest';
 import { Navigate } from "react-router-dom";
 
@@ -191,6 +192,14 @@ const App = () => {
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
                   <RecoveryBin url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/finance'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <FinanceHome url={url} />
                 </ProtectedRoute>
               }
             />

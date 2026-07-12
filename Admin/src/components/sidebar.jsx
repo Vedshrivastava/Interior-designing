@@ -1,10 +1,11 @@
 import React from 'react';
 import '../styles/sidebar.css';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPlus, faList, faIdBadge, faMessage, faFolderPlus, faFolderOpen,
   faCubes, faBoxesStacked, faUsers, faTrash, faStar, faStarHalfStroke,
+  faSackDollar,
 } from '@fortawesome/free-solid-svg-icons';
 
 const NAV_SECTIONS = [
@@ -53,11 +54,26 @@ const MASTER_SECTION = {
   ],
 };
 
+/* ── Finance workspace sidebar — swaps in fully for /finance/* routes ── */
+const FINANCE_NAV_SECTIONS = [
+  {
+    label: 'Finance',
+    items: [
+      { to: '/finance', icon: faSackDollar, label: 'Overview' },
+    ],
+  },
+];
+
 const Sidebar = () => {
+  const location = useLocation();
+  const isFinance = location.pathname.startsWith('/finance');
+
   const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
   const isMaster   = storedUser.role === 'MASTER';
 
-  const sections = isMaster ? [...NAV_SECTIONS, MASTER_SECTION] : NAV_SECTIONS;
+  const sections = isFinance
+    ? FINANCE_NAV_SECTIONS
+    : (isMaster ? [...NAV_SECTIONS, MASTER_SECTION] : NAV_SECTIONS);
 
   return (
     <div className="sidebar">

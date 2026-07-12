@@ -9,6 +9,7 @@ import {
   faBars, faXmark,
   faPlus, faList, faIdBadge, faMessage, faFolderPlus, faFolderOpen,
   faCubes, faBoxesStacked, faUsers, faTrash,
+  faSackDollar, faGaugeHigh,
 } from '@fortawesome/free-solid-svg-icons';
 
 const NAV_SECTIONS = [
@@ -92,6 +93,16 @@ const MASTER_SECTION = {
   ],
 };
 
+/* ── Finance workspace nav — swaps in fully for /finance/* routes ── */
+const FINANCE_NAV_SECTIONS = [
+  {
+    label: 'Finance',
+    items: [
+      { to: '/finance', icon: faSackDollar, label: 'Overview' },
+    ],
+  },
+];
+
 const Navbar = ({ setShowLogin, setAuthType }) => {
   const { token, setToken, setUserId, setUserEmail, setUserName, setIsLoggedIn } = useContext(StoreContext);
   const navigate = useNavigate();
@@ -100,7 +111,10 @@ const Navbar = ({ setShowLogin, setAuthType }) => {
 
   const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
   const isMaster   = storedUser.role === 'MASTER';
-  const mobileSections = isMaster ? [...NAV_SECTIONS, MASTER_SECTION] : NAV_SECTIONS;
+  const isFinance  = location.pathname.startsWith('/finance');
+  const mobileSections = isFinance
+    ? FINANCE_NAV_SECTIONS
+    : (isMaster ? [...NAV_SECTIONS, MASTER_SECTION] : NAV_SECTIONS);
 
   // Close mobile menu on route change
   useEffect(() => { setMenuOpen(false); }, [location]);
@@ -208,6 +222,17 @@ const Navbar = ({ setShowLogin, setAuthType }) => {
                     <FontAwesomeIcon icon={faUser} />
                     My Account
                   </li>
+                  {isFinance ? (
+                    <li onClick={() => navigate('/welcome')}>
+                      <FontAwesomeIcon icon={faGaugeHigh} />
+                      Dashboard
+                    </li>
+                  ) : (
+                    <li onClick={() => navigate('/finance')}>
+                      <FontAwesomeIcon icon={faSackDollar} />
+                      Finance
+                    </li>
+                  )}
                   <li className="logout-item" onClick={() => logout()}>
                     <FontAwesomeIcon icon={faRightFromBracket} />
                     Logout

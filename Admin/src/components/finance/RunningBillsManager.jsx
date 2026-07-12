@@ -1,0 +1,204 @@
+import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import '../../styles/list.css';
+
+const STATUS_LABEL = { draft: 'Draft', issued: 'Issued' };
+
+/*
+ * Running Bills for one project — list + a "Generate Bill" flow that
+ * previews line items (GET /running-bills/preview) before the user
+ * confirms (POST /running-bills/generate). Both endpoints share the exact
+ * same server-side computation, so the preview can't lie about what
+ * generation will actually produce.
+ *
+ * `statusFilter` (optional): 'draft' | 'issued' — used by the Receivables
+ * page's Pending Bills / Approved Bills tabs to show the same list, filtered.
+ */
+const RunningBillsManager = ({ url, projectId, statusFilter }) => {
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+
+    const [bills, setBills] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [periodFrom, setPeriodFrom] = useState('');
+    const [periodTo, setPeriodTo] = useState('');
+    const [billDate, setBillDate] = useState('');
+    const [preview, setPreview] = useState(null);
+    const [previewing, setPreviewing] = useState(false);
+    const [generating, setGenerating] = useState(false);
+    const [confirmItem, setConfirmItem] = useState(null);
+    const [deleting, setDeleting] = useState(false);
+
+    const fetchBills = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get(`${url}/api/finance/running-bills/list`, { ...authHeader, params: { projectId, status: statusFilter || undefined } });
+            if (res.data.success) setBills(res.data.data);
+        } catch { toast.error('Error fetching running bills'); }
+        finally { setLoading(false); }
+    };
+
+    useEffect(() => { if (projectId) fetchBills(); }, [projectId, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const openGenerate = () => {
+        setPeriodFrom(''); setPeriodTo(''); setBillDate(new Date().toISOString().slice(0, 10)); setPreview(null);
+        setModalOpen(true);
+    };
+    const closeModal = () => setModalOpen(false);
+
+    const runPreview = async () => {
+        if (!periodFrom || !periodTo) return toast.error('Select a date range');
+        setPreviewing(true);
+        setPreview(null);
+        try {
+            const res = await axios.get(`${url}/api/finance/running-bills/preview`, { ...authHeader, params: { projectId, periodFrom, periodTo } });
+            if (res.data.success) setPreview(res.data.data);
+            else toast.error(res.data.message);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Error building preview');
+        } finally { setPreviewing(false); }
+    };
+
+    const confirmGenerate = async () => {
+        setGenerating(true);
+        try {
+            const res = await axios.post(`${url}/api/finance/running-bills/generate`, { projectId, periodFrom, periodTo, billDate }, authHeader);
+            if (res.data.success) {
+                toast.success(res.data.message);
+                closeModal();
+                await fetchBills();
+            } else toast.error(res.data.message);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Error generating bill');
+        } finally { setGenerating(false); }
+    };
+
+    const toggleStatus = async (bill) => {
+        const nextStatus = bill.status === 'draft' ? 'issued' : 'draft';
+        try {
+            const res = await axios.post(`${url}/api/finance/running-bills/update`, { _id: bill._id, status: nextStatus }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); await fetchBills(); }
+            else toast.error(res.data.message);
+        } catch { toast.error('Error updating bill status'); }
+    };
+
+    const confirmDelete = async () => {
+        if (!confirmItem) return;
+        setDeleting(true);
+        try {
+            const res = await axios.delete(`${url}/api/finance/running-bills/remove`, { ...authHeader, data: { _id: confirmItem._id } });
+            if (res.data.success) { toast.success(res.data.message); setConfirmItem(null); await fetchBills(); }
+            else toast.error(res.data.message);
+        } catch { toast.error('Error removing bill'); }
+        finally { setDeleting(false); }
+    };
+
+    return (
+        <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                <button type="button" className="add-point-btn" onClick={openGenerate}>+ Generate Bill</button>
+            </div>
+
+            <div className="list-table">
+                <div className="list-table-format title" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1fr 1fr 140px' }}>
+                    <b>Bill #</b><b>Date</b><b>Period</b><b>Total</b><b>Status</b><b>Action</b>
+                </div>
+                {loading ? (
+                    <div className="admin-empty-state"><p>Loading…</p></div>
+                ) : bills.length === 0 ? (
+                    <div className="admin-empty-state"><p>No bills yet.</p></div>
+                ) : (
+                    bills.map(b => (
+                        <div key={b._id} className="list-table-format row-item" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1fr 1fr 140px' }}>
+                            <p>#{b.billNumber}</p>
+                            <p>{new Date(b.billDate).toLocaleDateString()}</p>
+                            <p>{new Date(b.periodFrom).toLocaleDateString()} – {new Date(b.periodTo).toLocaleDateString()}</p>
+                            <p>₹{b.totalAmount.toLocaleString('en-IN')}</p>
+                            <p onClick={() => toggleStatus(b)} className="cursor" style={{ color: b.status === 'issued' ? 'var(--moss)' : 'var(--text-lt)' }}>
+                                <span className="item-category">{STATUS_LABEL[b.status]}</span>
+                            </p>
+                            <div className="action-buttons">
+                                <p onClick={() => setConfirmItem(b)} className="cursor delete-action">X</p>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {modalOpen && ReactDOM.createPortal(
+                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal" style={{ maxWidth: '620px' }}>
+                        <h2>Generate Running Bill</h2>
+                        <div className="wizard-field-grid">
+                            <div className="add-product-name flex-col">
+                                <p>Period From *</p>
+                                <input type="date" value={periodFrom} onChange={e => { setPeriodFrom(e.target.value); setPreview(null); }} />
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>Period To *</p>
+                                <input type="date" value={periodTo} onChange={e => { setPeriodTo(e.target.value); setPreview(null); }} />
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>Bill Date</p>
+                                <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} />
+                            </div>
+                        </div>
+
+                        <div style={{ margin: '16px 0' }}>
+                            <button type="button" className="add-point-btn" disabled={previewing} onClick={runPreview}>
+                                {previewing ? 'Building preview…' : 'Preview Line Items'}
+                            </button>
+                        </div>
+
+                        {preview && (
+                            <div className="list-table" style={{ marginBottom: '16px' }}>
+                                <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
+                                    <b>Work Type</b><b>Area</b><b>Rate</b><b>Amount</b>
+                                </div>
+                                {preview.lineItems.map((li, i) => (
+                                    <div key={i} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
+                                        <p>{li.workType}</p>
+                                        <p>{li.areaBilledSqft} sqft</p>
+                                        <p>₹{li.clientRatePerSqft}/sqft</p>
+                                        <p>₹{li.amount.toLocaleString('en-IN')}</p>
+                                    </div>
+                                ))}
+                                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr', fontWeight: 600 }}>
+                                    <p>Total: ₹{preview.totalAmount.toLocaleString('en-IN')}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="edit-modal-actions">
+                            <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
+                            <button type="button" className="add-btn" disabled={!preview || generating} onClick={confirmGenerate}>
+                                {generating ? 'Generating…' : 'Confirm & Generate'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {confirmItem && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmItem(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>Remove Bill #{confirmItem.billNumber}?</h3>
+                        <p className="bin-confirm-warning">Its measurements become billable again — moved to Recovery Bin.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={confirmDelete} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+        </div>
+    );
+};
+
+export default RunningBillsManager;

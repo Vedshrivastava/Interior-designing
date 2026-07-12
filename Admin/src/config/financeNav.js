@@ -131,22 +131,22 @@ export const FINANCE_NAV_SECTIONS = [
     label: 'Money',
     items: [
       {
-        to: '/finance/receivables', icon: faFileInvoiceDollar, label: 'Receivables', phase: 'Phase 3',
-        // Absorbs the old "Sales Register" nav item.
+        to: '/finance/receivables', icon: faFileInvoiceDollar, label: 'Receivables',
+        // Absorbs the old "Sales Register" nav item. Bespoke component as of
+        // the Running Bills build — bill status (draft/issued) is real;
+        // there's no due-date field anywhere to base a true "overdue" flag
+        // on, so Pending Receipts (oldest issued bill first) is the honest
+        // proxy instead of a guessed-at Overdue tab.
         tabs: [
-          { key: 'running-bills',    label: 'Running Bills',     description: 'Bills currently being prepared, not yet sent to the client.' },
-          { key: 'pending-bills',    label: 'Pending Bills',     description: 'Bills sent, awaiting client approval.' },
-          { key: 'approved-bills',   label: 'Approved Bills',    description: 'Bills approved by the client, awaiting payment.' },
-          { key: 'pending-receipts', label: 'Pending Receipts',  description: 'Approved bills with payment not yet received.' },
-          { key: 'overdue-receipts', label: 'Overdue Receipts',  description: 'Pending receipts past their expected date.' },
+          { key: 'running-bills',    label: 'Running Bills',     description: "Every bill for a project — draft and issued — with a Generate Bill flow that previews line items before confirming." },
+          { key: 'pending-bills',    label: 'Pending Bills',     description: 'Bills generated but not yet issued (draft status).' },
+          { key: 'approved-bills',   label: 'Approved Bills',    description: 'Bills issued to the client.' },
+          { key: 'pending-receipts', label: 'Pending Receipts',  description: 'Every project with an issued bill and a positive outstanding balance, oldest bill first.' },
         ],
       },
       {
-        to: '/finance/receipts', icon: faReceipt, label: 'Receipts', phase: 'Phase 3',
-        tabs: [
-          { key: 'received', label: 'Money Received', description: 'Client payments actually received, linked to invoices.' },
-          { key: 'ledger',   label: 'Ledger',          description: 'Running receipts ledger.' },
-        ],
+        to: '/finance/receipts', icon: faReceipt, label: 'Receipts',
+        tabs: [{ key: 'received', label: 'Money Received', description: 'Client payments received — entry form and history, filterable by project.' }],
       },
       {
         to: '/finance/payables', icon: faMoneyBillWave, label: 'Payables', phase: 'Phase 3',

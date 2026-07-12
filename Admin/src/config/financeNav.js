@@ -151,21 +151,3 @@ export const FINANCE_NAV_SECTIONS = [
 export const FINANCE_ROUTES = FINANCE_NAV_SECTIONS.flatMap(({ phase: sectionPhase, items }) =>
   items.map(({ to, icon, label, phase, tabs }) => ({ to, icon, label, phase: phase || sectionPhase, tabs }))
 );
-
-/*
- * Project Detail isn't a sidebar item — it's reached from a row on the
- * "All Projects" list — but it's still one of the 13 pages, so it gets a
- * route (with its own tabs) rather than being folded into another page.
- */
-export const FINANCE_PROJECT_DETAIL = {
-  label: 'Project Detail',
-  phase: 'Phase 0.5 / 2.4 / 2.6',
-  tabs: [
-    { key: 'basic',    label: 'Basic Info',       description: 'Edit the project\'s basic info and contract-type setup.' },
-    { key: 'rates',    label: 'Work Type Rates',  description: 'Client rate + referral rate, per work type.' },
-    { key: 'team',     label: 'Team Rates',       description: 'Team rate rows — one per work type a team performs on this project.' },
-    { key: 'boq',      label: 'BOQ Estimate',     description: 'Bill-of-quantities estimate for this project.' },
-    { key: 'stock',    label: 'Material Stock',   description: 'Received − used − wasted, for this project\'s materials, with low-stock flags.' },
-    { key: 'lifetime', label: 'Lifetime Summary', description: 'Lifetime billing, cost, profit, and margin % for this project.' },
-  ],
-};

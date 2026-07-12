@@ -28,7 +28,10 @@ import WelcomeScreen from './pages/Welcome';
 import FinanceHome from './pages/FinanceHome';
 import FinancePage from './pages/finance/FinancePage';
 import MasterData from './pages/finance/MasterData';
-import { FINANCE_ROUTES, FINANCE_PROJECT_DETAIL } from './config/financeNav';
+import ProjectsList from './pages/finance/ProjectsList';
+import NewProjectWizard from './pages/finance/NewProjectWizard';
+import ProjectDetail from './pages/finance/ProjectDetail';
+import { FINANCE_ROUTES } from './config/financeNav';
 import Guest from './pages/guest';
 import { Navigate } from "react-router-dom";
 
@@ -214,7 +217,23 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-            {FINANCE_ROUTES.filter(r => r.to !== '/finance' && r.to !== '/finance/masters').map(({ to, label, phase, tabs }) => (
+            <Route
+              path='/finance/projects'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <ProjectsList url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/finance/projects/new'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <NewProjectWizard url={url} />
+                </ProtectedRoute>
+              }
+            />
+            {FINANCE_ROUTES.filter(r => !['/finance', '/finance/masters', '/finance/projects', '/finance/projects/new'].includes(r.to)).map(({ to, label, phase, tabs }) => (
               <Route
                 key={to}
                 path={to}
@@ -229,7 +248,7 @@ const App = () => {
               path='/finance/projects/:id'
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
-                  <FinancePage label={FINANCE_PROJECT_DETAIL.label} phase={FINANCE_PROJECT_DETAIL.phase} tabs={FINANCE_PROJECT_DETAIL.tabs} />
+                  <ProjectDetail url={url} />
                 </ProtectedRoute>
               }
             />

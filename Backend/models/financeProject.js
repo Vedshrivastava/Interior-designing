@@ -21,10 +21,24 @@ const financeProjectSchema = new mongoose.Schema({
     labourContractorVendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', default: null },
     referralVendorId:         { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', default: null }, // null for advance
 
+    // Material Received/Issue logs available for this project — always true
+    // for with_material, always false for without_material, owner's choice
+    // for advance (some advance clients still get material supplied).
+    materialTrackingEnabled: { type: Boolean, default: true },
+
     // Advance-only fields
     totalEstimatedCost:  { type: Number, default: 0 },
     contractPercentage:  { type: Number, default: 0 },
     advanceAmount:       { type: Number, default: 0 }, // computed: cost × percentage
+
+    // Advance-only — Step 5 of the wizard. Lightweight tracking until Phase 3
+    // (Invoices/Payments) exists; will be replaced by a real invoice+payment
+    // link once that phase is built.
+    advanceInvoiced:       { type: Boolean, default: false },
+    advanceInvoicedAt:     { type: Date },
+    advanceReceived:       { type: Boolean, default: false },
+    advanceReceivedAt:     { type: Date },
+    advanceReceivedNotes:  { type: String, default: '' },
 
     status: {
         type: String,

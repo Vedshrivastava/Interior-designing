@@ -29,6 +29,9 @@ import financeEmployeeRouter from "./routes/financeEmployee.js";
 import financeMaterialRouter from "./routes/financeMaterial.js";
 import financeTeamRouter     from "./routes/financeTeam.js";
 import financeSettingRouter  from "./routes/financeSetting.js";
+import financeProjectRouter      from "./routes/financeProject.js";
+import financeWorkTypeRateRouter from "./routes/financeWorkTypeRate.js";
+import financeTeamRateRouter     from "./routes/financeTeamRate.js";
 import dotenv from 'dotenv';
 import { wss } from './middlewares/webSocket.js'; // Import WebSocket server setup
 
@@ -91,6 +94,9 @@ app.use('/api/finance/employees', financeEmployeeRouter);
 app.use('/api/finance/materials', financeMaterialRouter);
 app.use('/api/finance/teams',     financeTeamRouter);
 app.use('/api/finance/settings',  financeSettingRouter);
+app.use('/api/finance/projects',        financeProjectRouter);
+app.use('/api/finance/work-type-rates', financeWorkTypeRateRouter);
+app.use('/api/finance/team-rates',      financeTeamRateRouter);
 
 // Serve static files
 app.use('/images', express.static('uploads'));

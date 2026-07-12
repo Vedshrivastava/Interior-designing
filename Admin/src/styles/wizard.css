@@ -1,0 +1,134 @@
+/* ── Minimal stepper header for the New Project wizard ── */
+.wizard-steps {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+}
+
+.wizard-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-lt);
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    border: 1px solid transparent;
+}
+.wizard-step.active {
+    color: var(--green);
+    background: rgba(201,168,124,0.12);
+    border-color: var(--gold-line);
+    font-weight: 600;
+}
+.wizard-step.done { color: var(--moss); }
+
+.wizard-step-dot {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: rgba(201,168,124,0.15);
+    color: var(--green);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.wizard-step.active .wizard-step-dot { background: var(--gold); color: #fff; }
+.wizard-step.done .wizard-step-dot { background: var(--moss); color: #fff; }
+
+.wizard-step-sep {
+    width: 16px;
+    height: 1px;
+    background: rgba(201,168,124,0.3);
+    flex-shrink: 0;
+}
+
+/* ── Contract type option cards ── */
+.wizard-type-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin: 20px 0;
+}
+@media (max-width: 800px) {
+    .wizard-type-grid { grid-template-columns: 1fr; }
+}
+
+.wizard-type-card {
+    text-align: left;
+    background: var(--white);
+    border: 1px solid var(--gold-line);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.wizard-type-card:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.wizard-type-card.active {
+    border-color: var(--green);
+    background: rgba(16,37,37,0.03);
+    box-shadow: 0 4px 14px rgba(16,37,37,0.1);
+}
+.wizard-type-card h4 {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 1.2rem;
+    color: var(--green);
+    margin: 0 0 8px;
+}
+.wizard-type-card p {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-mid);
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* ── Form grid ── */
+.wizard-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+@media (max-width: 700px) {
+    .wizard-field-grid { grid-template-columns: 1fr; }
+}
+.wizard-field-grid .add-product-name { grid-column: span 1; }
+.wizard-field-grid .wizard-field-full { grid-column: 1 / -1; }
+
+.wizard-hidden-note {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.78rem;
+    color: var(--text-lt);
+    font-style: italic;
+    padding: 10px 14px;
+    background: rgba(201,168,124,0.06);
+    border-radius: var(--radius-sm);
+    margin-bottom: 20px;
+}
+
+.wizard-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(201,168,124,0.15);
+}
+
+.wizard-advance-summary {
+    background: rgba(201,168,124,0.06);
+    border: 1px solid var(--gold-line);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin: 16px 0;
+}
+.wizard-advance-amount {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 1.8rem;
+    color: var(--green);
+    margin: 4px 0 0;
+}

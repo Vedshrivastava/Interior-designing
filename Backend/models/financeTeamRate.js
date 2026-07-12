@@ -16,7 +16,11 @@ const financeTeamRateSchema = new mongoose.Schema({
     deletedBy: { type: String },
 }, { timestamps: true });
 
-financeTeamRateSchema.index({ projectId: 1, teamId: 1, workType: 1 }, { unique: true });
+// Partial index — see financeWorkTypeRate.js for why `deleted: false` (not $ne).
+financeTeamRateSchema.index(
+    { projectId: 1, teamId: 1, workType: 1 },
+    { unique: true, partialFilterExpression: { deleted: false } }
+);
 
 const FinanceTeamRate = mongoose.models.financeTeamRate || mongoose.model('financeTeamRate', financeTeamRateSchema);
 export default FinanceTeamRate;

@@ -76,6 +76,7 @@ const Sidebar = () => {
             <NavLink
               key={to}
               to={to}
+              end
               data-label={itemLabel}
               className={({ isActive }) => `sidebar-option${isActive ? ' active' : ''}`}
             >

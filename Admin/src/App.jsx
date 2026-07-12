@@ -26,8 +26,8 @@ import ResetPassword from './pages/ResetPassword';
 import PendingApproval from './pages/PendingApproval';
 import WelcomeScreen from './pages/Welcome';
 import FinanceHome from './pages/FinanceHome';
-import FinanceComingSoon from './pages/finance/ComingSoon';
-import { FINANCE_ROUTES } from './config/financeNav';
+import FinancePage from './pages/finance/FinancePage';
+import { FINANCE_ROUTES, FINANCE_PROJECT_DETAIL } from './config/financeNav';
 import Guest from './pages/guest';
 import { Navigate } from "react-router-dom";
 
@@ -205,17 +205,25 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-            {FINANCE_ROUTES.filter(r => r.to !== '/finance').map(({ to, label, phase, description }) => (
+            {FINANCE_ROUTES.filter(r => r.to !== '/finance').map(({ to, label, phase, tabs }) => (
               <Route
                 key={to}
                 path={to}
                 element={
                   <ProtectedRoute setShowLogin={setShowLogin}>
-                    <FinanceComingSoon label={label} phase={phase} description={description} />
+                    <FinancePage label={label} phase={phase} tabs={tabs} />
                   </ProtectedRoute>
                 }
               />
             ))}
+            <Route
+              path='/finance/projects/:id'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <FinancePage label={FINANCE_PROJECT_DETAIL.label} phase={FINANCE_PROJECT_DETAIL.phase} tabs={FINANCE_PROJECT_DETAIL.tabs} />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path='/my-account'
               element={

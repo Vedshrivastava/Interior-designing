@@ -1,16 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { FINANCE_NAV_SECTIONS } from '../config/financeNav';
+import { FINANCE_ROUTES } from '../config/financeNav';
 import '../styles/welcome.css';
 
 const FinanceHome = () => {
     const navigate = useNavigate();
 
-    // Every item except the Dashboard link itself (Overview section, which is this page)
-    const shortcuts = FINANCE_NAV_SECTIONS
-        .filter(({ label }) => label !== 'Overview')
-        .flatMap(({ items }) => items);
+    // Every page except this one (Dashboard, the Overview section's only item)
+    const shortcuts = FINANCE_ROUTES.filter(({ to }) => to !== '/finance');
 
     return (
         <div className="welcome-container">
@@ -21,13 +19,13 @@ const FinanceHome = () => {
                 <span /><i className="ti ti-leaf" /><span />
             </div>
             <div className="welcome-cards">
-                {shortcuts.map(({ icon, label, description, to }) => (
+                {shortcuts.map(({ icon, label, phase, tabs, to }) => (
                     <div key={to} className="welcome-card" onClick={() => navigate(to)}>
                         <div className="welcome-card-icon">
                             <FontAwesomeIcon icon={icon} />
                         </div>
                         <h3>{label}</h3>
-                        <p>{description}</p>
+                        <p>{phase ? `${phase} · ` : ''}{tabs.length > 1 ? `${tabs.length} sections` : tabs[0]?.description}</p>
                     </div>
                 ))}
             </div>

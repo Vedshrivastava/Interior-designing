@@ -1,0 +1,16 @@
+import express from 'express';
+import { adminAuthMiddleware } from '../middlewares/auth.js';
+import {
+    listRunningBills, previewRunningBill, generateRunningBill,
+    updateRunningBillStatus, removeRunningBill,
+} from '../controllers/financeRunningBill.js';
+
+const router = express.Router();
+
+router.get('/preview', adminAuthMiddleware, previewRunningBill);
+router.get('/list',    adminAuthMiddleware, listRunningBills);
+router.post('/generate', adminAuthMiddleware, generateRunningBill);
+router.post('/update',   adminAuthMiddleware, updateRunningBillStatus);
+router.delete('/remove', adminAuthMiddleware, removeRunningBill);
+
+export default router;

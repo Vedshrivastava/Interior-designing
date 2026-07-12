@@ -24,6 +24,10 @@ const financeMeasurementSchema = new mongoose.Schema({
     engineerApproved:   { type: Boolean, default: false },
     engineerApprovedAt: { type: Date },
 
+    // Set by the running-bill generation automation when this measurement
+    // gets included in a bill — prevents billing the same measurement twice.
+    billedInRunningBillId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeRunningBill', default: null },
+
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },
     deletedBy: { type: String },

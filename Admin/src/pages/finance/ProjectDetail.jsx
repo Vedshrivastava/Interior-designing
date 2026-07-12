@@ -7,6 +7,8 @@ import TeamRatesManager from '../../components/finance/TeamRatesManager';
 import WorksManager from '../../components/finance/WorksManager';
 import MeasurementsManager from '../../components/finance/MeasurementsManager';
 import StockMovementsManager from '../../components/finance/StockMovementsManager';
+import RunningBillsManager from '../../components/finance/RunningBillsManager';
+import ReceiptsManager from '../../components/finance/ReceiptsManager';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import '../../styles/list.css';
 
@@ -157,8 +159,12 @@ const ProjectDetail = ({ url }) => {
                     </div>
                 )}
 
-                {activeTab === 'runningBills' && <PlaceholderTab text="Bills currently being prepared for this project." phase="Phase 3" />}
-                {activeTab === 'receipts' && <PlaceholderTab text="Payments received for this project." phase="Phase 3" />}
+                {activeTab === 'runningBills' && (
+                    project.contractType === 'advance'
+                        ? <PlaceholderTab text="Advance-contract projects don't use Running Bills — see the advance payment fields on the Overview tab instead." />
+                        : <RunningBillsManager url={url} projectId={id} />
+                )}
+                {activeTab === 'receipts' && <ReceiptsManager url={url} projectId={id} />}
                 {activeTab === 'expenses' && <PlaceholderTab text="Site expenses logged against this project." />}
                 {activeTab === 'documents' && <PlaceholderTab text="Documents on file for this project." />}
                 {activeTab === 'photos' && <PlaceholderTab text="Site photos for this project." />}

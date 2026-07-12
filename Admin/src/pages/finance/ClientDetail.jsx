@@ -20,6 +20,7 @@ const TABS = [
 
 const CONTRACT_TYPE_LABEL = { with_material: 'With Material', without_material: 'Without Material', advance: 'Advance' };
 const STATUS_LABEL = { draft: 'Draft', active: 'Active', completed: 'Completed' };
+const BILL_STATUS_LABEL = { draft: 'Draft', issued: 'Issued' };
 
 // There is no GET /api/finance/clients/:id endpoint — the client and its
 // projects are both found by filtering the existing /list responses
@@ -101,6 +102,165 @@ const ClientProjectsTab = ({ url, clientId }) => {
     );
 };
 
+/*
+ * Bills, Payment History, and Ledger all come from the same two sources —
+ * this client's running bills (fetched per-project, since the bills
+ * endpoint only filters by projectId) and their receipts (which the
+ * receipts endpoint filters by clientId directly). Fetched once, shared
+ * across the three tabs, rather than three separate N+1 fan-outs.
+ */
+const useClientBillsAndReceipts = (url, clientId) => {
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const [bills, setBills] = useState([]);
+    const [receipts, setReceipts] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let cancelled = false;
+        setLoading(true);
+        (async () => {
+            try {
+                const [projectsRes, receiptsRes] = await Promise.all([
+                    axios.get(`${url}/api/finance/projects/list`, authHeader),
+                    axios.get(`${url}/api/finance/receipts/list`, { ...authHeader, params: { clientId } }),
+                ]);
+                const clientProjects = projectsRes.data.success
+                    ? projectsRes.data.data.filter(p => (p.clientId?._id || p.clientId) === clientId)
+                    : [];
+                const billLists = await Promise.all(clientProjects.map(p =>
+                    axios.get(`${url}/api/finance/running-bills/list`, { ...authHeader, params: { projectId: p._id } })
+                        .then(res => (res.data.success ? res.data.data.map(b => ({ ...b, projectName: p.name })) : []))
+                        .catch(() => [])
+                ));
+                if (!cancelled) {
+                    setBills(billLists.flat());
+                    setReceipts(receiptsRes.data.success ? receiptsRes.data.data : []);
+                }
+            } catch {
+                if (!cancelled) toast.error('Error fetching bills and receipts');
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [url, clientId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    return { bills, receipts, loading };
+};
+
+const ClientBillsTab = ({ url, clientId }) => {
+    const navigate = useNavigate();
+    const { bills, loading } = useClientBillsAndReceipts(url, clientId);
+
+    if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
+    if (bills.length === 0) return <div className="admin-empty-state"><p>No bills raised for this client yet.</p></div>;
+
+    return (
+        <div className="list-table">
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 0.7fr 1fr 1fr 1fr' }}>
+                <b>Project</b><b>Bill #</b><b>Date</b><b>Total</b><b>Status</b>
+            </div>
+            {bills.map(b => (
+                <div key={b._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 0.7fr 1fr 1fr 1fr' }}>
+                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${b.projectId}`)}>{b.projectName}</p>
+                    <p>#{b.billNumber}</p>
+                    <p>{new Date(b.billDate).toLocaleDateString()}</p>
+                    <p>₹{b.totalAmount.toLocaleString('en-IN')}</p>
+                    <p><span className="item-category">{BILL_STATUS_LABEL[b.status]}</span></p>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+const ClientReceiptsTab = ({ url, clientId }) => {
+    const { receipts, loading } = useClientBillsAndReceipts(url, clientId);
+
+    if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
+    if (receipts.length === 0) return <div className="admin-empty-state"><p>No receipts recorded for this client yet.</p></div>;
+
+    return (
+        <div className="list-table">
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
+                <b>Date</b><b>Amount</b><b>Mode</b><b>Reference</b>
+            </div>
+            {receipts.map(r => (
+                <div key={r._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
+                    <p>{new Date(r.receiptDate).toLocaleDateString()}</p>
+                    <p>₹{r.amount.toLocaleString('en-IN')}</p>
+                    <p>{r.paymentMode || '—'}</p>
+                    <p>{r.utrNumber || r.bankOrCashLabel || '—'}</p>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+// A merged timeline of issued bills (debits) and receipts (credits) — draft
+// bills aren't a financial event yet, so they're excluded here even though
+// they show on the Bills tab.
+const useMergedFeed = (url, clientId) => {
+    const { bills, receipts, loading } = useClientBillsAndReceipts(url, clientId);
+    const feed = [
+        ...bills.filter(b => b.status === 'issued').map(b => ({ type: 'bill', date: b.billDate, amount: b.totalAmount, label: `Bill #${b.billNumber} issued — ${b.projectName}` })),
+        ...receipts.map(r => ({ type: 'receipt', date: r.receiptDate, amount: r.amount, label: `Receipt received${r.paymentMode ? ` (${r.paymentMode})` : ''}` })),
+    ];
+    return { feed, loading };
+};
+
+const ClientPaymentHistoryTab = ({ url, clientId }) => {
+    const { feed, loading } = useMergedFeed(url, clientId);
+    const sorted = [...feed].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
+    if (sorted.length === 0) return <div className="admin-empty-state"><p>No billing activity for this client yet.</p></div>;
+
+    return (
+        <div className="list-table">
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 2fr 1fr' }}>
+                <b>Date</b><b>Event</b><b>Amount</b>
+            </div>
+            {sorted.map((e, i) => (
+                <div key={i} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 2fr 1fr' }}>
+                    <p>{new Date(e.date).toLocaleDateString()}</p>
+                    <p>{e.label}</p>
+                    <p style={{ color: e.type === 'bill' ? '#c0392b' : 'var(--moss)' }}>{e.type === 'bill' ? '+' : '−'}₹{e.amount.toLocaleString('en-IN')}</p>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+const ClientLedgerTab = ({ url, clientId }) => {
+    const { feed, loading } = useMergedFeed(url, clientId);
+    const sorted = [...feed].sort((a, b) => new Date(a.date) - new Date(b.date));
+    let running = 0;
+    const withBalance = sorted.map(e => {
+        running += e.type === 'bill' ? e.amount : -e.amount;
+        return { ...e, balance: running };
+    });
+
+    if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
+    if (withBalance.length === 0) return <div className="admin-empty-state"><p>No billing activity for this client yet.</p></div>;
+
+    return (
+        <div className="list-table">
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 2fr 1fr 1fr' }}>
+                <b>Date</b><b>Event</b><b>Amount</b><b>Balance</b>
+            </div>
+            {withBalance.map((e, i) => (
+                <div key={i} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 2fr 1fr 1fr' }}>
+                    <p>{new Date(e.date).toLocaleDateString()}</p>
+                    <p>{e.label}</p>
+                    <p style={{ color: e.type === 'bill' ? '#c0392b' : 'var(--moss)' }}>{e.type === 'bill' ? '+' : '−'}₹{e.amount.toLocaleString('en-IN')}</p>
+                    <p style={{ fontWeight: 600 }}>₹{e.balance.toLocaleString('en-IN')}</p>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 const ClientDetail = ({ url }) => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -156,12 +316,12 @@ const ClientDetail = ({ url }) => {
             )}
             {activeTab === 'projects' && <ClientProjectsTab url={url} clientId={client._id} />}
             {activeTab === 'quotations' && <PlaceholderTab text="Client quotations issued, pre-project." phase="Phase 3" />}
-            {activeTab === 'receipts' && <PlaceholderTab text="Payments received from this client." />}
-            {activeTab === 'bills' && <PlaceholderTab text="Bills raised to this client." />}
+            {activeTab === 'receipts' && <ClientReceiptsTab url={url} clientId={client._id} />}
+            {activeTab === 'bills' && <ClientBillsTab url={url} clientId={client._id} />}
             {activeTab === 'documents' && <PlaceholderTab text="Documents on file for this client." />}
             {activeTab === 'contacts' && <PlaceholderTab text="Additional contact persons for this client." />}
-            {activeTab === 'payments' && <PlaceholderTab text="Full payment history for this client." />}
-            {activeTab === 'ledger' && <PlaceholderTab text="Running balance ledger for this client." />}
+            {activeTab === 'payments' && <ClientPaymentHistoryTab url={url} clientId={client._id} />}
+            {activeTab === 'ledger' && <ClientLedgerTab url={url} clientId={client._id} />}
         </FinanceTabShell>
     );
 };

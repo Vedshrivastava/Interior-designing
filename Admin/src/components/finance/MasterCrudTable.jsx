@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
+import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import '../../styles/list.css';
 import '../../styles/add.css';
 
@@ -32,6 +33,7 @@ const MasterCrudTable = ({ url, resourceKey, filter, getDetailLink }) => {
     const [list, setList] = useState([]);
     const [loading, setLoading] = useState(false);
     const [vendors, setVendors] = useState([]);
+    const [settingOptions, setSettingOptions] = useState({}); // { [settingType]: [{_id, name}] }
     const [modalOpen, setModalOpen] = useState(false);
     const [form, setForm] = useState(emptyFormFromFields(resource.fields));
     const [editingId, setEditingId] = useState(null);
@@ -41,6 +43,7 @@ const MasterCrudTable = ({ url, resourceKey, filter, getDetailLink }) => {
 
     const needsVendors = resource.fields.some(f => f.type === 'vendorSelect') ||
         resource.columns.some(c => c.vendorRef);
+    const settingSelectFields = resource.fields.filter(f => f.type === 'settingSelect');
 
     const fetchList = async () => {
         setLoading(true);
@@ -62,6 +65,14 @@ const MasterCrudTable = ({ url, resourceKey, filter, getDetailLink }) => {
             .then(res => { if (res.data.success) setVendors(res.data.data); })
             .catch(() => {});
     }, [needsVendors]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        settingSelectFields.forEach(f => {
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: f.settingType } })
+                .then(res => { if (res.data.success) setSettingOptions(prev => ({ ...prev, [f.settingType]: res.data.data })); })
+                .catch(() => {});
+        });
+    }, [resourceKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const vendorName = (id) => vendors.find(v => v._id === (id?._id || id))?.name || '—';
 
@@ -106,6 +117,9 @@ const MasterCrudTable = ({ url, resourceKey, filter, getDetailLink }) => {
             const res = await axios.post(`${url}${resource.apiBase}/${endpoint}`, payload, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message || `${resource.label} saved`);
+                await Promise.all(settingSelectFields.map(f =>
+                    registerSettingIfNew(url, authHeader, f.settingType, form[f.key], settingOptions[f.settingType] || [])
+                ));
                 closeModal();
                 await fetchList();
             } else {
@@ -173,6 +187,19 @@ const MasterCrudTable = ({ url, resourceKey, filter, getDetailLink }) => {
                         {vendors.map(v => <option key={v._id} value={v._id}>{v.name}</option>)}
                     </select>
                 );
+            case 'settingSelect':
+                return (
+                    <>
+                        <SettingSelectField
+                            settingType={f.settingType}
+                            options={settingOptions[f.settingType] || []}
+                            value={value}
+                            onChange={v => setField(f.key, v)}
+                            placeholder={f.placeholder}
+                        />
+                        {f.note && <p style={{ fontSize: '0.78rem', color: 'var(--text-lt)', marginTop: '4px' }}>{f.note}</p>}
+                    </>
+                );
             case 'stringArray':
                 return (
                     <div className="add-product-points">
@@ -227,7 +254,7 @@ const MasterCrudTable = ({ url, resourceKey, filter, getDetailLink }) => {
                     <div className="loader-modal-box edit-modal">
                         <h2>{editingId ? `Edit ${resource.label}` : `Add ${resource.label}`}</h2>
                         <form className="flex-col" onSubmit={submit}>
-                            {resource.fields.map(f => (
+                            {resource.fields.filter(f => !f.showIf || f.showIf(form)).map(f => (
                                 <div key={f.key} className="add-product-name flex-col">
                                     <p>{f.label}{f.required ? ' *' : ''}</p>
                                     {renderField(f)}

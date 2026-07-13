@@ -313,15 +313,28 @@ export const FINANCE_NAV_SECTIONS = [
         to: '/finance/masters', icon: faUsersGear, label: 'Masters',
         phase: 'Phase 0',
         // Bespoke component. Restructured internally — see MasterData.jsx —
-        // but this stays the most complete module: Material Master, Work
-        // Types, Payment Modes, Expense Heads, TDS Sections, Employees, and
-        // Labour Teams all have full CRUD backing it. Salary Ledger tab
-        // added in the Salary + Commission + Other Expenses build — a
-        // picker on this same page feeds
+        // and now the most complete module by far: Material Master, Work
+        // Types, Payment Modes, Expense Heads, TDS Sections, Units, Cities,
+        // Commission Types, Employees, and Labour Teams all have full CRUD
+        // backing them. Salary Ledger tab added in the Salary + Commission
+        // + Other Expenses build — a picker on this same page feeds
         // GET /api/finance/employees/:employeeId/salary-ledger, computed
         // from employee.salary minus financeSalaryPayment for the chosen
         // (or every) month.
-        tabs: [{ key: 'overview', label: 'Overview', description: 'Material catalog, work types, payment modes, expense heads, TDS sections, employees, and labour teams.' }],
+        //
+        // Units/Cities/Commission Types went real in the Masters
+        // Completion build, same generic financeSetting CRUD as the
+        // original four — Units back a dropdown-with-escape-hatch on the
+        // Material form's `unit` field, Cities the same on a project's
+        // `siteLocation` field (both stay plain Strings, never validated
+        // against the master — old free-text values keep working), and
+        // Commission Types back an optional, purely descriptive
+        // `commissionTypeLabel` on referral vendors that has zero effect
+        // on the actual commission math (still always
+        // completedAreaSqft × referralRatePerSqft). The Banks placeholder
+        // tab was removed in that same build — Bank Accounts already
+        // exists for real under its own top-level Bank section.
+        tabs: [{ key: 'overview', label: 'Overview', description: 'Material catalog, work types, payment modes, expense heads, TDS sections, units, cities, commission types, employees, and labour teams.' }],
       },
       {
         to: '/finance/settings', icon: faGear, label: 'Settings',

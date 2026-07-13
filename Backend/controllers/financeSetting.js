@@ -1,7 +1,7 @@
 import FinanceSetting from '../models/financeSetting.js';
 import { broadcast } from '../middlewares/webSocket.js';
 
-const VALID_TYPES = ['work_type', 'expense_category', 'payment_mode', 'tds_section'];
+const VALID_TYPES = ['work_type', 'expense_category', 'payment_mode', 'tds_section', 'unit', 'city', 'commission_type'];
 
 // TDS section rates are fixed by law, not editable business preference —
 // seeded once so Payment Tracker/TDS calculations have real defaults.

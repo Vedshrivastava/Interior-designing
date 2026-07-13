@@ -37,6 +37,12 @@ export const FINANCE_MASTERS = {
             { key: 'email', label: 'Email', type: 'email' },
             { key: 'address', label: 'Address', type: 'textarea' },
             { key: 'gstNumber', label: 'GST Number', type: 'text' },
+            {
+                key: 'commissionTypeLabel', label: 'Commission Type', type: 'settingSelect', settingType: 'commission_type',
+                placeholder: 'e.g. Flat, Tiered, Project-based…',
+                showIf: (form) => form.vendorType === 'referral',
+                note: 'Descriptive only — does not change how commission is calculated. Commission is always area × the work type\'s referral rate per sqft.',
+            },
             { key: 'notes', label: 'Notes', type: 'textarea' },
         ],
         columns: [
@@ -66,7 +72,7 @@ export const FINANCE_MASTERS = {
         label: 'Material', labelPlural: 'Materials', apiBase: '/api/finance/materials',
         fields: [
             { key: 'name', label: 'Name', type: 'text', required: true },
-            { key: 'unit', label: 'Unit', type: 'text', placeholder: 'bag, sqft, kg, piece…' },
+            { key: 'unit', label: 'Unit', type: 'settingSelect', settingType: 'unit', placeholder: 'bag, sqft, kg, piece…' },
             { key: 'minimumStockLevel', label: 'Minimum Stock Level', type: 'number' },
             { key: 'notes', label: 'Notes', type: 'textarea' },
         ],
@@ -119,4 +125,7 @@ export const FINANCE_SETTING_TYPES = [
     { key: 'expense_category', label: 'Expense Categories', hasCode: false, hasRate: false },
     { key: 'payment_mode', label: 'Payment Modes', hasCode: false, hasRate: false },
     { key: 'tds_section', label: 'TDS Sections', hasCode: true, hasRate: true },
+    { key: 'unit', label: 'Units', hasCode: false, hasRate: false },
+    { key: 'city', label: 'Cities', hasCode: false, hasRate: false },
+    { key: 'commission_type', label: 'Commission Types', hasCode: false, hasRate: false },
 ];

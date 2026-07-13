@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
 
-const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '' };
+const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '' };
 
 /*
  * Standalone vendor-payment entry + history — the same financeVendorPayment
@@ -19,6 +19,7 @@ const VendorPaymentsManager = ({ url }) => {
     const [vendors, setVendors] = useState([]);
     const [vendorId, setVendorId] = useState('');
     const [bankAccounts, setBankAccounts] = useState([]);
+    const [tdsSections, setTdsSections] = useState([]);
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -32,6 +33,8 @@ const VendorPaymentsManager = ({ url }) => {
             .catch(() => {});
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
+            .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchPayments = async () => {
@@ -99,13 +102,18 @@ const VendorPaymentsManager = ({ url }) => {
                             {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
                         </select>
                         <input type="text" placeholder="Bank / Cash label (legacy, optional)" value={form.bankOrCashLabel} onChange={e => setField('bankOrCashLabel', e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
+                        <select value={form.tdsSectionId} onChange={e => setField('tdsSectionId', e.target.value)} style={{ flex: 1, minWidth: '160px' }}>
+                            <option value="">— No TDS —</option>
+                            {tdsSections.map(s => <option key={s._id} value={s._id}>{s.name}{s.code ? ` (${s.code})` : ''}</option>)}
+                        </select>
+                        <input type="number" placeholder="TDS amount (optional)" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} style={{ flex: 1, minWidth: '120px' }} />
                         <input type="file" onChange={e => setFile(e.target.files[0] || null)} style={{ flex: 1, minWidth: '160px' }} />
                         <button type="submit" className="add-point-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Payment'}</button>
                     </form>
 
                     <div className="list-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
-                            <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>Attachment</b><b>Action</b>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
+                            <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>TDS</b><b>Attachment</b><b>Action</b>
                         </div>
                         {loading ? (
                             <div className="admin-empty-state"><p>Loading…</p></div>
@@ -113,11 +121,12 @@ const VendorPaymentsManager = ({ url }) => {
                             <div className="admin-empty-state"><p>No payments recorded yet.</p></div>
                         ) : (
                             payments.map(p => (
-                                <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
+                                <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
                                     <p>{new Date(p.date).toLocaleDateString()}</p>
                                     <p>₹{p.amount.toLocaleString('en-IN')}</p>
                                     <p>{p.paymentMode || '—'}</p>
                                     <p>{p.bankAccountId?.accountName || 'Cash'}</p>
+                                    <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '—'}</p>
                                     <p>{p.attachmentUrl ? <a href={p.attachmentUrl} target="_blank" rel="noreferrer">View</a> : '—'}</p>
                                     <div className="action-buttons"><p onClick={() => remove(p._id)} className="cursor delete-action">X</p></div>
                                 </div>

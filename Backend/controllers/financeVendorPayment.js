@@ -20,7 +20,7 @@ const listVendorPayments = async (req, res) => {
         const filter = { deleted: { $ne: true } };
         if (vendorId) filter.vendorId = vendorId;
         if (projectId) filter.projectId = projectId;
-        const items = await FinanceVendorPayment.find(filter).populate('bankAccountId', 'accountName').sort({ date: -1, createdAt: -1 });
+        const items = await FinanceVendorPayment.find(filter).populate('bankAccountId', 'accountName').populate('tdsSectionId', 'name code').sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {
         console.error(err);
@@ -44,7 +44,7 @@ const uploadAttachment = async (file) => {
 // bankAccountId means cash — a financeCashEntry is auto-created below.
 const addVendorPayment = async (req, res) => {
     try {
-        const { vendorId, projectId, purchaseId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes } = req.body;
+        const { vendorId, projectId, purchaseId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
         if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
@@ -55,6 +55,7 @@ const addVendorPayment = async (req, res) => {
             vendorId, projectId: projectId || null, purchaseId: purchaseId || null, amount: Number(amount), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null, utrNumber: utrNumber || '',
             attachmentUrl, notes: notes || '',
+            tdsSectionId: tdsSectionId || null, tdsAmount: (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null,
         });
         await item.save();
 
@@ -76,7 +77,7 @@ const addVendorPayment = async (req, res) => {
 
 const updateVendorPayment = async (req, res) => {
     try {
-        const { _id, projectId, purchaseId, amount, date, paymentMode, bankOrCashLabel, utrNumber, notes } = req.body;
+        const { _id, projectId, purchaseId, amount, date, paymentMode, bankOrCashLabel, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
         const existing = await FinanceVendorPayment.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Not found' });
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
@@ -85,6 +86,7 @@ const updateVendorPayment = async (req, res) => {
         const update = {
             projectId: projectId || null, purchaseId: purchaseId || null, amount: Number(amount), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', utrNumber: utrNumber || '', notes: notes || '',
+            tdsSectionId: tdsSectionId || null, tdsAmount: (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null,
         };
         if (req.file) update.attachmentUrl = await uploadAttachment(req.file);
 

@@ -19,6 +19,12 @@ import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import FinanceVendorPayment from '../models/financeVendorPayment.js';
 import FinanceSalaryPayment from '../models/financeSalaryPayment.js';
 import FinanceCommissionPayment from '../models/financeCommissionPayment.js';
+import FinanceSetting from '../models/financeSetting.js';
+import FinanceBankAccount from '../models/financeBankAccount.js';
+import FinanceCashEntry from '../models/financeCashEntry.js';
+import { getAccountActivity } from './financeBankAccount.js';
+import PDFDocument from 'pdfkit';
+import { writeLetterhead, writeSectionHeading, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
 
 /*
  * Reports is a pure rollup layer — every endpoint here is read-only,
@@ -484,8 +490,155 @@ const getExpenseAnalysis = async (req, res) => {
     }
 };
 
+const monthBounds = (month) => {
+    const start = new Date(`${month}-01T00:00:00.000Z`);
+    const end = new Date(start.getFullYear(), start.getMonth() + 1, 0, 23, 59, 59, 999);
+    return { start, end };
+};
+
+/*
+ * Shared by getCaMonthlyPackage (JSON) and downloadCaMonthlyPackage (PDF)
+ * so the numbers on screen and in the PDF can never drift apart.
+ *
+ * INTERPRETATION FLAG: Output GST is scoped to status: 'issued' bills only
+ * (not drafts) — consistent with every other "Revenue" figure in this
+ * Reports module (Project/Client/Work Profit, Sales Summary below), all
+ * of which treat an issued bill as the point money is actually owed.
+ * Input GST has no such filter since the spec is explicit
+ * (transactionType: 'purchase' only) and purchases have no draft state.
+ */
+const computeCaMonthlyPackage = async (month) => {
+    const { start, end } = monthBounds(month);
+
+    const issuedBills = await FinanceRunningBill.find({ billDate: { $gte: start, $lte: end }, status: 'issued', deleted: { $ne: true } });
+    const outputGst = issuedBills.reduce((sum, b) => sum + (b.gstAmount || 0), 0);
+    const salesTotal = issuedBills.reduce((sum, b) => sum + b.totalAmount, 0);
+
+    const purchases = await FinancePurchase.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } });
+    const purchaseRows = purchases.filter(p => p.transactionType === 'purchase');
+    const returnRows = purchases.filter(p => p.transactionType === 'return');
+    const inputGst = purchaseRows.reduce((sum, p) => sum + (p.gstAmount || 0), 0);
+    const totalPurchased = purchaseRows.reduce((sum, p) => sum + p.totalAmount, 0);
+    const totalReturned = returnRows.reduce((sum, p) => sum + p.totalAmount, 0);
+
+    const [contractorPayments, vendorPayments, commissionPayments] = await Promise.all([
+        FinanceContractorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }),
+        FinanceVendorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }),
+        FinanceCommissionPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }),
+    ]);
+    const allPayments = [...contractorPayments, ...vendorPayments, ...commissionPayments];
+    const tdsSectionIds = [...new Set(allPayments.filter(p => p.tdsSectionId).map(p => p.tdsSectionId.toString()))];
+    const tdsSections = tdsSectionIds.length ? await FinanceSetting.find({ _id: { $in: tdsSectionIds } }) : [];
+    const sectionById = new Map(tdsSections.map(s => [s._id.toString(), s]));
+    const tdsBySection = new Map();
+    let totalTds = 0;
+    for (const p of allPayments) {
+        if (!p.tdsAmount) continue;
+        totalTds += p.tdsAmount;
+        const key = p.tdsSectionId ? p.tdsSectionId.toString() : 'unspecified';
+        if (!tdsBySection.has(key)) {
+            const section = sectionById.get(key);
+            tdsBySection.set(key, { tdsSectionId: p.tdsSectionId || null, tdsSectionName: section?.name || 'Unspecified', tdsSectionCode: section?.code || '', totalTds: 0 });
+        }
+        tdsBySection.get(key).totalTds += p.tdsAmount;
+    }
+
+    const expenses = await FinanceExpense.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } });
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+    const bankAccounts = await FinanceBankAccount.find({ deleted: { $ne: true } });
+    const bankPositions = await Promise.all(bankAccounts.map(async (a) => {
+        const activity = await getAccountActivity(a._id);
+        const net = activity.filter(t => new Date(t.date) <= end).reduce((sum, t) => sum + (t.direction === 'credit' ? t.amount : -t.amount), 0);
+        return { accountId: a._id, accountName: a.accountName, closingBalance: a.openingBalance + net };
+    }));
+    const totalBankBalance = bankPositions.reduce((sum, b) => sum + b.closingBalance, 0);
+
+    const cashEntries = await FinanceCashEntry.find({ deleted: { $ne: true }, date: { $lte: end } });
+    const cashClosingBalance = cashEntries.reduce((sum, e) => sum + (e.type === 'in' ? e.amount : -e.amount), 0);
+
+    return {
+        month,
+        gst: { outputGst, inputGst, netGstPayable: outputGst - inputGst },
+        tds: { totalTds, bySection: [...tdsBySection.values()].sort((a, b) => b.totalTds - a.totalTds) },
+        sales: { totalBilled: salesTotal, billCount: issuedBills.length },
+        purchases: { totalPurchased, totalReturned, netPurchases: totalPurchased - totalReturned, purchaseCount: purchaseRows.length },
+        expenses: { totalExpenses, expenseCount: expenses.length },
+        bankAndCash: { bankAccounts: bankPositions, totalBankBalance, cashClosingBalance, totalPosition: totalBankBalance + cashClosingBalance },
+    };
+};
+
+const getCaMonthlyPackage = async (req, res) => {
+    try {
+        const { month } = req.query;
+        if (!month || !/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ success: false, message: 'month is required in YYYY-MM format' });
+        const data = await computeCaMonthlyPackage(month);
+        res.json({ success: true, data });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing CA monthly package' });
+    }
+};
+
+const downloadCaMonthlyPackage = async (req, res) => {
+    try {
+        const { month } = req.query;
+        if (!month || !/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ success: false, message: 'month is required in YYYY-MM format' });
+        const data = await computeCaMonthlyPackage(month);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="CA-Monthly-Package-${month}.pdf"`);
+
+        const doc = new PDFDocument({ margin: 50 });
+        doc.pipe(res);
+
+        writeLetterhead(doc, `CA Monthly Package — ${month}`);
+        doc.font('Helvetica').fontSize(9).fillColor('#555555')
+            .text('For handoff to your CA — these are computed figures, not a filed return. GST/TDS amounts reflect only what was entered against bills, purchases, and payments this month.');
+        doc.fillColor('#000000');
+
+        writeSectionHeading(doc, 'GST Summary');
+        doc.text(`Output GST (from issued bills): ${formatCurrency(data.gst.outputGst)}`);
+        doc.text(`Input GST (from purchases): ${formatCurrency(data.gst.inputGst)}`);
+        doc.font('Helvetica-Bold').text(`Net GST Payable: ${formatCurrency(data.gst.netGstPayable)}`).font('Helvetica');
+
+        writeSectionHeading(doc, 'TDS Summary');
+        if (data.tds.bySection.length === 0) {
+            doc.text('No TDS recorded this month.');
+        } else {
+            data.tds.bySection.forEach(s => doc.text(`${s.tdsSectionName}${s.tdsSectionCode ? ` (${s.tdsSectionCode})` : ''}: ${formatCurrency(s.totalTds)}`));
+            doc.font('Helvetica-Bold').text(`Total TDS: ${formatCurrency(data.tds.totalTds)}`).font('Helvetica');
+        }
+
+        writeSectionHeading(doc, 'Sales Summary');
+        doc.text(`Total Billed (issued bills): ${formatCurrency(data.sales.totalBilled)}`);
+        doc.text(`Bill Count: ${data.sales.billCount}`);
+
+        writeSectionHeading(doc, 'Purchase Summary');
+        doc.text(`Total Purchased: ${formatCurrency(data.purchases.totalPurchased)}`);
+        doc.text(`Total Returned: ${formatCurrency(data.purchases.totalReturned)}`);
+        doc.text(`Net Purchases: ${formatCurrency(data.purchases.netPurchases)}`);
+        doc.text(`Purchase Count: ${data.purchases.purchaseCount}`);
+
+        writeSectionHeading(doc, 'Expense Summary');
+        doc.text(`Total Expenses: ${formatCurrency(data.expenses.totalExpenses)}`);
+        doc.text(`Expense Count: ${data.expenses.expenseCount}`);
+
+        writeSectionHeading(doc, 'Bank & Cash Position (as of month end)');
+        data.bankAndCash.bankAccounts.forEach(a => doc.text(`${a.accountName}: ${formatCurrency(a.closingBalance)}`));
+        doc.text(`Cash: ${formatCurrency(data.bankAndCash.cashClosingBalance)}`);
+        doc.font('Helvetica-Bold').text(`Total Position: ${formatCurrency(data.bankAndCash.totalPosition)}`).font('Helvetica');
+
+        doc.end();
+    } catch (err) {
+        console.error(err);
+        if (!res.headersSent) res.status(500).json({ success: false, message: 'Error generating CA monthly package PDF' });
+    }
+};
+
 export {
     getProjectProfit, getClientProfit, getWorkProfit,
     getContractorAnalysis, getVendorAnalysis, getMaterialAnalysis,
     getCashFlow, getExpenseAnalysis,
+    getCaMonthlyPackage, downloadCaMonthlyPackage,
 };

@@ -10,6 +10,7 @@ import VendorAnalysisTable from '../../components/finance/VendorAnalysisTable';
 import MaterialAnalysisView from '../../components/finance/MaterialAnalysisView';
 import CashFlowView from '../../components/finance/CashFlowView';
 import ExpenseAnalysisView from '../../components/finance/ExpenseAnalysisView';
+import CaMonthlyPackageView from '../../components/finance/CaMonthlyPackageView';
 
 const TABS = [
     { key: 'project-profit',      label: 'Project Profit' },
@@ -20,6 +21,7 @@ const TABS = [
     { key: 'material-analysis',   label: 'Material Analysis' },
     { key: 'cash-flow',           label: 'Cash Flow' },
     { key: 'expense-analysis',    label: 'Expense Analysis' },
+    { key: 'ca-monthly-package',  label: 'CA Monthly Package' },
     { key: 'supervisor-analysis', label: 'Supervisor Analysis' },
     { key: 'labour-analysis',     label: 'Labour Analysis' },
     { key: 'reconciliation',      label: 'Reconciliation' },
@@ -70,6 +72,7 @@ const ReportsPage = ({ url }) => {
             {activeTab === 'material-analysis' && <MaterialAnalysisView url={url} />}
             {activeTab === 'cash-flow' && <CashFlowView url={url} />}
             {activeTab === 'expense-analysis' && <ExpenseAnalysisView url={url} />}
+            {activeTab === 'ca-monthly-package' && <CaMonthlyPackageView url={url} />}
             {activeTab === 'supervisor-analysis' && <PlaceholderTab text="Depends on the Supervisors module, which doesn't exist yet." />}
             {activeTab === 'labour-analysis' && <PlaceholderTab text="Depends on the Daily Labour module, which doesn't exist yet." />}
             {activeTab === 'reconciliation' && <PlaceholderTab text="Guided month-end checklist — approve entries, settle labour, verify stock, invoice, chase receivables, pay vendors, GST, TDS, review." phase="Phase 6" />}

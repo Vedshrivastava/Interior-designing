@@ -26,6 +26,15 @@ const financeRunningBillSchema = new mongoose.Schema({
 
     totalAmount: { type: Number, required: true },
 
+    // Optional — set at generation time if the owner enters a GST rate;
+    // gstAmount is snapshotted then and frozen like every other amount on
+    // this document. Unset on every bill generated before this field
+    // existed, and on any bill generated without a rate. Grand total for
+    // display purposes is totalAmount + (gstAmount || 0), computed at
+    // render time rather than stored as its own field.
+    gstRate:   { type: Number, default: null },
+    gstAmount: { type: Number, default: null },
+
     // Payment status is derived from receipts against this bill elsewhere
     // (see receivables/summary) — status here is just draft-vs-issued,
     // not a payment state.

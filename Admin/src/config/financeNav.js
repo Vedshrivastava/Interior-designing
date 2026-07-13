@@ -76,8 +76,12 @@ export const FINANCE_NAV_SECTIONS = [
         to: '/finance/procurement', icon: faCartShopping, label: 'Procurement',
         // Bespoke component — Vendors tab is real (relocated Master Data →
         // Vendors, filtered to exclude labour_contractor; those live under
-        // Contractors instead). Purchases absorbs the old "Purchase Register"
-        // (Phase 3) placeholder.
+        // Contractors instead). Purchases/Material Dump/Returns/Ledger are
+        // real as of the Procurement build: a purchase auto-creates a
+        // `dump` financeStockMovement, a return auto-creates a `return`
+        // one (both carry relatedPurchaseId) — Material Dump here is the
+        // inventory-side read of exactly those. Ledger = purchases −
+        // returns − payments, same computed shape as the Contractor Ledger.
         tabs: [{ key: 'vendors', label: 'Vendors', description: 'Material suppliers and other non-contractor vendors — labour contractors live under Contractors instead.' }],
       },
       {
@@ -86,7 +90,11 @@ export const FINANCE_NAV_SECTIONS = [
         // stock is computed on the fly (never stored), with a manual
         // dump/return/waste entry form and full movement history per project.
         // The material catalog itself (name, unit, minimum stock) stays under
-        // Masters → Material Master.
+        // Masters → Material Master. As of the Procurement build, `dump` and
+        // `return` movements can ALSO be created automatically by a
+        // Procurement purchase/return — manual entry here still works
+        // independently for anything not tied to a formal purchase (opening
+        // stock, ad-hoc site returns). `waste` stays manual-only either way.
         tabs: [{ key: 'ledger', label: 'Stock Ledger', description: 'Current stock, manual Dump/Return/Waste entry, and movement history per project + material.' }],
       },
     ],
@@ -154,18 +162,21 @@ export const FINANCE_NAV_SECTIONS = [
       },
       {
         to: '/finance/payables', icon: faMoneyBillWave, label: 'Payables',
-        // Bespoke component as of the Contractor Ledger build — Contractor
-        // tab is real (pulls balancePayable per contractor from
-        // GET /api/finance/contractors/:vendorId/ledger). Vendor/Salary/
-        // Commission/Other stay placeholder until their own ledgers exist.
-        // NOTE for whoever builds those: Payables must end up COMPUTED —
-        // vendor balance + contractor balance + unpaid salary + unpaid
-        // commission + unpaid expense heads — never a directly-writable
-        // collection. Do not add a "financePayable" model that a user can
-        // create or edit by hand (the Contractor tab already proves this
-        // pattern out: no balance field is stored anywhere).
+        // Bespoke component — Contractor tab real since the Contractor
+        // Ledger build (pulls balancePayable from
+        // GET /api/finance/contractors/:vendorId/ledger); Vendor tab real
+        // since the Procurement build (pulls amountOwed from
+        // GET /api/finance/vendors/:vendorId/ledger, purchases − returns −
+        // payments). Salary/Commission/Other stay placeholder until their
+        // own ledgers exist. NOTE for whoever builds those: Payables must
+        // end up COMPUTED — vendor balance + contractor balance + unpaid
+        // salary + unpaid commission + unpaid expense heads — never a
+        // directly-writable collection. Do not add a "financePayable"
+        // model that a user can create or edit by hand (the Vendor and
+        // Contractor tabs already prove this pattern out: no balance
+        // field is stored anywhere).
         tabs: [
-          { key: 'vendor',     label: 'Vendor',          description: 'Computed from unpaid vendor purchases.' },
+          { key: 'vendor',     label: 'Vendor',          description: 'Amount owed per vendor — purchases minus returns and payments already made.' },
           { key: 'contractor', label: 'Contractor',      description: 'Balance payable per contractor — earnings minus advances, deductions, and payments already made.' },
           { key: 'salary',     label: 'Salary',          description: 'Computed from unpaid employee salary.' },
           { key: 'commission', label: 'Commission',      description: 'Computed from unpaid referral commission.' },
@@ -174,13 +185,15 @@ export const FINANCE_NAV_SECTIONS = [
       },
       {
         to: '/finance/payments', icon: faMoneyBillTransfer, label: 'Payments',
-        // Renamed/repositioned from "Payment Tracker". Bespoke component as
-        // of the Contractor Ledger build — Contractor Payment tab is real
-        // (same financeContractorPayment data as Contractors' Ledger tab,
-        // reachable from here too). Vendor/Salary/Commission/Misc stay
-        // placeholder until their own money flows exist.
+        // Renamed/repositioned from "Payment Tracker". Bespoke component —
+        // Contractor Payment tab real since the Contractor Ledger build,
+        // Vendor Payment tab real since the Procurement build (both reuse
+        // the same financeContractorPayment/financeVendorPayment data as
+        // their respective Ledger tabs, reachable standalone from here
+        // too). Salary/Commission/Misc stay placeholder until their own
+        // money flows exist.
         tabs: [
-          { key: 'vendor',     label: 'Vendor Payment',     description: 'Payments made to material vendors.' },
+          { key: 'vendor',     label: 'Vendor Payment',     description: 'Payments made to material vendors — entry form and history.' },
           { key: 'contractor', label: 'Contractor Payment', description: 'Payments made to labour contractors — entry form and history.' },
           { key: 'salary',     label: 'Salary',             description: 'Salary payouts to employees.' },
           { key: 'commission', label: 'Commission',         description: 'Referral commission payouts.' },

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import ContractorPaymentsManager from '../../components/finance/ContractorPaymentsManager';
+import VendorPaymentsManager from '../../components/finance/VendorPaymentsManager';
 
 const TABS = [
     { key: 'vendor',     label: 'Vendor Payment' },
@@ -22,7 +23,7 @@ const PaymentsPage = ({ url }) => {
             activeKey={activeTab}
             onTabChange={setActiveTab}
         >
-            {activeTab === 'vendor' && <PlaceholderTab text="Payments made to material vendors." phase="Phase 3" />}
+            {activeTab === 'vendor' && <VendorPaymentsManager url={url} />}
             {activeTab === 'contractor' && <ContractorPaymentsManager url={url} />}
             {activeTab === 'salary' && <PlaceholderTab text="Salary payouts to employees." />}
             {activeTab === 'commission' && <PlaceholderTab text="Referral commission payouts." />}

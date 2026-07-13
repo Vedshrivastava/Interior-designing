@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
@@ -13,6 +14,7 @@ const emptyForm = { workType: '', teamId: '', workOrderNumber: '', startDate: ''
    completedAreaSqft is read-only here; it's only ever moved by the
    measurement-save automation on the backend. */
 const WorksManager = ({ url, projectId }) => {
+    const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -116,7 +118,7 @@ const WorksManager = ({ url, projectId }) => {
             </div>
 
             <div className="list-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1.4fr 1fr 1fr 140px' }}>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1fr 1.3fr 1fr 1fr 200px' }}>
                     <b>Work Type</b><b>Team</b><b>Completed / Estimated</b><b>Earnings</b><b>Status</b><b>Action</b>
                 </div>
                 {loading ? (
@@ -128,13 +130,14 @@ const WorksManager = ({ url, projectId }) => {
                         const earnings = earningsFor(w);
                         const pct = w.estimatedAreaSqft > 0 ? Math.min(100, Math.round((w.completedAreaSqft / w.estimatedAreaSqft) * 100)) : 0;
                         return (
-                            <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1.4fr 1fr 1fr 140px' }}>
+                            <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1fr 1.3fr 1fr 1fr 200px' }}>
                                 <p>{w.workType}</p>
                                 <p>{w.teamId?.name || '—'}</p>
                                 <p>{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft ({pct}%)</p>
                                 <p>{earnings != null ? `₹${earnings.toLocaleString('en-IN')}` : '—'}</p>
                                 <p><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
                                 <div className="action-buttons">
+                                    <p onClick={() => navigate(`/finance/reports?tab=work-profit&workId=${w._id}`)} className="cursor edit-action">Profit</p>
                                     <p onClick={() => openEdit(w)} className="cursor edit-action">Edit</p>
                                     <p onClick={() => setConfirmItem(w)} className="cursor delete-action">X</p>
                                 </div>

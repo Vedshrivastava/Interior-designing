@@ -256,19 +256,29 @@ export const FINANCE_NAV_SECTIONS = [
     items: [
       {
         to: '/finance/reports', icon: faFileExport, label: 'Reports', phase: 'Phase 5',
-        // Renamed/repositioned from "Reports & Exports". Absorbs the
-        // month-end checklist from the old "Reconciliation" (Phase 6)
-        // placeholder as its own tab, now that Bank Reconciliation itself
-        // has moved to the Bank section above.
+        // Renamed/repositioned from "Reports & Exports". Bespoke component
+        // as of the Reports & Profitability build — every tab except
+        // Supervisor Analysis, Labour Analysis, and Reconciliation is real,
+        // built entirely as read-only rollups over data every other
+        // module already writes (no new writable model anywhere in this
+        // module). Material-cost figures (Project Profit, Work Profit,
+        // Material Analysis) use weighted-average costing — there's no
+        // FIFO/batch-level costing anywhere in this system, so this is an
+        // approximation flagged as such in the UI. Project Profit, Client
+        // Profit, and Work Profit cross-link each other; Work Profit has
+        // no picker of its own — it's only reached by drilling in from a
+        // project's Works tab (or from Project Profit's own Works list).
+        // Supervisor/Labour Analysis stay placeholder — they depend on
+        // modules that don't exist yet (Supervisors, Daily Labour).
         tabs: [
-          { key: 'project-profit',       label: 'Project Profit',        description: 'Profit per project.' },
-          { key: 'client-profit',        label: 'Client Profit',         description: 'Profit per client.' },
-          { key: 'work-profit',          label: 'Work Profit',           description: 'Profit per work type.' },
-          { key: 'contractor-analysis',  label: 'Contractor Analysis',   description: 'Spend and performance per contractor.' },
-          { key: 'vendor-analysis',      label: 'Vendor Analysis',       description: 'Spend and performance per vendor.' },
-          { key: 'material-analysis',    label: 'Material Analysis',     description: 'Consumption and cost per material.' },
-          { key: 'cash-flow',            label: 'Cash Flow',             description: 'Cash in vs. out over time.' },
-          { key: 'expense-analysis',     label: 'Expense Analysis',      description: 'Spend by expense head.' },
+          { key: 'project-profit',       label: 'Project Profit',        description: 'Revenue minus material/contractor/commission cost and other expenses, per project.' },
+          { key: 'client-profit',        label: 'Client Profit',         description: 'Same breakdown, rolled up across every project for one client.' },
+          { key: 'work-profit',          label: 'Work Profit',           description: "Revenue billed minus contractor and material cost for one work — reached by drilling in from a project's Works tab." },
+          { key: 'contractor-analysis',  label: 'Contractor Analysis',   description: 'Earnings, advances, deductions, payments, and balance payable — every labour contractor side by side.' },
+          { key: 'vendor-analysis',      label: 'Vendor Analysis',       description: 'Purchases, returns, payments, and amount owed — every material-supplier vendor side by side.' },
+          { key: 'material-analysis',    label: 'Material Analysis',     description: 'Purchased, returned, consumed, wasted, current stock, and weighted-average cost per material.' },
+          { key: 'cash-flow',            label: 'Cash Flow',             description: 'Total in (receipts) vs. out (contractor/vendor/salary/commission payments + expenses), by category and over a date range.' },
+          { key: 'expense-analysis',     label: 'Expense Analysis',      description: 'financeExpense totals grouped by category and project, filterable by date range.' },
           { key: 'supervisor-analysis',  label: 'Supervisor Analysis',   description: 'Area supervised and incentive earned per supervisor.' },
           { key: 'labour-analysis',      label: 'Labour Analysis',       description: 'Labour days and cost per team/work type.' },
           { key: 'reconciliation',       label: 'Reconciliation',        phase: 'Phase 6', description: "Guided month-end checklist — approve entries, settle labour, verify stock, invoice, chase receivables, pay vendors, GST, TDS, review. (Bank statement import/match itself now lives under Bank.)" },

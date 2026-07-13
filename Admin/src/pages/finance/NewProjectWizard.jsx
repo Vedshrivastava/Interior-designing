@@ -14,7 +14,7 @@ const CONTRACT_TYPES = [
 ];
 
 const emptyBasic = {
-    name: '', clientId: '', siteLocation: '', assignedSupervisor: '',
+    name: '', clientId: '', siteLocation: '', assignedSupervisor: '', assignedSupervisorId: '',
     labourContractorVendorId: '', startDate: '', estimatedAreaSqft: '', notes: '',
 };
 
@@ -35,12 +35,14 @@ const NewProjectWizard = ({ url }) => {
 
     const [clients, setClients] = useState([]);
     const [vendors, setVendors] = useState([]);
+    const [employees, setEmployees] = useState([]);
     const [stepKey, setStepKey] = useState('basic');
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         axios.get(`${url}/api/finance/clients/list`, authHeader).then(res => { if (res.data.success) setClients(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/vendors/list`, authHeader).then(res => { if (res.data.success) setVendors(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/employees/list`, authHeader).then(res => { if (res.data.success) setEmployees(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const steps = ['basic', 'type', 'setup', 'teams', ...(contractType === 'advance' ? ['advance'] : []), 'activate'];
@@ -191,7 +193,14 @@ const NewProjectWizard = ({ url }) => {
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Assigned Supervisor</p>
-                                    <input type="text" value={basic.assignedSupervisor} onChange={e => setBasicField('assignedSupervisor', e.target.value)} />
+                                    <select value={basic.assignedSupervisorId} onChange={e => setBasicField('assignedSupervisorId', e.target.value)}>
+                                        <option value="">— None —</option>
+                                        {employees.map(emp => <option key={emp._id} value={emp._id}>{emp.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Assigned Supervisor (free text, legacy)</p>
+                                    <input type="text" value={basic.assignedSupervisor} onChange={e => setBasicField('assignedSupervisor', e.target.value)} placeholder="Only used if no supervisor is picked above" />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Labour Contractor Vendor</p>

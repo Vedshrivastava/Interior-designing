@@ -35,6 +35,7 @@ const listFinanceProjects = async (req, res) => {
             .populate('clientId', 'name')
             .populate('labourContractorVendorId', 'name')
             .populate('referralVendorId', 'name')
+            .populate('assignedSupervisorId', 'name')
             .sort({ createdAt: -1 });
 
         const withReadiness = await Promise.all(projects.map(async (p) => {
@@ -61,7 +62,8 @@ const getFinanceProject = async (req, res) => {
         const project = await FinanceProject.findOne({ _id: req.params.id, deleted: { $ne: true } })
             .populate('clientId', 'name phone email')
             .populate('labourContractorVendorId', 'name')
-            .populate('referralVendorId', 'name');
+            .populate('referralVendorId', 'name')
+            .populate('assignedSupervisorId', 'name');
         if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
         const [workTypeRates, teamRates] = await Promise.all([
@@ -97,6 +99,7 @@ const addFinanceProject = async (req, res) => {
             notes: data.notes || '',
             contractType,
             assignedSupervisor: data.assignedSupervisor || '',
+            assignedSupervisorId: data.assignedSupervisorId || null,
             labourContractorVendorId: data.labourContractorVendorId || null,
             referralVendorId: data.referralVendorId || null,
             materialTrackingEnabled: data.materialTrackingEnabled,
@@ -132,6 +135,7 @@ const updateFinanceProject = async (req, res) => {
             notes: merged.notes || '',
             contractType,
             assignedSupervisor: merged.assignedSupervisor || '',
+            assignedSupervisorId: merged.assignedSupervisorId || null,
             labourContractorVendorId: merged.labourContractorVendorId || null,
             referralVendorId: merged.referralVendorId,
             materialTrackingEnabled: merged.materialTrackingEnabled,

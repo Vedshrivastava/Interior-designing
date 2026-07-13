@@ -46,7 +46,7 @@ const ClientProfitView = ({ url, clientId, onSelectClient, onViewProjectProfit }
                         </div>
                         <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                             <p>₹{data.totals.revenue.toLocaleString('en-IN')}</p>
-                            <p>₹{(data.totals.materialCost + data.totals.contractorCost + data.totals.commissionCost + data.totals.otherExpenses).toLocaleString('en-IN')}</p>
+                            <p>₹{(data.totals.materialCost + data.totals.contractorCost + data.totals.commissionCost + data.totals.otherExpenses + data.totals.dailyLabourCost).toLocaleString('en-IN')}</p>
                             <p style={{ fontWeight: 700, color: data.totals.profit >= 0 ? 'var(--moss)' : '#c0392b' }}>
                                 ₹{data.totals.profit.toLocaleString('en-IN')} ({data.totals.marginPercent.toFixed(1)}%)
                             </p>

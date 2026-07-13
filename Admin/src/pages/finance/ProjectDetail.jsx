@@ -9,6 +9,7 @@ import MeasurementsManager from '../../components/finance/MeasurementsManager';
 import StockMovementsManager from '../../components/finance/StockMovementsManager';
 import RunningBillsManager from '../../components/finance/RunningBillsManager';
 import ReceiptsManager from '../../components/finance/ReceiptsManager';
+import DailyLabourManager from '../../components/finance/DailyLabourManager';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import '../../styles/list.css';
 
@@ -19,6 +20,7 @@ const TABS = [
     { key: 'materials',    label: 'Materials' },
     { key: 'contractors',  label: 'Contractors' },
     { key: 'supervisors',  label: 'Supervisors' },
+    { key: 'dailyLabour',  label: 'Daily Labour' },
     { key: 'runningBills', label: 'Running Bills' },
     { key: 'receipts',     label: 'Receipts' },
     { key: 'expenses',     label: 'Expenses' },
@@ -155,9 +157,14 @@ const ProjectDetail = ({ url }) => {
 
                 {activeTab === 'supervisors' && (
                     <div className="list-table">
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Assigned Supervisor</b></p><p>{project.assignedSupervisor || '—'}</p></div>
+                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                            <p><b>Assigned Supervisor</b></p>
+                            <p>{project.assignedSupervisorId?.name || project.assignedSupervisor || '—'}</p>
+                        </div>
                     </div>
                 )}
+
+                {activeTab === 'dailyLabour' && <DailyLabourManager url={url} projectId={id} />}
 
                 {activeTab === 'runningBills' && (
                     project.contractType === 'advance'

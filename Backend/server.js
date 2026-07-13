@@ -54,6 +54,7 @@ import financeSalaryLedgerRouter    from "./routes/financeSalaryLedger.js";
 import financeCommissionPaymentRouter from "./routes/financeCommissionPayment.js";
 import financeCommissionLedgerRouter  from "./routes/financeCommissionLedger.js";
 import financeExpenseRouter         from "./routes/financeExpense.js";
+import financeReportsRouter         from "./routes/financeReports.js";
 import dotenv from 'dotenv';
 import { wss } from './middlewares/webSocket.js'; // Import WebSocket server setup
 
@@ -141,6 +142,7 @@ app.use('/api/finance/cash-book',       financeCashBookRouter);
 app.use('/api/finance/salary-payments',     financeSalaryPaymentRouter);
 app.use('/api/finance/commission-payments', financeCommissionPaymentRouter);
 app.use('/api/finance/expenses',            financeExpenseRouter);
+app.use('/api/finance/reports',             financeReportsRouter);
 
 // Serve static files
 app.use('/images', express.static('uploads'));

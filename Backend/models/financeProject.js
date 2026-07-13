@@ -17,7 +17,13 @@ const financeProjectSchema = new mongoose.Schema({
         required: true,
     },
 
+    // assignedSupervisor (plain string) predates the Supervisors module —
+    // kept as-is so old projects keep working untouched. New/edited
+    // projects populate assignedSupervisorId instead (a Supervisor is a
+    // financeEmployee, not a separate entity); the UI falls back to the
+    // string when the ref isn't set.
     assignedSupervisor:       { type: String, default: '' },
+    assignedSupervisorId:     { type: mongoose.Schema.Types.ObjectId, ref: 'financeEmployee', default: null },
     labourContractorVendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', default: null },
     referralVendorId:         { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', default: null }, // null for advance
 

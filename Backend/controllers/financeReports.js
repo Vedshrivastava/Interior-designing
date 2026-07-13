@@ -19,6 +19,7 @@ import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import FinanceVendorPayment from '../models/financeVendorPayment.js';
 import FinanceSalaryPayment from '../models/financeSalaryPayment.js';
 import FinanceCommissionPayment from '../models/financeCommissionPayment.js';
+import FinanceDailyLabour from '../models/financeDailyLabour.js';
 import FinanceSetting from '../models/financeSetting.js';
 import FinanceBankAccount from '../models/financeBankAccount.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
@@ -123,7 +124,7 @@ const computeProjectProfit = async (projectId) => {
     const project = await FinanceProject.findOne({ _id: projectId, deleted: { $ne: true } });
     if (!project) return null;
 
-    const [revenueAgg, materialCost, contractorCost, commissionCost, expenseAgg] = await Promise.all([
+    const [revenueAgg, materialCost, contractorCost, commissionCost, expenseAgg, dailyLabourAgg] = await Promise.all([
         FinanceRunningBill.aggregate([
             { $match: { projectId: project._id, status: 'issued', deleted: { $ne: true } } },
             { $group: { _id: null, total: { $sum: '$totalAmount' } } },
@@ -135,15 +136,20 @@ const computeProjectProfit = async (projectId) => {
             { $match: { projectId: project._id, deleted: { $ne: true } } },
             { $group: { _id: null, total: { $sum: '$amount' } } },
         ]),
+        FinanceDailyLabour.aggregate([
+            { $match: { projectId: project._id, deleted: { $ne: true } } },
+            { $group: { _id: null, total: { $sum: '$amount' } } },
+        ]),
     ]);
 
     const revenue = revenueAgg[0]?.total || 0;
     const otherExpenses = expenseAgg[0]?.total || 0;
-    const profit = revenue - materialCost - contractorCost - commissionCost - otherExpenses;
+    const dailyLabourCost = dailyLabourAgg[0]?.total || 0;
+    const profit = revenue - materialCost - contractorCost - commissionCost - otherExpenses - dailyLabourCost;
 
     return {
         projectId: project._id, projectName: project.name, clientId: project.clientId,
-        revenue, materialCost, contractorCost, commissionCost, otherExpenses, profit,
+        revenue, materialCost, contractorCost, commissionCost, otherExpenses, dailyLabourCost, profit,
         marginPercent: revenue > 0 ? (profit / revenue) * 100 : 0,
     };
 };
@@ -177,8 +183,9 @@ const getClientProfit = async (req, res) => {
             contractorCost: acc.contractorCost + p.contractorCost,
             commissionCost: acc.commissionCost + p.commissionCost,
             otherExpenses: acc.otherExpenses + p.otherExpenses,
+            dailyLabourCost: acc.dailyLabourCost + p.dailyLabourCost,
             profit: acc.profit + p.profit,
-        }), { revenue: 0, materialCost: 0, contractorCost: 0, commissionCost: 0, otherExpenses: 0, profit: 0 });
+        }), { revenue: 0, materialCost: 0, contractorCost: 0, commissionCost: 0, otherExpenses: 0, dailyLabourCost: 0, profit: 0 });
         totals.marginPercent = totals.revenue > 0 ? (totals.profit / totals.revenue) * 100 : 0;
 
         res.json({ success: true, data: { clientId: client._id, clientName: client.name, projects: perProject, totals } });

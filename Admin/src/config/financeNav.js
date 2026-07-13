@@ -122,27 +122,37 @@ export const FINANCE_NAV_SECTIONS = [
       },
       {
         to: '/finance/supervisors', icon: faUserShield, label: 'Supervisors',
-        // New top-level section. No Supervisor master model exists —
-        // `assignedSupervisor` on financeProject is still a plain string.
-        // Employees stays under Masters; no real link between the two yet.
+        // Bespoke component, real as of the Supervisors + Daily Labour
+        // build — a Supervisor is a financeEmployee (no separate model;
+        // financeEmployee has no "isSupervisor" flag, so the picker lists
+        // every employee, same as Masters > Employees). `assignedSupervisor`
+        // on financeProject stays a plain string for old projects; new/
+        // edited projects populate `assignedSupervisorId` (ref
+        // financeEmployee) instead — Assigned Projects here matches on
+        // the ref first, falling back to a name match against the legacy
+        // string so old projects don't just disappear from the list.
         tabs: [
-          { key: 'projects',    label: 'Assigned Projects', description: "Projects grouped by each project's assignedSupervisor text field." },
-          { key: 'labour',      label: 'Daily Labour',       description: 'Daily labour logged under each supervisor.' },
-          { key: 'attendance',  label: 'Attendance',         description: 'Supervisor attendance.' },
+          { key: 'projects',    label: 'Assigned Projects', description: 'Projects whose assignedSupervisorId (or legacy assignedSupervisor string) matches this employee.' },
+          { key: 'labour',      label: 'Daily Labour',       description: "This supervisor's recorded daily labour entries (read-only here — record from Daily Labour or a project's own tab)." },
+          { key: 'attendance',  label: 'Attendance',         description: 'Present / absent / half-day / leave, per day, for this employee.' },
           { key: 'performance', label: 'Performance',        description: 'Supervisor performance metrics.' },
-          { key: 'salary',      label: 'Salary',             description: 'Supervisor salary.' },
-          { key: 'incentives',  label: 'Incentives',         phase: 'Phase 2', description: 'Monthly incentive per supervisor, by approved area supervised.' },
+          { key: 'salary',      label: 'Salary',             description: 'Same salary ledger as Masters, filtered to this employee.' },
+          { key: 'incentives',  label: 'Incentives',         description: 'Discretionary incentive payouts, distinct from regular salary — no stored "approved area supervised" metric exists to compute this automatically.' },
         ],
       },
       {
-        to: '/finance/daily-labour', icon: faPersonDigging, label: 'Daily Labour', phase: 'Phase 1',
-        tabs: [
-          { key: 'half-day',  label: 'Half Day',  description: 'Half-day labour entries.' },
-          { key: 'full-day',  label: 'Full Day',  description: 'Full-day labour entries.' },
-          { key: 'extra-day', label: 'Extra Day', description: 'Extra/overtime day labour entries.' },
-          { key: 'rate',      label: 'Rate',      description: 'Applicable labour rate per entry.' },
-          { key: 'amount',    label: 'Amount',    description: 'Computed payable amount per entry.' },
-        ],
+        to: '/finance/daily-labour', icon: faPersonDigging, label: 'Daily Labour',
+        // Bespoke component, real as of the Supervisors + Daily Labour
+        // build. Casual/daily-wage labour, distinct from contractor teams
+        // (financeTeam) — no separate labourer master, entries are
+        // name-only. amount is computed and frozen at entry time:
+        // half_day = 0.5×rate, full_day = 1×rate, extra_day = 1.5×rate.
+        // Feeds into Reports > Project Profit as its own Daily Labour
+        // Cost line. Global entry form + list here isn't scoped to one
+        // project or supervisor — same DailyLabourManager component a
+        // project's own Daily Labour tab and Supervisors' Daily Labour
+        // tab reuse, just with nothing pre-scoped.
+        tabs: [{ key: 'list', label: 'All Entries', description: 'Every daily labour entry across every project — entry form + filterable list.' }],
       },
     ],
   },
@@ -280,7 +290,7 @@ export const FINANCE_NAV_SECTIONS = [
         // in that same build — downloads a per-bill Client Bill Statement
         // PDF via GET /api/finance/running-bills/:id/statement/download.
         tabs: [
-          { key: 'project-profit',       label: 'Project Profit',        description: 'Revenue minus material/contractor/commission cost and other expenses, per project.' },
+          { key: 'project-profit',       label: 'Project Profit',        description: 'Revenue minus material/contractor/commission/daily-labour cost and other expenses, per project.' },
           { key: 'client-profit',        label: 'Client Profit',         description: 'Same breakdown, rolled up across every project for one client.' },
           { key: 'work-profit',          label: 'Work Profit',           description: "Revenue billed minus contractor and material cost for one work — reached by drilling in from a project's Works tab." },
           { key: 'contractor-analysis',  label: 'Contractor Analysis',   description: 'Earnings, advances, deductions, payments, and balance payable — every labour contractor side by side.' },

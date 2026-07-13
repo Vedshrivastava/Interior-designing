@@ -47,6 +47,7 @@ import ReportsPage from './pages/finance/ReportsPage';
 import SupervisorsPage from './pages/finance/SupervisorsPage';
 import SettingsPage from './pages/finance/SettingsPage';
 import DailyLabourPage from './pages/finance/DailyLabourPage';
+import ActivityTimelinePage from './pages/finance/ActivityTimelinePage';
 import { FINANCE_ROUTES } from './config/financeNav';
 import Guest from './pages/guest';
 import { Navigate } from "react-router-dom";
@@ -362,6 +363,14 @@ const App = () => {
               }
             />
             <Route
+              path='/finance/activity'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <ActivityTimelinePage url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path='/finance/settings'
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
@@ -377,6 +386,7 @@ const App = () => {
               '/finance/payables', '/finance/payments',
               '/finance/bank', '/finance/cash-book', '/finance/reports',
               '/finance/supervisors', '/finance/daily-labour', '/finance/settings',
+              '/finance/activity',
             ].includes(r.to)).map(({ to, label, phase, tabs }) => (
               <Route
                 key={to}

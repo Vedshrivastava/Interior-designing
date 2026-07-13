@@ -1,6 +1,8 @@
 import FinanceSalaryPayment from '../models/financeSalaryPayment.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
+import FinanceEmployee from '../models/financeEmployee.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 const listSalaryPayments = async (req, res) => {
     try {
@@ -42,6 +44,17 @@ const addSalaryPayment = async (req, res) => {
         }
 
         broadcast({ type: 'financeSalaryPaymentsChanged', employeeId });
+
+        const employee = await FinanceEmployee.findById(employeeId).select('name');
+        await logActivity({
+            eventType: 'salary_paid',
+            entityType: 'financeSalaryPayment',
+            entityId: item._id,
+            summary: `Salary of ₹${Number(amount)} paid to ${employee?.name || 'employee'} for ${month}`,
+            amount: Number(amount),
+            req,
+        });
+
         res.json({ success: true, message: 'Salary payment recorded', data: item });
     } catch (err) {
         console.error(err);

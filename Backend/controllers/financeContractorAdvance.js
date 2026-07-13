@@ -1,6 +1,7 @@
 import FinanceContractorAdvance from '../models/financeContractorAdvance.js';
 import { assertContractorVendor } from '../utils/contractorVendor.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 const listContractorAdvances = async (req, res) => {
     try {
@@ -24,7 +25,7 @@ const addContractorAdvance = async (req, res) => {
     try {
         const { vendorId, projectId, amount, date, paymentMode, bankOrCashLabel, utrNumber, notes } = req.body;
         if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
-        await assertContractorVendor(vendorId);
+        const vendor = await assertContractorVendor(vendorId);
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
@@ -34,6 +35,17 @@ const addContractorAdvance = async (req, res) => {
         });
         await item.save();
         broadcast({ type: 'financeContractorLedgerChanged', vendorId });
+
+        await logActivity({
+            eventType: 'contractor_advance_given',
+            entityType: 'financeContractorAdvance',
+            entityId: item._id,
+            projectId: projectId || null,
+            summary: `₹${Number(amount)} advanced to contractor ${vendor.name}`,
+            amount: Number(amount),
+            req,
+        });
+
         res.json({ success: true, message: 'Advance recorded', data: item });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message || 'Error recording advance' });

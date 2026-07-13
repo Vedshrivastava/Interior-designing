@@ -1,6 +1,10 @@
 import FinancePurchase from '../models/financePurchase.js';
 import FinanceStockMovement from '../models/financeStockMovement.js';
+import FinanceVendor from '../models/financeVendor.js';
+import FinanceMaterial from '../models/financeMaterial.js';
+import FinanceProject from '../models/financeProject.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 // projectId/vendorId/materialId are optional narrowing filters, not
 // required — Procurement's Purchases/Returns tabs list everything;
@@ -53,7 +57,7 @@ const addPurchase = async (req, res) => {
         });
         await purchase.save();
 
-        await FinanceStockMovement.create({
+        const movement = await FinanceStockMovement.create({
             projectId, materialId,
             movementType: type === 'return' ? 'return' : 'dump',
             quantity: Number(quantity), date,
@@ -62,6 +66,33 @@ const addPurchase = async (req, res) => {
 
         broadcast({ type: 'financePurchasesChanged', projectId, vendorId });
         broadcast({ type: 'financeStockChanged', projectId });
+
+        const [vendor, material, project] = await Promise.all([
+            FinanceVendor.findById(vendorId).select('name'),
+            FinanceMaterial.findById(materialId).select('name unit'),
+            FinanceProject.findById(projectId).select('name'),
+        ]);
+        if (type === 'return') {
+            await logActivity({
+                eventType: 'stock_returned',
+                entityType: 'financeStockMovement',
+                entityId: movement._id,
+                projectId,
+                summary: `${Number(quantity)} ${material?.unit || ''} of ${material?.name || 'material'} returned at ${project?.name || 'project'}`,
+                req,
+            });
+        } else {
+            await logActivity({
+                eventType: 'material_purchased',
+                entityType: 'financePurchase',
+                entityId: purchase._id,
+                projectId,
+                summary: `${Number(quantity)} ${material?.unit || ''} of ${material?.name || 'material'} purchased from ${vendor?.name || 'vendor'} — ₹${totalAmount}`,
+                amount: totalAmount,
+                req,
+            });
+        }
+
         res.json({ success: true, message: `${type === 'return' ? 'Return' : 'Purchase'} recorded`, data: purchase });
     } catch (err) {
         console.error(err);

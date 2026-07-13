@@ -3,7 +3,9 @@ import fs from 'fs';
 import dotenv from 'dotenv';
 import FinanceVendorPayment from '../models/financeVendorPayment.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
+import FinanceVendor from '../models/financeVendor.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 dotenv.config();
 
@@ -68,6 +70,18 @@ const addVendorPayment = async (req, res) => {
         }
 
         broadcast({ type: 'financeVendorLedgerChanged', vendorId });
+
+        const vendor = await FinanceVendor.findById(vendorId).select('name');
+        await logActivity({
+            eventType: 'vendor_paid',
+            entityType: 'financeVendorPayment',
+            entityId: item._id,
+            projectId: projectId || null,
+            summary: `₹${Number(amount)} paid to vendor ${vendor?.name || 'vendor'}`,
+            amount: Number(amount),
+            req,
+        });
+
         res.json({ success: true, message: 'Payment recorded', data: item });
     } catch (err) {
         console.error(err);

@@ -59,6 +59,7 @@ import financeDailyLabourRouter          from "./routes/financeDailyLabour.js";
 import financeSupervisorAttendanceRouter from "./routes/financeSupervisorAttendance.js";
 import financeSupervisorIncentiveRouter  from "./routes/financeSupervisorIncentive.js";
 import financeCompanySettingsRouter      from "./routes/financeCompanySettings.js";
+import financeActivityLogRouter          from "./routes/financeActivityLog.js";
 import dotenv from 'dotenv';
 import { wss } from './middlewares/webSocket.js'; // Import WebSocket server setup
 
@@ -151,6 +152,7 @@ app.use('/api/finance/reports',             financeReportsRouter);
 app.use('/api/finance/daily-labour',            financeDailyLabourRouter);
 app.use('/api/finance/supervisor-attendance',   financeSupervisorAttendanceRouter);
 app.use('/api/finance/supervisor-incentives',   financeSupervisorIncentiveRouter);
+app.use('/api/finance/activity',                financeActivityLogRouter);
 
 // Serve static files
 app.use('/images', express.static('uploads'));

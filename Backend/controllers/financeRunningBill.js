@@ -5,6 +5,7 @@ import FinanceProject from '../models/financeProject.js';
 import FinanceReceipt from '../models/financeReceipt.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 import PDFDocument from 'pdfkit';
 import { writeLetterhead, writeSectionHeading, writeFooter, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
 
@@ -85,7 +86,7 @@ const computeBillLineItems = async (projectId, periodFrom, periodTo) => {
     const totalAmount = lineItems.reduce((sum, li) => sum + li.amount, 0);
     const measurementIds = measurements.map(m => m._id);
 
-    return { lineItems, totalAmount, measurementIds };
+    return { lineItems, totalAmount, measurementIds, project };
 };
 
 const previewRunningBill = async (req, res) => {
@@ -112,7 +113,7 @@ const generateRunningBill = async (req, res) => {
             return res.status(400).json({ success: false, message: 'projectId, periodFrom, and periodTo are required' });
         }
 
-        const { lineItems, totalAmount, measurementIds } = await computeBillLineItems(projectId, periodFrom, periodTo);
+        const { lineItems, totalAmount, measurementIds, project } = await computeBillLineItems(projectId, periodFrom, periodTo);
 
         const billCount = await FinanceRunningBill.countDocuments({ projectId });
         const billNumber = String(billCount + 1);
@@ -135,6 +136,17 @@ const generateRunningBill = async (req, res) => {
         );
 
         broadcast({ type: 'financeRunningBillsChanged', projectId });
+
+        await logActivity({
+            eventType: 'running_bill_generated',
+            entityType: 'financeRunningBill',
+            entityId: bill._id,
+            projectId,
+            summary: `Running Bill #${billNumber} generated for ${project.name} — ₹${totalAmount}`,
+            amount: totalAmount,
+            req,
+        });
+
         res.json({ success: true, message: `Bill #${billNumber} generated`, data: bill });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message || 'Error generating bill' });

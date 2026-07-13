@@ -5,6 +5,7 @@ import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
 import { assertContractorVendor } from '../utils/contractorVendor.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 dotenv.config();
 
@@ -47,7 +48,7 @@ const addContractorPayment = async (req, res) => {
     try {
         const { vendorId, projectId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
         if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
-        await assertContractorVendor(vendorId);
+        const vendor = await assertContractorVendor(vendorId);
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
@@ -70,6 +71,17 @@ const addContractorPayment = async (req, res) => {
         }
 
         broadcast({ type: 'financeContractorLedgerChanged', vendorId });
+
+        await logActivity({
+            eventType: 'contractor_paid',
+            entityType: 'financeContractorPayment',
+            entityId: item._id,
+            projectId: projectId || null,
+            summary: `Contractor ${vendor.name} paid ₹${Number(amount)}`,
+            amount: Number(amount),
+            req,
+        });
+
         res.json({ success: true, message: 'Payment recorded', data: item });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message || 'Error recording payment' });

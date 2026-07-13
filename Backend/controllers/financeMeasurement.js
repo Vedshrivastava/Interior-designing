@@ -6,6 +6,7 @@ import FinanceWork from '../models/financeWork.js';
 import FinanceProject from '../models/financeProject.js';
 import FinanceStockMovement from '../models/financeStockMovement.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 dotenv.config();
 
@@ -108,6 +109,15 @@ const addMeasurement = async (req, res) => {
         broadcast({ type: 'financeMeasurementsChanged', projectId });
         broadcast({ type: 'financeWorksChanged', projectId });
         if (stockChanged) broadcast({ type: 'financeStockChanged', projectId });
+
+        await logActivity({
+            eventType: 'measurement_logged',
+            entityType: 'financeMeasurement',
+            entityId: measurement._id,
+            projectId,
+            summary: `${supervisorName || 'Supervisor'} logged ${areaCoveredSqft} sqft for ${work.workType} at ${project.name}`,
+            req,
+        });
 
         res.json({ success: true, message: 'Measurement saved', data: measurement });
     } catch (err) {

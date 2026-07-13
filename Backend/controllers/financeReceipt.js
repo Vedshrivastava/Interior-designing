@@ -1,6 +1,9 @@
 import FinanceReceipt from '../models/financeReceipt.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
+import FinanceClient from '../models/financeClient.js';
+import FinanceProject from '../models/financeProject.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 const listReceipts = async (req, res) => {
     try {
@@ -55,6 +58,21 @@ const addReceipt = async (req, res) => {
         }
 
         broadcast({ type: 'financeReceiptsChanged', projectId, clientId });
+
+        const [client, project] = await Promise.all([
+            FinanceClient.findById(clientId).select('name'),
+            FinanceProject.findById(projectId).select('name'),
+        ]);
+        await logActivity({
+            eventType: 'receipt_received',
+            entityType: 'financeReceipt',
+            entityId: item._id,
+            projectId,
+            summary: `₹${Number(amount)} received from ${client?.name || 'client'} for ${project?.name || 'project'}`,
+            amount: Number(amount),
+            req,
+        });
+
         res.json({ success: true, message: 'Receipt recorded', data: item });
     } catch (err) {
         console.error(err);

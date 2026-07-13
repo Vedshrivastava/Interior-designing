@@ -2,6 +2,7 @@ import FinanceCommissionPayment from '../models/financeCommissionPayment.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
 import { assertReferralVendor } from '../utils/contractorVendor.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 const listCommissionPayments = async (req, res) => {
     try {
@@ -24,7 +25,7 @@ const addCommissionPayment = async (req, res) => {
     try {
         const { vendorId, projectId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
         if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
-        await assertReferralVendor(vendorId);
+        const vendor = await assertReferralVendor(vendorId);
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
@@ -45,6 +46,17 @@ const addCommissionPayment = async (req, res) => {
         }
 
         broadcast({ type: 'financeCommissionPaymentsChanged', vendorId });
+
+        await logActivity({
+            eventType: 'commission_paid',
+            entityType: 'financeCommissionPayment',
+            entityId: item._id,
+            projectId: projectId || null,
+            summary: `Commission of ₹${Number(amount)} paid to ${vendor.name}`,
+            amount: Number(amount),
+            req,
+        });
+
         res.json({ success: true, message: 'Commission payment recorded', data: item });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message || 'Error recording commission payment' });

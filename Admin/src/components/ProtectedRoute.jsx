@@ -2,6 +2,7 @@ import React, { useEffect, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom'; // 1. Added useLocation
 import { jwtDecode } from 'jwt-decode';
 import { StoreContext } from '../context/StoreContext';
+import { financeModuleKeyForPath } from '../config/financeNav';
 
 const ProtectedRoute = ({ children, setShowLogin }) => {
     const navigate = useNavigate();
@@ -18,13 +19,29 @@ const ProtectedRoute = ({ children, setShowLogin }) => {
     // 3. REMOVED '|| token'. LocalStorage is now the absolute source of truth for the browser state.
     const storedToken = localStorage.getItem('token');
     const user = localStorage.getItem('user');
-    const userRole = user ? JSON.parse(user)?.role : null;
+    const parsedUser = user ? JSON.parse(user) : null;
+    const userRole = parsedUser?.role || null;
+
+    // Finance-module route guard (Settings build) — unset
+    // allowedFinanceModules or role MASTER means every finance route is
+    // reachable, same as before this existed. A restricted ADMIN user
+    // hitting a route outside their list gets bounced to the finance
+    // dashboard instead of rendering the page — this only ever narrows
+    // access, never the login/role check above it.
+    const moduleKey = financeModuleKeyForPath(location.pathname);
+    const isModuleRestricted = moduleKey && userRole === 'ADMIN' && Array.isArray(parsedUser?.allowedFinanceModules)
+        && !parsedUser.allowedFinanceModules.includes(moduleKey);
 
     useEffect(() => {
         // 4. This will now run on EVERY single page navigation
         if (!storedToken || (userRole !== 'ADMIN' && userRole !== 'MASTER')) {
             setShowLogin(true);
             navigate('/');
+            return;
+        }
+
+        if (isModuleRestricted) {
+            navigate('/finance');
             return;
         }
 
@@ -35,9 +52,9 @@ const ProtectedRoute = ({ children, setShowLogin }) => {
                 handleExpiryLogout();
             }
         } catch (error) {
-            handleExpiryLogout(); 
+            handleExpiryLogout();
         }
-    }, [location.pathname, storedToken, userRole, navigate, setShowLogin]); // 5. Added path & storage dependencies
+    }, [location.pathname, storedToken, userRole, isModuleRestricted, navigate, setShowLogin]); // 5. Added path & storage dependencies
 
     // Synchronous check to prevent flashing content before useEffect fires
     let isExpired = false;
@@ -50,8 +67,8 @@ const ProtectedRoute = ({ children, setShowLogin }) => {
         }
     }
 
-    if (!storedToken || (userRole !== 'ADMIN' && userRole !== 'MASTER') || isExpired) {
-        return null; 
+    if (!storedToken || (userRole !== 'ADMIN' && userRole !== 'MASTER') || isExpired || isModuleRestricted) {
+        return null;
     }
 
     return children;

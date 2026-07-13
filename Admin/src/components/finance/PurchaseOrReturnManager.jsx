@@ -41,6 +41,12 @@ const PurchaseOrReturnManager = ({ url, transactionType }) => {
         axios.get(`${url}/api/finance/vendors/list`, authHeader).then(res => { if (res.data.success) setVendors(res.data.data.filter(v => v.vendorType !== 'labour_contractor')); }).catch(() => {});
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/materials/list`, authHeader).then(res => { if (res.data.success) setMaterials(res.data.data); }).catch(() => {});
+        // Prefill (not lock) gstRate from Settings > GST — only if the form
+        // hasn't already been touched by the time this resolves.
+        axios.get(`${url}/api/finance/settings/company`, authHeader).then(res => {
+            const rate = res.data.success ? res.data.data.defaultGstRate : null;
+            if (rate !== null && rate !== undefined) setForm(prev => (prev.gstRate === '' ? { ...prev, gstRate: rate } : prev));
+        }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));

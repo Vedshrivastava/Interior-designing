@@ -1,6 +1,7 @@
 import FinanceContractorDeduction from '../models/financeContractorDeduction.js';
 import { assertContractorVendor } from '../utils/contractorVendor.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 const listContractorDeductions = async (req, res) => {
     try {
@@ -21,7 +22,7 @@ const addContractorDeduction = async (req, res) => {
     try {
         const { vendorId, projectId, amount, reason, date, notes } = req.body;
         if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
-        await assertContractorVendor(vendorId);
+        const vendor = await assertContractorVendor(vendorId);
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!reason || !reason.trim()) return res.status(400).json({ success: false, message: 'Reason is required' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
@@ -31,6 +32,17 @@ const addContractorDeduction = async (req, res) => {
         });
         await item.save();
         broadcast({ type: 'financeContractorLedgerChanged', vendorId });
+
+        await logActivity({
+            eventType: 'contractor_deduction_applied',
+            entityType: 'financeContractorDeduction',
+            entityId: item._id,
+            projectId: projectId || null,
+            summary: `₹${Number(amount)} deducted from ${vendor.name} — ${reason.trim()}`,
+            amount: Number(amount),
+            req,
+        });
+
         res.json({ success: true, message: 'Deduction recorded', data: item });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message || 'Error recording deduction' });

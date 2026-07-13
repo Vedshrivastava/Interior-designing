@@ -1,5 +1,7 @@
 import FinanceBankTransfer from '../models/financeBankTransfer.js';
+import FinanceBankAccount from '../models/financeBankAccount.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 const listBankTransfers = async (req, res) => {
     try {
@@ -28,6 +30,20 @@ const addBankTransfer = async (req, res) => {
         const item = new FinanceBankTransfer({ fromAccountId, toAccountId, amount: Number(amount), date, notes: notes || '' });
         await item.save();
         broadcast({ type: 'financeBankAccountsChanged' });
+
+        const [fromAccount, toAccount] = await Promise.all([
+            FinanceBankAccount.findById(fromAccountId).select('accountName'),
+            FinanceBankAccount.findById(toAccountId).select('accountName'),
+        ]);
+        await logActivity({
+            eventType: 'bank_transfer',
+            entityType: 'financeBankTransfer',
+            entityId: item._id,
+            summary: `₹${Number(amount)} transferred from ${fromAccount?.accountName || 'account'} to ${toAccount?.accountName || 'account'}`,
+            amount: Number(amount),
+            req,
+        });
+
         res.json({ success: true, message: 'Transfer recorded', data: item });
     } catch (err) {
         console.error(err);

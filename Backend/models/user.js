@@ -16,6 +16,12 @@ const userSchema = new mongoose.Schema(
       default: "USER",
       required: true,
     },
+    // Finance-module visibility only — not a field/action-level permission
+    // system. Unset (the default for every existing user) or role MASTER
+    // means full access, same as before this field existed. Set on an
+    // ADMIN user to restrict which finance sidebar sections/routes they
+    // can reach — see components/sidebar.jsx and ProtectedRoute.jsx.
+    allowedFinanceModules: { type: [String], default: undefined },
     cartData: { type: Object, default: {} },
   },
   { minimize: false }

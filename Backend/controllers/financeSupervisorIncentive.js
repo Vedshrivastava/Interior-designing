@@ -1,6 +1,8 @@
 import FinanceSupervisorIncentive from '../models/financeSupervisorIncentive.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
+import FinanceEmployee from '../models/financeEmployee.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 const listSupervisorIncentives = async (req, res) => {
     try {
@@ -47,6 +49,18 @@ const addSupervisorIncentive = async (req, res) => {
         }
 
         broadcast({ type: 'financeSupervisorIncentivesChanged', employeeId });
+
+        const employee = await FinanceEmployee.findById(employeeId).select('name');
+        await logActivity({
+            eventType: 'supervisor_incentive_given',
+            entityType: 'financeSupervisorIncentive',
+            entityId: item._id,
+            projectId: projectId || null,
+            summary: `Incentive of ₹${Number(amount)} given to ${employee?.name || 'employee'}`,
+            amount: Number(amount),
+            req,
+        });
+
         res.json({ success: true, message: 'Incentive recorded', data: item });
     } catch (err) {
         console.error(err);

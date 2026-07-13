@@ -47,6 +47,11 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     const openGenerate = () => {
         setPeriodFrom(''); setPeriodTo(''); setBillDate(new Date().toISOString().slice(0, 10)); setGstRate(''); setPreview(null);
         setModalOpen(true);
+        // Prefill (not lock) gstRate from Settings > GST.
+        axios.get(`${url}/api/finance/settings/company`, authHeader).then(res => {
+            const rate = res.data.success ? res.data.data.defaultGstRate : null;
+            if (rate !== null && rate !== undefined) setGstRate(rate);
+        }).catch(() => {});
     };
     const closeModal = () => setModalOpen(false);
 

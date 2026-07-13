@@ -69,3 +69,24 @@ export const sendResetSuccessEmail = async (email) => {
     throw new Error(`Error Sending Reset Password Success Email: ${email}`);
   }
 };
+
+// Generic notification email — used by the low-stock / overdue-receivable
+// alert checks (controllers/financeCompanySettings.js). Reuses the same
+// mailtrapClient/sender setup as every other email here rather than a new
+// email service; `toEmails` is financeCompanySettings.notificationEmails.
+export const sendFinanceAlertEmail = async (toEmails, subject, htmlBody) => {
+  if (!toEmails || toEmails.length === 0) return;
+  try {
+    await mailtrapClient.send({
+      from: sender,
+      to: toEmails.map(email => ({ email })),
+      subject,
+      html: htmlBody,
+      category: 'Finance Alert',
+    });
+    console.log('Finance alert email sent to', toEmails.join(', '));
+  } catch (error) {
+    console.error('Error sending finance alert email:', error);
+    throw new Error('Error sending finance alert email');
+  }
+};

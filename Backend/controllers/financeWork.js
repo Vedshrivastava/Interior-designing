@@ -1,5 +1,7 @@
 import FinanceWork from '../models/financeWork.js';
+import FinanceProject from '../models/financeProject.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 const listWorks = async (req, res) => {
     try {
@@ -33,6 +35,17 @@ const addWork = async (req, res) => {
         });
         await item.save();
         broadcast({ type: 'financeWorksChanged', projectId });
+
+        const project = await FinanceProject.findById(projectId).select('name');
+        await logActivity({
+            eventType: 'work_created',
+            entityType: 'financeWork',
+            entityId: item._id,
+            projectId,
+            summary: `New work '${workType.trim()}' started at ${project?.name || 'project'}`,
+            req,
+        });
+
         res.json({ success: true, message: 'Work added', data: item });
     } catch (err) {
         console.error(err);
@@ -49,15 +62,29 @@ const updateWork = async (req, res) => {
         if (!existing) return res.status(404).json({ success: false, message: 'Work not found' });
         if (!workType || !teamId) return res.status(400).json({ success: false, message: 'Work type and team are required' });
 
+        const newStatus = ['active', 'completed'].includes(status) ? status : existing.status;
         await FinanceWork.findByIdAndUpdate(_id, {
             workType: workType.trim(), teamId,
             workOrderNumber: workOrderNumber || '',
             startDate: startDate || null,
             estimatedAreaSqft: Number(estimatedAreaSqft) || existing.estimatedAreaSqft,
-            status: ['active', 'completed'].includes(status) ? status : existing.status,
+            status: newStatus,
             notes: notes || '',
         });
         broadcast({ type: 'financeWorksChanged', projectId: existing.projectId });
+
+        if (existing.status !== 'completed' && newStatus === 'completed') {
+            const project = await FinanceProject.findById(existing.projectId).select('name');
+            await logActivity({
+                eventType: 'work_completed',
+                entityType: 'financeWork',
+                entityId: existing._id,
+                projectId: existing.projectId,
+                summary: `Work '${existing.workType}' completed at ${project?.name || 'project'}`,
+                req,
+            });
+        }
+
         res.json({ success: true, message: 'Work updated' });
     } catch (err) {
         console.error(err);

@@ -1,8 +1,13 @@
 import mongoose from 'mongoose';
 import FinanceStockMovement from '../models/financeStockMovement.js';
+import FinanceMaterial from '../models/financeMaterial.js';
+import FinanceProject from '../models/financeProject.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 const MANUAL_TYPES = ['dump', 'return', 'waste'];
+const EVENT_TYPE_BY_MOVEMENT = { dump: 'stock_dumped', return: 'stock_returned', waste: 'stock_wasted' };
+const VERB_BY_MOVEMENT = { dump: 'dumped', return: 'returned', waste: 'recorded as waste' };
 
 const listStockMovements = async (req, res) => {
     try {
@@ -41,6 +46,20 @@ const addStockMovement = async (req, res) => {
         });
         await item.save();
         broadcast({ type: 'financeStockChanged', projectId });
+
+        const [material, project] = await Promise.all([
+            FinanceMaterial.findById(materialId).select('name unit'),
+            FinanceProject.findById(projectId).select('name'),
+        ]);
+        await logActivity({
+            eventType: EVENT_TYPE_BY_MOVEMENT[movementType],
+            entityType: 'financeStockMovement',
+            entityId: item._id,
+            projectId,
+            summary: `${item.quantity} ${material?.unit || ''} of ${material?.name || 'material'} ${VERB_BY_MOVEMENT[movementType]} at ${project?.name || 'project'}`,
+            req,
+        });
+
         res.json({ success: true, message: 'Stock movement recorded', data: item });
     } catch (err) {
         console.error(err);

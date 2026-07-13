@@ -45,7 +45,9 @@ import BankPage from './pages/finance/BankPage';
 import CashBookPage from './pages/finance/CashBookPage';
 import ReportsPage from './pages/finance/ReportsPage';
 import SupervisorsPage from './pages/finance/SupervisorsPage';
+import SettingsPage from './pages/finance/SettingsPage';
 import DailyLabourPage from './pages/finance/DailyLabourPage';
+import ActivityTimelinePage from './pages/finance/ActivityTimelinePage';
 import { FINANCE_ROUTES } from './config/financeNav';
 import Guest from './pages/guest';
 import { Navigate } from "react-router-dom";
@@ -360,6 +362,22 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path='/finance/activity'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <ActivityTimelinePage url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/finance/settings'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <SettingsPage url={url} />
+                </ProtectedRoute>
+              }
+            />
             {FINANCE_ROUTES.filter(r => ![
               '/finance', '/finance/masters', '/finance/projects', '/finance/projects/new',
               '/finance/clients', '/finance/procurement', '/finance/contractors',
@@ -367,7 +385,8 @@ const App = () => {
               '/finance/receivables', '/finance/receipts',
               '/finance/payables', '/finance/payments',
               '/finance/bank', '/finance/cash-book', '/finance/reports',
-              '/finance/supervisors', '/finance/daily-labour',
+              '/finance/supervisors', '/finance/daily-labour', '/finance/settings',
+              '/finance/activity',
             ].includes(r.to)).map(({ to, label, phase, tabs }) => (
               <Route
                 key={to}

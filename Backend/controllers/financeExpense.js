@@ -1,6 +1,7 @@
 import FinanceExpense from '../models/financeExpense.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 const listExpenses = async (req, res) => {
     try {
@@ -47,6 +48,17 @@ const addExpense = async (req, res) => {
         }
 
         broadcast({ type: 'financeExpensesChanged', projectId: projectId || null });
+
+        await logActivity({
+            eventType: 'expense_recorded',
+            entityType: 'financeExpense',
+            entityId: item._id,
+            projectId: projectId || null,
+            summary: `Expense of ₹${Number(amount)} recorded — ${expenseCategory || 'General'}`,
+            amount: Number(amount),
+            req,
+        });
+
         res.json({ success: true, message: 'Expense recorded', data: item });
     } catch (err) {
         console.error(err);

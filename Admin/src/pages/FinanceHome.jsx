@@ -1,11 +1,22 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { FINANCE_ROUTES } from '../config/financeNav';
 import '../styles/welcome.css';
 
-const FinanceHome = () => {
+const FinanceHome = ({ url }) => {
     const navigate = useNavigate();
+
+    // Check-on-load, not a background job — no cron infrastructure exists
+    // in this codebase. Silent: de-duplication (24h cooldown per
+    // material/bill) and the actual notification happen server-side via
+    // email; there's nothing for the dashboard itself to display.
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        axios.get(`${url}/api/finance/settings/check-alerts`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    }, [url]);
 
     // Every page except this one (Dashboard, the Overview section's only item)
     const shortcuts = FINANCE_ROUTES.filter(({ to }) => to !== '/finance');

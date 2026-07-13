@@ -338,21 +338,40 @@ export const FINANCE_NAV_SECTIONS = [
       },
       {
         to: '/finance/settings', icon: faGear, label: 'Settings',
-        // Unrelated to the dissolved "Settings & Lists" master-data tab —
-        // this is system-level configuration, nothing built yet.
+        // Bespoke component, real as of the Settings build — every tab
+        // backed by the financeCompanySettings singleton (Company/FY/GST/
+        // Notifications/PDF Templates all edit the same one document,
+        // just split into tabs) except Permissions, which edits
+        // user.allowedFinanceModules on ADMIN users instead.
         tabs: [
-          { key: 'fy',            label: 'Financial Year',  description: 'Financial year start/end and locking.' },
-          { key: 'company',       label: 'Company',         description: 'Company profile — name, address, GST, logo.' },
-          { key: 'permissions',   label: 'Permissions',     description: 'Role-level access control.' },
-          { key: 'gst',           label: 'GST',             description: 'GST rates and defaults.' },
-          { key: 'notifications', label: 'Notifications',   description: 'Email/WhatsApp notification preferences.' },
-          { key: 'pdf',           label: 'PDF Templates',   description: 'Client bill and CA-package PDF templates.' },
-          { key: 'backup',        label: 'Backup',          description: 'Data export/backup.' },
+          { key: 'fy',            label: 'Financial Year',  description: 'fyStartMonth (April-start by default) — Reports\' "This FY" date-range filters aren\'t wired to this yet, a small follow-up.' },
+          { key: 'company',       label: 'Company',         description: 'Company profile — name, address, GSTIN, PAN, logo. Used as real branding on the CA Monthly Package and Client Bill Statement PDFs.' },
+          { key: 'permissions',   label: 'Permissions',     description: 'MASTER-only — which finance sidebar sections each ADMIN user can access. Unrestricted by default; MASTER always has full access.' },
+          { key: 'gst',           label: 'GST',             description: 'defaultGstRate — prefills (not locks) the GST rate field on Running Bill / Purchase entry forms.' },
+          { key: 'notifications', label: 'Notifications',   description: 'Notification email list + low-stock and overdue-receivable alert toggles/thresholds. Checked on Dashboard load, not a background job.' },
+          { key: 'pdf',           label: 'PDF Templates',   description: 'accentColor + letterheadFooterText for generated PDFs — not a full visual template editor in this pass.' },
+          { key: 'backup',        label: 'Backup',          description: 'Export every finance collection as one zip of JSON files.' },
         ],
       },
     ],
   },
 ];
+
+/*
+ * Derives the finance-module key used by allowedFinanceModules from a
+ * route path — the first path segment after /finance (e.g.
+ * '/finance/clients/507f...' → 'clients', '/finance/projects/new' →
+ * 'projects', '/finance' itself → 'dashboard'). Shared by sidebar.jsx
+ * (hides restricted sections) and ProtectedRoute.jsx (blocks the route
+ * directly) so the two can never drift out of sync with each other.
+ */
+export const financeModuleKeyForPath = (pathname) => {
+  if (!pathname || !pathname.startsWith('/finance')) return null;
+  const rest = pathname.slice('/finance'.length);
+  if (!rest || rest === '/') return 'dashboard';
+  const firstSegment = rest.split('/').filter(Boolean)[0];
+  return firstSegment || 'dashboard';
+};
 
 /*
  * Old → new mapping (for anyone diffing against the previous 13-page nav):
@@ -388,3 +407,10 @@ export const FINANCE_NAV_SECTIONS = [
 export const FINANCE_ROUTES = FINANCE_NAV_SECTIONS.flatMap(({ phase: sectionPhase, items }) =>
   items.map(({ to, icon, label, phase, tabs }) => ({ to, icon, label, phase: phase || sectionPhase, tabs }))
 );
+
+/* { key, label } per finance module, deduped — feeds Settings > Permissions'
+   multi-select of which sections a restricted ADMIN user can reach. */
+export const FINANCE_MODULE_OPTIONS = [...new Map(
+  [{ to: '/finance', label: 'Dashboard' }, ...FINANCE_ROUTES]
+    .map(r => [financeModuleKeyForPath(r.to), r.label])
+).entries()].map(([key, label]) => ({ key, label }));

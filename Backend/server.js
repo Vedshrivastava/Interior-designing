@@ -58,6 +58,8 @@ import financeReportsRouter         from "./routes/financeReports.js";
 import financeDailyLabourRouter          from "./routes/financeDailyLabour.js";
 import financeSupervisorAttendanceRouter from "./routes/financeSupervisorAttendance.js";
 import financeSupervisorIncentiveRouter  from "./routes/financeSupervisorIncentive.js";
+import financeCompanySettingsRouter      from "./routes/financeCompanySettings.js";
+import financeActivityLogRouter          from "./routes/financeActivityLog.js";
 import dotenv from 'dotenv';
 import { wss } from './middlewares/webSocket.js'; // Import WebSocket server setup
 
@@ -123,6 +125,7 @@ app.use('/api/finance/employees', financeSalaryLedgerRouter); // same prefix, se
 app.use('/api/finance/materials', financeMaterialRouter);
 app.use('/api/finance/teams',     financeTeamRouter);
 app.use('/api/finance/settings',  financeSettingRouter);
+app.use('/api/finance/settings',  financeCompanySettingsRouter); // same prefix, separate concern — see routes/financeCompanySettings.js
 app.use('/api/finance/projects',        financeProjectRouter);
 app.use('/api/finance/work-type-rates', financeWorkTypeRateRouter);
 app.use('/api/finance/team-rates',      financeTeamRateRouter);
@@ -149,6 +152,7 @@ app.use('/api/finance/reports',             financeReportsRouter);
 app.use('/api/finance/daily-labour',            financeDailyLabourRouter);
 app.use('/api/finance/supervisor-attendance',   financeSupervisorAttendanceRouter);
 app.use('/api/finance/supervisor-incentives',   financeSupervisorIncentiveRouter);
+app.use('/api/finance/activity',                financeActivityLogRouter);
 
 // Serve static files
 app.use('/images', express.static('uploads'));

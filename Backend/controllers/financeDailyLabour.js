@@ -1,6 +1,8 @@
 import FinanceDailyLabour from '../models/financeDailyLabour.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
+import FinanceProject from '../models/financeProject.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 // half_day = 0.5×rate, full_day = 1×rate, extra_day = 1.5×rate — per the
 // build spec. Adjust here only if the real convention turns out different;
@@ -60,6 +62,18 @@ const addDailyLabour = async (req, res) => {
         }
 
         broadcast({ type: 'financeDailyLabourChanged', projectId });
+
+        const project = await FinanceProject.findById(projectId).select('name');
+        await logActivity({
+            eventType: 'daily_labour_logged',
+            entityType: 'financeDailyLabour',
+            entityId: item._id,
+            projectId,
+            summary: `${labourerName.trim()} recorded as ${attendanceType} at ${project?.name || 'project'} — ₹${amount}`,
+            amount,
+            req,
+        });
+
         res.json({ success: true, message: 'Daily labour recorded', data: item });
     } catch (err) {
         console.error(err);

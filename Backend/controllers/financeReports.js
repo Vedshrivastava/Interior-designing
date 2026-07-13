@@ -25,7 +25,13 @@ import FinanceBankAccount from '../models/financeBankAccount.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
 import { getAccountActivity } from './financeBankAccount.js';
 import PDFDocument from 'pdfkit';
-import { writeLetterhead, writeSectionHeading, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
+import { writeLetterhead, writeSectionHeading, writeFooter, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
+import FinanceCompanySettings from '../models/financeCompanySettings.js';
+
+// .lean() — spreading a hydrated Mongoose document ({ ...doc }) silently
+// drops some schema fields (companyName among them), since document
+// instances aren't plain objects. A lean query avoids that footgun.
+const getCompanyForPdf = async () => (await FinanceCompanySettings.findOne({ deleted: { $ne: true } }).lean()) || null;
 
 /*
  * Reports is a pure rollup layer — every endpoint here is read-only,
@@ -592,6 +598,7 @@ const downloadCaMonthlyPackage = async (req, res) => {
         const { month } = req.query;
         if (!month || !/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ success: false, message: 'month is required in YYYY-MM format' });
         const data = await computeCaMonthlyPackage(month);
+        const company = await getCompanyForPdf();
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="CA-Monthly-Package-${month}.pdf"`);
@@ -599,17 +606,17 @@ const downloadCaMonthlyPackage = async (req, res) => {
         const doc = new PDFDocument({ margin: 50 });
         doc.pipe(res);
 
-        writeLetterhead(doc, `CA Monthly Package — ${month}`);
+        await writeLetterhead(doc, `CA Monthly Package — ${month}`, company);
         doc.font('Helvetica').fontSize(9).fillColor('#555555')
             .text('For handoff to your CA — these are computed figures, not a filed return. GST/TDS amounts reflect only what was entered against bills, purchases, and payments this month.');
         doc.fillColor('#000000');
 
-        writeSectionHeading(doc, 'GST Summary');
+        writeSectionHeading(doc, 'GST Summary', company);
         doc.text(`Output GST (from issued bills): ${formatCurrency(data.gst.outputGst)}`);
         doc.text(`Input GST (from purchases): ${formatCurrency(data.gst.inputGst)}`);
         doc.font('Helvetica-Bold').text(`Net GST Payable: ${formatCurrency(data.gst.netGstPayable)}`).font('Helvetica');
 
-        writeSectionHeading(doc, 'TDS Summary');
+        writeSectionHeading(doc, 'TDS Summary', company);
         if (data.tds.bySection.length === 0) {
             doc.text('No TDS recorded this month.');
         } else {
@@ -617,25 +624,26 @@ const downloadCaMonthlyPackage = async (req, res) => {
             doc.font('Helvetica-Bold').text(`Total TDS: ${formatCurrency(data.tds.totalTds)}`).font('Helvetica');
         }
 
-        writeSectionHeading(doc, 'Sales Summary');
+        writeSectionHeading(doc, 'Sales Summary', company);
         doc.text(`Total Billed (issued bills): ${formatCurrency(data.sales.totalBilled)}`);
         doc.text(`Bill Count: ${data.sales.billCount}`);
 
-        writeSectionHeading(doc, 'Purchase Summary');
+        writeSectionHeading(doc, 'Purchase Summary', company);
         doc.text(`Total Purchased: ${formatCurrency(data.purchases.totalPurchased)}`);
         doc.text(`Total Returned: ${formatCurrency(data.purchases.totalReturned)}`);
         doc.text(`Net Purchases: ${formatCurrency(data.purchases.netPurchases)}`);
         doc.text(`Purchase Count: ${data.purchases.purchaseCount}`);
 
-        writeSectionHeading(doc, 'Expense Summary');
+        writeSectionHeading(doc, 'Expense Summary', company);
         doc.text(`Total Expenses: ${formatCurrency(data.expenses.totalExpenses)}`);
         doc.text(`Expense Count: ${data.expenses.expenseCount}`);
 
-        writeSectionHeading(doc, 'Bank & Cash Position (as of month end)');
+        writeSectionHeading(doc, 'Bank & Cash Position (as of month end)', company);
         data.bankAndCash.bankAccounts.forEach(a => doc.text(`${a.accountName}: ${formatCurrency(a.closingBalance)}`));
         doc.text(`Cash: ${formatCurrency(data.bankAndCash.cashClosingBalance)}`);
         doc.font('Helvetica-Bold').text(`Total Position: ${formatCurrency(data.bankAndCash.totalPosition)}`).font('Helvetica');
 
+        writeFooter(doc, company);
         doc.end();
     } catch (err) {
         console.error(err);

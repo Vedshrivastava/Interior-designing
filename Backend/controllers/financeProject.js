@@ -2,6 +2,7 @@ import FinanceProject from '../models/financeProject.js';
 import FinanceWorkTypeRate from '../models/financeWorkTypeRate.js';
 import FinanceTeamRate from '../models/financeTeamRate.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 // Contract-type-specific field rules — enforced server-side so the wizard's
 // conditional UI can't be bypassed by a direct API call.
@@ -110,6 +111,16 @@ const addFinanceProject = async (req, res) => {
         });
         await project.save();
         broadcast({ type: 'financeProjectsChanged' });
+
+        await logActivity({
+            eventType: 'project_created',
+            entityType: 'financeProject',
+            entityId: project._id,
+            projectId: project._id,
+            summary: `New project '${project.name}' created`,
+            req,
+        });
+
         res.json({ success: true, message: 'Project draft created', data: project });
     } catch (err) {
         console.error(err);
@@ -212,6 +223,16 @@ const activateFinanceProject = async (req, res) => {
         project.status = 'active';
         await project.save();
         broadcast({ type: 'financeProjectsChanged' });
+
+        await logActivity({
+            eventType: 'project_activated',
+            entityType: 'financeProject',
+            entityId: project._id,
+            projectId: project._id,
+            summary: `Project '${project.name}' activated`,
+            req,
+        });
+
         res.json({ success: true, message: 'Project is now active', data: project });
     } catch (err) {
         console.error(err);

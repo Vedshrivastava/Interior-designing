@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import MasterCrudTable from '../../components/finance/MasterCrudTable';
 import SettingsCrudList from '../../components/finance/SettingsCrudList';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
+import SalaryLedgerView from '../../components/finance/SalaryLedgerView';
 import '../../styles/list.css';
 
 /*
@@ -11,6 +13,10 @@ import '../../styles/list.css';
  * setting types are now named tabs in their own right, each rendering
  * SettingsCrudList locked to one settingType instead of switching between
  * them internally.
+ *
+ * Salary Ledger is a sibling tab here rather than a routed per-employee
+ * detail page — same "picker on the same page" pattern already used for
+ * Contractors' Ledger and Procurement's Ledger/Commission Ledger tabs.
  */
 const TABS = [
     { key: 'materials',         label: 'Material Master' },
@@ -23,14 +29,36 @@ const TABS = [
     { key: 'cities',            label: 'Cities' },
     { key: 'commission_types',  label: 'Commission Types' },
     { key: 'employees',         label: 'Employees' },
+    { key: 'salary_ledger',     label: 'Salary Ledger' },
     { key: 'teams',             label: 'Labour Teams' },
 ];
 
 const SETTING_TYPE_KEYS = ['work_type', 'payment_mode', 'expense_category', 'tds_section'];
 const EMPTY_TAB_KEYS = ['units', 'banks', 'cities', 'commission_types'];
 
+const EmployeePicker = ({ url, selectedEmployeeId, onChange }) => {
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const [employees, setEmployees] = useState([]);
+
+    useEffect(() => {
+        axios.get(`${url}/api/finance/employees/list`, authHeader).then(res => { if (res.data.success) setEmployees(res.data.data); }).catch(() => {});
+    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    return (
+        <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
+            <p>Employee</p>
+            <select value={selectedEmployeeId} onChange={e => onChange(e.target.value)}>
+                <option value="">Select employee…</option>
+                {employees.map(e => <option key={e._id} value={e._id}>{e.name}</option>)}
+            </select>
+        </div>
+    );
+};
+
 const MasterData = ({ url }) => {
     const [activeTab, setActiveTab] = useState(TABS[0].key);
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
 
     return (
         <div className="list add flex-col">
@@ -50,7 +78,14 @@ const MasterData = ({ url }) => {
                     ))}
                 </div>
 
-                {SETTING_TYPE_KEYS.includes(activeTab) ? (
+                {activeTab === 'salary_ledger' ? (
+                    <>
+                        <EmployeePicker url={url} selectedEmployeeId={selectedEmployeeId} onChange={setSelectedEmployeeId} />
+                        {selectedEmployeeId
+                            ? <SalaryLedgerView url={url} employeeId={selectedEmployeeId} />
+                            : <div className="admin-empty-state"><p>Select an employee to view their salary ledger.</p></div>}
+                    </>
+                ) : SETTING_TYPE_KEYS.includes(activeTab) ? (
                     <SettingsCrudList key={activeTab} url={url} lockedType={activeTab} />
                 ) : EMPTY_TAB_KEYS.includes(activeTab) ? (
                     <PlaceholderTab text="No backing data type exists for this yet — coming soon." />

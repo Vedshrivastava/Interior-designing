@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
-import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import ContractorPaymentsManager from '../../components/finance/ContractorPaymentsManager';
 import VendorPaymentsManager from '../../components/finance/VendorPaymentsManager';
+import SalaryPaymentsManager from '../../components/finance/SalaryPaymentsManager';
+import CommissionPaymentsManager from '../../components/finance/CommissionPaymentsManager';
+import ExpensesManager from '../../components/finance/ExpensesManager';
 
 const TABS = [
     { key: 'vendor',     label: 'Vendor Payment' },
@@ -25,9 +27,9 @@ const PaymentsPage = ({ url }) => {
         >
             {activeTab === 'vendor' && <VendorPaymentsManager url={url} />}
             {activeTab === 'contractor' && <ContractorPaymentsManager url={url} />}
-            {activeTab === 'salary' && <PlaceholderTab text="Salary payouts to employees." />}
-            {activeTab === 'commission' && <PlaceholderTab text="Referral commission payouts." />}
-            {activeTab === 'misc' && <PlaceholderTab text="Any other outgoing payment." />}
+            {activeTab === 'salary' && <SalaryPaymentsManager url={url} />}
+            {activeTab === 'commission' && <CommissionPaymentsManager url={url} />}
+            {activeTab === 'misc' && <ExpensesManager url={url} />}
         </FinanceTabShell>
     );
 };

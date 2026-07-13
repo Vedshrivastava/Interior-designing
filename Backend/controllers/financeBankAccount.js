@@ -3,21 +3,27 @@ import FinanceBankTransfer from '../models/financeBankTransfer.js';
 import FinanceReceipt from '../models/financeReceipt.js';
 import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import FinanceVendorPayment from '../models/financeVendorPayment.js';
+import FinanceSalaryPayment from '../models/financeSalaryPayment.js';
+import FinanceCommissionPayment from '../models/financeCommissionPayment.js';
+import FinanceExpense from '../models/financeExpense.js';
 import { broadcast } from '../middlewares/webSocket.js';
 
 /*
  * Shared by the account list (for the "Balance" tab) and the statement
- * endpoint below — every receipt/contractor-payment/vendor-payment with
- * this account's bankAccountId set, plus bank transfers in either
- * direction. Current balance is never stored: always openingBalance +
- * this activity, computed fresh every call.
+ * endpoint below — every receipt/contractor-payment/vendor-payment/salary-
+ * payment/commission-payment/expense with this account's bankAccountId
+ * set, plus bank transfers in either direction. Current balance is never
+ * stored: always openingBalance + this activity, computed fresh every call.
  */
 const getAccountActivity = async (accountId) => {
     const filter = { bankAccountId: accountId, deleted: { $ne: true } };
-    const [receipts, contractorPayments, vendorPayments, transfersOut, transfersIn] = await Promise.all([
+    const [receipts, contractorPayments, vendorPayments, salaryPayments, commissionPayments, expenses, transfersOut, transfersIn] = await Promise.all([
         FinanceReceipt.find(filter),
         FinanceContractorPayment.find(filter),
         FinanceVendorPayment.find(filter),
+        FinanceSalaryPayment.find(filter),
+        FinanceCommissionPayment.find(filter),
+        FinanceExpense.find(filter),
         FinanceBankTransfer.find({ fromAccountId: accountId, deleted: { $ne: true } }),
         FinanceBankTransfer.find({ toAccountId: accountId, deleted: { $ne: true } }),
     ]);
@@ -26,6 +32,9 @@ const getAccountActivity = async (accountId) => {
         ...receipts.map(r => ({ date: r.receiptDate, amount: r.amount, direction: 'credit', description: 'Receipt', sourceType: 'receipt', sourceId: r._id })),
         ...contractorPayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Contractor payment', sourceType: 'contractorPayment', sourceId: p._id })),
         ...vendorPayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Vendor payment', sourceType: 'vendorPayment', sourceId: p._id })),
+        ...salaryPayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Salary payment', sourceType: 'salaryPayment', sourceId: p._id })),
+        ...commissionPayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Commission payment', sourceType: 'commissionPayment', sourceId: p._id })),
+        ...expenses.map(e => ({ date: e.date, amount: e.amount, direction: 'debit', description: e.expenseCategory ? `Expense — ${e.expenseCategory}` : 'Expense', sourceType: 'expense', sourceId: e._id })),
         ...transfersOut.map(t => ({ date: t.date, amount: t.amount, direction: 'debit', description: 'Transfer out', sourceType: 'transfer', sourceId: t._id })),
         ...transfersIn.map(t => ({ date: t.date, amount: t.amount, direction: 'credit', description: 'Transfer in', sourceType: 'transfer', sourceId: t._id })),
     ];

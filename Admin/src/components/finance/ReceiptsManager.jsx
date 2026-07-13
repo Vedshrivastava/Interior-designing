@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
 
-const emptyForm = { runningBillId: '', amount: '', receiptDate: '', paymentMode: '', bankOrCashLabel: '', utrNumber: '', notes: '' };
+const emptyForm = { runningBillId: '', amount: '', receiptDate: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '' };
 
 /*
  * Receipts for one project — used both scoped (ProjectDetail's Receipts
@@ -20,6 +20,7 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
     const [projectDetail, setProjectDetail] = useState(null);
     const [issuedBills, setIssuedBills] = useState([]);
     const [paymentModes, setPaymentModes] = useState([]);
+    const [bankAccounts, setBankAccounts] = useState([]);
     const [receipts, setReceipts] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -34,6 +35,8 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
     useEffect(() => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
             .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
+        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
+            .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchReceipts = async (pid) => {
@@ -129,7 +132,14 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                                 </datalist>
                             </div>
                             <div className="add-product-name flex-col">
-                                <p>Bank / Cash Label</p>
+                                <p>Bank Account (leave blank if cash)</p>
+                                <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)}>
+                                    <option value="">— Cash —</option>
+                                    {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
+                                </select>
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>Bank / Cash Label (legacy free text, optional)</p>
                                 <input type="text" value={form.bankOrCashLabel} onChange={e => setField('bankOrCashLabel', e.target.value)} placeholder="e.g. HDFC Current A/c, or Cash" />
                             </div>
                             <div className="add-product-name flex-col">
@@ -148,8 +158,8 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                     </form>
 
                     <div className="list-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
-                            <b>Date</b><b>Amount</b><b>Bill</b><b>Mode</b><b>Reference</b><b>Action</b>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
+                            <b>Date</b><b>Amount</b><b>Bill</b><b>Mode</b><b>Account</b><b>Reference</b><b>Action</b>
                         </div>
                         {loading ? (
                             <div className="admin-empty-state"><p>Loading…</p></div>
@@ -157,11 +167,12 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                             <div className="admin-empty-state"><p>No receipts recorded yet.</p></div>
                         ) : (
                             receipts.map(r => (
-                                <div key={r._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
+                                <div key={r._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
                                     <p>{new Date(r.receiptDate).toLocaleDateString()}</p>
                                     <p>₹{r.amount.toLocaleString('en-IN')}</p>
                                     <p>{r.runningBillId?.billNumber ? `#${r.runningBillId.billNumber}` : '—'}</p>
                                     <p>{r.paymentMode || '—'}</p>
+                                    <p>{r.bankAccountId?.accountName || 'Cash'}</p>
                                     <p>{r.utrNumber || r.bankOrCashLabel || '—'}</p>
                                     <div className="action-buttons">
                                         <p onClick={() => removeReceipt(r)} className="cursor delete-action">X</p>

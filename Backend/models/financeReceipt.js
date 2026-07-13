@@ -15,10 +15,12 @@ const financeReceiptSchema = new mongoose.Schema({
     receiptDate: { type: Date, required: true },
     paymentMode: { type: String, default: '' }, // reuses financeSetting's payment_mode values
 
-    // Plain text for now — no real Bank-account model exists yet. Upgrade
-    // to a proper ref once Bank (Site Inventory's sibling placeholder) is
-    // built for real.
+    // bankOrCashLabel is kept for backward compatibility with records
+    // created before Bank existed — new records set bankAccountId instead
+    // when paymentMode is bank-based. No bankAccountId means cash (see
+    // controllers/financeReceipt.js's cash-entry automation).
     bankOrCashLabel: { type: String, default: '' },
+    bankAccountId:   { type: mongoose.Schema.Types.ObjectId, ref: 'financeBankAccount', default: null },
     utrNumber:       { type: String, default: '' },
     notes:           { type: String, default: '' },
 

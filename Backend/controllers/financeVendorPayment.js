@@ -2,6 +2,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import FinanceVendorPayment from '../models/financeVendorPayment.js';
+import FinanceCashEntry from '../models/financeCashEntry.js';
 import { broadcast } from '../middlewares/webSocket.js';
 
 dotenv.config();
@@ -19,7 +20,7 @@ const listVendorPayments = async (req, res) => {
         const filter = { deleted: { $ne: true } };
         if (vendorId) filter.vendorId = vendorId;
         if (projectId) filter.projectId = projectId;
-        const items = await FinanceVendorPayment.find(filter).sort({ date: -1, createdAt: -1 });
+        const items = await FinanceVendorPayment.find(filter).populate('bankAccountId', 'accountName').sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {
         console.error(err);
@@ -39,9 +40,11 @@ const uploadAttachment = async (file) => {
     }
 };
 
+// bankAccountId means bank (the bank statement reads it directly); no
+// bankAccountId means cash — a financeCashEntry is auto-created below.
 const addVendorPayment = async (req, res) => {
     try {
-        const { vendorId, projectId, purchaseId, amount, date, paymentMode, bankOrCashLabel, utrNumber, notes } = req.body;
+        const { vendorId, projectId, purchaseId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes } = req.body;
         if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
@@ -50,10 +53,19 @@ const addVendorPayment = async (req, res) => {
 
         const item = new FinanceVendorPayment({
             vendorId, projectId: projectId || null, purchaseId: purchaseId || null, amount: Number(amount), date,
-            paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', utrNumber: utrNumber || '',
+            paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null, utrNumber: utrNumber || '',
             attachmentUrl, notes: notes || '',
         });
         await item.save();
+
+        if (!bankAccountId) {
+            await FinanceCashEntry.create({
+                date, type: 'out', amount: Number(amount), projectId: projectId || null,
+                reason: 'Vendor payment', relatedVendorPaymentId: item._id, notes: notes || '',
+            });
+            broadcast({ type: 'financeCashBookChanged' });
+        }
+
         broadcast({ type: 'financeVendorLedgerChanged', vendorId });
         res.json({ success: true, message: 'Payment recorded', data: item });
     } catch (err) {
@@ -92,7 +104,12 @@ const removeVendorPayment = async (req, res) => {
         if (!item) return res.status(404).json({ success: false, message: 'Not found' });
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
+        await FinanceCashEntry.updateMany(
+            { relatedVendorPaymentId: item._id },
+            { deleted: true, deletedAt: new Date(), deletedBy: req.userName || 'Admin' }
+        );
         broadcast({ type: 'financeVendorLedgerChanged', vendorId: item.vendorId });
+        broadcast({ type: 'financeCashBookChanged' });
         res.json({ success: true, message: 'Payment removed' });
     } catch (err) {
         console.error(err);

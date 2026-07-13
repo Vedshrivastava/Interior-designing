@@ -90,6 +90,27 @@ export const FINANCE_MASTERS = {
             { key: 'members', label: 'Members', joinArray: true },
         ],
     },
+    // Not surfaced under Masters' own page — reused from the Bank page's
+    // "All Accounts" tab instead, same MasterCrudTable component, since its
+    // add/list/edit/remove shape is identical to every master above.
+    bankAccounts: {
+        label: 'Bank Account', labelPlural: 'Bank Accounts', apiBase: '/api/finance/bank-accounts',
+        fields: [
+            { key: 'accountName', label: 'Account Name', type: 'text', required: true },
+            { key: 'bankName', label: 'Bank Name', type: 'text', required: true },
+            { key: 'accountNumber', label: 'Account Number', type: 'text' },
+            { key: 'ifscCode', label: 'IFSC Code', type: 'text' },
+            { key: 'accountType', label: 'Account Type', type: 'text', placeholder: 'Current, Savings…' },
+            { key: 'openingBalance', label: 'Opening Balance (₹)', type: 'number', required: true },
+            { key: 'openingBalanceDate', label: 'Opening Balance Date', type: 'date', required: true },
+            { key: 'notes', label: 'Notes', type: 'textarea' },
+        ],
+        columns: [
+            { key: 'accountName', label: 'Account Name' },
+            { key: 'bankName', label: 'Bank' },
+            { key: 'accountNumber', label: 'Account No.' },
+        ],
+    },
 };
 
 /* Settings & Lists tab — categorized simple lists (name + optional code/rate) */

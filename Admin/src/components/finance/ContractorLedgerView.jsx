@@ -5,7 +5,7 @@ import '../../styles/list.css';
 
 const emptyAdvanceForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', utrNumber: '', notes: '' };
 const emptyDeductionForm = { amount: '', reason: '', date: '', notes: '' };
-const emptyPaymentForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', utrNumber: '', notes: '' };
+const emptyPaymentForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '' };
 
 /*
  * The full contractor ledger — earnings breakdown, and add/list/remove for
@@ -24,6 +24,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
 
     const [ledger, setLedger] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [bankAccounts, setBankAccounts] = useState([]);
 
     const [advanceForm, setAdvanceForm] = useState(emptyAdvanceForm);
     const [deductionForm, setDeductionForm] = useState(emptyDeductionForm);
@@ -42,6 +43,10 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
     };
 
     useEffect(() => { if (vendorId) fetchLedger(); }, [vendorId, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
+            .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
+    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const submitAdvance = async (e) => {
         e.preventDefault();
@@ -195,20 +200,25 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                 <input type="number" placeholder="Amount" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} style={{ flex: 1, minWidth: '100px' }} />
                 <input type="date" value={paymentForm.date} onChange={e => setPaymentForm(p => ({ ...p, date: e.target.value }))} style={{ flex: 1, minWidth: '140px' }} />
                 <input type="text" placeholder="Payment mode" value={paymentForm.paymentMode} onChange={e => setPaymentForm(p => ({ ...p, paymentMode: e.target.value }))} style={{ flex: 1, minWidth: '120px' }} />
+                <select value={paymentForm.bankAccountId} onChange={e => setPaymentForm(p => ({ ...p, bankAccountId: e.target.value }))} style={{ flex: 1, minWidth: '160px' }}>
+                    <option value="">— Cash —</option>
+                    {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
+                </select>
                 <input type="file" onChange={e => setPaymentFile(e.target.files[0] || null)} style={{ flex: 1, minWidth: '160px' }} />
                 <button type="submit" className="add-point-btn" disabled={saving === 'payment'}>{saving === 'payment' ? 'Saving…' : '+ Add Payment'}</button>
             </form>
             <div className="list-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
-                    <b>Date</b><b>Amount</b><b>Mode</b><b>Attachment</b><b>Action</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
+                    <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>Attachment</b><b>Action</b>
                 </div>
                 {ledger.payments.length === 0 ? (
                     <div className="admin-empty-state"><p>No payments yet.</p></div>
                 ) : ledger.payments.map(p => (
-                    <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
+                    <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
                         <p>{new Date(p.date).toLocaleDateString()}</p>
                         <p>₹{p.amount.toLocaleString('en-IN')}</p>
                         <p>{p.paymentMode || '—'}</p>
+                        <p>{p.bankAccountId?.accountName || 'Cash'}</p>
                         <p>{p.attachmentUrl ? <a href={p.attachmentUrl} target="_blank" rel="noreferrer">View</a> : '—'}</p>
                         <div className="action-buttons"><p onClick={() => remove('payment', p._id)} className="cursor delete-action">X</p></div>
                     </div>

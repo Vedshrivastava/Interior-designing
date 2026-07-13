@@ -41,6 +41,8 @@ import ReceivablesPage from './pages/finance/ReceivablesPage';
 import ReceiptsPage from './pages/finance/ReceiptsPage';
 import PayablesPage from './pages/finance/PayablesPage';
 import PaymentsPage from './pages/finance/PaymentsPage';
+import BankPage from './pages/finance/BankPage';
+import CashBookPage from './pages/finance/CashBookPage';
 import { FINANCE_ROUTES } from './config/financeNav';
 import Guest from './pages/guest';
 import { Navigate } from "react-router-dom";
@@ -315,12 +317,29 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path='/finance/bank'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <BankPage url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/finance/cash-book'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <CashBookPage url={url} />
+                </ProtectedRoute>
+              }
+            />
             {FINANCE_ROUTES.filter(r => ![
               '/finance', '/finance/masters', '/finance/projects', '/finance/projects/new',
               '/finance/clients', '/finance/procurement', '/finance/contractors',
               '/finance/site-operations', '/finance/site-inventory',
               '/finance/receivables', '/finance/receipts',
               '/finance/payables', '/finance/payments',
+              '/finance/bank', '/finance/cash-book',
             ].includes(r.to)).map(({ to, label, phase, tabs }) => (
               <Route
                 key={to}

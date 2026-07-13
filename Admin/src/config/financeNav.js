@@ -201,25 +201,39 @@ export const FINANCE_NAV_SECTIONS = [
         ],
       },
       {
-        to: '/finance/bank', icon: faBuildingColumns, label: 'Bank', phase: 'Phase 6',
+        to: '/finance/bank', icon: faBuildingColumns, label: 'Bank',
         // Promoted out of the old "Reconciliation" placeholder's Bank
-        // Reconciliation tab into its own top-level section.
+        // Reconciliation tab into its own top-level section. Real as of
+        // the Bank + Cash Book build — accounts, balance, and the computed
+        // statement (opening + receipts/transfers-in − payments/transfers-
+        // out, running balance) are all live. Receipts and Contractor/
+        // Vendor Payments now carry an optional bankAccountId alongside
+        // the older free-text bankOrCashLabel (kept for backward
+        // compatibility) — set it and the statement here picks it up
+        // directly. The old "Statements" tab's bank-statement-import/
+        // reconciliation framing wasn't part of this build; collapsed
+        // into the same Transactions tab instead of left stale.
         tabs: [
-          { key: 'accounts',     label: 'All Accounts',  description: 'Company bank accounts.' },
-          { key: 'balance',      label: 'Balance',       description: 'Current balance per account.' },
-          { key: 'transactions', label: 'Transactions',  description: 'Transaction history per account.' },
-          { key: 'transfers',    label: 'Transfers',     description: 'Transfers between accounts.' },
-          { key: 'statements',   label: 'Statements',    description: 'Bank statement import and match — the reconciliation mechanic itself.' },
+          { key: 'accounts',     label: 'All Accounts',            description: 'Company bank accounts — add/edit, opening balance and date.' },
+          { key: 'balance',      label: 'Balance',                 description: 'Current balance per account — opening balance plus computed activity.' },
+          { key: 'transactions', label: 'Transactions / Statements', description: 'Running-balance transaction list per account: every linked receipt, contractor/vendor payment, and transfer, in date order.' },
+          { key: 'transfers',    label: 'Transfers',               description: 'Transfers between our own accounts — a debit on one statement, a credit on the other.' },
         ],
       },
       {
         to: '/finance/cash-book', icon: faBook, label: 'Cash Book',
-        // Brand new — didn't exist even as a nav placeholder before.
+        // Real as of the Bank + Cash Book build. A cash-mode receipt or
+        // contractor/vendor payment (no bankAccountId set) auto-creates
+        // the matching Cash In/Cash Out entry — those show read-only here
+        // (edit the originating record instead); the manual add form is
+        // only for cash with no originating record (petty cash, owner
+        // draws). Opening/Closing has no separate stored balance — it's
+        // the running total of every entry before the range, same
+        // computed-on-read rule used everywhere else in this build.
         tabs: [
-          { key: 'cash-in',  label: 'Cash In',  description: 'Cash received.' },
-          { key: 'cash-out', label: 'Cash Out', description: 'Cash paid out.' },
-          { key: 'opening',  label: 'Opening',  description: 'Opening cash balance per period.' },
-          { key: 'closing',  label: 'Closing',  description: 'Closing cash balance per period.' },
+          { key: 'cash-in',  label: 'Cash In',  description: 'Cash received — auto-generated from cash-mode receipts, plus manual entries for petty cash returns etc.' },
+          { key: 'cash-out', label: 'Cash Out', description: 'Cash paid out — auto-generated from cash-mode contractor/vendor payments, plus manual entries for petty cash, owner draws, etc.' },
+          { key: 'opening-closing', label: 'Opening / Closing', description: 'Opening and closing cash balance for a chosen date range.' },
         ],
       },
     ],

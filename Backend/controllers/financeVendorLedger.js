@@ -30,7 +30,7 @@ const getVendorLedger = async (req, res) => {
 
         const paymentFilter = { vendorId, deleted: { $ne: true } };
         if (projectId) paymentFilter.projectId = projectId;
-        const payments = await FinanceVendorPayment.find(paymentFilter).sort({ date: -1 });
+        const payments = await FinanceVendorPayment.find(paymentFilter).populate('bankAccountId', 'accountName').sort({ date: -1 });
 
         const purchaseTotal = purchases.filter(p => p.transactionType === 'purchase').reduce((sum, p) => sum + p.totalAmount, 0);
         const returnTotal = purchases.filter(p => p.transactionType === 'return').reduce((sum, p) => sum + p.totalAmount, 0);

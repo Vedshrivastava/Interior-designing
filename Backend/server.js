@@ -45,6 +45,10 @@ import financeContractorLedgerRouter    from "./routes/financeContractorLedger.j
 import financePurchaseRouter      from "./routes/financePurchase.js";
 import financeVendorPaymentRouter from "./routes/financeVendorPayment.js";
 import financeVendorLedgerRouter  from "./routes/financeVendorLedger.js";
+import financeBankAccountRouter  from "./routes/financeBankAccount.js";
+import financeBankTransferRouter from "./routes/financeBankTransfer.js";
+import financeCashEntryRouter    from "./routes/financeCashEntry.js";
+import financeCashBookRouter     from "./routes/financeCashBook.js";
 import dotenv from 'dotenv';
 import { wss } from './middlewares/webSocket.js'; // Import WebSocket server setup
 
@@ -123,6 +127,10 @@ app.use('/api/finance/contractor-payments',   financeContractorPaymentRouter);
 app.use('/api/finance/contractors',           financeContractorLedgerRouter);
 app.use('/api/finance/purchases',       financePurchaseRouter);
 app.use('/api/finance/vendor-payments', financeVendorPaymentRouter);
+app.use('/api/finance/bank-accounts',   financeBankAccountRouter);
+app.use('/api/finance/bank-transfers',  financeBankTransferRouter);
+app.use('/api/finance/cash-entries',    financeCashEntryRouter);
+app.use('/api/finance/cash-book',       financeCashBookRouter);
 
 // Serve static files
 app.use('/images', express.static('uploads'));

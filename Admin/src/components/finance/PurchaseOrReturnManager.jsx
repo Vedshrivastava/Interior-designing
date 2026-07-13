@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
 
-const emptyForm = { vendorId: '', projectId: '', materialId: '', quantity: '', ratePerUnit: '', date: '', referenceNumber: '', notes: '' };
+const emptyForm = { vendorId: '', projectId: '', materialId: '', quantity: '', ratePerUnit: '', date: '', referenceNumber: '', notes: '', gstRate: '' };
 
 /*
  * Shared by Procurement's Purchases and Returns tabs — same fields, same
@@ -118,6 +118,10 @@ const PurchaseOrReturnManager = ({ url, transactionType }) => {
                         <p>Total (auto)</p>
                         <input type="text" value={`₹${totalPreview.toLocaleString('en-IN')}`} disabled />
                     </div>
+                    <div className="add-product-name flex-col">
+                        <p>GST Rate % (optional)</p>
+                        <input type="number" value={form.gstRate} onChange={e => setField('gstRate', e.target.value)} />
+                    </div>
                     <div className="add-product-name flex-col wizard-field-full">
                         <p>Notes</p>
                         <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
@@ -130,8 +134,8 @@ const PurchaseOrReturnManager = ({ url, transactionType }) => {
             </form>
 
             <div className="list-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 1fr 1fr 100px' }}>
-                    <b>Date</b><b>Vendor</b><b>Material</b><b>Qty</b><b>Rate</b><b>Total</b><b>Action</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 100px' }}>
+                    <b>Date</b><b>Vendor</b><b>Material</b><b>Qty</b><b>Rate</b><b>Total</b><b>GST</b><b>Action</b>
                 </div>
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
@@ -139,13 +143,14 @@ const PurchaseOrReturnManager = ({ url, transactionType }) => {
                     <div className="admin-empty-state"><p>No {isReturn ? 'returns' : 'purchases'} recorded yet.</p></div>
                 ) : (
                     items.map(item => (
-                        <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 1fr 1fr 100px' }}>
+                        <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 100px' }}>
                             <p>{new Date(item.date).toLocaleDateString()}</p>
                             <p>{item.vendorId?.name || '—'}</p>
                             <p>{item.materialId?.name || '—'} {item.materialId?.unit ? `(${item.materialId.unit})` : ''}</p>
                             <p>{item.quantity}</p>
                             <p>₹{item.ratePerUnit}</p>
                             <p>₹{item.totalAmount.toLocaleString('en-IN')}</p>
+                            <p>{item.gstAmount ? `₹${item.gstAmount.toLocaleString('en-IN')} (${item.gstRate}%)` : '—'}</p>
                             <div className="action-buttons">
                                 <p onClick={() => setConfirmItem(item)} className="cursor delete-action">X</p>
                             </div>

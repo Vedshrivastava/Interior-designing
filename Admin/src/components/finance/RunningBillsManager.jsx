@@ -26,6 +26,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     const [periodFrom, setPeriodFrom] = useState('');
     const [periodTo, setPeriodTo] = useState('');
     const [billDate, setBillDate] = useState('');
+    const [gstRate, setGstRate] = useState('');
     const [preview, setPreview] = useState(null);
     const [previewing, setPreviewing] = useState(false);
     const [generating, setGenerating] = useState(false);
@@ -44,7 +45,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     useEffect(() => { if (projectId) fetchBills(); }, [projectId, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const openGenerate = () => {
-        setPeriodFrom(''); setPeriodTo(''); setBillDate(new Date().toISOString().slice(0, 10)); setPreview(null);
+        setPeriodFrom(''); setPeriodTo(''); setBillDate(new Date().toISOString().slice(0, 10)); setGstRate(''); setPreview(null);
         setModalOpen(true);
     };
     const closeModal = () => setModalOpen(false);
@@ -65,7 +66,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     const confirmGenerate = async () => {
         setGenerating(true);
         try {
-            const res = await axios.post(`${url}/api/finance/running-bills/generate`, { projectId, periodFrom, periodTo, billDate }, authHeader);
+            const res = await axios.post(`${url}/api/finance/running-bills/generate`, { projectId, periodFrom, periodTo, billDate, gstRate }, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message);
                 closeModal();
@@ -96,6 +97,20 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
         finally { setDeleting(false); }
     };
 
+    // Protected download — the PDF endpoint needs the Bearer token, so a
+    // plain <a href> won't carry auth; fetch as a blob and trigger the
+    // save via a throwaway anchor instead.
+    const downloadStatement = async (bill) => {
+        try {
+            const res = await axios.get(`${url}/api/finance/running-bills/${bill._id}/statement/download`, { ...authHeader, responseType: 'blob' });
+            const blobUrl = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+            const a = document.createElement('a');
+            a.href = blobUrl; a.download = `Bill-Statement-${bill.billNumber}.pdf`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+        } catch { toast.error('Error downloading statement'); }
+    };
+
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
@@ -103,7 +118,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
             </div>
 
             <div className="list-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1fr 1fr 140px' }}>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1fr 1fr 220px' }}>
                     <b>Bill #</b><b>Date</b><b>Period</b><b>Total</b><b>Status</b><b>Action</b>
                 </div>
                 {loading ? (
@@ -112,15 +127,16 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                     <div className="admin-empty-state"><p>No bills yet.</p></div>
                 ) : (
                     bills.map(b => (
-                        <div key={b._id} className="list-table-format row-item" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1fr 1fr 140px' }}>
+                        <div key={b._id} className="list-table-format row-item" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1fr 1fr 220px' }}>
                             <p>#{b.billNumber}</p>
                             <p>{new Date(b.billDate).toLocaleDateString()}</p>
                             <p>{new Date(b.periodFrom).toLocaleDateString()} – {new Date(b.periodTo).toLocaleDateString()}</p>
-                            <p>₹{b.totalAmount.toLocaleString('en-IN')}</p>
+                            <p>₹{b.totalAmount.toLocaleString('en-IN')}{b.gstAmount ? ` + GST` : ''}</p>
                             <p onClick={() => toggleStatus(b)} className="cursor" style={{ color: b.status === 'issued' ? 'var(--moss)' : 'var(--text-lt)' }}>
                                 <span className="item-category">{STATUS_LABEL[b.status]}</span>
                             </p>
                             <div className="action-buttons">
+                                <p onClick={() => downloadStatement(b)} className="cursor edit-action">Statement</p>
                                 <p onClick={() => setConfirmItem(b)} className="cursor delete-action">X</p>
                             </div>
                         </div>
@@ -145,6 +161,10 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                                 <p>Bill Date</p>
                                 <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} />
                             </div>
+                            <div className="add-product-name flex-col">
+                                <p>GST Rate % (optional)</p>
+                                <input type="number" value={gstRate} onChange={e => setGstRate(e.target.value)} />
+                            </div>
                         </div>
 
                         <div style={{ margin: '16px 0' }}>
@@ -167,7 +187,10 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                                     </div>
                                 ))}
                                 <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr', fontWeight: 600 }}>
-                                    <p>Total: ₹{preview.totalAmount.toLocaleString('en-IN')}</p>
+                                    <p>
+                                        Total: ₹{preview.totalAmount.toLocaleString('en-IN')}
+                                        {gstRate && ` + GST (${gstRate}%): ₹${(preview.totalAmount * (Number(gstRate) / 100)).toLocaleString('en-IN')}`}
+                                    </p>
                                 </div>
                             </div>
                         )}

@@ -20,6 +20,13 @@ const financePurchaseSchema = new mongoose.Schema({
     referenceNumber:  { type: String, default: '' }, // PO number for a purchase, return reference for a return
     notes:            { type: String, default: '' },
 
+    // Optional — entered at purchase time, unset on every record from
+    // before this field existed. Not part of totalAmount (which stays
+    // quantity × ratePerUnit); this is a separate figure the CA Monthly
+    // Package's Input GST sums independently.
+    gstRate:   { type: Number, default: null },
+    gstAmount: { type: Number, default: null },
+
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },
     deletedBy: { type: String },

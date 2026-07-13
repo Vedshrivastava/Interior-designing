@@ -33,7 +33,7 @@ const listPurchases = async (req, res) => {
  */
 const addPurchase = async (req, res) => {
     try {
-        const { vendorId, projectId, materialId, quantity, ratePerUnit, transactionType, date, referenceNumber, notes } = req.body;
+        const { vendorId, projectId, materialId, quantity, ratePerUnit, transactionType, date, referenceNumber, notes, gstRate } = req.body;
         if (!vendorId || !projectId || !materialId) {
             return res.status(400).json({ success: false, message: 'Vendor, project, and material are required' });
         }
@@ -43,10 +43,13 @@ const addPurchase = async (req, res) => {
         const type = transactionType === 'return' ? 'return' : 'purchase';
 
         const totalAmount = Number(quantity) * Number(ratePerUnit);
+        const hasGst = gstRate !== undefined && gstRate !== null && gstRate !== '';
         const purchase = new FinancePurchase({
             vendorId, projectId, materialId,
             quantity: Number(quantity), ratePerUnit: Number(ratePerUnit), totalAmount,
             transactionType: type, date, referenceNumber: referenceNumber || '', notes: notes || '',
+            gstRate: hasGst ? Number(gstRate) : null,
+            gstAmount: hasGst ? totalAmount * (Number(gstRate) / 100) : null,
         });
         await purchase.save();
 

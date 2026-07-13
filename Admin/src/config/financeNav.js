@@ -270,6 +270,15 @@ export const FINANCE_NAV_SECTIONS = [
         // project's Works tab (or from Project Profit's own Works list).
         // Supervisor/Labour Analysis stay placeholder — they depend on
         // modules that don't exist yet (Supervisors, Daily Labour).
+        // CA Monthly Package added in the CA Monthly Package + Client Bill
+        // Statement build — reads the optional gstRate/gstAmount now on
+        // financeRunningBill/financePurchase and the optional
+        // tdsSectionId/tdsAmount now on Contractor/Vendor/Commission
+        // Payment (all additive, existing records keep working unset).
+        // Every Running Bill (Receivables' tabs, a project's own Running
+        // Bills tab, and Clients > Bills) also gained a "Statement" action
+        // in that same build — downloads a per-bill Client Bill Statement
+        // PDF via GET /api/finance/running-bills/:id/statement/download.
         tabs: [
           { key: 'project-profit',       label: 'Project Profit',        description: 'Revenue minus material/contractor/commission cost and other expenses, per project.' },
           { key: 'client-profit',        label: 'Client Profit',         description: 'Same breakdown, rolled up across every project for one client.' },
@@ -279,6 +288,7 @@ export const FINANCE_NAV_SECTIONS = [
           { key: 'material-analysis',    label: 'Material Analysis',     description: 'Purchased, returned, consumed, wasted, current stock, and weighted-average cost per material.' },
           { key: 'cash-flow',            label: 'Cash Flow',             description: 'Total in (receipts) vs. out (contractor/vendor/salary/commission payments + expenses), by category and over a date range.' },
           { key: 'expense-analysis',     label: 'Expense Analysis',      description: 'financeExpense totals grouped by category and project, filterable by date range.' },
+          { key: 'ca-monthly-package',   label: 'CA Monthly Package',    description: 'GST, TDS, sales, purchase, expense, and bank/cash summary for one month — downloadable as a PDF for handoff to your CA. Real as of the CA Monthly Package + Client Bill Statement build.' },
           { key: 'supervisor-analysis',  label: 'Supervisor Analysis',   description: 'Area supervised and incentive earned per supervisor.' },
           { key: 'labour-analysis',      label: 'Labour Analysis',       description: 'Labour days and cost per team/work type.' },
           { key: 'reconciliation',       label: 'Reconciliation',        phase: 'Phase 6', description: "Guided month-end checklist — approve entries, settle labour, verify stock, invoice, chase receivables, pay vendors, GST, TDS, review. (Bank statement import/match itself now lives under Bank.)" },

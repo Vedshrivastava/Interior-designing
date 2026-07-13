@@ -143,4 +143,4 @@ const getBankStatement = async (req, res) => {
     }
 };
 
-export { listBankAccounts, addBankAccount, updateBankAccount, removeBankAccount, getBankStatement };
+export { listBankAccounts, addBankAccount, updateBankAccount, removeBankAccount, getBankStatement, getAccountActivity };

@@ -21,6 +21,13 @@ const financeVendorPaymentSchema = new mongoose.Schema({
     attachmentUrl:   { type: String, default: '' },
     notes:           { type: String, default: '' },
 
+    // Optional — TDS is deducted from the payment at entry time, so it's
+    // captured manually here rather than derived; unset on every record
+    // from before this field existed. tdsSectionId refs financeSetting
+    // where settingType: 'tds_section'.
+    tdsSectionId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeSetting', default: null },
+    tdsAmount:    { type: Number, default: null },
+
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },
     deletedBy: { type: String },

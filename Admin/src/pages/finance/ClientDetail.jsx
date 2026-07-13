@@ -151,23 +151,43 @@ const useClientBillsAndReceipts = (url, clientId) => {
 
 const ClientBillsTab = ({ url, clientId }) => {
     const navigate = useNavigate();
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const { bills, loading } = useClientBillsAndReceipts(url, clientId);
+
+    // Protected download — the PDF endpoint needs the Bearer token, so a
+    // plain <a href> won't carry auth; fetch as a blob and trigger the
+    // save via a throwaway anchor instead. Same pattern as
+    // RunningBillsManager's own "Statement" action.
+    const downloadStatement = async (b) => {
+        try {
+            const res = await axios.get(`${url}/api/finance/running-bills/${b._id}/statement/download`, { ...authHeader, responseType: 'blob' });
+            const blobUrl = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+            const a = document.createElement('a');
+            a.href = blobUrl; a.download = `Bill-Statement-${b.billNumber}.pdf`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+        } catch { toast.error('Error downloading statement'); }
+    };
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
     if (bills.length === 0) return <div className="admin-empty-state"><p>No bills raised for this client yet.</p></div>;
 
     return (
         <div className="list-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 0.7fr 1fr 1fr 1fr' }}>
-                <b>Project</b><b>Bill #</b><b>Date</b><b>Total</b><b>Status</b>
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 0.7fr 1fr 1fr 1fr 120px' }}>
+                <b>Project</b><b>Bill #</b><b>Date</b><b>Total</b><b>Status</b><b>Action</b>
             </div>
             {bills.map(b => (
-                <div key={b._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 0.7fr 1fr 1fr 1fr' }}>
+                <div key={b._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 0.7fr 1fr 1fr 1fr 120px' }}>
                     <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${b.projectId}`)}>{b.projectName}</p>
                     <p>#{b.billNumber}</p>
                     <p>{new Date(b.billDate).toLocaleDateString()}</p>
                     <p>₹{b.totalAmount.toLocaleString('en-IN')}</p>
                     <p><span className="item-category">{BILL_STATUS_LABEL[b.status]}</span></p>
+                    <div className="action-buttons">
+                        <p onClick={() => downloadStatement(b)} className="cursor edit-action">Statement</p>
+                    </div>
                 </div>
             ))}
         </div>

@@ -10,7 +10,7 @@ const listCommissionPayments = async (req, res) => {
         const filter = { deleted: { $ne: true } };
         if (vendorId) filter.vendorId = vendorId;
         if (projectId) filter.projectId = projectId;
-        const items = await FinanceCommissionPayment.find(filter).populate('bankAccountId', 'accountName').sort({ date: -1, createdAt: -1 });
+        const items = await FinanceCommissionPayment.find(filter).populate('bankAccountId', 'accountName').populate('tdsSectionId', 'name code').sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {
         console.error(err);
@@ -22,7 +22,7 @@ const listCommissionPayments = async (req, res) => {
 // bankAccountId means cash — a financeCashEntry is auto-created below.
 const addCommissionPayment = async (req, res) => {
     try {
-        const { vendorId, projectId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes } = req.body;
+        const { vendorId, projectId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
         if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
         await assertReferralVendor(vendorId);
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
@@ -32,6 +32,7 @@ const addCommissionPayment = async (req, res) => {
             vendorId, projectId: projectId || null, amount: Number(amount), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null, utrNumber: utrNumber || '',
             notes: notes || '',
+            tdsSectionId: tdsSectionId || null, tdsAmount: (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null,
         });
         await item.save();
 
@@ -52,7 +53,7 @@ const addCommissionPayment = async (req, res) => {
 
 const updateCommissionPayment = async (req, res) => {
     try {
-        const { _id, projectId, amount, date, paymentMode, bankOrCashLabel, utrNumber, notes } = req.body;
+        const { _id, projectId, amount, date, paymentMode, bankOrCashLabel, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
         const existing = await FinanceCommissionPayment.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Not found' });
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
@@ -61,6 +62,7 @@ const updateCommissionPayment = async (req, res) => {
         await FinanceCommissionPayment.findByIdAndUpdate(_id, {
             projectId: projectId || null, amount: Number(amount), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', utrNumber: utrNumber || '', notes: notes || '',
+            tdsSectionId: tdsSectionId || null, tdsAmount: (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null,
         });
         broadcast({ type: 'financeCommissionPaymentsChanged', vendorId: existing.vendorId });
         res.json({ success: true, message: 'Commission payment updated' });

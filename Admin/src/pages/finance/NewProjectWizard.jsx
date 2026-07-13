@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import WorkTypeRatesManager from '../../components/finance/WorkTypeRatesManager';
 import TeamRatesManager from '../../components/finance/TeamRatesManager';
+import SettingSelectField, { registerSettingIfNew } from '../../components/finance/SettingSelectField';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 
@@ -36,6 +37,7 @@ const NewProjectWizard = ({ url }) => {
     const [clients, setClients] = useState([]);
     const [vendors, setVendors] = useState([]);
     const [employees, setEmployees] = useState([]);
+    const [cityOptions, setCityOptions] = useState([]);
     const [stepKey, setStepKey] = useState('basic');
     const [saving, setSaving] = useState(false);
 
@@ -43,6 +45,7 @@ const NewProjectWizard = ({ url }) => {
         axios.get(`${url}/api/finance/clients/list`, authHeader).then(res => { if (res.data.success) setClients(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/vendors/list`, authHeader).then(res => { if (res.data.success) setVendors(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/employees/list`, authHeader).then(res => { if (res.data.success) setEmployees(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'city' } }).then(res => { if (res.data.success) setCityOptions(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const steps = ['basic', 'type', 'setup', 'teams', ...(contractType === 'advance' ? ['advance'] : []), 'activate'];
@@ -66,6 +69,7 @@ const NewProjectWizard = ({ url }) => {
         setSaving(true);
         try {
             const payload = { ...basic, contractType };
+            await registerSettingIfNew(url, authHeader, 'city', basic.siteLocation, cityOptions);
             if (projectId) {
                 await axios.post(`${url}/api/finance/projects/update`, { _id: projectId, ...payload }, authHeader);
             } else {
@@ -189,7 +193,10 @@ const NewProjectWizard = ({ url }) => {
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Site Location</p>
-                                    <input type="text" value={basic.siteLocation} onChange={e => setBasicField('siteLocation', e.target.value)} />
+                                    <SettingSelectField
+                                        settingType="city" options={cityOptions}
+                                        value={basic.siteLocation} onChange={v => setBasicField('siteLocation', v)}
+                                    />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Assigned Supervisor</p>

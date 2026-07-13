@@ -2,17 +2,20 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import MasterCrudTable from '../../components/finance/MasterCrudTable';
 import SettingsCrudList from '../../components/finance/SettingsCrudList';
-import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import SalaryLedgerView from '../../components/finance/SalaryLedgerView';
 import '../../styles/list.css';
 
 /*
  * Clients and Vendors moved out to their own top-level pages (Clients,
  * Procurement, Contractors) — see financeNav.js's "Old → new mapping"
- * comment. The old combined "Settings & Lists" tab is dissolved: its four
- * setting types are now named tabs in their own right, each rendering
+ * comment. The old combined "Settings & Lists" tab is dissolved: every
+ * setting type is now a named tab in its own right, each rendering
  * SettingsCrudList locked to one settingType instead of switching between
- * them internally.
+ * them internally. Units/Cities/Commission Types joined the original four
+ * as real tabs in the Masters Completion build; Banks was removed
+ * entirely in that same build — Bank Accounts already exists as its own
+ * real top-level section (from the Bank + Cash Book build), so a second,
+ * simpler list here would only go stale next to it.
  *
  * Salary Ledger is a sibling tab here rather than a routed per-employee
  * detail page — same "picker on the same page" pattern already used for
@@ -24,17 +27,15 @@ const TABS = [
     { key: 'payment_mode',      label: 'Payment Modes' },
     { key: 'expense_category',  label: 'Expense Heads' },
     { key: 'tds_section',       label: 'TDS Sections' },
-    { key: 'units',             label: 'Units' },
-    { key: 'banks',             label: 'Banks' },
-    { key: 'cities',            label: 'Cities' },
-    { key: 'commission_types',  label: 'Commission Types' },
+    { key: 'unit',              label: 'Units' },
+    { key: 'city',              label: 'Cities' },
+    { key: 'commission_type',   label: 'Commission Types' },
     { key: 'employees',         label: 'Employees' },
     { key: 'salary_ledger',     label: 'Salary Ledger' },
     { key: 'teams',             label: 'Labour Teams' },
 ];
 
-const SETTING_TYPE_KEYS = ['work_type', 'payment_mode', 'expense_category', 'tds_section'];
-const EMPTY_TAB_KEYS = ['units', 'banks', 'cities', 'commission_types'];
+const SETTING_TYPE_KEYS = ['work_type', 'payment_mode', 'expense_category', 'tds_section', 'unit', 'city', 'commission_type'];
 
 const EmployeePicker = ({ url, selectedEmployeeId, onChange }) => {
     const token = localStorage.getItem('token');
@@ -87,8 +88,6 @@ const MasterData = ({ url }) => {
                     </>
                 ) : SETTING_TYPE_KEYS.includes(activeTab) ? (
                     <SettingsCrudList key={activeTab} url={url} lockedType={activeTab} />
-                ) : EMPTY_TAB_KEYS.includes(activeTab) ? (
-                    <PlaceholderTab text="No backing data type exists for this yet — coming soon." />
                 ) : (
                     <MasterCrudTable url={url} resourceKey={activeTab} />
                 )}

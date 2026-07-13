@@ -2,12 +2,16 @@ import mongoose from 'mongoose';
 
 // One collection for every admin-editable enum list that used to be a
 // Settings & Lists dropdown in Excel — work types, expense categories,
-// payment modes, TDS sections — scoped by `settingType` instead of one
-// near-empty collection each.
+// payment modes, TDS sections, units, cities, commission types — scoped
+// by `settingType` instead of one near-empty collection each. unit/city
+// back a UI-level dropdown-with-escape-hatch on financeMaterial.unit /
+// financeProject.siteLocation (both stay plain Strings — see those
+// controllers); commission_type backs financeVendor.commissionTypeLabel,
+// which is descriptive/reporting only and never affects commission math.
 const financeSettingSchema = new mongoose.Schema({
     settingType: {
         type: String,
-        enum: ['work_type', 'expense_category', 'payment_mode', 'tds_section'],
+        enum: ['work_type', 'expense_category', 'payment_mode', 'tds_section', 'unit', 'city', 'commission_type'],
         required: true,
     },
     name:      { type: String, required: true },

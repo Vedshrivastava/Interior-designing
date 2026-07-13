@@ -16,6 +16,13 @@ const financeStockMovementSchema = new mongoose.Schema({
     // movements it creates — never set by the manual entry form.
     relatedMeasurementId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeMeasurement', default: null },
 
+    // Set automatically by the Procurement purchase/return automation on
+    // the `dump`/`return` movements it creates — never set by the manual
+    // entry form. dump/return can still ALSO be entered manually (opening
+    // stock, ad-hoc site returns not tied to a formal purchase); only
+    // `consume` and purchase/return-linked movements are automation-only.
+    relatedPurchaseId: { type: mongoose.Schema.Types.ObjectId, ref: 'financePurchase', default: null },
+
     notes: { type: String, default: '' },
 
     deleted:   { type: Boolean, default: false },

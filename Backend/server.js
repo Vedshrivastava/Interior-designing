@@ -42,6 +42,9 @@ import financeContractorAdvanceRouter   from "./routes/financeContractorAdvance.
 import financeContractorDeductionRouter from "./routes/financeContractorDeduction.js";
 import financeContractorPaymentRouter   from "./routes/financeContractorPayment.js";
 import financeContractorLedgerRouter    from "./routes/financeContractorLedger.js";
+import financePurchaseRouter      from "./routes/financePurchase.js";
+import financeVendorPaymentRouter from "./routes/financeVendorPayment.js";
+import financeVendorLedgerRouter  from "./routes/financeVendorLedger.js";
 import dotenv from 'dotenv';
 import { wss } from './middlewares/webSocket.js'; // Import WebSocket server setup
 
@@ -100,6 +103,7 @@ app.use('/api/finish',   finishRouter);
 app.use('/api/city',     cityRouter);
 app.use('/api/finance/clients',   financeClientRouter);
 app.use('/api/finance/vendors',   financeVendorRouter);
+app.use('/api/finance/vendors',   financeVendorLedgerRouter); // same prefix, separate ledger concern — see routes/financeVendorLedger.js
 app.use('/api/finance/employees', financeEmployeeRouter);
 app.use('/api/finance/materials', financeMaterialRouter);
 app.use('/api/finance/teams',     financeTeamRouter);
@@ -117,6 +121,8 @@ app.use('/api/finance/contractor-advances',   financeContractorAdvanceRouter);
 app.use('/api/finance/contractor-deductions', financeContractorDeductionRouter);
 app.use('/api/finance/contractor-payments',   financeContractorPaymentRouter);
 app.use('/api/finance/contractors',           financeContractorLedgerRouter);
+app.use('/api/finance/purchases',       financePurchaseRouter);
+app.use('/api/finance/vendor-payments', financeVendorPaymentRouter);
 
 // Serve static files
 app.use('/images', express.static('uploads'));

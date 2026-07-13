@@ -6,7 +6,7 @@ import {
   faPlus, faList, faIdBadge, faMessage, faFolderPlus, faFolderOpen,
   faCubes, faBoxesStacked, faUsers, faTrash, faStar, faStarHalfStroke,
 } from '@fortawesome/free-solid-svg-icons';
-import { FINANCE_NAV_SECTIONS } from '../config/financeNav';
+import { FINANCE_NAV_SECTIONS, financeModuleKeyForPath } from '../config/financeNav';
 
 const NAV_SECTIONS = [
   {
@@ -61,8 +61,20 @@ const Sidebar = () => {
   const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
   const isMaster   = storedUser.role === 'MASTER';
 
+  // Finance-module visibility only (Settings build) — unset
+  // allowedFinanceModules or role MASTER means every section shows, same
+  // as before this existed. Restricted ADMIN users only see items whose
+  // derived module key (financeModuleKeyForPath) is in their list.
+  const restrictedModules = (!isMaster && Array.isArray(storedUser.allowedFinanceModules)) ? storedUser.allowedFinanceModules : null;
+  const financeSections = restrictedModules
+    ? FINANCE_NAV_SECTIONS.map(section => ({
+        ...section,
+        items: section.items.filter(item => restrictedModules.includes(financeModuleKeyForPath(item.to))),
+      })).filter(section => section.items.length > 0)
+    : FINANCE_NAV_SECTIONS;
+
   const sections = isFinance
-    ? FINANCE_NAV_SECTIONS
+    ? financeSections
     : (isMaster ? [...NAV_SECTIONS, MASTER_SECTION] : NAV_SECTIONS);
 
   return (

@@ -35,6 +35,12 @@ const financeRunningBillSchema = new mongoose.Schema({
     gstRate:   { type: Number, default: null },
     gstAmount: { type: Number, default: null },
 
+    // Set by the overdue-receivable alert check
+    // (controllers/financeCompanySettings.js) when an email actually goes
+    // out for this bill — read back on the next check to avoid
+    // re-notifying within 24 hours. Never set anywhere else.
+    lastNotifiedAt: { type: Date, default: null },
+
     // Payment status is derived from receipts against this bill elsewhere
     // (see receivables/summary) — status here is just draft-vs-issued,
     // not a payment state.

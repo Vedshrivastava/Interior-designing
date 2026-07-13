@@ -3,9 +3,10 @@ import FinanceMeasurement from '../models/financeMeasurement.js';
 import FinanceWorkTypeRate from '../models/financeWorkTypeRate.js';
 import FinanceProject from '../models/financeProject.js';
 import FinanceReceipt from '../models/financeReceipt.js';
+import FinanceCompanySettings from '../models/financeCompanySettings.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import PDFDocument from 'pdfkit';
-import { COMPANY, writeLetterhead, writeSectionHeading, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
+import { writeLetterhead, writeSectionHeading, writeFooter, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
 
 const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material'];
 
@@ -206,8 +207,12 @@ const computeBillStatement = async (billId) => {
     const paidTotal = payments.reduce((sum, p) => sum + p.amount, 0);
     const grandTotal = bill.totalAmount + (bill.gstAmount || 0);
 
+    // .lean() — spreading a hydrated Mongoose document ({ ...doc }) silently
+    // drops some schema fields (companyName among them) in pdfLetterhead.js.
+    const company = await FinanceCompanySettings.findOne({ deleted: { $ne: true } }).lean();
+
     return {
-        company: COMPANY,
+        company,
         client: client ? { name: client.name, phone: client.phone, email: client.email, address: client.address, gstNumber: client.gstNumber } : null,
         project: project ? { projectId: project._id, name: project.name, siteLocation: project.siteLocation } : null,
         bill: {
@@ -243,7 +248,7 @@ const downloadBillStatement = async (req, res) => {
         const doc = new PDFDocument({ margin: 50 });
         doc.pipe(res);
 
-        writeLetterhead(doc, `Client Bill Statement — Bill #${data.bill.billNumber}`);
+        await writeLetterhead(doc, `Client Bill Statement — Bill #${data.bill.billNumber}`, data.company);
 
         doc.font('Helvetica-Bold').text('Bill To:');
         doc.font('Helvetica').text(data.client?.name || '—');
@@ -261,7 +266,7 @@ const downloadBillStatement = async (req, res) => {
         if (data.bill.periodFrom && data.bill.periodTo) doc.text(`Period: ${formatDate(data.bill.periodFrom)} to ${formatDate(data.bill.periodTo)}`);
         doc.text(`Status: ${data.bill.status === 'issued' ? 'Issued' : 'Draft'}`);
 
-        writeSectionHeading(doc, 'Line Items');
+        writeSectionHeading(doc, 'Line Items', data.company);
         const colX = { workType: doc.page.margins.left, area: 220, rate: 320, amount: 420 };
         const lineHeight = doc.currentLineHeight() + 4;
 
@@ -293,7 +298,7 @@ const downloadBillStatement = async (req, res) => {
         }
         doc.font('Helvetica-Bold').text(`Grand Total: ${formatCurrency(data.bill.grandTotal)}`, { align: 'right' }).font('Helvetica');
 
-        writeSectionHeading(doc, 'Payment History');
+        writeSectionHeading(doc, 'Payment History', data.company);
         if (data.payments.length === 0) {
             doc.text('No payments recorded against this bill yet.');
         } else {
@@ -309,6 +314,7 @@ const downloadBillStatement = async (req, res) => {
             .text(`Outstanding Balance: ${formatCurrency(data.outstandingBalance)}`)
             .fillColor('#000000').font('Helvetica').fontSize(10);
 
+        writeFooter(doc, data.company);
         doc.end();
     } catch (err) {
         console.error(err);

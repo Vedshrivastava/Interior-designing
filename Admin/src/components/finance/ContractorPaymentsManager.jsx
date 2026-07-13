@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
 
-const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', utrNumber: '', notes: '' };
+const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '' };
 
 /*
  * Standalone contractor-payment entry + history — the same
@@ -18,6 +18,7 @@ const ContractorPaymentsManager = ({ url }) => {
 
     const [vendors, setVendors] = useState([]);
     const [vendorId, setVendorId] = useState('');
+    const [bankAccounts, setBankAccounts] = useState([]);
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -29,6 +30,8 @@ const ContractorPaymentsManager = ({ url }) => {
         axios.get(`${url}/api/finance/vendors/list`, authHeader)
             .then(res => { if (res.data.success) setVendors(res.data.data.filter(v => v.vendorType === 'labour_contractor')); })
             .catch(() => {});
+        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
+            .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchPayments = async () => {
@@ -91,14 +94,18 @@ const ContractorPaymentsManager = ({ url }) => {
                         <input type="number" placeholder="Amount" value={form.amount} onChange={e => setField('amount', e.target.value)} style={{ flex: 1, minWidth: '100px' }} />
                         <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
                         <input type="text" placeholder="Payment mode" value={form.paymentMode} onChange={e => setField('paymentMode', e.target.value)} style={{ flex: 1, minWidth: '120px' }} />
-                        <input type="text" placeholder="Bank / Cash label" value={form.bankOrCashLabel} onChange={e => setField('bankOrCashLabel', e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
+                        <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)} style={{ flex: 1, minWidth: '160px' }}>
+                            <option value="">— Cash —</option>
+                            {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
+                        </select>
+                        <input type="text" placeholder="Bank / Cash label (legacy, optional)" value={form.bankOrCashLabel} onChange={e => setField('bankOrCashLabel', e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
                         <input type="file" onChange={e => setFile(e.target.files[0] || null)} style={{ flex: 1, minWidth: '160px' }} />
                         <button type="submit" className="add-point-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Payment'}</button>
                     </form>
 
                     <div className="list-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
-                            <b>Date</b><b>Amount</b><b>Mode</b><b>Attachment</b><b>Action</b>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
+                            <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>Attachment</b><b>Action</b>
                         </div>
                         {loading ? (
                             <div className="admin-empty-state"><p>Loading…</p></div>
@@ -106,10 +113,11 @@ const ContractorPaymentsManager = ({ url }) => {
                             <div className="admin-empty-state"><p>No payments recorded yet.</p></div>
                         ) : (
                             payments.map(p => (
-                                <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
+                                <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
                                     <p>{new Date(p.date).toLocaleDateString()}</p>
                                     <p>₹{p.amount.toLocaleString('en-IN')}</p>
                                     <p>{p.paymentMode || '—'}</p>
+                                    <p>{p.bankAccountId?.accountName || 'Cash'}</p>
                                     <p>{p.attachmentUrl ? <a href={p.attachmentUrl} target="_blank" rel="noreferrer">View</a> : '—'}</p>
                                     <div className="action-buttons"><p onClick={() => remove(p._id)} className="cursor delete-action">X</p></div>
                                 </div>

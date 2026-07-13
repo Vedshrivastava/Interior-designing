@@ -1,4 +1,5 @@
 import FinanceReceipt from '../models/financeReceipt.js';
+import FinanceCashEntry from '../models/financeCashEntry.js';
 import { broadcast } from '../middlewares/webSocket.js';
 
 const listReceipts = async (req, res) => {
@@ -12,6 +13,7 @@ const listReceipts = async (req, res) => {
         if (clientId) filter.clientId = clientId;
         const items = await FinanceReceipt.find(filter)
             .populate('runningBillId', 'billNumber')
+            .populate('bankAccountId', 'accountName')
             .sort({ receiptDate: -1, createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {
@@ -22,12 +24,12 @@ const listReceipts = async (req, res) => {
 
 // Just creates the record — the receivable balance is always computed on
 // read (see controllers/financeReceivable.js), never decremented here.
-// No bank-balance update: Bank isn't a real ledger yet (still a nav-only
-// placeholder), so there's nothing to update. Wire this up once Bank is
-// built for real, alongside Site Inventory's equivalent stock ledger.
+// bankAccountId means bank (the bank statement reads it directly, see
+// controllers/financeBankAccount.js); no bankAccountId means cash — a
+// financeCashEntry is auto-created below so the Cash Book stays complete.
 const addReceipt = async (req, res) => {
     try {
-        const { clientId, projectId, runningBillId, amount, receiptDate, paymentMode, bankOrCashLabel, utrNumber, notes } = req.body;
+        const { clientId, projectId, runningBillId, amount, receiptDate, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes } = req.body;
         if (!clientId || !projectId) return res.status(400).json({ success: false, message: 'Client and project are required' });
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!receiptDate) return res.status(400).json({ success: false, message: 'Receipt date is required' });
@@ -38,10 +40,20 @@ const addReceipt = async (req, res) => {
             amount: Number(amount), receiptDate,
             paymentMode: paymentMode || '',
             bankOrCashLabel: bankOrCashLabel || '',
+            bankAccountId: bankAccountId || null,
             utrNumber: utrNumber || '',
             notes: notes || '',
         });
         await item.save();
+
+        if (!bankAccountId) {
+            await FinanceCashEntry.create({
+                date: receiptDate, type: 'in', amount: Number(amount), projectId,
+                reason: 'Client receipt', relatedReceiptId: item._id, notes: notes || '',
+            });
+            broadcast({ type: 'financeCashBookChanged' });
+        }
+
         broadcast({ type: 'financeReceiptsChanged', projectId, clientId });
         res.json({ success: true, message: 'Receipt recorded', data: item });
     } catch (err) {
@@ -57,7 +69,12 @@ const removeReceipt = async (req, res) => {
         if (!item) return res.status(404).json({ success: false, message: 'Not found' });
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
+        await FinanceCashEntry.updateMany(
+            { relatedReceiptId: item._id },
+            { deleted: true, deletedAt: new Date(), deletedBy: req.userName || 'Admin' }
+        );
         broadcast({ type: 'financeReceiptsChanged', projectId: item.projectId, clientId: item.clientId });
+        broadcast({ type: 'financeCashBookChanged' });
         res.json({ success: true, message: 'Receipt removed' });
     } catch (err) {
         console.error(err);

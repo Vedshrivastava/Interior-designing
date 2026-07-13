@@ -2,6 +2,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import FinanceContractorPayment from '../models/financeContractorPayment.js';
+import FinanceCashEntry from '../models/financeCashEntry.js';
 import { assertContractorVendor } from '../utils/contractorVendor.js';
 import { broadcast } from '../middlewares/webSocket.js';
 
@@ -20,7 +21,7 @@ const listContractorPayments = async (req, res) => {
         const filter = { deleted: { $ne: true } };
         if (vendorId) filter.vendorId = vendorId;
         if (projectId) filter.projectId = projectId;
-        const items = await FinanceContractorPayment.find(filter).sort({ date: -1, createdAt: -1 });
+        const items = await FinanceContractorPayment.find(filter).populate('bankAccountId', 'accountName').sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {
         console.error(err);
@@ -40,9 +41,11 @@ const uploadAttachment = async (file) => {
     }
 };
 
+// bankAccountId means bank (the bank statement reads it directly); no
+// bankAccountId means cash — a financeCashEntry is auto-created below.
 const addContractorPayment = async (req, res) => {
     try {
-        const { vendorId, projectId, amount, date, paymentMode, bankOrCashLabel, utrNumber, notes } = req.body;
+        const { vendorId, projectId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes } = req.body;
         if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
         await assertContractorVendor(vendorId);
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
@@ -52,10 +55,19 @@ const addContractorPayment = async (req, res) => {
 
         const item = new FinanceContractorPayment({
             vendorId, projectId: projectId || null, amount: Number(amount), date,
-            paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', utrNumber: utrNumber || '',
+            paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null, utrNumber: utrNumber || '',
             attachmentUrl, notes: notes || '',
         });
         await item.save();
+
+        if (!bankAccountId) {
+            await FinanceCashEntry.create({
+                date, type: 'out', amount: Number(amount), projectId: projectId || null,
+                reason: 'Contractor payment', relatedContractorPaymentId: item._id, notes: notes || '',
+            });
+            broadcast({ type: 'financeCashBookChanged' });
+        }
+
         broadcast({ type: 'financeContractorLedgerChanged', vendorId });
         res.json({ success: true, message: 'Payment recorded', data: item });
     } catch (err) {
@@ -63,6 +75,11 @@ const addContractorPayment = async (req, res) => {
     }
 };
 
+// Deliberately doesn't touch the cash-entry automation — switching a
+// payment between bank/cash after the fact, or editing its amount, would
+// need to reconcile an already-created cash entry (or lack of one) the
+// same way a bill edit would; out of scope here, same reasoning as
+// financeMeasurement's update not touching areaCoveredSqft/materialUsed.
 const updateContractorPayment = async (req, res) => {
     try {
         const { _id, projectId, amount, date, paymentMode, bankOrCashLabel, utrNumber, notes } = req.body;
@@ -93,7 +110,12 @@ const removeContractorPayment = async (req, res) => {
         if (!item) return res.status(404).json({ success: false, message: 'Not found' });
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
+        await FinanceCashEntry.updateMany(
+            { relatedContractorPaymentId: item._id },
+            { deleted: true, deletedAt: new Date(), deletedBy: req.userName || 'Admin' }
+        );
         broadcast({ type: 'financeContractorLedgerChanged', vendorId: item.vendorId });
+        broadcast({ type: 'financeCashBookChanged' });
         res.json({ success: true, message: 'Payment removed' });
     } catch (err) {
         console.error(err);

@@ -11,7 +11,12 @@ const financeVendorPaymentSchema = new mongoose.Schema({
     date:   { type: Date, required: true },
 
     paymentMode:     { type: String, default: '' },
+    // bankOrCashLabel is kept for backward compatibility with records
+    // created before Bank existed — new records set bankAccountId instead
+    // when paymentMode is bank-based. No bankAccountId means cash (see
+    // controllers/financeVendorPayment.js's cash-entry automation).
     bankOrCashLabel: { type: String, default: '' },
+    bankAccountId:   { type: mongoose.Schema.Types.ObjectId, ref: 'financeBankAccount', default: null },
     utrNumber:       { type: String, default: '' },
     attachmentUrl:   { type: String, default: '' },
     notes:           { type: String, default: '' },

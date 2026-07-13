@@ -74,7 +74,7 @@ const getContractorLedger = async (req, res) => {
         const [advances, deductions, payments] = await Promise.all([
             FinanceContractorAdvance.find(moneyFilter).sort({ date: -1 }),
             FinanceContractorDeduction.find(moneyFilter).sort({ date: -1 }),
-            FinanceContractorPayment.find(moneyFilter).sort({ date: -1 }),
+            FinanceContractorPayment.find(moneyFilter).populate('bankAccountId', 'accountName').sort({ date: -1 }),
         ]);
 
         const advancesTotal = advances.reduce((sum, a) => sum + a.amount, 0);

@@ -49,6 +49,11 @@ import financeBankAccountRouter  from "./routes/financeBankAccount.js";
 import financeBankTransferRouter from "./routes/financeBankTransfer.js";
 import financeCashEntryRouter    from "./routes/financeCashEntry.js";
 import financeCashBookRouter     from "./routes/financeCashBook.js";
+import financeSalaryPaymentRouter   from "./routes/financeSalaryPayment.js";
+import financeSalaryLedgerRouter    from "./routes/financeSalaryLedger.js";
+import financeCommissionPaymentRouter from "./routes/financeCommissionPayment.js";
+import financeCommissionLedgerRouter  from "./routes/financeCommissionLedger.js";
+import financeExpenseRouter         from "./routes/financeExpense.js";
 import dotenv from 'dotenv';
 import { wss } from './middlewares/webSocket.js'; // Import WebSocket server setup
 
@@ -108,7 +113,9 @@ app.use('/api/city',     cityRouter);
 app.use('/api/finance/clients',   financeClientRouter);
 app.use('/api/finance/vendors',   financeVendorRouter);
 app.use('/api/finance/vendors',   financeVendorLedgerRouter); // same prefix, separate ledger concern — see routes/financeVendorLedger.js
+app.use('/api/finance/vendors',   financeCommissionLedgerRouter); // same prefix, separate ledger concern — see routes/financeCommissionLedger.js
 app.use('/api/finance/employees', financeEmployeeRouter);
+app.use('/api/finance/employees', financeSalaryLedgerRouter); // same prefix, separate ledger concern — see routes/financeSalaryLedger.js
 app.use('/api/finance/materials', financeMaterialRouter);
 app.use('/api/finance/teams',     financeTeamRouter);
 app.use('/api/finance/settings',  financeSettingRouter);
@@ -131,6 +138,9 @@ app.use('/api/finance/bank-accounts',   financeBankAccountRouter);
 app.use('/api/finance/bank-transfers',  financeBankTransferRouter);
 app.use('/api/finance/cash-entries',    financeCashEntryRouter);
 app.use('/api/finance/cash-book',       financeCashBookRouter);
+app.use('/api/finance/salary-payments',     financeSalaryPaymentRouter);
+app.use('/api/finance/commission-payments', financeCommissionPaymentRouter);
+app.use('/api/finance/expenses',            financeExpenseRouter);
 
 // Serve static files
 app.use('/images', express.static('uploads'));

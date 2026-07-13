@@ -1,11 +1,11 @@
 import mongoose from 'mongoose';
 
-// The Cash Book. Entries with one of the three relatedXId fields set were
+// The Cash Book. Entries with one of the relatedXId fields set were
 // created automatically by a cash-mode receipt/contractor payment/vendor
-// payment (see those controllers) — not manually re-editable through the
-// Cash Book UI; edit the originating record instead. Manual entries
-// (nothing set) are for cash with no originating record — petty cash,
-// owner draws.
+// payment/salary payment/commission payment/expense (see those
+// controllers) — not manually re-editable through the Cash Book UI; edit
+// the originating record instead. Manual entries (nothing set) are for
+// cash with no originating record — petty cash, owner draws.
 const financeCashEntrySchema = new mongoose.Schema({
     date:   { type: Date, required: true },
     type:   { type: String, enum: ['in', 'out'], required: true },
@@ -17,6 +17,9 @@ const financeCashEntrySchema = new mongoose.Schema({
     relatedReceiptId:           { type: mongoose.Schema.Types.ObjectId, ref: 'financeReceipt', default: null },
     relatedContractorPaymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeContractorPayment', default: null },
     relatedVendorPaymentId:     { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendorPayment', default: null },
+    relatedSalaryPaymentId:     { type: mongoose.Schema.Types.ObjectId, ref: 'financeSalaryPayment', default: null },
+    relatedCommissionPaymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeCommissionPayment', default: null },
+    relatedExpenseId:           { type: mongoose.Schema.Types.ObjectId, ref: 'financeExpense', default: null },
 
     notes: { type: String, default: '' },
 

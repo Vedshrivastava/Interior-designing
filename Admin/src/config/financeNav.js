@@ -82,6 +82,13 @@ export const FINANCE_NAV_SECTIONS = [
         // one (both carry relatedPurchaseId) — Material Dump here is the
         // inventory-side read of exactly those. Ledger = purchases −
         // returns − payments, same computed shape as the Contractor Ledger.
+        // Commission Ledger tab added in the Salary + Commission + Other
+        // Expenses build — a picker on this same page (filtered to
+        // vendorType 'referral' only, same pattern as Ledger's own picker)
+        // feeds GET /api/finance/vendors/:vendorId/commission-ledger,
+        // computed from financeWork completedAreaSqft ×
+        // financeWorkTypeRate.referralRatePerSqft across the projects this
+        // vendor referred, minus financeCommissionPayment payments.
         tabs: [{ key: 'vendors', label: 'Vendors', description: 'Material suppliers and other non-contractor vendors — labour contractors live under Contractors instead.' }],
       },
       {
@@ -162,42 +169,48 @@ export const FINANCE_NAV_SECTIONS = [
       },
       {
         to: '/finance/payables', icon: faMoneyBillWave, label: 'Payables',
-        // Bespoke component — Contractor tab real since the Contractor
-        // Ledger build (pulls balancePayable from
-        // GET /api/finance/contractors/:vendorId/ledger); Vendor tab real
-        // since the Procurement build (pulls amountOwed from
-        // GET /api/finance/vendors/:vendorId/ledger, purchases − returns −
-        // payments). Salary/Commission/Other stay placeholder until their
-        // own ledgers exist. NOTE for whoever builds those: Payables must
-        // end up COMPUTED — vendor balance + contractor balance + unpaid
-        // salary + unpaid commission + unpaid expense heads — never a
-        // directly-writable collection. Do not add a "financePayable"
-        // model that a user can create or edit by hand (the Vendor and
-        // Contractor tabs already prove this pattern out: no balance
-        // field is stored anywhere).
+        // Bespoke component — all five tabs real as of the Salary +
+        // Commission + Other Expenses build. Contractor tab pulls
+        // balancePayable from GET /api/finance/contractors/:vendorId/ledger
+        // (Contractor Ledger build); Vendor tab pulls amountOwed from
+        // GET /api/finance/vendors/:vendorId/ledger (Procurement build);
+        // Salary tab pulls balanceDue per employee for the current month
+        // from GET /api/finance/employees/:employeeId/salary-ledger;
+        // Commission tab pulls commissionPayable per referral vendor from
+        // GET /api/finance/vendors/:vendorId/commission-ledger; Other
+        // Expenses renders the raw financeExpense log directly (no balance
+        // to compute — it's paid when entered). Payables stays COMPUTED
+        // throughout — no "financePayable" model exists anywhere; every
+        // tab is a read of another collection's ledger/log.
         tabs: [
           { key: 'vendor',     label: 'Vendor',          description: 'Amount owed per vendor — purchases minus returns and payments already made.' },
           { key: 'contractor', label: 'Contractor',      description: 'Balance payable per contractor — earnings minus advances, deductions, and payments already made.' },
-          { key: 'salary',     label: 'Salary',          description: 'Computed from unpaid employee salary.' },
-          { key: 'commission', label: 'Commission',      description: 'Computed from unpaid referral commission.' },
-          { key: 'other',      label: 'Other Expenses',  description: 'Computed from unpaid expense heads.' },
+          { key: 'salary',     label: 'Salary',          description: 'Balance due per employee for the current month — expected salary minus salary payments made.' },
+          { key: 'commission', label: 'Commission',      description: 'Commission payable per referral vendor — earned commission minus payments already made.' },
+          { key: 'other',      label: 'Other Expenses',  description: 'Raw log of general company/site expenses — paid when entered, no balance to compute.' },
         ],
       },
       {
         to: '/finance/payments', icon: faMoneyBillTransfer, label: 'Payments',
         // Renamed/repositioned from "Payment Tracker". Bespoke component —
-        // Contractor Payment tab real since the Contractor Ledger build,
-        // Vendor Payment tab real since the Procurement build (both reuse
-        // the same financeContractorPayment/financeVendorPayment data as
-        // their respective Ledger tabs, reachable standalone from here
-        // too). Salary/Commission/Misc stay placeholder until their own
-        // money flows exist.
+        // all five tabs real. Contractor Payment tab real since the
+        // Contractor Ledger build, Vendor Payment tab real since the
+        // Procurement build (both reuse the same financeContractorPayment/
+        // financeVendorPayment data as their respective Ledger tabs,
+        // reachable standalone from here too). Salary/Commission/Misc real
+        // as of the Salary + Commission + Other Expenses build — Salary
+        // posts to financeSalaryPayment (employee + month), Commission to
+        // financeCommissionPayment (referral vendor only), Misc to
+        // financeExpense (the same log ExpensesManager also renders under
+        // Payables > Other Expenses). All three auto-create a
+        // financeCashEntry when no bankAccountId is set, same bank/cash
+        // automation as every other payment type.
         tabs: [
           { key: 'vendor',     label: 'Vendor Payment',     description: 'Payments made to material vendors — entry form and history.' },
           { key: 'contractor', label: 'Contractor Payment', description: 'Payments made to labour contractors — entry form and history.' },
-          { key: 'salary',     label: 'Salary',             description: 'Salary payouts to employees.' },
-          { key: 'commission', label: 'Commission',         description: 'Referral commission payouts.' },
-          { key: 'misc',       label: 'Miscellaneous',      description: 'Any other outgoing payment.' },
+          { key: 'salary',     label: 'Salary',             description: 'Salary payouts to employees, by month.' },
+          { key: 'commission', label: 'Commission',         description: 'Referral commission payouts to referral-type vendors.' },
+          { key: 'misc',       label: 'Miscellaneous',      description: 'Any other outgoing payment — general company/site expenses.' },
         ],
       },
       {
@@ -272,7 +285,12 @@ export const FINANCE_NAV_SECTIONS = [
         // Bespoke component. Restructured internally — see MasterData.jsx —
         // but this stays the most complete module: Material Master, Work
         // Types, Payment Modes, Expense Heads, TDS Sections, Employees, and
-        // Labour Teams all have full CRUD backing it.
+        // Labour Teams all have full CRUD backing it. Salary Ledger tab
+        // added in the Salary + Commission + Other Expenses build — a
+        // picker on this same page feeds
+        // GET /api/finance/employees/:employeeId/salary-ledger, computed
+        // from employee.salary minus financeSalaryPayment for the chosen
+        // (or every) month.
         tabs: [{ key: 'overview', label: 'Overview', description: 'Material catalog, work types, payment modes, expense heads, TDS sections, employees, and labour teams.' }],
       },
       {

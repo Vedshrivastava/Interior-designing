@@ -10,3 +10,12 @@ export const assertContractorVendor = async (vendorId) => {
     if (vendor.vendorType !== 'labour_contractor') throw new Error('This vendor is not a labour contractor');
     return vendor;
 };
+
+// Same idea, for commission — commission payments and the commission
+// ledger only ever apply to a financeVendor with vendorType 'referral'.
+export const assertReferralVendor = async (vendorId) => {
+    const vendor = await FinanceVendor.findById(vendorId);
+    if (!vendor) throw new Error('Vendor not found');
+    if (vendor.vendorType !== 'referral') throw new Error('This vendor is not a referral vendor');
+    return vendor;
+};

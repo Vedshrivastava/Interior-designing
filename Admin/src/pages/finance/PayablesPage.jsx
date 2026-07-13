@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
-import PlaceholderTab from '../../components/finance/PlaceholderTab';
+import ExpensesManager from '../../components/finance/ExpensesManager';
+
+const thisMonth = () => new Date().toISOString().slice(0, 7);
 
 const TABS = [
     { key: 'vendor',     label: 'Vendor' },
@@ -124,6 +126,111 @@ const PayablesVendorTab = ({ url }) => {
     );
 };
 
+/* Balance due per employee for the current month, pulled from the salary
+   ledger endpoint — same N+1 pattern as the tabs above. Always shows the
+   running month; switch employees' own Salary Ledger (under Masters)
+   for history across other months. */
+const PayablesSalaryTab = ({ url }) => {
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const [rows, setRows] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const month = thisMonth();
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const employeesRes = await axios.get(`${url}/api/finance/employees/list`, authHeader);
+                const employees = employeesRes.data.success ? employeesRes.data.data : [];
+                const ledgers = await Promise.all(employees.map(e =>
+                    axios.get(`${url}/api/finance/employees/${e._id}/salary-ledger`, { ...authHeader, params: { month } })
+                        .then(res => (res.data.success ? res.data.data : null))
+                        .catch(() => null)
+                ));
+                if (!cancelled) setRows(ledgers.filter(Boolean).sort((a, b) => b.balanceDue - a.balanceDue));
+            } catch {
+                if (!cancelled) toast.error('Error fetching salary payables');
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
+    if (rows.length === 0) return <div className="admin-empty-state"><p>No employees yet.</p></div>;
+
+    return (
+        <div>
+            <p className="admin-subtitle" style={{ marginBottom: '12px' }}>For {month}</p>
+            <div className="list-table">
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
+                    <b>Employee</b><b>Expected</b><b>Paid</b><b>Balance Due</b>
+                </div>
+                {rows.map(r => (
+                    <div key={r.employeeId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
+                        <p>{r.employeeName}</p>
+                        <p>₹{r.expectedSalary.toLocaleString('en-IN')}</p>
+                        <p>₹{r.paid.toLocaleString('en-IN')}</p>
+                        <p style={{ fontWeight: 600, color: r.balanceDue > 0 ? '#c0392b' : 'var(--moss)' }}>₹{r.balanceDue.toLocaleString('en-IN')}</p>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+/* Commission payable per referral vendor, pulled from the commission
+   ledger endpoint — same N+1 pattern as the tabs above. */
+const PayablesCommissionTab = ({ url }) => {
+    const navigate = useNavigate();
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const [rows, setRows] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const vendorsRes = await axios.get(`${url}/api/finance/vendors/list`, authHeader);
+                const referrals = vendorsRes.data.success ? vendorsRes.data.data.filter(v => v.vendorType === 'referral') : [];
+                const ledgers = await Promise.all(referrals.map(v =>
+                    axios.get(`${url}/api/finance/vendors/${v._id}/commission-ledger`, authHeader)
+                        .then(res => (res.data.success ? { vendorId: v._id, vendorName: v.name, ...res.data.data.totals } : null))
+                        .catch(() => null)
+                ));
+                if (!cancelled) setRows(ledgers.filter(Boolean).sort((a, b) => b.commissionPayable - a.commissionPayable));
+            } catch {
+                if (!cancelled) toast.error('Error fetching commission payables');
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
+    if (rows.length === 0) return <div className="admin-empty-state"><p>No referral vendors yet.</p></div>;
+
+    return (
+        <div className="list-table">
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
+                <b>Referral Vendor</b><b>Earned</b><b>Payments</b><b>Commission Payable</b>
+            </div>
+            {rows.map(r => (
+                <div key={r.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
+                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/procurement')}>{r.vendorName}</p>
+                    <p>₹{r.earnings.toLocaleString('en-IN')}</p>
+                    <p>₹{r.payments.toLocaleString('en-IN')}</p>
+                    <p style={{ fontWeight: 600, color: r.commissionPayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{r.commissionPayable.toLocaleString('en-IN')}</p>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 const PayablesPage = ({ url }) => {
     const [activeTab, setActiveTab] = useState(TABS[0].key);
 
@@ -137,9 +244,9 @@ const PayablesPage = ({ url }) => {
         >
             {activeTab === 'vendor' && <PayablesVendorTab url={url} />}
             {activeTab === 'contractor' && <PayablesContractorTab url={url} />}
-            {activeTab === 'salary' && <PlaceholderTab text="Computed from unpaid employee salary." />}
-            {activeTab === 'commission' && <PlaceholderTab text="Computed from unpaid referral commission." />}
-            {activeTab === 'other' && <PlaceholderTab text="Computed from unpaid expense heads." />}
+            {activeTab === 'salary' && <PayablesSalaryTab url={url} />}
+            {activeTab === 'commission' && <PayablesCommissionTab url={url} />}
+            {activeTab === 'other' && <ExpensesManager url={url} />}
         </FinanceTabShell>
     );
 };

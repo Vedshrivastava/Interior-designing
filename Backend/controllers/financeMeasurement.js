@@ -101,7 +101,7 @@ const addMeasurement = async (req, res) => {
         if (materialUsed.length > 0) {
             await FinanceStockMovement.insertMany(materialUsed.map(m => ({
                 projectId, materialId: m.materialId, movementType: 'consume',
-                quantity: m.quantity, date, relatedMeasurementId: measurement._id,
+                quantity: m.quantity, date, relatedMeasurementId: measurement._id, workId,
             })));
             stockChanged = true;
         }

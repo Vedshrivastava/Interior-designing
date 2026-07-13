@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import MasterCrudTable from '../../components/finance/MasterCrudTable';
 import PurchaseOrReturnManager from '../../components/finance/PurchaseOrReturnManager';
 import MaterialDumpView from '../../components/finance/MaterialDumpView';
 import VendorLedgerView from '../../components/finance/VendorLedgerView';
 import CommissionLedgerView from '../../components/finance/CommissionLedgerView';
+import { ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
+import '../../styles/dashboard.css';
 
 const TABS = [
     { key: 'vendors',       label: 'Vendors' },
@@ -47,6 +50,97 @@ const VendorPicker = ({ url, selectedVendorId, onChange, filter }) => {
     );
 };
 
+/* Tier-1 mini-dashboard for the Vendors tab — top vendors by purchase
+   volume (₹) and a monthly average-purchase-rate trend per material (so
+   rate creep is visible), on top of the existing vendor-filtered CRUD
+   table. Scoped to material_supplier vendors only, same as Vendor
+   Analysis in Reports — referral vendors have their own Commission
+   Ledger tab instead. */
+const ProcurementVendorsOverviewTab = ({ url }) => {
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const [summary, setSummary] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setLoading(true);
+        axios.get(`${url}/api/finance/reports/vendors-summary`, authHeader)
+            .then(res => { if (res.data.success) setSummary(res.data.data); })
+            .catch(() => {})
+            .finally(() => setLoading(false));
+    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const vendors = summary?.vendors || [];
+    const topVendors = [...vendors].sort((a, b) => b.purchases - a.purchases).slice(0, 8).map(v => ({ name: v.vendorName, purchases: v.purchases }));
+
+    const trend = summary?.materialCostTrend || [];
+    const monthSet = new Set(trend.flatMap(m => m.points.map(p => p.month)));
+    const trendData = [...monthSet].sort().map(month => {
+        const row = { month };
+        for (const m of trend) {
+            const point = m.points.find(p => p.month === month);
+            if (point) row[m.materialName] = point.avgRate;
+        }
+        return row;
+    });
+
+    return (
+        <div>
+            {!loading && vendors.length > 0 && (
+                <>
+                    <ChartGrid>
+                        <ChartCard title="Top Vendors by Purchase Volume">
+                            {topVendors.length > 0 ? (
+                                <ResponsiveContainer width="100%" height={240}>
+                                    <BarChart data={topVendors} layout="vertical" margin={{ left: 24 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                        <XAxis type="number" tick={{ fontSize: 11 }} />
+                                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
+                                        <Tooltip formatter={(v) => formatINR(v)} />
+                                        <Bar dataKey="purchases" name="Purchases" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : <EmptyChart text="No purchases recorded yet." />}
+                        </ChartCard>
+                        <ChartCard title="Material Cost Trend (avg rate/month, top materials)">
+                            {trendData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height={240}>
+                                    <LineChart data={trendData}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                        <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                                        <YAxis tick={{ fontSize: 11 }} />
+                                        <Tooltip formatter={(v) => formatINR(v)} />
+                                        <Legend wrapperStyle={{ fontSize: 10 }} />
+                                        {trend.map((m, i) => (
+                                            <Line key={m.materialId} type="monotone" dataKey={m.materialName} stroke={CHART_COLORS[i % CHART_COLORS.length]} dot={{ r: 2 }} />
+                                        ))}
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            ) : <EmptyChart text="No purchase history yet." />}
+                        </ChartCard>
+                    </ChartGrid>
+
+                    <div className="list-table" style={{ marginBottom: '24px' }}>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr' }}>
+                            <b>Vendor</b><b>Purchases</b><b>Returns</b><b>Payments</b><b>Amount Owed</b>
+                        </div>
+                        {vendors.map(v => (
+                            <div key={v.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr' }}>
+                                <p>{v.vendorName}</p>
+                                <p>{formatINR(v.purchases)}</p>
+                                <p>{formatINR(v.returns)}</p>
+                                <p>{formatINR(v.payments)}</p>
+                                <p style={{ color: v.amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}>{formatINR(v.amountOwed)}</p>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
+            <MasterCrudTable url={url} resourceKey="vendors" filter={NON_CONTRACTOR} />
+        </div>
+    );
+};
+
 /* Vendors here is the same financeVendor data as everywhere else, just
    client-side filtered to exclude labour_contractor vendors — those show
    up under Contractors instead. No backend change; same MasterCrudTable
@@ -75,7 +169,7 @@ const ProcurementPage = ({ url }) => {
             activeKey={activeTab}
             onTabChange={setActiveTab}
         >
-            {activeTab === 'vendors' && <MasterCrudTable url={url} resourceKey="vendors" filter={NON_CONTRACTOR} />}
+            {activeTab === 'vendors' && <ProcurementVendorsOverviewTab url={url} />}
             {activeTab === 'purchases' && <PurchaseOrReturnManager url={url} transactionType="purchase" />}
             {activeTab === 'materialDump' && <MaterialDumpView url={url} />}
             {activeTab === 'returns' && <PurchaseOrReturnManager url={url} transactionType="return" />}

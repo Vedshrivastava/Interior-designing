@@ -3,10 +3,14 @@ import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
+import { ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 
 const CONTRACT_TYPE_LABEL = { with_material: 'With Material', without_material: 'Without Material', advance: 'Advance' };
 const STATUS_LABEL = { draft: 'Draft', active: 'Active', completed: 'Completed' };
+const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material'];
 
 const ProjectsList = ({ url }) => {
     const navigate = useNavigate();
@@ -17,6 +21,8 @@ const ProjectsList = ({ url }) => {
     const [loading, setLoading] = useState(false);
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [profitData, setProfitData] = useState([]);
+    const [billedVsCollected, setBilledVsCollected] = useState([]);
 
     const fetchList = async () => {
         setLoading(true);
@@ -28,6 +34,36 @@ const ProjectsList = ({ url }) => {
     };
 
     useEffect(() => { fetchList(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Mini-dashboard stats — profitability per active project, and
+    // %billed-vs-collected per billable project (with_material/
+    // without_material only — advance contracts don't use Running Bills).
+    useEffect(() => {
+        if (list.length === 0) { setProfitData([]); setBilledVsCollected([]); return; }
+        let cancelled = false;
+        (async () => {
+            const activeProjects = list.filter(p => p.status === 'active');
+            const profits = await Promise.all(activeProjects.map(p =>
+                axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId: p._id } })
+                    .then(r => (r.data.success ? { projectName: p.name, projectId: p._id, profit: r.data.data.profit } : null))
+                    .catch(() => null)
+            ));
+            if (!cancelled) setProfitData(profits.filter(Boolean));
+
+            const billableProjects = list.filter(p => BILLABLE_CONTRACT_TYPES.includes(p.contractType));
+            const receivables = await Promise.all(billableProjects.map(p =>
+                axios.get(`${url}/api/finance/receivables/summary`, { ...authHeader, params: { projectId: p._id } })
+                    .then(r => (r.data.success ? { projectName: p.name, projectId: p._id, billed: r.data.data.issuedTotal, collected: r.data.data.receivedTotal } : null))
+                    .catch(() => null)
+            ));
+            if (!cancelled) setBilledVsCollected(receivables.filter(Boolean).filter(r => r.billed > 0));
+        })();
+        return () => { cancelled = true; };
+    }, [list]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const contractTypeData = Object.entries(
+        list.reduce((acc, p) => { acc[p.contractType] = (acc[p.contractType] || 0) + 1; return acc; }, {})
+    ).map(([type, count]) => ({ name: CONTRACT_TYPE_LABEL[type] || type, value: count }));
 
     const confirmDelete = async () => {
         if (!confirmItem) return;
@@ -50,6 +86,54 @@ const ProjectsList = ({ url }) => {
                     </div>
                     <button type="button" className="add-point-btn" onClick={() => navigate('/finance/projects/new')}>+ New Project</button>
                 </div>
+
+                <ChartGrid>
+                    <ChartCard title="Profitability — active projects">
+                        {profitData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={240}>
+                                <BarChart data={profitData} layout="vertical" margin={{ left: 24 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                    <XAxis type="number" tick={{ fontSize: 11 }} />
+                                    <YAxis type="category" dataKey="projectName" tick={{ fontSize: 11 }} width={110} />
+                                    <Tooltip formatter={(v) => formatINR(v)} />
+                                    <Bar dataKey="profit" name="Profit" radius={[0, 4, 4, 0]} onClick={(d) => navigate(`/finance/projects/${d.projectId}`)} style={{ cursor: 'pointer' }}>
+                                        {profitData.map((p, i) => <Cell key={i} fill={p.profit >= 0 ? CHART_COLORS[0] : CHART_COLORS[2]} />)}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : <EmptyChart text="No active projects yet." />}
+                    </ChartCard>
+
+                    <ChartCard title="Breakdown by contract type">
+                        {contractTypeData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={240}>
+                                <PieChart>
+                                    <Pie data={contractTypeData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={85} paddingAngle={2}>
+                                        {contractTypeData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        ) : <EmptyChart text="No projects yet." />}
+                    </ChartCard>
+
+                    <ChartCard title="% Billed vs Collected">
+                        {billedVsCollected.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={240}>
+                                <BarChart data={billedVsCollected} layout="vertical" margin={{ left: 24 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                    <XAxis type="number" tick={{ fontSize: 11 }} />
+                                    <YAxis type="category" dataKey="projectName" tick={{ fontSize: 11 }} width={110} />
+                                    <Tooltip formatter={(v) => formatINR(v)} />
+                                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                                    <Bar dataKey="billed" name="Billed" fill={CHART_COLORS[1]} onClick={(d) => navigate(`/finance/projects/${d.projectId}`)} style={{ cursor: 'pointer' }} />
+                                    <Bar dataKey="collected" name="Collected" fill={CHART_COLORS[0]} onClick={(d) => navigate(`/finance/projects/${d.projectId}`)} style={{ cursor: 'pointer' }} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : <EmptyChart text="No bills issued yet." />}
+                    </ChartCard>
+                </ChartGrid>
 
                 <div className="list-table">
                     <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1.3fr 1fr 1fr 1fr 100px' }}>

@@ -1,7 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { ChartCard, EmptyChart, CHART_COLORS, formatINR } from './DashboardWidgets';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
+
+// Monthly advances/deductions/payments — derived from the ledger response
+// already fetched here, no separate endpoint needed.
+const buildMonthlyMoneyFlow = (advances, deductions, payments) => {
+    const byMonth = new Map();
+    const bump = (date, field, amount) => {
+        const month = new Date(date).toISOString().slice(0, 7);
+        if (!byMonth.has(month)) byMonth.set(month, { month, advances: 0, deductions: 0, payments: 0 });
+        byMonth.get(month)[field] += amount;
+    };
+    advances.forEach(a => bump(a.date, 'advances', a.amount));
+    deductions.forEach(d => bump(d.date, 'deductions', d.amount));
+    payments.forEach(p => bump(p.date, 'payments', p.amount));
+    return [...byMonth.values()].sort((a, b) => a.month.localeCompare(b.month));
+};
 
 const emptyAdvanceForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', utrNumber: '', notes: '' };
 const emptyDeductionForm = { amount: '', reason: '', date: '', notes: '' };
@@ -111,6 +129,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
     if (!ledger) return <div className="admin-empty-state"><p>Unable to load ledger.</p></div>;
 
     const { totals } = ledger;
+    const monthlyFlow = buildMonthlyMoneyFlow(ledger.advances, ledger.deductions, ledger.payments);
 
     return (
         <div>
@@ -125,6 +144,25 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                     <p>₹{totals.payments.toLocaleString('en-IN')}</p>
                     <p style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{totals.balancePayable.toLocaleString('en-IN')}</p>
                 </div>
+            </div>
+
+            <div style={{ marginBottom: '28px' }}>
+                <ChartCard title="Advances / Deductions / Payments — by month">
+                    {monthlyFlow.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={220}>
+                            <BarChart data={monthlyFlow}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                                <YAxis tick={{ fontSize: 11 }} />
+                                <Tooltip formatter={(v) => formatINR(v)} />
+                                <Legend wrapperStyle={{ fontSize: 11 }} />
+                                <Bar dataKey="advances" name="Advances" fill={CHART_COLORS[1]} />
+                                <Bar dataKey="deductions" name="Deductions" fill={CHART_COLORS[2]} />
+                                <Bar dataKey="payments" name="Payments" fill={CHART_COLORS[0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    ) : <EmptyChart text="No advances, deductions, or payments yet." />}
+                </ChartCard>
             </div>
 
             {showWorks && (

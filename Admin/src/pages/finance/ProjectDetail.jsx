@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import WorkTypeRatesManager from '../../components/finance/WorkTypeRatesManager';
 import TeamRatesManager from '../../components/finance/TeamRatesManager';
 import WorksManager from '../../components/finance/WorksManager';
@@ -11,7 +12,142 @@ import RunningBillsManager from '../../components/finance/RunningBillsManager';
 import ReceiptsManager from '../../components/finance/ReceiptsManager';
 import DailyLabourManager from '../../components/finance/DailyLabourManager';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
+import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
+
+const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material'];
+
+/*
+ * Tier-2 dashboard for one project — KPI cards (revenue through
+ * margin%), a progress-over-time chart, a cost-breakdown donut, the
+ * material analysis table, and receivable status. Reuses the same
+ * report endpoints Reports already computes off of — nothing recomputed
+ * client-side.
+ */
+const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const [profit, setProfit] = useState(null);
+    const [materials, setMaterials] = useState([]);
+    const [receivable, setReceivable] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let cancelled = false;
+        setLoading(true);
+        (async () => {
+            try {
+                const requests = [
+                    axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId } }),
+                    axios.get(`${url}/api/finance/reports/material-analysis`, { ...authHeader, params: { projectId } }),
+                ];
+                if (BILLABLE_CONTRACT_TYPES.includes(contractType)) {
+                    requests.push(axios.get(`${url}/api/finance/receivables/summary`, { ...authHeader, params: { projectId } }));
+                }
+                const [profitRes, materialRes, receivableRes] = await Promise.all(requests);
+                if (cancelled) return;
+                if (profitRes.data.success) setProfit(profitRes.data.data);
+                if (materialRes.data.success) setMaterials(materialRes.data.data);
+                if (receivableRes?.data.success) setReceivable(receivableRes.data.data);
+            } catch {
+                // Overview degrades gracefully — sections just show empty state.
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [url, projectId, contractType]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
+    if (!profit) return <div className="admin-empty-state"><p>Unable to load project profitability.</p></div>;
+
+    const costBreakdown = [
+        { name: 'Material', value: profit.materialCost },
+        { name: 'Contractor', value: profit.contractorCost },
+        { name: 'Commission', value: profit.commissionCost },
+        { name: 'Daily Labour', value: profit.dailyLabourCost },
+        { name: 'Other Expenses', value: profit.otherExpenses },
+    ].filter(d => d.value > 0);
+
+    return (
+        <div>
+            <KpiGrid>
+                <KpiCard label="Revenue" value={formatINR(profit.revenue)} />
+                <KpiCard label="Material Cost" value={formatINR(profit.materialCost)} />
+                <KpiCard label="Contractor Cost" value={formatINR(profit.contractorCost)} />
+                <KpiCard label="Commission Cost" value={formatINR(profit.commissionCost)} />
+                <KpiCard label="Daily Labour Cost" value={formatINR(profit.dailyLabourCost)} />
+                <KpiCard label="Other Expenses" value={formatINR(profit.otherExpenses)} />
+                <KpiCard label="Profit" value={formatINR(profit.profit)} tone={profit.profit >= 0 ? 'good' : 'danger'} />
+                <KpiCard label="Margin %" value={`${Math.round(profit.marginPercent * 10) / 10}%`} tone={profit.marginPercent >= 0 ? 'good' : 'danger'} />
+            </KpiGrid>
+
+            <ChartGrid>
+                <ChartCard title="Progress Over Time">
+                    {profit.progressOverTime?.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={240}>
+                            <LineChart data={profit.progressOverTime}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                <XAxis dataKey="weekStart" tick={{ fontSize: 10 }} />
+                                <YAxis tick={{ fontSize: 11 }} />
+                                <Tooltip />
+                                <Line type="monotone" dataKey="completedAreaSqft" name="Completed Sqft" stroke={CHART_COLORS[0]} strokeWidth={2} dot={{ r: 2 }} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    ) : <EmptyChart text="No measurements logged yet." />}
+                </ChartCard>
+
+                <ChartCard title="Cost Breakdown">
+                    {costBreakdown.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={240}>
+                            <PieChart>
+                                <Pie data={costBreakdown} dataKey="value" nameKey="name" innerRadius={50} outerRadius={85} paddingAngle={2}>
+                                    {costBreakdown.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                                </Pie>
+                                <Tooltip formatter={(v) => formatINR(v)} />
+                                <Legend wrapperStyle={{ fontSize: 12 }} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    ) : <EmptyChart text="No costs recorded yet." />}
+                </ChartCard>
+            </ChartGrid>
+
+            {receivable && (
+                <div className="list-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: "1fr" }}><b>Receivable Status</b></div>
+                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                        <p>Billed: {formatINR(receivable.issuedTotal)}</p>
+                        <p>Received: {formatINR(receivable.receivedTotal)}</p>
+                        <p style={{ color: receivable.balance > 0 ? '#c0392b' : 'var(--moss)' }}>Outstanding: {formatINR(receivable.balance)}</p>
+                    </div>
+                </div>
+            )}
+
+            {materials.length > 0 && (
+                <div className="list-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr 1fr' }}>
+                        <b>Material</b><b>Purchased</b><b>Consumed</b><b>Wasted</b><b>Current Stock</b><b>Avg Cost</b>
+                    </div>
+                    {materials.map(m => (
+                        <div key={m.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr 1fr' }}>
+                            <p>{m.materialName}</p>
+                            <p>{m.totalPurchased} {m.unit}</p>
+                            <p>{m.totalConsumed} {m.unit}</p>
+                            <p>{m.totalWasted} {m.unit}</p>
+                            <p>{m.currentStock} {m.unit}</p>
+                            <p>{formatINR(m.weightedAverageCost)}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            <div style={{ textAlign: 'right' }}>
+                <span className="cursor edit-action" onClick={onViewWorks}>View all Works →</span>
+            </div>
+        </div>
+    );
+};
 
 const TABS = [
     { key: 'overview',     label: 'Overview' },
@@ -117,20 +253,23 @@ const ProjectDetail = ({ url }) => {
                 </div>
 
                 {activeTab === 'overview' && (
-                    <div className="list-table">
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Site Location</b></p><p>{project.siteLocation || '—'}</p></div>
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Start Date</b></p><p>{project.startDate ? new Date(project.startDate).toLocaleDateString() : '—'}</p></div>
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Estimated Area</b></p><p>{project.estimatedAreaSqft || 0} sqft</p></div>
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Material Tracking</b></p><p>{project.materialTrackingEnabled ? 'Enabled' : 'Disabled'}</p></div>
-                        {project.contractType === 'advance' && (
-                            <>
-                                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Total Estimated Cost</b></p><p>₹{project.totalEstimatedCost?.toLocaleString('en-IN')}</p></div>
-                                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Contract Percentage</b></p><p>{project.contractPercentage}%</p></div>
-                                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Advance Amount</b></p><p>₹{project.advanceAmount?.toLocaleString('en-IN')}</p></div>
-                                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Advance Received</b></p><p>{project.advanceReceived ? `Yes — ${new Date(project.advanceReceivedAt).toLocaleDateString()}` : 'Not yet'}</p></div>
-                            </>
-                        )}
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Notes</b></p><p>{project.notes || '—'}</p></div>
+                    <div>
+                        <div className="list-table" style={{ marginBottom: '24px' }}>
+                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Site Location</b></p><p>{project.siteLocation || '—'}</p></div>
+                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Start Date</b></p><p>{project.startDate ? new Date(project.startDate).toLocaleDateString() : '—'}</p></div>
+                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Estimated Area</b></p><p>{project.estimatedAreaSqft || 0} sqft</p></div>
+                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Material Tracking</b></p><p>{project.materialTrackingEnabled ? 'Enabled' : 'Disabled'}</p></div>
+                            {project.contractType === 'advance' && (
+                                <>
+                                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Total Estimated Cost</b></p><p>₹{project.totalEstimatedCost?.toLocaleString('en-IN')}</p></div>
+                                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Contract Percentage</b></p><p>{project.contractPercentage}%</p></div>
+                                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Advance Amount</b></p><p>₹{project.advanceAmount?.toLocaleString('en-IN')}</p></div>
+                                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Advance Received</b></p><p>{project.advanceReceived ? `Yes — ${new Date(project.advanceReceivedAt).toLocaleDateString()}` : 'Not yet'}</p></div>
+                                </>
+                            )}
+                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Notes</b></p><p>{project.notes || '—'}</p></div>
+                        </div>
+                        <ProjectOverviewTab url={url} projectId={id} contractType={project.contractType} onViewWorks={() => setActiveTab('works')} />
                     </div>
                 )}
 

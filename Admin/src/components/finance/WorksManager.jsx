@@ -137,7 +137,7 @@ const WorksManager = ({ url, projectId }) => {
                                 <p>{earnings != null ? `₹${earnings.toLocaleString('en-IN')}` : '—'}</p>
                                 <p><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
                                 <div className="action-buttons">
-                                    <p onClick={() => navigate(`/finance/reports?tab=work-profit&workId=${w._id}`)} className="cursor edit-action">Profit</p>
+                                    <p onClick={() => navigate(`/finance/projects/${projectId}/works/${w._id}`)} className="cursor edit-action">Details</p>
                                     <p onClick={() => openEdit(w)} className="cursor edit-action">Edit</p>
                                     <p onClick={() => setConfirmItem(w)} className="cursor delete-action">X</p>
                                 </div>

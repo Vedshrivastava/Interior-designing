@@ -31,6 +31,7 @@ import MasterData from './pages/finance/MasterData';
 import ProjectsList from './pages/finance/ProjectsList';
 import NewProjectWizard from './pages/finance/NewProjectWizard';
 import ProjectDetail from './pages/finance/ProjectDetail';
+import WorkDetail from './pages/finance/WorkDetail';
 import ClientsPage from './pages/finance/ClientsPage';
 import ClientDetail from './pages/finance/ClientDetail';
 import ProcurementPage from './pages/finance/ProcurementPage';
@@ -411,6 +412,14 @@ const App = () => {
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
                   <ClientDetail url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/finance/projects/:id/works/:workId'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <WorkDetail url={url} />
                 </ProtectedRoute>
               }
             />

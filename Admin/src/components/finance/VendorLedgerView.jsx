@@ -1,9 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { ChartCard, EmptyChart, CHART_COLORS, formatINR } from './DashboardWidgets';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 
 const emptyPaymentForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '' };
+
+// Monthly purchases/returns/payments — derived from the ledger response
+// already fetched here, no separate endpoint needed.
+const buildMonthlyMoneyFlow = (purchases, returns, payments) => {
+    const byMonth = new Map();
+    const bump = (date, field, amount) => {
+        const month = new Date(date).toISOString().slice(0, 7);
+        if (!byMonth.has(month)) byMonth.set(month, { month, purchases: 0, returns: 0, payments: 0 });
+        byMonth.get(month)[field] += amount;
+    };
+    purchases.forEach(p => bump(p.date, 'purchases', p.totalAmount));
+    returns.forEach(r => bump(r.date, 'returns', r.totalAmount));
+    payments.forEach(p => bump(p.date, 'payments', p.amount));
+    return [...byMonth.values()].sort((a, b) => a.month.localeCompare(b.month));
+};
 
 /*
  * The full vendor ledger — purchases, returns, payments, and the computed
@@ -76,6 +94,7 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
     if (!ledger) return <div className="admin-empty-state"><p>Unable to load ledger.</p></div>;
 
     const { totals } = ledger;
+    const monthlyFlow = buildMonthlyMoneyFlow(ledger.purchases, ledger.returns, ledger.payments);
 
     return (
         <div>
@@ -89,6 +108,25 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                     <p>₹{totals.payments.toLocaleString('en-IN')}</p>
                     <p style={{ fontWeight: 700, color: totals.amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}>₹{totals.amountOwed.toLocaleString('en-IN')}</p>
                 </div>
+            </div>
+
+            <div style={{ marginBottom: '28px' }}>
+                <ChartCard title="Purchases / Returns / Payments — by month">
+                    {monthlyFlow.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={220}>
+                            <BarChart data={monthlyFlow}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                                <YAxis tick={{ fontSize: 11 }} />
+                                <Tooltip formatter={(v) => formatINR(v)} />
+                                <Legend wrapperStyle={{ fontSize: 11 }} />
+                                <Bar dataKey="purchases" name="Purchases" fill={CHART_COLORS[1]} />
+                                <Bar dataKey="returns" name="Returns" fill={CHART_COLORS[2]} />
+                                <Bar dataKey="payments" name="Payments" fill={CHART_COLORS[0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    ) : <EmptyChart text="No purchases, returns, or payments yet." />}
+                </ChartCard>
             </div>
 
             <h3 style={{ marginBottom: '8px' }}>Purchases</h3>

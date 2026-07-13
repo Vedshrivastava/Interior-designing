@@ -16,6 +16,13 @@ const financeStockMovementSchema = new mongoose.Schema({
     // movements it creates — never set by the manual entry form.
     relatedMeasurementId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeMeasurement', default: null },
 
+    // Auto-set on `consume` movements (from the measurement's own workId).
+    // Manually pickable on `waste` entries going forward so waste can be
+    // attributed to a specific work — dump/return stay project-level only.
+    // Existing rows predate this field and stay null; Work Detail reports
+    // those separately as project-level-only waste rather than hiding them.
+    workId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeWork', default: null },
+
     // Set automatically by the Procurement purchase/return automation on
     // the `dump`/`return` movements it creates — never set by the manual
     // entry form. dump/return can still ALSO be entered manually (opening

@@ -2,13 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from 'recharts';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import MasterCrudTable from '../../components/finance/MasterCrudTable';
 import ContractorWorksView from '../../components/finance/ContractorWorksView';
 import ContractorMeasurementsView from '../../components/finance/ContractorMeasurementsView';
 import ContractorLedgerView from '../../components/finance/ContractorLedgerView';
+import { ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 
 const TABS = [
     { key: 'overview',     label: 'Overview' },
@@ -87,6 +90,97 @@ const ContractorPicker = ({ url, selectedVendorId, onChange }) => {
     );
 };
 
+/* Tier-1 mini-dashboard for the Overview tab — payable-per-contractor and
+   cost-per-sqft grouped by work type (never blended across types — a
+   Putty rate isn't comparable to a Paint rate), on top of the existing
+   contractor-filtered CRUD table. Clicking a contractor row jumps straight
+   into the Ledger tab, same destination the picker already leads to. */
+const ContractorsOverviewTab = ({ url, onSelectContractor }) => {
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const [summary, setSummary] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setLoading(true);
+        axios.get(`${url}/api/finance/reports/contractors-summary`, authHeader)
+            .then(res => { if (res.data.success) setSummary(res.data.data); })
+            .catch(() => {})
+            .finally(() => setLoading(false));
+    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const contractors = summary?.contractors || [];
+    const payableData = contractors.filter(c => c.balancePayable !== 0).map(c => ({ name: c.vendorName, balancePayable: c.balancePayable, vendorId: c.vendorId }));
+
+    // Cost-per-sqft grouped by work type, one series per work type so
+    // contractors are only ever compared within the same work type.
+    const workTypes = [...new Set((summary?.costPerSqft || []).flatMap(c => c.byWorkType.map(w => w.workType)))];
+    const costPerSqftData = (summary?.costPerSqft || [])
+        .filter(c => c.byWorkType.length > 0)
+        .map(c => {
+            const row = { name: c.vendorName };
+            for (const wt of c.byWorkType) row[wt.workType] = wt.costPerSqft;
+            return row;
+        });
+
+    return (
+        <div>
+            {!loading && contractors.length > 0 && (
+                <>
+                    <ChartGrid>
+                        <ChartCard title="Balance Payable per Contractor">
+                            {payableData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height={240}>
+                                    <BarChart data={payableData} layout="vertical" margin={{ left: 24 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                        <XAxis type="number" tick={{ fontSize: 11 }} />
+                                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
+                                        <Tooltip formatter={(v) => formatINR(v)} />
+                                        <Bar dataKey="balancePayable" name="Balance Payable" radius={[0, 4, 4, 0]} onClick={(d) => onSelectContractor(d.vendorId)} style={{ cursor: 'pointer' }}>
+                                            {payableData.map((_, i) => <Cell key={i} fill={CHART_COLORS[0]} />)}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : <EmptyChart text="Nothing payable right now." />}
+                        </ChartCard>
+                        <ChartCard title="Cost/Sqft by Work Type">
+                            {costPerSqftData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height={240}>
+                                    <BarChart data={costPerSqftData}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                        <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                                        <YAxis tick={{ fontSize: 11 }} />
+                                        <Tooltip formatter={(v) => formatINR(v)} />
+                                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                                        {workTypes.map((wt, i) => <Bar key={wt} dataKey={wt} name={wt} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : <EmptyChart text="No completed work yet." />}
+                        </ChartCard>
+                    </ChartGrid>
+
+                    <div className="list-table" style={{ marginBottom: '24px' }}>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr 1fr' }}>
+                            <b>Contractor</b><b>Earnings</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>Balance Payable</b>
+                        </div>
+                        {contractors.map(c => (
+                            <div key={c.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr 1fr' }}>
+                                <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => onSelectContractor(c.vendorId)}>{c.vendorName}</p>
+                                <p>{formatINR(c.earnings)}</p>
+                                <p>{formatINR(c.advances)}</p>
+                                <p>{formatINR(c.deductions)}</p>
+                                <p>{formatINR(c.payments)}</p>
+                                <p style={{ color: c.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>{formatINR(c.balancePayable)}</p>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
+            <MasterCrudTable url={url} resourceKey="vendors" filter={IS_CONTRACTOR} />
+        </div>
+    );
+};
+
 /* Contractors are financeVendor rows with vendorType 'labour_contractor' —
    same data/CRUD as Procurement's Vendors tab, filtered the other way.
    Ledger and Settlements render the exact same view (Settlements was
@@ -106,7 +200,9 @@ const ContractorsPage = ({ url }) => {
             activeKey={activeTab}
             onTabChange={setActiveTab}
         >
-            {activeTab === 'overview' && <MasterCrudTable url={url} resourceKey="vendors" filter={IS_CONTRACTOR} />}
+            {activeTab === 'overview' && (
+                <ContractorsOverviewTab url={url} onSelectContractor={(vendorId) => { setSelectedVendorId(vendorId); setActiveTab('ledger'); }} />
+            )}
             {activeTab === 'projects' && <ContractorProjectsTab url={url} />}
 
             {VENDOR_SCOPED_TABS.includes(activeTab) && (

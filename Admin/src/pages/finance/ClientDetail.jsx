@@ -2,9 +2,62 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
+import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
+
+const AGE_BUCKETS = ['0-30', '30-60', '60-90', '90+'];
+
+/*
+ * Tier-2 KPIs + aging for this client — new /client-detail endpoint, sits
+ * above the existing Details fields. Projects/Receipts/Bills/Payments/
+ * Ledger tabs are untouched.
+ */
+const ClientDashboardSummary = ({ url, clientId }) => {
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const [detail, setDetail] = useState(null);
+
+    useEffect(() => {
+        axios.get(`${url}/api/finance/reports/client-detail`, { ...authHeader, params: { clientId } })
+            .then(res => { if (res.data.success) setDetail(res.data.data); })
+            .catch(() => {});
+    }, [url, clientId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (!detail) return null;
+    const agingData = AGE_BUCKETS.map(bucket => ({ bucket, amount: detail.aging[bucket] }));
+
+    return (
+        <div style={{ marginBottom: '24px' }}>
+            <KpiGrid>
+                <KpiCard label="Total Billed" value={formatINR(detail.totalBilled)} />
+                <KpiCard label="Total Received" value={formatINR(detail.totalReceived)} />
+                <KpiCard label="Outstanding" value={formatINR(detail.outstanding)} tone={detail.outstanding > 0 ? 'danger' : 'good'} />
+                <KpiCard label="Margin %" value={`${Math.round((detail.marginPercent || 0) * 10) / 10}%`} tone={detail.marginPercent >= 0 ? 'good' : 'danger'} />
+            </KpiGrid>
+            <ChartGrid>
+                <ChartCard title="Receivables Aging">
+                    {agingData.some(a => a.amount > 0) ? (
+                        <ResponsiveContainer width="100%" height={220}>
+                            <BarChart data={agingData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
+                                <YAxis tick={{ fontSize: 11 }} />
+                                <Tooltip formatter={(v) => formatINR(v)} />
+                                <Bar dataKey="amount" name="Outstanding" radius={[4, 4, 0, 0]}>
+                                    {agingData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    ) : <EmptyChart text="Nothing outstanding right now." />}
+                </ChartCard>
+            </ChartGrid>
+        </div>
+    );
+};
 
 const TABS = [
     { key: 'details',   label: 'Client Details' },
@@ -324,6 +377,8 @@ const ClientDetail = ({ url }) => {
             backLink={backLink}
         >
             {activeTab === 'details' && (
+                <div>
+                <ClientDashboardSummary url={url} clientId={client._id} />
                 <div className="list-table">
                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Name</b></p><p>{client.name}</p></div>
                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Phone</b></p><p>{client.phone || '—'}</p></div>
@@ -332,6 +387,7 @@ const ClientDetail = ({ url }) => {
                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>GST Number</b></p><p>{client.gstNumber || '—'}</p></div>
                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Total Projects</b></p><p style={{ cursor: 'pointer' }} onClick={() => setActiveTab('projects')}>{projectCount ?? '—'}</p></div>
                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Notes</b></p><p>{client.notes || '—'}</p></div>
+                </div>
                 </div>
             )}
             {activeTab === 'projects' && <ClientProjectsTab url={url} clientId={client._id} />}

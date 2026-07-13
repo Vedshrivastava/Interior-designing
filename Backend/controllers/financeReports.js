@@ -23,6 +23,7 @@ import FinanceDailyLabour from '../models/financeDailyLabour.js';
 import FinanceSetting from '../models/financeSetting.js';
 import FinanceBankAccount from '../models/financeBankAccount.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
+import FinanceActivityLog from '../models/financeActivityLog.js';
 import { getAccountActivity } from './financeBankAccount.js';
 import PDFDocument from 'pdfkit';
 import { writeLetterhead, writeSectionHeading, writeFooter, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
@@ -32,6 +33,8 @@ import FinanceCompanySettings from '../models/financeCompanySettings.js';
 // drops some schema fields (companyName among them), since document
 // instances aren't plain objects. A lean query avoids that footgun.
 const getCompanyForPdf = async () => (await FinanceCompanySettings.findOne({ deleted: { $ne: true } }).lean()) || null;
+
+const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material'];
 
 /*
  * Reports is a pure rollup layer — every endpoint here is read-only,
@@ -124,8 +127,8 @@ const computeProjectCommissionCost = async (project) => {
     return total;
 };
 
-// Shared by getProjectProfit and getClientProfit (which sums this across
-// every project belonging to a client).
+// Shared by getProjectProfit and getClientProfit/getClientDetail (which sum
+// this across every project belonging to a client).
 const computeProjectProfit = async (projectId) => {
     const project = await FinanceProject.findOne({ _id: projectId, deleted: { $ne: true } });
     if (!project) return null;
@@ -160,12 +163,42 @@ const computeProjectProfit = async (projectId) => {
     };
 };
 
+// Cumulative completedAreaSqft over time isn't stored anywhere (only the
+// current total lives on the work doc) — approximated by bucketing each
+// dated FinanceMeasurement into ISO weeks since the project's startDate (or
+// its first measurement, if startDate isn't set) and running a cumulative
+// sum. Same "measurement dates as the only dated proxy for progress"
+// approximation used by the month-scoped company-wide helpers below.
+const computeProgressOverTime = async (projectId, startDate) => {
+    const measurements = await FinanceMeasurement.find({ projectId, deleted: { $ne: true } }).sort({ date: 1 });
+    if (!measurements.length) return [];
+    const start = startDate ? new Date(startDate) : new Date(measurements[0].date);
+
+    const byWeek = new Map();
+    for (const m of measurements) {
+        const diffDays = Math.floor((new Date(m.date) - start) / 86400000);
+        const week = Math.max(0, Math.floor(diffDays / 7));
+        byWeek.set(week, (byWeek.get(week) || 0) + m.areaCoveredSqft);
+    }
+    const maxWeek = Math.max(...byWeek.keys());
+    let cumulative = 0;
+    const series = [];
+    for (let w = 0; w <= maxWeek; w++) {
+        cumulative += byWeek.get(w) || 0;
+        const weekStart = new Date(start.getTime() + w * 7 * 86400000);
+        series.push({ week: w, weekStart: weekStart.toISOString().slice(0, 10), completedAreaSqft: cumulative });
+    }
+    return series;
+};
+
 const getProjectProfit = async (req, res) => {
     try {
         const { projectId } = req.query;
         if (!projectId) return res.status(400).json({ success: false, message: 'projectId is required' });
         const data = await computeProjectProfit(projectId);
         if (!data) return res.status(404).json({ success: false, message: 'Project not found' });
+        const project = await FinanceProject.findById(projectId, 'startDate');
+        data.progressOverTime = await computeProgressOverTime(projectId, project?.startDate);
         res.json({ success: true, data });
     } catch (err) {
         console.error(err);
@@ -201,12 +234,34 @@ const getClientProfit = async (req, res) => {
     }
 };
 
+// Shared by getWorkProfit and getWorkDetail (Tier-2 work drill-down) so the
+// contractor-cost/revenue/profit numbers can never drift between the two.
+//
 // INTERPRETATION FLAG: the spec's revenue formula for Work Profit doesn't
 // explicitly say to filter by bill status the way Project Profit does. To
 // keep "Revenue" meaning the same thing everywhere in this module (money
 // actually billed to the client, not a draft that could still change),
 // this filters to status: 'issued' too — flip this filter here only if
 // that turns out to be the wrong call.
+const computeWorkProfit = async (work) => {
+    const revenueAgg = await FinanceRunningBill.aggregate([
+        { $match: { status: 'issued', deleted: { $ne: true } } },
+        { $unwind: '$lineItems' },
+        { $match: { 'lineItems.workId': work._id } },
+        { $group: { _id: null, amount: { $sum: '$lineItems.amount' }, areaBilledSqft: { $sum: '$lineItems.areaBilledSqft' } } },
+    ]);
+    const revenue = revenueAgg[0]?.amount || 0;
+    const areaBilledSqft = revenueAgg[0]?.areaBilledSqft || 0;
+
+    const rate = await FinanceTeamRate.findOne({ projectId: work.projectId, teamId: work.teamId, workType: work.workType, deleted: { $ne: true } });
+    const contractorCost = rate ? work.completedAreaSqft * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft) : 0;
+
+    const materialCost = await computeWorkMaterialCost(work.projectId, work._id);
+    const profit = revenue - contractorCost - materialCost;
+
+    return { revenue, contractorCost, materialCost, profit, areaBilledSqft };
+};
+
 const getWorkProfit = async (req, res) => {
     try {
         const { workId } = req.query;
@@ -214,27 +269,14 @@ const getWorkProfit = async (req, res) => {
         const work = await FinanceWork.findOne({ _id: workId, deleted: { $ne: true } });
         if (!work) return res.status(404).json({ success: false, message: 'Work not found' });
 
-        const revenueAgg = await FinanceRunningBill.aggregate([
-            { $match: { status: 'issued', deleted: { $ne: true } } },
-            { $unwind: '$lineItems' },
-            { $match: { 'lineItems.workId': work._id } },
-            { $group: { _id: null, amount: { $sum: '$lineItems.amount' }, areaBilledSqft: { $sum: '$lineItems.areaBilledSqft' } } },
-        ]);
-        const revenue = revenueAgg[0]?.amount || 0;
-        const areaBilledSqft = revenueAgg[0]?.areaBilledSqft || 0;
-
-        const rate = await FinanceTeamRate.findOne({ projectId: work.projectId, teamId: work.teamId, workType: work.workType, deleted: { $ne: true } });
-        const contractorCost = rate ? work.completedAreaSqft * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft) : 0;
-
-        const materialCost = await computeWorkMaterialCost(work.projectId, work._id);
-        const profit = revenue - contractorCost - materialCost;
-
+        const wp = await computeWorkProfit(work);
         res.json({
             success: true,
             data: {
                 workId: work._id, projectId: work.projectId, teamId: work.teamId, workType: work.workType,
-                estimatedAreaSqft: work.estimatedAreaSqft, completedAreaSqft: work.completedAreaSqft, areaBilledSqft,
-                revenue, contractorCost, materialCost, profit,
+                estimatedAreaSqft: work.estimatedAreaSqft, completedAreaSqft: work.completedAreaSqft,
+                areaBilledSqft: wp.areaBilledSqft, revenue: wp.revenue, contractorCost: wp.contractorCost,
+                materialCost: wp.materialCost, profit: wp.profit,
             },
         });
     } catch (err) {
@@ -243,50 +285,184 @@ const getWorkProfit = async (req, res) => {
     }
 };
 
+// New Tier-2 endpoint — everything about one work for one month.
+const getWorkDetail = async (req, res) => {
+    try {
+        const { workId, month } = req.query;
+        if (!workId) return res.status(400).json({ success: false, message: 'workId is required' });
+        const work = await FinanceWork.findOne({ _id: workId, deleted: { $ne: true } });
+        if (!work) return res.status(404).json({ success: false, message: 'Work not found' });
+
+        const monthKey = month && /^\d{4}-\d{2}$/.test(month) ? month : new Date().toISOString().slice(0, 7);
+        const { start, end } = monthBounds(monthKey);
+        const progressPercent = work.estimatedAreaSqft > 0 ? Math.min(100, Math.round((work.completedAreaSqft / work.estimatedAreaSqft) * 100)) : 0;
+
+        const [measurements, materials, taggedWaste, projectWasteTotal, avgRate, workProfit] = await Promise.all([
+            FinanceMeasurement.find({ workId, deleted: { $ne: true } }).sort({ date: 1 }),
+            FinanceMaterial.find({ deleted: { $ne: true } }, 'name unit'),
+            FinanceStockMovement.aggregate([
+                { $match: { workId: new mongoose.Types.ObjectId(workId), movementType: 'waste', deleted: { $ne: true } } },
+                { $group: { _id: '$materialId', qty: { $sum: '$quantity' } } },
+            ]),
+            // Untagged waste at this project — reported separately, honestly,
+            // rather than silently folded into or excluded from this work's number.
+            FinanceStockMovement.aggregate([
+                { $match: { projectId: work.projectId, movementType: 'waste', workId: null, deleted: { $ne: true } } },
+                { $group: { _id: '$materialId', qty: { $sum: '$quantity' } } },
+            ]),
+            computeMaterialAvgRates(work.projectId),
+            computeWorkProfit(work),
+        ]);
+        const materialById = new Map(materials.map(m => [m._id.toString(), m]));
+        const nameUnit = (id) => ({ materialName: materialById.get(id.toString())?.name || 'Unknown', unit: materialById.get(id.toString())?.unit || '' });
+
+        // Material Used — traced via each measurement's own materialUsed[],
+        // not re-derived from stock movements (measurements already store it).
+        const usedByMaterial = new Map();
+        for (const m of measurements) {
+            for (const u of m.materialUsed) {
+                const key = u.materialId.toString();
+                usedByMaterial.set(key, (usedByMaterial.get(key) || 0) + u.quantity);
+            }
+        }
+        const materialUsed = [...usedByMaterial.entries()].map(([id, qty]) => ({ materialId: id, quantity: qty, ...nameUnit(id) }));
+        const materialWasted = taggedWaste.map(r => ({ materialId: r._id, quantity: r.qty, ...nameUnit(r._id) }));
+        const projectLevelWaste = projectWasteTotal.map(r => ({ materialId: r._id, quantity: r.qty, ...nameUnit(r._id) }));
+
+        // Daily breakdown + Average Cost/Sqft (month) = mean of each day's
+        // costPerSqft, NOT totalMaterialCost / totalArea — days with zero
+        // material cost recorded are skipped, not counted as a zero ratio.
+        const byDate = new Map();
+        for (const m of measurements) {
+            if (m.date < start || m.date > end) continue;
+            const dateKey = new Date(m.date).toISOString().slice(0, 10);
+            if (!byDate.has(dateKey)) byDate.set(dateKey, { areaCoveredSqft: 0, materialCost: 0 });
+            const entry = byDate.get(dateKey);
+            entry.areaCoveredSqft += m.areaCoveredSqft;
+            for (const u of m.materialUsed) entry.materialCost += u.quantity * (avgRate.get(u.materialId.toString()) || 0);
+        }
+        const dailyBreakdown = [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, e]) => ({
+            date, areaCoveredSqft: e.areaCoveredSqft, materialCost: e.materialCost,
+            costPerSqft: e.areaCoveredSqft > 0 ? e.materialCost / e.areaCoveredSqft : 0,
+        }));
+        const ratiosWithMaterialCost = dailyBreakdown.filter(d => d.materialCost > 0).map(d => d.costPerSqft);
+        const averageCostPerSqft = ratiosWithMaterialCost.length > 0
+            ? ratiosWithMaterialCost.reduce((a, b) => a + b, 0) / ratiosWithMaterialCost.length
+            : 0;
+
+        res.json({
+            success: true,
+            data: {
+                workId: work._id, projectId: work.projectId, workType: work.workType,
+                estimatedAreaSqft: work.estimatedAreaSqft, completedAreaSqft: work.completedAreaSqft, progressPercent,
+                materialUsed, materialWasted, projectLevelWaste,
+                month: monthKey, dailyBreakdown, averageCostPerSqft,
+                contractorCost: workProfit.contractorCost, revenue: workProfit.revenue, profit: workProfit.profit,
+            },
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing work detail' });
+    }
+};
+
+// Shared by getContractorAnalysis, dashboard summary, and the Contractors
+// Tier-1 mini-dashboard — one earnings/advances/deductions/payments/balance
+// row per labour contractor, optionally scoped to one project.
+const computeContractorAnalysisRows = async (projectId) => {
+    const contractors = await FinanceVendor.find({ vendorType: 'labour_contractor', deleted: { $ne: true } });
+
+    return Promise.all(contractors.map(async (v) => {
+        const teams = await FinanceTeam.find({ contractorVendorId: v._id, deleted: { $ne: true } });
+        const teamIds = teams.map(t => t._id);
+
+        const workFilter = { teamId: { $in: teamIds }, deleted: { $ne: true } };
+        if (projectId) workFilter.projectId = projectId;
+        const works = teamIds.length ? await FinanceWork.find(workFilter) : [];
+
+        const projectIds = [...new Set(works.map(w => w.projectId.toString()))];
+        const rates = projectIds.length
+            ? await FinanceTeamRate.find({ projectId: { $in: projectIds }, teamId: { $in: teamIds }, deleted: { $ne: true } })
+            : [];
+        const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.teamId}_${r.workType}`, r]));
+
+        let earnings = 0;
+        for (const w of works) {
+            const rate = rateByKey.get(`${w.projectId}_${w.teamId}_${w.workType}`);
+            if (rate) earnings += w.completedAreaSqft * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft);
+        }
+
+        const moneyFilter = { vendorId: v._id, deleted: { $ne: true } };
+        if (projectId) moneyFilter.projectId = projectId;
+        const [advances, deductions, payments] = await Promise.all([
+            FinanceContractorAdvance.find(moneyFilter),
+            FinanceContractorDeduction.find(moneyFilter),
+            FinanceContractorPayment.find(moneyFilter),
+        ]);
+        const advancesTotal = advances.reduce((s, a) => s + a.amount, 0);
+        const deductionsTotal = deductions.reduce((s, d) => s + d.amount, 0);
+        const paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
+        const balancePayable = earnings - advancesTotal - deductionsTotal - paymentsTotal;
+
+        return { vendorId: v._id, vendorName: v.name, earnings, advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal, balancePayable };
+    }));
+};
+
 const getContractorAnalysis = async (req, res) => {
     try {
         const { projectId } = req.query;
-        const contractors = await FinanceVendor.find({ vendorType: 'labour_contractor', deleted: { $ne: true } });
-
-        const rows = await Promise.all(contractors.map(async (v) => {
-            const teams = await FinanceTeam.find({ contractorVendorId: v._id, deleted: { $ne: true } });
-            const teamIds = teams.map(t => t._id);
-
-            const workFilter = { teamId: { $in: teamIds }, deleted: { $ne: true } };
-            if (projectId) workFilter.projectId = projectId;
-            const works = teamIds.length ? await FinanceWork.find(workFilter) : [];
-
-            const projectIds = [...new Set(works.map(w => w.projectId.toString()))];
-            const rates = projectIds.length
-                ? await FinanceTeamRate.find({ projectId: { $in: projectIds }, teamId: { $in: teamIds }, deleted: { $ne: true } })
-                : [];
-            const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.teamId}_${r.workType}`, r]));
-
-            let earnings = 0;
-            for (const w of works) {
-                const rate = rateByKey.get(`${w.projectId}_${w.teamId}_${w.workType}`);
-                if (rate) earnings += w.completedAreaSqft * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft);
-            }
-
-            const moneyFilter = { vendorId: v._id, deleted: { $ne: true } };
-            if (projectId) moneyFilter.projectId = projectId;
-            const [advances, deductions, payments] = await Promise.all([
-                FinanceContractorAdvance.find(moneyFilter),
-                FinanceContractorDeduction.find(moneyFilter),
-                FinanceContractorPayment.find(moneyFilter),
-            ]);
-            const advancesTotal = advances.reduce((s, a) => s + a.amount, 0);
-            const deductionsTotal = deductions.reduce((s, d) => s + d.amount, 0);
-            const paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
-            const balancePayable = earnings - advancesTotal - deductionsTotal - paymentsTotal;
-
-            return { vendorId: v._id, vendorName: v.name, earnings, advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal, balancePayable };
-        }));
-
+        const rows = await computeContractorAnalysisRows(projectId);
         res.json({ success: true, data: rows.sort((a, b) => b.balancePayable - a.balancePayable) });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error computing contractor analysis' });
+    }
+};
+
+// New Tier-1 endpoint for Contractors — wraps computeContractorAnalysisRows
+// for the table, plus cost-per-sqft grouped by work type (never blended
+// across types — a Putty rate isn't comparable to a Paint rate).
+const getContractorsSummary = async (req, res) => {
+    try {
+        const { projectId } = req.query;
+        const contractors = await FinanceVendor.find({ vendorType: 'labour_contractor', deleted: { $ne: true } });
+        const [rows, costPerSqft] = await Promise.all([
+            computeContractorAnalysisRows(projectId),
+            Promise.all(contractors.map(async (v) => {
+                const teams = await FinanceTeam.find({ contractorVendorId: v._id, deleted: { $ne: true } });
+                const teamIds = teams.map(t => t._id);
+                if (!teamIds.length) return { vendorId: v._id, vendorName: v.name, byWorkType: [] };
+
+                const workFilter = { teamId: { $in: teamIds }, deleted: { $ne: true } };
+                if (projectId) workFilter.projectId = projectId;
+                const works = await FinanceWork.find(workFilter);
+                if (!works.length) return { vendorId: v._id, vendorName: v.name, byWorkType: [] };
+
+                const projectIds = [...new Set(works.map(w => w.projectId.toString()))];
+                const rates = await FinanceTeamRate.find({ projectId: { $in: projectIds }, teamId: { $in: teamIds }, deleted: { $ne: true } });
+                const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.teamId}_${r.workType}`, r]));
+
+                const byType = new Map();
+                for (const w of works) {
+                    const rate = rateByKey.get(`${w.projectId}_${w.teamId}_${w.workType}`);
+                    const earnings = rate ? w.completedAreaSqft * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft) : 0;
+                    if (!byType.has(w.workType)) byType.set(w.workType, { area: 0, earnings: 0 });
+                    const t = byType.get(w.workType);
+                    t.area += w.completedAreaSqft;
+                    t.earnings += earnings;
+                }
+                const byWorkType = [...byType.entries()].map(([workType, t]) => ({
+                    workType, completedAreaSqft: t.area, earnings: t.earnings,
+                    costPerSqft: t.area > 0 ? t.earnings / t.area : 0,
+                }));
+                return { vendorId: v._id, vendorName: v.name, byWorkType };
+            })),
+        ]);
+
+        res.json({ success: true, data: { contractors: rows.sort((a, b) => b.balancePayable - a.balancePayable), costPerSqft } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing contractors summary' });
     }
 };
 
@@ -295,32 +471,87 @@ const getContractorAnalysis = async (req, res) => {
 // tab uses — referral vendors already get their own dedicated Commission
 // numbers elsewhere in this module, so folding them into Vendor Analysis
 // too would double-count the same balance under two report tabs.
+const computeVendorAnalysisRows = async (projectId) => {
+    const vendors = await FinanceVendor.find({ vendorType: 'material_supplier', deleted: { $ne: true } });
+
+    return Promise.all(vendors.map(async (v) => {
+        const purchaseFilter = { vendorId: v._id, deleted: { $ne: true } };
+        if (projectId) purchaseFilter.projectId = projectId;
+        const purchases = await FinancePurchase.find(purchaseFilter);
+
+        const paymentFilter = { vendorId: v._id, deleted: { $ne: true } };
+        if (projectId) paymentFilter.projectId = projectId;
+        const payments = await FinanceVendorPayment.find(paymentFilter);
+
+        const purchaseTotal = purchases.filter(p => p.transactionType === 'purchase').reduce((s, p) => s + p.totalAmount, 0);
+        const returnTotal = purchases.filter(p => p.transactionType === 'return').reduce((s, p) => s + p.totalAmount, 0);
+        const paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
+        const amountOwed = purchaseTotal - returnTotal - paymentsTotal;
+
+        return { vendorId: v._id, vendorName: v.name, purchases: purchaseTotal, returns: returnTotal, payments: paymentsTotal, amountOwed };
+    }));
+};
+
 const getVendorAnalysis = async (req, res) => {
     try {
         const { projectId } = req.query;
-        const vendors = await FinanceVendor.find({ vendorType: 'material_supplier', deleted: { $ne: true } });
-
-        const rows = await Promise.all(vendors.map(async (v) => {
-            const purchaseFilter = { vendorId: v._id, deleted: { $ne: true } };
-            if (projectId) purchaseFilter.projectId = projectId;
-            const purchases = await FinancePurchase.find(purchaseFilter);
-
-            const paymentFilter = { vendorId: v._id, deleted: { $ne: true } };
-            if (projectId) paymentFilter.projectId = projectId;
-            const payments = await FinanceVendorPayment.find(paymentFilter);
-
-            const purchaseTotal = purchases.filter(p => p.transactionType === 'purchase').reduce((s, p) => s + p.totalAmount, 0);
-            const returnTotal = purchases.filter(p => p.transactionType === 'return').reduce((s, p) => s + p.totalAmount, 0);
-            const paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
-            const amountOwed = purchaseTotal - returnTotal - paymentsTotal;
-
-            return { vendorId: v._id, vendorName: v.name, purchases: purchaseTotal, returns: returnTotal, payments: paymentsTotal, amountOwed };
-        }));
-
+        const rows = await computeVendorAnalysisRows(projectId);
         res.json({ success: true, data: rows.sort((a, b) => b.amountOwed - a.amountOwed) });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error computing vendor analysis' });
+    }
+};
+
+// New Tier-1 endpoint for Procurement — wraps computeVendorAnalysisRows for
+// the table, plus a monthly average-purchase-rate trend per material (top
+// 5-10 by purchase volume by default, or the given materialIds) so rate
+// creep is visible.
+const getVendorsSummary = async (req, res) => {
+    try {
+        const { projectId, materialIds } = req.query;
+        const rows = await computeVendorAnalysisRows(projectId);
+
+        const purchaseFilter = { transactionType: 'purchase', deleted: { $ne: true } };
+        if (projectId) purchaseFilter.projectId = projectId;
+        const purchases = await FinancePurchase.find(purchaseFilter);
+
+        const volumeByMaterial = new Map();
+        for (const p of purchases) {
+            const key = p.materialId.toString();
+            volumeByMaterial.set(key, (volumeByMaterial.get(key) || 0) + p.quantity);
+        }
+        const materialIdList = materialIds
+            ? materialIds.split(',')
+            : [...volumeByMaterial.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([id]) => id);
+
+        const materials = await FinanceMaterial.find({ _id: { $in: materialIdList } }, 'name unit');
+        const materialById = new Map(materials.map(m => [m._id.toString(), m]));
+
+        const trendMap = new Map();
+        for (const p of purchases) {
+            const key = p.materialId.toString();
+            if (!materialIdList.includes(key)) continue;
+            const month = new Date(p.date).toISOString().slice(0, 7);
+            if (!trendMap.has(key)) trendMap.set(key, new Map());
+            const monthMap = trendMap.get(key);
+            if (!monthMap.has(month)) monthMap.set(month, { qty: 0, amt: 0 });
+            const m = monthMap.get(month);
+            m.qty += p.quantity;
+            m.amt += p.totalAmount;
+        }
+        const materialCostTrend = materialIdList.map(id => {
+            const material = materialById.get(id);
+            const monthMap = trendMap.get(id) || new Map();
+            const points = [...monthMap.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([month, m]) => ({ month, avgRate: m.qty > 0 ? m.amt / m.qty : 0 }));
+            return { materialId: id, materialName: material?.name || 'Unknown', unit: material?.unit || '', points };
+        });
+
+        res.json({ success: true, data: { vendors: rows.sort((a, b) => b.amountOwed - a.amountOwed), materialCostTrend } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing vendors summary' });
     }
 };
 
@@ -388,6 +619,75 @@ const getMaterialAnalysis = async (req, res) => {
     }
 };
 
+// New Tier-1 endpoint for Site Inventory — current stock per material (with
+// a below-minimum flag), a monthly consumption trend, and the wastage rate
+// (wasted ÷ (wasted + consumed)) per material, sorted highest-first.
+const getInventorySummary = async (req, res) => {
+    try {
+        const { projectId, materialIds } = req.query;
+        const materials = await FinanceMaterial.find({ deleted: { $ne: true } });
+
+        const stockMatch = { deleted: { $ne: true } };
+        if (projectId) stockMatch.projectId = new mongoose.Types.ObjectId(projectId);
+        const stockRows = await FinanceStockMovement.aggregate([
+            { $match: stockMatch },
+            {
+                $group: {
+                    _id: '$materialId',
+                    dump:     { $sum: { $cond: [{ $eq: ['$movementType', 'dump'] }, '$quantity', 0] } },
+                    consume:  { $sum: { $cond: [{ $eq: ['$movementType', 'consume'] }, '$quantity', 0] } },
+                    returned: { $sum: { $cond: [{ $eq: ['$movementType', 'return'] }, '$quantity', 0] } },
+                    waste:    { $sum: { $cond: [{ $eq: ['$movementType', 'waste'] }, '$quantity', 0] } },
+                },
+            },
+        ]);
+        const stockByMaterial = new Map(stockRows.map(r => [r._id.toString(), r]));
+
+        const stockTable = materials.map(mat => {
+            const s = stockByMaterial.get(mat._id.toString()) || { dump: 0, consume: 0, returned: 0, waste: 0 };
+            const currentStock = s.dump - s.consume - s.returned - s.waste;
+            const wastageRate = (s.waste + s.consume) > 0 ? s.waste / (s.waste + s.consume) : 0;
+            return {
+                materialId: mat._id, materialName: mat.name, unit: mat.unit,
+                currentStock, minimumStockLevel: mat.minimumStockLevel, belowMinimum: currentStock < mat.minimumStockLevel,
+                totalConsumed: s.consume, totalWasted: s.waste, wastageRate,
+            };
+        });
+
+        const consumeMatch = { movementType: 'consume', deleted: { $ne: true } };
+        if (projectId) consumeMatch.projectId = new mongoose.Types.ObjectId(projectId);
+        const consumeRows = await FinanceStockMovement.find(consumeMatch, 'materialId quantity date');
+        const consumptionByMaterialMonth = new Map();
+        for (const r of consumeRows) {
+            const key = r.materialId.toString();
+            const month = new Date(r.date).toISOString().slice(0, 7);
+            if (!consumptionByMaterialMonth.has(key)) consumptionByMaterialMonth.set(key, new Map());
+            const monthMap = consumptionByMaterialMonth.get(key);
+            monthMap.set(month, (monthMap.get(month) || 0) + r.quantity);
+        }
+
+        const materialIdList = materialIds
+            ? materialIds.split(',')
+            : stockTable.filter(r => r.totalConsumed > 0).sort((a, b) => b.totalConsumed - a.totalConsumed).slice(0, 8).map(r => r.materialId.toString());
+        const materialById = new Map(materials.map(m => [m._id.toString(), m]));
+        const consumptionTrend = materialIdList.map(id => {
+            const material = materialById.get(id);
+            const monthMap = consumptionByMaterialMonth.get(id) || new Map();
+            const points = [...monthMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([month, qty]) => ({ month, qty }));
+            return { materialId: id, materialName: material?.name || 'Unknown', unit: material?.unit || '', points };
+        });
+
+        const wastageRateSorted = stockTable
+            .filter(r => r.totalWasted > 0 || r.totalConsumed > 0)
+            .sort((a, b) => b.wastageRate - a.wastageRate);
+
+        res.json({ success: true, data: { stockTable, consumptionTrend, wastageRateSorted } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing inventory summary' });
+    }
+};
+
 const bucketKeyFor = (date, groupBy) => {
     const d = new Date(date);
     if (groupBy === 'month') return d.toISOString().slice(0, 7);
@@ -399,63 +699,66 @@ const bucketKeyFor = (date, groupBy) => {
     return d.toISOString().slice(0, 10);
 };
 
+// Shared by getCashFlow and getDashboardTrends' 30-day series so the two
+// can never compute cash flow differently.
+const computeCashFlow = async (from, to, groupBy = 'day') => {
+    const receiptFilter = { deleted: { $ne: true } };
+    const otherFilter = { deleted: { $ne: true } };
+    if (from || to) {
+        receiptFilter.receiptDate = {};
+        otherFilter.date = {};
+        if (from) { receiptFilter.receiptDate.$gte = new Date(from); otherFilter.date.$gte = new Date(from); }
+        if (to) { receiptFilter.receiptDate.$lte = new Date(to); otherFilter.date.$lte = new Date(to); }
+    }
+
+    const [receipts, contractorPayments, vendorPayments, salaryPayments, commissionPayments, expenses] = await Promise.all([
+        FinanceReceipt.find(receiptFilter),
+        FinanceContractorPayment.find(otherFilter),
+        FinanceVendorPayment.find(otherFilter),
+        FinanceSalaryPayment.find(otherFilter),
+        FinanceCommissionPayment.find(otherFilter),
+        FinanceExpense.find(otherFilter),
+    ]);
+
+    const totalIn = receipts.reduce((s, r) => s + r.amount, 0);
+    const outByCategory = {
+        contractor: contractorPayments.reduce((s, p) => s + p.amount, 0),
+        vendor: vendorPayments.reduce((s, p) => s + p.amount, 0),
+        salary: salaryPayments.reduce((s, p) => s + p.amount, 0),
+        commission: commissionPayments.reduce((s, p) => s + p.amount, 0),
+        expense: expenses.reduce((s, e) => s + e.amount, 0),
+    };
+    const totalOut = Object.values(outByCategory).reduce((a, b) => a + b, 0);
+
+    const series = new Map();
+    const bump = (date, field, amount) => {
+        const key = bucketKeyFor(date, groupBy);
+        if (!series.has(key)) series.set(key, { bucket: key, in: 0, out: 0 });
+        series.get(key)[field] += amount;
+    };
+    receipts.forEach(r => bump(r.receiptDate, 'in', r.amount));
+    [...contractorPayments, ...vendorPayments, ...salaryPayments, ...commissionPayments, ...expenses]
+        .forEach(p => bump(p.date, 'out', p.amount));
+
+    const seriesArr = [...series.values()]
+        .sort((a, b) => a.bucket.localeCompare(b.bucket))
+        .map(s => ({ ...s, net: s.in - s.out }));
+
+    return {
+        totals: { in: totalIn, out: totalOut, net: totalIn - totalOut },
+        byCategory: [
+            { category: 'receipt', direction: 'in', amount: totalIn },
+            ...Object.entries(outByCategory).map(([category, amount]) => ({ category, direction: 'out', amount })),
+        ],
+        series: seriesArr,
+    };
+};
+
 const getCashFlow = async (req, res) => {
     try {
         const { from, to, groupBy = 'day' } = req.query;
-
-        const receiptFilter = { deleted: { $ne: true } };
-        const otherFilter = { deleted: { $ne: true } };
-        if (from || to) {
-            receiptFilter.receiptDate = {};
-            otherFilter.date = {};
-            if (from) { receiptFilter.receiptDate.$gte = new Date(from); otherFilter.date.$gte = new Date(from); }
-            if (to) { receiptFilter.receiptDate.$lte = new Date(to); otherFilter.date.$lte = new Date(to); }
-        }
-
-        const [receipts, contractorPayments, vendorPayments, salaryPayments, commissionPayments, expenses] = await Promise.all([
-            FinanceReceipt.find(receiptFilter),
-            FinanceContractorPayment.find(otherFilter),
-            FinanceVendorPayment.find(otherFilter),
-            FinanceSalaryPayment.find(otherFilter),
-            FinanceCommissionPayment.find(otherFilter),
-            FinanceExpense.find(otherFilter),
-        ]);
-
-        const totalIn = receipts.reduce((s, r) => s + r.amount, 0);
-        const outByCategory = {
-            contractor: contractorPayments.reduce((s, p) => s + p.amount, 0),
-            vendor: vendorPayments.reduce((s, p) => s + p.amount, 0),
-            salary: salaryPayments.reduce((s, p) => s + p.amount, 0),
-            commission: commissionPayments.reduce((s, p) => s + p.amount, 0),
-            expense: expenses.reduce((s, e) => s + e.amount, 0),
-        };
-        const totalOut = Object.values(outByCategory).reduce((a, b) => a + b, 0);
-
-        const series = new Map();
-        const bump = (date, field, amount) => {
-            const key = bucketKeyFor(date, groupBy);
-            if (!series.has(key)) series.set(key, { bucket: key, in: 0, out: 0 });
-            series.get(key)[field] += amount;
-        };
-        receipts.forEach(r => bump(r.receiptDate, 'in', r.amount));
-        [...contractorPayments, ...vendorPayments, ...salaryPayments, ...commissionPayments, ...expenses]
-            .forEach(p => bump(p.date, 'out', p.amount));
-
-        const seriesArr = [...series.values()]
-            .sort((a, b) => a.bucket.localeCompare(b.bucket))
-            .map(s => ({ ...s, net: s.in - s.out }));
-
-        res.json({
-            success: true,
-            data: {
-                totals: { in: totalIn, out: totalOut, net: totalIn - totalOut },
-                byCategory: [
-                    { category: 'receipt', direction: 'in', amount: totalIn },
-                    ...Object.entries(outByCategory).map(([category, amount]) => ({ category, direction: 'out', amount })),
-                ],
-                series: seriesArr,
-            },
-        });
+        const data = await computeCashFlow(from, to, groupBy);
+        res.json({ success: true, data });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error computing cash flow' });
@@ -507,6 +810,402 @@ const monthBounds = (month) => {
     const start = new Date(`${month}-01T00:00:00.000Z`);
     const end = new Date(start.getFullYear(), start.getMonth() + 1, 0, 23, 59, 59, 999);
     return { start, end };
+};
+
+const startOfDay = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+const endOfDay = (d = new Date()) => { const x = new Date(d); x.setHours(23, 59, 59, 999); return x; };
+
+// Company-wide, date-scoped material cost — same weighted-average-rate
+// formula as computeProjectMaterialCost, but computed once across every
+// project's purchases/consumption instead of looping per project (used by
+// the dashboard's "This Month Profit" and the Revenue-vs-Cost trend, both
+// of which need this for every project or a handful of months at once).
+// Optional projectIds narrows to a specific set (e.g. active projects only).
+const computeCompanyWideMaterialCostInRange = async (start, end, projectIds = null) => {
+    const purchaseFilter = { deleted: { $ne: true } };
+    if (projectIds) purchaseFilter.projectId = { $in: projectIds };
+    const purchases = await FinancePurchase.find(purchaseFilter);
+    const rateByKey = new Map();
+    for (const p of purchases) {
+        const key = `${p.projectId}_${p.materialId}`;
+        if (!rateByKey.has(key)) rateByKey.set(key, { qty: 0, amt: 0 });
+        const m = rateByKey.get(key);
+        const sign = p.transactionType === 'return' ? -1 : 1;
+        m.qty += sign * p.quantity;
+        m.amt += sign * p.totalAmount;
+    }
+    const avgRate = new Map();
+    for (const [key, m] of rateByKey) avgRate.set(key, m.qty > 0 ? m.amt / m.qty : 0);
+
+    const consumeMatch = { movementType: 'consume', date: { $gte: start, $lte: end }, deleted: { $ne: true } };
+    if (projectIds) consumeMatch.projectId = { $in: projectIds };
+    const consumed = await FinanceStockMovement.aggregate([
+        { $match: consumeMatch },
+        { $group: { _id: { projectId: '$projectId', materialId: '$materialId' }, qty: { $sum: '$quantity' } } },
+    ]);
+    let total = 0;
+    for (const row of consumed) total += row.qty * (avgRate.get(`${row._id.projectId}_${row._id.materialId}`) || 0);
+    return total;
+};
+
+// Company-wide, date-scoped contractor cost — completedAreaSqft has no
+// history of its own, so this uses dated FinanceMeasurement rows (the only
+// dated record of "work done") as the proxy for when the area — and its
+// contractor cost — was actually incurred, same approximation the
+// project-progress chart relies on.
+const computeCompanyWideContractorCostInRange = async (start, end, projectIds = null) => {
+    const match = { date: { $gte: start, $lte: end }, deleted: { $ne: true } };
+    const measurements = await FinanceMeasurement.find(match).populate({ path: 'workId', select: 'projectId teamId workType' });
+    const relevant = measurements.filter(m => m.workId && (!projectIds || projectIds.some(id => id.toString() === m.workId.projectId.toString())));
+    if (!relevant.length) return 0;
+
+    const areaByWork = new Map();
+    const workById = new Map();
+    for (const m of relevant) {
+        const key = m.workId._id.toString();
+        areaByWork.set(key, (areaByWork.get(key) || 0) + m.areaCoveredSqft);
+        workById.set(key, m.workId);
+    }
+    const works = [...workById.values()];
+    const projIds = [...new Set(works.map(w => w.projectId.toString()))];
+    const teamIds = [...new Set(works.map(w => w.teamId.toString()))];
+    const rates = await FinanceTeamRate.find({ projectId: { $in: projIds }, teamId: { $in: teamIds }, deleted: { $ne: true } });
+    const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.teamId}_${r.workType}`, r]));
+
+    let total = 0;
+    for (const [workId, area] of areaByWork) {
+        const w = workById.get(workId);
+        const rate = rateByKey.get(`${w.projectId}_${w.teamId}_${w.workType}`);
+        if (rate) total += area * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft);
+    }
+    return total;
+};
+
+// Same measurement-date proxy as the contractor-cost helper above, scoped
+// to projects that actually have a referral vendor (commission only applies
+// there).
+const computeCompanyWideCommissionCostInRange = async (start, end, projectIds = null) => {
+    const match = { date: { $gte: start, $lte: end }, deleted: { $ne: true } };
+    const measurements = await FinanceMeasurement.find(match).populate({ path: 'workId', select: 'projectId workType' });
+    const relevant = measurements.filter(m => m.workId && (!projectIds || projectIds.some(id => id.toString() === m.workId.projectId.toString())));
+    if (!relevant.length) return 0;
+
+    const candidateProjectIds = [...new Set(relevant.map(m => m.workId.projectId.toString()))];
+    const referralProjects = await FinanceProject.find({ _id: { $in: candidateProjectIds }, referralVendorId: { $ne: null } }, '_id');
+    const referralProjectIds = new Set(referralProjects.map(p => p._id.toString()));
+    if (!referralProjectIds.size) return 0;
+
+    const areaByProjectWorkType = new Map();
+    for (const m of relevant) {
+        const pid = m.workId.projectId.toString();
+        if (!referralProjectIds.has(pid)) continue;
+        const key = `${pid}_${m.workId.workType}`;
+        areaByProjectWorkType.set(key, (areaByProjectWorkType.get(key) || 0) + m.areaCoveredSqft);
+    }
+    const rates = await FinanceWorkTypeRate.find({ projectId: { $in: [...referralProjectIds] }, deleted: { $ne: true } });
+    const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.workType}`, r.referralRatePerSqft]));
+
+    let total = 0;
+    for (const [key, area] of areaByProjectWorkType) total += area * (rateByKey.get(key) || 0);
+    return total;
+};
+
+// Same aggregate-and-compare check as financeCompanySettings.js's
+// checkLowStock, but just counting materials (not sending any email) —
+// counts a material once if it's short on ANY project, matching that
+// existing convention.
+const computeLowStockMaterialCount = async () => {
+    const materials = await FinanceMaterial.find({ deleted: { $ne: true } });
+    if (!materials.length) return 0;
+    const rows = await FinanceStockMovement.aggregate([
+        { $match: { deleted: { $ne: true } } },
+        {
+            $group: {
+                _id: { projectId: '$projectId', materialId: '$materialId' },
+                dump:     { $sum: { $cond: [{ $eq: ['$movementType', 'dump'] }, '$quantity', 0] } },
+                consume:  { $sum: { $cond: [{ $eq: ['$movementType', 'consume'] }, '$quantity', 0] } },
+                returned: { $sum: { $cond: [{ $eq: ['$movementType', 'return'] }, '$quantity', 0] } },
+                waste:    { $sum: { $cond: [{ $eq: ['$movementType', 'waste'] }, '$quantity', 0] } },
+            },
+        },
+    ]);
+    const materialById = new Map(materials.map(m => [m._id.toString(), m]));
+    const lowMaterialIds = new Set();
+    for (const row of rows) {
+        const material = materialById.get(row._id.materialId.toString());
+        if (!material) continue;
+        const currentStock = row.dump - row.consume - row.returned - row.waste;
+        if (currentStock < material.minimumStockLevel) lowMaterialIds.add(row._id.materialId.toString());
+    }
+    return lowMaterialIds.size;
+};
+
+const AGE_BUCKET_KEYS = ['0-30', '30-60', '60-90', '90+'];
+const bucketForAgeDays = (days) => (days <= 30 ? '0-30' : days <= 60 ? '30-60' : days <= 90 ? '60-90' : '90+');
+
+// Per-bill remaining balance: receipts tied to a specific runningBillId
+// reduce that bill directly; receipts with no runningBillId (a lump-sum
+// payment not tied to one bill) reduce the oldest still-open bill first —
+// `bills` must already be sorted oldest-first by billDate.
+const computeBillBalances = (bills, receipts) => {
+    const balances = new Map(bills.map(b => [b._id.toString(), b.totalAmount]));
+    for (const r of receipts) {
+        if (r.runningBillId && balances.has(r.runningBillId.toString())) {
+            const key = r.runningBillId.toString();
+            balances.set(key, balances.get(key) - r.amount);
+        }
+    }
+    let pool = receipts.filter(r => !r.runningBillId).reduce((s, r) => s + r.amount, 0);
+    for (const b of bills) {
+        if (pool <= 0) break;
+        const key = b._id.toString();
+        const bal = balances.get(key);
+        if (bal <= 0) continue;
+        const applied = Math.min(bal, pool);
+        balances.set(key, bal - applied);
+        pool -= applied;
+    }
+    return balances;
+};
+
+// Receivables aging — 0-30/30-60/60-90/90+ days since each bill's billDate,
+// today as the reference point. `bills` must be sorted oldest-first.
+const computeAging = (bills, receipts) => {
+    const balances = computeBillBalances(bills, receipts);
+    const today = new Date();
+    const buckets = { '0-30': 0, '30-60': 0, '60-90': 0, '90+': 0 };
+    for (const b of bills) {
+        const bal = Math.max(0, balances.get(b._id.toString()) || 0);
+        if (bal <= 0) continue;
+        const days = Math.floor((today - new Date(b.billDate)) / 86400000);
+        buckets[bucketForAgeDays(days)] += bal;
+    }
+    return buckets;
+};
+
+// Tier-0 Company Dashboard KPIs — every number here is meant to be a
+// doorway into a Tier-1/Tier-2 page, not a granular breakdown of its own.
+const getDashboardSummary = async (req, res) => {
+    try {
+        const today = new Date();
+        const todayStart = startOfDay(today);
+        const todayEnd = endOfDay(today);
+        const monthKey = today.toISOString().slice(0, 7);
+        const { start: monthStart, end: monthEnd } = monthBounds(monthKey);
+
+        const billableProjects = await FinanceProject.find({ deleted: { $ne: true }, contractType: { $in: BILLABLE_CONTRACT_TYPES } }, '_id');
+        const billableProjectIds = billableProjects.map(p => p._id);
+        const activeProjects = await FinanceProject.find({ status: 'active', deleted: { $ne: true } }, '_id');
+        const activeProjectIds = activeProjects.map(p => p._id);
+
+        const [
+            bankAccounts, cashEntriesToDate, issuedAgg, receivedAgg, contractorRows, vendorRows,
+            readyProjectIds, activeProjectsCount, activeWorksCount, labourTodayCount, lowStockCount,
+            todayMeasurementAgg, monthRevenueAgg, recentActivities,
+        ] = await Promise.all([
+            FinanceBankAccount.find({ deleted: { $ne: true } }),
+            FinanceCashEntry.find({ deleted: { $ne: true }, date: { $lte: todayEnd } }),
+            FinanceRunningBill.aggregate([
+                { $match: { projectId: { $in: billableProjectIds }, status: 'issued', deleted: { $ne: true } } },
+                { $group: { _id: null, total: { $sum: '$totalAmount' } } },
+            ]),
+            FinanceReceipt.aggregate([
+                { $match: { projectId: { $in: billableProjectIds }, deleted: { $ne: true } } },
+                { $group: { _id: null, total: { $sum: '$amount' } } },
+            ]),
+            computeContractorAnalysisRows(),
+            computeVendorAnalysisRows(),
+            FinanceMeasurement.distinct('projectId', { engineerApproved: true, billedInRunningBillId: null, deleted: { $ne: true } }),
+            FinanceProject.countDocuments({ status: 'active', deleted: { $ne: true } }),
+            FinanceWork.countDocuments({ status: 'active', deleted: { $ne: true } }),
+            FinanceDailyLabour.countDocuments({ date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true } }),
+            computeLowStockMaterialCount(),
+            FinanceMeasurement.aggregate([
+                { $match: { date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true } } },
+                { $group: { _id: null, total: { $sum: '$areaCoveredSqft' } } },
+            ]),
+            FinanceRunningBill.aggregate([
+                { $match: { status: 'issued', billDate: { $gte: monthStart, $lte: monthEnd }, deleted: { $ne: true } } },
+                { $group: { _id: null, total: { $sum: '$totalAmount' } } },
+            ]),
+            FinanceActivityLog.find().sort({ timestamp: -1 }).limit(15),
+        ]);
+
+        const bankBalances = await Promise.all(bankAccounts.map(async (a) => {
+            const activity = await getAccountActivity(a._id);
+            const net = activity.reduce((sum, t) => sum + (t.direction === 'credit' ? t.amount : -t.amount), 0);
+            return a.openingBalance + net;
+        }));
+        const cashInBank = bankBalances.reduce((a, b) => a + b, 0);
+        const cashInHand = cashEntriesToDate.reduce((sum, e) => sum + (e.type === 'in' ? e.amount : -e.amount), 0);
+
+        const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthDailyLabourAgg] = await Promise.all([
+            computeCompanyWideMaterialCostInRange(monthStart, monthEnd, activeProjectIds),
+            computeCompanyWideContractorCostInRange(monthStart, monthEnd, activeProjectIds),
+            computeCompanyWideCommissionCostInRange(monthStart, monthEnd, activeProjectIds),
+            FinanceExpense.aggregate([
+                { $match: { projectId: { $in: activeProjectIds }, date: { $gte: monthStart, $lte: monthEnd }, deleted: { $ne: true } } },
+                { $group: { _id: null, total: { $sum: '$amount' } } },
+            ]),
+            FinanceDailyLabour.aggregate([
+                { $match: { projectId: { $in: activeProjectIds }, date: { $gte: monthStart, $lte: monthEnd }, deleted: { $ne: true } } },
+                { $group: { _id: null, total: { $sum: '$amount' } } },
+            ]),
+        ]);
+        const thisMonthRevenue = monthRevenueAgg[0]?.total || 0;
+        const thisMonthProfit = thisMonthRevenue - monthMaterialCost - monthContractorCost - monthCommissionCost
+            - (monthExpenseAgg[0]?.total || 0) - (monthDailyLabourAgg[0]?.total || 0);
+
+        res.json({
+            success: true,
+            data: {
+                cashInBank, cashInHand,
+                clientReceivables: (issuedAgg[0]?.total || 0) - (receivedAgg[0]?.total || 0),
+                vendorPayables: vendorRows.reduce((s, r) => s + r.amountOwed, 0),
+                contractorPayables: contractorRows.reduce((s, r) => s + r.balancePayable, 0),
+                runningBillsReady: readyProjectIds.length,
+                activeProjects: activeProjectsCount,
+                activeWorks: activeWorksCount,
+                labourWorkingToday: labourTodayCount,
+                materialLowAlerts: lowStockCount,
+                todaysMeasurementSqft: todayMeasurementAgg[0]?.total || 0,
+                thisMonthRevenue, thisMonthProfit,
+                recentActivities,
+            },
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing dashboard summary' });
+    }
+};
+
+// Tier-0 charts: Revenue-vs-Cost by month (company-wide, last N months) and
+// a 30-day daily cash flow series (reuses computeCashFlow directly).
+const getDashboardTrends = async (req, res) => {
+    try {
+        const months = Math.min(24, Math.max(1, parseInt(req.query.months, 10) || 6));
+        const now = new Date();
+        const monthKeys = [];
+        for (let i = months - 1; i >= 0; i--) {
+            monthKeys.push(new Date(now.getFullYear(), now.getMonth() - i, 1).toISOString().slice(0, 7));
+        }
+
+        const revenueVsCost = await Promise.all(monthKeys.map(async (monthKey) => {
+            const { start, end } = monthBounds(monthKey);
+            const [revenueAgg, materialCost, contractorCost, commissionCost, expenseAgg, dailyLabourAgg] = await Promise.all([
+                FinanceRunningBill.aggregate([
+                    { $match: { status: 'issued', billDate: { $gte: start, $lte: end }, deleted: { $ne: true } } },
+                    { $group: { _id: null, total: { $sum: '$totalAmount' } } },
+                ]),
+                computeCompanyWideMaterialCostInRange(start, end),
+                computeCompanyWideContractorCostInRange(start, end),
+                computeCompanyWideCommissionCostInRange(start, end),
+                FinanceExpense.aggregate([
+                    { $match: { date: { $gte: start, $lte: end }, deleted: { $ne: true } } },
+                    { $group: { _id: null, total: { $sum: '$amount' } } },
+                ]),
+                FinanceDailyLabour.aggregate([
+                    { $match: { date: { $gte: start, $lte: end }, deleted: { $ne: true } } },
+                    { $group: { _id: null, total: { $sum: '$amount' } } },
+                ]),
+            ]);
+            const revenue = revenueAgg[0]?.total || 0;
+            const cost = materialCost + contractorCost + commissionCost + (expenseAgg[0]?.total || 0) + (dailyLabourAgg[0]?.total || 0);
+            return { month: monthKey, revenue, cost };
+        }));
+
+        const to = new Date();
+        const from = new Date();
+        from.setDate(from.getDate() - 29);
+        const cashFlow = await computeCashFlow(from.toISOString().slice(0, 10), to.toISOString().slice(0, 10), 'day');
+
+        res.json({ success: true, data: { revenueVsCost, cashFlowSeries: cashFlow.series } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing dashboard trends' });
+    }
+};
+
+// New Tier-1 endpoint for Clients — per-client billed/received/outstanding
+// (grouped version of financeReceivable's logic) plus receivables aging.
+const getClientsSummary = async (req, res) => {
+    try {
+        const clients = await FinanceClient.find({ deleted: { $ne: true } });
+        const rows = (await Promise.all(clients.map(async (c) => {
+            const projects = await FinanceProject.find({ clientId: c._id, deleted: { $ne: true }, contractType: { $in: BILLABLE_CONTRACT_TYPES } }, '_id');
+            if (!projects.length) return null;
+            const projectIds = projects.map(p => p._id);
+            const [bills, receipts] = await Promise.all([
+                FinanceRunningBill.find({ projectId: { $in: projectIds }, status: 'issued', deleted: { $ne: true } }).sort({ billDate: 1 }),
+                FinanceReceipt.find({ projectId: { $in: projectIds }, deleted: { $ne: true } }),
+            ]);
+            const totalBilled = bills.reduce((s, b) => s + b.totalAmount, 0);
+            const totalReceived = receipts.reduce((s, r) => s + r.amount, 0);
+            return {
+                clientId: c._id, clientName: c.name, totalBilled, totalReceived,
+                outstanding: totalBilled - totalReceived, aging: computeAging(bills, receipts),
+            };
+        }))).filter(Boolean);
+
+        const data = rows.sort((a, b) => b.totalBilled - a.totalBilled);
+        const aging = data.reduce((acc, r) => {
+            for (const k of AGE_BUCKET_KEYS) acc[k] += r.aging[k];
+            return acc;
+        }, { '0-30': 0, '30-60': 0, '60-90': 0, '90+': 0 });
+
+        res.json({ success: true, data: { clients: data, aging } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing clients summary' });
+    }
+};
+
+// New Tier-2 endpoint for one client — profit rollup, per-project
+// billed/received/outstanding, full receipt history, and this client's own
+// aging breakdown.
+const getClientDetail = async (req, res) => {
+    try {
+        const { clientId } = req.query;
+        if (!clientId) return res.status(400).json({ success: false, message: 'clientId is required' });
+        const client = await FinanceClient.findOne({ _id: clientId, deleted: { $ne: true } });
+        if (!client) return res.status(404).json({ success: false, message: 'Client not found' });
+
+        const projects = await FinanceProject.find({ clientId, deleted: { $ne: true } });
+        const perProject = (await Promise.all(projects.map(p => computeProjectProfit(p._id)))).filter(Boolean);
+        const totals = perProject.reduce((acc, p) => ({
+            revenue: acc.revenue + p.revenue, profit: acc.profit + p.profit,
+        }), { revenue: 0, profit: 0 });
+        const marginPercent = totals.revenue > 0 ? (totals.profit / totals.revenue) * 100 : 0;
+
+        const billableProjects = projects.filter(p => BILLABLE_CONTRACT_TYPES.includes(p.contractType));
+        const projectIds = billableProjects.map(p => p._id);
+        const [bills, receipts] = await Promise.all([
+            FinanceRunningBill.find({ projectId: { $in: projectIds }, status: 'issued', deleted: { $ne: true } }).sort({ billDate: 1 }),
+            FinanceReceipt.find({ projectId: { $in: projectIds }, deleted: { $ne: true } }).sort({ receiptDate: -1 }),
+        ]);
+        const totalBilled = bills.reduce((s, b) => s + b.totalAmount, 0);
+        const totalReceived = receipts.reduce((s, r) => s + r.amount, 0);
+
+        const projectsSummary = billableProjects.map(p => {
+            const pBills = bills.filter(b => b.projectId.toString() === p._id.toString());
+            const pReceipts = receipts.filter(r => r.projectId.toString() === p._id.toString());
+            const billed = pBills.reduce((s, b) => s + b.totalAmount, 0);
+            const received = pReceipts.reduce((s, r) => s + r.amount, 0);
+            return { projectId: p._id, projectName: p.name, billed, received, outstanding: billed - received };
+        });
+
+        res.json({
+            success: true,
+            data: {
+                clientId: client._id, clientName: client.name,
+                totalBilled, totalReceived, outstanding: totalBilled - totalReceived, marginPercent,
+                projects: projectsSummary, receipts, aging: computeAging(bills, receipts),
+            },
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing client detail' });
+    }
 };
 
 /*
@@ -652,8 +1351,12 @@ const downloadCaMonthlyPackage = async (req, res) => {
 };
 
 export {
-    getProjectProfit, getClientProfit, getWorkProfit,
-    getContractorAnalysis, getVendorAnalysis, getMaterialAnalysis,
+    getProjectProfit, getClientProfit, getWorkProfit, getWorkDetail,
+    getContractorAnalysis, getContractorsSummary,
+    getVendorAnalysis, getVendorsSummary,
+    getMaterialAnalysis, getInventorySummary,
     getCashFlow, getExpenseAnalysis,
     getCaMonthlyPackage, downloadCaMonthlyPackage,
+    getDashboardSummary, getDashboardTrends,
+    getClientsSummary, getClientDetail,
 };

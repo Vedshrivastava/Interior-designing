@@ -1,44 +1,218 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { FINANCE_ROUTES } from '../config/financeNav';
+import {
+    ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+    AreaChart, Area, PieChart, Pie, Cell,
+} from 'recharts';
+import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../components/finance/DashboardWidgets';
 import '../styles/welcome.css';
+import '../styles/list.css';
 
+const thisMonth = () => new Date().toISOString().slice(0, 7);
+
+/*
+ * Tier 0 — Company Dashboard. Answers "how's the business doing right now"
+ * in ~10 seconds: KPI cards (every one a doorway into its Tier-1 home) plus
+ * exactly four charts. Deliberately does NOT show granular tables here —
+ * that's what clicking a card/chart element is for.
+ */
 const FinanceHome = ({ url }) => {
     const navigate = useNavigate();
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+
+    const [summary, setSummary] = useState(null);
+    const [trends, setTrends] = useState(null);
+    const [projectProfits, setProjectProfits] = useState([]);
+    const [payablesBreakdown, setPayablesBreakdown] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     // Check-on-load, not a background job — no cron infrastructure exists
     // in this codebase. Silent: de-duplication (24h cooldown per
     // material/bill) and the actual notification happen server-side via
     // email; there's nothing for the dashboard itself to display.
     useEffect(() => {
-        const token = localStorage.getItem('token');
         if (!token) return;
-        axios.get(`${url}/api/finance/settings/check-alerts`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
-    }, [url]);
+        axios.get(`${url}/api/finance/settings/check-alerts`, authHeader).catch(() => {});
+    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Every page except this one (Dashboard, the Overview section's only item)
-    const shortcuts = FINANCE_ROUTES.filter(({ to }) => to !== '/finance');
+    useEffect(() => {
+        let cancelled = false;
+        setLoading(true);
+        (async () => {
+            try {
+                const [summaryRes, trendsRes] = await Promise.all([
+                    axios.get(`${url}/api/finance/reports/dashboard-summary`, authHeader),
+                    axios.get(`${url}/api/finance/reports/dashboard-trends`, { ...authHeader, params: { months: 6 } }),
+                ]);
+                if (cancelled) return;
+                if (summaryRes.data.success) setSummary(summaryRes.data.data);
+                if (trendsRes.data.success) setTrends(trendsRes.data.data);
+
+                // Payables breakdown donut — vendor/contractor come straight off
+                // the summary; salary/commission need the same N+1 ledger
+                // fan-out PayablesPage.jsx already does (no aggregate endpoint
+                // exists for either), scoped to this month.
+                const month = thisMonth();
+                const [employeesRes, vendorsRes] = await Promise.all([
+                    axios.get(`${url}/api/finance/employees/list`, authHeader),
+                    axios.get(`${url}/api/finance/vendors/list`, authHeader),
+                ]);
+                const employees = employeesRes.data.success ? employeesRes.data.data : [];
+                const referralVendors = (vendorsRes.data.success ? vendorsRes.data.data : []).filter(v => v.vendorType === 'referral');
+                const [salaryLedgers, commissionLedgers] = await Promise.all([
+                    Promise.all(employees.map(e => axios.get(`${url}/api/finance/employees/${e._id}/salary-ledger`, { ...authHeader, params: { month } }).then(r => r.data.success ? r.data.data : null).catch(() => null))),
+                    Promise.all(referralVendors.map(v => axios.get(`${url}/api/finance/vendors/${v._id}/commission-ledger`, authHeader).then(r => r.data.success ? r.data.data : null).catch(() => null))),
+                ]);
+                const salaryPayable = salaryLedgers.filter(Boolean).reduce((s, l) => s + (l.balanceDue || 0), 0);
+                const commissionPayable = commissionLedgers.filter(Boolean).reduce((s, l) => s + (l.commissionPayable || 0), 0);
+                if (!cancelled) {
+                    setPayablesBreakdown({
+                        vendor: summaryRes.data.data?.vendorPayables || 0,
+                        contractor: summaryRes.data.data?.contractorPayables || 0,
+                        salary: salaryPayable,
+                        commission: commissionPayable,
+                    });
+                }
+
+                // Project Profitability comparison — one bar per active project.
+                const projectsRes = await axios.get(`${url}/api/finance/projects/list`, authHeader);
+                const activeProjects = (projectsRes.data.success ? projectsRes.data.data : []).filter(p => p.status === 'active');
+                const profits = await Promise.all(activeProjects.map(p =>
+                    axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId: p._id } })
+                        .then(r => (r.data.success ? { projectId: p._id, projectName: p.name, profit: r.data.data.profit } : null))
+                        .catch(() => null)
+                ));
+                if (!cancelled) setProjectProfits(profits.filter(Boolean));
+            } catch {
+                // Dashboard degrades gracefully — a failed fetch just leaves
+                // that section's empty state showing, no toast noise on load.
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const payablesData = payablesBreakdown ? [
+        { name: 'Vendor', value: payablesBreakdown.vendor },
+        { name: 'Contractor', value: payablesBreakdown.contractor },
+        { name: 'Salary', value: payablesBreakdown.salary },
+        { name: 'Commission', value: payablesBreakdown.commission },
+    ].filter(d => d.value > 0) : [];
+
+    if (loading) {
+        return <div className="welcome-container"><p>Loading dashboard…</p></div>;
+    }
 
     return (
-        <div className="welcome-container">
-            <span className="welcome-badge">Finance</span>
-            <h1>Your <em>finance</em> workspace</h1>
-            <p>Daily data entry, expense tracking, and monthly CA-ready exports — built out phase by phase.</p>
-            <div className="welcome-divider">
-                <span /><i className="ti ti-leaf" /><span />
-            </div>
-            <div className="welcome-cards">
-                {shortcuts.map(({ icon, label, phase, tabs, to }) => (
-                    <div key={to} className="welcome-card" onClick={() => navigate(to)}>
-                        <div className="welcome-card-icon">
-                            <FontAwesomeIcon icon={icon} />
-                        </div>
-                        <h3>{label}</h3>
-                        <p>{phase ? `${phase} · ` : ''}{tabs.length > 1 ? `${tabs.length} sections` : tabs[0]?.description}</p>
+        <div className="list add flex-col">
+            <div className="admin-list-container">
+                <div className="admin-header-split">
+                    <div>
+                        <h1>Finance Dashboard</h1>
+                        <p className="admin-subtitle">How the business is doing right now — click any card or chart to go deeper.</p>
                     </div>
-                ))}
+                </div>
+
+                <KpiGrid>
+                    <KpiCard label="Cash in Bank" value={formatINR(summary?.cashInBank)} onClick={() => navigate('/finance/bank')} />
+                    <KpiCard label="Cash in Hand" value={formatINR(summary?.cashInHand)} onClick={() => navigate('/finance/cash-book')} />
+                    <KpiCard label="Client Receivables" value={formatINR(summary?.clientReceivables)} onClick={() => navigate('/finance/clients')} tone={summary?.clientReceivables > 0 ? 'danger' : 'good'} />
+                    <KpiCard label="Vendor Payables" value={formatINR(summary?.vendorPayables)} onClick={() => navigate('/finance/procurement')} />
+                    <KpiCard label="Contractor Payables" value={formatINR(summary?.contractorPayables)} onClick={() => navigate('/finance/contractors')} />
+                    <KpiCard label="Running Bills Ready" value={summary?.runningBillsReady ?? 0} onClick={() => navigate('/finance/receivables')} />
+                    <KpiCard label="Active Projects" value={summary?.activeProjects ?? 0} onClick={() => navigate('/finance/projects')} />
+                    <KpiCard label="Active Works" value={summary?.activeWorks ?? 0} onClick={() => navigate('/finance/projects')} />
+                    <KpiCard label="Labour Working Today" value={summary?.labourWorkingToday ?? 0} onClick={() => navigate('/finance/daily-labour')} />
+                    <KpiCard label="Material Low Alerts" value={summary?.materialLowAlerts ?? 0} onClick={() => navigate('/finance/site-inventory?filter=low-stock')} tone={summary?.materialLowAlerts > 0 ? 'danger' : 'good'} />
+                    <KpiCard label="Today's Measurement" value={`${(summary?.todaysMeasurementSqft || 0).toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/site-operations')} />
+                    <KpiCard label="This Month Revenue" value={formatINR(summary?.thisMonthRevenue)} onClick={() => navigate('/finance/receivables')} />
+                    <KpiCard label="This Month Profit" value={formatINR(summary?.thisMonthProfit)} onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.thisMonthProfit >= 0 ? 'good' : 'danger'} />
+                </KpiGrid>
+
+                <ChartGrid>
+                    <ChartCard title="Revenue vs Cost — last 6 months">
+                        {trends?.revenueVsCost?.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={260}>
+                                <ComposedChart data={trends.revenueVsCost}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                                    <YAxis tick={{ fontSize: 11 }} />
+                                    <Tooltip formatter={(v) => formatINR(v)} />
+                                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                                    <Bar dataKey="revenue" name="Revenue" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
+                                    <Line type="monotone" dataKey="cost" name="Cost" stroke={CHART_COLORS[2]} strokeWidth={2} dot={{ r: 3 }} />
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        ) : <EmptyChart />}
+                    </ChartCard>
+
+                    <ChartCard title="Cash Flow — last 30 days">
+                        {trends?.cashFlowSeries?.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={260}>
+                                <AreaChart data={trends.cashFlowSeries}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                    <XAxis dataKey="bucket" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+                                    <YAxis tick={{ fontSize: 11 }} />
+                                    <Tooltip formatter={(v) => formatINR(v)} />
+                                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                                    <Area type="monotone" dataKey="in" name="In" stroke={CHART_COLORS[0]} fill={CHART_COLORS[0]} fillOpacity={0.15} />
+                                    <Area type="monotone" dataKey="out" name="Out" stroke={CHART_COLORS[2]} fill={CHART_COLORS[2]} fillOpacity={0.15} />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        ) : <EmptyChart />}
+                    </ChartCard>
+
+                    <ChartCard title="Project Profitability">
+                        {projectProfits.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={260}>
+                                <ComposedChart data={projectProfits} layout="vertical" margin={{ left: 24 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                    <XAxis type="number" tick={{ fontSize: 11 }} />
+                                    <YAxis type="category" dataKey="projectName" tick={{ fontSize: 11 }} width={110} />
+                                    <Tooltip formatter={(v) => formatINR(v)} />
+                                    <Bar
+                                        dataKey="profit" name="Profit" radius={[0, 4, 4, 0]}
+                                        onClick={(d) => navigate(`/finance/projects/${d.projectId}`)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        {projectProfits.map((p, i) => <Cell key={i} fill={p.profit >= 0 ? CHART_COLORS[0] : CHART_COLORS[2]} />)}
+                                    </Bar>
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        ) : <EmptyChart text="No active projects yet." />}
+                    </ChartCard>
+
+                    <ChartCard title="Payables Breakdown">
+                        {payablesData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={260}>
+                                <PieChart>
+                                    <Pie data={payablesData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={2}>
+                                        {payablesData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                                    </Pie>
+                                    <Tooltip formatter={(v) => formatINR(v)} />
+                                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        ) : <EmptyChart text="Nothing payable right now." />}
+                    </ChartCard>
+                </ChartGrid>
+
+                <div className="list-table">
+                    <div className="list-table-format title" style={{ gridTemplateColumns: "1fr" }}><b>Recent Activity</b></div>
+                    {summary?.recentActivities?.length > 0 ? summary.recentActivities.map(a => (
+                        <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '100px 1fr 120px' }}>
+                            <p>{new Date(a.timestamp).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</p>
+                            <p>{a.summary}</p>
+                            <p>{a.amount != null ? formatINR(a.amount) : ''}</p>
+                        </div>
+                    )) : <div className="admin-empty-state"><p>No activity recorded yet.</p></div>}
+                    <div style={{ textAlign: 'right', marginTop: '8px' }}>
+                        <span className="cursor edit-action" onClick={() => navigate('/finance/activity')}>View full timeline →</span>
+                    </div>
+                </div>
             </div>
         </div>
     );

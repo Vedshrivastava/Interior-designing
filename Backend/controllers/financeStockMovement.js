@@ -31,7 +31,7 @@ const listStockMovements = async (req, res) => {
 // stock ledger can't drift out of sync with what was actually measured.
 const addStockMovement = async (req, res) => {
     try {
-        const { projectId, materialId, movementType, quantity, date, notes } = req.body;
+        const { projectId, materialId, movementType, quantity, date, notes, workId } = req.body;
         if (!projectId || !materialId || !movementType || !date) {
             return res.status(400).json({ success: false, message: 'Project, material, movement type, and date are required' });
         }
@@ -43,6 +43,9 @@ const addStockMovement = async (req, res) => {
         }
         const item = new FinanceStockMovement({
             projectId, materialId, movementType, quantity: Number(quantity), date, notes: notes || '',
+            // Only waste is attributable to one specific work — dump/return
+            // stay project-level only, per the Site Inventory model.
+            workId: movementType === 'waste' && workId ? workId : null,
         });
         await item.save();
         broadcast({ type: 'financeStockChanged', projectId });

@@ -2,7 +2,17 @@ import React, { useEffect, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom'; // 1. Added useLocation
 import { jwtDecode } from 'jwt-decode';
 import { StoreContext } from '../context/StoreContext';
-import { financeModuleKeyForPath } from '../config/financeNav';
+import { financeModuleKeyForPath, FINANCE_MODULE_PATHS } from '../config/financeNav';
+
+// First module (in sidebar order) the user is actually allowed into — used
+// instead of a hardcoded redirect target, since that target could itself
+// be one of the user's restricted modules (e.g. Dashboard). Returns null
+// if the user has zero allowed modules.
+const firstAllowedModulePath = (allowedFinanceModules) => {
+    if (!Array.isArray(allowedFinanceModules) || allowedFinanceModules.length === 0) return null;
+    const match = FINANCE_MODULE_PATHS.find(m => allowedFinanceModules.includes(m.key));
+    return match ? match.to : null;
+};
 
 const ProtectedRoute = ({ children, setShowLogin }) => {
     const navigate = useNavigate();
@@ -31,6 +41,7 @@ const ProtectedRoute = ({ children, setShowLogin }) => {
     const moduleKey = financeModuleKeyForPath(location.pathname);
     const isModuleRestricted = moduleKey && userRole === 'ADMIN' && Array.isArray(parsedUser?.allowedFinanceModules)
         && !parsedUser.allowedFinanceModules.includes(moduleKey);
+    const redirectPath = isModuleRestricted ? firstAllowedModulePath(parsedUser?.allowedFinanceModules) : null;
 
     useEffect(() => {
         // 4. This will now run on EVERY single page navigation
@@ -41,7 +52,10 @@ const ProtectedRoute = ({ children, setShowLogin }) => {
         }
 
         if (isModuleRestricted) {
-            navigate('/finance');
+            // If redirectPath is null the user has zero allowed modules —
+            // render the "no finance access" message below instead of
+            // navigating anywhere, since that would just loop or blank-page.
+            if (redirectPath) navigate(redirectPath);
             return;
         }
 
@@ -54,7 +68,7 @@ const ProtectedRoute = ({ children, setShowLogin }) => {
         } catch (error) {
             handleExpiryLogout();
         }
-    }, [location.pathname, storedToken, userRole, isModuleRestricted, navigate, setShowLogin]); // 5. Added path & storage dependencies
+    }, [location.pathname, storedToken, userRole, isModuleRestricted, redirectPath, navigate, setShowLogin]); // 5. Added path & storage dependencies
 
     // Synchronous check to prevent flashing content before useEffect fires
     let isExpired = false;
@@ -67,8 +81,22 @@ const ProtectedRoute = ({ children, setShowLogin }) => {
         }
     }
 
-    if (!storedToken || (userRole !== 'ADMIN' && userRole !== 'MASTER') || isExpired || isModuleRestricted) {
+    if (!storedToken || (userRole !== 'ADMIN' && userRole !== 'MASTER') || isExpired) {
         return null;
+    }
+
+    if (isModuleRestricted) {
+        // Zero allowed modules — nowhere to redirect to, so say so instead
+        // of navigating anywhere (which would just loop or blank-page again).
+        if (!redirectPath) {
+            return (
+                <div style={{ padding: '64px 24px', textAlign: 'center' }}>
+                    <h2>No Finance Access</h2>
+                    <p>Your account doesn't have access to any finance module yet. Contact an administrator to have permissions assigned.</p>
+                </div>
+            );
+        }
+        return null; // navigating away via the effect above
     }
 
     return children;

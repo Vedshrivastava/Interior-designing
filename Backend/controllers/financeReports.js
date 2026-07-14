@@ -715,6 +715,14 @@ const getMaterialAnalysis = async (req, res) => {
 // New Tier-1 endpoint for Site Inventory — current stock per material (with
 // a below-minimum flag), a monthly consumption trend, and the wastage rate
 // (wasted ÷ (wasted + consumed)) per material, sorted highest-first.
+//
+// Low-stock definition is per-(project, material), matching the Dashboard's
+// materialLowAlerts KPI exactly (see computeLowStockMaterialCount below) —
+// a material can be below minimum at one project and fine at another, so a
+// single project → one boolean is correct, but a company-wide view can't
+// blend every project's stock into one total first (that hides a site
+// that's actually out while another is overstocked) — it reports how many
+// active projects are currently short instead.
 const getInventorySummary = async (req, res) => {
     try {
         const { projectId, materialIds } = req.query;
@@ -726,7 +734,7 @@ const getInventorySummary = async (req, res) => {
             { $match: stockMatch },
             {
                 $group: {
-                    _id: '$materialId',
+                    _id: { projectId: '$projectId', materialId: '$materialId' },
                     dump:     { $sum: { $cond: [{ $eq: ['$movementType', 'dump'] }, '$quantity', 0] } },
                     consume:  { $sum: { $cond: [{ $eq: ['$movementType', 'consume'] }, '$quantity', 0] } },
                     returned: { $sum: { $cond: [{ $eq: ['$movementType', 'return'] }, '$quantity', 0] } },
@@ -734,18 +742,57 @@ const getInventorySummary = async (req, res) => {
                 },
             },
         ]);
-        const stockByMaterial = new Map(stockRows.map(r => [r._id.toString(), r]));
 
-        const stockTable = materials.map(mat => {
-            const s = stockByMaterial.get(mat._id.toString()) || { dump: 0, consume: 0, returned: 0, waste: 0 };
-            const currentStock = s.dump - s.consume - s.returned - s.waste;
-            const wastageRate = (s.waste + s.consume) > 0 ? s.waste / (s.waste + s.consume) : 0;
-            return {
-                materialId: mat._id, materialName: mat.name, unit: mat.unit,
-                currentStock, minimumStockLevel: mat.minimumStockLevel, belowMinimum: currentStock < mat.minimumStockLevel,
-                totalConsumed: s.consume, totalWasted: s.waste, wastageRate,
-            };
-        });
+        let stockTable;
+        if (projectId) {
+            // Single project — one row per material, same shape as before.
+            const stockByMaterial = new Map(stockRows.map(r => [r._id.materialId.toString(), r]));
+            stockTable = materials.map(mat => {
+                const s = stockByMaterial.get(mat._id.toString()) || { dump: 0, consume: 0, returned: 0, waste: 0 };
+                const currentStock = s.dump - s.consume - s.returned - s.waste;
+                const wastageRate = (s.waste + s.consume) > 0 ? s.waste / (s.waste + s.consume) : 0;
+                return {
+                    materialId: mat._id, materialName: mat.name, unit: mat.unit,
+                    currentStock, minimumStockLevel: mat.minimumStockLevel, belowMinimum: currentStock < mat.minimumStockLevel,
+                    totalConsumed: s.consume, totalWasted: s.waste, wastageRate,
+                };
+            });
+        } else {
+            // Company-wide — per material, count how many active projects
+            // are below minimum rather than blending stock across every
+            // project into one misleading total.
+            const activeProjectIds = new Set(
+                (await FinanceProject.find({ status: 'active', deleted: { $ne: true } }, '_id')).map(p => p._id.toString())
+            );
+            const rowsByMaterial = new Map();
+            for (const r of stockRows) {
+                const key = r._id.materialId.toString();
+                if (!rowsByMaterial.has(key)) rowsByMaterial.set(key, []);
+                rowsByMaterial.get(key).push(r);
+            }
+            stockTable = materials.map(mat => {
+                const rows = rowsByMaterial.get(mat._id.toString()) || [];
+                let currentStock = 0, totalConsumed = 0, totalWasted = 0;
+                let activeProjectCount = 0, lowAtProjectCount = 0;
+                for (const r of rows) {
+                    const projectStock = r.dump - r.consume - r.returned - r.waste;
+                    currentStock += projectStock;
+                    totalConsumed += r.consume;
+                    totalWasted += r.waste;
+                    if (activeProjectIds.has(r._id.projectId.toString())) {
+                        activeProjectCount += 1;
+                        if (projectStock < mat.minimumStockLevel) lowAtProjectCount += 1;
+                    }
+                }
+                const wastageRate = (totalWasted + totalConsumed) > 0 ? totalWasted / (totalWasted + totalConsumed) : 0;
+                return {
+                    materialId: mat._id, materialName: mat.name, unit: mat.unit,
+                    currentStock, minimumStockLevel: mat.minimumStockLevel,
+                    belowMinimum: lowAtProjectCount > 0, lowAtProjectCount, activeProjectCount,
+                    totalConsumed, totalWasted, wastageRate,
+                };
+            });
+        }
 
         const consumeMatch = { movementType: 'consume', deleted: { $ne: true } };
         if (projectId) consumeMatch.projectId = new mongoose.Types.ObjectId(projectId);
@@ -1012,15 +1059,17 @@ const computeCompanyWideCommissionCostInRange = async (start, end, projectIds = 
     return total;
 };
 
-// Same aggregate-and-compare check as financeCompanySettings.js's
-// checkLowStock, but just counting materials (not sending any email) —
-// counts a material once if it's short on ANY project, matching that
-// existing convention.
-const computeLowStockMaterialCount = async () => {
+// Counts a material once if it's short at ANY active project — same
+// per-(project, material) definition as Site Inventory's company-wide view
+// (getInventorySummary above), so the two never disagree on the same
+// underlying data. Scoped to active projects, same as this endpoint's other
+// "this month" figures — a draft or completed project's stock isn't
+// actionable the way an active site's is.
+const computeLowStockMaterialCount = async (activeProjectIds) => {
     const materials = await FinanceMaterial.find({ deleted: { $ne: true } });
     if (!materials.length) return 0;
     const rows = await FinanceStockMovement.aggregate([
-        { $match: { deleted: { $ne: true } } },
+        { $match: { projectId: { $in: activeProjectIds }, deleted: { $ne: true } } },
         {
             $group: {
                 _id: { projectId: '$projectId', materialId: '$materialId' },
@@ -1121,7 +1170,7 @@ const getDashboardSummary = async (req, res) => {
             FinanceProject.countDocuments({ status: 'active', deleted: { $ne: true } }),
             FinanceWork.countDocuments({ status: 'active', deleted: { $ne: true } }),
             FinanceDailyLabour.countDocuments({ date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true } }),
-            computeLowStockMaterialCount(),
+            computeLowStockMaterialCount(activeProjectIds),
             FinanceMeasurement.aggregate([
                 { $match: { date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true } } },
                 { $group: { _id: null, total: { $sum: '$areaCoveredSqft' } } },

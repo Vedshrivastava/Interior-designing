@@ -99,6 +99,16 @@ const SiteInventoryPage = ({ url }) => {
                                 <p>{r.materialName}</p>
                                 <p style={{ color: r.belowMinimum ? '#c0392b' : 'inherit', fontWeight: r.belowMinimum ? 600 : 400 }}>
                                     {r.belowMinimum && '⚠ '}{r.currentStock} {r.unit}
+                                    {/* Company-wide view only (no project selected) — a single blended
+                                        total can't say which site is actually short, so this reports
+                                        how many active projects are, same definition Dashboard uses. */}
+                                    {!selectedProjectId && r.activeProjectCount != null && (
+                                        <span className="admin-subtitle" style={{ display: 'block', fontWeight: 400, fontSize: '0.78rem' }}>
+                                            {r.activeProjectCount === 0
+                                                ? 'Not tracked at any active project'
+                                                : `Low at ${r.lowAtProjectCount} of ${r.activeProjectCount} active project${r.activeProjectCount === 1 ? '' : 's'}`}
+                                        </span>
+                                    )}
                                 </p>
                                 <p>{r.minimumStockLevel} {r.unit}</p>
                                 <p>{r.totalConsumed} {r.unit}</p>

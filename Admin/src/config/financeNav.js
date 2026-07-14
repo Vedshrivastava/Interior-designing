@@ -414,3 +414,11 @@ export const FINANCE_MODULE_OPTIONS = [...new Map(
   [{ to: '/finance', label: 'Dashboard' }, ...FINANCE_ROUTES]
     .map(r => [financeModuleKeyForPath(r.to), r.label])
 ).entries()].map(([key, label]) => ({ key, label }));
+
+/* { key, to } per finance module, deduped, in sidebar order — ProtectedRoute
+   uses this to find a restricted user's first allowed module instead of
+   bouncing everyone to a hardcoded path that could itself be off-limits. */
+export const FINANCE_MODULE_PATHS = [...new Map(
+  [{ to: '/finance', label: 'Dashboard' }, ...FINANCE_ROUTES]
+    .map(r => [financeModuleKeyForPath(r.to), r.to])
+).entries()].map(([key, to]) => ({ key, to }));

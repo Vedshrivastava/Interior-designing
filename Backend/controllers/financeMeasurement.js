@@ -163,18 +163,47 @@ const updateMeasurement = async (req, res) => {
     }
 };
 
-// Soft-delete only, matching every other resource in this codebase — does
-// not reverse the work's completedAreaSqft or the consume movements it
-// created. (Nothing else in this codebase reverses automation on delete
-// either; keeping that consistent rather than half-implementing an undo.)
+// Soft-delete, but unlike most resources in this codebase this one DOES
+// reverse what it created — leaving the work's completedAreaSqft and its
+// consume movements stale would silently corrupt progress % and stock
+// levels. Blocked entirely once the measurement has been billed (part of
+// an issued running bill) — reversing it then would corrupt that document
+// instead; the bill needs to be voided/reversed first (not built here).
 const removeMeasurement = async (req, res) => {
     try {
         const { _id } = req.body;
         const item = await FinanceMeasurement.findById(_id);
         if (!item) return res.status(404).json({ success: false, message: 'Not found' });
+        if (item.billedInRunningBillId) {
+            return res.status(400).json({ success: false, message: "This measurement is part of an issued running bill — void or reverse that bill before deleting it" });
+        }
+
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
+
+        await FinanceWork.findByIdAndUpdate(item.workId, { $inc: { completedAreaSqft: -item.areaCoveredSqft } });
+
+        const deletedBy = req.userName || 'Admin';
+        const movementResult = await FinanceStockMovement.updateMany(
+            { relatedMeasurementId: item._id, deleted: { $ne: true } },
+            { deleted: true, deletedAt: new Date(), deletedBy }
+        );
+        const stockChanged = movementResult.modifiedCount > 0;
+
         broadcast({ type: 'financeMeasurementsChanged', projectId: item.projectId });
+        broadcast({ type: 'financeWorksChanged', projectId: item.projectId });
+        if (stockChanged) broadcast({ type: 'financeStockChanged', projectId: item.projectId });
+
+        await logActivity({
+            eventType: 'measurement_deleted',
+            entityType: 'financeMeasurement',
+            entityId: item._id,
+            projectId: item.projectId,
+            summary: `Measurement of ${item.areaCoveredSqft} sqft removed`,
+            amount: null,
+            req,
+        });
+
         res.json({ success: true, message: 'Measurement moved to recovery bin' });
     } catch (err) {
         console.error(err);

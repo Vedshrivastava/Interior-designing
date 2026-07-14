@@ -6,6 +6,7 @@ import FinanceVendorPayment from '../models/financeVendorPayment.js';
 import FinanceSalaryPayment from '../models/financeSalaryPayment.js';
 import FinanceCommissionPayment from '../models/financeCommissionPayment.js';
 import FinanceExpense from '../models/financeExpense.js';
+import FinanceExpensePayment from '../models/financeExpensePayment.js';
 import { broadcast } from '../middlewares/webSocket.js';
 
 /*
@@ -14,16 +15,24 @@ import { broadcast } from '../middlewares/webSocket.js';
  * payment/commission-payment/expense with this account's bankAccountId
  * set, plus bank transfers in either direction. Current balance is never
  * stored: always openingBalance + this activity, computed fresh every call.
+ *
+ * Expense is the one payable read two ways here: an old-style paid-at-entry
+ * expense carries bankAccountId directly on itself (still read below), while
+ * an accrued expense settled later carries bankAccountId on its
+ * financeExpensePayment instead — both need their own query since the
+ * amount that actually moved through the bank isn't always on the same
+ * document.
  */
 const getAccountActivity = async (accountId) => {
     const filter = { bankAccountId: accountId, deleted: { $ne: true } };
-    const [receipts, contractorPayments, vendorPayments, salaryPayments, commissionPayments, expenses, transfersOut, transfersIn] = await Promise.all([
+    const [receipts, contractorPayments, vendorPayments, salaryPayments, commissionPayments, expenses, expensePayments, transfersOut, transfersIn] = await Promise.all([
         FinanceReceipt.find(filter),
         FinanceContractorPayment.find(filter),
         FinanceVendorPayment.find(filter),
         FinanceSalaryPayment.find(filter),
         FinanceCommissionPayment.find(filter),
         FinanceExpense.find(filter),
+        FinanceExpensePayment.find(filter).populate('expenseId', 'expenseCategory'),
         FinanceBankTransfer.find({ fromAccountId: accountId, deleted: { $ne: true } }),
         FinanceBankTransfer.find({ toAccountId: accountId, deleted: { $ne: true } }),
     ]);
@@ -35,6 +44,7 @@ const getAccountActivity = async (accountId) => {
         ...salaryPayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Salary payment', sourceType: 'salaryPayment', sourceId: p._id })),
         ...commissionPayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Commission payment', sourceType: 'commissionPayment', sourceId: p._id })),
         ...expenses.map(e => ({ date: e.date, amount: e.amount, direction: 'debit', description: e.expenseCategory ? `Expense — ${e.expenseCategory}` : 'Expense', sourceType: 'expense', sourceId: e._id })),
+        ...expensePayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Expense payment', sourceType: 'expensePayment', sourceId: p._id })),
         ...transfersOut.map(t => ({ date: t.date, amount: t.amount, direction: 'debit', description: 'Transfer out', sourceType: 'transfer', sourceId: t._id })),
         ...transfersIn.map(t => ({ date: t.date, amount: t.amount, direction: 'credit', description: 'Transfer in', sourceType: 'transfer', sourceId: t._id })),
     ];

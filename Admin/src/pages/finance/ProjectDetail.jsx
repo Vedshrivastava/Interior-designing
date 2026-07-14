@@ -11,6 +11,7 @@ import StockMovementsManager from '../../components/finance/StockMovementsManage
 import RunningBillsManager from '../../components/finance/RunningBillsManager';
 import ReceiptsManager from '../../components/finance/ReceiptsManager';
 import DailyLabourManager from '../../components/finance/DailyLabourManager';
+import DailyLabourBatchEntry from '../../components/finance/DailyLabourBatchEntry';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
@@ -200,6 +201,8 @@ const ProjectDetail = ({ url }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [activeTab, setActiveTab] = useState('overview');
+    const [labourEntryMode, setLabourEntryMode] = useState('single');
+    const [labourListRefreshKey, setLabourListRefreshKey] = useState(0);
     const [project, setProject] = useState(null);
     const [contractors, setContractors] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -338,7 +341,24 @@ const ProjectDetail = ({ url }) => {
                     </div>
                 )}
 
-                {activeTab === 'dailyLabour' && <DailyLabourManager url={url} projectId={id} />}
+                {activeTab === 'dailyLabour' && (
+                    <div>
+                        <div className="wizard-actions" style={{ marginBottom: '16px', justifyContent: 'flex-start', gap: '8px' }}>
+                            <button type="button" className={`add-btn ${labourEntryMode === 'single' ? '' : 'cancel-btn'}`} onClick={() => setLabourEntryMode('single')}>Single Entry</button>
+                            <button type="button" className={`add-btn ${labourEntryMode === 'batch' ? '' : 'cancel-btn'}`} onClick={() => setLabourEntryMode('batch')}>Batch Grid Entry</button>
+                        </div>
+                        {labourEntryMode === 'single' ? (
+                            <DailyLabourManager url={url} projectId={id} />
+                        ) : (
+                            <>
+                                <DailyLabourBatchEntry url={url} projectId={id} onSubmitted={() => setLabourListRefreshKey(k => k + 1)} />
+                                <div style={{ marginTop: '24px' }}>
+                                    <DailyLabourManager key={labourListRefreshKey} url={url} projectId={id} readOnly />
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
 
                 {activeTab === 'runningBills' && (
                     project.contractType === 'advance'

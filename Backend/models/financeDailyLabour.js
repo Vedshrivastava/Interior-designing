@@ -1,14 +1,21 @@
 import mongoose from 'mongoose';
 
-// Casual/daily-wage labour, distinct from contractor teams (financeTeam) —
-// no separate labourer master exists, so each entry is name-only. amount
-// is computed and frozen at entry time from rate × the attendanceType
-// multiplier (see controllers/financeDailyLabour.js), same "snapshot, not
-// recompute later" rule used for Running Bill line items and Purchases.
+// Casual/daily-wage labour, distinct from contractor teams (financeTeam).
+// amount is computed and frozen at entry time from rate × the
+// attendanceType multiplier (see controllers/financeDailyLabour.js), same
+// "snapshot, not recompute later" rule used for Running Bill line items and
+// Purchases.
 const financeDailyLabourSchema = new mongoose.Schema({
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', required: true },
     date:      { type: Date, required: true },
 
+    // Optional link to a real financeLabourer (roster entry) — new entries
+    // logged via the roster/batch-grid path set this; labourerName is
+    // denormalized from it at entry time and stays the display field
+    // either way. Entries logged before financeLabourer existed (or logged
+    // ad hoc, without a roster) have no labourerId and are read exactly as
+    // before — labourerName alone.
+    labourerId:     { type: mongoose.Schema.Types.ObjectId, ref: 'financeLabourer', default: null },
     labourerName:   { type: String, required: true },
     attendanceType: { type: String, enum: ['half_day', 'full_day', 'extra_day'], required: true },
     rate:           { type: Number, required: true },

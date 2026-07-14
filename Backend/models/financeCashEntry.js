@@ -25,6 +25,7 @@ const financeCashEntrySchema = new mongoose.Schema({
     relatedDailyLabourId:         { type: mongoose.Schema.Types.ObjectId, ref: 'financeDailyLabour', default: null }, // legacy — daily labour no longer creates its own cash entry
     relatedSupervisorIncentiveId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeSupervisorIncentive', default: null },
     relatedSupervisorLabourPaymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeSupervisorLabourPayment', default: null },
+    relatedExpensePaymentId:      { type: mongoose.Schema.Types.ObjectId, ref: 'financeExpensePayment', default: null },
 
     notes: { type: String, default: '' },
 

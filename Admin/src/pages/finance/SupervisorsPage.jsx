@@ -4,6 +4,7 @@ import axios from 'axios';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import DailyLabourManager from '../../components/finance/DailyLabourManager';
+import LabourerRosterManager from '../../components/finance/LabourerRosterManager';
 import SupervisorAttendanceManager from '../../components/finance/SupervisorAttendanceManager';
 import SupervisorIncentivesManager from '../../components/finance/SupervisorIncentivesManager';
 import SupervisorLabourPaymentsManager from '../../components/finance/SupervisorLabourPaymentsManager';
@@ -13,6 +14,7 @@ import '../../styles/list.css';
 
 const TABS = [
     { key: 'projects',    label: 'Assigned Projects' },
+    { key: 'roster',      label: 'Roster' },
     { key: 'labour',      label: 'Daily Labour' },
     { key: 'labourPayments', label: 'Labour Payments' },
     { key: 'attendance',  label: 'Attendance' },
@@ -109,6 +111,7 @@ const SupervisorsPage = ({ url }) => {
             ) : (
                 <>
                     {activeTab === 'projects' && <AssignedProjectsTab url={url} employeeId={selectedEmployeeId} employeeName={selectedEmployeeName} />}
+                    {activeTab === 'roster' && <LabourerRosterManager url={url} supervisorId={selectedEmployeeId} />}
                     {activeTab === 'labour' && <DailyLabourManager url={url} supervisorId={selectedEmployeeId} readOnly />}
                     {activeTab === 'labourPayments' && <SupervisorLabourPaymentsManager url={url} employeeId={selectedEmployeeId} />}
                     {activeTab === 'attendance' && <SupervisorAttendanceManager url={url} employeeId={selectedEmployeeId} />}

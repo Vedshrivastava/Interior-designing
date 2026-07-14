@@ -96,6 +96,26 @@ export const FINANCE_MASTERS = {
             { key: 'members', label: 'Members', joinArray: true },
         ],
     },
+    // Not surfaced under Masters' own page — a labourer only makes sense
+    // scoped to one supervisor's roster, so its primary UI is Supervisors'
+    // own Roster tab (LabourerRosterManager), not a flat global list.
+    // Registered here purely so QuickAddPicker can be used for it (e.g. an
+    // "add labourer" quick-add from the batch grid), with supervisorId
+    // always supplied via presetValues by whichever screen is already
+    // scoped to a supervisor.
+    labourers: {
+        label: 'Labourer', labelPlural: 'Labourers', apiBase: '/api/finance/labourers',
+        fields: [
+            { key: 'name', label: 'Name', type: 'text', required: true },
+            { key: 'supervisorId', label: 'Supervisor', type: 'employeeSelect', required: true },
+            { key: 'defaultRate', label: 'Default Rate (₹/day)', type: 'number' },
+            { key: 'notes', label: 'Notes', type: 'textarea' },
+        ],
+        columns: [
+            { key: 'name', label: 'Name' },
+            { key: 'defaultRate', label: 'Default Rate' },
+        ],
+    },
     // Not surfaced under Masters' own page — reused from the Bank page's
     // "All Accounts" tab instead, same MasterCrudTable component, since its
     // add/list/edit/remove shape is identical to every master above.

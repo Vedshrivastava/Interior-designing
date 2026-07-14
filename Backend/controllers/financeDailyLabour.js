@@ -1,4 +1,5 @@
 import FinanceDailyLabour from '../models/financeDailyLabour.js';
+import FinanceLabourer from '../models/financeLabourer.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
 import FinanceProject from '../models/financeProject.js';
 import { broadcast } from '../middlewares/webSocket.js';
@@ -80,6 +81,66 @@ const addDailyLabour = async (req, res) => {
     }
 };
 
+// Grid entry — several labourers × several days submitted in one call.
+// Each entry still becomes its own financeDailyLabour row with its own
+// frozen amount, exactly as if it had been added one at a time through
+// addDailyLabour; batching only changes how many requests the UI needs to
+// make, not the shape of what gets stored.
+const batchAddDailyLabour = async (req, res) => {
+    try {
+        const { entries } = req.body;
+        if (!Array.isArray(entries) || !entries.length) {
+            return res.status(400).json({ success: false, message: 'At least one entry is required' });
+        }
+
+        const labourerIds = [...new Set(entries.map(e => e.labourerId).filter(Boolean))];
+        const labourers = await FinanceLabourer.find({ _id: { $in: labourerIds }, deleted: { $ne: true } });
+        const labourerById = new Map(labourers.map(l => [l._id.toString(), l]));
+
+        const docs = [];
+        for (const [i, e] of entries.entries()) {
+            const { projectId, date, labourerId, attendanceType, rate, supervisorId, notes } = e;
+            if (!projectId) return res.status(400).json({ success: false, message: `Entry ${i + 1}: project is required` });
+            if (!date) return res.status(400).json({ success: false, message: `Entry ${i + 1}: date is required` });
+            if (!labourerId || !labourerById.has(labourerId)) {
+                return res.status(400).json({ success: false, message: `Entry ${i + 1}: a valid roster labourer is required` });
+            }
+            if (!MULTIPLIER[attendanceType]) return res.status(400).json({ success: false, message: `Entry ${i + 1}: attendanceType must be half_day, full_day, or extra_day` });
+            if (!rate || Number(rate) <= 0) return res.status(400).json({ success: false, message: `Entry ${i + 1}: rate must be greater than zero` });
+
+            const labourer = labourerById.get(labourerId);
+            docs.push({
+                projectId, date, labourerId, labourerName: labourer.name,
+                attendanceType, rate: Number(rate), amount: Number(rate) * MULTIPLIER[attendanceType],
+                supervisorId: supervisorId || labourer.supervisorId || null,
+                notes: notes || '',
+            });
+        }
+
+        const created = await FinanceDailyLabour.insertMany(docs);
+
+        const projectIds = [...new Set(docs.map(d => d.projectId.toString()))];
+        for (const projectId of projectIds) broadcast({ type: 'financeDailyLabourChanged', projectId });
+
+        const projects = await FinanceProject.find({ _id: { $in: projectIds } }).select('name');
+        const projectNameById = new Map(projects.map(p => [p._id.toString(), p.name]));
+        await Promise.all(created.map(item => logActivity({
+            eventType: 'daily_labour_logged',
+            entityType: 'financeDailyLabour',
+            entityId: item._id,
+            projectId: item.projectId,
+            summary: `${item.labourerName} recorded as ${item.attendanceType} at ${projectNameById.get(item.projectId.toString()) || 'project'} — ₹${item.amount} (batch entry)`,
+            amount: item.amount,
+            req,
+        })));
+
+        res.json({ success: true, message: `${created.length} daily labour entries recorded`, data: created });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error recording batch daily labour' });
+    }
+};
+
 const removeDailyLabour = async (req, res) => {
     try {
         const { _id } = req.body;
@@ -105,4 +166,4 @@ const removeDailyLabour = async (req, res) => {
     }
 };
 
-export { listDailyLabour, addDailyLabour, removeDailyLabour };
+export { listDailyLabour, addDailyLabour, batchAddDailyLabour, removeDailyLabour };

@@ -7,7 +7,13 @@ import mongoose from 'mongoose';
 const financeWorkSchema = new mongoose.Schema({
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', required: true },
     workType:  { type: String, required: true },
-    teamId:    { type: mongoose.Schema.Types.ObjectId, ref: 'financeTeam', required: true },
+
+    // Legacy single-team field — populated only on Works created before
+    // financeWorkTeamAssignment existed. No longer written by addWork; team
+    // assignment is now one-to-many via financeWorkTeamAssignment, since a
+    // Work can have multiple crews splitting its area. Left in the schema
+    // so old records and the migration script still have something to read.
+    teamId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeTeam', default: null },
 
     workOrderNumber:    { type: String, default: '' },
     startDate:          { type: Date },

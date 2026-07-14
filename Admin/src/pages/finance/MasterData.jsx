@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
 import MasterCrudTable from '../../components/finance/MasterCrudTable';
 import SettingsCrudList from '../../components/finance/SettingsCrudList';
 import SalaryLedgerView from '../../components/finance/SalaryLedgerView';
+import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import '../../styles/list.css';
 
 /*
@@ -37,25 +37,12 @@ const TABS = [
 
 const SETTING_TYPE_KEYS = ['work_type', 'payment_mode', 'expense_category', 'tds_section', 'unit', 'city', 'commission_type'];
 
-const EmployeePicker = ({ url, selectedEmployeeId, onChange }) => {
-    const token = localStorage.getItem('token');
-    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [employees, setEmployees] = useState([]);
-
-    useEffect(() => {
-        axios.get(`${url}/api/finance/employees/list`, authHeader).then(res => { if (res.data.success) setEmployees(res.data.data); }).catch(() => {});
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    return (
-        <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
-            <p>Employee</p>
-            <select value={selectedEmployeeId} onChange={e => onChange(e.target.value)}>
-                <option value="">Select employee…</option>
-                {employees.map(e => <option key={e._id} value={e._id}>{e.name}</option>)}
-            </select>
-        </div>
-    );
-};
+const EmployeePicker = ({ url, selectedEmployeeId, onChange }) => (
+    <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>
+        <p>Employee</p>
+        <QuickAddPicker url={url} resourceKey="employees" value={selectedEmployeeId} onChange={onChange} placeholder="Select employee…" />
+    </div>
+);
 
 const MasterData = ({ url }) => {
     const [activeTab, setActiveTab] = useState(TABS[0].key);

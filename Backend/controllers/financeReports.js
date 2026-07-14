@@ -28,6 +28,7 @@ import { getAccountActivity } from './financeBankAccount.js';
 import PDFDocument from 'pdfkit';
 import { writeLetterhead, writeSectionHeading, writeFooter, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
+import { getAssignmentsByWork, getTeamIdsForWork, findWorkIdsForTeams, resolveMeasurementTeamId } from '../utils/workTeamAssignments.js';
 
 // .lean() — spreading a hydrated Mongoose document ({ ...doc }) silently
 // drops some schema fields (companyName among them), since document
@@ -102,16 +103,33 @@ const computeWorkMaterialCost = async (projectId, workId) => {
     return total;
 };
 
+// Measurement-level: each day's area attributes to whichever team actually
+// did it (a Work can have more than one team/contractor contributing).
 const computeProjectContractorCost = async (projectId) => {
     const works = await FinanceWork.find({ projectId, deleted: { $ne: true } });
     if (!works.length) return 0;
-    const teamIds = [...new Set(works.map(w => w.teamId.toString()))];
-    const rates = await FinanceTeamRate.find({ projectId, teamId: { $in: teamIds }, deleted: { $ne: true } });
+    const workById = new Map(works.map(w => [w._id.toString(), w]));
+    const measurements = await FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } });
+    if (!measurements.length) return 0;
+
+    const teamIds = new Set();
+    const areaByTeamWorkType = new Map(); // `${teamId}_${workType}` -> area
+    for (const m of measurements) {
+        const work = workById.get(m.workId.toString());
+        const { teamId } = resolveMeasurementTeamId(m, work);
+        if (!teamId) continue;
+        teamIds.add(teamId.toString());
+        const key = `${teamId}_${work.workType}`;
+        areaByTeamWorkType.set(key, (areaByTeamWorkType.get(key) || 0) + m.areaCoveredSqft);
+    }
+    if (!areaByTeamWorkType.size) return 0;
+
+    const rates = await FinanceTeamRate.find({ projectId, teamId: { $in: [...teamIds] }, deleted: { $ne: true } });
     const rateByKey = new Map(rates.map(r => [`${r.teamId}_${r.workType}`, r]));
     let total = 0;
-    for (const w of works) {
-        const rate = rateByKey.get(`${w.teamId}_${w.workType}`);
-        if (rate) total += w.completedAreaSqft * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft);
+    for (const [key, area] of areaByTeamWorkType) {
+        const rate = rateByKey.get(key);
+        if (rate) total += area * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft);
     }
     return total;
 };
@@ -253,13 +271,57 @@ const computeWorkProfit = async (work) => {
     const revenue = revenueAgg[0]?.amount || 0;
     const areaBilledSqft = revenueAgg[0]?.areaBilledSqft || 0;
 
-    const rate = await FinanceTeamRate.findOne({ projectId: work.projectId, teamId: work.teamId, workType: work.workType, deleted: { $ne: true } });
-    const contractorCost = rate ? work.completedAreaSqft * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft) : 0;
+    // Contractor Cost is measurement-level: each day's area attributes to
+    // whichever team actually did it, so a Work with more than one
+    // contributing team gets a per-team breakdown, not one blended rate.
+    // `contractorCost` stays the summed total so nothing reading only that
+    // field breaks.
+    const measurements = await FinanceMeasurement.find({ workId: work._id, deleted: { $ne: true } });
+    const areaByTeam = new Map(); // teamId -> { area, isLegacyAttribution }
+    for (const m of measurements) {
+        const { teamId, isLegacyAttribution } = resolveMeasurementTeamId(m, work);
+        if (!teamId) continue;
+        const key = teamId.toString();
+        const cur = areaByTeam.get(key) || { area: 0, isLegacyAttribution: false };
+        cur.area += m.areaCoveredSqft;
+        cur.isLegacyAttribution = cur.isLegacyAttribution || isLegacyAttribution;
+        areaByTeam.set(key, cur);
+    }
+    // Seed teams with zero area too, so a brand-new Work with a team
+    // assigned but no measurements yet still shows a (zero) breakdown row.
+    const assignmentsByWorkId = await getAssignmentsByWork([work._id]);
+    for (const t of getTeamIdsForWork(work, assignmentsByWorkId)) {
+        const key = t.toString();
+        if (!areaByTeam.has(key)) areaByTeam.set(key, { area: 0, isLegacyAttribution: false });
+    }
+
+    let contractorCost = 0;
+    const contractorBreakdown = [];
+    if (areaByTeam.size) {
+        const teamIds = [...areaByTeam.keys()];
+        const [rates, teams] = await Promise.all([
+            FinanceTeamRate.find({ projectId: work.projectId, teamId: { $in: teamIds }, workType: work.workType, deleted: { $ne: true } }),
+            FinanceTeam.find({ _id: { $in: teamIds }, deleted: { $ne: true } }).populate('contractorVendorId', 'name'),
+        ]);
+        const rateByTeam = new Map(rates.map(r => [r.teamId.toString(), r]));
+        const teamById = new Map(teams.map(t => [t._id.toString(), t]));
+        for (const [teamId, { area, isLegacyAttribution }] of areaByTeam) {
+            const rate = rateByTeam.get(teamId);
+            const perUnit = rate ? (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft) : 0;
+            const earnings = area * perUnit;
+            contractorCost += earnings;
+            const team = teamById.get(teamId);
+            contractorBreakdown.push({
+                teamId, teamName: team?.name || '—', vendorName: team?.contractorVendorId?.name || '—',
+                areaSqft: area, rate: perUnit, earnings, isLegacyAttribution,
+            });
+        }
+    }
 
     const materialCost = await computeWorkMaterialCost(work.projectId, work._id);
     const profit = revenue - contractorCost - materialCost;
 
-    return { revenue, contractorCost, materialCost, profit, areaBilledSqft };
+    return { revenue, contractorCost, contractorBreakdown, materialCost, profit, areaBilledSqft };
 };
 
 const getWorkProfit = async (req, res) => {
@@ -273,9 +335,10 @@ const getWorkProfit = async (req, res) => {
         res.json({
             success: true,
             data: {
-                workId: work._id, projectId: work.projectId, teamId: work.teamId, workType: work.workType,
+                workId: work._id, projectId: work.projectId, workType: work.workType,
                 estimatedAreaSqft: work.estimatedAreaSqft, completedAreaSqft: work.completedAreaSqft,
                 areaBilledSqft: wp.areaBilledSqft, revenue: wp.revenue, contractorCost: wp.contractorCost,
+                contractorBreakdown: wp.contractorBreakdown,
                 materialCost: wp.materialCost, profit: wp.profit,
             },
         });
@@ -357,7 +420,8 @@ const getWorkDetail = async (req, res) => {
                 estimatedAreaSqft: work.estimatedAreaSqft, completedAreaSqft: work.completedAreaSqft, progressPercent,
                 materialUsed, materialWasted, projectLevelWaste,
                 month: monthKey, dailyBreakdown, averageCostPerSqft,
-                contractorCost: workProfit.contractorCost, revenue: workProfit.revenue, profit: workProfit.profit,
+                contractorCost: workProfit.contractorCost, contractorBreakdown: workProfit.contractorBreakdown,
+                revenue: workProfit.revenue, profit: workProfit.profit,
             },
         });
     } catch (err) {
@@ -375,21 +439,41 @@ const computeContractorAnalysisRows = async (projectId) => {
     return Promise.all(contractors.map(async (v) => {
         const teams = await FinanceTeam.find({ contractorVendorId: v._id, deleted: { $ne: true } });
         const teamIds = teams.map(t => t._id);
+        const teamIdSet = new Set(teamIds.map(t => t.toString()));
 
-        const workFilter = { teamId: { $in: teamIds }, deleted: { $ne: true } };
+        const workIds = teamIds.length ? await findWorkIdsForTeams(teamIds) : [];
+        const workFilter = { _id: { $in: workIds }, deleted: { $ne: true } };
         if (projectId) workFilter.projectId = projectId;
-        const works = teamIds.length ? await FinanceWork.find(workFilter) : [];
+        const works = workIds.length ? await FinanceWork.find(workFilter) : [];
+        const workById = new Map(works.map(w => [w._id.toString(), w]));
 
         const projectIds = [...new Set(works.map(w => w.projectId.toString()))];
-        const rates = projectIds.length
-            ? await FinanceTeamRate.find({ projectId: { $in: projectIds }, teamId: { $in: teamIds }, deleted: { $ne: true } })
-            : [];
+        const [rates, measurements] = await Promise.all([
+            projectIds.length
+                ? FinanceTeamRate.find({ projectId: { $in: projectIds }, teamId: { $in: teamIds }, deleted: { $ne: true } })
+                : [],
+            works.length
+                ? FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } })
+                : [],
+        ]);
         const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.teamId}_${r.workType}`, r]));
 
+        // Measurement-level: each day's area attributes to whichever of this
+        // contractor's teams actually did it (a Work can have another
+        // contractor's team on it too, or the same contractor's teams split
+        // across days).
+        const areaByKey = new Map(); // `${projectId}_${teamId}_${workType}` -> area
+        for (const m of measurements) {
+            const work = workById.get(m.workId.toString());
+            const { teamId } = resolveMeasurementTeamId(m, work);
+            if (!teamId || !teamIdSet.has(teamId.toString())) continue;
+            const key = `${work.projectId}_${teamId}_${work.workType}`;
+            areaByKey.set(key, (areaByKey.get(key) || 0) + m.areaCoveredSqft);
+        }
         let earnings = 0;
-        for (const w of works) {
-            const rate = rateByKey.get(`${w.projectId}_${w.teamId}_${w.workType}`);
-            if (rate) earnings += w.completedAreaSqft * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft);
+        for (const [key, area] of areaByKey) {
+            const rate = rateByKey.get(key);
+            if (rate) earnings += area * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft);
         }
 
         const moneyFilter = { vendorId: v._id, deleted: { $ne: true } };
@@ -431,24 +515,33 @@ const getContractorsSummary = async (req, res) => {
             Promise.all(contractors.map(async (v) => {
                 const teams = await FinanceTeam.find({ contractorVendorId: v._id, deleted: { $ne: true } });
                 const teamIds = teams.map(t => t._id);
+                const teamIdSet = new Set(teamIds.map(t => t.toString()));
                 if (!teamIds.length) return { vendorId: v._id, vendorName: v.name, byWorkType: [] };
 
-                const workFilter = { teamId: { $in: teamIds }, deleted: { $ne: true } };
+                const workIds = await findWorkIdsForTeams(teamIds);
+                const workFilter = { _id: { $in: workIds }, deleted: { $ne: true } };
                 if (projectId) workFilter.projectId = projectId;
                 const works = await FinanceWork.find(workFilter);
                 if (!works.length) return { vendorId: v._id, vendorName: v.name, byWorkType: [] };
+                const workById = new Map(works.map(w => [w._id.toString(), w]));
 
-                const projectIds = [...new Set(works.map(w => w.projectId.toString()))];
-                const rates = await FinanceTeamRate.find({ projectId: { $in: projectIds }, teamId: { $in: teamIds }, deleted: { $ne: true } });
+                const [rates, measurements] = await Promise.all([
+                    FinanceTeamRate.find({ projectId: { $in: [...new Set(works.map(w => w.projectId.toString()))] }, teamId: { $in: teamIds }, deleted: { $ne: true } }),
+                    FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }),
+                ]);
                 const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.teamId}_${r.workType}`, r]));
 
+                // Measurement-level, restricted to this contractor's own teams.
                 const byType = new Map();
-                for (const w of works) {
-                    const rate = rateByKey.get(`${w.projectId}_${w.teamId}_${w.workType}`);
-                    const earnings = rate ? w.completedAreaSqft * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft) : 0;
-                    if (!byType.has(w.workType)) byType.set(w.workType, { area: 0, earnings: 0 });
-                    const t = byType.get(w.workType);
-                    t.area += w.completedAreaSqft;
+                for (const m of measurements) {
+                    const work = workById.get(m.workId.toString());
+                    const { teamId } = resolveMeasurementTeamId(m, work);
+                    if (!teamId || !teamIdSet.has(teamId.toString())) continue;
+                    const rate = rateByKey.get(`${work.projectId}_${teamId}_${work.workType}`);
+                    const earnings = rate ? m.areaCoveredSqft * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft) : 0;
+                    if (!byType.has(work.workType)) byType.set(work.workType, { area: 0, earnings: 0 });
+                    const t = byType.get(work.workType);
+                    t.area += m.areaCoveredSqft;
                     t.earnings += earnings;
                 }
                 const byWorkType = [...byType.entries()].map(([workType, t]) => ({
@@ -859,23 +952,32 @@ const computeCompanyWideContractorCostInRange = async (start, end, projectIds = 
     const relevant = measurements.filter(m => m.workId && (!projectIds || projectIds.some(id => id.toString() === m.workId.projectId.toString())));
     if (!relevant.length) return 0;
 
-    const areaByWork = new Map();
+    // Grouping key is (work, resolved team) rather than work alone, so a
+    // Work with more than one contributing team splits correctly.
+    const areaByWorkTeam = new Map(); // `${workId}_${teamId}` -> area
     const workById = new Map();
+    const teamIds = new Set();
     for (const m of relevant) {
-        const key = m.workId._id.toString();
-        areaByWork.set(key, (areaByWork.get(key) || 0) + m.areaCoveredSqft);
-        workById.set(key, m.workId);
+        const work = m.workId;
+        const { teamId } = resolveMeasurementTeamId(m, work);
+        if (!teamId) continue;
+        const key = `${work._id}_${teamId}`;
+        areaByWorkTeam.set(key, (areaByWorkTeam.get(key) || 0) + m.areaCoveredSqft);
+        workById.set(work._id.toString(), work);
+        teamIds.add(teamId.toString());
     }
+    if (!areaByWorkTeam.size) return 0;
+
     const works = [...workById.values()];
     const projIds = [...new Set(works.map(w => w.projectId.toString()))];
-    const teamIds = [...new Set(works.map(w => w.teamId.toString()))];
-    const rates = await FinanceTeamRate.find({ projectId: { $in: projIds }, teamId: { $in: teamIds }, deleted: { $ne: true } });
+    const rates = await FinanceTeamRate.find({ projectId: { $in: projIds }, teamId: { $in: [...teamIds] }, deleted: { $ne: true } });
     const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.teamId}_${r.workType}`, r]));
 
     let total = 0;
-    for (const [workId, area] of areaByWork) {
+    for (const [key, area] of areaByWorkTeam) {
+        const [workId, teamId] = key.split('_');
         const w = workById.get(workId);
-        const rate = rateByKey.get(`${w.projectId}_${w.teamId}_${w.workType}`);
+        const rate = rateByKey.get(`${w.projectId}_${teamId}_${w.workType}`);
         if (rate) total += area * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft);
     }
     return total;
@@ -1131,21 +1233,24 @@ const getDashboardTrends = async (req, res) => {
 const getClientsSummary = async (req, res) => {
     try {
         const clients = await FinanceClient.find({ deleted: { $ne: true } });
-        const rows = (await Promise.all(clients.map(async (c) => {
+        // Every client shows up here, zeros and all — a client with no
+        // billable projects yet has legitimately zero billed/received, same
+        // as how getContractorsSummary/getVendorAnalysis/getInventorySummary
+        // show every record regardless of activity rather than hiding it.
+        const rows = await Promise.all(clients.map(async (c) => {
             const projects = await FinanceProject.find({ clientId: c._id, deleted: { $ne: true }, contractType: { $in: BILLABLE_CONTRACT_TYPES } }, '_id');
-            if (!projects.length) return null;
             const projectIds = projects.map(p => p._id);
-            const [bills, receipts] = await Promise.all([
+            const [bills, receipts] = projectIds.length ? await Promise.all([
                 FinanceRunningBill.find({ projectId: { $in: projectIds }, status: 'issued', deleted: { $ne: true } }).sort({ billDate: 1 }),
                 FinanceReceipt.find({ projectId: { $in: projectIds }, deleted: { $ne: true } }),
-            ]);
+            ]) : [[], []];
             const totalBilled = bills.reduce((s, b) => s + b.totalAmount, 0);
             const totalReceived = receipts.reduce((s, r) => s + r.amount, 0);
             return {
                 clientId: c._id, clientName: c.name, totalBilled, totalReceived,
                 outstanding: totalBilled - totalReceived, aging: computeAging(bills, receipts),
             };
-        }))).filter(Boolean);
+        }));
 
         const data = rows.sort((a, b) => b.totalBilled - a.totalBilled);
         const aging = data.reduce((acc, r) => {

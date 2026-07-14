@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import WorkTypeRatesManager from '../../components/finance/WorkTypeRatesManager';
 import TeamRatesManager from '../../components/finance/TeamRatesManager';
 import SettingSelectField, { registerSettingIfNew } from '../../components/finance/SettingSelectField';
+import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 
@@ -16,7 +17,7 @@ const CONTRACT_TYPES = [
 
 const emptyBasic = {
     name: '', clientId: '', siteLocation: '', assignedSupervisor: '', assignedSupervisorId: '',
-    labourContractorVendorId: '', startDate: '', estimatedAreaSqft: '', notes: '',
+    startDate: '', estimatedAreaSqft: '', notes: '',
 };
 
 const NewProjectWizard = ({ url }) => {
@@ -34,17 +35,11 @@ const NewProjectWizard = ({ url }) => {
     const [contractPercentage, setContractPercentage] = useState('');
     const [advanceNotes, setAdvanceNotes] = useState('');
 
-    const [clients, setClients] = useState([]);
-    const [vendors, setVendors] = useState([]);
-    const [employees, setEmployees] = useState([]);
     const [cityOptions, setCityOptions] = useState([]);
     const [stepKey, setStepKey] = useState('basic');
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/clients/list`, authHeader).then(res => { if (res.data.success) setClients(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/vendors/list`, authHeader).then(res => { if (res.data.success) setVendors(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/employees/list`, authHeader).then(res => { if (res.data.success) setEmployees(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'city' } }).then(res => { if (res.data.success) setCityOptions(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -186,10 +181,8 @@ const NewProjectWizard = ({ url }) => {
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Client *</p>
-                                    <select value={basic.clientId} onChange={e => setBasicField('clientId', e.target.value)}>
-                                        <option value="">Select client…</option>
-                                        {clients.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                                    </select>
+                                    <QuickAddPicker url={url} resourceKey="clients" value={basic.clientId}
+                                        onChange={v => setBasicField('clientId', v)} placeholder="Select client…" />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Site Location</p>
@@ -200,21 +193,12 @@ const NewProjectWizard = ({ url }) => {
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Assigned Supervisor</p>
-                                    <select value={basic.assignedSupervisorId} onChange={e => setBasicField('assignedSupervisorId', e.target.value)}>
-                                        <option value="">— None —</option>
-                                        {employees.map(emp => <option key={emp._id} value={emp._id}>{emp.name}</option>)}
-                                    </select>
+                                    <QuickAddPicker url={url} resourceKey="employees" value={basic.assignedSupervisorId}
+                                        onChange={v => setBasicField('assignedSupervisorId', v)} placeholder="— None —" />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Assigned Supervisor (free text, legacy)</p>
                                     <input type="text" value={basic.assignedSupervisor} onChange={e => setBasicField('assignedSupervisor', e.target.value)} placeholder="Only used if no supervisor is picked above" />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Labour Contractor Vendor</p>
-                                    <select value={basic.labourContractorVendorId} onChange={e => setBasicField('labourContractorVendorId', e.target.value)}>
-                                        <option value="">— None —</option>
-                                        {vendors.map(v => <option key={v._id} value={v._id}>{v.name}</option>)}
-                                    </select>
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Start Date</p>
@@ -269,10 +253,10 @@ const NewProjectWizard = ({ url }) => {
                             {contractType !== 'advance' && (
                                 <div className="add-product-name flex-col" style={{ marginTop: '24px' }}>
                                     <p>Referral Vendor (middleman) — optional</p>
-                                    <select value={referralVendorId} onChange={e => setReferralVendorId(e.target.value)}>
-                                        <option value="">— None —</option>
-                                        {vendors.filter(v => v.vendorType === 'referral' || v.vendorType === 'other').map(v => <option key={v._id} value={v._id}>{v.name}</option>)}
-                                    </select>
+                                    <QuickAddPicker url={url} resourceKey="vendors" value={referralVendorId}
+                                        onChange={setReferralVendorId}
+                                        filter={v => v.vendorType === 'referral' || v.vendorType === 'other'}
+                                        presetValues={{ vendorType: 'referral' }} placeholder="— None —" />
                                 </div>
                             )}
                             {contractType === 'advance' && (

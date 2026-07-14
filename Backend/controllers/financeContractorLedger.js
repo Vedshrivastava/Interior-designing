@@ -7,6 +7,7 @@ import FinanceContractorAdvance from '../models/financeContractorAdvance.js';
 import FinanceContractorDeduction from '../models/financeContractorDeduction.js';
 import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import { assertContractorVendor } from '../utils/contractorVendor.js';
+import { findWorkIdsForTeams, getAssignmentsByWork, getTeamIdsForWork, resolveMeasurementTeamId } from '../utils/workTeamAssignments.js';
 
 /*
  * Everything here is computed fresh on every call — nothing is stored.
@@ -30,11 +31,14 @@ const getContractorLedger = async (req, res) => {
 
         const teams = await FinanceTeam.find({ contractorVendorId: vendorId, deleted: { $ne: true } });
         const teamIds = teams.map(t => t._id);
+        const teamIdSet = new Set(teamIds.map(t => t.toString()));
         const teamNameById = new Map(teams.map(t => [t._id.toString(), t.name]));
 
-        const workFilter = { teamId: { $in: teamIds }, deleted: { $ne: true } };
+        const workIds = await findWorkIdsForTeams(teamIds);
+        const workFilter = { _id: { $in: workIds }, deleted: { $ne: true } };
         if (projectId) workFilter.projectId = projectId;
         const works = await FinanceWork.find(workFilter).sort({ createdAt: -1 });
+        const workById = new Map(works.map(w => [w._id.toString(), w]));
 
         const projectIds = [...new Set(works.map(w => w.projectId.toString()))];
         const projects = await FinanceProject.find({ _id: { $in: projectIds } });
@@ -45,29 +49,62 @@ const getContractorLedger = async (req, res) => {
         });
         const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.teamId}_${r.workType}`, r]));
 
-        let earningsTotal = 0;
-        const worksOut = works.map(w => {
-            const rate = rateByKey.get(`${w.projectId}_${w.teamId}_${w.workType}`);
-            const earnings = rate ? w.completedAreaSqft * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft) : 0;
-            earningsTotal += earnings;
-            return {
-                _id: w._id,
-                projectId: w.projectId, projectName: projectNameById.get(w.projectId.toString()) || '—',
-                teamId: w.teamId, teamName: teamNameById.get(w.teamId.toString()) || '—',
-                workType: w.workType,
-                estimatedAreaSqft: w.estimatedAreaSqft, completedAreaSqft: w.completedAreaSqft,
-                status: w.status,
-                rate: rate ? { paymentBasis: rate.paymentBasis, ratePerSqft: rate.ratePerSqft, ratePerDay: rate.ratePerDay } : null,
-                earnings,
-            };
-        });
-
-        const workIds = works.map(w => w._id);
-        const measurements = workIds.length
-            ? await FinanceMeasurement.find({ workId: { $in: workIds }, deleted: { $ne: true } })
+        const measurements = works.length
+            ? await FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } })
                 .populate('workId', 'workType')
                 .sort({ date: -1 })
             : [];
+
+        // Earnings are measurement-level: each day's area attributes to
+        // whichever team actually did it, restricted to this contractor's
+        // own teams (a Work can have another contractor's team on it too).
+        // Rows are seeded at zero for every work this contractor's teams are
+        // assigned to (so a brand-new Work with no measurements yet still
+        // shows up), then filled in from measurements.
+        const assignmentsByWorkId = await getAssignmentsByWork(works.map(w => w._id));
+        const teamRowsByWork = new Map(); // workId -> Map<teamId, {area, isLegacyAttribution}>
+        for (const w of works) {
+            const assignedTeamIds = getTeamIdsForWork(w, assignmentsByWorkId)
+                .map(t => t.toString()).filter(t => teamIdSet.has(t));
+            if (!assignedTeamIds.length) continue;
+            const rowMap = new Map(assignedTeamIds.map(t => [t, { area: 0, isLegacyAttribution: false }]));
+            teamRowsByWork.set(w._id.toString(), rowMap);
+        }
+        for (const m of measurements) {
+            const work = workById.get(m.workId._id.toString());
+            const { teamId: resolvedTeamId, isLegacyAttribution } = resolveMeasurementTeamId(m, work);
+            if (!resolvedTeamId || !teamIdSet.has(resolvedTeamId.toString())) continue;
+            const workKey = m.workId._id.toString();
+            if (!teamRowsByWork.has(workKey)) teamRowsByWork.set(workKey, new Map());
+            const rowMap = teamRowsByWork.get(workKey);
+            const teamKey = resolvedTeamId.toString();
+            const cur = rowMap.get(teamKey) || { area: 0, isLegacyAttribution: false };
+            cur.area += m.areaCoveredSqft;
+            cur.isLegacyAttribution = cur.isLegacyAttribution || isLegacyAttribution;
+            rowMap.set(teamKey, cur);
+        }
+
+        let earningsTotal = 0;
+        const worksOut = [];
+        for (const w of works) {
+            const rowMap = teamRowsByWork.get(w._id.toString());
+            if (!rowMap) continue;
+            for (const [teamId, { area, isLegacyAttribution }] of rowMap) {
+                const rate = rateByKey.get(`${w.projectId}_${teamId}_${w.workType}`);
+                const earnings = rate ? area * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft) : 0;
+                earningsTotal += earnings;
+                worksOut.push({
+                    _id: w._id, key: `${w._id}_${teamId}`,
+                    projectId: w.projectId, projectName: projectNameById.get(w.projectId.toString()) || '—',
+                    teamId, teamName: teamNameById.get(teamId) || '—',
+                    workType: w.workType,
+                    estimatedAreaSqft: w.estimatedAreaSqft, completedAreaSqft: area,
+                    status: w.status,
+                    rate: rate ? { paymentBasis: rate.paymentBasis, ratePerSqft: rate.ratePerSqft, ratePerDay: rate.ratePerDay } : null,
+                    earnings, isLegacyAttribution,
+                });
+            }
+        }
 
         const moneyFilter = { vendorId, deleted: { $ne: true } };
         if (projectId) moneyFilter.projectId = projectId;

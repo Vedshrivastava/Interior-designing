@@ -11,10 +11,11 @@ const MULTIPLIER = { half_day: 0.5, full_day: 1, extra_day: 1.5 };
 
 const listDailyLabour = async (req, res) => {
     try {
-        const { projectId, supervisorId, dateFrom, dateTo } = req.query;
+        const { projectId, supervisorId, dateFrom, dateTo, unsettledOnly } = req.query;
         const filter = { deleted: { $ne: true } };
         if (projectId) filter.projectId = projectId;
         if (supervisorId) filter.supervisorId = supervisorId;
+        if (unsettledOnly === 'true') filter.settledInPaymentId = null;
         if (dateFrom || dateTo) {
             filter.date = {};
             if (dateFrom) filter.date.$gte = new Date(dateFrom);
@@ -44,6 +45,12 @@ const addDailyLabour = async (req, res) => {
         if (!MULTIPLIER[attendanceType]) return res.status(400).json({ success: false, message: 'attendanceType must be half_day, full_day, or extra_day' });
         if (!rate || Number(rate) <= 0) return res.status(400).json({ success: false, message: 'Rate must be greater than zero' });
 
+        // Payment fields are deprecated on this model — a supervisor's
+        // accumulated entries get paid in one bulk settlement (see
+        // financeSupervisorLabourPayment), not per entry, so no cash
+        // movement happens here at all. This is a cost record only; it's
+        // still counted in Project Profit's Daily Labour Cost immediately,
+        // same as before — only the cash-timing moved to settlement.
         const amount = Number(rate) * MULTIPLIER[attendanceType];
         const item = new FinanceDailyLabour({
             projectId, date, labourerName: labourerName.trim(), attendanceType, rate: Number(rate), amount,
@@ -52,14 +59,6 @@ const addDailyLabour = async (req, res) => {
             notes: notes || '',
         });
         await item.save();
-
-        if (!bankAccountId) {
-            await FinanceCashEntry.create({
-                date, type: 'out', amount, projectId,
-                reason: `Daily labour — ${labourerName.trim()}`, relatedDailyLabourId: item._id, notes: notes || '',
-            });
-            broadcast({ type: 'financeCashBookChanged' });
-        }
 
         broadcast({ type: 'financeDailyLabourChanged', projectId });
 
@@ -86,8 +85,13 @@ const removeDailyLabour = async (req, res) => {
         const { _id } = req.body;
         const item = await FinanceDailyLabour.findById(_id);
         if (!item) return res.status(404).json({ success: false, message: 'Not found' });
+        if (item.settledInPaymentId) {
+            return res.status(400).json({ success: false, message: 'This entry is already settled — remove the settlement instead' });
+        }
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
+        // Legacy — old entries created before settlement existed may still
+        // carry their own cash entry; new entries never do.
         await FinanceCashEntry.updateMany(
             { relatedDailyLabourId: item._id },
             { deleted: true, deletedAt: new Date(), deletedBy: req.userName || 'Admin' }

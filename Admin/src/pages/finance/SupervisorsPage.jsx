@@ -6,12 +6,15 @@ import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import DailyLabourManager from '../../components/finance/DailyLabourManager';
 import SupervisorAttendanceManager from '../../components/finance/SupervisorAttendanceManager';
 import SupervisorIncentivesManager from '../../components/finance/SupervisorIncentivesManager';
+import SupervisorLabourPaymentsManager from '../../components/finance/SupervisorLabourPaymentsManager';
 import SalaryLedgerView from '../../components/finance/SalaryLedgerView';
+import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import '../../styles/list.css';
 
 const TABS = [
     { key: 'projects',    label: 'Assigned Projects' },
     { key: 'labour',      label: 'Daily Labour' },
+    { key: 'labourPayments', label: 'Labour Payments' },
     { key: 'attendance',  label: 'Attendance' },
     { key: 'performance', label: 'Performance' },
     { key: 'salary',      label: 'Salary' },
@@ -24,25 +27,12 @@ const TABS = [
  * employee (same as Masters > Employees). Same "picker on the same page"
  * pattern as Contractors/Procurement/Masters' own ledger tabs.
  */
-const EmployeePicker = ({ url, selectedEmployeeId, onChange }) => {
-    const token = localStorage.getItem('token');
-    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [employees, setEmployees] = useState([]);
-
-    useEffect(() => {
-        axios.get(`${url}/api/finance/employees/list`, authHeader).then(res => { if (res.data.success) setEmployees(res.data.data); }).catch(() => {});
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    return (
-        <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
-            <p>Supervisor</p>
-            <select value={selectedEmployeeId} onChange={e => onChange(e.target.value)}>
-                <option value="">Select employee…</option>
-                {employees.map(e => <option key={e._id} value={e._id}>{e.name}</option>)}
-            </select>
-        </div>
-    );
-};
+const EmployeePicker = ({ url, selectedEmployeeId, onChange }) => (
+    <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>
+        <p>Supervisor</p>
+        <QuickAddPicker url={url} resourceKey="employees" value={selectedEmployeeId} onChange={onChange} placeholder="Select employee…" />
+    </div>
+);
 
 /* Projects whose assignedSupervisorId matches this employee — falls back
    to the legacy assignedSupervisor string (name match) for old projects
@@ -120,6 +110,7 @@ const SupervisorsPage = ({ url }) => {
                 <>
                     {activeTab === 'projects' && <AssignedProjectsTab url={url} employeeId={selectedEmployeeId} employeeName={selectedEmployeeName} />}
                     {activeTab === 'labour' && <DailyLabourManager url={url} supervisorId={selectedEmployeeId} readOnly />}
+                    {activeTab === 'labourPayments' && <SupervisorLabourPaymentsManager url={url} employeeId={selectedEmployeeId} />}
                     {activeTab === 'attendance' && <SupervisorAttendanceManager url={url} employeeId={selectedEmployeeId} />}
                     {activeTab === 'performance' && <PlaceholderTab text="No defined performance metric to build against yet." />}
                     {activeTab === 'salary' && <SalaryLedgerView url={url} employeeId={selectedEmployeeId} />}

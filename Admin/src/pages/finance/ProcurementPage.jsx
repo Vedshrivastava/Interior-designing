@@ -3,6 +3,7 @@ import axios from 'axios';
 import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import MasterCrudTable from '../../components/finance/MasterCrudTable';
+import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import PurchaseOrReturnManager from '../../components/finance/PurchaseOrReturnManager';
 import MaterialDumpView from '../../components/finance/MaterialDumpView';
 import VendorLedgerView from '../../components/finance/VendorLedgerView';
@@ -28,27 +29,13 @@ const IS_REFERRAL = (v) => v.vendorType === 'referral';
    `filter` narrows which vendors show up in the dropdown — Ledger uses
    every non-contractor vendor, Commission Ledger only referral ones,
    since that's the only vendorType a commission ledger means anything for. */
-const VendorPicker = ({ url, selectedVendorId, onChange, filter }) => {
-    const token = localStorage.getItem('token');
-    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [vendors, setVendors] = useState([]);
-
-    useEffect(() => {
-        axios.get(`${url}/api/finance/vendors/list`, authHeader)
-            .then(res => { if (res.data.success) setVendors(res.data.data.filter(filter)); })
-            .catch(() => {});
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    return (
-        <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
-            <p>Vendor</p>
-            <select value={selectedVendorId} onChange={e => onChange(e.target.value)}>
-                <option value="">Select vendor…</option>
-                {vendors.map(v => <option key={v._id} value={v._id}>{v.name}</option>)}
-            </select>
-        </div>
-    );
-};
+const VendorPicker = ({ url, selectedVendorId, onChange, filter, presetValues }) => (
+    <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>
+        <p>Vendor</p>
+        <QuickAddPicker url={url} resourceKey="vendors" value={selectedVendorId} onChange={onChange}
+            filter={filter} presetValues={presetValues} placeholder="Select vendor…" />
+    </div>
+);
 
 /* Tier-1 mini-dashboard for the Vendors tab — top vendors by purchase
    volume (₹) and a monthly average-purchase-rate trend per material (so
@@ -90,7 +77,7 @@ const ProcurementVendorsOverviewTab = ({ url }) => {
                 <>
                     <ChartGrid>
                         <ChartCard title="Top Vendors by Purchase Volume">
-                            {topVendors.length > 0 ? (
+                            {topVendors.some(v => v.purchases > 0) ? (
                                 <ResponsiveContainer width="100%" height={240}>
                                     <BarChart data={topVendors} layout="vertical" margin={{ left: 24 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
@@ -183,7 +170,7 @@ const ProcurementPage = ({ url }) => {
             )}
             {activeTab === 'commissionLedger' && (
                 <>
-                    <VendorPicker url={url} selectedVendorId={selectedCommissionVendorId} onChange={setSelectedCommissionVendorId} filter={IS_REFERRAL} />
+                    <VendorPicker url={url} selectedVendorId={selectedCommissionVendorId} onChange={setSelectedCommissionVendorId} filter={IS_REFERRAL} presetValues={{ vendorType: 'referral' }} />
                     {selectedCommissionVendorId
                         ? <CommissionLedgerView url={url} vendorId={selectedCommissionVendorId} />
                         : <div className="admin-empty-state"><p>Select a referral vendor to view their commission ledger.</p></div>}

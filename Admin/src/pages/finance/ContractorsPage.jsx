@@ -6,6 +6,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import MasterCrudTable from '../../components/finance/MasterCrudTable';
+import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import ContractorWorksView from '../../components/finance/ContractorWorksView';
 import ContractorMeasurementsView from '../../components/finance/ContractorMeasurementsView';
 import ContractorLedgerView from '../../components/finance/ContractorLedgerView';
@@ -25,12 +26,14 @@ const TABS = [
 ];
 
 const IS_CONTRACTOR = (v) => v.vendorType === 'labour_contractor';
-const CONTRACT_TYPE_LABEL = { with_material: 'With Material', without_material: 'Without Material', advance: 'Advance' };
-const VENDOR_SCOPED_TABS = ['works', 'measurements', 'ledger', 'settlements'];
+const VENDOR_SCOPED_TABS = ['projects', 'works', 'measurements', 'ledger', 'settlements'];
 
-/* Projects with a labour contractor assigned — same /api/finance/projects/list
-   response used everywhere else, filtered client-side on labourContractorVendorId. */
-const ContractorProjectsTab = ({ url }) => {
+/* Projects this contractor is actually on — derived from their teams' Works,
+   not the old single project-level field. Reuses the contractor ledger
+   endpoint (no projectId param → every work across every project this
+   contractor is on) rather than a separate endpoint — its `works` array
+   already carries projectId/projectName per row; dedupe client-side. */
+const ContractorProjectsTab = ({ url, vendorId }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -38,27 +41,36 @@ const ContractorProjectsTab = ({ url }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/projects/list`, authHeader)
+        if (!vendorId) { setLoading(false); return; }
+        setLoading(true);
+        axios.get(`${url}/api/finance/contractors/${vendorId}/ledger`, authHeader)
             .then(res => {
-                if (res.data.success) setProjects(res.data.data.filter(p => p.labourContractorVendorId));
+                if (!res.data.success) return;
+                const byProject = new Map();
+                for (const w of res.data.data.works) {
+                    const key = w.projectId.toString();
+                    if (!byProject.has(key)) byProject.set(key, { projectId: w.projectId, projectName: w.projectName, workTypes: new Set() });
+                    byProject.get(key).workTypes.add(w.workType);
+                }
+                setProjects([...byProject.values()].map(p => ({ ...p, workTypes: [...p.workTypes] })));
             })
             .catch(() => toast.error('Error fetching projects'))
             .finally(() => setLoading(false));
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [url, vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    if (!vendorId) return <div className="admin-empty-state"><p>Select a contractor to view their projects.</p></div>;
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
-    if (projects.length === 0) return <div className="admin-empty-state"><p>No projects with a labour contractor assigned yet.</p></div>;
+    if (projects.length === 0) return <div className="admin-empty-state"><p>No projects for this contractor yet.</p></div>;
 
     return (
         <div className="list-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1.3fr 1fr' }}>
-                <b>Project</b><b>Contractor</b><b>Contract Type</b>
+            <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 2fr' }}>
+                <b>Project</b><b>Work Types</b>
             </div>
             {projects.map(p => (
-                <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1.3fr 1fr' }}>
-                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${p._id}`)}>{p.name}</p>
-                    <p>{p.labourContractorVendorId?.name || '—'}</p>
-                    <p><span className="item-category">{CONTRACT_TYPE_LABEL[p.contractType]}</span></p>
+                <div key={p.projectId} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 2fr' }}>
+                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${p.projectId}`)}>{p.projectName}</p>
+                    <p>{p.workTypes.join(', ')}</p>
                 </div>
             ))}
         </div>
@@ -68,27 +80,13 @@ const ContractorProjectsTab = ({ url }) => {
 /* Shared by Works / Measurements / Ledger / Settlements — all four need one
    contractor picked before they mean anything, same picker pattern used by
    Site Inventory / Receipts / unscoped Measurements elsewhere. */
-const ContractorPicker = ({ url, selectedVendorId, onChange }) => {
-    const token = localStorage.getItem('token');
-    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [vendors, setVendors] = useState([]);
-
-    useEffect(() => {
-        axios.get(`${url}/api/finance/vendors/list`, authHeader)
-            .then(res => { if (res.data.success) setVendors(res.data.data.filter(IS_CONTRACTOR)); })
-            .catch(() => {});
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    return (
-        <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
-            <p>Contractor</p>
-            <select value={selectedVendorId} onChange={e => onChange(e.target.value)}>
-                <option value="">Select contractor…</option>
-                {vendors.map(v => <option key={v._id} value={v._id}>{v.name}</option>)}
-            </select>
-        </div>
-    );
-};
+const ContractorPicker = ({ url, selectedVendorId, onChange }) => (
+    <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>
+        <p>Contractor</p>
+        <QuickAddPicker url={url} resourceKey="vendors" value={selectedVendorId} onChange={onChange}
+            filter={IS_CONTRACTOR} presetValues={{ vendorType: 'labour_contractor' }} placeholder="Select contractor…" />
+    </div>
+);
 
 /* Tier-1 mini-dashboard for the Overview tab — payable-per-contractor and
    cost-per-sqft grouped by work type (never blended across types — a
@@ -203,11 +201,10 @@ const ContractorsPage = ({ url }) => {
             {activeTab === 'overview' && (
                 <ContractorsOverviewTab url={url} onSelectContractor={(vendorId) => { setSelectedVendorId(vendorId); setActiveTab('ledger'); }} />
             )}
-            {activeTab === 'projects' && <ContractorProjectsTab url={url} />}
-
             {VENDOR_SCOPED_TABS.includes(activeTab) && (
                 <ContractorPicker url={url} selectedVendorId={selectedVendorId} onChange={setSelectedVendorId} />
             )}
+            {activeTab === 'projects' && <ContractorProjectsTab url={url} vendorId={selectedVendorId} />}
             {activeTab === 'works' && (
                 selectedVendorId ? <ContractorWorksView url={url} vendorId={selectedVendorId} /> : <div className="admin-empty-state"><p>Select a contractor to view their works.</p></div>
             )}

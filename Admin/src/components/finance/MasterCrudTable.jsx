@@ -4,15 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
-import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
+import { registerSettingIfNew } from './SettingSelectField';
+import { emptyFormFromFields, renderMasterField } from './masterFieldRenderer';
 import '../../styles/list.css';
 import '../../styles/add.css';
-
-const emptyFormFromFields = (fields) =>
-    fields.reduce((acc, f) => {
-        acc[f.key] = f.type === 'stringArray' ? [] : (f.default ?? '');
-        return acc;
-    }, {});
 
 /* Generic add/list/edit/delete table for the simple Phase 0 masters
    (Clients, Vendors, Employees, Materials, Labour Teams) — one config-driven
@@ -41,8 +36,10 @@ const MasterCrudTable = ({ url, resourceKey, filter, getDetailLink }) => {
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
-    const needsVendors = resource.fields.some(f => f.type === 'vendorSelect') ||
-        resource.columns.some(c => c.vendorRef);
+    // Only needed for the read-only column display (e.g. Team's Contractor
+    // column) — the form itself no longer needs a pre-fetched vendor list,
+    // since vendorSelect fields render as a self-fetching QuickAddPicker.
+    const needsVendors = resource.columns.some(c => c.vendorRef);
     const settingSelectFields = resource.fields.filter(f => f.type === 'settingSelect');
 
     const fetchList = async () => {
@@ -98,12 +95,6 @@ const MasterCrudTable = ({ url, resourceKey, filter, getDetailLink }) => {
     const closeModal = () => { setModalOpen(false); setEditingId(null); };
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
-
-    const addStringArrayItem = (key) => setField(key, [...(form[key] || []), '']);
-    const setStringArrayItem = (key, idx, value) =>
-        setField(key, form[key].map((v, i) => (i === idx ? value : v)));
-    const removeStringArrayItem = (key, idx) =>
-        setField(key, form[key].filter((_, i) => i !== idx));
 
     const submit = async (e) => {
         e.preventDefault();
@@ -169,55 +160,6 @@ const MasterCrudTable = ({ url, resourceKey, filter, getDetailLink }) => {
 
     const displayList = filter ? list.filter(filter) : list;
 
-    const renderField = (f) => {
-        const value = form[f.key];
-        switch (f.type) {
-            case 'textarea':
-                return <textarea rows="3" value={value} onChange={e => setField(f.key, e.target.value)} placeholder={f.placeholder} />;
-            case 'select':
-                return (
-                    <select value={value} onChange={e => setField(f.key, e.target.value)}>
-                        {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                );
-            case 'vendorSelect':
-                return (
-                    <select value={value} onChange={e => setField(f.key, e.target.value)}>
-                        <option value="">— None —</option>
-                        {vendors.map(v => <option key={v._id} value={v._id}>{v.name}</option>)}
-                    </select>
-                );
-            case 'settingSelect':
-                return (
-                    <>
-                        <SettingSelectField
-                            settingType={f.settingType}
-                            options={settingOptions[f.settingType] || []}
-                            value={value}
-                            onChange={v => setField(f.key, v)}
-                            placeholder={f.placeholder}
-                        />
-                        {f.note && <p style={{ fontSize: '0.78rem', color: 'var(--text-lt)', marginTop: '4px' }}>{f.note}</p>}
-                    </>
-                );
-            case 'stringArray':
-                return (
-                    <div className="add-product-points">
-                        {(value || []).map((v, idx) => (
-                            <div key={idx} className="point-input">
-                                <input type="text" value={v} placeholder={f.placeholder}
-                                    onChange={e => setStringArrayItem(f.key, idx, e.target.value)} />
-                                <button type="button" className="remove-point-btn" onClick={() => removeStringArrayItem(f.key, idx)}>X</button>
-                            </div>
-                        ))}
-                        <button type="button" className="add-point-btn" onClick={() => addStringArrayItem(f.key)}>+ Add {f.label.replace(/s$/, '')}</button>
-                    </div>
-                );
-            default:
-                return <input type={f.type} value={value} placeholder={f.placeholder} onChange={e => setField(f.key, e.target.value)} />;
-        }
-    };
-
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
@@ -257,7 +199,7 @@ const MasterCrudTable = ({ url, resourceKey, filter, getDetailLink }) => {
                             {resource.fields.filter(f => !f.showIf || f.showIf(form)).map(f => (
                                 <div key={f.key} className="add-product-name flex-col">
                                     <p>{f.label}{f.required ? ' *' : ''}</p>
-                                    {renderField(f)}
+                                    {renderMasterField(f, form, setField, { url, settingOptions })}
                                 </div>
                             ))}
                             <div className="edit-modal-actions">

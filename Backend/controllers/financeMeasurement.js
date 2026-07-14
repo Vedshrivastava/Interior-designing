@@ -7,6 +7,7 @@ import FinanceProject from '../models/financeProject.js';
 import FinanceStockMovement from '../models/financeStockMovement.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
+import { getAssignmentsByWork, getTeamIdsForWork } from '../utils/workTeamAssignments.js';
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ const listMeasurements = async (req, res) => {
         const items = await FinanceMeasurement.find(filter)
             .populate('workId', 'workType')
             .populate('materialUsed.materialId', 'name unit')
+            .populate('teamId', 'name')
             .sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {
@@ -45,18 +47,25 @@ const listMeasurements = async (req, res) => {
  */
 const addMeasurement = async (req, res) => {
     try {
-        const { projectId, workId, date, supervisorName, remarks } = req.body;
+        const { projectId, workId, date, teamId, supervisorName, remarks } = req.body;
         const areaCoveredSqft = Number(req.body.areaCoveredSqft);
 
         if (!projectId || !workId || !date) {
             return res.status(400).json({ success: false, message: 'Project, work, and date are required' });
         }
+        if (!teamId) return res.status(400).json({ success: false, message: 'Team is required' });
         if (!areaCoveredSqft || areaCoveredSqft <= 0) {
             return res.status(400).json({ success: false, message: 'Area covered must be greater than zero' });
         }
 
         const work = await FinanceWork.findOne({ _id: workId, projectId, deleted: { $ne: true } });
         if (!work) return res.status(404).json({ success: false, message: "Work not found for this project" });
+
+        const assignmentsByWorkId = await getAssignmentsByWork([workId]);
+        const assignedTeamIds = getTeamIdsForWork(work, assignmentsByWorkId).map(t => t.toString());
+        if (!assignedTeamIds.includes(teamId.toString())) {
+            return res.status(400).json({ success: false, message: 'Team is not assigned to this work' });
+        }
 
         const project = await FinanceProject.findById(projectId);
         if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
@@ -87,7 +96,7 @@ const addMeasurement = async (req, res) => {
         }
 
         const measurement = new FinanceMeasurement({
-            projectId, workId, date, areaCoveredSqft,
+            projectId, workId, date, teamId, areaCoveredSqft,
             supervisorName: supervisorName || '',
             materialUsed,
             photos: photoUrls,

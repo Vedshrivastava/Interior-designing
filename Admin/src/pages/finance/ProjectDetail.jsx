@@ -31,6 +31,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
     const [profit, setProfit] = useState(null);
     const [materials, setMaterials] = useState([]);
     const [receivable, setReceivable] = useState(null);
+    const [vendors, setVendors] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -41,14 +42,25 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
                 const requests = [
                     axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId } }),
                     axios.get(`${url}/api/finance/reports/material-analysis`, { ...authHeader, params: { projectId } }),
+                    axios.get(`${url}/api/finance/purchases/list`, { ...authHeader, params: { projectId } }),
                 ];
                 if (BILLABLE_CONTRACT_TYPES.includes(contractType)) {
                     requests.push(axios.get(`${url}/api/finance/receivables/summary`, { ...authHeader, params: { projectId } }));
                 }
-                const [profitRes, materialRes, receivableRes] = await Promise.all(requests);
+                const [profitRes, materialRes, purchasesRes, receivableRes] = await Promise.all(requests);
                 if (cancelled) return;
                 if (profitRes.data.success) setProfit(profitRes.data.data);
                 if (materialRes.data.success) setMaterials(materialRes.data.data);
+                if (purchasesRes.data.success) {
+                    const byVendor = new Map();
+                    for (const p of purchasesRes.data.data) {
+                        if (!p.vendorId) continue;
+                        const key = p.vendorId._id || p.vendorId;
+                        if (!byVendor.has(key)) byVendor.set(key, { vendorId: key, vendorName: p.vendorId.name || '—', totalPurchased: 0 });
+                        byVendor.get(key).totalPurchased += p.totalAmount;
+                    }
+                    setVendors([...byVendor.values()]);
+                }
                 if (receivableRes?.data.success) setReceivable(receivableRes.data.data);
             } catch {
                 // Overview degrades gracefully — sections just show empty state.
@@ -142,6 +154,18 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
                 </div>
             )}
 
+            {vendors.length > 0 && (
+                <div className="list-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}><b>Vendors Supplying This Project</b><b>Total Purchased</b></div>
+                    {vendors.map(v => (
+                        <div key={v.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
+                            <p>{v.vendorName}</p>
+                            <p>{formatINR(v.totalPurchased)}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             <div style={{ textAlign: 'right' }}>
                 <span className="cursor edit-action" onClick={onViewWorks}>View all Works →</span>
             </div>
@@ -177,6 +201,7 @@ const ProjectDetail = ({ url }) => {
 
     const [activeTab, setActiveTab] = useState('overview');
     const [project, setProject] = useState(null);
+    const [contractors, setContractors] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activating, setActivating] = useState(false);
 
@@ -188,8 +213,10 @@ const ProjectDetail = ({ url }) => {
         setLoading(true);
         try {
             const res = await axios.get(`${url}/api/finance/projects/${id}`, authHeader);
-            if (res.data.success) setProject(res.data.data.project);
-            else toast.error(res.data.message);
+            if (res.data.success) {
+                setProject(res.data.data.project);
+                setContractors(res.data.data.contractors || []);
+            } else toast.error(res.data.message);
         } catch { toast.error('Error fetching project'); }
         finally { setLoading(false); }
     };
@@ -289,7 +316,15 @@ const ProjectDetail = ({ url }) => {
 
                 {activeTab === 'contractors' && (
                     <div className="list-table">
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Labour Contractor</b></p><p>{project.labourContractorVendorId?.name || '—'}</p></div>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr' }}><b>Contractor</b><b>Work Types</b></div>
+                        {contractors.length === 0 ? (
+                            <div className="admin-empty-state"><p>No contractor assigned to any Work yet — add a Work and pick a team under the Works tab.</p></div>
+                        ) : contractors.map(c => (
+                            <div key={c.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                                <p>{c.vendorName}</p>
+                                <p>{c.workTypes.join(', ')}</p>
+                            </div>
+                        ))}
                         <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Referral Vendor</b></p><p>{project.referralVendorId?.name || '—'}</p></div>
                     </div>
                 )}

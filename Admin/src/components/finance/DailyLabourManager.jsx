@@ -6,7 +6,7 @@ import '../../styles/list.css';
 const ATTENDANCE_LABEL = { half_day: 'Half Day', full_day: 'Full Day', extra_day: 'Extra Day' };
 const MULTIPLIER = { half_day: 0.5, full_day: 1, extra_day: 1.5 };
 
-const emptyForm = { projectId: '', date: '', labourerName: '', attendanceType: 'full_day', rate: '', supervisorId: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', notes: '' };
+const emptyForm = { projectId: '', date: '', labourerName: '', attendanceType: 'full_day', rate: '', supervisorId: '', notes: '' };
 
 /*
  * Casual/daily-wage labour — distinct from contractor teams. One component
@@ -19,6 +19,10 @@ const emptyForm = { projectId: '', date: '', labourerName: '', attendanceType: '
  *     readOnly — just this supervisor's recorded entries, no entry form
  *     (matches the build spec's framing: a supervisor's own record, not
  *     another entry point).
+ *
+ * No payment fields on the entry form — payment happens once, in bulk, at
+ * settlement time (see SupervisorLabourPaymentsManager), not per entry.
+ * Each entry just shows whether it's been swept into a settlement yet.
  */
 const DailyLabourManager = ({ url, projectId, supervisorId, readOnly = false }) => {
     const token = localStorage.getItem('token');
@@ -26,7 +30,6 @@ const DailyLabourManager = ({ url, projectId, supervisorId, readOnly = false }) 
 
     const [projects, setProjects] = useState([]);
     const [employees, setEmployees] = useState([]);
-    const [bankAccounts, setBankAccounts] = useState([]);
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState({ ...emptyForm, projectId: projectId || '' });
@@ -50,7 +53,6 @@ const DailyLabourManager = ({ url, projectId, supervisorId, readOnly = false }) 
         if (readOnly) return;
         if (!projectId) axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/employees/list`, authHeader).then(res => { if (res.data.success) setEmployees(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
     }, [url, projectId, readOnly]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
@@ -77,8 +79,10 @@ const DailyLabourManager = ({ url, projectId, supervisorId, readOnly = false }) 
             const res = await axios.delete(`${url}/api/finance/daily-labour/remove`, { ...authHeader, data: { _id: id } });
             if (res.data.success) { toast.success(res.data.message); await fetchEntries(); }
             else toast.error(res.data.message);
-        } catch { toast.error('Error removing entry'); }
+        } catch (err) { toast.error(err.response?.data?.message || 'Error removing entry'); }
     };
+
+    const gridColumns = projectId ? '1fr 1.2fr 1fr 1fr 1fr 1fr 100px 100px' : '1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 100px 100px';
 
     return (
         <div>
@@ -125,17 +129,6 @@ const DailyLabourManager = ({ url, projectId, supervisorId, readOnly = false }) 
                                 {employees.map(e => <option key={e._id} value={e._id}>{e.name}</option>)}
                             </select>
                         </div>
-                        <div className="add-product-name flex-col">
-                            <p>Payment Mode</p>
-                            <input type="text" value={form.paymentMode} onChange={e => setField('paymentMode', e.target.value)} />
-                        </div>
-                        <div className="add-product-name flex-col">
-                            <p>Bank Account</p>
-                            <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)}>
-                                <option value="">— Cash —</option>
-                                {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
-                            </select>
-                        </div>
                         <div className="add-product-name flex-col wizard-field-full">
                             <p>Notes</p>
                             <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
@@ -149,10 +142,10 @@ const DailyLabourManager = ({ url, projectId, supervisorId, readOnly = false }) 
             )}
 
             <div className="list-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: projectId ? '1fr 1.2fr 1fr 1fr 1fr 1fr 100px' : '1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 100px' }}>
+                <div className="list-table-format title" style={{ gridTemplateColumns: gridColumns }}>
                     <b>Date</b>
                     {!projectId && <b>Project</b>}
-                    <b>Labourer</b><b>Type</b><b>Rate</b><b>Amount</b><b>Supervisor</b>
+                    <b>Labourer</b><b>Type</b><b>Rate</b><b>Amount</b><b>Supervisor</b><b>Status</b>
                     {!readOnly && <b>Action</b>}
                 </div>
                 {loading ? (
@@ -160,7 +153,7 @@ const DailyLabourManager = ({ url, projectId, supervisorId, readOnly = false }) 
                 ) : entries.length === 0 ? (
                     <div className="admin-empty-state"><p>No daily labour entries yet.</p></div>
                 ) : entries.map(e => (
-                    <div key={e._id} className="list-table-format row-item" style={{ gridTemplateColumns: projectId ? '1fr 1.2fr 1fr 1fr 1fr 1fr 100px' : '1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 100px' }}>
+                    <div key={e._id} className="list-table-format row-item" style={{ gridTemplateColumns: gridColumns }}>
                         <p>{new Date(e.date).toLocaleDateString()}</p>
                         {!projectId && <p>{e.projectId?.name || '—'}</p>}
                         <p>{e.labourerName}</p>
@@ -168,6 +161,7 @@ const DailyLabourManager = ({ url, projectId, supervisorId, readOnly = false }) 
                         <p>₹{e.rate.toLocaleString('en-IN')}</p>
                         <p>₹{e.amount.toLocaleString('en-IN')}</p>
                         <p>{e.supervisorId?.name || '—'}</p>
+                        <p style={{ color: e.settledInPaymentId ? 'var(--moss)' : '#c0392b' }}>{e.settledInPaymentId ? 'Settled' : 'Unsettled'}</p>
                         {!readOnly && <div className="action-buttons"><p onClick={() => remove(e._id)} className="cursor delete-action">X</p></div>}
                     </div>
                 ))}

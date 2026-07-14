@@ -7,6 +7,12 @@ const financeMeasurementSchema = new mongoose.Schema({
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', required: true },
     workId:    { type: mongoose.Schema.Types.ObjectId, ref: 'financeWork', required: true },
 
+    // Which team did this day's measured area — required for new entries so
+    // earnings can attribute per-team when a Work has more than one crew.
+    // Old measurements predate this field and fall back to the Work's
+    // legacy teamId when read (see utils/workTeamAssignments.js).
+    teamId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeTeam', default: null },
+
     date:            { type: Date, required: true },
     supervisorName:  { type: String, default: '' }, // plain text — mirrors financeProject.assignedSupervisor; no Supervisor model yet
     areaCoveredSqft: { type: Number, required: true },

@@ -1,7 +1,41 @@
 import FinanceProject from '../models/financeProject.js';
 import FinanceWorkTypeRate from '../models/financeWorkTypeRate.js';
 import FinanceTeamRate from '../models/financeTeamRate.js';
+import FinanceWork from '../models/financeWork.js';
+import FinanceTeam from '../models/financeTeam.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { getAssignmentsByWork, getTeamIdsForWork } from '../utils/workTeamAssignments.js';
+
+// Contractor is per-Work, via financeWorkTeamAssignment -> financeTeam.contractorVendorId
+// (a Work can have more than one team/contractor) — not a single
+// project-level field, and not a single team per Work either.
+// financeProject.labourContractorVendorId stays in the schema for old
+// records but is no longer authoritative; this derives the real, current
+// set fresh every time.
+const computeProjectContractors = async (projectId) => {
+    const works = await FinanceWork.find({ projectId, deleted: { $ne: true } }, '_id teamId workType');
+    if (!works.length) return [];
+    const assignmentsByWorkId = await getAssignmentsByWork(works.map(w => w._id));
+    const workTeamPairs = works.flatMap(w =>
+        getTeamIdsForWork(w, assignmentsByWorkId).map(teamId => ({ teamId: teamId.toString(), workType: w.workType }))
+    );
+    if (!workTeamPairs.length) return [];
+    const teamIds = [...new Set(workTeamPairs.map(p => p.teamId))];
+    const teams = await FinanceTeam.find({ _id: { $in: teamIds }, deleted: { $ne: true } }).populate('contractorVendorId', 'name');
+    const teamById = new Map(teams.map(t => [t._id.toString(), t]));
+
+    const byVendor = new Map();
+    for (const { teamId, workType } of workTeamPairs) {
+        const team = teamById.get(teamId);
+        if (!team?.contractorVendorId) continue;
+        const vendorId = team.contractorVendorId._id.toString();
+        if (!byVendor.has(vendorId)) {
+            byVendor.set(vendorId, { vendorId: team.contractorVendorId._id, vendorName: team.contractorVendorId.name, workTypes: new Set() });
+        }
+        byVendor.get(vendorId).workTypes.add(workType);
+    }
+    return [...byVendor.values()].map(v => ({ ...v, workTypes: [...v.workTypes] }));
+};
 import { logActivity } from '../utils/financeActivityLog.js';
 
 // Contract-type-specific field rules — enforced server-side so the wizard's
@@ -67,12 +101,13 @@ const getFinanceProject = async (req, res) => {
             .populate('assignedSupervisorId', 'name');
         if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
-        const [workTypeRates, teamRates] = await Promise.all([
+        const [workTypeRates, teamRates, contractors] = await Promise.all([
             FinanceWorkTypeRate.find({ projectId: project._id, deleted: { $ne: true } }).sort({ workType: 1 }),
             FinanceTeamRate.find({ projectId: project._id, deleted: { $ne: true } }).populate('teamId', 'name').sort({ workType: 1 }),
+            computeProjectContractors(project._id),
         ]);
 
-        res.json({ success: true, data: { project, workTypeRates, teamRates } });
+        res.json({ success: true, data: { project, workTypeRates, teamRates, contractors } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error fetching project' });
@@ -101,7 +136,9 @@ const addFinanceProject = async (req, res) => {
             contractType,
             assignedSupervisor: data.assignedSupervisor || '',
             assignedSupervisorId: data.assignedSupervisorId || null,
-            labourContractorVendorId: data.labourContractorVendorId || null,
+            // labourContractorVendorId intentionally not settable here — contractor
+            // assignment is per-Work (see computeProjectContractors above), not a
+            // single project-level field. The schema field stays for old records.
             referralVendorId: data.referralVendorId || null,
             materialTrackingEnabled: data.materialTrackingEnabled,
             totalEstimatedCost: data.totalEstimatedCost,
@@ -147,7 +184,8 @@ const updateFinanceProject = async (req, res) => {
             contractType,
             assignedSupervisor: merged.assignedSupervisor || '',
             assignedSupervisorId: merged.assignedSupervisorId || null,
-            labourContractorVendorId: merged.labourContractorVendorId || null,
+            // labourContractorVendorId intentionally not settable here — see
+            // addFinanceProject's comment above.
             referralVendorId: merged.referralVendorId,
             materialTrackingEnabled: merged.materialTrackingEnabled,
             totalEstimatedCost: merged.totalEstimatedCost,

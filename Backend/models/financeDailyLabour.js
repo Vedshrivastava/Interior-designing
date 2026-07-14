@@ -16,10 +16,20 @@ const financeDailyLabourSchema = new mongoose.Schema({
 
     supervisorId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeEmployee', default: null }, // who recorded this
 
+    // Deprecated — payment used to happen per entry, but the real process is
+    // one bulk settlement per supervisor covering many entries (see
+    // financeSupervisorLabourPayment). Kept only for backward compatibility
+    // with rows seeded before that model existed; no longer populated by
+    // new entries and no longer drives any cash-entry automation.
     paymentMode:     { type: String, default: '' },
-    bankAccountId:   { type: mongoose.Schema.Types.ObjectId, ref: 'financeBankAccount', default: null }, // no bankAccountId means cash — see controller's cash-entry automation
+    bankAccountId:   { type: mongoose.Schema.Types.ObjectId, ref: 'financeBankAccount', default: null },
     bankOrCashLabel: { type: String, default: '' },
-    notes:           { type: String, default: '' },
+
+    // Set automatically when a financeSupervisorLabourPayment settlement
+    // covers this entry — mirrors billedInRunningBillId on measurements.
+    settledInPaymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeSupervisorLabourPayment', default: null },
+
+    notes: { type: String, default: '' },
 
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },

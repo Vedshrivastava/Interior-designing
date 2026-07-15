@@ -418,6 +418,7 @@
    5. INPUT FIELDS
 ══════════════════════════════════════════════ */
 .add-product-name input,
+.add-product-name select,
 .add-product-description textarea,
 .add-category-price select,
 .add-category-price input,
@@ -444,6 +445,7 @@
 }
 
 /* Select custom arrow */
+.add-product-name select,
 .add-category-price select {
     appearance: none;
     -webkit-appearance: none;
@@ -456,6 +458,7 @@
 
 /* Focus state — gold ring */
 .add-product-name input:focus,
+.add-product-name select:focus,
 .add-product-description textarea:focus,
 .add-category-price select:focus,
 .add-category-price input:focus,

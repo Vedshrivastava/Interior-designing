@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
@@ -25,6 +25,7 @@ const ClientsPage = ({ url }) => {
     const [summary, setSummary] = useState(null);
     const [loading, setLoading] = useState(true);
     const [sortKey, setSortKey] = useState('totalBilled');
+    const clientTableRef = useRef(null);
 
     useEffect(() => {
         setLoading(true);
@@ -44,7 +45,11 @@ const ClientsPage = ({ url }) => {
     );
 
     return (
-        <FinanceTabShell label="Clients" subtitle="Client master — billed, received, and outstanding at a glance. Click a client to open their detail view.">
+        <FinanceTabShell
+            label="Clients"
+            subtitle="Client master — billed, received, and outstanding at a glance. Click a client to open their detail view."
+            headerAction={<button type="button" className="add-btn" style={{ minWidth: 'auto', padding: '12px 24px', alignSelf: 'center' }} onClick={() => clientTableRef.current?.openAdd()}>+ Add Client</button>}
+        >
             {!loading && clients.length > 0 && (
                 <>
                     <ChartGrid>
@@ -95,7 +100,7 @@ const ClientsPage = ({ url }) => {
                 </>
             )}
 
-            <MasterCrudTable url={url} resourceKey="clients" getDetailLink={(item) => `/finance/clients/${item._id}`} />
+            <MasterCrudTable ref={clientTableRef} url={url} resourceKey="clients" getDetailLink={(item) => `/finance/clients/${item._id}`} hideAddButton />
         </FinanceTabShell>
     );
 };

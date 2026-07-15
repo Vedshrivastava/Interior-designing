@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useImperativeHandle, useState, forwardRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -18,8 +18,14 @@ import '../../styles/add.css';
    Vendors data split by vendorType without a second API endpoint.
 
    `getDetailLink` (optional): (item) => path — when set, the first column
-   renders as a clickable link into a detail route (used by Clients). */
-const MasterCrudTable = ({ url, resourceKey, filter, getDetailLink }) => {
+   renders as a clickable link into a detail route (used by Clients).
+
+   `hideAddButton` (optional): suppresses the built-in "+ Add X" trigger —
+   used when a page wants that action hoisted somewhere more prominent
+   (e.g. Clients' page header) instead of sitting right above this table.
+   The add flow itself still lives here; the caller opens it via the
+   forwarded ref's `openAdd()`. */
+const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, hideAddButton }, ref) => {
     const navigate = useNavigate();
     const resource = FINANCE_MASTERS[resourceKey];
     const token = localStorage.getItem('token');
@@ -78,6 +84,8 @@ const MasterCrudTable = ({ url, resourceKey, filter, getDetailLink }) => {
         setForm(emptyFormFromFields(resource.fields));
         setModalOpen(true);
     };
+
+    useImperativeHandle(ref, () => ({ openAdd }));
 
     const openEdit = (item) => {
         setEditingId(item._id);
@@ -162,9 +170,11 @@ const MasterCrudTable = ({ url, resourceKey, filter, getDetailLink }) => {
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-                <button type="button" className="add-point-btn" onClick={openAdd}>+ Add {resource.label}</button>
-            </div>
+            {!hideAddButton && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                    <button type="button" className="add-point-btn" onClick={openAdd}>+ Add {resource.label}</button>
+                </div>
+            )}
 
             <div className="list-table">
                 <div className="list-table-format title"
@@ -231,6 +241,6 @@ const MasterCrudTable = ({ url, resourceKey, filter, getDetailLink }) => {
             )}
         </div>
     );
-};
+});
 
 export default MasterCrudTable;

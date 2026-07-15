@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import QuickAddPicker from './QuickAddPicker';
+import TeamOrLabourPicker from './TeamOrLabourPicker';
 import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 import '../../styles/add.css';
@@ -223,9 +223,8 @@ const WorksManager = ({ url, projectId, onWorksChanged }) => {
                                         {teamAssignments.map((a, idx) => (
                                             <div key={idx} className="point-input">
                                                 <div style={{ flex: 1 }}>
-                                                    <QuickAddPicker url={url} resourceKey="teams" value={a.teamId}
-                                                        onChange={v => setAssignmentField(idx, 'teamId', v)}
-                                                        hint="Looking to add casual daily-wage labour instead? Manage that from Supervisors → Roster, not here." />
+                                                    <TeamOrLabourPicker url={url} value={a.teamId}
+                                                        onChange={v => setAssignmentField(idx, 'teamId', v)} />
                                                 </div>
                                                 <input type="text" placeholder="Notes (optional)" value={a.notes}
                                                     onChange={e => setAssignmentField(idx, 'notes', e.target.value)} style={{ flex: 1 }} />
@@ -302,10 +301,7 @@ const WorksManager = ({ url, projectId, onWorksChanged }) => {
                             <p>Add Contractor Team</p>
                             <div className="point-input">
                                 <div style={{ flex: 1 }}>
-                                    <QuickAddPicker
-                                        url={url} resourceKey="teams" value={newTeamId} onChange={setNewTeamId}
-                                        hint="Looking to add casual daily-wage labour instead? Manage that from Supervisors → Roster, not here."
-                                    />
+                                    <TeamOrLabourPicker url={url} value={newTeamId} onChange={setNewTeamId} />
                                 </div>
                                 <input type="text" placeholder="Notes (optional)" value={newTeamNotes}
                                     onChange={e => setNewTeamNotes(e.target.value)} style={{ flex: 1 }} />

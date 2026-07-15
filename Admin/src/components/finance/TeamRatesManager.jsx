@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import QuickAddPicker from './QuickAddPicker';
+import TeamOrLabourPicker from './TeamOrLabourPicker';
 import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
@@ -91,10 +91,7 @@ const TeamRatesManager = ({ url, projectId, worksVersion }) => {
                 <div className="wizard-field-grid">
                     <div className="add-product-name flex-col">
                         <p>Team *</p>
-                        <QuickAddPicker
-                            url={url} resourceKey="teams" value={form.teamId} onChange={v => setField('teamId', v)}
-                            hint="Looking to add casual daily-wage labour instead? Manage that from Supervisors → Roster, not here."
-                        />
+                        <TeamOrLabourPicker url={url} value={form.teamId} onChange={v => setField('teamId', v)} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Work Type *</p>

@@ -83,17 +83,15 @@ export const FINANCE_MASTERS = {
         ],
     },
     teams: {
-        label: 'Team', labelPlural: 'Labour Teams', apiBase: '/api/finance/teams',
+        label: 'Contractor Team', labelPlural: 'Contractor Teams', apiBase: '/api/finance/teams',
         fields: [
             { key: 'name', label: 'Team Name', type: 'text', required: true },
             { key: 'contractorVendorId', label: 'Labour Contractor (vendor)', type: 'vendorSelect' },
-            { key: 'members', label: 'Members', type: 'stringArray', placeholder: 'Worker name' },
             { key: 'notes', label: 'Notes', type: 'textarea' },
         ],
         columns: [
             { key: 'name', label: 'Name' },
             { key: 'contractorVendorId', label: 'Contractor', vendorRef: true },
-            { key: 'members', label: 'Members', joinArray: true },
         ],
     },
     // Not surfaced under Masters' own page — a labourer only makes sense

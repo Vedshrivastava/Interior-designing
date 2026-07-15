@@ -334,7 +334,7 @@ export const FINANCE_NAV_SECTIONS = [
         // completedAreaSqft × referralRatePerSqft). The Banks placeholder
         // tab was removed in that same build — Bank Accounts already
         // exists for real under its own top-level Bank section.
-        tabs: [{ key: 'overview', label: 'Overview', description: 'Material catalog, work types, payment modes, expense heads, TDS sections, units, cities, commission types, employees, and labour teams.' }],
+        tabs: [{ key: 'overview', label: 'Overview', description: 'Material catalog, work types, payment modes, expense heads, TDS sections, units, cities, commission types, employees, and contractor teams.' }],
       },
       {
         to: '/finance/settings', icon: faGear, label: 'Settings',

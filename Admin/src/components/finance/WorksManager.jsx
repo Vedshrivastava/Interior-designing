@@ -189,7 +189,7 @@ const WorksManager = ({ url, projectId }) => {
                                 <p><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
                                 <div className="action-buttons">
                                     <p onClick={() => navigate(`/finance/projects/${projectId}/works/${w._id}`)} className="cursor edit-action">Details</p>
-                                    <p onClick={() => openTeamsModal(w)} className="cursor edit-action">Teams</p>
+                                    <p onClick={() => openTeamsModal(w)} className="cursor edit-action">Contractors</p>
                                     <p onClick={() => openEdit(w)} className="cursor edit-action">Edit</p>
                                     <p onClick={() => setConfirmItem(w)} className="cursor delete-action">X</p>
                                 </div>
@@ -214,7 +214,7 @@ const WorksManager = ({ url, projectId }) => {
 
                             {!editingId && (
                                 <div className="add-product-name flex-col">
-                                    <p>Team(s) *</p>
+                                    <p>Contractor Team(s) *</p>
                                     <div className="add-product-points">
                                         {teamAssignments.map((a, idx) => (
                                             <div key={idx} className="point-input">
@@ -229,7 +229,7 @@ const WorksManager = ({ url, projectId }) => {
                                                 )}
                                             </div>
                                         ))}
-                                        <button type="button" className="add-point-btn" onClick={addAssignmentRow}>+ Add Team</button>
+                                        <button type="button" className="add-point-btn" onClick={addAssignmentRow}>+ Add Contractor Team</button>
                                     </div>
                                 </div>
                             )}
@@ -272,13 +272,13 @@ const WorksManager = ({ url, projectId }) => {
             {teamsModalWork && ReactDOM.createPortal(
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
                     <div className="loader-modal-box edit-modal">
-                        <h2>Manage Teams — {teamsModalWork.workType}</h2>
+                        <h2>Manage Contractor Teams — {teamsModalWork.workType}</h2>
                         {teamsLoading ? (
                             <div className="admin-empty-state"><p>Loading…</p></div>
                         ) : (
                             <div className="list-table" style={{ marginBottom: '16px' }}>
                                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1.5fr 100px' }}>
-                                    <b>Team</b><b>Notes</b><b>Action</b>
+                                    <b>Contractor Team</b><b>Notes</b><b>Action</b>
                                 </div>
                                 {workTeams.map(a => (
                                     <div key={a._id || a.teamId?._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1.5fr 100px' }}>
@@ -294,7 +294,7 @@ const WorksManager = ({ url, projectId }) => {
                             </div>
                         )}
                         <div className="add-product-name flex-col">
-                            <p>Add Team</p>
+                            <p>Add Contractor Team</p>
                             <div className="point-input">
                                 <div style={{ flex: 1 }}>
                                     <QuickAddPicker url={url} resourceKey="teams" value={newTeamId} onChange={setNewTeamId} />

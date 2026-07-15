@@ -15,12 +15,11 @@ const listFinanceTeams = async (req, res) => {
 
 const addFinanceTeam = async (req, res) => {
     try {
-        const { name, contractorVendorId, members, notes } = req.body;
+        const { name, contractorVendorId, notes } = req.body;
         if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
         const item = new FinanceTeam({
             name: name.trim(),
             contractorVendorId: contractorVendorId || null,
-            members: Array.isArray(members) ? members : [],
             notes,
         });
         await item.save();
@@ -34,14 +33,13 @@ const addFinanceTeam = async (req, res) => {
 
 const updateFinanceTeam = async (req, res) => {
     try {
-        const { _id, name, contractorVendorId, members, notes } = req.body;
+        const { _id, name, contractorVendorId, notes } = req.body;
         const existing = await FinanceTeam.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Team not found' });
         if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
         await FinanceTeam.findByIdAndUpdate(_id, {
             name: name.trim(),
             contractorVendorId: contractorVendorId || null,
-            members: Array.isArray(members) ? members : [],
             notes,
         });
         broadcast({ type: 'financeTeamsChanged' });

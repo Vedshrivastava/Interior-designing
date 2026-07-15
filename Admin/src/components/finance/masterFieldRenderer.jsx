@@ -26,7 +26,13 @@ export const renderMasterField = (f, form, setField, { url, settingOptions = {} 
                 </select>
             );
         case 'vendorSelect':
-            return <QuickAddPicker url={url} resourceKey="vendors" value={value} onChange={v => setField(f.key, v)} placeholder="— None —" />;
+            return (
+                <QuickAddPicker
+                    url={url} resourceKey="vendors" value={value} onChange={v => setField(f.key, v)}
+                    filter={v => v.vendorType === 'labour_contractor'} presetValues={{ vendorType: 'labour_contractor' }}
+                    placeholder="— None —"
+                />
+            );
         case 'employeeSelect':
             return <QuickAddPicker url={url} resourceKey="employees" value={value} onChange={v => setField(f.key, v)} placeholder="— None —" />;
         case 'settingSelect':

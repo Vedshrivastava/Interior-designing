@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import StyledSelect from '../../components/finance/StyledSelect';
+import StyledDatePicker from '../../components/finance/StyledDatePicker';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
@@ -110,11 +111,11 @@ const ActivityTimelinePage = ({ url }) => {
                 </div>
                 <div className="add-product-name flex-col">
                     <p>From</p>
-                    <input type="date" value={filters.dateFrom} onChange={e => setField('dateFrom', e.target.value)} />
+                    <StyledDatePicker value={filters.dateFrom} onChange={v => setField('dateFrom', v)} />
                 </div>
                 <div className="add-product-name flex-col">
                     <p>To</p>
-                    <input type="date" value={filters.dateTo} onChange={e => setField('dateTo', e.target.value)} />
+                    <StyledDatePicker value={filters.dateTo} onChange={v => setField('dateTo', v)} />
                 </div>
             </div>
 

@@ -2,21 +2,96 @@
    all three tiers (Company Dashboard, section mini-dashboards, drill-downs).
    Reuses the same ivory/forest/gold palette as welcome.css / list.css. */
 
-.dash-kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 12px;
-    margin-bottom: 24px;
+/* Page-level loading state — deliberately its own class rather than reusing
+   the global .submit-loader-overlay (index.css), which is a true modal
+   meant to cover the whole screen including sidebar/navbar for save/update
+   actions. This one only covers the content pane to the right of the
+   sidebar/below the navbar (same box the .main-content layout occupies —
+   see index.css's .main-content/.sidebar for the 220px/62px it mirrors),
+   stays fixed so it can't scroll away, and skips the backdrop blur so it
+   reads as "this area is refreshing" rather than a blocking modal. */
+.dash-page-loader {
+    position: fixed;
+    top: 62px;
+    left: 220px;
+    right: 0;
+    bottom: 0;
+    z-index: 500;
+    background: rgba(248, 244, 238, 0.82);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
+@media (max-width: 900px) {
+    .dash-page-loader { left: 68px; }
+}
+
+@media (max-width: 480px) {
+    .dash-page-loader { left: 0; top: 74px; }
+}
+
+.dash-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.dash-kpi-grid.hero-row {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 30px;
+}
+
+.dash-kpi-section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-lt, #9a8e84);
+    margin: 0 0 12px;
+    padding-left: 10px;
+    border-left: 3px solid var(--gold, #c9a87c);
+}
+
+/* ── KPI card ── a crisp top accent bar + a real (if faint) resting shadow
+   is what separates "card" from "flat rectangle with a border" — both are
+   always present, not conjured only on hover. */
 .dash-kpi-card {
+    position: relative;
     background: var(--white, #fff);
-    border: 1px solid var(--gold-line, rgba(201, 168, 124, 0.24));
+    border: 1px solid rgba(201, 168, 124, 0.18);
     border-radius: var(--radius, 14px);
-    padding: 14px 16px;
+    padding: 16px 18px;
     text-align: left;
     cursor: default;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(16, 37, 37, 0.04), 0 1px 12px rgba(16, 37, 37, 0.03);
     transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dash-kpi-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--gold, #c9a87c);
+    opacity: 0.55;
+}
+
+.dash-kpi-card.tone-danger::before { background: var(--danger, #c0392b); }
+.dash-kpi-card.tone-good::before   { background: var(--moss, #2d4a35); }
+
+/* Warm gold wash — a purely cosmetic variant, same card layout either way. */
+.dash-kpi-card.gold-accent {
+    background: linear-gradient(135deg, rgba(201, 168, 124, 0.14), rgba(232, 208, 168, 0.24));
+    border-color: rgba(201, 168, 124, 0.45);
+}
+
+.dash-kpi-card.gold-accent .dash-kpi-icon {
+    background: rgba(255, 255, 255, 0.55);
+    border-color: rgba(201, 168, 124, 0.4);
 }
 
 .dash-kpi-card.clickable {
@@ -24,56 +99,154 @@
 }
 
 .dash-kpi-card.clickable:hover {
-    border-color: rgba(201, 168, 124, 0.6);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-sm, 0 2px 8px rgba(11, 26, 26, 0.06));
+    border-color: rgba(201, 168, 124, 0.5);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(16, 37, 37, 0.1);
 }
 
+.dash-kpi-card.clickable:hover::before { opacity: 1; }
+
+.dash-kpi-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.dash-kpi-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.dash-kpi-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    background: rgba(201, 168, 124, 0.15);
+    border: 1px solid rgba(201, 168, 124, 0.28);
+    color: var(--gold, #c9a87c);
+    font-size: 1.05rem;
+}
+
+.dash-kpi-icon.tone-danger { background: rgba(192, 57, 43, 0.12); border-color: rgba(192, 57, 43, 0.25); color: var(--danger, #c0392b); }
+.dash-kpi-icon.tone-good   { background: rgba(45, 74, 53, 0.12);  border-color: rgba(45, 74, 53, 0.25);  color: var(--moss, #2d4a35); }
+
 .dash-kpi-label {
-    font-size: 0.7rem;
+    font-size: 0.66rem;
     font-weight: 700;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
     color: var(--text-lt, #9a8e84);
-    margin: 0 0 6px;
+    line-height: 1.3;
+    margin: 0;
 }
 
 .dash-kpi-value {
-    font-size: 1.35rem;
-    font-weight: 700;
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    font-variant-numeric: tabular-nums;
     color: var(--text-dark, #1a1208);
     margin: 0;
-    line-height: 1.2;
+    line-height: 1.15;
 }
 
 .dash-kpi-value.tone-danger { color: var(--danger, #c0392b); }
 .dash-kpi-value.tone-good   { color: var(--moss, #2d4a35); }
 
 .dash-kpi-sub {
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     color: var(--text-lt, #9a8e84);
-    margin: 4px 0 0;
+    margin: 8px 0 0;
 }
+
+/* ── Hero cards — the two this-month headline figures get a bold, solid
+   dark treatment (not a barely-there tint) so they read as the room's
+   main event, ahead of every plain count/alert card below. */
+.dash-kpi-card.hero {
+    padding: 24px 26px;
+    background: linear-gradient(135deg, #16261c 0%, #2d4a35 65%, #23402d 100%);
+    border-color: transparent;
+    box-shadow: 0 10px 28px rgba(22, 38, 28, 0.22);
+}
+
+.dash-kpi-card.hero::before { display: none; }
+
+.dash-kpi-card.hero.clickable:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 36px rgba(22, 38, 28, 0.3);
+}
+
+.dash-kpi-card.hero .dash-kpi-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--gold-lt, #e8d0a8);
+}
+
+.dash-kpi-card.hero .dash-kpi-label {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.dash-kpi-card.hero .dash-kpi-value {
+    font-size: 2.15rem;
+    color: #fff;
+}
+
+.dash-kpi-card.hero .dash-kpi-value.tone-danger { color: #ff9a85; }
+.dash-kpi-card.hero .dash-kpi-value.tone-good   { color: #fff; }
+
+/* Hero + gold wash together — same size/prominence as the dark hero
+   variant, warm gold tint instead. Text/icon colors flip to dark since the
+   background is now light. */
+.dash-kpi-card.hero.gold-accent {
+    background: linear-gradient(135deg, rgba(201, 168, 124, 0.24), rgba(232, 208, 168, 0.4));
+    border-color: rgba(201, 168, 124, 0.5);
+    box-shadow: 0 10px 28px rgba(180, 140, 80, 0.18);
+}
+
+.dash-kpi-card.hero.gold-accent.clickable:hover {
+    box-shadow: 0 16px 36px rgba(180, 140, 80, 0.28);
+}
+
+.dash-kpi-card.hero.gold-accent .dash-kpi-icon {
+    background: rgba(255, 255, 255, 0.6);
+    border-color: rgba(201, 168, 124, 0.45);
+    color: #8a6d3e;
+}
+
+.dash-kpi-card.hero.gold-accent .dash-kpi-label { color: #7a6a52; }
+.dash-kpi-card.hero.gold-accent .dash-kpi-value { color: var(--text-dark, #1a1208); }
+.dash-kpi-card.hero.gold-accent .dash-kpi-value.tone-danger { color: var(--danger, #c0392b); }
+.dash-kpi-card.hero.gold-accent .dash-kpi-value.tone-good   { color: var(--moss, #2d4a35); }
 
 .dash-chart-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 18px;
     margin-bottom: 24px;
 }
 
 .dash-chart-card {
     background: var(--white, #fff);
-    border: 1px solid var(--gold-line, rgba(201, 168, 124, 0.24));
+    border: 1px solid rgba(201, 168, 124, 0.18);
     border-radius: var(--radius, 14px);
-    padding: 16px 18px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 2px rgba(16, 37, 37, 0.04), 0 1px 12px rgba(16, 37, 37, 0.03);
 }
 
 .dash-chart-title {
     font-size: 0.85rem;
     font-weight: 700;
     color: var(--text-dark, #1a1208);
-    margin: 0 0 12px;
+    margin: 0 0 14px;
 }
 
 .dash-empty {
@@ -81,4 +254,78 @@
     color: var(--text-lt, #9a8e84);
     text-align: center;
     padding: 24px 0;
+}
+
+/* ── Recent Activity panel ── its own row/footer layout so the "view all"
+   action lines up with the card's own padding instead of hanging off the
+   edge of a table built for a different (CRUD list) purpose. */
+.dash-activity-card {
+    margin-bottom: 24px;
+}
+
+.dash-activity-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.dash-activity-row {
+    display: grid;
+    grid-template-columns: 68px 1fr auto;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 4px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.dash-activity-row:last-child { border-bottom: none; }
+
+.dash-activity-date {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: var(--text-lt, #9a8e84);
+    white-space: nowrap;
+}
+
+.dash-activity-summary {
+    font-size: 0.85rem;
+    color: var(--text-dark, #1a1208);
+    line-height: 1.4;
+}
+
+.dash-activity-amount {
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-dark, #1a1208);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.dash-activity-viewall {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 16px;
+    padding: 11px;
+    background: rgba(201, 168, 124, 0.08);
+    border: 1px solid rgba(201, 168, 124, 0.4);
+    border-radius: var(--radius-sm, 8px);
+    color: #8a6d3e;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dash-activity-viewall:hover {
+    background: var(--gold, #c9a87c);
+    color: #fff;
+    border-color: var(--gold, #c9a87c);
+    box-shadow: 0 4px 14px rgba(201, 168, 124, 0.35);
 }

@@ -5,11 +5,33 @@ import {
     ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
     AreaChart, Area, PieChart, Pie, Cell,
 } from 'recharts';
-import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../components/finance/DashboardWidgets';
+import {
+    faMoneyBillTransfer, faArrowTrendUp, faBuildingColumns, faWallet, faFileInvoiceDollar,
+    faCartShopping, faHardHat, faReceipt, faBuilding, faClipboardList, faPersonDigging,
+    faRulerCombined, faTriangleExclamation,
+} from '@fortawesome/free-solid-svg-icons';
+import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ActivityCard, CHART_COLORS, formatINR } from '../components/finance/DashboardWidgets';
 import '../styles/welcome.css';
 import '../styles/list.css';
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
+
+// Project names run long ("Malhotra Enterprises — HQ Advance Contract") and
+// the chart's y-axis has nowhere near that much room — Recharts renders
+// axis ticks as raw SVG text, so CSS text-overflow can't help; truncate the
+// tick label itself instead (the tooltip below still shows the full name).
+const truncateLabel = (name, max = 22) => (name.length > max ? `${name.slice(0, max - 1)}…` : name);
+
+// Recharts' own Y-axis tick <Text> component applies its own word-wrapping
+// against the axis `width`, which mangles long category labels in ways a
+// tickFormatter alone can't prevent (different names truncate to wildly
+// different, sometimes single-letter, lengths). A custom tick renders
+// exactly the string we hand it — no further "helpful" wrapping.
+const ProjectNameTick = ({ x, y, payload }) => (
+    <text x={x} y={y} dy={4} textAnchor="end" fontSize={11} fill="#5a5248">
+        {truncateLabel(payload.value)}
+    </text>
+);
 
 /*
  * Tier 0 — Company Dashboard. Answers "how's the business doing right now"
@@ -103,7 +125,15 @@ const FinanceHome = ({ url }) => {
     ].filter(d => d.value > 0) : [];
 
     if (loading) {
-        return <div className="welcome-container"><p>Loading dashboard…</p></div>;
+        return (
+            <div className="dash-page-loader">
+                <div className="loader-modal-box">
+                    <div className="loader-ring"></div>
+                    <p>Loading Dashboard</p>
+                    <span>Gathering the latest numbers...</span>
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -116,20 +146,28 @@ const FinanceHome = ({ url }) => {
                     </div>
                 </div>
 
+                <KpiGrid hero>
+                    <KpiCard hero goldAccent icon={faMoneyBillTransfer} label="This Month Revenue" value={formatINR(summary?.thisMonthRevenue)} onClick={() => navigate('/finance/receivables')} />
+                    <KpiCard hero goldAccent icon={faArrowTrendUp} label="This Month Profit" value={formatINR(summary?.thisMonthProfit)} onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.thisMonthProfit >= 0 ? 'good' : 'danger'} />
+                </KpiGrid>
+
+                <KpiSectionLabel>Cash &amp; Receivables</KpiSectionLabel>
                 <KpiGrid>
-                    <KpiCard label="Cash in Bank" value={formatINR(summary?.cashInBank)} onClick={() => navigate('/finance/bank')} />
-                    <KpiCard label="Cash in Hand" value={formatINR(summary?.cashInHand)} onClick={() => navigate('/finance/cash-book')} />
-                    <KpiCard label="Client Receivables" value={formatINR(summary?.clientReceivables)} onClick={() => navigate('/finance/clients')} tone={summary?.clientReceivables > 0 ? 'danger' : 'good'} />
-                    <KpiCard label="Vendor Payables" value={formatINR(summary?.vendorPayables)} onClick={() => navigate('/finance/procurement')} />
-                    <KpiCard label="Contractor Payables" value={formatINR(summary?.contractorPayables)} onClick={() => navigate('/finance/contractors')} />
-                    <KpiCard label="Running Bills Ready" value={summary?.runningBillsReady ?? 0} onClick={() => navigate('/finance/receivables')} />
-                    <KpiCard label="Active Projects" value={summary?.activeProjects ?? 0} onClick={() => navigate('/finance/projects')} />
-                    <KpiCard label="Active Works" value={summary?.activeWorks ?? 0} onClick={() => navigate('/finance/projects')} />
-                    <KpiCard label="Labour Working Today" value={summary?.labourWorkingToday ?? 0} onClick={() => navigate('/finance/daily-labour')} />
-                    <KpiCard label="Material Low Alerts" value={summary?.materialLowAlerts ?? 0} onClick={() => navigate('/finance/site-inventory?filter=low-stock')} tone={summary?.materialLowAlerts > 0 ? 'danger' : 'good'} />
-                    <KpiCard label="Today's Measurement" value={`${(summary?.todaysMeasurementSqft || 0).toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/site-operations')} />
-                    <KpiCard label="This Month Revenue" value={formatINR(summary?.thisMonthRevenue)} onClick={() => navigate('/finance/receivables')} />
-                    <KpiCard label="This Month Profit" value={formatINR(summary?.thisMonthProfit)} onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.thisMonthProfit >= 0 ? 'good' : 'danger'} />
+                    <KpiCard goldAccent icon={faBuildingColumns} label="Cash in Bank" value={formatINR(summary?.cashInBank)} onClick={() => navigate('/finance/bank')} />
+                    <KpiCard goldAccent icon={faWallet} label="Cash in Hand" value={formatINR(summary?.cashInHand)} onClick={() => navigate('/finance/cash-book')} />
+                    <KpiCard icon={faFileInvoiceDollar} label="Client Receivables" value={formatINR(summary?.clientReceivables)} onClick={() => navigate('/finance/clients')} tone={summary?.clientReceivables > 0 ? 'danger' : 'good'} />
+                    <KpiCard icon={faCartShopping} label="Vendor Payables" value={formatINR(summary?.vendorPayables)} onClick={() => navigate('/finance/procurement')} />
+                    <KpiCard icon={faHardHat} label="Contractor Payables" value={formatINR(summary?.contractorPayables)} onClick={() => navigate('/finance/contractors')} />
+                    <KpiCard icon={faReceipt} label="Running Bills Ready" value={summary?.runningBillsReady ?? 0} onClick={() => navigate('/finance/receivables')} />
+                </KpiGrid>
+
+                <KpiSectionLabel>Site Activity</KpiSectionLabel>
+                <KpiGrid>
+                    <KpiCard icon={faBuilding} label="Active Projects" value={summary?.activeProjects ?? 0} onClick={() => navigate('/finance/projects')} />
+                    <KpiCard icon={faClipboardList} label="Active Works" value={summary?.activeWorks ?? 0} onClick={() => navigate('/finance/projects')} />
+                    <KpiCard icon={faPersonDigging} label="Labour Working Today" value={summary?.labourWorkingToday ?? 0} onClick={() => navigate('/finance/daily-labour')} />
+                    <KpiCard icon={faRulerCombined} label="Today's Measurement" value={`${(summary?.todaysMeasurementSqft || 0).toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/site-operations')} />
+                    <KpiCard icon={faTriangleExclamation} label="Material Low Alerts" value={summary?.materialLowAlerts ?? 0} onClick={() => navigate('/finance/site-inventory?filter=low-stock')} tone={summary?.materialLowAlerts > 0 ? 'danger' : 'good'} />
                 </KpiGrid>
 
                 <ChartGrid>
@@ -167,14 +205,17 @@ const FinanceHome = ({ url }) => {
 
                     <ChartCard title="Project Profitability">
                         {projectProfits.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={260}>
-                                <ComposedChart data={projectProfits} layout="vertical" margin={{ left: 24 }}>
+                            <ResponsiveContainer width="100%" height={Math.max(260, projectProfits.length * 38)}>
+                                <ComposedChart data={projectProfits} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 4 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                     <XAxis type="number" tick={{ fontSize: 11 }} />
-                                    <YAxis type="category" dataKey="projectName" tick={{ fontSize: 11 }} width={110} />
-                                    <Tooltip formatter={(v) => formatINR(v)} />
+                                    <YAxis
+                                        type="category" dataKey="projectName" width={150}
+                                        tick={<ProjectNameTick />} interval={0} axisLine={false} tickLine={false}
+                                    />
+                                    <Tooltip formatter={(v) => formatINR(v)} labelFormatter={(label) => label} />
                                     <Bar
-                                        dataKey="profit" name="Profit" radius={[0, 4, 4, 0]}
+                                        dataKey="profit" name="Profit" radius={[0, 4, 4, 0]} barSize={18}
                                         onClick={(d) => navigate(`/finance/projects/${d.projectId}`)}
                                         style={{ cursor: 'pointer' }}
                                     >
@@ -200,19 +241,18 @@ const FinanceHome = ({ url }) => {
                     </ChartCard>
                 </ChartGrid>
 
-                <div className="list-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: "1fr" }}><b>Recent Activity</b></div>
-                    {summary?.recentActivities?.length > 0 ? summary.recentActivities.map(a => (
-                        <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '100px 1fr 120px' }}>
-                            <p>{new Date(a.timestamp).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</p>
-                            <p>{a.summary}</p>
-                            <p>{a.amount != null ? formatINR(a.amount) : ''}</p>
+                <ActivityCard
+                    title="Recent Activity"
+                    items={summary?.recentActivities}
+                    onViewAll={() => navigate('/finance/activity')}
+                    renderRow={(a) => (
+                        <div key={a._id} className="dash-activity-row">
+                            <span className="dash-activity-date">{new Date(a.timestamp).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
+                            <span className="dash-activity-summary">{a.summary}</span>
+                            <span className="dash-activity-amount">{a.amount != null ? formatINR(a.amount) : ''}</span>
                         </div>
-                    )) : <div className="admin-empty-state"><p>No activity recorded yet.</p></div>}
-                    <div style={{ textAlign: 'right', marginTop: '8px' }}>
-                        <span className="cursor edit-action" onClick={() => navigate('/finance/activity')}>View full timeline →</span>
-                    </div>
-                </div>
+                    )}
+                />
             </div>
         </div>
     );

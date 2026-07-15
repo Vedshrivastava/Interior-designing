@@ -4,10 +4,12 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
-import PlaceholderTab from '../../components/finance/PlaceholderTab';
+import StyledDatePicker from '../../components/finance/StyledDatePicker';
 import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const AGE_BUCKETS = ['0-30', '30-60', '60-90', '90+'];
 
@@ -334,6 +336,340 @@ const ClientLedgerTab = ({ url, clientId }) => {
     );
 };
 
+const QUOTATION_STATUS_LABEL = { pending: 'Pending', accepted: 'Accepted', rejected: 'Rejected', expired: 'Expired' };
+
+const ClientQuotationsTab = ({ url, clientId }) => {
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const [quotations, setQuotations] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [form, setForm] = useState({ date: '', amount: '', validUntil: '', notes: '' });
+    const [saving, setSaving] = useState(false);
+
+    const fetchList = () => {
+        setLoading(true);
+        axios.get(`${url}/api/finance/client-quotations/list`, { ...authHeader, params: { clientId } })
+            .then(res => { if (res.data.success) setQuotations(res.data.data); })
+            .catch(() => toast.error('Error fetching quotations'))
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => { fetchList(); }, [url, clientId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
+    const submit = async (e) => {
+        e.preventDefault();
+        if (!form.date) return toast.error('Date is required');
+        if (form.amount === '') return toast.error('Amount is required');
+        setSaving(true);
+        try {
+            const res = await axios.post(`${url}/api/finance/client-quotations/add`,
+                { clientId, date: form.date, amount: form.amount, validUntil: form.validUntil || null, notes: form.notes }, authHeader);
+            if (res.data.success) {
+                toast.success(res.data.message || 'Quotation added');
+                setForm({ date: '', amount: '', validUntil: '', notes: '' });
+                fetchList();
+            } else toast.error(res.data.message);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Error adding quotation');
+        } finally { setSaving(false); }
+    };
+
+    const changeStatus = async (_id, status) => {
+        try {
+            const res = await axios.post(`${url}/api/finance/client-quotations/status`, { _id, status }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); fetchList(); }
+            else toast.error(res.data.message);
+        } catch { toast.error('Error updating status'); }
+    };
+
+    const remove = async (_id) => {
+        try {
+            const res = await axios.post(`${url}/api/finance/client-quotations/remove`, { _id }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); fetchList(); }
+            else toast.error(res.data.message);
+        } catch { toast.error('Error removing quotation'); }
+    };
+
+    return (
+        <div>
+            <form onSubmit={submit}>
+                <div className="wizard-field-grid">
+                    <div className="add-product-name flex-col">
+                        <p>Date *</p>
+                        <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Amount (₹) *</p>
+                        <input type="number" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Valid Until</p>
+                        <StyledDatePicker value={form.validUntil} onChange={v => setField('validUntil', v)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Notes</p>
+                        <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
+                    </div>
+                </div>
+                <div className="wizard-actions" style={{ marginTop: '16px' }}>
+                    <span />
+                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Adding…' : '+ Add Quotation'}</button>
+                </div>
+            </form>
+
+            {loading ? (
+                <div className="admin-empty-state"><p>Loading…</p></div>
+            ) : quotations.length === 0 ? (
+                <div className="admin-empty-state"><p>No quotations issued to this client yet.</p></div>
+            ) : (
+                <div className="list-table">
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '70px 1fr 1fr 1fr 110px 160px' }}>
+                        <b>#</b><b>Date</b><b>Amount</b><b>Valid Until</b><b>Status</b><b>Action</b>
+                    </div>
+                    {quotations.map(q => (
+                        <div key={q._id} className="list-table-format row-item" style={{ gridTemplateColumns: '70px 1fr 1fr 1fr 110px 160px' }}>
+                            <p>#{q.quotationNumber}</p>
+                            <p>{new Date(q.date).toLocaleDateString()}</p>
+                            <p>₹{q.amount.toLocaleString('en-IN')}</p>
+                            <p>{q.validUntil ? new Date(q.validUntil).toLocaleDateString() : '—'}</p>
+                            <p><span className="item-category">{QUOTATION_STATUS_LABEL[q.status]}</span></p>
+                            <div className="action-buttons">
+                                {q.status === 'pending' ? (
+                                    <>
+                                        <p onClick={() => changeStatus(q._id, 'accepted')} className="cursor edit-action">Accept</p>
+                                        <p onClick={() => changeStatus(q._id, 'rejected')} className="cursor delete-action">Reject</p>
+                                    </>
+                                ) : (
+                                    <p onClick={() => changeStatus(q._id, 'pending')} className="cursor edit-action">Reopen</p>
+                                )}
+                                <p onClick={() => remove(q._id)} className="cursor delete-action">X</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const ClientDocumentsTab = ({ url, clientId }) => {
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const [documents, setDocuments] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [name, setName] = useState('');
+    const [notes, setNotes] = useState('');
+    const [file, setFile] = useState(null);
+    const [saving, setSaving] = useState(false);
+
+    const fetchList = () => {
+        setLoading(true);
+        axios.get(`${url}/api/finance/client-documents/list`, { ...authHeader, params: { clientId } })
+            .then(res => { if (res.data.success) setDocuments(res.data.data); })
+            .catch(() => toast.error('Error fetching documents'))
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => { fetchList(); }, [url, clientId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const submit = async (e) => {
+        e.preventDefault();
+        if (!file) return toast.error('Choose a file first');
+        setSaving(true);
+        try {
+            const formData = new FormData();
+            formData.append('clientId', clientId);
+            formData.append('name', name || file.name);
+            formData.append('notes', notes);
+            formData.append('file', file);
+            const res = await axios.post(`${url}/api/finance/client-documents/add`, formData, {
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
+            });
+            if (res.data.success) {
+                toast.success(res.data.message || 'Document uploaded');
+                setName(''); setNotes(''); setFile(null);
+                const input = document.getElementById('client-doc-file-input');
+                if (input) input.value = '';
+                fetchList();
+            } else toast.error(res.data.message);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Error uploading document');
+        } finally { setSaving(false); }
+    };
+
+    const remove = async (_id) => {
+        try {
+            const res = await axios.post(`${url}/api/finance/client-documents/remove`, { _id }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); fetchList(); }
+            else toast.error(res.data.message);
+        } catch { toast.error('Error removing document'); }
+    };
+
+    return (
+        <div>
+            <form onSubmit={submit}>
+                <div className="wizard-field-grid">
+                    <div className="add-product-name flex-col">
+                        <p>File *</p>
+                        <input id="client-doc-file-input" type="file" onChange={e => setFile(e.target.files[0])} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Name</p>
+                        <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Defaults to file name" />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Notes</p>
+                        <input type="text" value={notes} onChange={e => setNotes(e.target.value)} />
+                    </div>
+                </div>
+                <div className="wizard-actions" style={{ marginTop: '16px' }}>
+                    <span />
+                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Uploading…' : '+ Upload Document'}</button>
+                </div>
+            </form>
+
+            {loading ? (
+                <div className="admin-empty-state"><p>Loading…</p></div>
+            ) : documents.length === 0 ? (
+                <div className="admin-empty-state"><p>No documents on file for this client yet.</p></div>
+            ) : (
+                <div className="list-table">
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1fr 1.5fr 140px' }}>
+                        <b>Name</b><b>Uploaded</b><b>Notes</b><b>Action</b>
+                    </div>
+                    {documents.map(d => (
+                        <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1fr 1.5fr 140px' }}>
+                            <p>{d.name}</p>
+                            <p>{new Date(d.createdAt).toLocaleDateString()}</p>
+                            <p>{d.notes || '—'}</p>
+                            <div className="action-buttons">
+                                <a href={d.fileUrl} target="_blank" rel="noreferrer" className="cursor edit-action" style={{ textDecoration: 'none' }}>View</a>
+                                <p onClick={() => remove(d._id)} className="cursor delete-action">X</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const emptyContactForm = { name: '', designation: '', phone: '', email: '', notes: '' };
+
+const ClientContactsTab = ({ url, clientId }) => {
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const [contacts, setContacts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [form, setForm] = useState(emptyContactForm);
+    const [editingId, setEditingId] = useState(null);
+    const [saving, setSaving] = useState(false);
+
+    const fetchList = () => {
+        setLoading(true);
+        axios.get(`${url}/api/finance/client-contacts/list`, { ...authHeader, params: { clientId } })
+            .then(res => { if (res.data.success) setContacts(res.data.data); })
+            .catch(() => toast.error('Error fetching contacts'))
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => { fetchList(); }, [url, clientId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
+    const openEdit = (c) => {
+        setEditingId(c._id);
+        setForm({ name: c.name, designation: c.designation || '', phone: c.phone || '', email: c.email || '', notes: c.notes || '' });
+    };
+
+    const cancelEdit = () => { setEditingId(null); setForm(emptyContactForm); };
+
+    const submit = async (e) => {
+        e.preventDefault();
+        if (!form.name.trim()) return toast.error('Name is required');
+        setSaving(true);
+        try {
+            const payload = editingId ? { _id: editingId, ...form } : { clientId, ...form };
+            const endpoint = editingId ? 'update' : 'add';
+            const res = await axios.post(`${url}/api/finance/client-contacts/${endpoint}`, payload, authHeader);
+            if (res.data.success) {
+                toast.success(res.data.message || 'Saved');
+                cancelEdit();
+                fetchList();
+            } else toast.error(res.data.message);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Error saving contact');
+        } finally { setSaving(false); }
+    };
+
+    const remove = async (_id) => {
+        try {
+            const res = await axios.post(`${url}/api/finance/client-contacts/remove`, { _id }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); fetchList(); }
+            else toast.error(res.data.message);
+        } catch { toast.error('Error removing contact'); }
+    };
+
+    return (
+        <div>
+            <form onSubmit={submit}>
+                <div className="wizard-field-grid">
+                    <div className="add-product-name flex-col">
+                        <p>Name *</p>
+                        <input type="text" value={form.name} onChange={e => setField('name', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Designation</p>
+                        <input type="text" value={form.designation} onChange={e => setField('designation', e.target.value)} placeholder="e.g. Site Engineer" />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Phone</p>
+                        <input type="text" value={form.phone} onChange={e => setField('phone', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Email</p>
+                        <input type="text" value={form.email} onChange={e => setField('email', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Notes</p>
+                        <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
+                    </div>
+                </div>
+                <div className="wizard-actions" style={{ marginTop: '16px' }}>
+                    {editingId ? <button type="button" className="add-btn cancel-btn" onClick={cancelEdit}>Cancel</button> : <span />}
+                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : editingId ? 'Update Contact' : '+ Add Contact'}</button>
+                </div>
+            </form>
+
+            {loading ? (
+                <div className="admin-empty-state"><p>Loading…</p></div>
+            ) : contacts.length === 0 ? (
+                <div className="admin-empty-state"><p>No additional contact persons for this client yet.</p></div>
+            ) : (
+                <div className="list-table">
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1.3fr 120px' }}>
+                        <b>Name</b><b>Designation</b><b>Phone</b><b>Email</b><b>Action</b>
+                    </div>
+                    {contacts.map(c => (
+                        <div key={c._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1.3fr 120px' }}>
+                            <p>{c.name}</p>
+                            <p>{c.designation || '—'}</p>
+                            <p>{c.phone || '—'}</p>
+                            <p>{c.email || '—'}</p>
+                            <div className="action-buttons">
+                                <p onClick={() => openEdit(c)} className="cursor edit-action">Edit</p>
+                                <p onClick={() => remove(c._id)} className="cursor delete-action">X</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 const ClientDetail = ({ url }) => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -391,11 +727,11 @@ const ClientDetail = ({ url }) => {
                 </div>
             )}
             {activeTab === 'projects' && <ClientProjectsTab url={url} clientId={client._id} />}
-            {activeTab === 'quotations' && <PlaceholderTab text="Client quotations issued, pre-project." phase="Phase 3" />}
+            {activeTab === 'quotations' && <ClientQuotationsTab url={url} clientId={client._id} />}
             {activeTab === 'receipts' && <ClientReceiptsTab url={url} clientId={client._id} />}
             {activeTab === 'bills' && <ClientBillsTab url={url} clientId={client._id} />}
-            {activeTab === 'documents' && <PlaceholderTab text="Documents on file for this client." />}
-            {activeTab === 'contacts' && <PlaceholderTab text="Additional contact persons for this client." />}
+            {activeTab === 'documents' && <ClientDocumentsTab url={url} clientId={client._id} />}
+            {activeTab === 'contacts' && <ClientContactsTab url={url} clientId={client._id} />}
             {activeTab === 'payments' && <ClientPaymentHistoryTab url={url} clientId={client._id} />}
             {activeTab === 'ledger' && <ClientLedgerTab url={url} clientId={client._id} />}
         </FinanceTabShell>

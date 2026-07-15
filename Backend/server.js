@@ -39,6 +39,9 @@ import financeStockMovementRouter  from "./routes/financeStockMovement.js";
 import financeRunningBillRouter    from "./routes/financeRunningBill.js";
 import financeReceiptRouter        from "./routes/financeReceipt.js";
 import financeReceivableRouter     from "./routes/financeReceivable.js";
+import financeClientQuotationRouter from "./routes/financeClientQuotation.js";
+import financeClientDocumentRouter  from "./routes/financeClientDocument.js";
+import financeClientContactRouter   from "./routes/financeClientContact.js";
 import financeContractorAdvanceRouter   from "./routes/financeContractorAdvance.js";
 import financeContractorDeductionRouter from "./routes/financeContractorDeduction.js";
 import financeContractorPaymentRouter   from "./routes/financeContractorPayment.js";
@@ -122,6 +125,9 @@ app.use('/api/material', materialRouter);
 app.use('/api/finish',   finishRouter);
 app.use('/api/city',     cityRouter);
 app.use('/api/finance/clients',   financeClientRouter);
+app.use('/api/finance/client-quotations', financeClientQuotationRouter);
+app.use('/api/finance/client-documents',  financeClientDocumentRouter);
+app.use('/api/finance/client-contacts',   financeClientContactRouter);
 app.use('/api/finance/vendors',   financeVendorRouter);
 app.use('/api/finance/vendors',   financeVendorLedgerRouter); // same prefix, separate ledger concern — see routes/financeVendorLedger.js
 app.use('/api/finance/vendors',   financeCommissionLedgerRouter); // same prefix, separate ledger concern — see routes/financeCommissionLedger.js

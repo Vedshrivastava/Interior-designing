@@ -18,6 +18,7 @@ const EVENT_TYPES = [
     'vendor_paid', 'bank_transfer', 'salary_paid', 'commission_paid',
     'expense_recorded', 'daily_labour_logged', 'supervisor_incentive_given',
     'work_created', 'work_completed', 'project_created', 'project_activated',
+    'client_quotation_issued', 'client_quotation_status_changed',
 ];
 const eventLabel = (et) => et.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 

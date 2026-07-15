@@ -141,6 +141,30 @@ const batchAddDailyLabour = async (req, res) => {
     }
 };
 
+// Toggle engineer approval on one entry — same shape as
+// financeMeasurement's updateMeasurement approval branch. Settled entries
+// can still be toggled (a settlement already happened before verification
+// caught up); it only affects future settlement totals, not this one.
+const approveDailyLabour = async (req, res) => {
+    try {
+        const { _id, engineerApproved } = req.body;
+        if (typeof engineerApproved !== 'boolean') return res.status(400).json({ success: false, message: 'engineerApproved must be true or false' });
+        const item = await FinanceDailyLabour.findById(_id);
+        if (!item) return res.status(404).json({ success: false, message: 'Not found' });
+
+        item.engineerApproved = engineerApproved;
+        item.engineerApprovedAt = engineerApproved ? new Date() : null;
+        item.engineerApprovedBy = engineerApproved ? (req.userName || 'Admin') : '';
+        await item.save();
+
+        broadcast({ type: 'financeDailyLabourChanged', projectId: item.projectId });
+        res.json({ success: true, message: engineerApproved ? 'Entry approved' : 'Approval revoked', data: item });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error updating approval' });
+    }
+};
+
 const removeDailyLabour = async (req, res) => {
     try {
         const { _id } = req.body;
@@ -166,4 +190,4 @@ const removeDailyLabour = async (req, res) => {
     }
 };
 
-export { listDailyLabour, addDailyLabour, batchAddDailyLabour, removeDailyLabour };
+export { listDailyLabour, addDailyLabour, batchAddDailyLabour, approveDailyLabour, removeDailyLabour };

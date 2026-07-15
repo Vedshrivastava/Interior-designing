@@ -27,8 +27,15 @@ const financeMeasurementSchema = new mongoose.Schema({
     photos:  { type: [String], default: [] }, // Cloudinary URLs, same upload pattern as design/product images
     remarks: { type: String, default: '' },
 
+    // Approval gates two things: whether this area is billable to the
+    // client (financeRunningBill) and whether it's payable to the
+    // contractor team that did it (financeContractorLedger) — one signal,
+    // both consequences. Only ever toggled by whoever reviews the site
+    // (the engineer), tracked here for accountability, not enforced by a
+    // role check — there's no sub-role system in this app yet.
     engineerApproved:   { type: Boolean, default: false },
     engineerApprovedAt: { type: Date },
+    engineerApprovedBy: { type: String, default: '' },
 
     // Set by the running-bill generation automation when this measurement
     // gets included in a bill — prevents billing the same measurement twice.

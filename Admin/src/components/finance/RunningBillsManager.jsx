@@ -52,6 +52,26 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
             const rate = res.data.success ? res.data.data.defaultGstRate : null;
             if (rate !== null && rate !== undefined) setGstRate(rate);
         }).catch(() => {});
+        // Prefill "From" with the day after the last bill's period end
+        // (any status, ignoring statusFilter — this needs the true latest
+        // bill), so periods can't accidentally overlap and double-count a
+        // boundary-day measurement. Falls back to the project's start date
+        // for a project's very first bill.
+        axios.get(`${url}/api/finance/running-bills/list`, { ...authHeader, params: { projectId } }).then(res => {
+            if (!res.data.success) return;
+            const latest = [...res.data.data].sort((a, b) => new Date(b.periodTo) - new Date(a.periodTo))[0];
+            if (latest) {
+                const next = new Date(latest.periodTo);
+                next.setDate(next.getDate() + 1);
+                setPeriodFrom(next.toISOString().slice(0, 10));
+            } else {
+                axios.get(`${url}/api/finance/projects/list`, authHeader).then(pRes => {
+                    if (!pRes.data.success) return;
+                    const project = pRes.data.data.find(p => p._id === projectId);
+                    if (project?.startDate) setPeriodFrom(new Date(project.startDate).toISOString().slice(0, 10));
+                }).catch(() => {});
+            }
+        }).catch(() => {});
     };
     const closeModal = () => setModalOpen(false);
 

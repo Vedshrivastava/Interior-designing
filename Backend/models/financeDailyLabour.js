@@ -23,6 +23,14 @@ const financeDailyLabourSchema = new mongoose.Schema({
 
     supervisorId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeEmployee', default: null }, // who recorded this
 
+    // Engineer verification, same gate/shape as financeMeasurement's —
+    // an entry marked present but not approved is "neglected" and gets
+    // excluded from the supervisor's settlement total (see
+    // controllers/financeSupervisorLabourPayment.js).
+    engineerApproved:   { type: Boolean, default: false },
+    engineerApprovedAt: { type: Date },
+    engineerApprovedBy: { type: String, default: '' },
+
     // Deprecated — payment used to happen per entry, but the real process is
     // one bulk settlement per supervisor covering many entries (see
     // financeSupervisorLabourPayment). Kept only for backward compatibility

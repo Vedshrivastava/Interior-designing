@@ -135,20 +135,26 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
 
     return (
         <div>
-            <div className="list-table" style={{ marginBottom: '28px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-                    <b>Earnings</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>Balance Payable</b>
+            <div className="list-table" style={{ marginBottom: '8px' }}>
+                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
+                    <b>Earnings (Approved)</b><b>Neglected (Unapproved)</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>{totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}</b>
                 </div>
-                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
                     <p>₹{totals.earnings.toLocaleString('en-IN')}</p>
+                    <p style={{ color: totals.neglectedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>₹{totals.neglectedAmount.toLocaleString('en-IN')}</p>
                     <p>₹{totals.advances.toLocaleString('en-IN')}</p>
                     <p>₹{totals.deductions.toLocaleString('en-IN')}</p>
                     <p>₹{totals.payments.toLocaleString('en-IN')}</p>
-                    <p style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{totals.balancePayable.toLocaleString('en-IN')}</p>
+                    <p style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</p>
                 </div>
             </div>
+            {totals.neglectedAmount > 0 && (
+                <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
+                    ₹{totals.neglectedAmount.toLocaleString('en-IN')} worth of measured work is still pending engineer approval — it isn't counted as earnings yet. Approve it in the project's Measurements tab once verified.
+                </p>
+            )}
 
-            <div style={{ marginBottom: '28px' }}>
+            <div style={{ marginBottom: '28px', marginTop: '20px' }}>
                 <ChartCard title="Advances / Deductions / Payments — by month">
                     {monthlyFlow.length > 0 ? (
                         <ResponsiveContainer width="100%" height={220}>
@@ -171,20 +177,22 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                 <>
                     <h3 style={{ marginBottom: '8px' }}>Works & Earnings</h3>
                     <div className="list-table" style={{ marginBottom: '28px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1.4fr 1fr' }}>
-                            <b>Project</b><b>Work Type</b><b>Completed / Estimated</b><b>Earnings</b>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 90px 100px 1fr' }}>
+                            <b>Project</b><b>Work Type</b><b>Done / Estimated</b><b>Approved</b><b>Neglected</b><b>Earnings</b>
                         </div>
                         {ledger.works.length === 0 ? (
                             <div className="admin-empty-state"><p>No works for this contractor yet.</p></div>
                         ) : (
                             ledger.works.map(w => (
-                                <div key={w.key || w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1.4fr 1fr' }}>
+                                <div key={w.key || w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 90px 100px 1fr' }}>
                                     <p>{w.projectName}</p>
                                     <p>
                                         {w.workType} <span className="admin-subtitle" style={{ display: 'inline' }}>({w.teamName})</span>
                                         {w.isLegacyAttribution && <span className="admin-subtitle" style={{ display: 'inline' }} title="Attributed via the work's legacy team, not a per-measurement team"> · legacy</span>}
                                     </p>
                                     <p>{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft</p>
+                                    <p>{w.approvedAreaSqft} sqft</p>
+                                    <p style={{ color: w.neglectedAreaSqft > 0 ? '#c0392b' : 'var(--text-lt)' }}>{w.neglectedAreaSqft} sqft</p>
                                     <p>{w.rate ? `₹${w.earnings.toLocaleString('en-IN')}` : <span title="No matching team rate configured">— (no rate)</span>}</p>
                                 </div>
                             ))

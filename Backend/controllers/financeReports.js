@@ -30,6 +30,10 @@ import { writeLetterhead, writeSectionHeading, writeFooter, formatCurrency, form
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
 import { getAssignmentsByWork, getTeamIdsForWork, findWorkIdsForTeams, resolveMeasurementTeamId } from '../utils/workTeamAssignments.js';
 
+// totalArea − approvedArea on floats accumulated across many measurements
+// produces artifacts like 21.300000000000001 — round for display/storage.
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+
 // .lean() — spreading a hydrated Mongoose document ({ ...doc }) silently
 // drops some schema fields (companyName among them), since document
 // instances aren't plain objects. A lean query avoids that footgun.
@@ -105,11 +109,14 @@ const computeWorkMaterialCost = async (projectId, workId) => {
 
 // Measurement-level: each day's area attributes to whichever team actually
 // did it (a Work can have more than one team/contractor contributing).
+// Contractor cost = only engineer-approved area — unapproved measurements
+// aren't a confirmed payable liability yet, same gate financeRunningBill
+// applies for client billing (see financeContractorLedger.js's header note).
 const computeProjectContractorCost = async (projectId) => {
     const works = await FinanceWork.find({ projectId, deleted: { $ne: true } });
     if (!works.length) return 0;
     const workById = new Map(works.map(w => [w._id.toString(), w]));
-    const measurements = await FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } });
+    const measurements = await FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, engineerApproved: true, deleted: { $ne: true } });
     if (!measurements.length) return 0;
 
     const teamIds = new Set();
@@ -277,13 +284,14 @@ const computeWorkProfit = async (work) => {
     // `contractorCost` stays the summed total so nothing reading only that
     // field breaks.
     const measurements = await FinanceMeasurement.find({ workId: work._id, deleted: { $ne: true } });
-    const areaByTeam = new Map(); // teamId -> { area, isLegacyAttribution }
+    const areaByTeam = new Map(); // teamId -> { totalArea, approvedArea, isLegacyAttribution }
     for (const m of measurements) {
         const { teamId, isLegacyAttribution } = resolveMeasurementTeamId(m, work);
         if (!teamId) continue;
         const key = teamId.toString();
-        const cur = areaByTeam.get(key) || { area: 0, isLegacyAttribution: false };
-        cur.area += m.areaCoveredSqft;
+        const cur = areaByTeam.get(key) || { totalArea: 0, approvedArea: 0, isLegacyAttribution: false };
+        cur.totalArea += m.areaCoveredSqft;
+        if (m.engineerApproved) cur.approvedArea += m.areaCoveredSqft;
         cur.isLegacyAttribution = cur.isLegacyAttribution || isLegacyAttribution;
         areaByTeam.set(key, cur);
     }
@@ -292,9 +300,12 @@ const computeWorkProfit = async (work) => {
     const assignmentsByWorkId = await getAssignmentsByWork([work._id]);
     for (const t of getTeamIdsForWork(work, assignmentsByWorkId)) {
         const key = t.toString();
-        if (!areaByTeam.has(key)) areaByTeam.set(key, { area: 0, isLegacyAttribution: false });
+        if (!areaByTeam.has(key)) areaByTeam.set(key, { totalArea: 0, approvedArea: 0, isLegacyAttribution: false });
     }
 
+    // contractorCost only counts approved area — unapproved ("neglected")
+    // area is reported per-row (neglectedAreaSqft/neglectedAmount) but
+    // excluded from cost/profit, same gate the Contractor Ledger applies.
     let contractorCost = 0;
     const contractorBreakdown = [];
     if (areaByTeam.size) {
@@ -305,19 +316,23 @@ const computeWorkProfit = async (work) => {
         ]);
         const rateByTeam = new Map(rates.map(r => [r.teamId.toString(), r]));
         const teamById = new Map(teams.map(t => [t._id.toString(), t]));
-        for (const [teamId, { area, isLegacyAttribution }] of areaByTeam) {
+        for (const [teamId, { totalArea, approvedArea, isLegacyAttribution }] of areaByTeam) {
             const rate = rateByTeam.get(teamId);
             const perUnit = rate ? (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft) : 0;
-            const earnings = area * perUnit;
+            const neglectedArea = round2(totalArea - approvedArea);
+            const earnings = round2(approvedArea * perUnit);
+            const neglectedAmount = round2(neglectedArea * perUnit);
             contractorCost += earnings;
             const team = teamById.get(teamId);
             contractorBreakdown.push({
                 teamId, teamName: team?.name || '—', vendorName: team?.contractorVendorId?.name || '—',
-                areaSqft: area, rate: perUnit, earnings, isLegacyAttribution,
+                areaSqft: round2(totalArea), approvedAreaSqft: round2(approvedArea), neglectedAreaSqft: neglectedArea,
+                rate: perUnit, earnings, neglectedAmount, isLegacyAttribution,
             });
         }
     }
 
+    contractorCost = round2(contractorCost);
     const materialCost = await computeWorkMaterialCost(work.projectId, work._id);
     const profit = revenue - contractorCost - materialCost;
 
@@ -453,7 +468,7 @@ const computeContractorAnalysisRows = async (projectId) => {
                 ? FinanceTeamRate.find({ projectId: { $in: projectIds }, teamId: { $in: teamIds }, deleted: { $ne: true } })
                 : [],
             works.length
-                ? FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } })
+                ? FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, engineerApproved: true, deleted: { $ne: true } })
                 : [],
         ]);
         const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.teamId}_${r.workType}`, r]));
@@ -461,7 +476,7 @@ const computeContractorAnalysisRows = async (projectId) => {
         // Measurement-level: each day's area attributes to whichever of this
         // contractor's teams actually did it (a Work can have another
         // contractor's team on it too, or the same contractor's teams split
-        // across days).
+        // across days). Only engineer-approved area counts as earnings.
         const areaByKey = new Map(); // `${projectId}_${teamId}_${workType}` -> area
         for (const m of measurements) {
             const work = workById.get(m.workId.toString());
@@ -527,7 +542,7 @@ const getContractorsSummary = async (req, res) => {
 
                 const [rates, measurements] = await Promise.all([
                     FinanceTeamRate.find({ projectId: { $in: [...new Set(works.map(w => w.projectId.toString()))] }, teamId: { $in: teamIds }, deleted: { $ne: true } }),
-                    FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }),
+                    FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, engineerApproved: true, deleted: { $ne: true } }),
                 ]);
                 const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.teamId}_${r.workType}`, r]));
 
@@ -994,7 +1009,7 @@ const computeCompanyWideMaterialCostInRange = async (start, end, projectIds = nu
 // contractor cost — was actually incurred, same approximation the
 // project-progress chart relies on.
 const computeCompanyWideContractorCostInRange = async (start, end, projectIds = null) => {
-    const match = { date: { $gte: start, $lte: end }, deleted: { $ne: true } };
+    const match = { date: { $gte: start, $lte: end }, engineerApproved: true, deleted: { $ne: true } };
     const measurements = await FinanceMeasurement.find(match).populate({ path: 'workId', select: 'projectId teamId workType' });
     const relevant = measurements.filter(m => m.workId && (!projectIds || projectIds.some(id => id.toString() === m.workId.projectId.toString())));
     if (!relevant.length) return 0;

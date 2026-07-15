@@ -82,7 +82,15 @@ const DailyLabourManager = ({ url, projectId, supervisorId, readOnly = false }) 
         } catch (err) { toast.error(err.response?.data?.message || 'Error removing entry'); }
     };
 
-    const gridColumns = projectId ? '1fr 1.2fr 1fr 1fr 1fr 1fr 100px 100px' : '1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 100px 100px';
+    const toggleApprove = async (entry) => {
+        try {
+            const res = await axios.post(`${url}/api/finance/daily-labour/approve`, { _id: entry._id, engineerApproved: !entry.engineerApproved }, authHeader);
+            if (res.data.success) await fetchEntries();
+            else toast.error(res.data.message);
+        } catch (err) { toast.error(err.response?.data?.message || 'Error updating approval'); }
+    };
+
+    const gridColumns = projectId ? '1fr 1.2fr 1fr 1fr 1fr 1fr 130px 110px 100px' : '1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 130px 110px 100px';
 
     return (
         <div>
@@ -145,7 +153,7 @@ const DailyLabourManager = ({ url, projectId, supervisorId, readOnly = false }) 
                 <div className="list-table-format title" style={{ gridTemplateColumns: gridColumns }}>
                     <b>Date</b>
                     {!projectId && <b>Project</b>}
-                    <b>Labourer</b><b>Type</b><b>Rate</b><b>Amount</b><b>Supervisor</b><b>Status</b>
+                    <b>Labourer</b><b>Type</b><b>Rate</b><b>Amount</b><b>Supervisor</b><b>Approved</b><b>Status</b>
                     {!readOnly && <b>Action</b>}
                 </div>
                 {loading ? (
@@ -161,6 +169,9 @@ const DailyLabourManager = ({ url, projectId, supervisorId, readOnly = false }) 
                         <p>₹{e.rate.toLocaleString('en-IN')}</p>
                         <p>₹{e.amount.toLocaleString('en-IN')}</p>
                         <p>{e.supervisorId?.name || '—'}</p>
+                        <p onClick={() => toggleApprove(e)} className="cursor" style={{ color: e.engineerApproved ? 'var(--moss)' : 'var(--text-lt)' }} title={e.engineerApproved && e.engineerApprovedBy ? `Approved by ${e.engineerApprovedBy}` : ''}>
+                            {e.engineerApproved ? '✓ Approved' : 'Pending'}
+                        </p>
                         <p style={{ color: e.settledInPaymentId ? 'var(--moss)' : '#c0392b' }}>{e.settledInPaymentId ? 'Settled' : 'Unsettled'}</p>
                         {!readOnly && <div className="action-buttons"><p onClick={() => remove(e._id)} className="cursor delete-action">X</p></div>}
                     </div>

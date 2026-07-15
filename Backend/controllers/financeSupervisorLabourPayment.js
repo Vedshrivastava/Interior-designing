@@ -32,11 +32,15 @@ const addSupervisorLabourPayment = async (req, res) => {
         }
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
+        // engineerApproved: true is a hard gate here, not just a UI filter —
+        // an unapproved ("neglected") entry can't be settled even if its id
+        // is passed directly, so the supervisor's payment is always cut to
+        // exactly what's been verified done.
         const entries = await FinanceDailyLabour.find({
-            _id: { $in: coveredDailyLabourIds }, supervisorId, settledInPaymentId: null, deleted: { $ne: true },
+            _id: { $in: coveredDailyLabourIds }, supervisorId, engineerApproved: true, settledInPaymentId: null, deleted: { $ne: true },
         });
         if (entries.length !== coveredDailyLabourIds.length) {
-            return res.status(400).json({ success: false, message: 'Some selected entries are invalid, already settled, or do not belong to this supervisor' });
+            return res.status(400).json({ success: false, message: 'Some selected entries are invalid, not yet engineer-approved, already settled, or do not belong to this supervisor' });
         }
 
         const totalAmount = entries.reduce((sum, e) => sum + e.amount, 0);
@@ -103,14 +107,30 @@ const removeSupervisorLabourPayment = async (req, res) => {
     }
 };
 
+// Payable only counts engineer-approved, unsettled entries — unapproved
+// ("neglected") ones are reported separately and excluded, cutting the
+// supervisor's payable total accordingly (same gate addSupervisorLabourPayment
+// enforces server-side).
 const getLabourPayable = async (req, res) => {
     try {
         const { employeeId } = req.params;
         const agg = await FinanceDailyLabour.aggregate([
             { $match: { supervisorId: new mongoose.Types.ObjectId(employeeId), settledInPaymentId: null, deleted: { $ne: true } } },
-            { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } },
+            // $ifNull — aggregation bypasses Mongoose's schema default, so
+            // entries logged before engineerApproved existed have the field
+            // missing entirely (not false); without this they'd silently
+            // fall into neither bucket instead of "neglected".
+            { $group: { _id: { $ifNull: ['$engineerApproved', false] }, total: { $sum: '$amount' }, count: { $sum: 1 } } },
         ]);
-        res.json({ success: true, data: { payable: agg[0]?.total || 0, unsettledCount: agg[0]?.count || 0 } });
+        const approved = agg.find(a => a._id === true) || { total: 0, count: 0 };
+        const neglected = agg.find(a => a._id === false) || { total: 0, count: 0 };
+        res.json({
+            success: true,
+            data: {
+                payable: approved.total, unsettledCount: approved.count,
+                neglected: neglected.total, neglectedCount: neglected.count,
+            },
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error computing labour payable' });

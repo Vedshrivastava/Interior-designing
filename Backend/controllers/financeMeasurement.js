@@ -152,6 +152,7 @@ const updateMeasurement = async (req, res) => {
         if (typeof engineerApproved === 'boolean' && engineerApproved !== existing.engineerApproved) {
             update.engineerApproved = engineerApproved;
             update.engineerApprovedAt = engineerApproved ? new Date() : null;
+            update.engineerApprovedBy = engineerApproved ? (req.userName || 'Admin') : '';
         }
 
         await FinanceMeasurement.findByIdAndUpdate(_id, update);

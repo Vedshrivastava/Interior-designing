@@ -66,8 +66,10 @@ const SupervisorLabourPaymentsManager = ({ url, employeeId }) => {
     const setFilterField = (key, value) => setFilters(prev => ({ ...prev, [key]: value }));
     const setSettlementField = (key, value) => setSettlement(prev => ({ ...prev, [key]: value }));
 
+    const approvedUnsettled = unsettled.filter(e => e.engineerApproved);
+
     const toggleSelected = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-    const toggleSelectAll = () => setSelectedIds(prev => prev.length === unsettled.length ? [] : unsettled.map(e => e._id));
+    const toggleSelectAll = () => setSelectedIds(prev => prev.length === approvedUnsettled.length ? [] : approvedUnsettled.map(e => e._id));
 
     const selectedTotal = unsettled.filter(e => selectedIds.includes(e._id)).reduce((sum, e) => sum + e.amount, 0);
 
@@ -101,15 +103,21 @@ const SupervisorLabourPaymentsManager = ({ url, employeeId }) => {
 
     return (
         <div>
-            <div className="list-table" style={{ marginBottom: '20px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                    <b>Labour Payable</b><b>Unsettled Entries</b>
+            <div className="list-table" style={{ marginBottom: '8px' }}>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                    <b>Labour Payable (Approved)</b><b>Neglected (Unapproved)</b><b>Approved Unsettled</b>
                 </div>
-                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
                     <p style={{ fontWeight: 700, color: (payable?.payable || 0) > 0 ? '#c0392b' : 'var(--moss)' }}>₹{(payable?.payable || 0).toLocaleString('en-IN')}</p>
+                    <p style={{ color: (payable?.neglected || 0) > 0 ? '#c0392b' : 'var(--text-lt)' }}>₹{(payable?.neglected || 0).toLocaleString('en-IN')}</p>
                     <p>{payable?.unsettledCount ?? '—'}</p>
                 </div>
             </div>
+            {(payable?.neglected || 0) > 0 && (
+                <p className="admin-subtitle" style={{ marginBottom: '20px' }}>
+                    ₹{payable.neglected.toLocaleString('en-IN')} across {payable.neglectedCount} entr{payable.neglectedCount === 1 ? 'y' : 'ies'} is still pending engineer approval — excluded from what's payable and can't be settled until approved.
+                </p>
+            )}
 
             <h3 style={{ marginBottom: '8px' }}>Generate Settlement</h3>
             <div className="wizard-field-grid" style={{ marginBottom: '12px' }}>
@@ -131,22 +139,23 @@ const SupervisorLabourPaymentsManager = ({ url, employeeId }) => {
             </div>
 
             <div className="list-table" style={{ marginBottom: '16px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: '40px 1fr 1.2fr 1fr 1fr 1fr' }}>
-                    <input type="checkbox" checked={unsettled.length > 0 && selectedIds.length === unsettled.length} onChange={toggleSelectAll} />
-                    <b>Date</b><b>Project</b><b>Labourer</b><b>Type</b><b>Amount</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '40px 1fr 1.2fr 1fr 1fr 1fr 110px' }}>
+                    <input type="checkbox" checked={approvedUnsettled.length > 0 && selectedIds.length === approvedUnsettled.length} onChange={toggleSelectAll} />
+                    <b>Date</b><b>Project</b><b>Labourer</b><b>Type</b><b>Amount</b><b>Approved</b>
                 </div>
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
                 ) : unsettled.length === 0 ? (
                     <div className="admin-empty-state"><p>No unsettled entries for this supervisor.</p></div>
                 ) : unsettled.map(en => (
-                    <div key={en._id} className="list-table-format row-item" style={{ gridTemplateColumns: '40px 1fr 1.2fr 1fr 1fr 1fr' }}>
-                        <input type="checkbox" checked={selectedIds.includes(en._id)} onChange={() => toggleSelected(en._id)} />
+                    <div key={en._id} className="list-table-format row-item" style={{ gridTemplateColumns: '40px 1fr 1.2fr 1fr 1fr 1fr 110px', opacity: en.engineerApproved ? 1 : 0.55 }}>
+                        <input type="checkbox" checked={selectedIds.includes(en._id)} disabled={!en.engineerApproved} title={en.engineerApproved ? '' : 'Not yet engineer-approved'} onChange={() => toggleSelected(en._id)} />
                         <p>{new Date(en.date).toLocaleDateString()}</p>
                         <p>{en.projectId?.name || '—'}</p>
                         <p>{en.labourerName}</p>
                         <p>{en.attendanceType}</p>
                         <p>₹{en.amount.toLocaleString('en-IN')}</p>
+                        <p style={{ color: en.engineerApproved ? 'var(--moss)' : '#c0392b' }}>{en.engineerApproved ? '✓ Approved' : 'Pending'}</p>
                     </div>
                 ))}
             </div>

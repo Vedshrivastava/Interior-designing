@@ -226,7 +226,7 @@ const MeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                                     <p>{m.teamId?.name || (m.workId ? 'legacy' : '—')}</p>
                                     <p>{m.areaCoveredSqft} sqft</p>
                                     <p>{m.supervisorName || '—'}</p>
-                                    <p onClick={() => toggleApprove(m)} className="cursor" style={{ color: m.engineerApproved ? 'var(--moss)' : 'var(--text-lt)' }}>
+                                    <p onClick={() => toggleApprove(m)} className="cursor" style={{ color: m.engineerApproved ? 'var(--moss)' : 'var(--text-lt)' }} title={m.engineerApproved && m.engineerApprovedBy ? `Approved by ${m.engineerApprovedBy}` : ''}>
                                         {m.engineerApproved ? '✓ Approved' : 'Pending'}
                                     </p>
                                     <div className="action-buttons">

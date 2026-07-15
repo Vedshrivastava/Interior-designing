@@ -42,6 +42,7 @@ import financeReceivableRouter     from "./routes/financeReceivable.js";
 import financeClientQuotationRouter from "./routes/financeClientQuotation.js";
 import financeClientDocumentRouter  from "./routes/financeClientDocument.js";
 import financeClientContactRouter   from "./routes/financeClientContact.js";
+import financeProjectDocumentRouter from "./routes/financeProjectDocument.js";
 import financeContractorAdvanceRouter   from "./routes/financeContractorAdvance.js";
 import financeContractorDeductionRouter from "./routes/financeContractorDeduction.js";
 import financeContractorPaymentRouter   from "./routes/financeContractorPayment.js";
@@ -138,6 +139,7 @@ app.use('/api/finance/teams',     financeTeamRouter);
 app.use('/api/finance/settings',  financeSettingRouter);
 app.use('/api/finance/settings',  financeCompanySettingsRouter); // same prefix, separate concern — see routes/financeCompanySettings.js
 app.use('/api/finance/projects',        financeProjectRouter);
+app.use('/api/finance/project-documents', financeProjectDocumentRouter);
 app.use('/api/finance/work-type-rates', financeWorkTypeRateRouter);
 app.use('/api/finance/team-rates',      financeTeamRateRouter);
 app.use('/api/finance/works',           financeWorkRouter);

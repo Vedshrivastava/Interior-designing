@@ -13,9 +13,12 @@ import ReceiptsManager from '../../components/finance/ReceiptsManager';
 import DailyLabourManager from '../../components/finance/DailyLabourManager';
 import DailyLabourBatchEntry from '../../components/finance/DailyLabourBatchEntry';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
+import DocumentsTab from '../../components/finance/DocumentsTab';
 import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material'];
 
@@ -367,7 +370,12 @@ const ProjectDetail = ({ url }) => {
                 )}
                 {activeTab === 'receipts' && <ReceiptsManager url={url} projectId={id} />}
                 {activeTab === 'expenses' && <PlaceholderTab text="Site expenses logged against this project." />}
-                {activeTab === 'documents' && <PlaceholderTab text="Documents on file for this project." />}
+                {activeTab === 'documents' && (
+                    <DocumentsTab
+                        url={url} apiBase="project-documents" scopeParam="projectId" scopeId={id}
+                        emptyText="No documents on file for this project yet."
+                    />
+                )}
                 {activeTab === 'photos' && <PlaceholderTab text="Site photos for this project." />}
                 {activeTab === 'timeline' && <PlaceholderTab text="Chronological activity log for this project." />}
                 {activeTab === 'profitability' && <PlaceholderTab text="Lifetime billing, cost, and profit summary for this project." phase="Phase 2" />}

@@ -18,6 +18,10 @@ const TeamRatesManager = ({ url, projectId, worksVersion }) => {
 
     const [items, setItems] = useState([]);
     const [workTypeOptions, setWorkTypeOptions] = useState([]);
+    // null until this project has at least one real Work — orphan-flagging
+    // only makes sense once there's something real to check against;
+    // during setup (no Works yet) every rate is expected to look "unmatched".
+    const [realWorkTypes, setRealWorkTypes] = useState(null);
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
 
@@ -37,7 +41,8 @@ const TeamRatesManager = ({ url, projectId, worksVersion }) => {
         try {
             const res = await axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } });
             const fromWorks = res.data.success ? [...new Set(res.data.data.map(w => w.workType))] : [];
-            if (fromWorks.length) { setWorkTypeOptions(fromWorks); return; }
+            if (fromWorks.length) { setWorkTypeOptions(fromWorks); setRealWorkTypes(new Set(fromWorks)); return; }
+            setRealWorkTypes(null);
             const settingsRes = await axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } });
             if (settingsRes.data.success) setWorkTypeOptions(settingsRes.data.data.map(s => s.name));
         } catch { /* leave empty — the picker's placeholder explains why */ }
@@ -126,17 +131,31 @@ const TeamRatesManager = ({ url, projectId, worksVersion }) => {
                 {items.length === 0 ? (
                     <div className="admin-empty-state"><p>No team rates yet.</p></div>
                 ) : (
-                    items.map(item => (
-                        <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1fr 100px' }}>
-                            <p>{item.teamId?.name || '—'}</p>
-                            <p>{item.workType}</p>
-                            <p>{item.paymentBasis === 'per_sqft' ? 'Per Sqft' : 'Per Day'}</p>
-                            <p>₹{item.paymentBasis === 'per_sqft' ? item.ratePerSqft : item.ratePerDay}</p>
-                            <div className="action-buttons">
-                                <p onClick={() => removeRate(item._id)} className="cursor delete-action">X</p>
+                    items.map(item => {
+                        const isOrphaned = realWorkTypes && !realWorkTypes.has(item.workType);
+                        return (
+                            <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1fr 100px' }}>
+                                <p>{item.teamId?.name || '—'}</p>
+                                <p>
+                                    {item.workType}
+                                    {isOrphaned && (
+                                        <span
+                                            className="item-category"
+                                            style={{ marginLeft: '8px', background: 'rgba(192,57,43,0.12)', color: '#c0392b', borderColor: 'rgba(192,57,43,0.3)' }}
+                                            title="No Work with this type exists in this project yet — this rate isn't matched to anything and won't be used until one is added, or should be removed."
+                                        >
+                                            ⚠ No matching Work
+                                        </span>
+                                    )}
+                                </p>
+                                <p>{item.paymentBasis === 'per_sqft' ? 'Per Sqft' : 'Per Day'}</p>
+                                <p>₹{item.paymentBasis === 'per_sqft' ? item.ratePerSqft : item.ratePerDay}</p>
+                                <div className="action-buttons">
+                                    <p onClick={() => removeRate(item._id)} className="cursor delete-action">X</p>
+                                </div>
                             </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
         </div>

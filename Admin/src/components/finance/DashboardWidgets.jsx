@@ -53,6 +53,26 @@ export const ChartGrid = ({ children }) => <div className="dash-chart-grid">{chi
 
 export const EmptyChart = ({ text = 'Not enough data yet.' }) => <div className="dash-empty">{text}</div>;
 
+// Custom Recharts tooltip content — replaces the library's unstyled default
+// box (plain white, system border) with something matching the rest of
+// this dashboard. Pass as `<Tooltip content={<ChartTooltip />} />`; Recharts
+// injects `active`/`payload`/`label` itself.
+export const ChartTooltip = ({ active, payload, label, valueFormatter = formatINR }) => {
+    if (!active || !payload?.length) return null;
+    return (
+        <div className="dash-tooltip">
+            {label != null && label !== '' && <p className="dash-tooltip-label">{label}</p>}
+            {payload.map((p, i) => (
+                <div key={i} className="dash-tooltip-row">
+                    <span className="dash-tooltip-swatch" style={{ background: p.color || p.fill || p.payload?.fill }} />
+                    <span className="dash-tooltip-name">{p.name}</span>
+                    <span className="dash-tooltip-value">{valueFormatter(p.value)}</span>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 // Recent Activity panel — its own component (not a reuse of the generic
 // list-table CRUD styling) so its row layout and "view all" footer can be
 // built to match this card's own padding, instead of a manually-placed

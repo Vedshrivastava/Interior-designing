@@ -10,7 +10,7 @@ import {
     faCartShopping, faHardHat, faReceipt, faBuilding, faClipboardList, faPersonDigging,
     faRulerCombined, faTriangleExclamation,
 } from '@fortawesome/free-solid-svg-icons';
-import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ActivityCard, CHART_COLORS, formatINR } from '../components/finance/DashboardWidgets';
+import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ActivityCard, ChartTooltip, CHART_COLORS, formatINR } from '../components/finance/DashboardWidgets';
 import '../styles/welcome.css';
 import '../styles/list.css';
 
@@ -21,6 +21,13 @@ const thisMonth = () => new Date().toISOString().slice(0, 7);
 // axis ticks as raw SVG text, so CSS text-overflow can't help; truncate the
 // tick label itself instead (the tooltip below still shows the full name).
 const truncateLabel = (name, max = 22) => (name.length > max ? `${name.slice(0, max - 1)}…` : name);
+
+// Kept outside the component so it survives a route remount — navigating
+// away and back to the dashboard shows the last-known view instantly
+// instead of blanking to a spinner again, while a fresh fetch quietly
+// brings it up to date in the background. Only a genuine first load (no
+// cache yet) shows the full loading state.
+let dashboardCache = null;
 
 // Recharts' own Y-axis tick <Text> component applies its own word-wrapping
 // against the axis `width`, which mangles long category labels in ways a
@@ -61,52 +68,72 @@ const FinanceHome = ({ url }) => {
 
     useEffect(() => {
         let cancelled = false;
-        setLoading(true);
+
+        if (dashboardCache) {
+            setSummary(dashboardCache.summary);
+            setTrends(dashboardCache.trends);
+            setProjectProfits(dashboardCache.projectProfits);
+            setPayablesBreakdown(dashboardCache.payablesBreakdown);
+            setLoading(false);
+        } else {
+            setLoading(true);
+        }
+
         (async () => {
             try {
-                const [summaryRes, trendsRes] = await Promise.all([
+                // Root requests fired together — employees/vendors/projects
+                // don't depend on summary/trends (or each other), so there's
+                // no reason to wait for one batch before starting the next.
+                const month = thisMonth();
+                const [summaryRes, trendsRes, employeesRes, vendorsRes, projectsRes] = await Promise.all([
                     axios.get(`${url}/api/finance/reports/dashboard-summary`, authHeader),
                     axios.get(`${url}/api/finance/reports/dashboard-trends`, { ...authHeader, params: { months: 6 } }),
+                    axios.get(`${url}/api/finance/employees/list`, authHeader),
+                    axios.get(`${url}/api/finance/vendors/list`, authHeader),
+                    axios.get(`${url}/api/finance/projects/list`, authHeader),
                 ]);
                 if (cancelled) return;
-                if (summaryRes.data.success) setSummary(summaryRes.data.data);
-                if (trendsRes.data.success) setTrends(trendsRes.data.data);
+
+                const nextSummary = summaryRes.data.success ? summaryRes.data.data : null;
+                const nextTrends = trendsRes.data.success ? trendsRes.data.data : null;
+                if (nextSummary) setSummary(nextSummary);
+                if (nextTrends) setTrends(nextTrends);
 
                 // Payables breakdown donut — vendor/contractor come straight off
                 // the summary; salary/commission need the same N+1 ledger
                 // fan-out PayablesPage.jsx already does (no aggregate endpoint
-                // exists for either), scoped to this month.
-                const month = thisMonth();
-                const [employeesRes, vendorsRes] = await Promise.all([
-                    axios.get(`${url}/api/finance/employees/list`, authHeader),
-                    axios.get(`${url}/api/finance/vendors/list`, authHeader),
-                ]);
+                // exists for either), scoped to this month. Project Profitability
+                // needs one profit call per active project — both fan-outs run
+                // together since neither depends on the other.
                 const employees = employeesRes.data.success ? employeesRes.data.data : [];
                 const referralVendors = (vendorsRes.data.success ? vendorsRes.data.data : []).filter(v => v.vendorType === 'referral');
-                const [salaryLedgers, commissionLedgers] = await Promise.all([
+                const activeProjects = (projectsRes.data.success ? projectsRes.data.data : []).filter(p => p.status === 'active');
+
+                const [salaryLedgers, commissionLedgers, profits] = await Promise.all([
                     Promise.all(employees.map(e => axios.get(`${url}/api/finance/employees/${e._id}/salary-ledger`, { ...authHeader, params: { month } }).then(r => r.data.success ? r.data.data : null).catch(() => null))),
                     Promise.all(referralVendors.map(v => axios.get(`${url}/api/finance/vendors/${v._id}/commission-ledger`, authHeader).then(r => r.data.success ? r.data.data : null).catch(() => null))),
+                    Promise.all(activeProjects.map(p => axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId: p._id } })
+                        .then(r => (r.data.success ? { projectId: p._id, projectName: p.name, profit: r.data.data.profit } : null))
+                        .catch(() => null))),
                 ]);
+                if (cancelled) return;
+
                 const salaryPayable = salaryLedgers.filter(Boolean).reduce((s, l) => s + (l.balanceDue || 0), 0);
                 const commissionPayable = commissionLedgers.filter(Boolean).reduce((s, l) => s + (l.commissionPayable || 0), 0);
-                if (!cancelled) {
-                    setPayablesBreakdown({
-                        vendor: summaryRes.data.data?.vendorPayables || 0,
-                        contractor: summaryRes.data.data?.contractorPayables || 0,
-                        salary: salaryPayable,
-                        commission: commissionPayable,
-                    });
-                }
+                const nextPayablesBreakdown = {
+                    vendor: nextSummary?.vendorPayables || 0,
+                    contractor: nextSummary?.contractorPayables || 0,
+                    salary: salaryPayable,
+                    commission: commissionPayable,
+                };
+                const nextProjectProfits = profits.filter(Boolean);
 
-                // Project Profitability comparison — one bar per active project.
-                const projectsRes = await axios.get(`${url}/api/finance/projects/list`, authHeader);
-                const activeProjects = (projectsRes.data.success ? projectsRes.data.data : []).filter(p => p.status === 'active');
-                const profits = await Promise.all(activeProjects.map(p =>
-                    axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId: p._id } })
-                        .then(r => (r.data.success ? { projectId: p._id, projectName: p.name, profit: r.data.data.profit } : null))
-                        .catch(() => null)
-                ));
-                if (!cancelled) setProjectProfits(profits.filter(Boolean));
+                setPayablesBreakdown(nextPayablesBreakdown);
+                setProjectProfits(nextProjectProfits);
+                dashboardCache = {
+                    summary: nextSummary, trends: nextTrends,
+                    projectProfits: nextProjectProfits, payablesBreakdown: nextPayablesBreakdown,
+                };
             } catch {
                 // Dashboard degrades gracefully — a failed fetch just leaves
                 // that section's empty state showing, no toast noise on load.
@@ -153,8 +180,8 @@ const FinanceHome = ({ url }) => {
 
                 <KpiSectionLabel>Cash &amp; Receivables</KpiSectionLabel>
                 <KpiGrid>
-                    <KpiCard goldAccent icon={faBuildingColumns} label="Cash in Bank" value={formatINR(summary?.cashInBank)} onClick={() => navigate('/finance/bank')} />
-                    <KpiCard goldAccent icon={faWallet} label="Cash in Hand" value={formatINR(summary?.cashInHand)} onClick={() => navigate('/finance/cash-book')} />
+                    <KpiCard icon={faBuildingColumns} label="Cash in Bank" value={formatINR(summary?.cashInBank)} onClick={() => navigate('/finance/bank')} />
+                    <KpiCard icon={faWallet} label="Cash in Hand" value={formatINR(summary?.cashInHand)} onClick={() => navigate('/finance/cash-book')} />
                     <KpiCard icon={faFileInvoiceDollar} label="Client Receivables" value={formatINR(summary?.clientReceivables)} onClick={() => navigate('/finance/clients')} tone={summary?.clientReceivables > 0 ? 'danger' : 'good'} />
                     <KpiCard icon={faCartShopping} label="Vendor Payables" value={formatINR(summary?.vendorPayables)} onClick={() => navigate('/finance/procurement')} />
                     <KpiCard icon={faHardHat} label="Contractor Payables" value={formatINR(summary?.contractorPayables)} onClick={() => navigate('/finance/contractors')} />
@@ -178,9 +205,9 @@ const FinanceHome = ({ url }) => {
                                     <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                     <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                                     <YAxis tick={{ fontSize: 11 }} />
-                                    <Tooltip formatter={(v) => formatINR(v)} />
+                                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
                                     <Legend wrapperStyle={{ fontSize: 12 }} />
-                                    <Bar dataKey="revenue" name="Revenue" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="revenue" name="Revenue" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} activeBar={false} />
                                     <Line type="monotone" dataKey="cost" name="Cost" stroke={CHART_COLORS[2]} strokeWidth={2} dot={{ r: 3 }} />
                                 </ComposedChart>
                             </ResponsiveContainer>
@@ -194,7 +221,7 @@ const FinanceHome = ({ url }) => {
                                     <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                     <XAxis dataKey="bucket" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
                                     <YAxis tick={{ fontSize: 11 }} />
-                                    <Tooltip formatter={(v) => formatINR(v)} />
+                                    <Tooltip content={<ChartTooltip />} />
                                     <Legend wrapperStyle={{ fontSize: 12 }} />
                                     <Area type="monotone" dataKey="in" name="In" stroke={CHART_COLORS[0]} fill={CHART_COLORS[0]} fillOpacity={0.15} />
                                     <Area type="monotone" dataKey="out" name="Out" stroke={CHART_COLORS[2]} fill={CHART_COLORS[2]} fillOpacity={0.15} />
@@ -213,11 +240,12 @@ const FinanceHome = ({ url }) => {
                                         type="category" dataKey="projectName" width={150}
                                         tick={<ProjectNameTick />} interval={0} axisLine={false} tickLine={false}
                                     />
-                                    <Tooltip formatter={(v) => formatINR(v)} labelFormatter={(label) => label} />
+                                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
                                     <Bar
                                         dataKey="profit" name="Profit" radius={[0, 4, 4, 0]} barSize={18}
                                         onClick={(d) => navigate(`/finance/projects/${d.projectId}`)}
                                         style={{ cursor: 'pointer' }}
+                                        activeBar={false}
                                     >
                                         {projectProfits.map((p, i) => <Cell key={i} fill={p.profit >= 0 ? CHART_COLORS[0] : CHART_COLORS[2]} />)}
                                     </Bar>
@@ -233,7 +261,7 @@ const FinanceHome = ({ url }) => {
                                     <Pie data={payablesData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={2}>
                                         {payablesData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                                     </Pie>
-                                    <Tooltip formatter={(v) => formatINR(v)} />
+                                    <Tooltip content={<ChartTooltip />} />
                                     <Legend wrapperStyle={{ fontSize: 12 }} />
                                 </PieChart>
                             </ResponsiveContainer>

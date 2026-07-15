@@ -10,7 +10,7 @@ const emptyForm = { workType: '', clientRate: '', referralRate: '' };
 
 /* Manages financeWorkTypeRate rows for one project — used in both the New
    Project wizard (Step 3) and the Project Detail page's Work Type Rates tab. */
-const WorkTypeRatesManager = ({ url, projectId }) => {
+const WorkTypeRatesManager = ({ url, projectId, worksVersion }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -43,7 +43,7 @@ const WorkTypeRatesManager = ({ url, projectId }) => {
                 if (settingsRes.data.success) setWorkTypeOptions(settingsRes.data.data.map(s => s.name));
             })
             .catch(() => {});
-    }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [url, projectId, worksVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 

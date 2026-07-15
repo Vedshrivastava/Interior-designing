@@ -206,6 +206,7 @@ const ProjectDetail = ({ url }) => {
     const [activeTab, setActiveTab] = useState('overview');
     const [labourEntryMode, setLabourEntryMode] = useState('single');
     const [labourListRefreshKey, setLabourListRefreshKey] = useState(0);
+    const [worksVersion, setWorksVersion] = useState(0);
     const [project, setProject] = useState(null);
     const [contractors, setContractors] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -308,11 +309,11 @@ const ProjectDetail = ({ url }) => {
 
                 {activeTab === 'works' && (
                     <div>
-                        <WorksManager url={url} projectId={id} />
+                        <WorksManager url={url} projectId={id} onWorksChanged={() => setWorksVersion(v => v + 1)} />
                         <h3 style={{ margin: '32px 0 8px' }}>Work Type Rates</h3>
-                        <WorkTypeRatesManager url={url} projectId={id} />
+                        <WorkTypeRatesManager url={url} projectId={id} worksVersion={worksVersion} />
                         <h3 style={{ margin: '28px 0 8px' }}>Team Rates</h3>
-                        <TeamRatesManager url={url} projectId={id} />
+                        <TeamRatesManager url={url} projectId={id} worksVersion={worksVersion} />
                     </div>
                 )}
 

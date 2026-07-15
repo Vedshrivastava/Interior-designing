@@ -24,7 +24,7 @@ const emptyAssignmentRow = () => ({ teamId: '', notes: '' });
      - Changing an existing Work's teams happens in a separate "Manage
        Teams" modal, calling /work-team-assignments directly — the Work's
        own edit form no longer touches team data at all. */
-const WorksManager = ({ url, projectId }) => {
+const WorksManager = ({ url, projectId, onWorksChanged }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -98,6 +98,7 @@ const WorksManager = ({ url, projectId }) => {
                 toast.success(res.data.message || 'Work saved');
                 closeModal();
                 await fetchWorks();
+                onWorksChanged?.();
             } else toast.error(res.data.message);
         } catch (err) {
             toast.error(err.response?.data?.message || 'Error saving work');
@@ -109,7 +110,7 @@ const WorksManager = ({ url, projectId }) => {
         setDeleting(true);
         try {
             const res = await axios.post(`${url}/api/finance/works/remove`, { _id: confirmItem._id }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); setConfirmItem(null); await fetchWorks(); }
+            if (res.data.success) { toast.success(res.data.message); setConfirmItem(null); await fetchWorks(); onWorksChanged?.(); }
             else toast.error(res.data.message);
         } catch { toast.error('Error removing work'); }
         finally { setDeleting(false); }

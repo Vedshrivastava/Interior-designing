@@ -12,7 +12,7 @@ const emptyForm = { teamId: '', workType: '', paymentBasis: 'per_sqft', rate: ''
 /* Manages financeTeamRate rows for one project — used in both the New
    Project wizard (Step 4) and the Project Detail page's Team Rates tab.
    A single team can have multiple rows on the same project, one per work type. */
-const TeamRatesManager = ({ url, projectId }) => {
+const TeamRatesManager = ({ url, projectId, worksVersion }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -43,7 +43,7 @@ const TeamRatesManager = ({ url, projectId }) => {
         } catch { /* leave empty — the picker's placeholder explains why */ }
     };
 
-    useEffect(() => { if (projectId) { fetchList(); fetchWorkTypeOptions(); } }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { if (projectId) { fetchList(); fetchWorkTypeOptions(); } }, [projectId, worksVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 

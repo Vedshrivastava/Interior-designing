@@ -320,6 +320,18 @@
     letter-spacing: 0.3px;
 }
 
+/* ── Date group heading (Activity Timeline) ── */
+.activity-date-heading {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-lt);
+    margin: 0 0 10px;
+    padding-left: 10px;
+    border-left: 3px solid var(--gold);
+}
+
 /* ── Empty State ── */
 .admin-empty-state {
     padding: 72px 24px;

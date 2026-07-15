@@ -4,6 +4,8 @@ import { toast } from 'react-toastify';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const TABS = [{ key: 'timeline', label: 'Timeline' }];
 
@@ -117,17 +119,20 @@ const ActivityTimelinePage = ({ url }) => {
                 <div className="admin-empty-state"><p>No activity recorded yet.</p></div>
             ) : (
                 Object.entries(grouped).map(([day, items]) => (
-                    <div key={day} style={{ marginBottom: '24px' }}>
-                        <h3 style={{ fontSize: '0.95rem', color: 'var(--text-lt)', marginBottom: '8px' }}>{day}</h3>
+                    <div key={day} style={{ marginBottom: '28px' }}>
+                        <p className="activity-date-heading">{day}</p>
                         <div className="list-table">
+                            <div className="list-table-format title" style={{ gridTemplateColumns: '80px 1fr 140px' }}>
+                                <b>Time</b><b>Activity</b><b>Amount</b>
+                            </div>
                             {items.map(e => (
                                 <div key={e._id} className="list-table-format row-item" style={{ gridTemplateColumns: '80px 1fr 140px' }}>
                                     <p>{timeLabel(e.timestamp)}</p>
                                     <p>
                                         {e.summary}
-                                        {e.performedBy && <span style={{ color: 'var(--text-lt)' }}> — {e.performedBy}</span>}
+                                        {e.performedBy && <span className="item-category" style={{ marginLeft: '8px' }}>{e.performedBy}</span>}
                                     </p>
-                                    <p>{e.amount != null ? `₹${e.amount.toLocaleString('en-IN')}` : ''}</p>
+                                    <p>{e.amount != null ? `₹${e.amount.toLocaleString('en-IN')}` : '—'}</p>
                                 </div>
                             ))}
                         </div>

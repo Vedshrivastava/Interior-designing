@@ -1,4 +1,5 @@
 import FinanceTeamRate from '../models/financeTeamRate.js';
+import FinanceWork from '../models/financeWork.js';
 import { broadcast } from '../middlewares/webSocket.js';
 
 const listTeamRates = async (req, res) => {
@@ -23,6 +24,17 @@ const addTeamRate = async (req, res) => {
         }
         if (!['per_sqft', 'per_day'].includes(paymentBasis)) {
             return res.status(400).json({ success: false, message: 'A valid payment basis is required' });
+        }
+        // A rate only makes sense for a work type this project actually has
+        // a Work for — but the New Project wizard sets these rates before
+        // any Work exists, so this only enforces once the project has at
+        // least one real Work (mirrors the frontend picker's fallback).
+        const projectHasAnyWork = await FinanceWork.exists({ projectId, deleted: { $ne: true } });
+        if (projectHasAnyWork) {
+            const workExists = await FinanceWork.exists({ projectId, workType, deleted: { $ne: true } });
+            if (!workExists) {
+                return res.status(400).json({ success: false, message: `No Work with type "${workType}" exists on this project yet — add the Work first` });
+            }
         }
         const existing = await FinanceTeamRate.findOne({ projectId, teamId, workType, deleted: { $ne: true } });
         if (existing) return res.status(400).json({ success: false, message: 'This team already has a rate for this work type on this project' });

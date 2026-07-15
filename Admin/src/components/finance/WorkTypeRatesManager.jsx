@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -27,11 +28,22 @@ const WorkTypeRatesManager = ({ url, projectId }) => {
 
     useEffect(() => { if (projectId) fetchList(); }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // A rate should only ever be settable for a work type this project
+    // actually has a Work for — not free text. But the New Project wizard
+    // sets these rates in Step 3, before any Work exists (Works only get
+    // added later, from Project Detail) — so fall back to the Settings
+    // master list until this project has at least one real Work.
     useEffect(() => {
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } })
-            .then(res => { if (res.data.success) setWorkTypeOptions(res.data.data.map(s => s.name)); })
+        if (!projectId) return;
+        axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } })
+            .then(async (res) => {
+                const fromWorks = res.data.success ? [...new Set(res.data.data.map(w => w.workType))] : [];
+                if (fromWorks.length) { setWorkTypeOptions(fromWorks); return; }
+                const settingsRes = await axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } });
+                if (settingsRes.data.success) setWorkTypeOptions(settingsRes.data.data.map(s => s.name));
+            })
             .catch(() => {});
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -77,10 +89,11 @@ const WorkTypeRatesManager = ({ url, projectId }) => {
                 <div className="wizard-field-grid">
                     <div className="add-product-name flex-col">
                         <p>Work Type *</p>
-                        <input type="text" list="work-type-options" placeholder="e.g. Putty" value={form.workType} onChange={e => setField('workType', e.target.value)} />
-                        <datalist id="work-type-options">
-                            {workTypeOptions.map(w => <option key={w} value={w} />)}
-                        </datalist>
+                        <StyledSelect
+                            value={form.workType} onChange={v => setField('workType', v)}
+                            placeholder={workTypeOptions.length ? 'Select work type…' : 'Add a Work first'}
+                            options={workTypeOptions.map(w => ({ value: w, label: w }))}
+                        />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Client Rate (₹/sqft) *</p>

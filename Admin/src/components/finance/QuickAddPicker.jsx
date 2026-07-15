@@ -19,7 +19,7 @@ import '../../styles/list.css';
  * Contractors picker, so the new vendor immediately satisfies whatever
  * `filter` this same picker applies to its dropdown.
  */
-const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValues = {}, placeholder, disabled }) => {
+const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValues = {}, placeholder, disabled, hint }) => {
     const resource = FINANCE_MASTERS[resourceKey];
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -97,6 +97,7 @@ const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValue
                 <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
                     <div className="loader-modal-box edit-modal">
                         <h2>Add {resource.label}</h2>
+                        {hint && <p className="admin-subtitle" style={{ marginTop: '-8px', marginBottom: '4px' }}>{hint}</p>}
                         <form className="flex-col" onSubmit={submit}>
                             {visibleFields.filter(f => !f.showIf || f.showIf(form)).map(f => (
                                 <div key={f.key} className="add-product-name flex-col">

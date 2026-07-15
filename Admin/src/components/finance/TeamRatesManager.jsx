@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import QuickAddPicker from './QuickAddPicker';
+import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -16,6 +17,7 @@ const TeamRatesManager = ({ url, projectId }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [items, setItems] = useState([]);
+    const [workTypeOptions, setWorkTypeOptions] = useState([]);
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
 
@@ -26,7 +28,22 @@ const TeamRatesManager = ({ url, projectId }) => {
         } catch { toast.error('Error fetching team rates'); }
     };
 
-    useEffect(() => { if (projectId) fetchList(); }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    // A rate should only ever be settable for a work type this project
+    // actually has a Work for — not free text. But the New Project wizard
+    // sets these rates in Step 4, before any Work exists (Works only get
+    // added later, from Project Detail) — so fall back to the Settings
+    // master list until this project has at least one real Work.
+    const fetchWorkTypeOptions = async () => {
+        try {
+            const res = await axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } });
+            const fromWorks = res.data.success ? [...new Set(res.data.data.map(w => w.workType))] : [];
+            if (fromWorks.length) { setWorkTypeOptions(fromWorks); return; }
+            const settingsRes = await axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } });
+            if (settingsRes.data.success) setWorkTypeOptions(settingsRes.data.data.map(s => s.name));
+        } catch { /* leave empty — the picker's placeholder explains why */ }
+    };
+
+    useEffect(() => { if (projectId) { fetchList(); fetchWorkTypeOptions(); } }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -74,11 +91,18 @@ const TeamRatesManager = ({ url, projectId }) => {
                 <div className="wizard-field-grid">
                     <div className="add-product-name flex-col">
                         <p>Team *</p>
-                        <QuickAddPicker url={url} resourceKey="teams" value={form.teamId} onChange={v => setField('teamId', v)} />
+                        <QuickAddPicker
+                            url={url} resourceKey="teams" value={form.teamId} onChange={v => setField('teamId', v)}
+                            hint="Looking to add casual daily-wage labour instead? Manage that from Supervisors → Roster, not here."
+                        />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Work Type *</p>
-                        <input type="text" placeholder="e.g. Putty" value={form.workType} onChange={e => setField('workType', e.target.value)} />
+                        <StyledSelect
+                            value={form.workType} onChange={v => setField('workType', v)}
+                            placeholder={workTypeOptions.length ? 'Select work type…' : 'Add a Work first'}
+                            options={workTypeOptions.map(w => ({ value: w, label: w }))}
+                        />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Payment Basis *</p>

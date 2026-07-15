@@ -4,7 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import QuickAddPicker from './QuickAddPicker';
+import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
+import '../../styles/add.css';
 
 const STATUS_LABEL = { active: 'Active', completed: 'Completed' };
 
@@ -206,10 +208,11 @@ const WorksManager = ({ url, projectId }) => {
                         <form className="flex-col" onSubmit={submit}>
                             <div className="add-product-name flex-col">
                                 <p>Work Type *</p>
-                                <input type="text" list="work-type-options" value={form.workType} onChange={e => setField('workType', e.target.value)} />
-                                <datalist id="work-type-options">
-                                    {workTypeOptions.map(w => <option key={w} value={w} />)}
-                                </datalist>
+                                <StyledSelect
+                                    value={form.workType} onChange={v => setField('workType', v)}
+                                    placeholder="Select work type…"
+                                    options={workTypeOptions.map(w => ({ value: w, label: w }))}
+                                />
                             </div>
 
                             {!editingId && (
@@ -220,7 +223,8 @@ const WorksManager = ({ url, projectId }) => {
                                             <div key={idx} className="point-input">
                                                 <div style={{ flex: 1 }}>
                                                     <QuickAddPicker url={url} resourceKey="teams" value={a.teamId}
-                                                        onChange={v => setAssignmentField(idx, 'teamId', v)} />
+                                                        onChange={v => setAssignmentField(idx, 'teamId', v)}
+                                                        hint="Looking to add casual daily-wage labour instead? Manage that from Supervisors → Roster, not here." />
                                                 </div>
                                                 <input type="text" placeholder="Notes (optional)" value={a.notes}
                                                     onChange={e => setAssignmentField(idx, 'notes', e.target.value)} style={{ flex: 1 }} />
@@ -297,7 +301,10 @@ const WorksManager = ({ url, projectId }) => {
                             <p>Add Contractor Team</p>
                             <div className="point-input">
                                 <div style={{ flex: 1 }}>
-                                    <QuickAddPicker url={url} resourceKey="teams" value={newTeamId} onChange={setNewTeamId} />
+                                    <QuickAddPicker
+                                        url={url} resourceKey="teams" value={newTeamId} onChange={setNewTeamId}
+                                        hint="Looking to add casual daily-wage labour instead? Manage that from Supervisors → Roster, not here."
+                                    />
                                 </div>
                                 <input type="text" placeholder="Notes (optional)" value={newTeamNotes}
                                     onChange={e => setNewTeamNotes(e.target.value)} style={{ flex: 1 }} />

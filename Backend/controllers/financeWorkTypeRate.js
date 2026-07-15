@@ -1,4 +1,5 @@
 import FinanceWorkTypeRate from '../models/financeWorkTypeRate.js';
+import FinanceWork from '../models/financeWork.js';
 import { broadcast } from '../middlewares/webSocket.js';
 
 const listWorkTypeRates = async (req, res) => {
@@ -19,6 +20,17 @@ const addWorkTypeRate = async (req, res) => {
         if (!projectId || !workType) return res.status(400).json({ success: false, message: 'Project and work type are required' });
         if (clientRatePerSqft === undefined || clientRatePerSqft === null || clientRatePerSqft === '') {
             return res.status(400).json({ success: false, message: 'Client rate is required' });
+        }
+        // A rate only makes sense for a work type this project actually has
+        // a Work for — but the New Project wizard sets these rates before
+        // any Work exists, so this only enforces once the project has at
+        // least one real Work (mirrors the frontend picker's fallback).
+        const projectHasAnyWork = await FinanceWork.exists({ projectId, deleted: { $ne: true } });
+        if (projectHasAnyWork) {
+            const workExists = await FinanceWork.exists({ projectId, workType, deleted: { $ne: true } });
+            if (!workExists) {
+                return res.status(400).json({ success: false, message: `No Work with type "${workType}" exists on this project yet — add the Work first` });
+            }
         }
         const existing = await FinanceWorkTypeRate.findOne({ projectId, workType, deleted: { $ne: true } });
         if (existing) return res.status(400).json({ success: false, message: `A rate for "${workType}" already exists on this project` });

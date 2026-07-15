@@ -14,12 +14,11 @@ export const formatINR = (n) => `₹${Math.round(n || 0).toLocaleString('en-IN')
 // `icon` (optional): a @fortawesome/free-solid-svg-icons import, shown in a
 // tone-tinted badge beside the label/value column (not stacked above it) —
 // same icon set the sidebar already uses, so no new dependency. `hero`
-// (optional): the two headline this-month figures get a solid-color
-// treatment instead of blending into the same flat white grid as every
-// count/alert card. `goldAccent` (optional): a warm gold-wash background,
-// purely a color treatment — same card layout either way.
-export const KpiCard = ({ label, value, sub, onClick, tone, icon, hero, goldAccent }) => (
-    <div className={`dash-kpi-card${onClick ? ' clickable' : ''}${hero ? ' hero' : ''}${goldAccent ? ' gold-accent' : ''}${tone ? ` tone-${tone}` : ''}`} onClick={onClick}>
+// (optional): the two headline this-month figures stay physically bigger
+// than every count/alert card below, but use the exact same white-card
+// look — no separate color treatment.
+export const KpiCard = ({ label, value, sub, onClick, tone, icon, hero }) => (
+    <div className={`dash-kpi-card${onClick ? ' clickable' : ''}${hero ? ' hero' : ''}${tone ? ` tone-${tone}` : ''}`} onClick={onClick}>
         <div className="dash-kpi-row">
             {icon && (
                 <div className={`dash-kpi-icon${tone ? ` tone-${tone}` : ''}`}>

@@ -174,8 +174,8 @@ const FinanceHome = ({ url }) => {
                 </div>
 
                 <KpiGrid hero>
-                    <KpiCard hero goldAccent icon={faMoneyBillTransfer} label="This Month Revenue" value={formatINR(summary?.thisMonthRevenue)} onClick={() => navigate('/finance/receivables')} />
-                    <KpiCard hero goldAccent icon={faArrowTrendUp} label="This Month Profit" value={formatINR(summary?.thisMonthProfit)} onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.thisMonthProfit >= 0 ? 'good' : 'danger'} />
+                    <KpiCard hero icon={faMoneyBillTransfer} label="This Month Revenue" value={formatINR(summary?.thisMonthRevenue)} onClick={() => navigate('/finance/receivables')} />
+                    <KpiCard hero icon={faArrowTrendUp} label="This Month Profit" value={formatINR(summary?.thisMonthProfit)} onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.thisMonthProfit >= 0 ? 'good' : 'danger'} />
                 </KpiGrid>
 
                 <KpiSectionLabel>Cash &amp; Receivables</KpiSectionLabel>

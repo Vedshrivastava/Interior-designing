@@ -4,7 +4,7 @@ import axios from 'axios';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import MasterCrudTable from '../../components/finance/MasterCrudTable';
-import { ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
+import { ChartCard, ChartGrid, EmptyChart, ChartTooltip, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 
@@ -59,8 +59,8 @@ const ClientsPage = ({ url }) => {
                                     <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                     <XAxis type="number" tick={{ fontSize: 11 }} />
                                     <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
-                                    <Tooltip formatter={(v) => formatINR(v)} />
-                                    <Bar dataKey="revenue" name="Revenue" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} />
+                                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
+                                    <Bar dataKey="revenue" name="Revenue" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} activeBar={false} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </ChartCard>
@@ -71,8 +71,8 @@ const ClientsPage = ({ url }) => {
                                         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                         <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
                                         <YAxis tick={{ fontSize: 11 }} />
-                                        <Tooltip formatter={(v) => formatINR(v)} />
-                                        <Bar dataKey="amount" name="Outstanding" radius={[4, 4, 0, 0]}>
+                                        <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
+                                        <Bar dataKey="amount" name="Outstanding" radius={[4, 4, 0, 0]} activeBar={false}>
                                             {agingData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                                         </Bar>
                                     </BarChart>

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const emptyForm = { month: '', amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '' };
 const thisMonth = () => new Date().toISOString().slice(0, 7);
@@ -69,15 +71,32 @@ const SalaryLedgerView = ({ url, employeeId }) => {
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>Expected salary: ₹{ledger.expectedSalary.toLocaleString('en-IN')}/month</p>
 
-            <form onSubmit={submit} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                <input type="month" value={form.month} onChange={e => setField('month', e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
-                <input type="number" placeholder="Amount" value={form.amount} onChange={e => setField('amount', e.target.value)} style={{ flex: 1, minWidth: '100px' }} />
-                <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
-                <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)} style={{ flex: 1, minWidth: '160px' }}>
-                    <option value="">— Cash —</option>
-                    {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
-                </select>
-                <button type="submit" className="add-point-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Payment'}</button>
+            <form onSubmit={submit}>
+                <div className="wizard-field-grid">
+                    <div className="add-product-name flex-col">
+                        <p>Month *</p>
+                        <input type="month" value={form.month} onChange={e => setField('month', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Amount (₹) *</p>
+                        <input type="number" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Date *</p>
+                        <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Bank Account</p>
+                        <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)}>
+                            <option value="">— Cash —</option>
+                            {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
+                        </select>
+                    </div>
+                </div>
+                <div className="wizard-actions" style={{ marginTop: '16px', marginBottom: '12px' }}>
+                    <span />
+                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Payment'}</button>
+                </div>
             </form>
 
             <h3 style={{ margin: '20px 0 8px' }}>By Month</h3>

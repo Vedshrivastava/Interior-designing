@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const STATUS_LABEL = { present: 'Present', absent: 'Absent', half_day: 'Half Day', leave: 'Leave' };
 const emptyForm = { date: '', status: 'present', notes: '' };
@@ -53,13 +55,27 @@ const SupervisorAttendanceManager = ({ url, employeeId }) => {
 
     return (
         <div>
-            <form onSubmit={submit} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
-                <select value={form.status} onChange={e => setField('status', e.target.value)} style={{ flex: 1, minWidth: '140px' }}>
-                    {Object.entries(STATUS_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-                </select>
-                <input type="text" placeholder="Notes (optional)" value={form.notes} onChange={e => setField('notes', e.target.value)} style={{ flex: 1, minWidth: '160px' }} />
-                <button type="submit" className="add-point-btn" disabled={saving}>{saving ? 'Saving…' : '+ Mark Attendance'}</button>
+            <form onSubmit={submit}>
+                <div className="wizard-field-grid">
+                    <div className="add-product-name flex-col">
+                        <p>Date *</p>
+                        <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Status *</p>
+                        <select value={form.status} onChange={e => setField('status', e.target.value)}>
+                            {Object.entries(STATUS_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                        </select>
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Notes (optional)</p>
+                        <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
+                    </div>
+                </div>
+                <div className="wizard-actions" style={{ marginTop: '16px' }}>
+                    <span />
+                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : '+ Mark Attendance'}</button>
+                </div>
             </form>
 
             <div className="list-table">

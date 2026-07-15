@@ -5,6 +5,8 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { ChartCard, EmptyChart, CHART_COLORS, formatINR } from './DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 // Monthly advances/deductions/payments — derived from the ledger response
 // already fetched here, no separate endpoint needed.
@@ -192,12 +194,29 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
             )}
 
             <h3 style={{ marginBottom: '8px' }}>Advances</h3>
-            <form onSubmit={submitAdvance} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                <input type="number" placeholder="Amount" value={advanceForm.amount} onChange={e => setAdvanceForm(p => ({ ...p, amount: e.target.value }))} style={{ flex: 1, minWidth: '100px' }} />
-                <input type="date" value={advanceForm.date} onChange={e => setAdvanceForm(p => ({ ...p, date: e.target.value }))} style={{ flex: 1, minWidth: '140px' }} />
-                <input type="text" placeholder="Payment mode" value={advanceForm.paymentMode} onChange={e => setAdvanceForm(p => ({ ...p, paymentMode: e.target.value }))} style={{ flex: 1, minWidth: '120px' }} />
-                <input type="text" placeholder="Notes" value={advanceForm.notes} onChange={e => setAdvanceForm(p => ({ ...p, notes: e.target.value }))} style={{ flex: 1, minWidth: '140px' }} />
-                <button type="submit" className="add-point-btn" disabled={saving === 'advance'}>{saving === 'advance' ? 'Saving…' : '+ Add Advance'}</button>
+            <form onSubmit={submitAdvance}>
+                <div className="wizard-field-grid">
+                    <div className="add-product-name flex-col">
+                        <p>Amount (₹) *</p>
+                        <input type="number" value={advanceForm.amount} onChange={e => setAdvanceForm(p => ({ ...p, amount: e.target.value }))} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Date *</p>
+                        <input type="date" value={advanceForm.date} onChange={e => setAdvanceForm(p => ({ ...p, date: e.target.value }))} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Payment Mode</p>
+                        <input type="text" value={advanceForm.paymentMode} onChange={e => setAdvanceForm(p => ({ ...p, paymentMode: e.target.value }))} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Notes</p>
+                        <input type="text" value={advanceForm.notes} onChange={e => setAdvanceForm(p => ({ ...p, notes: e.target.value }))} />
+                    </div>
+                </div>
+                <div className="wizard-actions" style={{ marginTop: '16px', marginBottom: '12px' }}>
+                    <span />
+                    <button type="submit" className="add-btn" disabled={saving === 'advance'}>{saving === 'advance' ? 'Saving…' : '+ Add Advance'}</button>
+                </div>
             </form>
             <div className="list-table" style={{ marginBottom: '28px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
@@ -217,11 +236,25 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
             </div>
 
             <h3 style={{ marginBottom: '8px' }}>Deductions</h3>
-            <form onSubmit={submitDeduction} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                <input type="number" placeholder="Amount" value={deductionForm.amount} onChange={e => setDeductionForm(p => ({ ...p, amount: e.target.value }))} style={{ flex: 1, minWidth: '100px' }} />
-                <input type="text" placeholder="Reason" value={deductionForm.reason} onChange={e => setDeductionForm(p => ({ ...p, reason: e.target.value }))} style={{ flex: 2, minWidth: '180px' }} />
-                <input type="date" value={deductionForm.date} onChange={e => setDeductionForm(p => ({ ...p, date: e.target.value }))} style={{ flex: 1, minWidth: '140px' }} />
-                <button type="submit" className="add-point-btn" disabled={saving === 'deduction'}>{saving === 'deduction' ? 'Saving…' : '+ Add Deduction'}</button>
+            <form onSubmit={submitDeduction}>
+                <div className="wizard-field-grid">
+                    <div className="add-product-name flex-col">
+                        <p>Amount (₹) *</p>
+                        <input type="number" value={deductionForm.amount} onChange={e => setDeductionForm(p => ({ ...p, amount: e.target.value }))} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Reason *</p>
+                        <input type="text" value={deductionForm.reason} onChange={e => setDeductionForm(p => ({ ...p, reason: e.target.value }))} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Date *</p>
+                        <input type="date" value={deductionForm.date} onChange={e => setDeductionForm(p => ({ ...p, date: e.target.value }))} />
+                    </div>
+                </div>
+                <div className="wizard-actions" style={{ marginTop: '16px', marginBottom: '12px' }}>
+                    <span />
+                    <button type="submit" className="add-btn" disabled={saving === 'deduction'}>{saving === 'deduction' ? 'Saving…' : '+ Add Deduction'}</button>
+                </div>
             </form>
             <div className="list-table" style={{ marginBottom: '28px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 100px' }}>
@@ -240,21 +273,47 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
             </div>
 
             <h3 style={{ marginBottom: '8px' }}>Payments</h3>
-            <form onSubmit={submitPayment} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                <input type="number" placeholder="Amount" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} style={{ flex: 1, minWidth: '100px' }} />
-                <input type="date" value={paymentForm.date} onChange={e => setPaymentForm(p => ({ ...p, date: e.target.value }))} style={{ flex: 1, minWidth: '140px' }} />
-                <input type="text" placeholder="Payment mode" value={paymentForm.paymentMode} onChange={e => setPaymentForm(p => ({ ...p, paymentMode: e.target.value }))} style={{ flex: 1, minWidth: '120px' }} />
-                <select value={paymentForm.bankAccountId} onChange={e => setPaymentForm(p => ({ ...p, bankAccountId: e.target.value }))} style={{ flex: 1, minWidth: '160px' }}>
-                    <option value="">— Cash —</option>
-                    {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
-                </select>
-                <select value={paymentForm.tdsSectionId} onChange={e => setPaymentForm(p => ({ ...p, tdsSectionId: e.target.value }))} style={{ flex: 1, minWidth: '160px' }}>
-                    <option value="">— No TDS —</option>
-                    {tdsSections.map(s => <option key={s._id} value={s._id}>{s.name}{s.code ? ` (${s.code})` : ''}</option>)}
-                </select>
-                <input type="number" placeholder="TDS amount (optional)" value={paymentForm.tdsAmount} onChange={e => setPaymentForm(p => ({ ...p, tdsAmount: e.target.value }))} style={{ flex: 1, minWidth: '120px' }} />
-                <input type="file" onChange={e => setPaymentFile(e.target.files[0] || null)} style={{ flex: 1, minWidth: '160px' }} />
-                <button type="submit" className="add-point-btn" disabled={saving === 'payment'}>{saving === 'payment' ? 'Saving…' : '+ Add Payment'}</button>
+            <form onSubmit={submitPayment}>
+                <div className="wizard-field-grid">
+                    <div className="add-product-name flex-col">
+                        <p>Amount (₹) *</p>
+                        <input type="number" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Date *</p>
+                        <input type="date" value={paymentForm.date} onChange={e => setPaymentForm(p => ({ ...p, date: e.target.value }))} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Payment Mode</p>
+                        <input type="text" value={paymentForm.paymentMode} onChange={e => setPaymentForm(p => ({ ...p, paymentMode: e.target.value }))} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Bank Account</p>
+                        <select value={paymentForm.bankAccountId} onChange={e => setPaymentForm(p => ({ ...p, bankAccountId: e.target.value }))}>
+                            <option value="">— Cash —</option>
+                            {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
+                        </select>
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>TDS Section</p>
+                        <select value={paymentForm.tdsSectionId} onChange={e => setPaymentForm(p => ({ ...p, tdsSectionId: e.target.value }))}>
+                            <option value="">— No TDS —</option>
+                            {tdsSections.map(s => <option key={s._id} value={s._id}>{s.name}{s.code ? ` (${s.code})` : ''}</option>)}
+                        </select>
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>TDS Amount (optional)</p>
+                        <input type="number" value={paymentForm.tdsAmount} onChange={e => setPaymentForm(p => ({ ...p, tdsAmount: e.target.value }))} />
+                    </div>
+                    <div className="add-product-name flex-col wizard-field-full">
+                        <p>Attachment</p>
+                        <input type="file" onChange={e => setPaymentFile(e.target.files[0] || null)} />
+                    </div>
+                </div>
+                <div className="wizard-actions" style={{ marginTop: '16px', marginBottom: '12px' }}>
+                    <span />
+                    <button type="submit" className="add-btn" disabled={saving === 'payment'}>{saving === 'payment' ? 'Saving…' : '+ Add Payment'}</button>
+                </div>
             </form>
             <div className="list-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>

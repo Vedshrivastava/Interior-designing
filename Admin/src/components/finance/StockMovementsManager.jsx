@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import QuickAddPicker from './QuickAddPicker';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const MOVEMENT_LABEL = { dump: 'Dump', consume: 'Consume', return: 'Return', waste: 'Waste' };
 const MANUAL_TYPES = ['dump', 'return', 'waste'];
@@ -16,7 +19,6 @@ const StockMovementsManager = ({ url, projectId }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-    const [materials, setMaterials] = useState([]);
     const [stock, setStock] = useState([]);
     const [movements, setMovements] = useState([]);
     const [loadingStock, setLoadingStock] = useState(true);
@@ -43,9 +45,6 @@ const StockMovementsManager = ({ url, projectId }) => {
     };
 
     useEffect(() => { if (projectId) { fetchStock(); fetchHistory(); } }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
-    useEffect(() => {
-        axios.get(`${url}/api/finance/materials/list`, authHeader).then(res => { if (res.data.success) setMaterials(res.data.data); }).catch(() => {});
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -99,18 +98,35 @@ const StockMovementsManager = ({ url, projectId }) => {
             </div>
 
             <h3 style={{ marginBottom: '8px' }}>Record Dump / Return / Waste</h3>
-            <form onSubmit={submit} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                <select value={form.materialId} onChange={e => setField('materialId', e.target.value)} style={{ flex: 1, minWidth: '160px' }}>
-                    <option value="">Select material…</option>
-                    {materials.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}
-                </select>
-                <select value={form.movementType} onChange={e => setField('movementType', e.target.value)} style={{ flex: 1, minWidth: '120px' }}>
-                    {MANUAL_TYPES.map(t => <option key={t} value={t}>{MOVEMENT_LABEL[t]}</option>)}
-                </select>
-                <input type="number" placeholder="Quantity" value={form.quantity} onChange={e => setField('quantity', e.target.value)} style={{ flex: 1, minWidth: '100px' }} />
-                <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
-                <input type="text" placeholder="Notes" value={form.notes} onChange={e => setField('notes', e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
-                <button type="submit" className="add-point-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Movement'}</button>
+            <form onSubmit={submit}>
+                <div className="wizard-field-grid">
+                    <div className="add-product-name flex-col">
+                        <p>Material *</p>
+                        <QuickAddPicker url={url} resourceKey="materials" value={form.materialId} onChange={v => setField('materialId', v)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Movement Type *</p>
+                        <select value={form.movementType} onChange={e => setField('movementType', e.target.value)}>
+                            {MANUAL_TYPES.map(t => <option key={t} value={t}>{MOVEMENT_LABEL[t]}</option>)}
+                        </select>
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Quantity *</p>
+                        <input type="number" value={form.quantity} onChange={e => setField('quantity', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Date *</p>
+                        <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col wizard-field-full">
+                        <p>Notes</p>
+                        <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
+                    </div>
+                </div>
+                <div className="wizard-actions" style={{ marginTop: '16px' }}>
+                    <span />
+                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Movement'}</button>
+                </div>
             </form>
 
             <h3 style={{ marginBottom: '8px' }}>Movement History</h3>

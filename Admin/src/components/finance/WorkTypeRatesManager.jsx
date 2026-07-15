@@ -2,6 +2,10 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
+
+const emptyForm = { workType: '', clientRate: '', referralRate: '' };
 
 /* Manages financeWorkTypeRate rows for one project — used in both the New
    Project wizard (Step 3) and the Project Detail page's Work Type Rates tab. */
@@ -11,9 +15,7 @@ const WorkTypeRatesManager = ({ url, projectId }) => {
 
     const [items, setItems] = useState([]);
     const [workTypeOptions, setWorkTypeOptions] = useState([]);
-    const [workType, setWorkType] = useState('');
-    const [clientRate, setClientRate] = useState('');
-    const [referralRate, setReferralRate] = useState('');
+    const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
 
     const fetchList = async () => {
@@ -31,18 +33,25 @@ const WorkTypeRatesManager = ({ url, projectId }) => {
             .catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const addRate = async (e) => {
+    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
+    // Add-only, deliberately — once a rate is confirmed it shouldn't be
+    // silently changed underneath work already measured/billed against it.
+    // Remove and re-add if a rate was entered wrong.
+    const submit = async (e) => {
         e.preventDefault();
-        if (!workType.trim()) { toast.error('Work type is required'); return; }
-        if (clientRate === '') { toast.error('Client rate is required'); return; }
+        if (!form.workType.trim()) { toast.error('Work type is required'); return; }
+        if (form.clientRate === '') { toast.error('Client rate is required'); return; }
         setSaving(true);
         try {
-            const res = await axios.post(`${url}/api/finance/work-type-rates/add`, {
-                projectId, workType: workType.trim(), clientRatePerSqft: clientRate, referralRatePerSqft: referralRate || 0,
-            }, authHeader);
+            const payload = {
+                projectId, workType: form.workType.trim(),
+                clientRatePerSqft: form.clientRate, referralRatePerSqft: form.referralRate || 0,
+            };
+            const res = await axios.post(`${url}/api/finance/work-type-rates/add`, payload, authHeader);
             if (res.data.success) {
-                toast.success(res.data.message);
-                setWorkType(''); setClientRate(''); setReferralRate('');
+                toast.success(res.data.message || 'Rate added');
+                setForm(emptyForm);
                 await fetchList();
             } else toast.error(res.data.message);
         } catch (err) {
@@ -64,15 +73,28 @@ const WorkTypeRatesManager = ({ url, projectId }) => {
                 Client rate + referral rate, per work type. Required before this project can go active.
             </p>
 
-            <form onSubmit={addRate} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                <input type="text" list="work-type-options" placeholder="Work type (e.g. Putty)"
-                    value={workType} onChange={e => setWorkType(e.target.value)} style={{ flex: 2, minWidth: '160px' }} />
-                <datalist id="work-type-options">
-                    {workTypeOptions.map(w => <option key={w} value={w} />)}
-                </datalist>
-                <input type="number" placeholder="Client rate ₹/sqft" value={clientRate} onChange={e => setClientRate(e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
-                <input type="number" placeholder="Referral rate ₹/sqft" value={referralRate} onChange={e => setReferralRate(e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
-                <button type="submit" className="add-point-btn" disabled={saving}>{saving ? 'Adding…' : '+ Add Rate'}</button>
+            <form onSubmit={submit}>
+                <div className="wizard-field-grid">
+                    <div className="add-product-name flex-col">
+                        <p>Work Type *</p>
+                        <input type="text" list="work-type-options" placeholder="e.g. Putty" value={form.workType} onChange={e => setField('workType', e.target.value)} />
+                        <datalist id="work-type-options">
+                            {workTypeOptions.map(w => <option key={w} value={w} />)}
+                        </datalist>
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Client Rate (₹/sqft) *</p>
+                        <input type="number" value={form.clientRate} onChange={e => setField('clientRate', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Referral Rate (₹/sqft)</p>
+                        <input type="number" value={form.referralRate} onChange={e => setField('referralRate', e.target.value)} />
+                    </div>
+                </div>
+                <div className="wizard-actions" style={{ marginTop: '16px' }}>
+                    <span />
+                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Adding…' : '+ Add Rate'}</button>
+                </div>
             </form>
 
             <div className="list-table">

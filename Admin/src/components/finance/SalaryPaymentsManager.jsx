@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import QuickAddPicker from './QuickAddPicker';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '' };
 const thisMonth = () => new Date().toISOString().slice(0, 7);
@@ -16,7 +19,6 @@ const SalaryPaymentsManager = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-    const [employees, setEmployees] = useState([]);
     const [employeeId, setEmployeeId] = useState('');
     const [month, setMonth] = useState(thisMonth());
     const [bankAccounts, setBankAccounts] = useState([]);
@@ -27,7 +29,6 @@ const SalaryPaymentsManager = ({ url }) => {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/employees/list`, authHeader).then(res => { if (res.data.success) setEmployees(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -68,15 +69,12 @@ const SalaryPaymentsManager = ({ url }) => {
 
     return (
         <div>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                <div className="add-product-name flex-col" style={{ maxWidth: '300px' }}>
+            <div className="wizard-field-grid" style={{ marginBottom: '20px' }}>
+                <div className="add-product-name flex-col">
                     <p>Employee</p>
-                    <select value={employeeId} onChange={e => setEmployeeId(e.target.value)}>
-                        <option value="">Select employee…</option>
-                        {employees.map(e => <option key={e._id} value={e._id}>{e.name}</option>)}
-                    </select>
+                    <QuickAddPicker url={url} resourceKey="employees" value={employeeId} onChange={setEmployeeId} placeholder="Select employee…" />
                 </div>
-                <div className="add-product-name flex-col" style={{ maxWidth: '200px' }}>
+                <div className="add-product-name flex-col">
                     <p>Month</p>
                     <input type="month" value={month} onChange={e => setMonth(e.target.value)} />
                 </div>
@@ -86,14 +84,28 @@ const SalaryPaymentsManager = ({ url }) => {
                 <div className="admin-empty-state"><p>Select an employee to record or view salary payments.</p></div>
             ) : (
                 <>
-                    <form onSubmit={submit} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                        <input type="number" placeholder="Amount" value={form.amount} onChange={e => setField('amount', e.target.value)} style={{ flex: 1, minWidth: '100px' }} />
-                        <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
-                        <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)} style={{ flex: 1, minWidth: '160px' }}>
-                            <option value="">— Cash —</option>
-                            {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
-                        </select>
-                        <button type="submit" className="add-point-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Payment'}</button>
+                    <form onSubmit={submit}>
+                        <div className="wizard-field-grid">
+                            <div className="add-product-name flex-col">
+                                <p>Amount (₹) *</p>
+                                <input type="number" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>Date *</p>
+                                <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} />
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>Bank Account</p>
+                                <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)}>
+                                    <option value="">— Cash —</option>
+                                    {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                        <div className="wizard-actions" style={{ marginTop: '16px' }}>
+                            <span />
+                            <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Payment'}</button>
+                        </div>
                     </form>
 
                     <div className="list-table">

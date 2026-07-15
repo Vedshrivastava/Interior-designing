@@ -3,6 +3,8 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_SETTING_TYPES } from '../../config/financeMasters';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 /* `lockedType` (optional): when set, this renders as a single-type list with
    no internal switcher pills — used now that each setting type (Work Types,
@@ -84,16 +86,30 @@ const SettingsCrudList = ({ url, lockedType }) => {
                 </div>
             )}
 
-            <form onSubmit={addItem} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                <input type="text" placeholder={`New ${typeConfig.label.toLowerCase().replace(/s$/, '')} name`}
-                    value={name} onChange={e => setName(e.target.value)} style={{ flex: 2, minWidth: '200px' }} />
-                {typeConfig.hasCode && (
-                    <input type="text" placeholder="Code (e.g. 194C-IND)" value={code} onChange={e => setCode(e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
-                )}
-                {typeConfig.hasRate && (
-                    <input type="number" placeholder="Rate %" value={rate} onChange={e => setRate(e.target.value)} style={{ flex: 1, minWidth: '100px' }} />
-                )}
-                <button type="submit" className="add-point-btn" disabled={saving}>{saving ? 'Adding…' : '+ Add'}</button>
+            <form onSubmit={addItem}>
+                <div className="wizard-field-grid">
+                    <div className="add-product-name flex-col">
+                        <p>Name *</p>
+                        <input type="text" placeholder={`New ${typeConfig.label.toLowerCase().replace(/s$/, '')} name`}
+                            value={name} onChange={e => setName(e.target.value)} />
+                    </div>
+                    {typeConfig.hasCode && (
+                        <div className="add-product-name flex-col">
+                            <p>Code</p>
+                            <input type="text" placeholder="e.g. 194C-IND" value={code} onChange={e => setCode(e.target.value)} />
+                        </div>
+                    )}
+                    {typeConfig.hasRate && (
+                        <div className="add-product-name flex-col">
+                            <p>Rate %</p>
+                            <input type="number" value={rate} onChange={e => setRate(e.target.value)} />
+                        </div>
+                    )}
+                </div>
+                <div className="wizard-actions" style={{ marginTop: '16px' }}>
+                    <span />
+                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Adding…' : '+ Add'}</button>
+                </div>
             </form>
 
             <div className="list-table">

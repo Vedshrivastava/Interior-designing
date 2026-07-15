@@ -20,7 +20,7 @@ const thisMonth = () => new Date().toISOString().slice(0, 7);
 // the chart's y-axis has nowhere near that much room — Recharts renders
 // axis ticks as raw SVG text, so CSS text-overflow can't help; truncate the
 // tick label itself instead (the tooltip below still shows the full name).
-const truncateLabel = (name, max = 22) => (name.length > max ? `${name.slice(0, max - 1)}…` : name);
+const truncateLabel = (name, max = 15) => (name.length > max ? `${name.slice(0, max - 1)}…` : name);
 
 // Kept outside the component so it survives a route remount — navigating
 // away and back to the dashboard shows the last-known view instantly
@@ -233,16 +233,16 @@ const FinanceHome = ({ url }) => {
                     <ChartCard title="Project Profitability">
                         {projectProfits.length > 0 ? (
                             <ResponsiveContainer width="100%" height={Math.max(260, projectProfits.length * 38)}>
-                                <ComposedChart data={projectProfits} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 4 }}>
+                                <ComposedChart data={projectProfits} layout="vertical" margin={{ left: 24 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                     <XAxis type="number" tick={{ fontSize: 11 }} />
                                     <YAxis
-                                        type="category" dataKey="projectName" width={150}
-                                        tick={<ProjectNameTick />} interval={0} axisLine={false} tickLine={false}
+                                        type="category" dataKey="projectName" width={110}
+                                        tick={<ProjectNameTick />} interval={0}
                                     />
                                     <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
                                     <Bar
-                                        dataKey="profit" name="Profit" radius={[0, 4, 4, 0]} barSize={18}
+                                        dataKey="profit" name="Profit" radius={[0, 4, 4, 0]}
                                         onClick={(d) => navigate(`/finance/projects/${d.projectId}`)}
                                         style={{ cursor: 'pointer' }}
                                         activeBar={false}

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const emptyForm = { date: '', amount: '', projectId: '', reason: '', notes: '' };
 
@@ -67,15 +69,32 @@ const CashEntriesManager = ({ url, type }) => {
 
     return (
         <div>
-            <form onSubmit={submit} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                <input type="number" placeholder="Amount" value={form.amount} onChange={e => setField('amount', e.target.value)} style={{ flex: 1, minWidth: '100px' }} />
-                <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
-                <select value={form.projectId} onChange={e => setField('projectId', e.target.value)} style={{ flex: 1, minWidth: '160px' }}>
-                    <option value="">No project (general)</option>
-                    {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                </select>
-                <input type="text" placeholder={isIn ? 'Reason (e.g. petty cash return)' : 'Reason (e.g. petty cash, owner draw)'} value={form.reason} onChange={e => setField('reason', e.target.value)} style={{ flex: 2, minWidth: '200px' }} />
-                <button type="submit" className="add-point-btn" disabled={saving}>{saving ? 'Saving…' : `+ Add Cash ${isIn ? 'In' : 'Out'}`}</button>
+            <form onSubmit={submit}>
+                <div className="wizard-field-grid">
+                    <div className="add-product-name flex-col">
+                        <p>Amount (₹) *</p>
+                        <input type="number" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Date *</p>
+                        <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Project</p>
+                        <select value={form.projectId} onChange={e => setField('projectId', e.target.value)}>
+                            <option value="">No project (general)</option>
+                            {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                        </select>
+                    </div>
+                    <div className="add-product-name flex-col wizard-field-full">
+                        <p>Reason *</p>
+                        <input type="text" placeholder={isIn ? 'e.g. petty cash return' : 'e.g. petty cash, owner draw'} value={form.reason} onChange={e => setField('reason', e.target.value)} />
+                    </div>
+                </div>
+                <div className="wizard-actions" style={{ marginTop: '16px' }}>
+                    <span />
+                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : `+ Add Cash ${isIn ? 'In' : 'Out'}`}</button>
+                </div>
             </form>
 
             <div className="list-table">

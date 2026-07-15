@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import QuickAddPicker from './QuickAddPicker';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '' };
 
@@ -16,7 +19,6 @@ const VendorPaymentsManager = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-    const [vendors, setVendors] = useState([]);
     const [vendorId, setVendorId] = useState('');
     const [bankAccounts, setBankAccounts] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
@@ -28,9 +30,6 @@ const VendorPaymentsManager = ({ url }) => {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/vendors/list`, authHeader)
-            .then(res => { if (res.data.success) setVendors(res.data.data.filter(v => v.vendorType !== 'labour_contractor')); })
-            .catch(() => {});
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
@@ -81,34 +80,61 @@ const VendorPaymentsManager = ({ url }) => {
 
     return (
         <div>
-            <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
+            <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>
                 <p>Vendor</p>
-                <select value={vendorId} onChange={e => setVendorId(e.target.value)}>
-                    <option value="">Select vendor…</option>
-                    {vendors.map(v => <option key={v._id} value={v._id}>{v.name}</option>)}
-                </select>
+                <QuickAddPicker url={url} resourceKey="vendors" value={vendorId} onChange={setVendorId}
+                    filter={v => v.vendorType !== 'labour_contractor'} placeholder="Select vendor…" />
             </div>
 
             {!vendorId ? (
                 <div className="admin-empty-state"><p>Select a vendor to record or view payments.</p></div>
             ) : (
                 <>
-                    <form onSubmit={submit} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                        <input type="number" placeholder="Amount" value={form.amount} onChange={e => setField('amount', e.target.value)} style={{ flex: 1, minWidth: '100px' }} />
-                        <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
-                        <input type="text" placeholder="Payment mode" value={form.paymentMode} onChange={e => setField('paymentMode', e.target.value)} style={{ flex: 1, minWidth: '120px' }} />
-                        <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)} style={{ flex: 1, minWidth: '160px' }}>
-                            <option value="">— Cash —</option>
-                            {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
-                        </select>
-                        <input type="text" placeholder="Bank / Cash label (legacy, optional)" value={form.bankOrCashLabel} onChange={e => setField('bankOrCashLabel', e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
-                        <select value={form.tdsSectionId} onChange={e => setField('tdsSectionId', e.target.value)} style={{ flex: 1, minWidth: '160px' }}>
-                            <option value="">— No TDS —</option>
-                            {tdsSections.map(s => <option key={s._id} value={s._id}>{s.name}{s.code ? ` (${s.code})` : ''}</option>)}
-                        </select>
-                        <input type="number" placeholder="TDS amount (optional)" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} style={{ flex: 1, minWidth: '120px' }} />
-                        <input type="file" onChange={e => setFile(e.target.files[0] || null)} style={{ flex: 1, minWidth: '160px' }} />
-                        <button type="submit" className="add-point-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Payment'}</button>
+                    <form onSubmit={submit}>
+                        <div className="wizard-field-grid">
+                            <div className="add-product-name flex-col">
+                                <p>Amount (₹) *</p>
+                                <input type="number" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>Date *</p>
+                                <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} />
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>Payment Mode</p>
+                                <input type="text" value={form.paymentMode} onChange={e => setField('paymentMode', e.target.value)} />
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>Bank Account</p>
+                                <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)}>
+                                    <option value="">— Cash —</option>
+                                    {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
+                                </select>
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>TDS Section</p>
+                                <select value={form.tdsSectionId} onChange={e => setField('tdsSectionId', e.target.value)}>
+                                    <option value="">— No TDS —</option>
+                                    {tdsSections.map(s => <option key={s._id} value={s._id}>{s.name}{s.code ? ` (${s.code})` : ''}</option>)}
+                                </select>
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>TDS Amount (optional)</p>
+                                <input type="number" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} />
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>Attachment</p>
+                                <input type="file" onChange={e => setFile(e.target.files[0] || null)} />
+                            </div>
+                            <div className="add-product-name flex-col wizard-field-full">
+                                <p>Bank / Cash Label (legacy, optional)</p>
+                                <input type="text" value={form.bankOrCashLabel} onChange={e => setField('bankOrCashLabel', e.target.value)} />
+                            </div>
+                        </div>
+                        <div className="wizard-actions" style={{ marginTop: '16px' }}>
+                            <span />
+                            <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Payment'}</button>
+                        </div>
                     </form>
 
                     <div className="list-table">

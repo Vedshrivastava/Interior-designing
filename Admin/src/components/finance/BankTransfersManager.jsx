@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const emptyForm = { fromAccountId: '', toAccountId: '', amount: '', date: '', notes: '' };
 
@@ -56,19 +58,39 @@ const BankTransfersManager = ({ url }) => {
 
     return (
         <div>
-            <form onSubmit={submit} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                <select value={form.fromAccountId} onChange={e => setField('fromAccountId', e.target.value)} style={{ flex: 1, minWidth: '160px' }}>
-                    <option value="">From account…</option>
-                    {accounts.map(a => <option key={a._id} value={a._id}>{a.accountName}</option>)}
-                </select>
-                <select value={form.toAccountId} onChange={e => setField('toAccountId', e.target.value)} style={{ flex: 1, minWidth: '160px' }}>
-                    <option value="">To account…</option>
-                    {accounts.map(a => <option key={a._id} value={a._id}>{a.accountName}</option>)}
-                </select>
-                <input type="number" placeholder="Amount" value={form.amount} onChange={e => setField('amount', e.target.value)} style={{ flex: 1, minWidth: '100px' }} />
-                <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
-                <input type="text" placeholder="Notes" value={form.notes} onChange={e => setField('notes', e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
-                <button type="submit" className="add-point-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Transfer'}</button>
+            <form onSubmit={submit}>
+                <div className="wizard-field-grid">
+                    <div className="add-product-name flex-col">
+                        <p>From Account *</p>
+                        <select value={form.fromAccountId} onChange={e => setField('fromAccountId', e.target.value)}>
+                            <option value="">From account…</option>
+                            {accounts.map(a => <option key={a._id} value={a._id}>{a.accountName}</option>)}
+                        </select>
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>To Account *</p>
+                        <select value={form.toAccountId} onChange={e => setField('toAccountId', e.target.value)}>
+                            <option value="">To account…</option>
+                            {accounts.map(a => <option key={a._id} value={a._id}>{a.accountName}</option>)}
+                        </select>
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Amount (₹) *</p>
+                        <input type="number" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Date *</p>
+                        <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col wizard-field-full">
+                        <p>Notes</p>
+                        <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
+                    </div>
+                </div>
+                <div className="wizard-actions" style={{ marginTop: '16px' }}>
+                    <span />
+                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Transfer'}</button>
+                </div>
             </form>
 
             <div className="list-table">

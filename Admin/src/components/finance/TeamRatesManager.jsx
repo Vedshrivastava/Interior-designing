@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import QuickAddPicker from './QuickAddPicker';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
+
+const emptyForm = { teamId: '', workType: '', paymentBasis: 'per_sqft', rate: '' };
 
 /* Manages financeTeamRate rows for one project — used in both the New
    Project wizard (Step 4) and the Project Detail page's Team Rates tab.
@@ -11,11 +16,7 @@ const TeamRatesManager = ({ url, projectId }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [items, setItems] = useState([]);
-    const [teams, setTeams] = useState([]);
-    const [teamId, setTeamId] = useState('');
-    const [workType, setWorkType] = useState('');
-    const [paymentBasis, setPaymentBasis] = useState('per_sqft');
-    const [rate, setRate] = useState('');
+    const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
 
     const fetchList = async () => {
@@ -27,27 +28,27 @@ const TeamRatesManager = ({ url, projectId }) => {
 
     useEffect(() => { if (projectId) fetchList(); }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => {
-        axios.get(`${url}/api/finance/teams/list`, authHeader)
-            .then(res => { if (res.data.success) setTeams(res.data.data); })
-            .catch(() => {});
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
-    const addRate = async (e) => {
+    // Add-only, deliberately — once a rate is confirmed it shouldn't be
+    // silently changed underneath work already measured/billed against it.
+    // Remove and re-add if a rate was entered wrong.
+    const submit = async (e) => {
         e.preventDefault();
-        if (!teamId) { toast.error('Team is required'); return; }
-        if (!workType.trim()) { toast.error('Work type is required'); return; }
-        if (rate === '') { toast.error('Rate is required'); return; }
+        if (!form.teamId) { toast.error('Team is required'); return; }
+        if (!form.workType.trim()) { toast.error('Work type is required'); return; }
+        if (form.rate === '') { toast.error('Rate is required'); return; }
         setSaving(true);
         try {
-            const res = await axios.post(`${url}/api/finance/team-rates/add`, {
-                projectId, teamId, workType: workType.trim(), paymentBasis,
-                ratePerSqft: paymentBasis === 'per_sqft' ? rate : 0,
-                ratePerDay: paymentBasis === 'per_day' ? rate : 0,
-            }, authHeader);
+            const payload = {
+                projectId, teamId: form.teamId, workType: form.workType.trim(), paymentBasis: form.paymentBasis,
+                ratePerSqft: form.paymentBasis === 'per_sqft' ? form.rate : 0,
+                ratePerDay: form.paymentBasis === 'per_day' ? form.rate : 0,
+            };
+            const res = await axios.post(`${url}/api/finance/team-rates/add`, payload, authHeader);
             if (res.data.success) {
-                toast.success(res.data.message);
-                setWorkType(''); setRate('');
+                toast.success(res.data.message || 'Team rate added');
+                setForm(emptyForm);
                 await fetchList();
             } else toast.error(res.data.message);
         } catch (err) {
@@ -69,18 +70,32 @@ const TeamRatesManager = ({ url, projectId }) => {
                 Assign teams and add one rate row per work type each team performs. Required before this project can go active.
             </p>
 
-            <form onSubmit={addRate} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                <select value={teamId} onChange={e => setTeamId(e.target.value)} style={{ flex: 1, minWidth: '160px' }}>
-                    <option value="">Select team…</option>
-                    {teams.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
-                </select>
-                <input type="text" placeholder="Work type (e.g. Putty)" value={workType} onChange={e => setWorkType(e.target.value)} style={{ flex: 1, minWidth: '140px' }} />
-                <select value={paymentBasis} onChange={e => setPaymentBasis(e.target.value)} style={{ flex: 1, minWidth: '120px' }}>
-                    <option value="per_sqft">Per Sqft</option>
-                    <option value="per_day">Per Day</option>
-                </select>
-                <input type="number" placeholder={paymentBasis === 'per_sqft' ? 'Rate ₹/sqft' : 'Rate ₹/day'} value={rate} onChange={e => setRate(e.target.value)} style={{ flex: 1, minWidth: '120px' }} />
-                <button type="submit" className="add-point-btn" disabled={saving}>{saving ? 'Adding…' : '+ Add Rate'}</button>
+            <form onSubmit={submit}>
+                <div className="wizard-field-grid">
+                    <div className="add-product-name flex-col">
+                        <p>Team *</p>
+                        <QuickAddPicker url={url} resourceKey="teams" value={form.teamId} onChange={v => setField('teamId', v)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Work Type *</p>
+                        <input type="text" placeholder="e.g. Putty" value={form.workType} onChange={e => setField('workType', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Payment Basis *</p>
+                        <select value={form.paymentBasis} onChange={e => setField('paymentBasis', e.target.value)}>
+                            <option value="per_sqft">Per Sqft</option>
+                            <option value="per_day">Per Day</option>
+                        </select>
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>{form.paymentBasis === 'per_sqft' ? 'Rate (₹/sqft) *' : 'Rate (₹/day) *'}</p>
+                        <input type="number" value={form.rate} onChange={e => setField('rate', e.target.value)} />
+                    </div>
+                </div>
+                <div className="wizard-actions" style={{ marginTop: '16px' }}>
+                    <span />
+                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Adding…' : '+ Add Rate'}</button>
+                </div>
             </form>
 
             <div className="list-table">

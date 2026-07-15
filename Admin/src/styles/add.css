@@ -444,6 +444,21 @@
     line-height: 1.6;
 }
 
+/* Date inputs — tint the native calendar icon gold to match the dropdown chevron */
+.add-product-name input[type="date"] {
+    cursor: pointer;
+}
+.add-product-name input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(66%) sepia(24%) saturate(482%) hue-rotate(358deg) brightness(93%) contrast(88%);
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.22s ease;
+}
+.add-product-name input[type="date"]:hover::-webkit-calendar-picker-indicator,
+.add-product-name input[type="date"]:focus::-webkit-calendar-picker-indicator {
+    opacity: 1;
+}
+
 /* Select custom arrow */
 .add-product-name select,
 .add-category-price select {

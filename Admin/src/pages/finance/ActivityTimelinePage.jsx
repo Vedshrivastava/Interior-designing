@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
+import StyledSelect from '../../components/finance/StyledSelect';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
@@ -91,17 +92,21 @@ const ActivityTimelinePage = ({ url }) => {
             <div className="wizard-field-grid" style={{ marginBottom: '20px' }}>
                 <div className="add-product-name flex-col">
                     <p>Project</p>
-                    <select value={filters.projectId} onChange={e => setField('projectId', e.target.value)}>
-                        <option value="">All Projects</option>
-                        {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                    </select>
+                    <StyledSelect
+                        value={filters.projectId}
+                        onChange={v => setField('projectId', v)}
+                        placeholder="All Projects"
+                        options={[{ value: '', label: 'All Projects' }, ...projects.map(p => ({ value: p._id, label: p.name }))]}
+                    />
                 </div>
                 <div className="add-product-name flex-col">
                     <p>Event Type</p>
-                    <select value={filters.eventType} onChange={e => setField('eventType', e.target.value)}>
-                        <option value="">All Events</option>
-                        {EVENT_TYPES.map(et => <option key={et} value={et}>{eventLabel(et)}</option>)}
-                    </select>
+                    <StyledSelect
+                        value={filters.eventType}
+                        onChange={v => setField('eventType', v)}
+                        placeholder="All Events"
+                        options={[{ value: '', label: 'All Events' }, ...EVENT_TYPES.map(et => ({ value: et, label: eventLabel(et) }))]}
+                    />
                 </div>
                 <div className="add-product-name flex-col">
                     <p>From</p>

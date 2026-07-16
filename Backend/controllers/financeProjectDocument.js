@@ -24,7 +24,7 @@ const listProjectDocuments = async (req, res) => {
 
 const addProjectDocument = async (req, res) => {
     try {
-        const { projectId, name, notes } = req.body;
+        const { projectId, name, notes, quotationId } = req.body;
         if (!projectId) return res.status(400).json({ success: false, message: 'Project is required' });
         if (!req.file) return res.status(400).json({ success: false, message: 'A file is required' });
 
@@ -42,10 +42,11 @@ const addProjectDocument = async (req, res) => {
 
         const item = new FinanceProjectDocument({
             projectId, name: (name || req.file.originalname).trim(), fileUrl: result.secure_url, notes,
+            quotationId: quotationId || null,
         });
         await item.save();
 
-        broadcast({ type: 'financeProjectDocumentsChanged' });
+        broadcast({ type: 'financeProjectDocumentsChanged', quotationId: quotationId || null });
         res.json({ success: true, message: 'Document uploaded', data: item });
     } catch (err) {
         console.error(err);

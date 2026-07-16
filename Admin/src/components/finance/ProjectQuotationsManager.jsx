@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
 import '../../styles/list.css';
 
-const QUOTATION_STATUS_LABEL = { pending: 'Pending', accepted: 'Accepted', rejected: 'Rejected', expired: 'Expired' };
+const QUOTATION_STATUS_LABEL = { pending: 'Pending', accepted: 'Accepted', rejected: 'Rejected' };
 
 /*
  * Quotations for one project — issued before the work order / signed rate
@@ -12,6 +12,11 @@ const QUOTATION_STATUS_LABEL = { pending: 'Pending', accepted: 'Accepted', rejec
  * status changed; ClientDetail.jsx's own Quotations tab is a read-only
  * rollup across a client's projects, fed by the same /client-quotations
  * endpoints filtered per project.
+ *
+ * Each quotation's original file uploads through financeProjectDocument
+ * (tagged with quotationId) rather than being stored on the quotation
+ * itself — same file, same record, so it also shows up untouched on this
+ * project's own Documents tab with no extra plumbing there.
  */
 const ProjectQuotationsManager = ({ url, projectId }) => {
     const token = localStorage.getItem('token');
@@ -19,8 +24,11 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
 
     const [quotations, setQuotations] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [form, setForm] = useState({ date: '', amount: '', validUntil: '', notes: '' });
+    const [form, setForm] = useState({ date: '', amount: '', notes: '' });
     const [saving, setSaving] = useState(false);
+    const [uploadingId, setUploadingId] = useState(null);
+    const fileInputRef = useRef(null);
+    const uploadTargetRef = useRef(null);
 
     const fetchList = () => {
         setLoading(true);
@@ -41,10 +49,10 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
         setSaving(true);
         try {
             const res = await axios.post(`${url}/api/finance/client-quotations/add`,
-                { projectId, date: form.date, amount: form.amount, validUntil: form.validUntil || null, notes: form.notes }, authHeader);
+                { projectId, date: form.date, amount: form.amount, notes: form.notes }, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message || 'Quotation added');
-                setForm({ date: '', amount: '', validUntil: '', notes: '' });
+                setForm({ date: '', amount: '', notes: '' });
                 fetchList();
             } else toast.error(res.data.message);
         } catch (err) {
@@ -68,8 +76,37 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
         } catch { toast.error('Error removing quotation'); }
     };
 
+    // One shared hidden file input, retargeted per row via uploadTargetRef —
+    // simpler than an input per quotation, and there's never more than one
+    // upload in flight from this tab at a time.
+    const triggerUpload = (q) => { uploadTargetRef.current = q; fileInputRef.current?.click(); };
+
+    const handleFileChosen = async (e) => {
+        const file = e.target.files[0];
+        e.target.value = '';
+        const quotation = uploadTargetRef.current;
+        if (!file || !quotation) return;
+        setUploadingId(quotation._id);
+        try {
+            const formData = new FormData();
+            formData.append('projectId', projectId);
+            formData.append('quotationId', quotation._id);
+            formData.append('name', `Quotation #${quotation.quotationNumber}`);
+            formData.append('file', file);
+            const res = await axios.post(`${url}/api/finance/project-documents/add`, formData, {
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
+            });
+            if (res.data.success) { toast.success('Quotation file uploaded'); fetchList(); }
+            else toast.error(res.data.message);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Error uploading file');
+        } finally { setUploadingId(null); }
+    };
+
     return (
         <div>
+            <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileChosen} />
+
             <form onSubmit={submit}>
                 <div className="wizard-field-grid">
                     <div className="add-product-name flex-col">
@@ -79,10 +116,6 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
                     <div className="add-product-name flex-col">
                         <p>Amount (₹) *</p>
                         <input type="number" value={form.amount} onChange={e => setField('amount', e.target.value)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Valid Until</p>
-                        <StyledDatePicker value={form.validUntil} onChange={v => setField('validUntil', v)} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Notes</p>
@@ -101,16 +134,23 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
                 <div className="admin-empty-state"><p>No quotations issued for this project yet.</p></div>
             ) : (
                 <div className="list-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '70px 1fr 1fr 1fr 110px 160px' }}>
-                        <b>#</b><b>Date</b><b>Amount</b><b>Valid Until</b><b>Status</b><b>Action</b>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '70px 1fr 1fr 110px 130px 160px' }}>
+                        <b>#</b><b>Date</b><b>Amount</b><b>Status</b><b>File</b><b>Action</b>
                     </div>
                     {quotations.map(q => (
-                        <div key={q._id} className="list-table-format row-item" style={{ gridTemplateColumns: '70px 1fr 1fr 1fr 110px 160px' }}>
+                        <div key={q._id} className="list-table-format row-item" style={{ gridTemplateColumns: '70px 1fr 1fr 110px 130px 160px' }}>
                             <p>#{q.quotationNumber}</p>
                             <p>{new Date(q.date).toLocaleDateString()}</p>
                             <p>₹{q.amount.toLocaleString('en-IN')}</p>
-                            <p>{q.validUntil ? new Date(q.validUntil).toLocaleDateString() : '—'}</p>
                             <p><span className="item-category">{QUOTATION_STATUS_LABEL[q.status]}</span></p>
+                            <div className="action-buttons">
+                                {q.documents?.[0] && (
+                                    <a href={q.documents[0].fileUrl} target="_blank" rel="noreferrer" className="cursor edit-action" style={{ textDecoration: 'none' }}>View</a>
+                                )}
+                                <p onClick={() => triggerUpload(q)} className="cursor edit-action">
+                                    {uploadingId === q._id ? 'Uploading…' : q.documents?.[0] ? 'Replace' : 'Upload'}
+                                </p>
+                            </div>
                             <div className="action-buttons">
                                 {q.status === 'pending' ? (
                                     <>

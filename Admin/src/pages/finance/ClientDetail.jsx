@@ -347,7 +347,7 @@ const ClientLedgerTab = ({ url, clientId }) => {
     );
 };
 
-const QUOTATION_STATUS_LABEL = { pending: 'Pending', accepted: 'Accepted', rejected: 'Rejected', expired: 'Expired' };
+const QUOTATION_STATUS_LABEL = { pending: 'Pending', accepted: 'Accepted', rejected: 'Rejected' };
 
 // Read-only rollup across this client's projects — quotations are owned by
 // a Project (see ProjectQuotationsManager, on the Project Detail page's
@@ -364,17 +364,21 @@ const ClientQuotationsTab = ({ url, clientId }) => {
 
     return (
         <div className="list-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 70px 1fr 1fr 1fr 110px' }}>
-                <b>Project</b><b>#</b><b>Date</b><b>Amount</b><b>Valid Until</b><b>Status</b>
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 70px 1fr 1fr 110px 90px' }}>
+                <b>Project</b><b>#</b><b>Date</b><b>Amount</b><b>Status</b><b>File</b>
             </div>
             {sorted.map(q => (
-                <div key={q._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 70px 1fr 1fr 1fr 110px' }}>
+                <div key={q._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 70px 1fr 1fr 110px 90px' }}>
                     <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${q.projectId}`)}>{q.projectName}</p>
                     <p>#{q.quotationNumber}</p>
                     <p>{new Date(q.date).toLocaleDateString()}</p>
                     <p>₹{q.amount.toLocaleString('en-IN')}</p>
-                    <p>{q.validUntil ? new Date(q.validUntil).toLocaleDateString() : '—'}</p>
                     <p><span className="item-category">{QUOTATION_STATUS_LABEL[q.status]}</span></p>
+                    <p>
+                        {q.documents?.[0]
+                            ? <a href={q.documents[0].fileUrl} target="_blank" rel="noreferrer" className="cursor edit-action" style={{ textDecoration: 'none' }}>View</a>
+                            : '—'}
+                    </p>
                 </div>
             ))}
         </div>

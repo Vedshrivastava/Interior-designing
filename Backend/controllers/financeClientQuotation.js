@@ -1,20 +1,40 @@
 import FinanceClientQuotation from '../models/financeClientQuotation.js';
 import FinanceProject from '../models/financeProject.js';
+import FinanceProjectDocument from '../models/financeProjectDocument.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 
-const STATUS_LABEL = { pending: 'Pending', accepted: 'Accepted', rejected: 'Rejected', expired: 'Expired' };
+const STATUS_LABEL = { pending: 'Pending', accepted: 'Accepted', rejected: 'Rejected' };
 
 // projectId is the only supported filter — same shape as
 // GET /running-bills/list. A client's rollup view fetches its own project
 // list first, then calls this once per project (see ClientDetail.jsx),
 // rather than this endpoint supporting a clientId filter itself.
+//
+// Each quotation's uploaded original-file(s) live in financeProjectDocument
+// (tagged with quotationId) rather than on this document itself, so the
+// same upload also shows up untouched in the Project's own Documents tab.
+// Joined in here so neither the Project Quotations manager nor the
+// Client's read-only rollup needs a second round trip per quotation.
 const listClientQuotations = async (req, res) => {
     try {
         const { projectId } = req.query;
         if (!projectId) return res.status(400).json({ success: false, message: 'projectId is required' });
-        const items = await FinanceClientQuotation.find({ projectId, deleted: { $ne: true } }).sort({ date: -1, createdAt: -1 });
-        res.json({ success: true, data: items });
+        const items = await FinanceClientQuotation.find({ projectId, deleted: { $ne: true } }).sort({ date: -1, createdAt: -1 }).lean();
+
+        const quotationIds = items.map(q => q._id);
+        const docs = quotationIds.length
+            ? await FinanceProjectDocument.find({ quotationId: { $in: quotationIds }, deleted: { $ne: true } }).sort({ createdAt: -1 }).lean()
+            : [];
+        const docsByQuotation = new Map();
+        for (const d of docs) {
+            const key = d.quotationId.toString();
+            if (!docsByQuotation.has(key)) docsByQuotation.set(key, []);
+            docsByQuotation.get(key).push(d);
+        }
+
+        const data = items.map(q => ({ ...q, documents: docsByQuotation.get(q._id.toString()) || [] }));
+        res.json({ success: true, data });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error fetching quotations' });
@@ -23,7 +43,7 @@ const listClientQuotations = async (req, res) => {
 
 const addClientQuotation = async (req, res) => {
     try {
-        const { projectId, date, amount, validUntil, notes } = req.body;
+        const { projectId, date, amount, notes } = req.body;
         if (!projectId) return res.status(400).json({ success: false, message: 'Project is required' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
         if (amount === undefined || amount === '') return res.status(400).json({ success: false, message: 'Amount is required' });
@@ -35,7 +55,7 @@ const addClientQuotation = async (req, res) => {
         const quotationNumber = String(count + 1);
 
         const item = new FinanceClientQuotation({
-            projectId, quotationNumber, date, amount, validUntil: validUntil || null, notes,
+            projectId, quotationNumber, date, amount, notes,
         });
         await item.save();
 
@@ -57,7 +77,7 @@ const addClientQuotation = async (req, res) => {
 const updateClientQuotationStatus = async (req, res) => {
     try {
         const { _id, status } = req.body;
-        if (!['pending', 'accepted', 'rejected', 'expired'].includes(status)) {
+        if (!['pending', 'accepted', 'rejected'].includes(status)) {
             return res.status(400).json({ success: false, message: 'Invalid status' });
         }
         const item = await FinanceClientQuotation.findById(_id).populate('projectId', 'name');

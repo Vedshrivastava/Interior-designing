@@ -12,8 +12,7 @@ const financeClientQuotationSchema = new mongoose.Schema({
     quotationNumber: { type: String, required: true }, // sequential per project, assigned on add
     date:            { type: Date, required: true },
     amount:          { type: Number, required: true },
-    validUntil:      { type: Date, default: null },
-    status:          { type: String, enum: ['pending', 'accepted', 'rejected', 'expired'], default: 'pending' },
+    status:          { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
     notes:           { type: String, default: '' },
 
     deleted:   { type: Boolean, default: false },

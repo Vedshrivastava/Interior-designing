@@ -23,9 +23,16 @@ import FinanceCashEntry from '../models/financeCashEntry.js';
 import FinanceSalaryPayment from '../models/financeSalaryPayment.js';
 import FinanceCommissionPayment from '../models/financeCommissionPayment.js';
 import FinanceExpense from '../models/financeExpense.js';
-import FinanceDailyLabour from '../models/financeDailyLabour.js';
+import FinanceLabourer from '../models/financeLabourer.js';
+import FinanceLabourRate from '../models/financeLabourRate.js';
+import FinanceWorkLabourAssignment from '../models/financeWorkLabourAssignment.js';
+import FinanceLabourMeasurement from '../models/financeLabourMeasurement.js';
+import FinanceLabourAdvance from '../models/financeLabourAdvance.js';
+import FinanceLabourDeduction from '../models/financeLabourDeduction.js';
+import FinanceLabourPayment from '../models/financeLabourPayment.js';
 import FinanceSupervisorAttendance from '../models/financeSupervisorAttendance.js';
 import FinanceSupervisorIncentive from '../models/financeSupervisorIncentive.js';
+import FinanceSupervisorDeduction from '../models/financeSupervisorDeduction.js';
 import FinanceSetting from '../models/financeSetting.js';
 import userModel from '../models/user.js';
 import { sendFinanceAlertEmail } from '../middlewares/emails.js';
@@ -290,9 +297,16 @@ const BACKUP_COLLECTIONS = [
     { name: 'financeSalaryPayments', model: FinanceSalaryPayment },
     { name: 'financeCommissionPayments', model: FinanceCommissionPayment },
     { name: 'financeExpenses', model: FinanceExpense },
-    { name: 'financeDailyLabours', model: FinanceDailyLabour },
+    { name: 'financeLabourers', model: FinanceLabourer },
+    { name: 'financeLabourRates', model: FinanceLabourRate },
+    { name: 'financeWorkLabourAssignments', model: FinanceWorkLabourAssignment },
+    { name: 'financeLabourMeasurements', model: FinanceLabourMeasurement },
+    { name: 'financeLabourAdvances', model: FinanceLabourAdvance },
+    { name: 'financeLabourDeductions', model: FinanceLabourDeduction },
+    { name: 'financeLabourPayments', model: FinanceLabourPayment },
     { name: 'financeSupervisorAttendances', model: FinanceSupervisorAttendance },
     { name: 'financeSupervisorIncentives', model: FinanceSupervisorIncentive },
+    { name: 'financeSupervisorDeductions', model: FinanceSupervisorDeduction },
     { name: 'financeSettings', model: FinanceSetting },
     { name: 'financeCompanySettings', model: FinanceCompanySettings },
 ];

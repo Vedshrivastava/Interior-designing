@@ -123,37 +123,39 @@ export const FINANCE_NAV_SECTIONS = [
       },
       {
         to: '/finance/supervisors', icon: faUserShield, label: 'Supervisors',
-        // Bespoke component, real as of the Supervisors + Daily Labour
-        // build — a Supervisor is a financeEmployee (no separate model;
-        // financeEmployee has no "isSupervisor" flag, so the picker lists
-        // every employee, same as Masters > Employees). `assignedSupervisor`
-        // on financeProject stays a plain string for old projects; new/
-        // edited projects populate `assignedSupervisorId` (ref
-        // financeEmployee) instead — Assigned Projects here matches on
+        // Bespoke component — a Supervisor is a financeEmployee (no
+        // separate model; financeEmployee has no "isSupervisor" flag, so
+        // the picker lists every employee, same as Masters > Employees).
+        // `assignedSupervisor` on financeProject stays a plain string for
+        // old projects; new/edited projects populate `assignedSupervisorId`
+        // (ref financeEmployee) instead — Assigned Projects here matches on
         // the ref first, falling back to a name match against the legacy
         // string so old projects don't just disappear from the list.
         tabs: [
           { key: 'projects',    label: 'Assigned Projects', description: 'Projects whose assignedSupervisorId (or legacy assignedSupervisor string) matches this employee.' },
-          { key: 'labour',      label: 'Daily Labour',       description: "This supervisor's recorded daily labour entries (read-only here — record from Daily Labour or a project's own tab)." },
+          { key: 'roster',      label: 'Roster',             description: 'Labourers hired directly under this supervisor.' },
+          { key: 'labour',      label: 'Labour Ledger',      description: "Pick a labourer from this supervisor's roster to view their earnings/advances/deductions/payments ledger." },
           { key: 'attendance',  label: 'Attendance',         description: 'Present / absent / half-day / leave, per day, for this employee.' },
           { key: 'performance', label: 'Performance',        description: 'Supervisor performance metrics.' },
           { key: 'salary',      label: 'Salary',             description: 'Same salary ledger as Masters, filtered to this employee.' },
-          { key: 'incentives',  label: 'Incentives',         description: 'Discretionary incentive payouts, distinct from regular salary — no stored "approved area supervised" metric exists to compute this automatically.' },
+          { key: 'incentives',  label: 'Incentives',         description: 'Discretionary payouts on top of salary — includes automatic credits for catching and fixing a labourer\'s mistake on the spot.' },
+          { key: 'deductions',  label: 'Deductions',         description: 'Manual cuts against salary — typically entered when an engineer\'s periodic labour review finds the supervisor jointly accountable for a flaw.' },
         ],
       },
       {
-        to: '/finance/daily-labour', icon: faPersonDigging, label: 'Daily Labour',
-        // Bespoke component, real as of the Supervisors + Daily Labour
-        // build. Casual/daily-wage labour, distinct from labour contractors
-        // (financeVendor) — no separate labourer master, entries are
-        // name-only. amount is computed and frozen at entry time:
-        // half_day = 0.5×rate, full_day = 1×rate, extra_day = 1.5×rate.
-        // Feeds into Reports > Project Profit as its own Daily Labour
-        // Cost line. Global entry form + list here isn't scoped to one
-        // project or supervisor — same DailyLabourManager component a
-        // project's own Daily Labour tab and Supervisors' Daily Labour
-        // tab reuse, just with nothing pre-scoped.
-        tabs: [{ key: 'list', label: 'All Entries', description: 'Every daily labour entry across every project — entry form + filterable list.' }],
+        to: '/finance/daily-labour', icon: faPersonDigging, label: 'Labour Measurements',
+        // Bespoke component. Each labourer is hired directly by the
+        // company and paid per sqft (financeLabourRate, per project + work
+        // type) — not a day rate. A supervisor logs each labourer's daily
+        // measured area against a Work; no per-entry approval gate, every
+        // logged sqft counts toward earnings, and correction (an engineer's
+        // periodic review, or a supervisor catching a mistake on the spot)
+        // happens afterward as a deduction on that labourer's own ledger.
+        // Feeds into Reports > Project Profit as its own Labour Cost line.
+        // Global entry form + list here isn't scoped to one project — same
+        // LabourMeasurementsManager component a project's own Labour tab
+        // reuses, just with nothing pre-scoped.
+        tabs: [{ key: 'list', label: 'All Entries', description: 'Every labour measurement across every project — entry form + filterable list.' }],
       },
     ],
   },
@@ -279,8 +281,9 @@ export const FINANCE_NAV_SECTIONS = [
         // Profit, and Work Profit cross-link each other; Work Profit has
         // no picker of its own — it's only reached by drilling in from a
         // project's Works tab (or from Project Profit's own Works list).
-        // Supervisor/Labour Analysis stay placeholder — they depend on
-        // modules that don't exist yet (Supervisors, Daily Labour).
+        // Supervisor/Labour Analysis stay placeholder — no aggregation
+        // built for them yet, even though Supervisors and Labour
+        // themselves are both real.
         // CA Monthly Package added in the CA Monthly Package + Client Bill
         // Statement build — reads the optional gstRate/gstAmount now on
         // financeRunningBill/financePurchase and the optional
@@ -291,7 +294,7 @@ export const FINANCE_NAV_SECTIONS = [
         // in that same build — downloads a per-bill Client Bill Statement
         // PDF via GET /api/finance/running-bills/:id/statement/download.
         tabs: [
-          { key: 'project-profit',       label: 'Project Profit',        description: 'Revenue minus material/contractor/commission/daily-labour cost and other expenses, per project.' },
+          { key: 'project-profit',       label: 'Project Profit',        description: 'Revenue minus material/contractor/commission/labour cost and other expenses, per project.' },
           { key: 'client-profit',        label: 'Client Profit',         description: 'Same breakdown, rolled up across every project for one client.' },
           { key: 'work-profit',          label: 'Work Profit',           description: "Revenue billed minus contractor and material cost for one work — reached by drilling in from a project's Works tab." },
           { key: 'contractor-analysis',  label: 'Contractor Analysis',   description: 'Earnings, advances, deductions, payments, and balance payable — every labour contractor side by side.' },

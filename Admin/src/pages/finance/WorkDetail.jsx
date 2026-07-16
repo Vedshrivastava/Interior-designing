@@ -76,6 +76,7 @@ const WorkDetail = ({ url }) => {
                         sub="Mean of each day's cost/sqft ratio — not total cost ÷ total area"
                     />
                     <KpiCard label="Contractor Cost" value={formatINR(data.contractorCost)} />
+                    <KpiCard label="Labour Cost" value={formatINR(data.labourCost)} />
                     <KpiCard label="Revenue" value={formatINR(data.revenue)} />
                     <KpiCard label="Profit" value={formatINR(data.profit)} tone={data.profit >= 0 ? 'good' : 'danger'} />
                 </KpiGrid>
@@ -88,6 +89,22 @@ const WorkDetail = ({ url }) => {
                         {data.contractorBreakdown.map(b => (
                             <div key={b.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
                                 <p>{b.vendorName}</p>
+                                <p>{b.areaSqft}</p>
+                                <p>{formatINR(b.rate)}</p>
+                                <p>{formatINR(b.earnings)}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {data.labourBreakdown && data.labourBreakdown.length > 0 && (
+                    <div className="list-table" style={{ marginBottom: '24px' }}>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
+                            <b>Labourer</b><b>Area (sqft)</b><b>Rate</b><b>Earnings</b>
+                        </div>
+                        {data.labourBreakdown.map(b => (
+                            <div key={b.labourerId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
+                                <p>{b.labourerName}</p>
                                 <p>{b.areaSqft}</p>
                                 <p>{formatINR(b.rate)}</p>
                                 <p>{formatINR(b.earnings)}</p>

@@ -3,12 +3,13 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
 
-const emptyForm = { name: '', defaultRate: '', notes: '' };
+const emptyForm = { name: '', notes: '' };
 
 /*
- * One supervisor's roster of named casual labourers — the "who" that
- * financeDailyLabour.labourerId can now point at, so batch grid entry has
- * real rows to work from instead of re-typing a name every time.
+ * One supervisor's roster of named labourers, hired directly by the
+ * company. Rate lives per project + work type (LabourRatesManager, set
+ * from a project's Labour tab), not here — a labourer can earn
+ * differently across projects and work types.
  */
 const LabourerRosterManager = ({ url, supervisorId }) => {
     const token = localStorage.getItem('token');
@@ -32,7 +33,7 @@ const LabourerRosterManager = ({ url, supervisorId }) => {
     useEffect(() => { if (supervisorId) fetchLabourers(); }, [supervisorId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
-    const startEdit = (l) => { setEditingId(l._id); setForm({ name: l.name, defaultRate: l.defaultRate, notes: l.notes || '' }); };
+    const startEdit = (l) => { setEditingId(l._id); setForm({ name: l.name, notes: l.notes || '' }); };
     const cancelEdit = () => { setEditingId(null); setForm(emptyForm); };
 
     const submit = async (e) => {
@@ -65,10 +66,6 @@ const LabourerRosterManager = ({ url, supervisorId }) => {
                         <p>Name *</p>
                         <input type="text" value={form.name} onChange={e => setField('name', e.target.value)} />
                     </div>
-                    <div className="add-product-name flex-col">
-                        <p>Default Rate (₹/day)</p>
-                        <input type="number" value={form.defaultRate} onChange={e => setField('defaultRate', e.target.value)} />
-                    </div>
                     <div className="add-product-name flex-col wizard-field-full">
                         <p>Notes</p>
                         <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
@@ -81,17 +78,16 @@ const LabourerRosterManager = ({ url, supervisorId }) => {
             </form>
 
             <div className="list-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1fr 1.5fr 140px' }}>
-                    <b>Name</b><b>Default Rate</b><b>Notes</b><b>Action</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 2fr 140px' }}>
+                    <b>Name</b><b>Notes</b><b>Action</b>
                 </div>
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
                 ) : labourers.length === 0 ? (
                     <div className="admin-empty-state"><p>No labourers on this supervisor's roster yet.</p></div>
                 ) : labourers.map(l => (
-                    <div key={l._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1fr 1.5fr 140px' }}>
+                    <div key={l._id} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 2fr 140px' }}>
                         <p>{l.name}</p>
-                        <p>₹{(l.defaultRate || 0).toLocaleString('en-IN')}</p>
                         <p>{l.notes || '—'}</p>
                         <div className="action-buttons">
                             <p onClick={() => startEdit(l)} className="cursor edit-action">Edit</p>

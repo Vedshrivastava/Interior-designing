@@ -1,24 +1,24 @@
 import React from 'react';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
-import DailyLabourManager from '../../components/finance/DailyLabourManager';
+import LabourMeasurementsManager from '../../components/finance/LabourMeasurementsManager';
 
 const TABS = [{ key: 'list', label: 'All Entries' }];
 
 /*
- * Global Daily Labour — entry form + list/filter across every project, not
- * scoped to one supervisor. Same DailyLabourManager component a project's
- * own Daily Labour tab and Supervisors' Daily Labour tab reuse, just with
- * no projectId/supervisorId passed so nothing is pre-scoped.
+ * Global Labour Measurements — entry form + list/filter across every
+ * project, not scoped to one supervisor. Same LabourMeasurementsManager
+ * component a project's own Labour tab reuses, just with no projectId
+ * passed so nothing is pre-scoped (a project picker is shown first).
  */
 const DailyLabourPage = ({ url }) => (
     <FinanceTabShell
-        label="Daily Labour"
-        subtitle="Casual/daily-wage labour, distinct from contractor teams — no separate labourer master, entries are name-only."
+        label="Labour Measurements"
+        subtitle="Daily per-labourer area logged against a Work — each labourer is hired directly and paid per sqft, not a day rate."
         tabs={TABS}
         activeKey="list"
         onTabChange={() => {}}
     >
-        <DailyLabourManager url={url} />
+        <LabourMeasurementsManager url={url} />
     </FinanceTabShell>
 );
 

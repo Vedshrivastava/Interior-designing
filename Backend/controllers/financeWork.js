@@ -1,6 +1,7 @@
 import FinanceWork from '../models/financeWork.js';
 import FinanceProject from '../models/financeProject.js';
 import FinanceWorkContractorAssignment from '../models/financeWorkContractorAssignment.js';
+import FinanceWorkLabourAssignment from '../models/financeWorkLabourAssignment.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 
@@ -17,16 +18,19 @@ const listWorks = async (req, res) => {
     }
 };
 
-// `contractorAssignments` — [{ contractorVendorId, notes }], at least one
-// required. Contractor assignment is no longer a single field on the Work
-// itself; see financeWorkContractorAssignment.js for adding/removing
-// contractors on an existing Work.
+// `contractorAssignments` — [{ contractorVendorId, notes }] — and
+// `labourAssignments` — [{ labourerId, notes }] — a Work needs at least one
+// contractor or one labourer assigned (it can have both, or either alone).
+// Neither is a single field on the Work itself; see
+// financeWorkContractorAssignment.js / financeWorkLabourAssignment.js for
+// adding/removing either on an existing Work.
 const addWork = async (req, res) => {
     try {
-        const { projectId, workType, contractorAssignments, workOrderNumber, startDate, estimatedAreaSqft, notes, quickAdded } = req.body;
+        const { projectId, workType, contractorAssignments, labourAssignments, workOrderNumber, startDate, estimatedAreaSqft, notes, quickAdded } = req.body;
         const assignments = Array.isArray(contractorAssignments) ? contractorAssignments.filter(a => a?.contractorVendorId) : [];
-        if (!projectId || !workType || !assignments.length) {
-            return res.status(400).json({ success: false, message: 'Project, work type, and at least one contractor are required' });
+        const labourRows = Array.isArray(labourAssignments) ? labourAssignments.filter(a => a?.labourerId) : [];
+        if (!projectId || !workType || (!assignments.length && !labourRows.length)) {
+            return res.status(400).json({ success: false, message: 'Project, work type, and at least one contractor or labourer are required' });
         }
         if (!estimatedAreaSqft || Number(estimatedAreaSqft) <= 0) {
             return res.status(400).json({ success: false, message: 'Estimated area is required' });
@@ -40,11 +44,19 @@ const addWork = async (req, res) => {
             quickAdded: !!quickAdded,
         });
         await item.save();
-        await FinanceWorkContractorAssignment.insertMany(
-            assignments.map(a => ({ workId: item._id, contractorVendorId: a.contractorVendorId, notes: a.notes || '' }))
-        );
+        if (assignments.length) {
+            await FinanceWorkContractorAssignment.insertMany(
+                assignments.map(a => ({ workId: item._id, contractorVendorId: a.contractorVendorId, notes: a.notes || '' }))
+            );
+            broadcast({ type: 'financeWorkContractorAssignmentsChanged', projectId });
+        }
+        if (labourRows.length) {
+            await FinanceWorkLabourAssignment.insertMany(
+                labourRows.map(a => ({ workId: item._id, labourerId: a.labourerId, notes: a.notes || '' }))
+            );
+            broadcast({ type: 'financeWorkLabourAssignmentsChanged', projectId });
+        }
         broadcast({ type: 'financeWorksChanged', projectId });
-        broadcast({ type: 'financeWorkContractorAssignmentsChanged', projectId });
 
         const project = await FinanceProject.findById(projectId).select('name');
         await logActivity({

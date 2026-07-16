@@ -63,10 +63,10 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                             <p>₹{data.commissionCost.toLocaleString('en-IN')}</p>
                         </div>
                         <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                            <b>Daily Labour Cost</b><b>Other Expenses</b><b>Profit</b>
+                            <b>Labour Cost</b><b>Other Expenses</b><b>Profit</b>
                         </div>
                         <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                            <p>₹{data.dailyLabourCost.toLocaleString('en-IN')}</p>
+                            <p>₹{data.labourCost.toLocaleString('en-IN')}</p>
                             <p>₹{data.otherExpenses.toLocaleString('en-IN')}</p>
                             <p style={{ fontWeight: 700, color: data.profit >= 0 ? 'var(--moss)' : '#c0392b' }}>
                                 ₹{data.profit.toLocaleString('en-IN')} ({data.marginPercent.toFixed(1)}%)

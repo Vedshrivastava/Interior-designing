@@ -6,14 +6,14 @@ import { ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis
 import { useWebSocket } from '../../hooks/useWebSocket';
 import WorkTypeRatesManager from '../../components/finance/WorkTypeRatesManager';
 import ContractorRatesManager from '../../components/finance/ContractorRatesManager';
+import LabourRatesManager from '../../components/finance/LabourRatesManager';
 import WorksManager from '../../components/finance/WorksManager';
 import ProjectQuotationsManager from '../../components/finance/ProjectQuotationsManager';
 import MeasurementsManager from '../../components/finance/MeasurementsManager';
+import LabourMeasurementsManager from '../../components/finance/LabourMeasurementsManager';
 import StockMovementsManager from '../../components/finance/StockMovementsManager';
 import RunningBillsManager from '../../components/finance/RunningBillsManager';
 import ReceiptsManager from '../../components/finance/ReceiptsManager';
-import DailyLabourManager from '../../components/finance/DailyLabourManager';
-import DailyLabourBatchEntry from '../../components/finance/DailyLabourBatchEntry';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import DocumentsTab from '../../components/finance/DocumentsTab';
 import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
@@ -84,7 +84,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
         { name: 'Material', value: profit.materialCost },
         { name: 'Contractor', value: profit.contractorCost },
         { name: 'Commission', value: profit.commissionCost },
-        { name: 'Daily Labour', value: profit.dailyLabourCost },
+        { name: 'Labour', value: profit.labourCost },
         { name: 'Other Expenses', value: profit.otherExpenses },
     ].filter(d => d.value > 0);
 
@@ -95,7 +95,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
                 <KpiCard label="Material Cost" value={formatINR(profit.materialCost)} />
                 <KpiCard label="Contractor Cost" value={formatINR(profit.contractorCost)} />
                 <KpiCard label="Commission Cost" value={formatINR(profit.commissionCost)} />
-                <KpiCard label="Daily Labour Cost" value={formatINR(profit.dailyLabourCost)} />
+                <KpiCard label="Labour Cost" value={formatINR(profit.labourCost)} />
                 <KpiCard label="Other Expenses" value={formatINR(profit.otherExpenses)} />
                 <KpiCard label="Profit" value={formatINR(profit.profit)} tone={profit.profit >= 0 ? 'good' : 'danger'} />
                 <KpiCard label="Margin %" value={`${Math.round(profit.marginPercent * 10) / 10}%`} tone={profit.marginPercent >= 0 ? 'good' : 'danger'} />
@@ -187,7 +187,7 @@ const TABS = [
     { key: 'materials',    label: 'Materials' },
     { key: 'contractors',  label: 'Contractors' },
     { key: 'supervisors',  label: 'Supervisors' },
-    { key: 'dailyLabour',  label: 'Daily Labour' },
+    { key: 'labour',       label: 'Labour' },
     { key: 'runningBills', label: 'Running Bills' },
     { key: 'receipts',     label: 'Receipts' },
     { key: 'expenses',     label: 'Expenses' },
@@ -207,8 +207,6 @@ const ProjectDetail = ({ url }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [activeTab, setActiveTab] = useState('overview');
-    const [labourEntryMode, setLabourEntryMode] = useState('single');
-    const [labourListRefreshKey, setLabourListRefreshKey] = useState(0);
     const [worksVersion, setWorksVersion] = useState(0);
     const [project, setProject] = useState(null);
     const [contractors, setContractors] = useState([]);
@@ -449,22 +447,12 @@ const ProjectDetail = ({ url }) => {
                     </div>
                 )}
 
-                {activeTab === 'dailyLabour' && (
+                {activeTab === 'labour' && (
                     <div>
-                        <div className="wizard-actions" style={{ marginBottom: '16px', justifyContent: 'flex-start', gap: '8px' }}>
-                            <button type="button" className={`add-btn ${labourEntryMode === 'single' ? '' : 'cancel-btn'}`} onClick={() => setLabourEntryMode('single')}>Single Entry</button>
-                            <button type="button" className={`add-btn ${labourEntryMode === 'batch' ? '' : 'cancel-btn'}`} onClick={() => setLabourEntryMode('batch')}>Batch Grid Entry</button>
-                        </div>
-                        {labourEntryMode === 'single' ? (
-                            <DailyLabourManager url={url} projectId={id} />
-                        ) : (
-                            <>
-                                <DailyLabourBatchEntry url={url} projectId={id} onSubmitted={() => setLabourListRefreshKey(k => k + 1)} />
-                                <div style={{ marginTop: '24px' }}>
-                                    <DailyLabourManager key={labourListRefreshKey} url={url} projectId={id} readOnly />
-                                </div>
-                            </>
-                        )}
+                        <h3 style={{ margin: '0 0 8px' }}>Labour Rates</h3>
+                        <LabourRatesManager url={url} projectId={id} worksVersion={worksVersion} />
+                        <h3 style={{ margin: '32px 0 8px' }}>Measurements</h3>
+                        <LabourMeasurementsManager url={url} projectId={id} />
                     </div>
                 )}
 

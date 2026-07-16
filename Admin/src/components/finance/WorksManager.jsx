@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import ContractorOrLabourPicker from './ContractorOrLabourPicker';
+import LabourPicker from './LabourPicker';
 import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 import '../../styles/add.css';
@@ -12,18 +13,23 @@ const STATUS_LABEL = { active: 'Active', completed: 'Completed' };
 
 const emptyForm = { workType: '', workOrderNumber: '', startDate: '', estimatedAreaSqft: '', status: 'active', notes: '' };
 const emptyAssignmentRow = () => ({ contractorVendorId: '', notes: '' });
+const emptyLabourRow = () => ({ labourerId: '', notes: '' });
 
 /* Manages financeWork rows for one project — the individual work items
-   (e.g. "Putty" done by one or more contractors) that measurements get
-   logged against. completedAreaSqft is read-only here; it's only ever
-   moved by the measurement-save automation on the backend.
+   (e.g. "Putty" done by one or more contractors and/or labourers) that
+   measurements get logged against. completedAreaSqft is read-only here;
+   it's only ever moved by the measurement-save automation on the backend.
 
-   A Work can have more than one contractor (splitting the same scope), so
-   assignment isn't a single field on the Work anymore:
-     - Creating a Work takes one or more contractors up front (contractorAssignments).
-     - Changing an existing Work's contractors happens in a separate
-       "Manage Contractors" modal, calling /work-contractor-assignments
-       directly — the Work's own edit form no longer touches that data. */
+   A Work can have more than one contractor and/or labourer (splitting the
+   same scope, or one of each), so assignment isn't a single field on the
+   Work anymore:
+     - Creating a Work takes one or more contractors/labourers up front
+       (contractorAssignments / labourAssignments) — at least one of
+       either is required.
+     - Changing an existing Work's contractors/labourers happens in
+       separate "Manage Contractors" / "Manage Labour" modals, calling
+       /work-contractor-assignments or /work-labour-assignments directly —
+       the Work's own edit form no longer touches that data. */
 const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
@@ -36,6 +42,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
     const [editingId, setEditingId] = useState(null);
     const [form, setForm] = useState(emptyForm);
     const [contractorAssignments, setContractorAssignments] = useState([emptyAssignmentRow()]);
+    const [labourAssignments, setLabourAssignments] = useState([]);
     const [saving, setSaving] = useState(false);
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
@@ -46,6 +53,13 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
     const [newContractorNotes, setNewContractorNotes] = useState('');
     const [contractorsLoading, setContractorsLoading] = useState(false);
     const [contractorsSaving, setContractorsSaving] = useState(false);
+
+    const [labourModalWork, setLabourModalWork] = useState(null);
+    const [workLabourers, setWorkLabourers] = useState([]);
+    const [newLabourerId, setNewLabourerId] = useState('');
+    const [newLabourNotes, setNewLabourNotes] = useState('');
+    const [labourLoading, setLabourLoading] = useState(false);
+    const [labourSaving, setLabourSaving] = useState(false);
 
     // `silent` skips the loading flag — used when this refetch is driven by
     // a WebSocket event (this project's data changed elsewhere, e.g. the
@@ -77,7 +91,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
             .then(res => { if (res.data.success) setWorkTypeOptions(res.data.data.map(s => s.name)); }).catch(() => {});
     }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const openAdd = () => { setEditingId(null); setForm(emptyForm); setContractorAssignments([emptyAssignmentRow()]); setModalOpen(true); };
+    const openAdd = () => { setEditingId(null); setForm(emptyForm); setContractorAssignments([emptyAssignmentRow()]); setLabourAssignments([]); setModalOpen(true); };
     const openEdit = (w) => {
         setEditingId(w._id);
         setForm({
@@ -95,17 +109,28 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
     const addAssignmentRow = () => setContractorAssignments(prev => [...prev, emptyAssignmentRow()]);
     const removeAssignmentRow = (idx) => setContractorAssignments(prev => prev.filter((_, i) => i !== idx));
 
+    const setLabourRowField = (idx, key, value) =>
+        setLabourAssignments(prev => prev.map((a, i) => (i === idx ? { ...a, [key]: value } : a)));
+    const addLabourRow = () => setLabourAssignments(prev => [...prev, emptyLabourRow()]);
+    const removeLabourRow = (idx) => setLabourAssignments(prev => prev.filter((_, i) => i !== idx));
+
     const submit = async (e) => {
         e.preventDefault();
         if (!form.workType.trim()) return toast.error('Work type is required');
         if (!form.estimatedAreaSqft || Number(form.estimatedAreaSqft) <= 0) return toast.error('Estimated area is required');
-        if (!editingId && !contractorAssignments.some(a => a.contractorVendorId)) return toast.error('At least one contractor is required');
+        if (!editingId && !contractorAssignments.some(a => a.contractorVendorId) && !labourAssignments.some(a => a.labourerId)) {
+            return toast.error('At least one contractor or labourer is required');
+        }
 
         setSaving(true);
         try {
             const payload = editingId
                 ? { ...form, _id: editingId, projectId }
-                : { ...form, projectId, contractorAssignments: contractorAssignments.filter(a => a.contractorVendorId) };
+                : {
+                    ...form, projectId,
+                    contractorAssignments: contractorAssignments.filter(a => a.contractorVendorId),
+                    labourAssignments: labourAssignments.filter(a => a.labourerId),
+                };
             const endpoint = editingId ? 'update' : 'add';
             const res = await axios.post(`${url}/api/finance/works/${endpoint}`, payload, authHeader);
             if (res.data.success) {
@@ -173,6 +198,49 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
         }
     };
 
+    const openLabourModal = async (w) => {
+        setLabourModalWork(w);
+        setNewLabourerId(''); setNewLabourNotes('');
+        await fetchWorkLabourers(w._id);
+    };
+    const closeLabourModal = () => setLabourModalWork(null);
+
+    const fetchWorkLabourers = async (workId) => {
+        setLabourLoading(true);
+        try {
+            const res = await axios.get(`${url}/api/finance/work-labour-assignments/list`, { ...authHeader, params: { workId } });
+            if (res.data.success) setWorkLabourers(res.data.data);
+        } catch { toast.error('Error fetching labour assignments'); }
+        finally { setLabourLoading(false); }
+    };
+
+    const addWorkLabourer = async () => {
+        if (!newLabourerId) return toast.error('Select a labourer');
+        setLabourSaving(true);
+        try {
+            const res = await axios.post(`${url}/api/finance/work-labour-assignments/add`,
+                { workId: labourModalWork._id, labourerId: newLabourerId, notes: newLabourNotes }, authHeader);
+            if (res.data.success) {
+                toast.success(res.data.message);
+                setNewLabourerId(''); setNewLabourNotes('');
+                await fetchWorkLabourers(labourModalWork._id);
+                await fetchWorks();
+            } else toast.error(res.data.message);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Error assigning labourer');
+        } finally { setLabourSaving(false); }
+    };
+
+    const removeWorkLabourer = async (assignmentId) => {
+        try {
+            const res = await axios.post(`${url}/api/finance/work-labour-assignments/remove`, { _id: assignmentId }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); await fetchWorkLabourers(labourModalWork._id); await fetchWorks(); }
+            else toast.error(res.data.message);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Error removing labourer');
+        }
+    };
+
     const totalEstimated = works.reduce((sum, w) => sum + (w.estimatedAreaSqft || 0), 0);
     const totalCompleted = works.reduce((sum, w) => sum + (w.completedAreaSqft || 0), 0);
 
@@ -189,7 +257,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
             </div>
 
             <div className="list-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1.6fr 1fr 260px' }}>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1.6fr 1fr 320px' }}>
                     <b>Work Type</b><b>Completed / Estimated</b><b>Status</b><b>Action</b>
                 </div>
                 {loading ? (
@@ -200,7 +268,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                     works.map(w => {
                         const pct = w.estimatedAreaSqft > 0 ? Math.min(100, Math.round((w.completedAreaSqft / w.estimatedAreaSqft) * 100)) : 0;
                         return (
-                            <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1.6fr 1fr 260px' }}>
+                            <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1.6fr 1fr 320px' }}>
                                 <p>
                                     {w.workType}
                                     {w.quickAdded && (
@@ -218,6 +286,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                                 <div className="action-buttons">
                                     <p onClick={() => navigate(`/finance/projects/${projectId}/works/${w._id}`)} className="cursor edit-action">Details</p>
                                     <p onClick={() => openContractorsModal(w)} className="cursor edit-action">Contractors</p>
+                                    <p onClick={() => openLabourModal(w)} className="cursor edit-action">Labour</p>
                                     <p onClick={() => openEdit(w)} className="cursor edit-action">Edit</p>
                                     <p onClick={() => setConfirmItem(w)} className="cursor delete-action">X</p>
                                 </div>
@@ -243,7 +312,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
 
                             {!editingId && (
                                 <div className="add-product-name flex-col">
-                                    <p>Contractor(s) *</p>
+                                    <p>Contractor(s)</p>
                                     <div className="add-product-points">
                                         {contractorAssignments.map((a, idx) => (
                                             <div key={idx} className="point-input">
@@ -260,6 +329,27 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                                         ))}
                                         <button type="button" className="add-point-btn" onClick={addAssignmentRow}>+ Add Contractor</button>
                                     </div>
+                                </div>
+                            )}
+
+                            {!editingId && (
+                                <div className="add-product-name flex-col">
+                                    <p>Labourer(s)</p>
+                                    <div className="add-product-points">
+                                        {labourAssignments.map((a, idx) => (
+                                            <div key={idx} className="point-input">
+                                                <div style={{ flex: 1 }}>
+                                                    <LabourPicker url={url} value={a.labourerId}
+                                                        onChange={v => setLabourRowField(idx, 'labourerId', v)} />
+                                                </div>
+                                                <input type="text" placeholder="Notes (optional)" value={a.notes}
+                                                    onChange={e => setLabourRowField(idx, 'notes', e.target.value)} style={{ flex: 1 }} />
+                                                <button type="button" className="remove-point-btn" onClick={() => removeLabourRow(idx)}>X</button>
+                                            </div>
+                                        ))}
+                                        <button type="button" className="add-point-btn" onClick={addLabourRow}>+ Add Labourer</button>
+                                    </div>
+                                    <p className="admin-subtitle" style={{ marginTop: '6px' }}>At least one contractor or labourer is required.</p>
                                 </div>
                             )}
 
@@ -336,6 +426,50 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                         <div className="edit-modal-actions">
                             <span />
                             <button type="button" className="add-btn" onClick={closeContractorsModal}>Done</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {labourModalWork && ReactDOM.createPortal(
+                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal">
+                        <h2>Manage Labour — {labourModalWork.workType}</h2>
+                        {labourLoading ? (
+                            <div className="admin-empty-state"><p>Loading…</p></div>
+                        ) : (
+                            <div className="list-table" style={{ marginBottom: '16px' }}>
+                                <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1.5fr 100px' }}>
+                                    <b>Labourer</b><b>Notes</b><b>Action</b>
+                                </div>
+                                {workLabourers.map(a => (
+                                    <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1.5fr 100px' }}>
+                                        <p>{a.labourerId?.name || '—'}</p>
+                                        <p>{a.notes || '—'}</p>
+                                        <div className="action-buttons">
+                                            <p onClick={() => removeWorkLabourer(a._id)} className="cursor delete-action">X</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <div className="add-product-name flex-col">
+                            <p>Add Labourer</p>
+                            <div className="point-input">
+                                <div style={{ flex: 1 }}>
+                                    <LabourPicker url={url} value={newLabourerId} onChange={setNewLabourerId} />
+                                </div>
+                                <input type="text" placeholder="Notes (optional)" value={newLabourNotes}
+                                    onChange={e => setNewLabourNotes(e.target.value)} style={{ flex: 1 }} />
+                                <button type="button" className="add-point-btn" disabled={labourSaving} onClick={addWorkLabourer}>
+                                    {labourSaving ? 'Adding…' : '+ Add'}
+                                </button>
+                            </div>
+                        </div>
+                        <div className="edit-modal-actions">
+                            <span />
+                            <button type="button" className="add-btn" onClick={closeLabourModal}>Done</button>
                         </div>
                     </div>
                 </div>,

@@ -94,12 +94,10 @@ export const FINANCE_MASTERS = {
         fields: [
             { key: 'name', label: 'Name', type: 'text', required: true },
             { key: 'supervisorId', label: 'Supervisor', type: 'employeeSelect', required: true },
-            { key: 'defaultRate', label: 'Default Rate (₹/day)', type: 'number' },
             { key: 'notes', label: 'Notes', type: 'textarea' },
         ],
         columns: [
             { key: 'name', label: 'Name' },
-            { key: 'defaultRate', label: 'Default Rate' },
         ],
     },
     // Not surfaced under Masters' own page — reused from the Bank page's

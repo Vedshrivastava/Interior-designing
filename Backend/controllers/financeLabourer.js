@@ -1,5 +1,5 @@
 import FinanceLabourer from '../models/financeLabourer.js';
-import FinanceDailyLabour from '../models/financeDailyLabour.js';
+import FinanceLabourMeasurement from '../models/financeLabourMeasurement.js';
 import { broadcast } from '../middlewares/webSocket.js';
 
 const listLabourers = async (req, res) => {
@@ -7,7 +7,7 @@ const listLabourers = async (req, res) => {
         const { supervisorId } = req.query;
         const filter = { deleted: { $ne: true } };
         if (supervisorId) filter.supervisorId = supervisorId;
-        const items = await FinanceLabourer.find(filter).sort({ name: 1 });
+        const items = await FinanceLabourer.find(filter).populate('supervisorId', 'name').sort({ name: 1 });
         res.json({ success: true, data: items });
     } catch (err) {
         console.error(err);
@@ -17,11 +17,11 @@ const listLabourers = async (req, res) => {
 
 const addLabourer = async (req, res) => {
     try {
-        const { name, supervisorId, defaultRate, notes } = req.body;
+        const { name, supervisorId, notes } = req.body;
         if (!name || !name.trim()) return res.status(400).json({ success: false, message: 'Name is required' });
         if (!supervisorId) return res.status(400).json({ success: false, message: 'Supervisor is required' });
         const item = new FinanceLabourer({
-            name: name.trim(), supervisorId, defaultRate: Number(defaultRate) || 0, notes: notes || '',
+            name: name.trim(), supervisorId, notes: notes || '',
         });
         await item.save();
         broadcast({ type: 'financeLabourersChanged', supervisorId });
@@ -34,12 +34,12 @@ const addLabourer = async (req, res) => {
 
 const updateLabourer = async (req, res) => {
     try {
-        const { _id, name, defaultRate, notes } = req.body;
+        const { _id, name, notes } = req.body;
         const existing = await FinanceLabourer.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Labourer not found' });
         if (!name || !name.trim()) return res.status(400).json({ success: false, message: 'Name is required' });
         await FinanceLabourer.findByIdAndUpdate(_id, {
-            name: name.trim(), defaultRate: Number(defaultRate) || 0, notes: notes || '',
+            name: name.trim(), notes: notes || '',
         });
         broadcast({ type: 'financeLabourersChanged', supervisorId: existing.supervisorId });
         res.json({ success: true, message: 'Labourer updated' });
@@ -54,9 +54,9 @@ const removeLabourer = async (req, res) => {
         const { _id } = req.body;
         const item = await FinanceLabourer.findById(_id);
         if (!item) return res.status(404).json({ success: false, message: 'Labourer not found' });
-        const entryCount = await FinanceDailyLabour.countDocuments({ labourerId: _id, deleted: { $ne: true } });
+        const entryCount = await FinanceLabourMeasurement.countDocuments({ labourerId: _id, deleted: { $ne: true } });
         if (entryCount > 0) {
-            return res.status(400).json({ success: false, message: 'This labourer has daily labour entries recorded against them — remove those first' });
+            return res.status(400).json({ success: false, message: 'This labourer has measurements recorded against them — remove those first' });
         }
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();

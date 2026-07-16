@@ -9,27 +9,22 @@ import { emptyFormFromFields, renderMasterField } from './masterFieldRenderer';
 const CONTRACTOR_PRESET = { vendorType: 'labour_contractor' };
 
 /*
- * A Work's contractor assignment / a Contractor Rate row can only ever
- * reference a financeVendor with vendorType 'labour_contractor' — that's
- * what drives the rate x area billing engine. Daily-wage labour has no
- * workId at all (deliberately — a labourer can help across several Works
- * in a day) and is paid per day, not by rate, so it structurally can't be
- * "assigned" the same way or shown in that picker's own dropdown.
- *
- * What CAN be unified is the "+ Add New" entry point: pick a type up
- * front, and the Labour branch does the whole add-a-crew-member task
- * right here (pick/create a Supervisor, see their roster, add a member)
- * instead of silently assuming Contractor. Only the Contractor branch
- * calls onContractorCreated — the Labour branch never feeds back into
- * whatever picker opened this, since there's nothing for it to select.
+ * Both branches create a real, individually assignable, individually
+ * rated entity — a financeVendor (contractor) or a financeLabourer (hired
+ * directly, paid per sqft via financeLabourRate). Pick a type up front;
+ * the Labour branch does the whole add-a-roster-member task right here
+ * (pick/create a Supervisor, see their roster, add a member) instead of
+ * silently assuming Contractor, and feeds the new labourer's id back via
+ * onLabourerCreated the same way the Contractor branch feeds back via
+ * onContractorCreated.
  */
-const AddContractorOrLabourModal = ({ url, onClose, onContractorCreated }) => {
+const AddContractorOrLabourModal = ({ url, onClose, onContractorCreated, onLabourerCreated, initialType = 'contractor' }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const vendorResource = FINANCE_MASTERS.vendors;
     const visibleFields = vendorResource.fields.filter(f => !(f.key in CONTRACTOR_PRESET));
 
-    const [type, setType] = useState('contractor');
+    const [type, setType] = useState(initialType);
 
     const [vendorForm, setVendorForm] = useState({ ...emptyFormFromFields(vendorResource.fields), ...CONTRACTOR_PRESET });
     const [savingVendor, setSavingVendor] = useState(false);
@@ -38,7 +33,6 @@ const AddContractorOrLabourModal = ({ url, onClose, onContractorCreated }) => {
     const [roster, setRoster] = useState([]);
     const [loadingRoster, setLoadingRoster] = useState(false);
     const [memberName, setMemberName] = useState('');
-    const [memberRate, setMemberRate] = useState('');
     const [memberNotes, setMemberNotes] = useState('');
     const [savingMember, setSavingMember] = useState(false);
 
@@ -78,12 +72,13 @@ const AddContractorOrLabourModal = ({ url, onClose, onContractorCreated }) => {
         setSavingMember(true);
         try {
             const res = await axios.post(`${url}/api/finance/labourers/add`, {
-                supervisorId, name: memberName.trim(), defaultRate: memberRate || 0, notes: memberNotes,
+                supervisorId, name: memberName.trim(), notes: memberNotes,
             }, authHeader);
             if (res.data.success) {
                 toast.success('Labourer added to roster');
-                setMemberName(''); setMemberRate(''); setMemberNotes('');
+                setMemberName(''); setMemberNotes('');
                 fetchRoster(supervisorId);
+                onLabourerCreated?.(res.data.data._id);
             } else toast.error(res.data.message);
         } catch (err) {
             toast.error(err.response?.data?.message || 'Error adding labourer');
@@ -108,7 +103,7 @@ const AddContractorOrLabourModal = ({ url, onClose, onContractorCreated }) => {
                         style={{ flex: 1, justifyContent: 'center', border: '1px solid rgba(201,168,124,0.28)' }}
                         onClick={() => setType('labour')}
                     >
-                        <span>Labour Crew</span>
+                        <span>Labour</span>
                     </div>
                 </div>
 
@@ -128,7 +123,7 @@ const AddContractorOrLabourModal = ({ url, onClose, onContractorCreated }) => {
                 ) : (
                     <div className="flex-col">
                         <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                            Casual daily-wage labour is paid per day via Daily Labour entries, not a rate — this crew won't need (or show up in) Contractor Rates.
+                            Hired directly by the company, paid per sqft — set their rate per project and work type from the project's Labour tab after adding them here.
                         </p>
                         <div className="add-product-name flex-col">
                             <p>Supervisor *</p>
@@ -147,7 +142,7 @@ const AddContractorOrLabourModal = ({ url, onClose, onContractorCreated }) => {
                                 ) : (
                                     <ul style={{ margin: '0 0 12px', paddingLeft: '18px', fontSize: '0.85rem', color: 'var(--text-mid)' }}>
                                         {roster.map(l => (
-                                            <li key={l._id}>{l.name}{l.defaultRate ? ` — ₹${l.defaultRate}/day` : ''}</li>
+                                            <li key={l._id}>{l.name}</li>
                                         ))}
                                     </ul>
                                 )}
@@ -156,10 +151,6 @@ const AddContractorOrLabourModal = ({ url, onClose, onContractorCreated }) => {
                                         <div className="add-product-name flex-col">
                                             <p>Member Name *</p>
                                             <input type="text" value={memberName} onChange={e => setMemberName(e.target.value)} />
-                                        </div>
-                                        <div className="add-product-name flex-col">
-                                            <p>Default Rate (₹/day)</p>
-                                            <input type="number" value={memberRate} onChange={e => setMemberRate(e.target.value)} />
                                         </div>
                                         <div className="add-product-name flex-col wizard-field-full">
                                             <p>Notes</p>

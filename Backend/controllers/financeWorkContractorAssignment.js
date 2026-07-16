@@ -1,5 +1,6 @@
 import FinanceWork from '../models/financeWork.js';
 import FinanceWorkContractorAssignment from '../models/financeWorkContractorAssignment.js';
+import FinanceWorkLabourAssignment from '../models/financeWorkLabourAssignment.js';
 import { assertContractorVendor } from '../utils/contractorVendor.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
@@ -44,17 +45,21 @@ const addWorkContractorAssignment = async (req, res) => {
     }
 };
 
-// A Work must always have at least one contractor — rejects removing the
-// last remaining active assignment.
+// A Work must always have at least one contractor or labourer assigned —
+// rejects removing the last remaining active contractor assignment if no
+// labourer is covering the work either.
 const removeWorkContractorAssignment = async (req, res) => {
     try {
         const { _id } = req.body;
         const item = await FinanceWorkContractorAssignment.findById(_id);
         if (!item) return res.status(404).json({ success: false, message: 'Not found' });
 
-        const activeCount = await FinanceWorkContractorAssignment.countDocuments({ workId: item.workId, deleted: { $ne: true } });
-        if (activeCount <= 1) {
-            return res.status(400).json({ success: false, message: 'A work must have at least one contractor assigned' });
+        const [activeCount, labourCount] = await Promise.all([
+            FinanceWorkContractorAssignment.countDocuments({ workId: item.workId, deleted: { $ne: true } }),
+            FinanceWorkLabourAssignment.countDocuments({ workId: item.workId, deleted: { $ne: true } }),
+        ]);
+        if (activeCount <= 1 && labourCount === 0) {
+            return res.status(400).json({ success: false, message: 'A work must have at least one contractor or labourer assigned' });
         }
 
         const work = await FinanceWork.findById(item.workId);

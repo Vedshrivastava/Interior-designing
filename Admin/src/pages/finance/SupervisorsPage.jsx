@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
-import DailyLabourManager from '../../components/finance/DailyLabourManager';
 import LabourerRosterManager from '../../components/finance/LabourerRosterManager';
+import LabourLedgerView from '../../components/finance/LabourLedgerView';
 import SupervisorAttendanceManager from '../../components/finance/SupervisorAttendanceManager';
 import SupervisorIncentivesManager from '../../components/finance/SupervisorIncentivesManager';
-import SupervisorLabourPaymentsManager from '../../components/finance/SupervisorLabourPaymentsManager';
+import SupervisorDeductionsManager from '../../components/finance/SupervisorDeductionsManager';
 import SalaryLedgerView from '../../components/finance/SalaryLedgerView';
 import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import '../../styles/list.css';
@@ -15,13 +15,44 @@ import '../../styles/list.css';
 const TABS = [
     { key: 'projects',    label: 'Assigned Projects' },
     { key: 'roster',      label: 'Roster' },
-    { key: 'labour',      label: 'Daily Labour' },
-    { key: 'labourPayments', label: 'Labour Payments' },
+    { key: 'labour',      label: 'Labour Ledger' },
     { key: 'attendance',  label: 'Attendance' },
     { key: 'performance', label: 'Performance' },
     { key: 'salary',      label: 'Salary' },
     { key: 'incentives',  label: 'Incentives' },
+    { key: 'deductions',  label: 'Deductions' },
 ];
+
+/* One labourer's ledger, picked from this supervisor's own roster —
+   replaces the old bulk Daily Labour / Labour Payments tabs now that
+   every labourer is paid individually via their own ledger. */
+const SupervisorLabourLedgerTab = ({ url, supervisorId }) => {
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const [roster, setRoster] = useState([]);
+    const [labourerId, setLabourerId] = useState('');
+
+    useEffect(() => {
+        setLabourerId('');
+        axios.get(`${url}/api/finance/labourers/list`, { ...authHeader, params: { supervisorId } })
+            .then(res => { if (res.data.success) setRoster(res.data.data); }).catch(() => {});
+    }, [url, supervisorId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    return (
+        <div>
+            <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
+                <p>Labourer</p>
+                <select value={labourerId} onChange={e => setLabourerId(e.target.value)}>
+                    <option value="">Select labourer…</option>
+                    {roster.map(l => <option key={l._id} value={l._id}>{l.name}</option>)}
+                </select>
+            </div>
+            {labourerId
+                ? <LabourLedgerView url={url} labourerId={labourerId} />
+                : <div className="admin-empty-state"><p>Select a labourer from this supervisor's roster to view their ledger.</p></div>}
+        </div>
+    );
+};
 
 /*
  * A Supervisor is a financeEmployee, not a separate entity — there's no
@@ -99,7 +130,7 @@ const SupervisorsPage = ({ url }) => {
     return (
         <FinanceTabShell
             label="Supervisors"
-            subtitle="A supervisor is a Master Data employee — pick one to see their assigned projects, daily labour, attendance, salary, and incentives."
+            subtitle="A supervisor is a Master Data employee — pick one to see their assigned projects, labour roster, attendance, salary, incentives, and deductions."
             tabs={TABS}
             activeKey={activeTab}
             onTabChange={setActiveTab}
@@ -112,12 +143,12 @@ const SupervisorsPage = ({ url }) => {
                 <>
                     {activeTab === 'projects' && <AssignedProjectsTab url={url} employeeId={selectedEmployeeId} employeeName={selectedEmployeeName} />}
                     {activeTab === 'roster' && <LabourerRosterManager url={url} supervisorId={selectedEmployeeId} />}
-                    {activeTab === 'labour' && <DailyLabourManager url={url} supervisorId={selectedEmployeeId} readOnly />}
-                    {activeTab === 'labourPayments' && <SupervisorLabourPaymentsManager url={url} employeeId={selectedEmployeeId} />}
+                    {activeTab === 'labour' && <SupervisorLabourLedgerTab url={url} supervisorId={selectedEmployeeId} />}
                     {activeTab === 'attendance' && <SupervisorAttendanceManager url={url} employeeId={selectedEmployeeId} />}
                     {activeTab === 'performance' && <PlaceholderTab text="No defined performance metric to build against yet." />}
                     {activeTab === 'salary' && <SalaryLedgerView url={url} employeeId={selectedEmployeeId} />}
                     {activeTab === 'incentives' && <SupervisorIncentivesManager url={url} employeeId={selectedEmployeeId} />}
+                    {activeTab === 'deductions' && <SupervisorDeductionsManager url={url} employeeId={selectedEmployeeId} />}
                 </>
             )}
         </FinanceTabShell>

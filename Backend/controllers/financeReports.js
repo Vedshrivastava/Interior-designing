@@ -19,7 +19,10 @@ import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import FinanceVendorPayment from '../models/financeVendorPayment.js';
 import FinanceSalaryPayment from '../models/financeSalaryPayment.js';
 import FinanceCommissionPayment from '../models/financeCommissionPayment.js';
-import FinanceDailyLabour from '../models/financeDailyLabour.js';
+import FinanceLabourMeasurement from '../models/financeLabourMeasurement.js';
+import FinanceLabourRate from '../models/financeLabourRate.js';
+import FinanceWorkLabourAssignment from '../models/financeWorkLabourAssignment.js';
+import FinanceLabourer from '../models/financeLabourer.js';
 import FinanceSetting from '../models/financeSetting.js';
 import FinanceBankAccount from '../models/financeBankAccount.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
@@ -141,6 +144,38 @@ const computeProjectContractorCost = async (projectId) => {
     return total;
 };
 
+// Mirrors computeProjectContractorCost, at individual-labourer granularity.
+// No engineerApproved gate — financeLabourMeasurement has none, every
+// logged sqft counts toward cost immediately (correction happens via
+// financeLabourDeduction afterward, not an area exclusion here).
+const computeProjectLabourCost = async (projectId) => {
+    const works = await FinanceWork.find({ projectId, deleted: { $ne: true } });
+    if (!works.length) return 0;
+    const workById = new Map(works.map(w => [w._id.toString(), w]));
+    const measurements = await FinanceLabourMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } });
+    if (!measurements.length) return 0;
+
+    const labourerIds = new Set();
+    const areaByLabourerWorkType = new Map(); // `${labourerId}_${workType}` -> area
+    for (const m of measurements) {
+        const work = workById.get(m.workId.toString());
+        if (!work) continue;
+        labourerIds.add(m.labourerId.toString());
+        const key = `${m.labourerId}_${work.workType}`;
+        areaByLabourerWorkType.set(key, (areaByLabourerWorkType.get(key) || 0) + m.areaCoveredSqft);
+    }
+    if (!areaByLabourerWorkType.size) return 0;
+
+    const rates = await FinanceLabourRate.find({ projectId, labourerId: { $in: [...labourerIds] }, deleted: { $ne: true } });
+    const rateByKey = new Map(rates.map(r => [`${r.labourerId}_${r.workType}`, r]));
+    let total = 0;
+    for (const [key, area] of areaByLabourerWorkType) {
+        const rate = rateByKey.get(key);
+        if (rate) total += area * rate.ratePerSqft;
+    }
+    return total;
+};
+
 const computeProjectCommissionCost = async (project) => {
     if (!project.referralVendorId) return 0;
     const works = await FinanceWork.find({ projectId: project._id, deleted: { $ne: true } });
@@ -158,7 +193,7 @@ const computeProjectProfit = async (projectId) => {
     const project = await FinanceProject.findOne({ _id: projectId, deleted: { $ne: true } });
     if (!project) return null;
 
-    const [revenueAgg, materialCost, contractorCost, commissionCost, expenseAgg, dailyLabourAgg] = await Promise.all([
+    const [revenueAgg, materialCost, contractorCost, commissionCost, expenseAgg, labourCost] = await Promise.all([
         FinanceRunningBill.aggregate([
             { $match: { projectId: project._id, status: 'issued', deleted: { $ne: true } } },
             { $group: { _id: null, total: { $sum: '$totalAmount' } } },
@@ -170,20 +205,16 @@ const computeProjectProfit = async (projectId) => {
             { $match: { projectId: project._id, deleted: { $ne: true } } },
             { $group: { _id: null, total: { $sum: '$amount' } } },
         ]),
-        FinanceDailyLabour.aggregate([
-            { $match: { projectId: project._id, deleted: { $ne: true } } },
-            { $group: { _id: null, total: { $sum: '$amount' } } },
-        ]),
+        computeProjectLabourCost(project._id),
     ]);
 
     const revenue = revenueAgg[0]?.total || 0;
     const otherExpenses = expenseAgg[0]?.total || 0;
-    const dailyLabourCost = dailyLabourAgg[0]?.total || 0;
-    const profit = revenue - materialCost - contractorCost - commissionCost - otherExpenses - dailyLabourCost;
+    const profit = revenue - materialCost - contractorCost - commissionCost - otherExpenses - labourCost;
 
     return {
         projectId: project._id, projectName: project.name, clientId: project.clientId,
-        revenue, materialCost, contractorCost, commissionCost, otherExpenses, dailyLabourCost, profit,
+        revenue, materialCost, contractorCost, commissionCost, otherExpenses, labourCost, profit,
         marginPercent: revenue > 0 ? (profit / revenue) * 100 : 0,
     };
 };
@@ -247,9 +278,9 @@ const getClientProfit = async (req, res) => {
             contractorCost: acc.contractorCost + p.contractorCost,
             commissionCost: acc.commissionCost + p.commissionCost,
             otherExpenses: acc.otherExpenses + p.otherExpenses,
-            dailyLabourCost: acc.dailyLabourCost + p.dailyLabourCost,
+            labourCost: acc.labourCost + p.labourCost,
             profit: acc.profit + p.profit,
-        }), { revenue: 0, materialCost: 0, contractorCost: 0, commissionCost: 0, otherExpenses: 0, dailyLabourCost: 0, profit: 0 });
+        }), { revenue: 0, materialCost: 0, contractorCost: 0, commissionCost: 0, otherExpenses: 0, labourCost: 0, profit: 0 });
         totals.marginPercent = totals.revenue > 0 ? (totals.profit / totals.revenue) * 100 : 0;
 
         res.json({ success: true, data: { clientId: client._id, clientName: client.name, projects: perProject, totals } });
@@ -332,10 +363,50 @@ const computeWorkProfit = async (work) => {
     }
 
     contractorCost = round2(contractorCost);
-    const materialCost = await computeWorkMaterialCost(work.projectId, work._id);
-    const profit = revenue - contractorCost - materialCost;
 
-    return { revenue, contractorCost, contractorBreakdown, materialCost, profit, areaBilledSqft };
+    // Labour Cost — same per-person breakdown as contractor above, but no
+    // approval gate (financeLabourMeasurement has none) so every logged
+    // sqft counts as-is.
+    const labourMeasurements = await FinanceLabourMeasurement.find({ workId: work._id, deleted: { $ne: true } });
+    const areaByLabourer = new Map(); // labourerId -> totalArea
+    for (const m of labourMeasurements) {
+        const key = m.labourerId.toString();
+        areaByLabourer.set(key, (areaByLabourer.get(key) || 0) + m.areaCoveredSqft);
+    }
+    const labourAssignments = await FinanceWorkLabourAssignment.find({ workId: work._id, deleted: { $ne: true } });
+    for (const a of labourAssignments) {
+        const key = a.labourerId.toString();
+        if (!areaByLabourer.has(key)) areaByLabourer.set(key, 0);
+    }
+
+    let labourCost = 0;
+    const labourBreakdown = [];
+    if (areaByLabourer.size) {
+        const labourerIds = [...areaByLabourer.keys()];
+        const [labourRates, labourers] = await Promise.all([
+            FinanceLabourRate.find({ projectId: work.projectId, labourerId: { $in: labourerIds }, workType: work.workType, deleted: { $ne: true } }),
+            FinanceLabourer.find({ _id: { $in: labourerIds }, deleted: { $ne: true } }),
+        ]);
+        const rateByLabourer = new Map(labourRates.map(r => [r.labourerId.toString(), r]));
+        const labourerById = new Map(labourers.map(l => [l._id.toString(), l]));
+        for (const [labourerId, totalArea] of areaByLabourer) {
+            const rate = rateByLabourer.get(labourerId);
+            const perUnit = rate ? rate.ratePerSqft : 0;
+            const earnings = round2(totalArea * perUnit);
+            labourCost += earnings;
+            const labourer = labourerById.get(labourerId);
+            labourBreakdown.push({
+                labourerId, labourerName: labourer?.name || '—',
+                areaSqft: round2(totalArea), rate: perUnit, earnings,
+            });
+        }
+    }
+    labourCost = round2(labourCost);
+
+    const materialCost = await computeWorkMaterialCost(work.projectId, work._id);
+    const profit = revenue - contractorCost - labourCost - materialCost;
+
+    return { revenue, contractorCost, contractorBreakdown, labourCost, labourBreakdown, materialCost, profit, areaBilledSqft };
 };
 
 const getWorkProfit = async (req, res) => {
@@ -353,6 +424,7 @@ const getWorkProfit = async (req, res) => {
                 estimatedAreaSqft: work.estimatedAreaSqft, completedAreaSqft: work.completedAreaSqft,
                 areaBilledSqft: wp.areaBilledSqft, revenue: wp.revenue, contractorCost: wp.contractorCost,
                 contractorBreakdown: wp.contractorBreakdown,
+                labourCost: wp.labourCost, labourBreakdown: wp.labourBreakdown,
                 materialCost: wp.materialCost, profit: wp.profit,
             },
         });
@@ -435,6 +507,7 @@ const getWorkDetail = async (req, res) => {
                 materialUsed, materialWasted, projectLevelWaste,
                 month: monthKey, dailyBreakdown, averageCostPerSqft,
                 contractorCost: workProfit.contractorCost, contractorBreakdown: workProfit.contractorBreakdown,
+                labourCost: workProfit.labourCost, labourBreakdown: workProfit.labourBreakdown,
                 revenue: workProfit.revenue, profit: workProfit.profit,
             },
         });
@@ -1035,6 +1108,41 @@ const computeCompanyWideContractorCostInRange = async (start, end, projectIds = 
     return total;
 };
 
+// Mirrors computeCompanyWideContractorCostInRange, at individual-labourer
+// granularity — no engineerApproved gate (financeLabourMeasurement has none).
+const computeCompanyWideLabourCostInRange = async (start, end, projectIds = null) => {
+    const match = { date: { $gte: start, $lte: end }, deleted: { $ne: true } };
+    const measurements = await FinanceLabourMeasurement.find(match).populate({ path: 'workId', select: 'projectId workType' });
+    const relevant = measurements.filter(m => m.workId && (!projectIds || projectIds.some(id => id.toString() === m.workId.projectId.toString())));
+    if (!relevant.length) return 0;
+
+    const areaByWorkLabourer = new Map(); // `${workId}_${labourerId}` -> area
+    const workById = new Map();
+    const labourerIds = new Set();
+    for (const m of relevant) {
+        const work = m.workId;
+        const key = `${work._id}_${m.labourerId}`;
+        areaByWorkLabourer.set(key, (areaByWorkLabourer.get(key) || 0) + m.areaCoveredSqft);
+        workById.set(work._id.toString(), work);
+        labourerIds.add(m.labourerId.toString());
+    }
+    if (!areaByWorkLabourer.size) return 0;
+
+    const works = [...workById.values()];
+    const projIds = [...new Set(works.map(w => w.projectId.toString()))];
+    const rates = await FinanceLabourRate.find({ projectId: { $in: projIds }, labourerId: { $in: [...labourerIds] }, deleted: { $ne: true } });
+    const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.labourerId}_${r.workType}`, r]));
+
+    let total = 0;
+    for (const [key, area] of areaByWorkLabourer) {
+        const [workId, labourerId] = key.split('_');
+        const w = workById.get(workId);
+        const rate = rateByKey.get(`${w.projectId}_${labourerId}_${w.workType}`);
+        if (rate) total += area * rate.ratePerSqft;
+    }
+    return total;
+};
+
 // Same measurement-date proxy as the contractor-cost helper above, scoped
 // to projects that actually have a referral vendor (commission only applies
 // there).
@@ -1156,7 +1264,7 @@ const getDashboardSummary = async (req, res) => {
 
         const [
             bankAccounts, cashEntriesToDate, issuedAgg, receivedAgg, contractorRows, vendorRows,
-            readyProjectIds, activeProjectsCount, activeWorksCount, labourTodayCount, lowStockCount,
+            readyProjectIds, activeProjectsCount, activeWorksCount, labourersWorkingTodayIds, lowStockCount,
             todayMeasurementAgg, monthRevenueAgg, recentActivities,
         ] = await Promise.all([
             FinanceBankAccount.find({ deleted: { $ne: true } }),
@@ -1174,7 +1282,7 @@ const getDashboardSummary = async (req, res) => {
             FinanceMeasurement.distinct('projectId', { engineerApproved: true, billedInRunningBillId: null, deleted: { $ne: true } }),
             FinanceProject.countDocuments({ status: 'active', deleted: { $ne: true } }),
             FinanceWork.countDocuments({ status: 'active', deleted: { $ne: true } }),
-            FinanceDailyLabour.countDocuments({ date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true } }),
+            FinanceLabourMeasurement.distinct('labourerId', { date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true } }),
             computeLowStockMaterialCount(activeProjectIds),
             FinanceMeasurement.aggregate([
                 { $match: { date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true } } },
@@ -1195,7 +1303,7 @@ const getDashboardSummary = async (req, res) => {
         const cashInBank = bankBalances.reduce((a, b) => a + b, 0);
         const cashInHand = cashEntriesToDate.reduce((sum, e) => sum + (e.type === 'in' ? e.amount : -e.amount), 0);
 
-        const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthDailyLabourAgg] = await Promise.all([
+        const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost] = await Promise.all([
             computeCompanyWideMaterialCostInRange(monthStart, monthEnd, activeProjectIds),
             computeCompanyWideContractorCostInRange(monthStart, monthEnd, activeProjectIds),
             computeCompanyWideCommissionCostInRange(monthStart, monthEnd, activeProjectIds),
@@ -1203,14 +1311,11 @@ const getDashboardSummary = async (req, res) => {
                 { $match: { projectId: { $in: activeProjectIds }, date: { $gte: monthStart, $lte: monthEnd }, deleted: { $ne: true } } },
                 { $group: { _id: null, total: { $sum: '$amount' } } },
             ]),
-            FinanceDailyLabour.aggregate([
-                { $match: { projectId: { $in: activeProjectIds }, date: { $gte: monthStart, $lte: monthEnd }, deleted: { $ne: true } } },
-                { $group: { _id: null, total: { $sum: '$amount' } } },
-            ]),
+            computeCompanyWideLabourCostInRange(monthStart, monthEnd, activeProjectIds),
         ]);
         const thisMonthRevenue = monthRevenueAgg[0]?.total || 0;
         const thisMonthProfit = thisMonthRevenue - monthMaterialCost - monthContractorCost - monthCommissionCost
-            - (monthExpenseAgg[0]?.total || 0) - (monthDailyLabourAgg[0]?.total || 0);
+            - (monthExpenseAgg[0]?.total || 0) - monthLabourCost;
 
         res.json({
             success: true,
@@ -1222,7 +1327,7 @@ const getDashboardSummary = async (req, res) => {
                 runningBillsReady: readyProjectIds.length,
                 activeProjects: activeProjectsCount,
                 activeWorks: activeWorksCount,
-                labourWorkingToday: labourTodayCount,
+                labourWorkingToday: labourersWorkingTodayIds.length,
                 materialLowAlerts: lowStockCount,
                 todaysMeasurementSqft: todayMeasurementAgg[0]?.total || 0,
                 thisMonthRevenue, thisMonthProfit,
@@ -1248,7 +1353,7 @@ const getDashboardTrends = async (req, res) => {
 
         const revenueVsCost = await Promise.all(monthKeys.map(async (monthKey) => {
             const { start, end } = monthBounds(monthKey);
-            const [revenueAgg, materialCost, contractorCost, commissionCost, expenseAgg, dailyLabourAgg] = await Promise.all([
+            const [revenueAgg, materialCost, contractorCost, commissionCost, expenseAgg, labourCost] = await Promise.all([
                 FinanceRunningBill.aggregate([
                     { $match: { status: 'issued', billDate: { $gte: start, $lte: end }, deleted: { $ne: true } } },
                     { $group: { _id: null, total: { $sum: '$totalAmount' } } },
@@ -1260,13 +1365,10 @@ const getDashboardTrends = async (req, res) => {
                     { $match: { date: { $gte: start, $lte: end }, deleted: { $ne: true } } },
                     { $group: { _id: null, total: { $sum: '$amount' } } },
                 ]),
-                FinanceDailyLabour.aggregate([
-                    { $match: { date: { $gte: start, $lte: end }, deleted: { $ne: true } } },
-                    { $group: { _id: null, total: { $sum: '$amount' } } },
-                ]),
+                computeCompanyWideLabourCostInRange(start, end),
             ]);
             const revenue = revenueAgg[0]?.total || 0;
-            const cost = materialCost + contractorCost + commissionCost + (expenseAgg[0]?.total || 0) + (dailyLabourAgg[0]?.total || 0);
+            const cost = materialCost + contractorCost + commissionCost + (expenseAgg[0]?.total || 0) + labourCost;
             return { month: monthKey, revenue, cost };
         }));
 

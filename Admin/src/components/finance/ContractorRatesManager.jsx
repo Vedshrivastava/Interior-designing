@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import ContractorOrLabourPicker from './ContractorOrLabourPicker';
 import StyledSelect from './StyledSelect';
+import QuickAddWorkModal from './QuickAddWorkModal';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -12,10 +13,13 @@ const emptyForm = { contractorVendorId: '', workType: '', paymentBasis: 'per_sqf
 /* Manages financeContractorRate rows for one project — used in both the
    New Project wizard (Step 4) and the Project Detail page's Contractor
    Rates tab. A single contractor can have multiple rows on the same
-   project, one per work type. */
+   project, one per work type. `worksVersion` is only ever passed from the
+   Project Detail page — used here to gate the "+ Add Work" quick-add
+   dialog, same reasoning as WorkTypeRatesManager.jsx. */
 const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const allowQuickAddWork = worksVersion !== undefined;
 
     const [items, setItems] = useState([]);
     const [workTypeOptions, setWorkTypeOptions] = useState([]);
@@ -25,6 +29,7 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
     const [realWorkTypes, setRealWorkTypes] = useState(null);
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
+    const [quickAddOpen, setQuickAddOpen] = useState(false);
 
     const fetchList = async () => {
         try {
@@ -50,6 +55,12 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
     };
 
     useEffect(() => { if (projectId) { fetchList(); fetchWorkTypeOptions(); } }, [projectId, worksVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleWorkCreated = async (newWork) => {
+        setQuickAddOpen(false);
+        await fetchWorkTypeOptions();
+        setForm(prev => ({ ...prev, workType: newWork.workType }));
+    };
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -101,11 +112,18 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Work Type *</p>
-                        <StyledSelect
-                            value={form.workType} onChange={v => setField('workType', v)}
-                            placeholder={workTypeOptions.length ? 'Select work type…' : 'Add a Work first'}
-                            options={workTypeOptions.map(w => ({ value: w, label: w }))}
-                        />
+                        {realWorkTypes === null && allowQuickAddWork ? (
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <span className="admin-subtitle" style={{ flex: 1 }}>No Works added to this project yet</span>
+                                <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={() => setQuickAddOpen(true)}>+ Add Work</button>
+                            </div>
+                        ) : (
+                            <StyledSelect
+                                value={form.workType} onChange={v => setField('workType', v)}
+                                placeholder={workTypeOptions.length ? 'Select work type…' : 'Add a Work first'}
+                                options={workTypeOptions.map(w => ({ value: w, label: w }))}
+                            />
+                        )}
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Payment Basis *</p>
@@ -159,6 +177,10 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
                     })
                 )}
             </div>
+
+            {quickAddOpen && (
+                <QuickAddWorkModal url={url} projectId={projectId} onClose={() => setQuickAddOpen(false)} onCreated={handleWorkCreated} />
+            )}
         </div>
     );
 };

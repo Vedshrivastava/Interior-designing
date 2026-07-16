@@ -187,7 +187,18 @@ const WorksManager = ({ url, projectId, onWorksChanged }) => {
                         const pct = w.estimatedAreaSqft > 0 ? Math.min(100, Math.round((w.completedAreaSqft / w.estimatedAreaSqft) * 100)) : 0;
                         return (
                             <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1.6fr 1fr 260px' }}>
-                                <p>{w.workType}</p>
+                                <p>
+                                    {w.workType}
+                                    {w.quickAdded && (
+                                        <span
+                                            className="item-category"
+                                            style={{ marginLeft: '8px', background: 'rgba(192,57,43,0.12)', color: '#c0392b', borderColor: 'rgba(192,57,43,0.3)' }}
+                                            title="Added from Work Type Rates / Contractor Rates before full details were entered — open Edit and save to clear this."
+                                        >
+                                            ⚠ Details Missing
+                                        </span>
+                                    )}
+                                </p>
                                 <p>{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft ({pct}%)</p>
                                 <p><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
                                 <div className="action-buttons">

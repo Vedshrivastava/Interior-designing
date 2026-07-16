@@ -23,6 +23,15 @@ const financeWorkSchema = new mongoose.Schema({
     status: { type: String, enum: ['active', 'completed'], default: 'active' },
     notes:  { type: String, default: '' },
 
+    // Set true only when this Work is created via the "quick add" flow
+    // from Work Type Rates / Contractor Rates (see financeClientQuotation-
+    // style side doors elsewhere) — skips workOrderNumber/startDate/notes
+    // to unblock setting a rate right away. Surfaces as a "Details Missing"
+    // badge in the Works list; cleared automatically the next time this
+    // Work is saved through the normal full Edit Work form, since that
+    // form exposes every field the quick-add path skipped.
+    quickAdded: { type: Boolean, default: false },
+
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },
     deletedBy: { type: String },

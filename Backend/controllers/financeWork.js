@@ -23,7 +23,7 @@ const listWorks = async (req, res) => {
 // contractors on an existing Work.
 const addWork = async (req, res) => {
     try {
-        const { projectId, workType, contractorAssignments, workOrderNumber, startDate, estimatedAreaSqft, notes } = req.body;
+        const { projectId, workType, contractorAssignments, workOrderNumber, startDate, estimatedAreaSqft, notes, quickAdded } = req.body;
         const assignments = Array.isArray(contractorAssignments) ? contractorAssignments.filter(a => a?.contractorVendorId) : [];
         if (!projectId || !workType || !assignments.length) {
             return res.status(400).json({ success: false, message: 'Project, work type, and at least one contractor are required' });
@@ -37,6 +37,7 @@ const addWork = async (req, res) => {
             startDate: startDate || null,
             estimatedAreaSqft: Number(estimatedAreaSqft),
             notes: notes || '',
+            quickAdded: !!quickAdded,
         });
         await item.save();
         await FinanceWorkContractorAssignment.insertMany(
@@ -81,6 +82,11 @@ const updateWork = async (req, res) => {
             estimatedAreaSqft: Number(estimatedAreaSqft) || existing.estimatedAreaSqft,
             status: newStatus,
             notes: notes || '',
+            // Reaching this endpoint only happens through the full Edit Work
+            // form, which exposes every field the quick-add path skipped —
+            // so any save here, regardless of what changed, resolves the
+            // "Details Missing" badge.
+            quickAdded: false,
         });
         broadcast({ type: 'financeWorksChanged', projectId: existing.projectId });
 

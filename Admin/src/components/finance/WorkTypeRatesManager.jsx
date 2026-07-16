@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledSelect from './StyledSelect';
+import QuickAddWorkModal from './QuickAddWorkModal';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -9,10 +10,16 @@ import '../../styles/add.css';
 const emptyForm = { workType: '', clientRate: '', referralRate: '' };
 
 /* Manages financeWorkTypeRate rows for one project — used in both the New
-   Project wizard (Step 3) and the Project Detail page's Work Type Rates tab. */
+   Project wizard (Step 3) and the Project Detail page's Work Type Rates tab.
+   `worksVersion` is only ever passed from the Project Detail page (see
+   ProjectDetail.jsx) — used here to gate the "+ Add Work" quick-add dialog,
+   since offering it during the wizard's Step 3 would force creating a Work
+   before the wizard's own flow is ready for that (Works only get added
+   later, from Project Detail, once the project is live). */
 const WorkTypeRatesManager = ({ url, projectId, worksVersion }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const allowQuickAddWork = worksVersion !== undefined;
 
     const [items, setItems] = useState([]);
     const [workTypeOptions, setWorkTypeOptions] = useState([]);
@@ -22,6 +29,7 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion }) => {
     const [realWorkTypes, setRealWorkTypes] = useState(null);
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
+    const [quickAddOpen, setQuickAddOpen] = useState(false);
 
     const fetchList = async () => {
         try {
@@ -37,18 +45,25 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion }) => {
     // sets these rates in Step 3, before any Work exists (Works only get
     // added later, from Project Detail) — so fall back to the Settings
     // master list until this project has at least one real Work.
-    useEffect(() => {
+    const refreshWorkTypeOptions = async () => {
         if (!projectId) return;
-        axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } })
-            .then(async (res) => {
-                const fromWorks = res.data.success ? [...new Set(res.data.data.map(w => w.workType))] : [];
-                if (fromWorks.length) { setWorkTypeOptions(fromWorks); setRealWorkTypes(new Set(fromWorks)); return; }
-                setRealWorkTypes(null);
-                const settingsRes = await axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } });
-                if (settingsRes.data.success) setWorkTypeOptions(settingsRes.data.data.map(s => s.name));
-            })
-            .catch(() => {});
-    }, [url, projectId, worksVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+        try {
+            const res = await axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } });
+            const fromWorks = res.data.success ? [...new Set(res.data.data.map(w => w.workType))] : [];
+            if (fromWorks.length) { setWorkTypeOptions(fromWorks); setRealWorkTypes(new Set(fromWorks)); return; }
+            setRealWorkTypes(null);
+            const settingsRes = await axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } });
+            if (settingsRes.data.success) setWorkTypeOptions(settingsRes.data.data.map(s => s.name));
+        } catch { /* leave options as-is */ }
+    };
+
+    useEffect(() => { refreshWorkTypeOptions(); }, [url, projectId, worksVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleWorkCreated = async (newWork) => {
+        setQuickAddOpen(false);
+        await refreshWorkTypeOptions();
+        setForm(prev => ({ ...prev, workType: newWork.workType }));
+    };
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -94,11 +109,18 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion }) => {
                 <div className="wizard-field-grid">
                     <div className="add-product-name flex-col">
                         <p>Work Type *</p>
-                        <StyledSelect
-                            value={form.workType} onChange={v => setField('workType', v)}
-                            placeholder={workTypeOptions.length ? 'Select work type…' : 'Add a Work first'}
-                            options={workTypeOptions.map(w => ({ value: w, label: w }))}
-                        />
+                        {realWorkTypes === null && allowQuickAddWork ? (
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <span className="admin-subtitle" style={{ flex: 1 }}>No Works added to this project yet</span>
+                                <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={() => setQuickAddOpen(true)}>+ Add Work</button>
+                            </div>
+                        ) : (
+                            <StyledSelect
+                                value={form.workType} onChange={v => setField('workType', v)}
+                                placeholder={workTypeOptions.length ? 'Select work type…' : 'Add a Work first'}
+                                options={workTypeOptions.map(w => ({ value: w, label: w }))}
+                            />
+                        )}
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Client Rate (₹/sqft) *</p>
@@ -148,6 +170,10 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion }) => {
                     })
                 )}
             </div>
+
+            {quickAddOpen && (
+                <QuickAddWorkModal url={url} projectId={projectId} onClose={() => setQuickAddOpen(false)} onCreated={handleWorkCreated} />
+            )}
         </div>
     );
 };

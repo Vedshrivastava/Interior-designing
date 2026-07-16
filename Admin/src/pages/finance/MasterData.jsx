@@ -31,6 +31,7 @@ const TABS = [
     { key: 'city',              label: 'Cities' },
     { key: 'commission_type',   label: 'Commission Types' },
     { key: 'employees',         label: 'Employees' },
+    { key: 'labourers',         label: 'Labourers' },
     { key: 'salary_ledger',     label: 'Salary Ledger' },
 ];
 
@@ -53,7 +54,7 @@ const MasterData = ({ url }) => {
                 <div className="admin-header-split">
                     <div>
                         <h1>Master Data</h1>
-                        <p className="admin-subtitle">Material catalog, dropdown lists, and employees — the data everything else references.</p>
+                        <p className="admin-subtitle">Material catalog, dropdown lists, employees, and labourers — the data everything else references.</p>
                     </div>
                 </div>
 

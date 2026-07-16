@@ -4,10 +4,7 @@ import { broadcast } from '../middlewares/webSocket.js';
 
 const listLabourers = async (req, res) => {
     try {
-        const { supervisorId } = req.query;
-        const filter = { deleted: { $ne: true } };
-        if (supervisorId) filter.supervisorId = supervisorId;
-        const items = await FinanceLabourer.find(filter).populate('supervisorId', 'name').sort({ name: 1 });
+        const items = await FinanceLabourer.find({ deleted: { $ne: true } }).sort({ name: 1 });
         res.json({ success: true, data: items });
     } catch (err) {
         console.error(err);
@@ -17,14 +14,11 @@ const listLabourers = async (req, res) => {
 
 const addLabourer = async (req, res) => {
     try {
-        const { name, supervisorId, notes } = req.body;
+        const { name, notes } = req.body;
         if (!name || !name.trim()) return res.status(400).json({ success: false, message: 'Name is required' });
-        if (!supervisorId) return res.status(400).json({ success: false, message: 'Supervisor is required' });
-        const item = new FinanceLabourer({
-            name: name.trim(), supervisorId, notes: notes || '',
-        });
+        const item = new FinanceLabourer({ name: name.trim(), notes: notes || '' });
         await item.save();
-        broadcast({ type: 'financeLabourersChanged', supervisorId });
+        broadcast({ type: 'financeLabourersChanged' });
         res.json({ success: true, message: 'Labourer added', data: item });
     } catch (err) {
         console.error(err);
@@ -41,7 +35,7 @@ const updateLabourer = async (req, res) => {
         await FinanceLabourer.findByIdAndUpdate(_id, {
             name: name.trim(), notes: notes || '',
         });
-        broadcast({ type: 'financeLabourersChanged', supervisorId: existing.supervisorId });
+        broadcast({ type: 'financeLabourersChanged' });
         res.json({ success: true, message: 'Labourer updated' });
     } catch (err) {
         console.error(err);
@@ -60,7 +54,7 @@ const removeLabourer = async (req, res) => {
         }
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
-        broadcast({ type: 'financeLabourersChanged', supervisorId: item.supervisorId });
+        broadcast({ type: 'financeLabourersChanged' });
         res.json({ success: true, message: 'Labourer removed' });
     } catch (err) {
         console.error(err);

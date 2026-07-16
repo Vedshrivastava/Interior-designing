@@ -2,6 +2,7 @@ import FinanceWork from '../models/financeWork.js';
 import FinanceProject from '../models/financeProject.js';
 import FinanceWorkContractorAssignment from '../models/financeWorkContractorAssignment.js';
 import FinanceWorkLabourAssignment from '../models/financeWorkLabourAssignment.js';
+import { assertLabourersAvailable } from '../utils/labourAvailability.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 
@@ -18,23 +19,27 @@ const listWorks = async (req, res) => {
     }
 };
 
-// `contractorAssignments` — [{ contractorVendorId, notes }] — and
-// `labourAssignments` — [{ labourerId, notes }] — a Work needs at least one
+// `contractorAssignments` — [{ contractorVendorId, notes }] — and a labour
+// team — `labourSupervisorId` + `labourerIds: [...]` (one supervisor, the
+// labourers they're bringing to this Work) — a Work needs at least one
 // contractor or one labourer assigned (it can have both, or either alone).
 // Neither is a single field on the Work itself; see
 // financeWorkContractorAssignment.js / financeWorkLabourAssignment.js for
-// adding/removing either on an existing Work.
+// adding/removing either (or a second labour team under a different
+// supervisor) on an existing Work.
 const addWork = async (req, res) => {
     try {
-        const { projectId, workType, contractorAssignments, labourAssignments, workOrderNumber, startDate, estimatedAreaSqft, notes, quickAdded } = req.body;
+        const { projectId, workType, contractorAssignments, labourSupervisorId, labourerIds, workOrderNumber, startDate, estimatedAreaSqft, notes, quickAdded } = req.body;
         const assignments = Array.isArray(contractorAssignments) ? contractorAssignments.filter(a => a?.contractorVendorId) : [];
-        const labourRows = Array.isArray(labourAssignments) ? labourAssignments.filter(a => a?.labourerId) : [];
+        const labourRows = (labourSupervisorId && Array.isArray(labourerIds)) ? labourerIds.filter(Boolean) : [];
         if (!projectId || !workType || (!assignments.length && !labourRows.length)) {
             return res.status(400).json({ success: false, message: 'Project, work type, and at least one contractor or labourer are required' });
         }
         if (!estimatedAreaSqft || Number(estimatedAreaSqft) <= 0) {
             return res.status(400).json({ success: false, message: 'Estimated area is required' });
         }
+        if (labourRows.length) await assertLabourersAvailable(labourRows);
+
         const item = new FinanceWork({
             projectId, workType: workType.trim(),
             workOrderNumber: workOrderNumber || '',
@@ -52,7 +57,7 @@ const addWork = async (req, res) => {
         }
         if (labourRows.length) {
             await FinanceWorkLabourAssignment.insertMany(
-                labourRows.map(a => ({ workId: item._id, labourerId: a.labourerId, notes: a.notes || '' }))
+                labourRows.map(labourerId => ({ workId: item._id, labourerId, supervisorId: labourSupervisorId }))
             );
             broadcast({ type: 'financeWorkLabourAssignmentsChanged', projectId });
         }
@@ -71,7 +76,7 @@ const addWork = async (req, res) => {
         res.json({ success: true, message: 'Work added', data: item });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, message: 'Error adding work' });
+        res.status(400).json({ success: false, message: err.message || 'Error adding work' });
     }
 };
 

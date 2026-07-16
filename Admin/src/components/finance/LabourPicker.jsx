@@ -3,11 +3,10 @@ import axios from 'axios';
 import AddContractorOrLabourModal from './AddContractorOrLabourModal';
 
 /*
- * Drop-in picker wherever a Work's labour assignment or a Labour Rate row
- * picks a labourer — mirrors ContractorOrLabourPicker. Lists every
- * labourer company-wide (with their supervisor's name, since two
- * supervisors' rosters can share a first name) and opens the same
- * Contractor-or-Labour modal for "+ Add New", pre-set to the Labour tab.
+ * Single-select labourer picker — mirrors ContractorOrLabourPicker. Lists
+ * every labourer company-wide (a labourer isn't owned by any supervisor)
+ * and opens the same Contractor-or-Labour modal for "+ Add New", pre-set
+ * to the Labour tab.
  */
 const LabourPicker = ({ url, value, onChange, placeholder }) => {
     const token = localStorage.getItem('token');
@@ -29,7 +28,7 @@ const LabourPicker = ({ url, value, onChange, placeholder }) => {
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <select value={value} onChange={e => onChange(e.target.value)} style={{ flex: 1 }}>
                     <option value="">{placeholder || 'Select labourer…'}</option>
-                    {labourers.map(l => <option key={l._id} value={l._id}>{l.name}{l.supervisorId?.name ? ` (${l.supervisorId.name}'s roster)` : ''}</option>)}
+                    {labourers.map(l => <option key={l._id} value={l._id}>{l.name}</option>)}
                 </select>
                 <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={() => setModalOpen(true)}>+ Add New</button>
             </div>

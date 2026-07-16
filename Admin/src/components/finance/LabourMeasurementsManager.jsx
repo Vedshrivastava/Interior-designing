@@ -131,7 +131,11 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                                 <p>Labourer *</p>
                                 <select value={form.labourerId} onChange={e => setField('labourerId', e.target.value)} disabled={!form.workId}>
                                     <option value="">{form.workId ? 'Select labourer…' : 'Select a work first'}</option>
-                                    {workLabourers.map(a => <option key={a._id || a.labourerId?._id} value={a.labourerId?._id || a.labourerId}>{a.labourerId?.name}</option>)}
+                                    {workLabourers.map(a => (
+                                        <option key={a._id || a.labourerId?._id} value={a.labourerId?._id || a.labourerId}>
+                                            {a.labourerId?.name}{a.supervisorId?.name ? ` — ${a.supervisorId.name}'s team` : ''}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="add-product-name flex-col">

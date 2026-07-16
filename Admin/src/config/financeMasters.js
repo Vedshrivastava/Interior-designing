@@ -82,18 +82,17 @@ export const FINANCE_MASTERS = {
             { key: 'minimumStockLevel', label: 'Min. Stock' },
         ],
     },
-    // Not surfaced under Masters' own page — a labourer only makes sense
-    // scoped to one supervisor's roster, so its primary UI is Supervisors'
-    // own Roster tab (LabourerRosterManager), not a flat global list.
-    // Registered here purely so QuickAddPicker can be used for it (e.g. an
-    // "add labourer" quick-add from the batch grid), with supervisorId
-    // always supplied via presetValues by whichever screen is already
-    // scoped to a supervisor.
+    // A plain, company-wide name — not owned by any supervisor. Which
+    // supervisor runs a labourer's crew is a fact about a specific Work
+    // assignment (financeWorkLabourAssignment.supervisorId), decided fresh
+    // each time, not about the labourer themselves. Surfaced both as its
+    // own Masters tab (this entry) and via LabourMultiSelect/LabourPicker's
+    // "+ Add New" wherever a Work's labour team or a Workers rate row
+    // needs to create one on the fly.
     labourers: {
         label: 'Labourer', labelPlural: 'Labourers', apiBase: '/api/finance/labourers',
         fields: [
             { key: 'name', label: 'Name', type: 'text', required: true },
-            { key: 'supervisorId', label: 'Supervisor', type: 'employeeSelect', required: true },
             { key: 'notes', label: 'Notes', type: 'textarea' },
         ],
         columns: [

@@ -6,7 +6,7 @@ import { ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis
 import { useWebSocket } from '../../hooks/useWebSocket';
 import WorkTypeRatesManager from '../../components/finance/WorkTypeRatesManager';
 import ContractorRatesManager from '../../components/finance/ContractorRatesManager';
-import LabourRatesManager from '../../components/finance/LabourRatesManager';
+import WorkersManager from '../../components/finance/WorkersManager';
 import WorksManager from '../../components/finance/WorksManager';
 import ProjectQuotationsManager from '../../components/finance/ProjectQuotationsManager';
 import MeasurementsManager from '../../components/finance/MeasurementsManager';
@@ -187,7 +187,7 @@ const TABS = [
     { key: 'materials',    label: 'Materials' },
     { key: 'contractors',  label: 'Contractors' },
     { key: 'supervisors',  label: 'Supervisors' },
-    { key: 'labour',       label: 'Labour' },
+    { key: 'labour',       label: 'Workers' },
     { key: 'runningBills', label: 'Running Bills' },
     { key: 'receipts',     label: 'Receipts' },
     { key: 'expenses',     label: 'Expenses' },
@@ -449,8 +449,8 @@ const ProjectDetail = ({ url }) => {
 
                 {activeTab === 'labour' && (
                     <div>
-                        <h3 style={{ margin: '0 0 8px' }}>Labour Rates</h3>
-                        <LabourRatesManager url={url} projectId={id} worksVersion={worksVersion} />
+                        <h3 style={{ margin: '0 0 8px' }}>Workers</h3>
+                        <WorkersManager url={url} projectId={id} worksVersion={worksVersion} />
                         <h3 style={{ margin: '32px 0 8px' }}>Measurements</h3>
                         <LabourMeasurementsManager url={url} projectId={id} />
                     </div>

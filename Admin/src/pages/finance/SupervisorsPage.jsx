@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
-import LabourerRosterManager from '../../components/finance/LabourerRosterManager';
 import LabourLedgerView from '../../components/finance/LabourLedgerView';
 import SupervisorAttendanceManager from '../../components/finance/SupervisorAttendanceManager';
 import SupervisorIncentivesManager from '../../components/finance/SupervisorIncentivesManager';
@@ -14,7 +13,7 @@ import '../../styles/list.css';
 
 const TABS = [
     { key: 'projects',    label: 'Assigned Projects' },
-    { key: 'roster',      label: 'Roster' },
+    { key: 'team',        label: 'Team' },
     { key: 'labour',      label: 'Labour Ledger' },
     { key: 'attendance',  label: 'Attendance' },
     { key: 'performance', label: 'Performance' },
@@ -23,19 +22,63 @@ const TABS = [
     { key: 'deductions',  label: 'Deductions' },
 ];
 
-/* One labourer's ledger, picked from this supervisor's own roster —
-   replaces the old bulk Daily Labour / Labour Payments tabs now that
+/* Read-only — a labourer isn't owned by any supervisor, so this is
+   computed fresh from financeWorkLabourAssignment rather than a stored
+   roster: every labourer currently on a team under this supervisor,
+   across every Work, right now. The same labourer can appear here today
+   and under a different supervisor's Team tab on a future project once
+   this one wraps up. */
+const SupervisorTeamTab = ({ url, supervisorId }) => {
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const [rows, setRows] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setLoading(true);
+        axios.get(`${url}/api/finance/work-labour-assignments/list`, { ...authHeader, params: { supervisorId } })
+            .then(res => { if (res.data.success) setRows(res.data.data); })
+            .finally(() => setLoading(false));
+    }, [url, supervisorId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
+    if (rows.length === 0) return <div className="admin-empty-state"><p>Not currently running a team on any Work.</p></div>;
+
+    return (
+        <div className="list-table">
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1.3fr' }}>
+                <b>Labourer</b><b>Project</b><b>Work Type</b><b>Notes</b>
+            </div>
+            {rows.map(a => (
+                <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1.3fr' }}>
+                    <p>{a.labourerId?.name || '—'}</p>
+                    <p>{a.workId?.projectId?.name || '—'}</p>
+                    <p>{a.workId?.workType || '—'}</p>
+                    <p>{a.notes || '—'}</p>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+/* One labourer's ledger, picked from among this supervisor's current team
+   (derived the same way as the Team tab above, not a stored roster) —
    every labourer is paid individually via their own ledger. */
 const SupervisorLabourLedgerTab = ({ url, supervisorId }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [roster, setRoster] = useState([]);
+    const [team, setTeam] = useState([]);
     const [labourerId, setLabourerId] = useState('');
 
     useEffect(() => {
         setLabourerId('');
-        axios.get(`${url}/api/finance/labourers/list`, { ...authHeader, params: { supervisorId } })
-            .then(res => { if (res.data.success) setRoster(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/work-labour-assignments/list`, { ...authHeader, params: { supervisorId } })
+            .then(res => {
+                if (!res.data.success) return;
+                const byId = new Map();
+                res.data.data.forEach(a => { if (a.labourerId) byId.set(a.labourerId._id, a.labourerId); });
+                setTeam([...byId.values()]);
+            }).catch(() => {});
     }, [url, supervisorId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
@@ -44,12 +87,12 @@ const SupervisorLabourLedgerTab = ({ url, supervisorId }) => {
                 <p>Labourer</p>
                 <select value={labourerId} onChange={e => setLabourerId(e.target.value)}>
                     <option value="">Select labourer…</option>
-                    {roster.map(l => <option key={l._id} value={l._id}>{l.name}</option>)}
+                    {team.map(l => <option key={l._id} value={l._id}>{l.name}</option>)}
                 </select>
             </div>
             {labourerId
                 ? <LabourLedgerView url={url} labourerId={labourerId} />
-                : <div className="admin-empty-state"><p>Select a labourer from this supervisor's roster to view their ledger.</p></div>}
+                : <div className="admin-empty-state"><p>Select a labourer currently on this supervisor's team to view their ledger.</p></div>}
         </div>
     );
 };
@@ -130,7 +173,7 @@ const SupervisorsPage = ({ url }) => {
     return (
         <FinanceTabShell
             label="Supervisors"
-            subtitle="A supervisor is a Master Data employee — pick one to see their assigned projects, labour roster, attendance, salary, incentives, and deductions."
+            subtitle="A supervisor is a Master Data employee — pick one to see their assigned projects, current labour team, attendance, salary, incentives, and deductions."
             tabs={TABS}
             activeKey={activeTab}
             onTabChange={setActiveTab}
@@ -142,7 +185,7 @@ const SupervisorsPage = ({ url }) => {
             ) : (
                 <>
                     {activeTab === 'projects' && <AssignedProjectsTab url={url} employeeId={selectedEmployeeId} employeeName={selectedEmployeeName} />}
-                    {activeTab === 'roster' && <LabourerRosterManager url={url} supervisorId={selectedEmployeeId} />}
+                    {activeTab === 'team' && <SupervisorTeamTab url={url} supervisorId={selectedEmployeeId} />}
                     {activeTab === 'labour' && <SupervisorLabourLedgerTab url={url} supervisorId={selectedEmployeeId} />}
                     {activeTab === 'attendance' && <SupervisorAttendanceManager url={url} employeeId={selectedEmployeeId} />}
                     {activeTab === 'performance' && <PlaceholderTab text="No defined performance metric to build against yet." />}

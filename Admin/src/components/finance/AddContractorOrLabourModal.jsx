@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import QuickAddPicker from './QuickAddPicker';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
 import { emptyFormFromFields, renderMasterField } from './masterFieldRenderer';
 
@@ -11,12 +10,13 @@ const CONTRACTOR_PRESET = { vendorType: 'labour_contractor' };
 /*
  * Both branches create a real, individually assignable, individually
  * rated entity — a financeVendor (contractor) or a financeLabourer (hired
- * directly, paid per sqft via financeLabourRate). Pick a type up front;
- * the Labour branch does the whole add-a-roster-member task right here
- * (pick/create a Supervisor, see their roster, add a member) instead of
- * silently assuming Contractor, and feeds the new labourer's id back via
- * onLabourerCreated the same way the Contractor branch feeds back via
- * onContractorCreated.
+ * directly, paid per sqft via financeLabourRate). Pick a type up front.
+ * A labourer is a plain, company-wide name here — not owned by any
+ * supervisor; which supervisor runs their crew is decided fresh each time
+ * they're put on a Work's team (see WorksManager's team-assignment
+ * modal), not at creation time. Feeds the new id back via
+ * onLabourerCreated / onContractorCreated so whichever picker opened this
+ * can select it immediately.
  */
 const AddContractorOrLabourModal = ({ url, onClose, onContractorCreated, onLabourerCreated, initialType = 'contractor' }) => {
     const token = localStorage.getItem('token');
@@ -29,26 +29,11 @@ const AddContractorOrLabourModal = ({ url, onClose, onContractorCreated, onLabou
     const [vendorForm, setVendorForm] = useState({ ...emptyFormFromFields(vendorResource.fields), ...CONTRACTOR_PRESET });
     const [savingVendor, setSavingVendor] = useState(false);
 
-    const [supervisorId, setSupervisorId] = useState('');
-    const [roster, setRoster] = useState([]);
-    const [loadingRoster, setLoadingRoster] = useState(false);
     const [memberName, setMemberName] = useState('');
     const [memberNotes, setMemberNotes] = useState('');
     const [savingMember, setSavingMember] = useState(false);
 
     const setVendorField = (key, value) => setVendorForm(prev => ({ ...prev, [key]: value }));
-
-    const fetchRoster = (supId) => {
-        setLoadingRoster(true);
-        axios.get(`${url}/api/finance/labourers/list`, { ...authHeader, params: { supervisorId: supId } })
-            .then(res => { if (res.data.success) setRoster(res.data.data); })
-            .catch(() => {})
-            .finally(() => setLoadingRoster(false));
-    };
-
-    useEffect(() => {
-        if (supervisorId) fetchRoster(supervisorId); else setRoster([]);
-    }, [supervisorId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const submitContractor = async (e) => {
         e.preventDefault();
@@ -67,17 +52,15 @@ const AddContractorOrLabourModal = ({ url, onClose, onContractorCreated, onLabou
 
     const addMember = async (e) => {
         e.preventDefault();
-        if (!supervisorId) return toast.error('Select a supervisor first');
         if (!memberName.trim()) return toast.error('Name is required');
         setSavingMember(true);
         try {
             const res = await axios.post(`${url}/api/finance/labourers/add`, {
-                supervisorId, name: memberName.trim(), notes: memberNotes,
+                name: memberName.trim(), notes: memberNotes,
             }, authHeader);
             if (res.data.success) {
-                toast.success('Labourer added to roster');
+                toast.success('Labourer added');
                 setMemberName(''); setMemberNotes('');
-                fetchRoster(supervisorId);
                 onLabourerCreated?.(res.data.data._id);
             } else toast.error(res.data.message);
         } catch (err) {
@@ -123,52 +106,24 @@ const AddContractorOrLabourModal = ({ url, onClose, onContractorCreated, onLabou
                 ) : (
                     <div className="flex-col">
                         <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                            Hired directly by the company, paid per sqft — set their rate per project and work type from the project's Labour tab after adding them here.
+                            Hired directly by the company, paid per sqft. Not owned by any supervisor — pick who runs their crew when you add them to a Work's team, and that can change project to project.
                         </p>
-                        <div className="add-product-name flex-col">
-                            <p>Supervisor *</p>
-                            <QuickAddPicker url={url} resourceKey="employees" value={supervisorId} onChange={setSupervisorId} placeholder="Select or add a supervisor…" />
-                        </div>
-
-                        {supervisorId && (
-                            <>
-                                <p style={{ fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.4px', textTransform: 'uppercase', color: 'var(--text-lt)', margin: '18px 0 8px' }}>
-                                    Roster
-                                </p>
-                                {loadingRoster ? (
-                                    <p className="admin-subtitle">Loading…</p>
-                                ) : roster.length === 0 ? (
-                                    <p className="admin-subtitle">No labourers under this supervisor yet.</p>
-                                ) : (
-                                    <ul style={{ margin: '0 0 12px', paddingLeft: '18px', fontSize: '0.85rem', color: 'var(--text-mid)' }}>
-                                        {roster.map(l => (
-                                            <li key={l._id}>{l.name}</li>
-                                        ))}
-                                    </ul>
-                                )}
-                                <form onSubmit={addMember}>
-                                    <div className="wizard-field-grid">
-                                        <div className="add-product-name flex-col">
-                                            <p>Member Name *</p>
-                                            <input type="text" value={memberName} onChange={e => setMemberName(e.target.value)} />
-                                        </div>
-                                        <div className="add-product-name flex-col wizard-field-full">
-                                            <p>Notes</p>
-                                            <input type="text" value={memberNotes} onChange={e => setMemberNotes(e.target.value)} />
-                                        </div>
-                                    </div>
-                                    <div className="wizard-actions" style={{ marginTop: '12px' }}>
-                                        <span />
-                                        <button type="submit" className="add-btn" disabled={savingMember}>{savingMember ? 'Adding…' : '+ Add Member'}</button>
-                                    </div>
-                                </form>
-                            </>
-                        )}
-
-                        <div className="edit-modal-actions" style={{ marginTop: '18px' }}>
-                            <span />
-                            <button type="button" className="add-btn" onClick={onClose}>Done</button>
-                        </div>
+                        <form onSubmit={addMember}>
+                            <div className="wizard-field-grid">
+                                <div className="add-product-name flex-col">
+                                    <p>Name *</p>
+                                    <input type="text" value={memberName} onChange={e => setMemberName(e.target.value)} />
+                                </div>
+                                <div className="add-product-name flex-col wizard-field-full">
+                                    <p>Notes</p>
+                                    <input type="text" value={memberNotes} onChange={e => setMemberNotes(e.target.value)} />
+                                </div>
+                            </div>
+                            <div className="edit-modal-actions" style={{ marginTop: '16px' }}>
+                                <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
+                                <button type="submit" className="add-btn" disabled={savingMember}>{savingMember ? 'Saving…' : 'Save'}</button>
+                            </div>
+                        </form>
                     </div>
                 )}
             </div>

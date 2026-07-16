@@ -38,7 +38,11 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion }) => {
         } catch { toast.error('Error fetching work type rates'); }
     };
 
-    useEffect(() => { if (projectId) fetchList(); }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    // worksVersion here too — a rate added/removed elsewhere (this page's
+    // own live-sync signal from ProjectDetail's WebSocket subscription, or
+    // this component's own submit/removeRate) should update this list
+    // without waiting for a tab revisit.
+    useEffect(() => { if (projectId) fetchList(); }, [projectId, worksVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // A rate should only ever be settable for a work type this project
     // actually has a Work for — not free text. But the New Project wizard

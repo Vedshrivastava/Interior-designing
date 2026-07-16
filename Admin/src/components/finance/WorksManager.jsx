@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -24,7 +24,7 @@ const emptyAssignmentRow = () => ({ contractorVendorId: '', notes: '' });
      - Changing an existing Work's contractors happens in a separate
        "Manage Contractors" modal, calling /work-contractor-assignments
        directly — the Work's own edit form no longer touches that data. */
-const WorksManager = ({ url, projectId, onWorksChanged }) => {
+const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -47,16 +47,30 @@ const WorksManager = ({ url, projectId, onWorksChanged }) => {
     const [contractorsLoading, setContractorsLoading] = useState(false);
     const [contractorsSaving, setContractorsSaving] = useState(false);
 
-    const fetchWorks = async () => {
-        setLoading(true);
+    // `silent` skips the loading flag — used when this refetch is driven by
+    // a WebSocket event (this project's data changed elsewhere, e.g. the
+    // Quick Add flow on the Work Type Rates tab) rather than this
+    // component's own mount, so the table doesn't flash back to "Loading…"
+    // while the user is actively looking at it.
+    const fetchWorks = async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const res = await axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } });
             if (res.data.success) setWorks(res.data.data);
-        } catch { toast.error('Error fetching works'); }
-        finally { setLoading(false); }
+        } catch { if (!silent) toast.error('Error fetching works'); }
+        finally { if (!silent) setLoading(false); }
     };
 
     useEffect(() => { if (projectId) fetchWorks(); }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // worksVersion is bumped by ProjectDetail's WebSocket subscription
+    // whenever this project's Works/assignments change anywhere — skip the
+    // first run since the mount effect above already covers it.
+    const skippedFirstVersion = useRef(true);
+    useEffect(() => {
+        if (skippedFirstVersion.current) { skippedFirstVersion.current = false; return; }
+        if (projectId) fetchWorks(true);
+    }, [worksVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } })

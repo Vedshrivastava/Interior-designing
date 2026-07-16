@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { useWebSocket } from '../../hooks/useWebSocket';
 import WorkTypeRatesManager from '../../components/finance/WorkTypeRatesManager';
 import ContractorRatesManager from '../../components/finance/ContractorRatesManager';
 import WorksManager from '../../components/finance/WorksManager';
@@ -232,7 +233,21 @@ const ProjectDetail = ({ url }) => {
 
     useEffect(() => { fetchProject(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => {
+    // Same fetch as fetchProject, minus the loading flag — used for live
+    // (WebSocket-driven) refreshes so the page doesn't flash back to its
+    // "Loading…" state every time a contractor assignment changes
+    // somewhere else on this same page (or from another session).
+    const refreshContractors = async () => {
+        try {
+            const res = await axios.get(`${url}/api/finance/projects/${id}`, authHeader);
+            if (res.data.success) {
+                setProject(res.data.data.project);
+                setContractors(res.data.data.contractors || []);
+            }
+        } catch { /* silent — next tab revisit or WS message will retry */ }
+    };
+
+    const refreshProgress = () => {
         axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: id } })
             .then(res => {
                 if (!res.data.success) return;
@@ -242,7 +257,28 @@ const ProjectDetail = ({ url }) => {
                 setProgressPct(estimated > 0 ? Math.round((completed / estimated) * 100) : null);
             })
             .catch(() => {});
-    }, [url, id, activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+
+    useEffect(refreshProgress, [url, id, activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Real-time sync for the Works section — Works, Work Type Rates,
+    // Contractor Rates, and contractor assignments all broadcast their own
+    // projectId-scoped WebSocket event on change (see the respective
+    // controllers). A single subscription here bumps worksVersion (which
+    // WorksManager/WorkTypeRatesManager/ContractorRatesManager already
+    // re-fetch on) and refreshes this page's own contractors/progress
+    // state, so every tab reflects a change the instant it happens —
+    // whether it came from this page's own Quick Add flow, a different
+    // tab, or another admin's session — not just on next tab revisit.
+    const WORKS_SECTION_EVENTS = ['financeWorksChanged', 'financeWorkContractorAssignmentsChanged', 'financeWorkTypeRatesChanged', 'financeContractorRatesChanged'];
+    useWebSocket(useCallback((msg) => {
+        if (msg.projectId !== id || !WORKS_SECTION_EVENTS.includes(msg.type)) return;
+        setWorksVersion(v => v + 1);
+        if (msg.type === 'financeWorksChanged' || msg.type === 'financeWorkContractorAssignmentsChanged') {
+            refreshContractors();
+            refreshProgress();
+        }
+    }, [id])); // eslint-disable-line react-hooks/exhaustive-deps
 
     const activate = async () => {
         setActivating(true);
@@ -311,7 +347,7 @@ const ProjectDetail = ({ url }) => {
 
                 {activeTab === 'works' && (
                     <div>
-                        <WorksManager url={url} projectId={id} onWorksChanged={() => setWorksVersion(v => v + 1)} />
+                        <WorksManager url={url} projectId={id} worksVersion={worksVersion} onWorksChanged={() => setWorksVersion(v => v + 1)} />
                         <h3 style={{ margin: '32px 0 8px' }}>Work Type Rates</h3>
                         <WorkTypeRatesManager url={url} projectId={id} worksVersion={worksVersion} />
                         <h3 style={{ margin: '28px 0 8px' }}>Contractor Rates</h3>

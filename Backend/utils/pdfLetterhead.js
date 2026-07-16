@@ -74,24 +74,37 @@ const writeLetterhead = async (doc, documentTitle, company, rightLabel) => {
     const topY = doc.y;
 
     const logoBuffer = await getLogoBuffer(c);
-    const logoH = 44;
-    let textX = left;
+    const logoH = 46;
+    const logoW = logoH * DEFAULT_LOGO_ASPECT;
+    const textX = logoBuffer ? left + logoW + 16 : left;
+    const textWidth = right - textX;
+
+    // Measure the text block before drawing anything, so the company-name
+    // block and the logo can be vertically centered against each other
+    // instead of both just top-aligned to topY (which reads as misaligned
+    // since the logo's own artwork has built-in padding).
+    doc.font('Times-Bold').fontSize(20);
+    const nameH = doc.heightOfString(c.companyName, { width: textWidth });
+    doc.font('Helvetica').fontSize(9);
+    const addressH = c.address ? doc.heightOfString(c.address, { width: textWidth }) : 0;
+    const gstinH = c.gstin ? doc.heightOfString(`GSTIN: ${c.gstin}`, { width: textWidth }) : 0;
+    const textBlockH = nameH + addressH + gstinH;
+
+    const textTopY = topY + Math.max(0, (logoH - textBlockH) / 2);
     if (logoBuffer) {
         try {
-            const logoW = logoH * DEFAULT_LOGO_ASPECT;
-            doc.image(logoBuffer, left, topY, { height: logoH });
-            textX = left + logoW + 16;
+            const logoTopY = topY + Math.max(0, (textBlockH - logoH) / 2);
+            doc.image(logoBuffer, left, logoTopY, { height: logoH });
         } catch { /* corrupt/unsupported image — skip silently */ }
     }
 
-    const textWidth = right - textX;
-    doc.fontSize(18).font('Helvetica-Bold').fillColor(c.accentColor).text(c.companyName, textX, topY, { width: textWidth });
+    doc.font('Times-Bold').fontSize(20).fillColor(c.accentColor).text(c.companyName, textX, textTopY, { width: textWidth });
     doc.fontSize(9).font('Helvetica').fillColor('#666666');
     if (c.address) doc.text(c.address, textX, doc.y, { width: textWidth });
     if (c.gstin) doc.text(`GSTIN: ${c.gstin}`, textX, doc.y, { width: textWidth });
     doc.fillColor('#000000');
 
-    doc.y = Math.max(doc.y, topY + logoH);
+    doc.y = Math.max(doc.y, topY + logoH, textTopY + textBlockH);
     doc.moveDown(0.5);
 
     doc.rect(left, doc.y, width, 2).fill(c.accentColor);

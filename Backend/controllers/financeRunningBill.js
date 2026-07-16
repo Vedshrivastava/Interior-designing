@@ -104,8 +104,11 @@ const previewRunningBill = async (req, res) => {
 
 // gstRate is optional — when given, gstAmount is computed off totalAmount
 // and frozen here at generation time, same as every other amount on this
-// document. Omitting it (the default for every bill before this field
-// existed) leaves both fields unset.
+// document. If the request omits it, this falls back to
+// financeCompanySettings.defaultGstRate (Settings > GST) rather than
+// leaving the bill GST-less — the Admin form only *prefills* that field
+// client-side, so a cleared/skipped field would otherwise silently drop
+// GST off the statement even though a business-wide default is configured.
 const generateRunningBill = async (req, res) => {
     try {
         const { projectId, periodFrom, periodTo, billDate, gstRate } = req.body;
@@ -118,14 +121,23 @@ const generateRunningBill = async (req, res) => {
         const billCount = await FinanceRunningBill.countDocuments({ projectId });
         const billNumber = String(billCount + 1);
 
-        const hasGst = gstRate !== undefined && gstRate !== null && gstRate !== '';
+        const hasRequestGst = gstRate !== undefined && gstRate !== null && gstRate !== '';
+        let effectiveGstRate = hasRequestGst ? Number(gstRate) : null;
+        if (!hasRequestGst) {
+            const company = await FinanceCompanySettings.findOne({ deleted: { $ne: true } }, 'defaultGstRate').lean();
+            if (company?.defaultGstRate !== null && company?.defaultGstRate !== undefined) {
+                effectiveGstRate = Number(company.defaultGstRate);
+            }
+        }
+        const hasGst = effectiveGstRate !== null;
+
         const bill = new FinanceRunningBill({
             projectId, billNumber,
             billDate: billDate || new Date(),
             periodFrom, periodTo,
             lineItems, totalAmount,
-            gstRate: hasGst ? Number(gstRate) : null,
-            gstAmount: hasGst ? totalAmount * (Number(gstRate) / 100) : null,
+            gstRate: hasGst ? effectiveGstRate : null,
+            gstAmount: hasGst ? totalAmount * (effectiveGstRate / 100) : null,
             status: 'draft',
         });
         await bill.save();
@@ -327,11 +339,12 @@ const downloadBillStatement = async (req, res) => {
         }
         doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(accentColor).lineWidth(1).stroke();
         ty += 6;
-        doc.font('Helvetica-Bold').fontSize(12).fillColor(accentColor);
-        doc.text('Grand Total', totalsX, ty, { width: labelWidth });
-        doc.text(formatCurrency(data.bill.grandTotal), totalsX + labelWidth, ty, { width: valueWidth, align: 'right' });
+        const grandLabel = data.bill.gstAmount ? `Grand Total (incl. ${data.bill.gstRate}% GST)` : 'Grand Total';
+        doc.font('Helvetica-Bold').fontSize(10.5).fillColor(accentColor);
+        doc.text(grandLabel, totalsX, ty + 2, { width: labelWidth + 20 });
+        doc.fontSize(12).text(formatCurrency(data.bill.grandTotal), totalsX + labelWidth + 20, ty, { width: valueWidth - 20, align: 'right' });
         doc.fillColor('#000000').font('Helvetica').fontSize(10);
-        doc.y = ty + 24;
+        doc.y = ty + Math.max(24, doc.heightOfString(grandLabel, { width: labelWidth + 20 }) + 10);
 
         writeSectionHeading(doc, 'Payment History', data.company);
         if (data.payments.length === 0) {

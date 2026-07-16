@@ -37,7 +37,7 @@ const ClientsPage = ({ url }) => {
 
     const clients = summary?.clients || [];
     const sorted = [...clients].sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
-    const topClients = sorted.slice(0, 8).map(c => ({ name: c.clientName, revenue: c.totalBilled }));
+    const topClients = sorted.slice(0, 8).map(c => ({ name: c.clientName, revenue: c.totalBilled, clientId: c.clientId }));
     const agingData = summary ? AGE_BUCKETS.map(bucket => ({ bucket, amount: summary.aging[bucket] })) : [];
 
     const sortableHeader = (key, label) => (
@@ -60,7 +60,10 @@ const ClientsPage = ({ url }) => {
                                     <XAxis type="number" tick={{ fontSize: 11 }} />
                                     <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
                                     <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
-                                    <Bar dataKey="revenue" name="Revenue" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} activeBar={false} />
+                                    <Bar
+                                        dataKey="revenue" name="Revenue" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} activeBar={false}
+                                        cursor="pointer" onClick={(data) => navigate(`/finance/clients/${data.clientId}`)}
+                                    />
                                 </BarChart>
                             </ResponsiveContainer>
                         </ChartCard>

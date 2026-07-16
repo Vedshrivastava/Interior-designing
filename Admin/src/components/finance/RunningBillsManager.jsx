@@ -172,7 +172,14 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                             <p>#{b.billNumber}</p>
                             <p>{new Date(b.billDate).toLocaleDateString()}</p>
                             <p>{new Date(b.periodFrom).toLocaleDateString()} – {new Date(b.periodTo).toLocaleDateString()}</p>
-                            <p>₹{b.totalAmount.toLocaleString('en-IN')}{b.gstAmount ? ` + GST` : ''}</p>
+                            <p>
+                                ₹{b.totalAmount.toLocaleString('en-IN')}
+                                {b.gstAmount
+                                    ? ` + GST (${b.gstRate}%)`
+                                    : (b.status === 'issued' && (
+                                        <span title="Mark this bill Draft to add GST — it's locked once issued." style={{ color: 'var(--text-lt)', fontSize: '0.85em' }}> · no GST</span>
+                                    ))}
+                            </p>
                             <p onClick={() => toggleStatus(b)} className="cursor" style={{ color: b.status === 'issued' ? 'var(--moss)' : 'var(--text-lt)' }}>
                                 <span className="item-category">{STATUS_LABEL[b.status]}</span>
                             </p>

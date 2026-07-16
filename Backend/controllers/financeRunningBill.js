@@ -7,7 +7,7 @@ import FinanceCompanySettings from '../models/financeCompanySettings.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 import PDFDocument from 'pdfkit';
-import { writeLetterhead, writeSectionHeading, writeFooter, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
+import { writeLetterhead, writeSectionHeading, writeFooter, drawInfoBox, drawTable, contentBox, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
 
 const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material'];
 
@@ -257,74 +257,119 @@ const downloadBillStatement = async (req, res) => {
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="Bill-Statement-${data.bill.billNumber}.pdf"`);
 
-        const doc = new PDFDocument({ margin: 50 });
+        const doc = new PDFDocument({ margin: 50, bufferPages: true });
         doc.pipe(res);
 
-        await writeLetterhead(doc, `Client Bill Statement — Bill #${data.bill.billNumber}`, data.company);
+        const accentColor = data.company?.accentColor || '#2c3e50';
+        const { left, right, width } = contentBox(doc);
 
-        doc.font('Helvetica-Bold').text('Bill To:');
-        doc.font('Helvetica').text(data.client?.name || '—');
-        if (data.client?.address) doc.text(data.client.address);
-        if (data.client?.phone) doc.text(`Phone: ${data.client.phone}`);
-        if (data.client?.gstNumber) doc.text(`GSTIN: ${data.client.gstNumber}`);
+        await writeLetterhead(
+            doc,
+            'Client Bill Statement',
+            data.company,
+            `Bill #${data.bill.billNumber}  •  ${formatDate(data.bill.billDate)}`
+        );
 
-        doc.moveDown(0.5);
-        doc.font('Helvetica-Bold').text('Project:');
-        doc.font('Helvetica').text(data.project?.name || '—');
-        if (data.project?.siteLocation) doc.text(data.project.siteLocation);
-
-        doc.moveDown(0.3);
-        doc.text(`Bill Date: ${formatDate(data.bill.billDate)}`);
-        if (data.bill.periodFrom && data.bill.periodTo) doc.text(`Period: ${formatDate(data.bill.periodFrom)} to ${formatDate(data.bill.periodTo)}`);
-        doc.text(`Status: ${data.bill.status === 'issued' ? 'Issued' : 'Draft'}`);
+        // Bill To / Bill Details side by side, rather than one long stack —
+        // reads like a real invoice at a glance.
+        const infoTopY = doc.y;
+        const colWidth = (width - 24) / 2;
+        const leftBottom = drawInfoBox(doc, left, colWidth, 'Bill To', [
+            data.client?.name || '—',
+            data.client?.address,
+            data.client?.phone ? `Phone: ${data.client.phone}` : null,
+            data.client?.gstNumber ? `GSTIN: ${data.client.gstNumber}` : null,
+        ], data.company);
+        doc.y = infoTopY;
+        const rightBottom = drawInfoBox(doc, left + colWidth + 24, colWidth, 'Bill Details', [
+            data.project?.name ? `Project: ${data.project.name}` : null,
+            data.project?.siteLocation,
+            (data.bill.periodFrom && data.bill.periodTo) ? `Period: ${formatDate(data.bill.periodFrom)} – ${formatDate(data.bill.periodTo)}` : null,
+            `Status: ${data.bill.status === 'issued' ? 'Issued' : 'Draft'}`,
+        ], data.company);
+        doc.y = Math.max(leftBottom, rightBottom) + 8;
 
         writeSectionHeading(doc, 'Line Items', data.company);
-        const colX = { workType: doc.page.margins.left, area: 220, rate: 320, amount: 420 };
-        const lineHeight = doc.currentLineHeight() + 4;
-
-        doc.font('Helvetica-Bold');
-        let rowY = doc.y;
-        doc.text('Work Type', colX.workType, rowY);
-        doc.text('Area (sqft)', colX.area, rowY);
-        doc.text('Rate/sqft', colX.rate, rowY);
-        doc.text('Amount', colX.amount, rowY);
-        rowY += lineHeight;
-
-        doc.font('Helvetica');
-        data.bill.lineItems.forEach(li => {
-            doc.text(li.workType, colX.workType, rowY);
-            doc.text(String(li.areaBilledSqft), colX.area, rowY);
-            doc.text(formatCurrency(li.clientRatePerSqft), colX.rate, rowY);
-            doc.text(formatCurrency(li.amount), colX.amount, rowY);
-            rowY += lineHeight;
+        drawTable(doc, {
+            company: data.company,
+            columns: [
+                { label: 'Work Type', width: 182, align: 'left' },
+                { label: 'Verified Area (sqft)', width: 120, align: 'right' },
+                { label: 'Rate/sqft', width: 100, align: 'right' },
+                { label: 'Amount', width: 110, align: 'right' },
+            ],
+            rows: data.bill.lineItems.map((li) => [
+                li.workType,
+                String(li.areaBilledSqft),
+                formatCurrency(li.clientRatePerSqft),
+                formatCurrency(li.amount),
+            ]),
         });
-        doc.y = rowY;
+        doc.fontSize(8).fillColor('#888888')
+            .text('Area figures include only measurements verified and approved by the site engineer.', left, doc.y, { width });
+        doc.fillColor('#000000').fontSize(10);
+        doc.moveDown(0.6);
 
-        doc.moveDown(0.5);
-        doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).strokeColor('#cccccc').stroke();
-        doc.moveDown(0.3);
-
-        doc.text(`Subtotal: ${formatCurrency(data.bill.totalAmount)}`, { align: 'right' });
+        // Totals — right-aligned mini summary, Grand Total set off with a rule.
+        const totalsBoxWidth = 230;
+        const totalsX = right - totalsBoxWidth;
+        const labelWidth = 120;
+        const valueWidth = totalsBoxWidth - labelWidth;
+        let ty = doc.y;
+        doc.font('Helvetica').fontSize(10);
+        doc.text('Subtotal', totalsX, ty, { width: labelWidth });
+        doc.text(formatCurrency(data.bill.totalAmount), totalsX + labelWidth, ty, { width: valueWidth, align: 'right' });
+        ty += 16;
         if (data.bill.gstAmount) {
-            doc.text(`GST (${data.bill.gstRate}%): ${formatCurrency(data.bill.gstAmount)}`, { align: 'right' });
+            doc.text(`GST (${data.bill.gstRate}%)`, totalsX, ty, { width: labelWidth });
+            doc.text(formatCurrency(data.bill.gstAmount), totalsX + labelWidth, ty, { width: valueWidth, align: 'right' });
+            ty += 16;
         }
-        doc.font('Helvetica-Bold').text(`Grand Total: ${formatCurrency(data.bill.grandTotal)}`, { align: 'right' }).font('Helvetica');
+        doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(accentColor).lineWidth(1).stroke();
+        ty += 6;
+        doc.font('Helvetica-Bold').fontSize(12).fillColor(accentColor);
+        doc.text('Grand Total', totalsX, ty, { width: labelWidth });
+        doc.text(formatCurrency(data.bill.grandTotal), totalsX + labelWidth, ty, { width: valueWidth, align: 'right' });
+        doc.fillColor('#000000').font('Helvetica').fontSize(10);
+        doc.y = ty + 24;
 
         writeSectionHeading(doc, 'Payment History', data.company);
         if (data.payments.length === 0) {
             doc.text('No payments recorded against this bill yet.');
+            doc.moveDown(0.4);
         } else {
-            data.payments.forEach(p => {
-                doc.text(`${formatDate(p.receiptDate)} — ${formatCurrency(p.amount)}${p.paymentMode ? ` (${p.paymentMode})` : ''}${p.utrNumber ? ` — UTR ${p.utrNumber}` : ''}`);
+            drawTable(doc, {
+                company: data.company,
+                columns: [
+                    { label: 'Date', width: 100, align: 'left' },
+                    { label: 'Amount', width: 130, align: 'right' },
+                    { label: 'Mode', width: 140, align: 'left' },
+                    { label: 'UTR / Reference', width: 142, align: 'left' },
+                ],
+                rows: data.payments.map((p) => [
+                    formatDate(p.receiptDate),
+                    formatCurrency(p.amount),
+                    p.paymentMode || '—',
+                    p.utrNumber || '—',
+                ]),
             });
-            doc.font('Helvetica-Bold').text(`Total Paid: ${formatCurrency(data.paidTotal)}`).font('Helvetica');
+            doc.font('Helvetica-Bold').text(`Total Paid: ${formatCurrency(data.paidTotal)}`, { align: 'right' }).font('Helvetica');
+            doc.moveDown(0.5);
         }
 
-        doc.moveDown(0.5);
-        doc.font('Helvetica-Bold').fontSize(12)
-            .fillColor(data.outstandingBalance > 0 ? '#c0392b' : '#27ae60')
-            .text(`Outstanding Balance: ${formatCurrency(data.outstandingBalance)}`)
-            .fillColor('#000000').font('Helvetica').fontSize(10);
+        // Outstanding balance — a shaded callout banner rather than a plain
+        // line, so the one number a client actually needs to act on stands out.
+        const positiveBalance = data.outstandingBalance > 0;
+        const bannerY = doc.y;
+        const bannerH = 36;
+        doc.rect(left, bannerY, width, bannerH).fill(positiveBalance ? '#fdecea' : '#eafaf1');
+        doc.fillColor(positiveBalance ? '#c0392b' : '#1e8449').font('Helvetica-Bold').fontSize(12.5)
+            .text(
+                `${positiveBalance ? 'Payment Due' : 'Fully Settled'}: ${formatCurrency(Math.abs(data.outstandingBalance))}`,
+                left + 14, bannerY + 11
+            );
+        doc.fillColor('#000000').font('Helvetica').fontSize(10);
+        doc.y = bannerY + bannerH + 10;
 
         writeFooter(doc, data.company);
         doc.end();

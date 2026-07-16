@@ -54,7 +54,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
  */
 export async function fetchCategoriesFromDB() {
   try {
-    const res = await fetch(`${API_URL}/api/category/list`, { cache: 'no-store' });
+    const res = await fetch(`${API_URL}/api/category/list`, { next: { revalidate: 3600 } });
     const json = await res.json();
     if (json.success && json.data?.length > 0) return json.data;
   } catch {}

@@ -84,7 +84,35 @@
       "Bash(sed -i '' 's/padding: 70px 24px 70px/padding: 35px 24px 70px/g' /Users/vedshrivastava/interior-site-project/Frontend/src/styles/home.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/about.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/services.css)",
       "Bash(sed -i '' 's/padding: 70px 6%/padding: 35px 6%/g' /Users/vedshrivastava/interior-site-project/Frontend/src/styles/home.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/about.css)",
       "Bash(sed -i '' 's/padding: 35px 24px 70px/padding: 18px 24px 70px/g' /Users/vedshrivastava/interior-site-project/Frontend/src/styles/home.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/about.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/services.css)",
-      "Bash(sed -i '' 's/padding: 35px 6%/padding: 18px 6%/g' /Users/vedshrivastava/interior-site-project/Frontend/src/styles/home.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/about.css)"
+      "Bash(sed -i '' 's/padding: 35px 6%/padding: 18px 6%/g' /Users/vedshrivastava/interior-site-project/Frontend/src/styles/home.css /Users/vedshrivastava/interior-site-project/Frontend/src/styles/about.css)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(curl -sI http://localhost:3001/)",
+      "Bash(git -C /Users/vedshrivastava/interior-site-project log --oneline -3)",
+      "Bash(git -C /Users/vedshrivastava/interior-site-project stash)",
+      "Bash(git -C /Users/vedshrivastava/interior-site-project stash pop)",
+      "Bash(git -C /Users/vedshrivastava/interior-site-project stash pop --index)",
+      "Bash(git -C /Users/vedshrivastava/interior-site-project checkout stash -- Frontend/src/components/pages/HomePage.jsx Frontend/src/styles/home.css)",
+      "Bash(git -C /Users/vedshrivastava/interior-site-project stash show --name-only)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(vercel --prod)",
+      "Bash(xargs ls)",
+      "Bash(git -C /Users/vedshrivastava/interior-site-project status)",
+      "Bash(git -C /Users/vedshrivastava/interior-site-project log --oneline -5)",
+      "Bash(git -C /Users/vedshrivastava/interior-site-project add Admin/src/components/Login.jsx Admin/src/pages/Email_verification.jsx)",
+      "Bash(git -C /Users/vedshrivastava/interior-site-project diff --cached --stat)",
+      "Bash(chromium-cli --help)",
+      "Bash(xargs -I{} basename {})",
+      "Bash(node /private/tmp/claude-501/-Users-vedshrivastava-interior-site-project/72e153d5-c98e-4e47-8c35-b168e7c48dc0/scratchpad/font-swap.js)",
+      "Bash(node elevate-mobile.js)",
+      "Bash(git commit -m ' *)",
+      "Bash(node --check models/financeContractorRate.js)",
+      "Bash(node --check models/financeWorkContractorAssignment.js)",
+      "Bash(node --check models/financeMeasurement.js)",
+      "Bash(node --check models/financeWork.js)",
+      "Bash(node verify_before_tmp.mjs)"
     ],
     "additionalDirectories": [
       "/tmp",
@@ -99,7 +127,8 @@
       "/Users/vedshrivastava/india-news-app/app/api/thoughts",
       "/Users/vedshrivastava/india-news-app/app/api/summarize",
       "/Users/vedshrivastava/india-news-app/components",
-      "/Users/vedshrivastava/india-news-app/app"
+      "/Users/vedshrivastava/india-news-app/app",
+      "/Users/vedshrivastava/shrivastavas-global-project"
     ]
   }
 }

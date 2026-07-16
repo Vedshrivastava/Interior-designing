@@ -177,42 +177,46 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion }) => {
                         One row per work type this project actually has — fill in a rate to confirm it.
                     </p>
                     <div className="list-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 2.7fr' }}>
-                            <b>Work Type</b><b>Rate</b>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1.2fr 1.2fr 1fr' }}>
+                            <b>Work Type</b><b>Client Rate</b><b>Referral Rate</b><b>Action</b>
                         </div>
                         {[...realWorkTypes].map(workType => {
                             const existing = findExisting(workType);
                             const entry = pending[workType] || { clientRate: '', referralRate: '' };
                             return (
-                                <div key={workType} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 2.7fr' }}>
+                                <div
+                                    key={workType} className="list-table-format row-item"
+                                    style={{ gridTemplateColumns: '1.2fr 1.2fr 1.2fr 1fr', alignItems: 'start' }}
+                                >
                                     <p>{workType}</p>
-                                    <div className="rate-entry-row">
-                                        {existing ? (
-                                            <>
-                                                <span className="rate-entry-saved">
-                                                    Client ₹{existing.clientRatePerSqft}/sqft · Referral ₹{existing.referralRatePerSqft}/sqft
-                                                </span>
-                                                <p onClick={() => removeRate(existing._id)} className="cursor delete-action" style={{ margin: 0 }}>Remove</p>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <input
-                                                    type="number" className="rate-entry-input" placeholder="Client ₹/sqft" value={entry.clientRate}
-                                                    onChange={e => setPendingField(workType, 'clientRate', e.target.value)}
-                                                />
-                                                <input
-                                                    type="number" className="rate-entry-input" placeholder="Referral ₹/sqft" value={entry.referralRate}
-                                                    onChange={e => setPendingField(workType, 'referralRate', e.target.value)}
-                                                />
+                                    {existing ? (
+                                        <>
+                                            <p className="rate-entry-saved">₹{existing.clientRatePerSqft}/sqft</p>
+                                            <p className="rate-entry-saved">₹{existing.referralRatePerSqft}/sqft</p>
+                                            <div className="action-buttons">
+                                                <p onClick={() => removeRate(existing._id)} className="cursor delete-action">Remove</p>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <input
+                                                type="number" className="rate-entry-input" placeholder="₹/sqft" value={entry.clientRate} style={{ width: '100%' }}
+                                                onChange={e => setPendingField(workType, 'clientRate', e.target.value)}
+                                            />
+                                            <input
+                                                type="number" className="rate-entry-input" placeholder="₹/sqft" value={entry.referralRate} style={{ width: '100%' }}
+                                                onChange={e => setPendingField(workType, 'referralRate', e.target.value)}
+                                            />
+                                            <div className="action-buttons">
                                                 <button
                                                     type="button" className="add-point-btn" disabled={savingKey === workType}
                                                     onClick={() => saveGridRate(workType)}
                                                 >
                                                     {savingKey === workType ? 'Saving…' : 'Save'}
                                                 </button>
-                                            </>
-                                        )}
-                                    </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             );
                         })}

@@ -6,6 +6,7 @@ import { ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis
 import WorkTypeRatesManager from '../../components/finance/WorkTypeRatesManager';
 import ContractorRatesManager from '../../components/finance/ContractorRatesManager';
 import WorksManager from '../../components/finance/WorksManager';
+import ProjectQuotationsManager from '../../components/finance/ProjectQuotationsManager';
 import MeasurementsManager from '../../components/finance/MeasurementsManager';
 import StockMovementsManager from '../../components/finance/StockMovementsManager';
 import RunningBillsManager from '../../components/finance/RunningBillsManager';
@@ -179,6 +180,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
 
 const TABS = [
     { key: 'overview',     label: 'Overview' },
+    { key: 'quotations',   label: 'Quotations' },
     { key: 'works',        label: 'Works' },
     { key: 'measurements', label: 'Measurements' },
     { key: 'materials',    label: 'Materials' },
@@ -364,6 +366,7 @@ const ProjectDetail = ({ url }) => {
                     </div>
                 )}
 
+                {activeTab === 'quotations' && <ProjectQuotationsManager url={url} projectId={id} />}
                 {activeTab === 'runningBills' && (
                     project.contractType === 'advance'
                         ? <PlaceholderTab text="Advance-contract projects don't use Running Bills — see the advance payment fields on the Overview tab instead." />

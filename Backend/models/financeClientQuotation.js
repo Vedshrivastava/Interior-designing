@@ -1,13 +1,15 @@
 import mongoose from 'mongoose';
 
-// Pre-project price quotation issued to a client — no project may exist yet
-// at this point, so this is intentionally not tied to financeProject.
-// Accepting one does NOT auto-create a Project (kept as a standalone
-// record); the actual Project still gets created through New Project once
-// work is confirmed.
+// Price quotation issued against a Project — the studio always creates the
+// Project first (client → project → quote → work order/signed rate once
+// accepted), so unlike an earlier draft of this model, there's no
+// pre-project use case to support. Sequential numbering, status lifecycle,
+// and read/write access all key off projectId; a client's own Quotations
+// view (ClientDetail.jsx) is a read-only rollup across that client's
+// projects, not its own source of truth.
 const financeClientQuotationSchema = new mongoose.Schema({
-    clientId:        { type: mongoose.Schema.Types.ObjectId, ref: 'financeClient', required: true },
-    quotationNumber: { type: String, required: true }, // sequential per client, assigned on add
+    projectId:       { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', required: true },
+    quotationNumber: { type: String, required: true }, // sequential per project, assigned on add
     date:            { type: Date, required: true },
     amount:          { type: Number, required: true },
     validUntil:      { type: Date, default: null },

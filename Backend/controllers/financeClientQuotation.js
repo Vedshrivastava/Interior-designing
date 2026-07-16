@@ -1,16 +1,19 @@
 import FinanceClientQuotation from '../models/financeClientQuotation.js';
-import FinanceClient from '../models/financeClient.js';
+import FinanceProject from '../models/financeProject.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 
 const STATUS_LABEL = { pending: 'Pending', accepted: 'Accepted', rejected: 'Rejected', expired: 'Expired' };
 
+// projectId is the only supported filter — same shape as
+// GET /running-bills/list. A client's rollup view fetches its own project
+// list first, then calls this once per project (see ClientDetail.jsx),
+// rather than this endpoint supporting a clientId filter itself.
 const listClientQuotations = async (req, res) => {
     try {
-        const { clientId } = req.query;
-        const filter = { deleted: { $ne: true } };
-        if (clientId) filter.clientId = clientId;
-        const items = await FinanceClientQuotation.find(filter).sort({ date: -1, createdAt: -1 });
+        const { projectId } = req.query;
+        if (!projectId) return res.status(400).json({ success: false, message: 'projectId is required' });
+        const items = await FinanceClientQuotation.find({ projectId, deleted: { $ne: true } }).sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {
         console.error(err);
@@ -20,26 +23,27 @@ const listClientQuotations = async (req, res) => {
 
 const addClientQuotation = async (req, res) => {
     try {
-        const { clientId, date, amount, validUntil, notes } = req.body;
-        if (!clientId) return res.status(400).json({ success: false, message: 'Client is required' });
+        const { projectId, date, amount, validUntil, notes } = req.body;
+        if (!projectId) return res.status(400).json({ success: false, message: 'Project is required' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
         if (amount === undefined || amount === '') return res.status(400).json({ success: false, message: 'Amount is required' });
 
-        const client = await FinanceClient.findById(clientId);
-        if (!client) return res.status(404).json({ success: false, message: 'Client not found' });
+        const project = await FinanceProject.findById(projectId).populate('clientId', 'name');
+        if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
-        const count = await FinanceClientQuotation.countDocuments({ clientId });
+        const count = await FinanceClientQuotation.countDocuments({ projectId });
         const quotationNumber = String(count + 1);
 
         const item = new FinanceClientQuotation({
-            clientId, quotationNumber, date, amount, validUntil: validUntil || null, notes,
+            projectId, quotationNumber, date, amount, validUntil: validUntil || null, notes,
         });
         await item.save();
 
-        broadcast({ type: 'financeClientQuotationsChanged' });
+        broadcast({ type: 'financeClientQuotationsChanged', projectId });
         await logActivity({
             eventType: 'client_quotation_issued', entityType: 'financeClientQuotation', entityId: item._id,
-            summary: `Quotation #${quotationNumber} issued to ${client.name} — ₹${amount}`,
+            projectId,
+            summary: `Quotation #${quotationNumber} issued for ${project.name} (${project.clientId?.name || 'client'}) — ₹${amount}`,
             amount, req,
         });
 
@@ -56,16 +60,17 @@ const updateClientQuotationStatus = async (req, res) => {
         if (!['pending', 'accepted', 'rejected', 'expired'].includes(status)) {
             return res.status(400).json({ success: false, message: 'Invalid status' });
         }
-        const item = await FinanceClientQuotation.findById(_id).populate('clientId', 'name');
+        const item = await FinanceClientQuotation.findById(_id).populate('projectId', 'name');
         if (!item) return res.status(404).json({ success: false, message: 'Quotation not found' });
 
         item.status = status;
         await item.save();
 
-        broadcast({ type: 'financeClientQuotationsChanged' });
+        broadcast({ type: 'financeClientQuotationsChanged', projectId: item.projectId?._id });
         await logActivity({
             eventType: 'client_quotation_status_changed', entityType: 'financeClientQuotation', entityId: item._id,
-            summary: `Quotation #${item.quotationNumber} for ${item.clientId?.name || 'client'} marked ${STATUS_LABEL[status]}`,
+            projectId: item.projectId?._id,
+            summary: `Quotation #${item.quotationNumber} for ${item.projectId?.name || 'project'} marked ${STATUS_LABEL[status]}`,
             req,
         });
 
@@ -83,7 +88,7 @@ const removeClientQuotation = async (req, res) => {
         if (!item) return res.status(404).json({ success: false, message: 'Not found' });
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
-        broadcast({ type: 'financeClientQuotationsChanged' });
+        broadcast({ type: 'financeClientQuotationsChanged', projectId: item.projectId });
         res.json({ success: true, message: `Quotation #${item.quotationNumber} removed` });
     } catch (err) {
         console.error(err);

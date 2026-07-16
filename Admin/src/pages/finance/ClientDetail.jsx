@@ -4,7 +4,6 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
-import StyledDatePicker from '../../components/finance/StyledDatePicker';
 import DocumentsTab from '../../components/finance/DocumentsTab';
 import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
@@ -159,16 +158,19 @@ const ClientProjectsTab = ({ url, clientId }) => {
 };
 
 /*
- * Bills, Payment History, and Ledger all come from the same two sources —
- * this client's running bills (fetched per-project, since the bills
- * endpoint only filters by projectId) and their receipts (which the
- * receipts endpoint filters by clientId directly). Fetched once, shared
- * across the three tabs, rather than three separate N+1 fan-outs.
+ * Bills, Payment History, Ledger, and Quotations all come from the same
+ * sources — this client's running bills and quotations (each fetched
+ * per-project, since both endpoints only filter by projectId — quotations
+ * are owned by a Project, not a Client, since the studio always creates
+ * the Project before quoting) and their receipts (which the receipts
+ * endpoint filters by clientId directly). Fetched once, shared across the
+ * four tabs, rather than four separate N+1 fan-outs.
  */
 const useClientBillsAndReceipts = (url, clientId) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [bills, setBills] = useState([]);
+    const [quotations, setQuotations] = useState([]);
     const [receipts, setReceipts] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -184,13 +186,21 @@ const useClientBillsAndReceipts = (url, clientId) => {
                 const clientProjects = projectsRes.data.success
                     ? projectsRes.data.data.filter(p => (p.clientId?._id || p.clientId) === clientId)
                     : [];
-                const billLists = await Promise.all(clientProjects.map(p =>
-                    axios.get(`${url}/api/finance/running-bills/list`, { ...authHeader, params: { projectId: p._id } })
-                        .then(res => (res.data.success ? res.data.data.map(b => ({ ...b, projectName: p.name })) : []))
-                        .catch(() => [])
-                ));
+                const [billLists, quotationLists] = await Promise.all([
+                    Promise.all(clientProjects.map(p =>
+                        axios.get(`${url}/api/finance/running-bills/list`, { ...authHeader, params: { projectId: p._id } })
+                            .then(res => (res.data.success ? res.data.data.map(b => ({ ...b, projectName: p.name })) : []))
+                            .catch(() => [])
+                    )),
+                    Promise.all(clientProjects.map(p =>
+                        axios.get(`${url}/api/finance/client-quotations/list`, { ...authHeader, params: { projectId: p._id } })
+                            .then(res => (res.data.success ? res.data.data.map(q => ({ ...q, projectName: p.name })) : []))
+                            .catch(() => [])
+                    )),
+                ]);
                 if (!cancelled) {
                     setBills(billLists.flat());
+                    setQuotations(quotationLists.flat());
                     setReceipts(receiptsRes.data.success ? receiptsRes.data.data : []);
                 }
             } catch {
@@ -202,7 +212,7 @@ const useClientBillsAndReceipts = (url, clientId) => {
         return () => { cancelled = true; };
     }, [url, clientId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    return { bills, receipts, loading };
+    return { bills, quotations, receipts, loading };
 };
 
 const ClientBillsTab = ({ url, clientId }) => {
@@ -339,118 +349,34 @@ const ClientLedgerTab = ({ url, clientId }) => {
 
 const QUOTATION_STATUS_LABEL = { pending: 'Pending', accepted: 'Accepted', rejected: 'Rejected', expired: 'Expired' };
 
+// Read-only rollup across this client's projects — quotations are owned by
+// a Project (see ProjectQuotationsManager, on the Project Detail page's
+// own Quotations tab), which is where they're added and have their status
+// changed. This tab exists so you don't have to open each project
+// separately just to see what's been quoted to this client overall.
 const ClientQuotationsTab = ({ url, clientId }) => {
-    const token = localStorage.getItem('token');
-    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [quotations, setQuotations] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [form, setForm] = useState({ date: '', amount: '', validUntil: '', notes: '' });
-    const [saving, setSaving] = useState(false);
+    const navigate = useNavigate();
+    const { quotations, loading } = useClientBillsAndReceipts(url, clientId);
+    const sorted = [...quotations].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    const fetchList = () => {
-        setLoading(true);
-        axios.get(`${url}/api/finance/client-quotations/list`, { ...authHeader, params: { clientId } })
-            .then(res => { if (res.data.success) setQuotations(res.data.data); })
-            .catch(() => toast.error('Error fetching quotations'))
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(() => { fetchList(); }, [url, clientId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
-
-    const submit = async (e) => {
-        e.preventDefault();
-        if (!form.date) return toast.error('Date is required');
-        if (form.amount === '') return toast.error('Amount is required');
-        setSaving(true);
-        try {
-            const res = await axios.post(`${url}/api/finance/client-quotations/add`,
-                { clientId, date: form.date, amount: form.amount, validUntil: form.validUntil || null, notes: form.notes }, authHeader);
-            if (res.data.success) {
-                toast.success(res.data.message || 'Quotation added');
-                setForm({ date: '', amount: '', validUntil: '', notes: '' });
-                fetchList();
-            } else toast.error(res.data.message);
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Error adding quotation');
-        } finally { setSaving(false); }
-    };
-
-    const changeStatus = async (_id, status) => {
-        try {
-            const res = await axios.post(`${url}/api/finance/client-quotations/status`, { _id, status }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); fetchList(); }
-            else toast.error(res.data.message);
-        } catch { toast.error('Error updating status'); }
-    };
-
-    const remove = async (_id) => {
-        try {
-            const res = await axios.post(`${url}/api/finance/client-quotations/remove`, { _id }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); fetchList(); }
-            else toast.error(res.data.message);
-        } catch { toast.error('Error removing quotation'); }
-    };
+    if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
+    if (sorted.length === 0) return <div className="admin-empty-state"><p>No quotations issued to this client yet.</p></div>;
 
     return (
-        <div>
-            <form onSubmit={submit}>
-                <div className="wizard-field-grid">
-                    <div className="add-product-name flex-col">
-                        <p>Date *</p>
-                        <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Amount (₹) *</p>
-                        <input type="number" value={form.amount} onChange={e => setField('amount', e.target.value)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Valid Until</p>
-                        <StyledDatePicker value={form.validUntil} onChange={v => setField('validUntil', v)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Notes</p>
-                        <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
-                    </div>
+        <div className="list-table">
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 70px 1fr 1fr 1fr 110px' }}>
+                <b>Project</b><b>#</b><b>Date</b><b>Amount</b><b>Valid Until</b><b>Status</b>
+            </div>
+            {sorted.map(q => (
+                <div key={q._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 70px 1fr 1fr 1fr 110px' }}>
+                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${q.projectId}`)}>{q.projectName}</p>
+                    <p>#{q.quotationNumber}</p>
+                    <p>{new Date(q.date).toLocaleDateString()}</p>
+                    <p>₹{q.amount.toLocaleString('en-IN')}</p>
+                    <p>{q.validUntil ? new Date(q.validUntil).toLocaleDateString() : '—'}</p>
+                    <p><span className="item-category">{QUOTATION_STATUS_LABEL[q.status]}</span></p>
                 </div>
-                <div className="wizard-actions" style={{ marginTop: '16px' }}>
-                    <span />
-                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Adding…' : '+ Add Quotation'}</button>
-                </div>
-            </form>
-
-            {loading ? (
-                <div className="admin-empty-state"><p>Loading…</p></div>
-            ) : quotations.length === 0 ? (
-                <div className="admin-empty-state"><p>No quotations issued to this client yet.</p></div>
-            ) : (
-                <div className="list-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '70px 1fr 1fr 1fr 110px 160px' }}>
-                        <b>#</b><b>Date</b><b>Amount</b><b>Valid Until</b><b>Status</b><b>Action</b>
-                    </div>
-                    {quotations.map(q => (
-                        <div key={q._id} className="list-table-format row-item" style={{ gridTemplateColumns: '70px 1fr 1fr 1fr 110px 160px' }}>
-                            <p>#{q.quotationNumber}</p>
-                            <p>{new Date(q.date).toLocaleDateString()}</p>
-                            <p>₹{q.amount.toLocaleString('en-IN')}</p>
-                            <p>{q.validUntil ? new Date(q.validUntil).toLocaleDateString() : '—'}</p>
-                            <p><span className="item-category">{QUOTATION_STATUS_LABEL[q.status]}</span></p>
-                            <div className="action-buttons">
-                                {q.status === 'pending' ? (
-                                    <>
-                                        <p onClick={() => changeStatus(q._id, 'accepted')} className="cursor edit-action">Accept</p>
-                                        <p onClick={() => changeStatus(q._id, 'rejected')} className="cursor delete-action">Reject</p>
-                                    </>
-                                ) : (
-                                    <p onClick={() => changeStatus(q._id, 'pending')} className="cursor edit-action">Reopen</p>
-                                )}
-                                <p onClick={() => remove(q._id)} className="cursor delete-action">X</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+            ))}
         </div>
     );
 };

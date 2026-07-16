@@ -33,8 +33,13 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
     const [workTypeOptions, setWorkTypeOptions] = useState([]);
     // null until this project has at least one real Work — orphan-flagging
     // (and the grid vs. fallback-form choice below) only makes sense once
-    // there's something real to check against.
+    // there's something real to check against. Deliberately distinct from
+    // loadingWorkTypes below — null must only ever mean "checked, there
+    // genuinely aren't any", never "haven't checked yet", or the fallback
+    // form (built for a truly work-less project) flashes on screen every
+    // refresh before the real answer comes back.
     const [realWorkTypes, setRealWorkTypes] = useState(null);
+    const [loadingWorkTypes, setLoadingWorkTypes] = useState(true);
 
     // Who's actually assigned to a Work of a given type on this project
     // (from financeWorkContractorAssignment, via GET /projects/:id's own
@@ -100,7 +105,9 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
     };
 
     useEffect(() => {
-        if (projectId) { fetchList(); fetchWorkTypeOptions(); fetchProjectContractors(); }
+        if (!projectId) return;
+        fetchList();
+        Promise.all([fetchWorkTypeOptions(), fetchProjectContractors()]).finally(() => setLoadingWorkTypes(false));
     }, [projectId, worksVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleWorkCreated = async (newWork) => {
@@ -176,7 +183,9 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
 
     return (
         <div>
-            {realWorkTypes === null ? (
+            {loadingWorkTypes ? (
+                <div className="admin-empty-state"><p>Loading…</p></div>
+            ) : realWorkTypes === null ? (
                 <>
                     <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
                         Assign contractors and add one rate row per work type each performs. Required before this project can go active.

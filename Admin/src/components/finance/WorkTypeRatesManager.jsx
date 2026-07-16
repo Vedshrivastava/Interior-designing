@@ -31,7 +31,13 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion }) => {
     const [workTypeOptions, setWorkTypeOptions] = useState([]);
     // null until this project has at least one real Work — gates the grid
     // vs. fallback-form choice below, same reasoning as ContractorRatesManager.
+    // Deliberately distinct from loadingWorkTypes below: null means "checked,
+    // there genuinely aren't any" — it must never be the value shown while
+    // still waiting on the fetch, or the fallback form (built for a truly
+    // work-less project) flashes on screen every refresh before the real
+    // answer comes back.
     const [realWorkTypes, setRealWorkTypes] = useState(null);
+    const [loadingWorkTypes, setLoadingWorkTypes] = useState(true);
 
     // Fallback-form state (only used when realWorkTypes === null).
     const [form, setForm] = useState(emptyForm);
@@ -65,6 +71,7 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion }) => {
             const settingsRes = await axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } });
             if (settingsRes.data.success) setWorkTypeOptions(settingsRes.data.data.map(s => s.name));
         } catch { /* leave options as-is */ }
+        finally { setLoadingWorkTypes(false); }
     };
 
     useEffect(() => { fetchList(); refreshWorkTypeOptions(); }, [projectId, worksVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -134,7 +141,9 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion }) => {
 
     return (
         <div>
-            {realWorkTypes === null ? (
+            {loadingWorkTypes ? (
+                <div className="admin-empty-state"><p>Loading…</p></div>
+            ) : realWorkTypes === null ? (
                 <>
                     <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
                         Client rate + referral rate, per work type. Required before this project can go active.

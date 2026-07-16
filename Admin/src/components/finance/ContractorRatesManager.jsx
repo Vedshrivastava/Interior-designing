@@ -9,13 +9,21 @@ import '../../styles/wizard.css';
 import '../../styles/add.css';
 
 const emptyForm = { contractorVendorId: '', workType: '', paymentBasis: 'per_sqft', rate: '' };
+const pairKey = (workType, vendorId) => `${workType}::${vendorId}`;
 
 /* Manages financeContractorRate rows for one project — used in both the
    New Project wizard (Step 4) and the Project Detail page's Contractor
-   Rates tab. A single contractor can have multiple rows on the same
-   project, one per work type. `worksVersion` is only ever passed from the
-   Project Detail page — used here to gate the "+ Add Work" quick-add
-   dialog, same reasoning as WorkTypeRatesManager.jsx. */
+   Rates tab. `worksVersion` is only ever passed from the Project Detail
+   page — used here to gate the "+ Add Work" quick-add dialog.
+
+   Once the project has real Works, every (work type, contractor) pair is
+   already fully determined by those Works' contractor assignments — there
+   is nothing left to "select". So instead of a free-form add-rate form,
+   this renders one row per real pair, grouped by work type: a saved rate
+   shows read-only + Remove, an unset one shows an inline rate input. The
+   old select-driven form only survives as the fallback for a project with
+   no real Works yet (New Project Wizard Step 4), where there's genuinely
+   nothing real to enumerate. */
 const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -24,24 +32,28 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
     const [items, setItems] = useState([]);
     const [workTypeOptions, setWorkTypeOptions] = useState([]);
     // null until this project has at least one real Work — orphan-flagging
-    // only makes sense once there's something real to check against;
-    // during setup (no Works yet) every rate is expected to look "unmatched".
+    // (and the grid vs. fallback-form choice below) only makes sense once
+    // there's something real to check against.
     const [realWorkTypes, setRealWorkTypes] = useState(null);
 
-    // Same idea, for contractors — who's actually assigned to a Work of a
-    // given type on this project (from financeWorkContractorAssignment,
-    // via GET /projects/:id's own `contractors` field), not the entire
-    // vendor master. null until this project has at least one real
-    // assignment; contractorsByWorkType maps workType -> the contractors
-    // actually doing that work (a Work can have more than one contractor,
-    // and a contractor can appear under more than one work type).
-    const [realContractors, setRealContractors] = useState(null);
+    // Who's actually assigned to a Work of a given type on this project
+    // (from financeWorkContractorAssignment, via GET /projects/:id's own
+    // `contractors` field) — not the entire vendor master. Map<workType,
+    // Array<{vendorId, vendorName}>>; a Work can have more than one
+    // contractor, and a contractor can appear under more than one work type.
+    // Only meaningful once realWorkTypes is non-null (see fetchWorkTypeOptions) —
+    // the fallback form below doesn't use this at all.
     const [contractorsByWorkType, setContractorsByWorkType] = useState(new Map());
-    const [allProjectContractors, setAllProjectContractors] = useState([]);
 
+    // Fallback-form state (only used when realWorkTypes === null).
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
     const [quickAddOpen, setQuickAddOpen] = useState(false);
+
+    // Grid state — pending basis/rate per unset (workType, vendorId) pair,
+    // keyed by pairKey, and which key is currently being saved.
+    const [pending, setPending] = useState({});
+    const [savingKey, setSavingKey] = useState(null);
 
     const fetchList = async () => {
         try {
@@ -68,14 +80,13 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
 
     // project.contractors is computeProjectContractors' output — one row
     // per vendor actually assigned to >=1 Work here, each carrying every
-    // work type they're assigned to (a contractor can do more than one
-    // work type; a work type can have more than one contractor).
+    // work type they're assigned to.
     const fetchProjectContractors = async () => {
         try {
             const res = await axios.get(`${url}/api/finance/projects/${projectId}`, authHeader);
             if (!res.data.success) return;
             const contractors = res.data.data.contractors || [];
-            if (!contractors.length) { setRealContractors(null); setContractorsByWorkType(new Map()); setAllProjectContractors([]); return; }
+            if (!contractors.length) { setContractorsByWorkType(new Map()); return; }
 
             const byType = new Map();
             for (const c of contractors) {
@@ -85,8 +96,6 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
                 }
             }
             setContractorsByWorkType(byType);
-            setAllProjectContractors(contractors.map(c => ({ vendorId: c.vendorId, vendorName: c.vendorName })));
-            setRealContractors(new Set(contractors.map(c => c.vendorId)));
         } catch { /* leave as-is */ }
     };
 
@@ -100,30 +109,11 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
         setForm(prev => ({ ...prev, workType: newWork.workType }));
     };
 
-    // Contractors available for whichever work type is currently selected
-    // — every real assignee if none is selected yet. Falls back to null
-    // (handled at the call site) until this project has any assignment.
-    const availableContractors = form.workType && contractorsByWorkType.has(form.workType)
-        ? contractorsByWorkType.get(form.workType)
-        : allProjectContractors;
+    // --- Fallback form (no real Works yet — nothing real to scope the
+    // Contractor field to, so it stays the full company-wide picker) ---
 
-    const setField = (key, value) => {
-        setForm(prev => {
-            const next = { ...prev, [key]: value };
-            // Changing work type can invalidate a contractor picked for the
-            // previous one — clear it rather than silently keep a mismatched
-            // pairing the badge below would just flag right back anyway.
-            if (key === 'workType' && realContractors && next.contractorVendorId) {
-                const stillValid = (contractorsByWorkType.get(value) || allProjectContractors).some(c => c.vendorId === next.contractorVendorId);
-                if (!stillValid) next.contractorVendorId = '';
-            }
-            return next;
-        });
-    };
+    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
-    // Add-only, deliberately — once a rate is confirmed it shouldn't be
-    // silently changed underneath work already measured/billed against it.
-    // Remove and re-add if a rate was entered wrong.
     const submit = async (e) => {
         e.preventDefault();
         if (!form.contractorVendorId) { toast.error('Contractor is required'); return; }
@@ -147,6 +137,32 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
         } finally { setSaving(false); }
     };
 
+    // --- Grid (real Works exist) ---
+
+    const setPendingField = (key, field, value) =>
+        setPending(prev => ({ ...prev, [key]: { ...(prev[key] || { paymentBasis: 'per_sqft', rate: '' }), [field]: value } }));
+
+    const saveGridRate = async (workType, contractorVendorId, key) => {
+        const entry = pending[key] || { paymentBasis: 'per_sqft', rate: '' };
+        if (entry.rate === '') { toast.error('Rate is required'); return; }
+        setSavingKey(key);
+        try {
+            const payload = {
+                projectId, contractorVendorId, workType, paymentBasis: entry.paymentBasis,
+                ratePerSqft: entry.paymentBasis === 'per_sqft' ? entry.rate : 0,
+                ratePerDay: entry.paymentBasis === 'per_day' ? entry.rate : 0,
+            };
+            const res = await axios.post(`${url}/api/finance/contractor-rates/add`, payload, authHeader);
+            if (res.data.success) {
+                toast.success(res.data.message || 'Rate saved');
+                setPending(prev => { const next = { ...prev }; delete next[key]; return next; });
+                await fetchList();
+            } else toast.error(res.data.message);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Error saving rate');
+        } finally { setSavingKey(null); }
+    };
+
     const removeRate = async (_id) => {
         try {
             const res = await axios.post(`${url}/api/finance/contractor-rates/remove`, { _id }, authHeader);
@@ -155,107 +171,108 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
         } catch { toast.error('Error removing contractor rate'); }
     };
 
+    const findExisting = (workType, vendorId) => items.find(i =>
+        i.workType === workType && (i.contractorVendorId?._id || i.contractorVendorId) === vendorId);
+
     return (
         <div>
-            <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                Assign contractors and add one rate row per work type each performs. Required before this project can go active.
-            </p>
-
-            <form onSubmit={submit}>
-                <div className="wizard-field-grid">
-                    <div className="add-product-name flex-col">
-                        <p>Work Type *</p>
-                        {realWorkTypes === null && allowQuickAddWork ? (
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                <span className="admin-subtitle" style={{ flex: 1 }}>No Works added to this project yet</span>
-                                <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={() => setQuickAddOpen(true)}>+ Add Work</button>
+            {realWorkTypes === null ? (
+                <>
+                    <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
+                        Assign contractors and add one rate row per work type each performs. Required before this project can go active.
+                    </p>
+                    <form onSubmit={submit}>
+                        <div className="wizard-field-grid">
+                            <div className="add-product-name flex-col">
+                                <p>Work Type *</p>
+                                {allowQuickAddWork ? (
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <span className="admin-subtitle" style={{ flex: 1 }}>No Works added to this project yet</span>
+                                        <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={() => setQuickAddOpen(true)}>+ Add Work</button>
+                                    </div>
+                                ) : (
+                                    <StyledSelect
+                                        value={form.workType} onChange={v => setField('workType', v)}
+                                        placeholder={workTypeOptions.length ? 'Select work type…' : 'Add a Work first'}
+                                        options={workTypeOptions.map(w => ({ value: w, label: w }))}
+                                    />
+                                )}
                             </div>
-                        ) : (
-                            <StyledSelect
-                                value={form.workType} onChange={v => setField('workType', v)}
-                                placeholder={workTypeOptions.length ? 'Select work type…' : 'Add a Work first'}
-                                options={workTypeOptions.map(w => ({ value: w, label: w }))}
-                            />
-                        )}
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Contractor *</p>
-                        {realContractors ? (
-                            <StyledSelect
-                                value={form.contractorVendorId} onChange={v => setField('contractorVendorId', v)}
-                                placeholder={availableContractors.length ? 'Select contractor…' : (form.workType ? 'No contractor assigned to this work type' : 'Select a work type first')}
-                                options={availableContractors.map(c => ({ value: c.vendorId, label: c.vendorName }))}
-                            />
-                        ) : (
-                            <ContractorOrLabourPicker url={url} value={form.contractorVendorId} onChange={v => setField('contractorVendorId', v)} />
-                        )}
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Payment Basis *</p>
-                        <select value={form.paymentBasis} onChange={e => setField('paymentBasis', e.target.value)}>
-                            <option value="per_sqft">Per Sqft</option>
-                            <option value="per_day">Per Day</option>
-                        </select>
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>{form.paymentBasis === 'per_sqft' ? 'Rate (₹/sqft) *' : 'Rate (₹/day) *'}</p>
-                        <input type="number" value={form.rate} onChange={e => setField('rate', e.target.value)} />
-                    </div>
-                </div>
-                <div className="wizard-actions" style={{ marginTop: '16px' }}>
-                    <span />
-                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Adding…' : '+ Add Rate'}</button>
-                </div>
-            </form>
-
-            <div className="list-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1fr 100px' }}>
-                    <b>Contractor</b><b>Work Type</b><b>Basis</b><b>Rate</b><b>Action</b>
-                </div>
-                {items.length === 0 ? (
-                    <div className="admin-empty-state"><p>No contractor rates yet.</p></div>
-                ) : (
-                    items.map(item => {
-                        const isOrphaned = realWorkTypes && !realWorkTypes.has(item.workType);
-                        const contractorId = item.contractorVendorId?._id || item.contractorVendorId;
-                        const isContractorMismatched = !isOrphaned && realContractors
-                            && !(contractorsByWorkType.get(item.workType) || []).some(c => c.vendorId === contractorId);
-                        return (
-                            <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1fr 100px' }}>
-                                <p>
-                                    {item.contractorVendorId?.name || '—'}
-                                    {isContractorMismatched && (
-                                        <span
-                                            className="item-category"
-                                            style={{ marginLeft: '8px', background: 'rgba(192,57,43,0.12)', color: '#c0392b', borderColor: 'rgba(192,57,43,0.3)' }}
-                                            title="This contractor isn't assigned to this work type on this project — check Works > Manage Contractors, or remove this rate."
-                                        >
-                                            ⚠ Not assigned to this work
-                                        </span>
-                                    )}
-                                </p>
-                                <p>
-                                    {item.workType}
-                                    {isOrphaned && (
-                                        <span
-                                            className="item-category"
-                                            style={{ marginLeft: '8px', background: 'rgba(192,57,43,0.12)', color: '#c0392b', borderColor: 'rgba(192,57,43,0.3)' }}
-                                            title="No Work with this type exists in this project yet — this rate isn't matched to anything and won't be used until one is added, or should be removed."
-                                        >
-                                            ⚠ No matching Work
-                                        </span>
-                                    )}
-                                </p>
-                                <p>{item.paymentBasis === 'per_sqft' ? 'Per Sqft' : 'Per Day'}</p>
-                                <p>₹{item.paymentBasis === 'per_sqft' ? item.ratePerSqft : item.ratePerDay}</p>
-                                <div className="action-buttons">
-                                    <p onClick={() => removeRate(item._id)} className="cursor delete-action">X</p>
-                                </div>
+                            <div className="add-product-name flex-col">
+                                <p>Contractor *</p>
+                                <ContractorOrLabourPicker url={url} value={form.contractorVendorId} onChange={v => setField('contractorVendorId', v)} />
                             </div>
-                        );
-                    })
-                )}
-            </div>
+                            <div className="add-product-name flex-col">
+                                <p>Payment Basis *</p>
+                                <select value={form.paymentBasis} onChange={e => setField('paymentBasis', e.target.value)}>
+                                    <option value="per_sqft">Per Sqft</option>
+                                    <option value="per_day">Per Day</option>
+                                </select>
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>{form.paymentBasis === 'per_sqft' ? 'Rate (₹/sqft) *' : 'Rate (₹/day) *'}</p>
+                                <input type="number" value={form.rate} onChange={e => setField('rate', e.target.value)} />
+                            </div>
+                        </div>
+                        <div className="wizard-actions" style={{ marginTop: '16px' }}>
+                            <span />
+                            <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Adding…' : '+ Add Rate'}</button>
+                        </div>
+                    </form>
+                </>
+            ) : (
+                <>
+                    <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
+                        One row per contractor actually assigned to each work type — fill in a rate to confirm it.
+                    </p>
+                    <div className="list-table">
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1.2fr 2fr' }}>
+                            <b>Work Type</b><b>Contractor</b><b>Rate</b>
+                        </div>
+                        {[...contractorsByWorkType.entries()].map(([workType, contractors], groupIdx) => (
+                            contractors.map((c, idx) => {
+                                const existing = findExisting(workType, c.vendorId);
+                                const key = pairKey(workType, c.vendorId);
+                                const entry = pending[key] || { paymentBasis: 'per_sqft', rate: '' };
+                                return (
+                                    <div
+                                        key={key} className="list-table-format row-item"
+                                        style={{ gridTemplateColumns: '1.2fr 1.2fr 2fr', borderTop: idx === 0 && groupIdx > 0 ? '2px solid var(--gold, #c9a87c)' : undefined }}
+                                    >
+                                        <p>{idx === 0 ? workType : ''}</p>
+                                        <p>{c.vendorName}</p>
+                                        <div>
+                                            {existing ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <span>₹{existing.paymentBasis === 'per_sqft' ? existing.ratePerSqft : existing.ratePerDay} / {existing.paymentBasis === 'per_sqft' ? 'sqft' : 'day'}</span>
+                                                    <p onClick={() => removeRate(existing._id)} className="cursor delete-action" style={{ margin: 0 }}>Remove</p>
+                                                </div>
+                                            ) : (
+                                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                    <select value={entry.paymentBasis} onChange={e => setPendingField(key, 'paymentBasis', e.target.value)}>
+                                                        <option value="per_sqft">Per Sqft</option>
+                                                        <option value="per_day">Per Day</option>
+                                                    </select>
+                                                    <input
+                                                        type="number" placeholder="Rate" value={entry.rate} style={{ width: '90px' }}
+                                                        onChange={e => setPendingField(key, 'rate', e.target.value)}
+                                                    />
+                                                    <button
+                                                        type="button" className="add-point-btn" disabled={savingKey === key}
+                                                        onClick={() => saveGridRate(workType, c.vendorId, key)}
+                                                    >
+                                                        {savingKey === key ? 'Saving…' : 'Save'}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ))}
+                    </div>
+                </>
+            )}
 
             {quickAddOpen && (
                 <QuickAddWorkModal url={url} projectId={projectId} onClose={() => setQuickAddOpen(false)} onCreated={handleWorkCreated} />

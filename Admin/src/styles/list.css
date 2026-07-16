@@ -393,6 +393,79 @@
 }
 
 /* ══════════════════════════════════════════════
+   4b. RATE-ENTRY GRID — Contractor Rates / Work Type
+   Rates tabs: one row per real work type (and, for
+   Contractor Rates, per contractor within it), grouped
+   under a section header bar instead of a form + a
+   separate list.
+══════════════════════════════════════════════ */
+.rate-group-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background-color: var(--parchment);
+    border-top: 1px solid var(--gold-line);
+    border-bottom: 1px solid var(--gold-line);
+}
+.rate-group-header:first-child { border-top: none; }
+.rate-group-bar {
+    width: 4px;
+    height: 14px;
+    border-radius: 2px;
+    background-color: var(--gold);
+    flex-shrink: 0;
+}
+.rate-group-header b {
+    font-size: 0.82rem;
+    letter-spacing: 0.2px;
+    color: var(--text-dark);
+}
+
+.rate-entry-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.rate-entry-select,
+.rate-entry-input {
+    padding: 9px 12px;
+    border: 1px solid var(--gold-line);
+    background-color: var(--ivory);
+    color: var(--green);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-family: "DM Sans", sans-serif;
+    outline: none;
+    transition: all 0.22s ease;
+}
+.rate-entry-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a8e84' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+    cursor: pointer;
+    min-width: 112px;
+}
+.rate-entry-input { width: 100px; }
+.rate-entry-select:focus,
+.rate-entry-input:focus {
+    border-color: var(--gold);
+    background-color: var(--white);
+    box-shadow: 0 0 0 4px rgba(201,168,124,0.12);
+}
+.rate-entry-input::placeholder { color: var(--text-lt); }
+
+.rate-entry-saved {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+/* ══════════════════════════════════════════════
    5. EDIT MODAL — Elevated Overlay Form
 ══════════════════════════════════════════════ */
 

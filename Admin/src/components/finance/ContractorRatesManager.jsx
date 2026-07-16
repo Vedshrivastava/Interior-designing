@@ -226,49 +226,47 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
                         One row per contractor actually assigned to each work type — fill in a rate to confirm it.
                     </p>
                     <div className="list-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1.2fr 2fr' }}>
-                            <b>Work Type</b><b>Contractor</b><b>Rate</b>
-                        </div>
-                        {[...contractorsByWorkType.entries()].map(([workType, contractors], groupIdx) => (
-                            contractors.map((c, idx) => {
-                                const existing = findExisting(workType, c.vendorId);
-                                const key = pairKey(workType, c.vendorId);
-                                const entry = pending[key] || { paymentBasis: 'per_sqft', rate: '' };
-                                return (
-                                    <div
-                                        key={key} className="list-table-format row-item"
-                                        style={{ gridTemplateColumns: '1.2fr 1.2fr 2fr', borderTop: idx === 0 && groupIdx > 0 ? '2px solid var(--gold, #c9a87c)' : undefined }}
-                                    >
-                                        <p>{idx === 0 ? workType : ''}</p>
-                                        <p>{c.vendorName}</p>
-                                        <div>
-                                            {existing ? (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                    <span>₹{existing.paymentBasis === 'per_sqft' ? existing.ratePerSqft : existing.ratePerDay} / {existing.paymentBasis === 'per_sqft' ? 'sqft' : 'day'}</span>
-                                                    <p onClick={() => removeRate(existing._id)} className="cursor delete-action" style={{ margin: 0 }}>Remove</p>
-                                                </div>
-                                            ) : (
-                                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                                    <select value={entry.paymentBasis} onChange={e => setPendingField(key, 'paymentBasis', e.target.value)}>
-                                                        <option value="per_sqft">Per Sqft</option>
-                                                        <option value="per_day">Per Day</option>
-                                                    </select>
-                                                    <input
-                                                        type="number" placeholder="Rate" value={entry.rate} style={{ width: '90px' }}
-                                                        onChange={e => setPendingField(key, 'rate', e.target.value)}
-                                                    />
-                                                    <button
-                                                        type="button" className="add-point-btn" disabled={savingKey === key}
-                                                        onClick={() => saveGridRate(workType, c.vendorId, key)}
-                                                    >
-                                                        {savingKey === key ? 'Saving…' : 'Save'}
-                                                    </button>
-                                                </div>
-                                            )}
+                        {[...contractorsByWorkType.entries()].map(([workType, contractors]) => (
+                            <div key={workType}>
+                                <div className="rate-group-header"><span className="rate-group-bar" /><b>{workType}</b></div>
+                                {contractors.map(c => {
+                                    const existing = findExisting(workType, c.vendorId);
+                                    const key = pairKey(workType, c.vendorId);
+                                    const entry = pending[key] || { paymentBasis: 'per_sqft', rate: '' };
+                                    return (
+                                        <div key={key} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 2.7fr' }}>
+                                            <p>{c.vendorName}</p>
+                                            <div className="rate-entry-row">
+                                                {existing ? (
+                                                    <>
+                                                        <span className="rate-entry-saved">
+                                                            ₹{existing.paymentBasis === 'per_sqft' ? existing.ratePerSqft : existing.ratePerDay} / {existing.paymentBasis === 'per_sqft' ? 'sqft' : 'day'}
+                                                        </span>
+                                                        <p onClick={() => removeRate(existing._id)} className="cursor delete-action" style={{ margin: 0 }}>Remove</p>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <select className="rate-entry-select" value={entry.paymentBasis} onChange={e => setPendingField(key, 'paymentBasis', e.target.value)}>
+                                                            <option value="per_sqft">Per Sqft</option>
+                                                            <option value="per_day">Per Day</option>
+                                                        </select>
+                                                        <input
+                                                            type="number" className="rate-entry-input" placeholder="Rate ₹" value={entry.rate}
+                                                            onChange={e => setPendingField(key, 'rate', e.target.value)}
+                                                        />
+                                                        <button
+                                                            type="button" className="add-point-btn" disabled={savingKey === key}
+                                                            onClick={() => saveGridRate(workType, c.vendorId, key)}
+                                                        >
+                                                            {savingKey === key ? 'Saving…' : 'Save'}
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })
+                                    );
+                                })}
+                            </div>
                         ))}
                     </div>
                 </>

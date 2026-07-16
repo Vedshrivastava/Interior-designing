@@ -82,18 +82,6 @@ export const FINANCE_MASTERS = {
             { key: 'minimumStockLevel', label: 'Min. Stock' },
         ],
     },
-    teams: {
-        label: 'Contractor Team', labelPlural: 'Contractor Teams', apiBase: '/api/finance/teams',
-        fields: [
-            { key: 'name', label: 'Team Name', type: 'text', required: true },
-            { key: 'contractorVendorId', label: 'Labour Contractor (vendor)', type: 'vendorSelect' },
-            { key: 'notes', label: 'Notes', type: 'textarea' },
-        ],
-        columns: [
-            { key: 'name', label: 'Name' },
-            { key: 'contractorVendorId', label: 'Contractor', vendorRef: true },
-        ],
-    },
     // Not surfaced under Masters' own page — a labourer only makes sense
     // scoped to one supervisor's roster, so its primary UI is Supervisors'
     // own Roster tab (LabourerRosterManager), not a flat global list.

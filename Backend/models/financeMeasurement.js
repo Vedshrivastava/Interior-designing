@@ -7,11 +7,10 @@ const financeMeasurementSchema = new mongoose.Schema({
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', required: true },
     workId:    { type: mongoose.Schema.Types.ObjectId, ref: 'financeWork', required: true },
 
-    // Which team did this day's measured area — required for new entries so
-    // earnings can attribute per-team when a Work has more than one crew.
-    // Old measurements predate this field and fall back to the Work's
-    // legacy teamId when read (see utils/workTeamAssignments.js).
-    teamId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeTeam', default: null },
+    // Which contractor vendor did this day's measured area — required for
+    // new entries so earnings can attribute correctly when a Work has more
+    // than one contractor on it.
+    contractorVendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', default: null },
 
     date:            { type: Date, required: true },
     supervisorName:  { type: String, default: '' }, // plain text — mirrors financeProject.assignedSupervisor; no Supervisor model yet
@@ -29,7 +28,7 @@ const financeMeasurementSchema = new mongoose.Schema({
 
     // Approval gates two things: whether this area is billable to the
     // client (financeRunningBill) and whether it's payable to the
-    // contractor team that did it (financeContractorLedger) — one signal,
+    // contractor who did it (financeContractorLedger) — one signal,
     // both consequences. Only ever toggled by whoever reviews the site
     // (the engineer), tracked here for accountability, not enforced by a
     // role check — there's no sub-role system in this app yet.

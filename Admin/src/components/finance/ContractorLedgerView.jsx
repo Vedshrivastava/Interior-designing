@@ -184,16 +184,13 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                             <div className="admin-empty-state"><p>No works for this contractor yet.</p></div>
                         ) : (
                             ledger.works.map(w => (
-                                <div key={w.key || w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 90px 100px 1fr' }}>
+                                <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 90px 100px 1fr' }}>
                                     <p>{w.projectName}</p>
-                                    <p>
-                                        {w.workType} <span className="admin-subtitle" style={{ display: 'inline' }}>({w.teamName})</span>
-                                        {w.isLegacyAttribution && <span className="admin-subtitle" style={{ display: 'inline' }} title="Attributed via the work's legacy team, not a per-measurement team"> · legacy</span>}
-                                    </p>
+                                    <p>{w.workType}</p>
                                     <p>{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft</p>
                                     <p>{w.approvedAreaSqft} sqft</p>
                                     <p style={{ color: w.neglectedAreaSqft > 0 ? '#c0392b' : 'var(--text-lt)' }}>{w.neglectedAreaSqft} sqft</p>
-                                    <p>{w.rate ? `₹${w.earnings.toLocaleString('en-IN')}` : <span title="No matching team rate configured">— (no rate)</span>}</p>
+                                    <p>{w.rate ? `₹${w.earnings.toLocaleString('en-IN')}` : <span title="No matching contractor rate configured">— (no rate)</span>}</p>
                                 </div>
                             ))
                         )}

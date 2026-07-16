@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-// Casual/daily-wage labour, distinct from contractor teams (financeTeam).
+// Casual/daily-wage labour, distinct from labour contractors (financeVendor).
 // amount is computed and frozen at entry time from rate × the
 // attendanceType multiplier (see controllers/financeDailyLabour.js), same
 // "snapshot, not recompute later" rule used for Running Bill line items and

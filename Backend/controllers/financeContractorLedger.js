@@ -1,13 +1,12 @@
-import FinanceTeam from '../models/financeTeam.js';
 import FinanceWork from '../models/financeWork.js';
 import FinanceMeasurement from '../models/financeMeasurement.js';
-import FinanceTeamRate from '../models/financeTeamRate.js';
+import FinanceContractorRate from '../models/financeContractorRate.js';
+import FinanceWorkContractorAssignment from '../models/financeWorkContractorAssignment.js';
 import FinanceProject from '../models/financeProject.js';
 import FinanceContractorAdvance from '../models/financeContractorAdvance.js';
 import FinanceContractorDeduction from '../models/financeContractorDeduction.js';
 import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import { assertContractorVendor } from '../utils/contractorVendor.js';
-import { findWorkIdsForTeams, getAssignmentsByWork, getTeamIdsForWork, resolveMeasurementTeamId } from '../utils/workTeamAssignments.js';
 
 // totalArea − approvedArea on floats accumulated across many measurements
 // produces artifacts like 21.300000000000001 — round for display/storage.
@@ -43,12 +42,9 @@ const getContractorLedger = async (req, res) => {
 
         const vendor = await assertContractorVendor(vendorId);
 
-        const teams = await FinanceTeam.find({ contractorVendorId: vendorId, deleted: { $ne: true } });
-        const teamIds = teams.map(t => t._id);
-        const teamIdSet = new Set(teamIds.map(t => t.toString()));
-        const teamNameById = new Map(teams.map(t => [t._id.toString(), t.name]));
+        const assignments = await FinanceWorkContractorAssignment.find({ contractorVendorId: vendorId, deleted: { $ne: true } });
+        const workIds = assignments.map(a => a.workId);
 
-        const workIds = await findWorkIdsForTeams(teamIds);
         const workFilter = { _id: { $in: workIds }, deleted: { $ne: true } };
         if (projectId) workFilter.projectId = projectId;
         const works = await FinanceWork.find(workFilter).sort({ createdAt: -1 });
@@ -58,73 +54,54 @@ const getContractorLedger = async (req, res) => {
         const projects = await FinanceProject.find({ _id: { $in: projectIds } });
         const projectNameById = new Map(projects.map(p => [p._id.toString(), p.name]));
 
-        const rates = await FinanceTeamRate.find({
-            projectId: { $in: projectIds }, teamId: { $in: teamIds }, deleted: { $ne: true },
+        const rates = await FinanceContractorRate.find({
+            projectId: { $in: projectIds }, contractorVendorId: vendorId, deleted: { $ne: true },
         });
-        const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.teamId}_${r.workType}`, r]));
+        const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.workType}`, r]));
+
+        // Earnings are measurement-level, restricted to measurements this
+        // vendor actually did — a Work can have another contractor on it
+        // too. Rows are seeded at zero for every Work this vendor is
+        // assigned to (so a brand-new Work with no measurements yet still
+        // shows up), then filled in from measurements.
+        const areaByWork = new Map(); // workId -> { totalArea, approvedArea }
+        for (const w of works) areaByWork.set(w._id.toString(), { totalArea: 0, approvedArea: 0 });
 
         const measurements = works.length
-            ? await FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } })
+            ? await FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, contractorVendorId: vendorId, deleted: { $ne: true } })
                 .populate('workId', 'workType')
                 .sort({ date: -1 })
             : [];
-
-        // Earnings are measurement-level: each day's area attributes to
-        // whichever team actually did it, restricted to this contractor's
-        // own teams (a Work can have another contractor's team on it too).
-        // Rows are seeded at zero for every work this contractor's teams are
-        // assigned to (so a brand-new Work with no measurements yet still
-        // shows up), then filled in from measurements.
-        const assignmentsByWorkId = await getAssignmentsByWork(works.map(w => w._id));
-        const teamRowsByWork = new Map(); // workId -> Map<teamId, {totalArea, approvedArea, isLegacyAttribution}>
-        for (const w of works) {
-            const assignedTeamIds = getTeamIdsForWork(w, assignmentsByWorkId)
-                .map(t => t.toString()).filter(t => teamIdSet.has(t));
-            if (!assignedTeamIds.length) continue;
-            const rowMap = new Map(assignedTeamIds.map(t => [t, { totalArea: 0, approvedArea: 0, isLegacyAttribution: false }]));
-            teamRowsByWork.set(w._id.toString(), rowMap);
-        }
         for (const m of measurements) {
-            const work = workById.get(m.workId._id.toString());
-            const { teamId: resolvedTeamId, isLegacyAttribution } = resolveMeasurementTeamId(m, work);
-            if (!resolvedTeamId || !teamIdSet.has(resolvedTeamId.toString())) continue;
             const workKey = m.workId._id.toString();
-            if (!teamRowsByWork.has(workKey)) teamRowsByWork.set(workKey, new Map());
-            const rowMap = teamRowsByWork.get(workKey);
-            const teamKey = resolvedTeamId.toString();
-            const cur = rowMap.get(teamKey) || { totalArea: 0, approvedArea: 0, isLegacyAttribution: false };
+            const cur = areaByWork.get(workKey) || { totalArea: 0, approvedArea: 0 };
             cur.totalArea += m.areaCoveredSqft;
             if (m.engineerApproved) cur.approvedArea += m.areaCoveredSqft;
-            cur.isLegacyAttribution = cur.isLegacyAttribution || isLegacyAttribution;
-            rowMap.set(teamKey, cur);
+            areaByWork.set(workKey, cur);
         }
 
         let earningsTotal = 0;
         let neglectedAmountTotal = 0;
         const worksOut = [];
         for (const w of works) {
-            const rowMap = teamRowsByWork.get(w._id.toString());
-            if (!rowMap) continue;
-            for (const [teamId, { totalArea, approvedArea, isLegacyAttribution }] of rowMap) {
-                const rate = rateByKey.get(`${w.projectId}_${teamId}_${w.workType}`);
-                const rateValue = rate ? (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft) : 0;
-                const neglectedArea = round2(totalArea - approvedArea);
-                const earnings = round2(rate ? approvedArea * rateValue : 0);
-                const neglectedAmount = round2(rate ? neglectedArea * rateValue : 0);
-                earningsTotal += earnings;
-                neglectedAmountTotal += neglectedAmount;
-                worksOut.push({
-                    _id: w._id, key: `${w._id}_${teamId}`,
-                    projectId: w.projectId, projectName: projectNameById.get(w.projectId.toString()) || '—',
-                    teamId, teamName: teamNameById.get(teamId) || '—',
-                    workType: w.workType,
-                    estimatedAreaSqft: w.estimatedAreaSqft, completedAreaSqft: round2(totalArea),
-                    approvedAreaSqft: round2(approvedArea), neglectedAreaSqft: neglectedArea,
-                    status: w.status,
-                    rate: rate ? { paymentBasis: rate.paymentBasis, ratePerSqft: rate.ratePerSqft, ratePerDay: rate.ratePerDay } : null,
-                    earnings, neglectedAmount, isLegacyAttribution,
-                });
-            }
+            const { totalArea, approvedArea } = areaByWork.get(w._id.toString());
+            const rate = rateByKey.get(`${w.projectId}_${w.workType}`);
+            const rateValue = rate ? (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft) : 0;
+            const neglectedArea = round2(totalArea - approvedArea);
+            const earnings = round2(rate ? approvedArea * rateValue : 0);
+            const neglectedAmount = round2(rate ? neglectedArea * rateValue : 0);
+            earningsTotal += earnings;
+            neglectedAmountTotal += neglectedAmount;
+            worksOut.push({
+                _id: w._id,
+                projectId: w.projectId, projectName: projectNameById.get(w.projectId.toString()) || '—',
+                workType: w.workType,
+                estimatedAreaSqft: w.estimatedAreaSqft, completedAreaSqft: round2(totalArea),
+                approvedAreaSqft: round2(approvedArea), neglectedAreaSqft: neglectedArea,
+                status: w.status,
+                rate: rate ? { paymentBasis: rate.paymentBasis, ratePerSqft: rate.ratePerSqft, ratePerDay: rate.ratePerDay } : null,
+                earnings, neglectedAmount,
+            });
         }
 
         const moneyFilter = { vendorId, deleted: { $ne: true } };

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
 
-const emptyForm = { workId: '', teamId: '', date: '', supervisorName: '', areaCoveredSqft: '', remarks: '' };
+const emptyForm = { workId: '', contractorVendorId: '', date: '', supervisorName: '', areaCoveredSqft: '', remarks: '' };
 
 /*
  * Daily Site Entry — used both scoped to one project (ProjectDetail's
@@ -21,7 +21,7 @@ const MeasurementsManager = ({ url, projectId: fixedProjectId }) => {
     const [selectedProjectId, setSelectedProjectId] = useState(fixedProjectId || '');
     const [projectDetail, setProjectDetail] = useState(null);
     const [works, setWorks] = useState([]);
-    const [workTeams, setWorkTeams] = useState([]);
+    const [workContractors, setWorkContractors] = useState([]);
     const [materials, setMaterials] = useState([]);
     const [measurements, setMeasurements] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -58,18 +58,18 @@ const MeasurementsManager = ({ url, projectId: fixedProjectId }) => {
         fetchMeasurements(selectedProjectId);
     }, [url, selectedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Scoped to only the teams currently assigned to the selected Work —
-    // not every team system-wide.
+    // Scoped to only the contractors currently assigned to the selected
+    // Work — not every contractor system-wide.
     useEffect(() => {
-        if (!form.workId) { setWorkTeams([]); return; }
-        axios.get(`${url}/api/finance/work-team-assignments/list`, { ...authHeader, params: { workId: form.workId } })
-            .then(res => { if (res.data.success) setWorkTeams(res.data.data); })
-            .catch(() => setWorkTeams([]));
+        if (!form.workId) { setWorkContractors([]); return; }
+        axios.get(`${url}/api/finance/work-contractor-assignments/list`, { ...authHeader, params: { workId: form.workId } })
+            .then(res => { if (res.data.success) setWorkContractors(res.data.data); })
+            .catch(() => setWorkContractors([]));
     }, [url, form.workId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => {
         const next = { ...prev, [key]: value };
-        if (key === 'workId') next.teamId = ''; // scoped team list changes with the work
+        if (key === 'workId') next.contractorVendorId = ''; // scoped contractor list changes with the work
         return next;
     });
     const addMaterialLine = () => setMaterialLines(prev => [...prev, { materialId: '', quantity: '' }]);
@@ -82,7 +82,7 @@ const MeasurementsManager = ({ url, projectId: fixedProjectId }) => {
         e.preventDefault();
         if (!selectedProjectId) return toast.error('Select a project');
         if (!form.workId) return toast.error('Work is required');
-        if (!form.teamId) return toast.error('Team is required');
+        if (!form.contractorVendorId) return toast.error('Contractor is required');
         if (!form.date) return toast.error('Date is required');
         if (!form.areaCoveredSqft || Number(form.areaCoveredSqft) <= 0) return toast.error('Area covered must be greater than zero');
 
@@ -91,7 +91,7 @@ const MeasurementsManager = ({ url, projectId: fixedProjectId }) => {
         const data = new FormData();
         data.append('projectId', selectedProjectId);
         data.append('workId', form.workId);
-        data.append('teamId', form.teamId);
+        data.append('contractorVendorId', form.contractorVendorId);
         data.append('date', form.date);
         data.append('supervisorName', form.supervisorName);
         data.append('areaCoveredSqft', form.areaCoveredSqft);
@@ -159,10 +159,10 @@ const MeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                                 </select>
                             </div>
                             <div className="add-product-name flex-col">
-                                <p>Team *</p>
-                                <select value={form.teamId} onChange={e => setField('teamId', e.target.value)} disabled={!form.workId}>
-                                    <option value="">{form.workId ? 'Select team…' : 'Select a work first'}</option>
-                                    {workTeams.map(a => <option key={a._id || a.teamId?._id} value={a.teamId?._id || a.teamId}>{a.teamId?.name}</option>)}
+                                <p>Contractor *</p>
+                                <select value={form.contractorVendorId} onChange={e => setField('contractorVendorId', e.target.value)} disabled={!form.workId}>
+                                    <option value="">{form.workId ? 'Select contractor…' : 'Select a work first'}</option>
+                                    {workContractors.map(a => <option key={a._id || a.contractorVendorId?._id} value={a.contractorVendorId?._id || a.contractorVendorId}>{a.contractorVendorId?.name}</option>)}
                                 </select>
                             </div>
                             <div className="add-product-name flex-col">
@@ -212,7 +212,7 @@ const MeasurementsManager = ({ url, projectId: fixedProjectId }) => {
 
                     <div className="list-table">
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr 1fr 100px' }}>
-                            <b>Date</b><b>Work</b><b>Team</b><b>Area Covered</b><b>Supervisor</b><b>Approved</b><b>Action</b>
+                            <b>Date</b><b>Work</b><b>Contractor</b><b>Area Covered</b><b>Supervisor</b><b>Approved</b><b>Action</b>
                         </div>
                         {loading ? (
                             <div className="admin-empty-state"><p>Loading…</p></div>
@@ -223,7 +223,7 @@ const MeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                                 <div key={m._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr 1fr 100px' }}>
                                     <p>{new Date(m.date).toLocaleDateString()}</p>
                                     <p>{m.workId?.workType || '—'}</p>
-                                    <p>{m.teamId?.name || (m.workId ? 'legacy' : '—')}</p>
+                                    <p>{m.contractorVendorId?.name || '—'}</p>
                                     <p>{m.areaCoveredSqft} sqft</p>
                                     <p>{m.supervisorName || '—'}</p>
                                     <p onClick={() => toggleApprove(m)} className="cursor" style={{ color: m.engineerApproved ? 'var(--moss)' : 'var(--text-lt)' }} title={m.engineerApproved && m.engineerApprovedBy ? `Approved by ${m.engineerApprovedBy}` : ''}>

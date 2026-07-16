@@ -1,42 +1,43 @@
 import FinanceProject from '../models/financeProject.js';
 import FinanceWorkTypeRate from '../models/financeWorkTypeRate.js';
-import FinanceTeamRate from '../models/financeTeamRate.js';
+import FinanceContractorRate from '../models/financeContractorRate.js';
 import FinanceWork from '../models/financeWork.js';
-import FinanceTeam from '../models/financeTeam.js';
+import FinanceWorkContractorAssignment from '../models/financeWorkContractorAssignment.js';
+import FinanceVendor from '../models/financeVendor.js';
 import { broadcast } from '../middlewares/webSocket.js';
-import { getAssignmentsByWork, getTeamIdsForWork } from '../utils/workTeamAssignments.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
-// Contractor is per-Work, via financeWorkTeamAssignment -> financeTeam.contractorVendorId
-// (a Work can have more than one team/contractor) — not a single
-// project-level field, and not a single team per Work either.
-// financeProject.labourContractorVendorId stays in the schema for old
-// records but is no longer authoritative; this derives the real, current
-// set fresh every time.
+// Contractor is per-Work, via financeWorkContractorAssignment ->
+// financeVendor directly (a Work can have more than one contractor) — not
+// a single project-level field. financeProject.labourContractorVendorId
+// stays in the schema for old records but is no longer authoritative;
+// this derives the real, current set fresh every time.
 const computeProjectContractors = async (projectId) => {
-    const works = await FinanceWork.find({ projectId, deleted: { $ne: true } }, '_id teamId workType');
+    const works = await FinanceWork.find({ projectId, deleted: { $ne: true } }, '_id workType');
     if (!works.length) return [];
-    const assignmentsByWorkId = await getAssignmentsByWork(works.map(w => w._id));
-    const workTeamPairs = works.flatMap(w =>
-        getTeamIdsForWork(w, assignmentsByWorkId).map(teamId => ({ teamId: teamId.toString(), workType: w.workType }))
-    );
-    if (!workTeamPairs.length) return [];
-    const teamIds = [...new Set(workTeamPairs.map(p => p.teamId))];
-    const teams = await FinanceTeam.find({ _id: { $in: teamIds }, deleted: { $ne: true } }).populate('contractorVendorId', 'name');
-    const teamById = new Map(teams.map(t => [t._id.toString(), t]));
+    const workById = new Map(works.map(w => [w._id.toString(), w]));
+
+    const assignments = await FinanceWorkContractorAssignment.find({
+        workId: { $in: works.map(w => w._id) }, deleted: { $ne: true },
+    });
+    if (!assignments.length) return [];
+    const vendorIds = [...new Set(assignments.map(a => a.contractorVendorId.toString()))];
+    const vendors = await FinanceVendor.find({ _id: { $in: vendorIds }, deleted: { $ne: true } });
+    const vendorById = new Map(vendors.map(v => [v._id.toString(), v]));
 
     const byVendor = new Map();
-    for (const { teamId, workType } of workTeamPairs) {
-        const team = teamById.get(teamId);
-        if (!team?.contractorVendorId) continue;
-        const vendorId = team.contractorVendorId._id.toString();
+    for (const a of assignments) {
+        const work = workById.get(a.workId.toString());
+        const vendor = vendorById.get(a.contractorVendorId.toString());
+        if (!work || !vendor) continue;
+        const vendorId = vendor._id.toString();
         if (!byVendor.has(vendorId)) {
-            byVendor.set(vendorId, { vendorId: team.contractorVendorId._id, vendorName: team.contractorVendorId.name, workTypes: new Set() });
+            byVendor.set(vendorId, { vendorId: vendor._id, vendorName: vendor.name, workTypes: new Set() });
         }
-        byVendor.get(vendorId).workTypes.add(workType);
+        byVendor.get(vendorId).workTypes.add(work.workType);
     }
     return [...byVendor.values()].map(v => ({ ...v, workTypes: [...v.workTypes] }));
 };
-import { logActivity } from '../utils/financeActivityLog.js';
 
 // Contract-type-specific field rules — enforced server-side so the wizard's
 // conditional UI can't be bypassed by a direct API call.
@@ -74,13 +75,13 @@ const listFinanceProjects = async (req, res) => {
             .sort({ createdAt: -1 });
 
         const withReadiness = await Promise.all(projects.map(async (p) => {
-            const [workTypeRateCount, teamRateCount] = await Promise.all([
+            const [workTypeRateCount, contractorRateCount] = await Promise.all([
                 FinanceWorkTypeRate.countDocuments({ projectId: p._id, deleted: { $ne: true } }),
-                FinanceTeamRate.countDocuments({ projectId: p._id, deleted: { $ne: true } }),
+                FinanceContractorRate.countDocuments({ projectId: p._id, deleted: { $ne: true } }),
             ]);
             const missing = [];
             if (workTypeRateCount === 0) missing.push('work type rates');
-            if (teamRateCount === 0) missing.push('team rates');
+            if (contractorRateCount === 0) missing.push('contractor rates');
             if (p.contractType === 'advance' && !p.advanceReceived) missing.push('advance payment');
             return { ...p.toObject(), readiness: { ready: missing.length === 0, missing } };
         }));
@@ -101,13 +102,13 @@ const getFinanceProject = async (req, res) => {
             .populate('assignedSupervisorId', 'name');
         if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
-        const [workTypeRates, teamRates, contractors] = await Promise.all([
+        const [workTypeRates, contractorRates, contractors] = await Promise.all([
             FinanceWorkTypeRate.find({ projectId: project._id, deleted: { $ne: true } }).sort({ workType: 1 }),
-            FinanceTeamRate.find({ projectId: project._id, deleted: { $ne: true } }).populate('teamId', 'name').sort({ workType: 1 }),
+            FinanceContractorRate.find({ projectId: project._id, deleted: { $ne: true } }).populate('contractorVendorId', 'name').sort({ workType: 1 }),
             computeProjectContractors(project._id),
         ]);
 
-        res.json({ success: true, data: { project, workTypeRates, teamRates, contractors } });
+        res.json({ success: true, data: { project, workTypeRates, contractorRates, contractors } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error fetching project' });
@@ -241,14 +242,14 @@ const activateFinanceProject = async (req, res) => {
         if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
         if (project.status === 'active') return res.json({ success: true, message: 'Already active', data: project });
 
-        const [workTypeRateCount, teamRateCount] = await Promise.all([
+        const [workTypeRateCount, contractorRateCount] = await Promise.all([
             FinanceWorkTypeRate.countDocuments({ projectId: _id, deleted: { $ne: true } }),
-            FinanceTeamRate.countDocuments({ projectId: _id, deleted: { $ne: true } }),
+            FinanceContractorRate.countDocuments({ projectId: _id, deleted: { $ne: true } }),
         ]);
 
         const missing = [];
         if (workTypeRateCount === 0) missing.push('at least one work type rate');
-        if (teamRateCount === 0) missing.push('at least one team rate');
+        if (contractorRateCount === 0) missing.push('at least one contractor rate');
         if (project.contractType === 'advance') {
             if (!project.totalEstimatedCost || !project.contractPercentage) missing.push('the total estimated cost and contract percentage');
             if (!project.advanceReceived) missing.push('the advance payment');

@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import TeamOrLabourPicker from './TeamOrLabourPicker';
+import ContractorOrLabourPicker from './ContractorOrLabourPicker';
 import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 import '../../styles/add.css';
@@ -11,19 +11,19 @@ import '../../styles/add.css';
 const STATUS_LABEL = { active: 'Active', completed: 'Completed' };
 
 const emptyForm = { workType: '', workOrderNumber: '', startDate: '', estimatedAreaSqft: '', status: 'active', notes: '' };
-const emptyAssignmentRow = () => ({ teamId: '', notes: '' });
+const emptyAssignmentRow = () => ({ contractorVendorId: '', notes: '' });
 
 /* Manages financeWork rows for one project — the individual work items
-   (e.g. "Putty" done by one or more teams) that measurements get logged
-   against. completedAreaSqft is read-only here; it's only ever moved by the
-   measurement-save automation on the backend.
+   (e.g. "Putty" done by one or more contractors) that measurements get
+   logged against. completedAreaSqft is read-only here; it's only ever
+   moved by the measurement-save automation on the backend.
 
-   A Work can have more than one team (crews splitting the same scope), so
-   team assignment isn't a single field on the Work anymore:
-     - Creating a Work takes one or more teams up front (teamAssignments).
-     - Changing an existing Work's teams happens in a separate "Manage
-       Teams" modal, calling /work-team-assignments directly — the Work's
-       own edit form no longer touches team data at all. */
+   A Work can have more than one contractor (splitting the same scope), so
+   assignment isn't a single field on the Work anymore:
+     - Creating a Work takes one or more contractors up front (contractorAssignments).
+     - Changing an existing Work's contractors happens in a separate
+       "Manage Contractors" modal, calling /work-contractor-assignments
+       directly — the Work's own edit form no longer touches that data. */
 const WorksManager = ({ url, projectId, onWorksChanged }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
@@ -35,17 +35,17 @@ const WorksManager = ({ url, projectId, onWorksChanged }) => {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [form, setForm] = useState(emptyForm);
-    const [teamAssignments, setTeamAssignments] = useState([emptyAssignmentRow()]);
+    const [contractorAssignments, setContractorAssignments] = useState([emptyAssignmentRow()]);
     const [saving, setSaving] = useState(false);
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
-    const [teamsModalWork, setTeamsModalWork] = useState(null);
-    const [workTeams, setWorkTeams] = useState([]);
-    const [newTeamId, setNewTeamId] = useState('');
-    const [newTeamNotes, setNewTeamNotes] = useState('');
-    const [teamsLoading, setTeamsLoading] = useState(false);
-    const [teamsSaving, setTeamsSaving] = useState(false);
+    const [contractorsModalWork, setContractorsModalWork] = useState(null);
+    const [workContractors, setWorkContractors] = useState([]);
+    const [newContractorVendorId, setNewContractorVendorId] = useState('');
+    const [newContractorNotes, setNewContractorNotes] = useState('');
+    const [contractorsLoading, setContractorsLoading] = useState(false);
+    const [contractorsSaving, setContractorsSaving] = useState(false);
 
     const fetchWorks = async () => {
         setLoading(true);
@@ -63,7 +63,7 @@ const WorksManager = ({ url, projectId, onWorksChanged }) => {
             .then(res => { if (res.data.success) setWorkTypeOptions(res.data.data.map(s => s.name)); }).catch(() => {});
     }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const openAdd = () => { setEditingId(null); setForm(emptyForm); setTeamAssignments([emptyAssignmentRow()]); setModalOpen(true); };
+    const openAdd = () => { setEditingId(null); setForm(emptyForm); setContractorAssignments([emptyAssignmentRow()]); setModalOpen(true); };
     const openEdit = (w) => {
         setEditingId(w._id);
         setForm({
@@ -77,21 +77,21 @@ const WorksManager = ({ url, projectId, onWorksChanged }) => {
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
     const setAssignmentField = (idx, key, value) =>
-        setTeamAssignments(prev => prev.map((a, i) => (i === idx ? { ...a, [key]: value } : a)));
-    const addAssignmentRow = () => setTeamAssignments(prev => [...prev, emptyAssignmentRow()]);
-    const removeAssignmentRow = (idx) => setTeamAssignments(prev => prev.filter((_, i) => i !== idx));
+        setContractorAssignments(prev => prev.map((a, i) => (i === idx ? { ...a, [key]: value } : a)));
+    const addAssignmentRow = () => setContractorAssignments(prev => [...prev, emptyAssignmentRow()]);
+    const removeAssignmentRow = (idx) => setContractorAssignments(prev => prev.filter((_, i) => i !== idx));
 
     const submit = async (e) => {
         e.preventDefault();
         if (!form.workType.trim()) return toast.error('Work type is required');
         if (!form.estimatedAreaSqft || Number(form.estimatedAreaSqft) <= 0) return toast.error('Estimated area is required');
-        if (!editingId && !teamAssignments.some(a => a.teamId)) return toast.error('At least one team is required');
+        if (!editingId && !contractorAssignments.some(a => a.contractorVendorId)) return toast.error('At least one contractor is required');
 
         setSaving(true);
         try {
             const payload = editingId
                 ? { ...form, _id: editingId, projectId }
-                : { ...form, projectId, teamAssignments: teamAssignments.filter(a => a.teamId) };
+                : { ...form, projectId, contractorAssignments: contractorAssignments.filter(a => a.contractorVendorId) };
             const endpoint = editingId ? 'update' : 'add';
             const res = await axios.post(`${url}/api/finance/works/${endpoint}`, payload, authHeader);
             if (res.data.success) {
@@ -116,46 +116,46 @@ const WorksManager = ({ url, projectId, onWorksChanged }) => {
         finally { setDeleting(false); }
     };
 
-    const openTeamsModal = async (w) => {
-        setTeamsModalWork(w);
-        setNewTeamId(''); setNewTeamNotes('');
-        await fetchWorkTeams(w._id);
+    const openContractorsModal = async (w) => {
+        setContractorsModalWork(w);
+        setNewContractorVendorId(''); setNewContractorNotes('');
+        await fetchWorkContractors(w._id);
     };
-    const closeTeamsModal = () => setTeamsModalWork(null);
+    const closeContractorsModal = () => setContractorsModalWork(null);
 
-    const fetchWorkTeams = async (workId) => {
-        setTeamsLoading(true);
+    const fetchWorkContractors = async (workId) => {
+        setContractorsLoading(true);
         try {
-            const res = await axios.get(`${url}/api/finance/work-team-assignments/list`, { ...authHeader, params: { workId } });
-            if (res.data.success) setWorkTeams(res.data.data);
-        } catch { toast.error('Error fetching team assignments'); }
-        finally { setTeamsLoading(false); }
+            const res = await axios.get(`${url}/api/finance/work-contractor-assignments/list`, { ...authHeader, params: { workId } });
+            if (res.data.success) setWorkContractors(res.data.data);
+        } catch { toast.error('Error fetching contractor assignments'); }
+        finally { setContractorsLoading(false); }
     };
 
-    const addWorkTeam = async () => {
-        if (!newTeamId) return toast.error('Select a team');
-        setTeamsSaving(true);
+    const addWorkContractor = async () => {
+        if (!newContractorVendorId) return toast.error('Select a contractor');
+        setContractorsSaving(true);
         try {
-            const res = await axios.post(`${url}/api/finance/work-team-assignments/add`,
-                { workId: teamsModalWork._id, teamId: newTeamId, notes: newTeamNotes }, authHeader);
+            const res = await axios.post(`${url}/api/finance/work-contractor-assignments/add`,
+                { workId: contractorsModalWork._id, contractorVendorId: newContractorVendorId, notes: newContractorNotes }, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message);
-                setNewTeamId(''); setNewTeamNotes('');
-                await fetchWorkTeams(teamsModalWork._id);
+                setNewContractorVendorId(''); setNewContractorNotes('');
+                await fetchWorkContractors(contractorsModalWork._id);
                 await fetchWorks();
             } else toast.error(res.data.message);
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Error assigning team');
-        } finally { setTeamsSaving(false); }
+            toast.error(err.response?.data?.message || 'Error assigning contractor');
+        } finally { setContractorsSaving(false); }
     };
 
-    const removeWorkTeam = async (assignmentId) => {
+    const removeWorkContractor = async (assignmentId) => {
         try {
-            const res = await axios.post(`${url}/api/finance/work-team-assignments/remove`, { _id: assignmentId }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); await fetchWorkTeams(teamsModalWork._id); await fetchWorks(); }
+            const res = await axios.post(`${url}/api/finance/work-contractor-assignments/remove`, { _id: assignmentId }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); await fetchWorkContractors(contractorsModalWork._id); await fetchWorks(); }
             else toast.error(res.data.message);
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Error removing team');
+            toast.error(err.response?.data?.message || 'Error removing contractor');
         }
     };
 
@@ -192,7 +192,7 @@ const WorksManager = ({ url, projectId, onWorksChanged }) => {
                                 <p><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
                                 <div className="action-buttons">
                                     <p onClick={() => navigate(`/finance/projects/${projectId}/works/${w._id}`)} className="cursor edit-action">Details</p>
-                                    <p onClick={() => openTeamsModal(w)} className="cursor edit-action">Contractors</p>
+                                    <p onClick={() => openContractorsModal(w)} className="cursor edit-action">Contractors</p>
                                     <p onClick={() => openEdit(w)} className="cursor edit-action">Edit</p>
                                     <p onClick={() => setConfirmItem(w)} className="cursor delete-action">X</p>
                                 </div>
@@ -218,22 +218,22 @@ const WorksManager = ({ url, projectId, onWorksChanged }) => {
 
                             {!editingId && (
                                 <div className="add-product-name flex-col">
-                                    <p>Contractor Team(s) *</p>
+                                    <p>Contractor(s) *</p>
                                     <div className="add-product-points">
-                                        {teamAssignments.map((a, idx) => (
+                                        {contractorAssignments.map((a, idx) => (
                                             <div key={idx} className="point-input">
                                                 <div style={{ flex: 1 }}>
-                                                    <TeamOrLabourPicker url={url} value={a.teamId}
-                                                        onChange={v => setAssignmentField(idx, 'teamId', v)} />
+                                                    <ContractorOrLabourPicker url={url} value={a.contractorVendorId}
+                                                        onChange={v => setAssignmentField(idx, 'contractorVendorId', v)} />
                                                 </div>
                                                 <input type="text" placeholder="Notes (optional)" value={a.notes}
                                                     onChange={e => setAssignmentField(idx, 'notes', e.target.value)} style={{ flex: 1 }} />
-                                                {teamAssignments.length > 1 && (
+                                                {contractorAssignments.length > 1 && (
                                                     <button type="button" className="remove-point-btn" onClick={() => removeAssignmentRow(idx)}>X</button>
                                                 )}
                                             </div>
                                         ))}
-                                        <button type="button" className="add-point-btn" onClick={addAssignmentRow}>+ Add Contractor Team</button>
+                                        <button type="button" className="add-point-btn" onClick={addAssignmentRow}>+ Add Contractor</button>
                                     </div>
                                 </div>
                             )}
@@ -273,46 +273,44 @@ const WorksManager = ({ url, projectId, onWorksChanged }) => {
                 document.body
             )}
 
-            {teamsModalWork && ReactDOM.createPortal(
+            {contractorsModalWork && ReactDOM.createPortal(
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
                     <div className="loader-modal-box edit-modal">
-                        <h2>Manage Contractor Teams — {teamsModalWork.workType}</h2>
-                        {teamsLoading ? (
+                        <h2>Manage Contractors — {contractorsModalWork.workType}</h2>
+                        {contractorsLoading ? (
                             <div className="admin-empty-state"><p>Loading…</p></div>
                         ) : (
                             <div className="list-table" style={{ marginBottom: '16px' }}>
                                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1.5fr 100px' }}>
-                                    <b>Contractor Team</b><b>Notes</b><b>Action</b>
+                                    <b>Contractor</b><b>Notes</b><b>Action</b>
                                 </div>
-                                {workTeams.map(a => (
-                                    <div key={a._id || a.teamId?._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1.5fr 100px' }}>
-                                        <p>{a.teamId?.name || '—'}{a.legacy ? ' (legacy)' : ''}</p>
+                                {workContractors.map(a => (
+                                    <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1.5fr 100px' }}>
+                                        <p>{a.contractorVendorId?.name || '—'}</p>
                                         <p>{a.notes || '—'}</p>
                                         <div className="action-buttons">
-                                            {!a.legacy && (
-                                                <p onClick={() => removeWorkTeam(a._id)} className="cursor delete-action">X</p>
-                                            )}
+                                            <p onClick={() => removeWorkContractor(a._id)} className="cursor delete-action">X</p>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         )}
                         <div className="add-product-name flex-col">
-                            <p>Add Contractor Team</p>
+                            <p>Add Contractor</p>
                             <div className="point-input">
                                 <div style={{ flex: 1 }}>
-                                    <TeamOrLabourPicker url={url} value={newTeamId} onChange={setNewTeamId} />
+                                    <ContractorOrLabourPicker url={url} value={newContractorVendorId} onChange={setNewContractorVendorId} />
                                 </div>
-                                <input type="text" placeholder="Notes (optional)" value={newTeamNotes}
-                                    onChange={e => setNewTeamNotes(e.target.value)} style={{ flex: 1 }} />
-                                <button type="button" className="add-point-btn" disabled={teamsSaving} onClick={addWorkTeam}>
-                                    {teamsSaving ? 'Adding…' : '+ Add'}
+                                <input type="text" placeholder="Notes (optional)" value={newContractorNotes}
+                                    onChange={e => setNewContractorNotes(e.target.value)} style={{ flex: 1 }} />
+                                <button type="button" className="add-point-btn" disabled={contractorsSaving} onClick={addWorkContractor}>
+                                    {contractorsSaving ? 'Adding…' : '+ Add'}
                                 </button>
                             </div>
                         </div>
                         <div className="edit-modal-actions">
                             <span />
-                            <button type="button" className="add-btn" onClick={closeTeamsModal}>Done</button>
+                            <button type="button" className="add-btn" onClick={closeContractorsModal}>Done</button>
                         </div>
                     </div>
                 </div>,

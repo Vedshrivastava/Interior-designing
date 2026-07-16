@@ -6,8 +6,8 @@ import '../../styles/list.css';
 const STATUS_LABEL = { active: 'Active', completed: 'Completed' };
 
 /* Read-only — this contractor's financeWork rows across every project,
-   resolved via their teams. Editing a work happens on that project's own
-   Works tab; this is just the contractor-eye view. */
+   resolved via their work-contractor assignments. Editing a work happens
+   on that project's own Works tab; this is just the contractor-eye view. */
 const ContractorWorksView = ({ url, vendorId }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -28,13 +28,12 @@ const ContractorWorksView = ({ url, vendorId }) => {
 
     return (
         <div className="list-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1.3fr 1fr' }}>
-                <b>Project</b><b>Team</b><b>Work Type</b><b>Completed / Estimated</b><b>Status</b>
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1.3fr 1fr' }}>
+                <b>Project</b><b>Work Type</b><b>Completed / Estimated</b><b>Status</b>
             </div>
             {works.map(w => (
-                <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1.3fr 1fr' }}>
+                <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1.3fr 1fr' }}>
                     <p>{w.projectName}</p>
-                    <p>{w.teamName}</p>
                     <p>{w.workType}</p>
                     <p>{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft</p>
                     <p><span className="item-category">{STATUS_LABEL[w.status]}</span></p>

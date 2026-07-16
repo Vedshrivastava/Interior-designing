@@ -27,13 +27,12 @@ import financeClientRouter   from "./routes/financeClient.js";
 import financeVendorRouter   from "./routes/financeVendor.js";
 import financeEmployeeRouter from "./routes/financeEmployee.js";
 import financeMaterialRouter from "./routes/financeMaterial.js";
-import financeTeamRouter     from "./routes/financeTeam.js";
 import financeSettingRouter  from "./routes/financeSetting.js";
 import financeProjectRouter      from "./routes/financeProject.js";
 import financeWorkTypeRateRouter from "./routes/financeWorkTypeRate.js";
-import financeTeamRateRouter     from "./routes/financeTeamRate.js";
+import financeContractorRateRouter from "./routes/financeContractorRate.js";
 import financeWorkRouter           from "./routes/financeWork.js";
-import financeWorkTeamAssignmentRouter from "./routes/financeWorkTeamAssignment.js";
+import financeWorkContractorAssignmentRouter from "./routes/financeWorkContractorAssignment.js";
 import financeMeasurementRouter    from "./routes/financeMeasurement.js";
 import financeStockMovementRouter  from "./routes/financeStockMovement.js";
 import financeRunningBillRouter    from "./routes/financeRunningBill.js";
@@ -135,15 +134,14 @@ app.use('/api/finance/vendors',   financeCommissionLedgerRouter); // same prefix
 app.use('/api/finance/employees', financeEmployeeRouter);
 app.use('/api/finance/employees', financeSalaryLedgerRouter); // same prefix, separate ledger concern — see routes/financeSalaryLedger.js
 app.use('/api/finance/materials', financeMaterialRouter);
-app.use('/api/finance/teams',     financeTeamRouter);
 app.use('/api/finance/settings',  financeSettingRouter);
 app.use('/api/finance/settings',  financeCompanySettingsRouter); // same prefix, separate concern — see routes/financeCompanySettings.js
 app.use('/api/finance/projects',        financeProjectRouter);
 app.use('/api/finance/project-documents', financeProjectDocumentRouter);
 app.use('/api/finance/work-type-rates', financeWorkTypeRateRouter);
-app.use('/api/finance/team-rates',      financeTeamRateRouter);
+app.use('/api/finance/contractor-rates', financeContractorRateRouter);
 app.use('/api/finance/works',           financeWorkRouter);
-app.use('/api/finance/work-team-assignments', financeWorkTeamAssignmentRouter);
+app.use('/api/finance/work-contractor-assignments', financeWorkContractorAssignmentRouter);
 app.use('/api/finance/measurements',    financeMeasurementRouter);
 app.use('/api/finance/stock-movements', financeStockMovementRouter);
 app.use('/api/finance/running-bills',   financeRunningBillRouter);

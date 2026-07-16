@@ -1,19 +1,15 @@
 import mongoose from 'mongoose';
 
 // A work item under a project — e.g. "ABC Mall → Putty". `workType` is the
-// same free-text value already used in financeWorkTypeRate/financeTeamRate,
-// so client/referral/team rates resolve by looking up (projectId, workType)
-// / (projectId, teamId, workType) rather than duplicating rate fields here.
+// same free-text value already used in financeWorkTypeRate/financeContractorRate,
+// so client/referral/contractor rates resolve by looking up (projectId, workType)
+// / (projectId, contractorVendorId, workType) rather than duplicating rate
+// fields here. Contractor assignment is one-to-many via
+// financeWorkContractorAssignment, since a Work can have more than one
+// contractor splitting its area.
 const financeWorkSchema = new mongoose.Schema({
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', required: true },
     workType:  { type: String, required: true },
-
-    // Legacy single-team field — populated only on Works created before
-    // financeWorkTeamAssignment existed. No longer written by addWork; team
-    // assignment is now one-to-many via financeWorkTeamAssignment, since a
-    // Work can have multiple crews splitting its area. Left in the schema
-    // so old records and the migration script still have something to read.
-    teamId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeTeam', default: null },
 
     workOrderNumber:    { type: String, default: '' },
     startDate:          { type: Date },

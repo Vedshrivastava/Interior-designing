@@ -54,7 +54,7 @@ export const FINANCE_NAV_SECTIONS = [
       },
       {
         to: '/finance/projects/new', icon: faCirclePlus, label: 'New Project',
-        tabs: [{ key: 'wizard', label: 'Wizard', description: 'Guided 6-step setup: basic info, contract type, conditional rate setup, team assignment, and — for Advance contracts — the upfront payment.' }],
+        tabs: [{ key: 'wizard', label: 'Wizard', description: 'Guided 6-step setup: basic info, contract type, conditional rate setup, contractor assignment, and — for Advance contracts — the upfront payment.' }],
       },
     ],
   },
@@ -117,7 +117,8 @@ export const FINANCE_NAV_SECTIONS = [
         // the Contractor Ledger build, Ledger and Settlements both render
         // the same computed earnings/advances/deductions/payments/balance
         // view (GET /api/finance/contractors/:vendorId/ledger); Works and
-        // Measurements are real too, resolved via this contractor's teams.
+        // Measurements are real too, resolved directly via this vendor's
+        // work-contractor assignments — no separate Team concept.
         tabs: [{ key: 'overview', label: 'Overview', description: 'Vendors with type Labour Contractor.' }],
       },
       {
@@ -143,8 +144,8 @@ export const FINANCE_NAV_SECTIONS = [
       {
         to: '/finance/daily-labour', icon: faPersonDigging, label: 'Daily Labour',
         // Bespoke component, real as of the Supervisors + Daily Labour
-        // build. Casual/daily-wage labour, distinct from contractor teams
-        // (financeTeam) — no separate labourer master, entries are
+        // build. Casual/daily-wage labour, distinct from labour contractors
+        // (financeVendor) — no separate labourer master, entries are
         // name-only. amount is computed and frozen at entry time:
         // half_day = 0.5×rate, full_day = 1×rate, extra_day = 1.5×rate.
         // Feeds into Reports > Project Profit as its own Daily Labour
@@ -315,8 +316,10 @@ export const FINANCE_NAV_SECTIONS = [
         // Bespoke component. Restructured internally — see MasterData.jsx —
         // and now the most complete module by far: Material Master, Work
         // Types, Payment Modes, Expense Heads, TDS Sections, Units, Cities,
-        // Commission Types, Employees, and Labour Teams all have full CRUD
-        // backing them. Salary Ledger tab added in the Salary + Commission
+        // Commission Types, and Employees all have full CRUD backing them
+        // (Contractor Teams was collapsed directly into Vendors — a
+        // contractor is just a vendor now, no separate Team master).
+        // Salary Ledger tab added in the Salary + Commission
         // + Other Expenses build — a picker on this same page feeds
         // GET /api/finance/employees/:employeeId/salary-ledger, computed
         // from employee.salary minus financeSalaryPayment for the chosen
@@ -334,7 +337,7 @@ export const FINANCE_NAV_SECTIONS = [
         // completedAreaSqft × referralRatePerSqft). The Banks placeholder
         // tab was removed in that same build — Bank Accounts already
         // exists for real under its own top-level Bank section.
-        tabs: [{ key: 'overview', label: 'Overview', description: 'Material catalog, work types, payment modes, expense heads, TDS sections, units, cities, commission types, employees, and contractor teams.' }],
+        tabs: [{ key: 'overview', label: 'Overview', description: 'Material catalog, work types, payment modes, expense heads, TDS sections, units, cities, commission types, and employees.' }],
       },
       {
         to: '/finance/settings', icon: faGear, label: 'Settings',
@@ -384,7 +387,7 @@ export const financeModuleKeyForPath = (pathname) => {
  *                                          + Contractors > Overview (filtered, contractor)  [bespoke: ContractorsPage]
  *   Master Data → Employees             → Masters > Employees (unchanged)
  *   Master Data → Materials             → Masters > Material Master
- *   Master Data → Labour Teams          → Masters > Labour Teams (unchanged)
+ *   Master Data → Labour Teams          → collapsed into Vendors (a contractor is a vendor, no separate Team master)
  *   Master Data → Settings & Lists      → Masters > Work Types / Payment Modes / Expense Heads / TDS Sections
  *   Daily Site Entry (Phase 1)          → Site Operations
  *   Month-End Settlements (Phase 2)     → Contractors > Settlements + Supervisors > Incentives

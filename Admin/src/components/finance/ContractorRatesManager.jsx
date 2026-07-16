@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import TeamOrLabourPicker from './TeamOrLabourPicker';
+import ContractorOrLabourPicker from './ContractorOrLabourPicker';
 import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const emptyForm = { teamId: '', workType: '', paymentBasis: 'per_sqft', rate: '' };
+const emptyForm = { contractorVendorId: '', workType: '', paymentBasis: 'per_sqft', rate: '' };
 
-/* Manages financeTeamRate rows for one project — used in both the New
-   Project wizard (Step 4) and the Project Detail page's Team Rates tab.
-   A single team can have multiple rows on the same project, one per work type. */
-const TeamRatesManager = ({ url, projectId, worksVersion }) => {
+/* Manages financeContractorRate rows for one project — used in both the
+   New Project wizard (Step 4) and the Project Detail page's Contractor
+   Rates tab. A single contractor can have multiple rows on the same
+   project, one per work type. */
+const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -27,9 +28,9 @@ const TeamRatesManager = ({ url, projectId, worksVersion }) => {
 
     const fetchList = async () => {
         try {
-            const res = await axios.get(`${url}/api/finance/team-rates/list`, { ...authHeader, params: { projectId } });
+            const res = await axios.get(`${url}/api/finance/contractor-rates/list`, { ...authHeader, params: { projectId } });
             if (res.data.success) setItems(res.data.data);
-        } catch { toast.error('Error fetching team rates'); }
+        } catch { toast.error('Error fetching contractor rates'); }
     };
 
     // A rate should only ever be settable for a work type this project
@@ -57,46 +58,46 @@ const TeamRatesManager = ({ url, projectId, worksVersion }) => {
     // Remove and re-add if a rate was entered wrong.
     const submit = async (e) => {
         e.preventDefault();
-        if (!form.teamId) { toast.error('Team is required'); return; }
+        if (!form.contractorVendorId) { toast.error('Contractor is required'); return; }
         if (!form.workType.trim()) { toast.error('Work type is required'); return; }
         if (form.rate === '') { toast.error('Rate is required'); return; }
         setSaving(true);
         try {
             const payload = {
-                projectId, teamId: form.teamId, workType: form.workType.trim(), paymentBasis: form.paymentBasis,
+                projectId, contractorVendorId: form.contractorVendorId, workType: form.workType.trim(), paymentBasis: form.paymentBasis,
                 ratePerSqft: form.paymentBasis === 'per_sqft' ? form.rate : 0,
                 ratePerDay: form.paymentBasis === 'per_day' ? form.rate : 0,
             };
-            const res = await axios.post(`${url}/api/finance/team-rates/add`, payload, authHeader);
+            const res = await axios.post(`${url}/api/finance/contractor-rates/add`, payload, authHeader);
             if (res.data.success) {
-                toast.success(res.data.message || 'Team rate added');
+                toast.success(res.data.message || 'Contractor rate added');
                 setForm(emptyForm);
                 await fetchList();
             } else toast.error(res.data.message);
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Error adding team rate');
+            toast.error(err.response?.data?.message || 'Error adding contractor rate');
         } finally { setSaving(false); }
     };
 
     const removeRate = async (_id) => {
         try {
-            const res = await axios.post(`${url}/api/finance/team-rates/remove`, { _id }, authHeader);
+            const res = await axios.post(`${url}/api/finance/contractor-rates/remove`, { _id }, authHeader);
             if (res.data.success) { toast.success(res.data.message); await fetchList(); }
             else toast.error(res.data.message);
-        } catch { toast.error('Error removing team rate'); }
+        } catch { toast.error('Error removing contractor rate'); }
     };
 
     return (
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                Assign teams and add one rate row per work type each team performs. Required before this project can go active.
+                Assign contractors and add one rate row per work type each performs. Required before this project can go active.
             </p>
 
             <form onSubmit={submit}>
                 <div className="wizard-field-grid">
                     <div className="add-product-name flex-col">
-                        <p>Team *</p>
-                        <TeamOrLabourPicker url={url} value={form.teamId} onChange={v => setField('teamId', v)} />
+                        <p>Contractor *</p>
+                        <ContractorOrLabourPicker url={url} value={form.contractorVendorId} onChange={v => setField('contractorVendorId', v)} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Work Type *</p>
@@ -126,16 +127,16 @@ const TeamRatesManager = ({ url, projectId, worksVersion }) => {
 
             <div className="list-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1fr 100px' }}>
-                    <b>Team</b><b>Work Type</b><b>Basis</b><b>Rate</b><b>Action</b>
+                    <b>Contractor</b><b>Work Type</b><b>Basis</b><b>Rate</b><b>Action</b>
                 </div>
                 {items.length === 0 ? (
-                    <div className="admin-empty-state"><p>No team rates yet.</p></div>
+                    <div className="admin-empty-state"><p>No contractor rates yet.</p></div>
                 ) : (
                     items.map(item => {
                         const isOrphaned = realWorkTypes && !realWorkTypes.has(item.workType);
                         return (
                             <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1fr 100px' }}>
-                                <p>{item.teamId?.name || '—'}</p>
+                                <p>{item.contractorVendorId?.name || '—'}</p>
                                 <p>
                                     {item.workType}
                                     {isOrphaned && (
@@ -162,4 +163,4 @@ const TeamRatesManager = ({ url, projectId, worksVersion }) => {
     );
 };
 
-export default TeamRatesManager;
+export default ContractorRatesManager;

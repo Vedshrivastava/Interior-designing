@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import WorkTypeRatesManager from '../../components/finance/WorkTypeRatesManager';
-import TeamRatesManager from '../../components/finance/TeamRatesManager';
+import ContractorRatesManager from '../../components/finance/ContractorRatesManager';
 import SettingSelectField, { registerSettingIfNew } from '../../components/finance/SettingSelectField';
 import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import '../../styles/list.css';
@@ -43,8 +43,8 @@ const NewProjectWizard = ({ url }) => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'city' } }).then(res => { if (res.data.success) setCityOptions(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const steps = ['basic', 'type', 'setup', 'teams', ...(contractType === 'advance' ? ['advance'] : []), 'activate'];
-    const stepLabels = { basic: 'Basic Info', type: 'Contract Type', setup: 'Setup', teams: 'Team Rates', advance: 'Advance Payment', activate: 'Activate' };
+    const steps = ['basic', 'type', 'setup', 'contractors', ...(contractType === 'advance' ? ['advance'] : []), 'activate'];
+    const stepLabels = { basic: 'Basic Info', type: 'Contract Type', setup: 'Setup', contractors: 'Contractor Rates', advance: 'Advance Payment', activate: 'Activate' };
     const stepIndex = steps.indexOf(stepKey);
 
     const advanceAmount = (Number(totalEstimatedCost) || 0) * (Number(contractPercentage) || 0) / 100;
@@ -82,7 +82,7 @@ const NewProjectWizard = ({ url }) => {
     };
 
     /* Step 3 → 4: persist the conditional setup fields */
-    const goToTeams = async () => {
+    const goToContractors = async () => {
         if (contractType === 'advance' && (!totalEstimatedCost || !contractPercentage)) {
             return toast.error('Total estimated cost and contract percentage are required for Advance projects');
         }
@@ -98,7 +98,7 @@ const NewProjectWizard = ({ url }) => {
                 contractPercentage: contractType === 'advance' ? contractPercentage : 0,
             }, authHeader);
             if (!res.data.success) { toast.error(res.data.message); return; }
-            setStepKey('teams');
+            setStepKey('contractors');
         } catch (err) {
             toast.error(err.response?.data?.message || 'Error saving setup');
         } finally { setSaving(false); }
@@ -294,18 +294,18 @@ const NewProjectWizard = ({ url }) => {
 
                             <div className="wizard-actions">
                                 <button type="button" className="add-btn cancel-btn" onClick={back}>Back</button>
-                                <button type="button" className="add-btn" disabled={saving} onClick={goToTeams}>
-                                    {saving ? 'Saving…' : 'Next: Team Rates'}
+                                <button type="button" className="add-btn" disabled={saving} onClick={goToContractors}>
+                                    {saving ? 'Saving…' : 'Next: Contractor Rates'}
                                 </button>
                             </div>
                         </>
                     )}
 
-                    {/* ── Step 4: Team assignment & rates ── */}
-                    {stepKey === 'teams' && (
+                    {/* ── Step 4: Contractor assignment & rates ── */}
+                    {stepKey === 'contractors' && (
                         <>
-                            <h2>Team Assignment &amp; Rates</h2>
-                            <TeamRatesManager url={url} projectId={projectId} />
+                            <h2>Contractor Assignment &amp; Rates</h2>
+                            <ContractorRatesManager url={url} projectId={projectId} />
                             <div className="wizard-actions">
                                 <button type="button" className="add-btn cancel-btn" onClick={back}>Back</button>
                                 <button type="button" className="add-btn" onClick={goToAdvanceOrActivate}>
@@ -351,7 +351,7 @@ const NewProjectWizard = ({ url }) => {
                             <h2>Project Goes Live</h2>
                             <p className="admin-subtitle">
                                 Activating unlocks Daily Work Report entry for this project. If anything required is
-                                still missing — a work type rate, a team rate, or (for Advance) the payment — activation
+                                still missing — a work type rate, a contractor rate, or (for Advance) the payment — activation
                                 will tell you exactly what's left.
                             </p>
                             <div className="wizard-actions">

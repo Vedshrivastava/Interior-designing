@@ -82,12 +82,11 @@ const WorkDetail = ({ url }) => {
 
                 {data.contractorBreakdown && data.contractorBreakdown.length > 1 && (
                     <div className="list-table" style={{ marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr 1fr' }}>
-                            <b>Team</b><b>Contractor</b><b>Area (sqft)</b><b>Rate</b><b>Earnings</b>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
+                            <b>Contractor</b><b>Area (sqft)</b><b>Rate</b><b>Earnings</b>
                         </div>
                         {data.contractorBreakdown.map(b => (
-                            <div key={b.teamId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr 1fr' }}>
-                                <p>{b.teamName}{b.isLegacyAttribution && <span className="admin-subtitle" style={{ display: 'inline' }} title="Attributed via the work's legacy team, not a per-measurement team"> · legacy</span>}</p>
+                            <div key={b.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
                                 <p>{b.vendorName}</p>
                                 <p>{b.areaSqft}</p>
                                 <p>{formatINR(b.rate)}</p>

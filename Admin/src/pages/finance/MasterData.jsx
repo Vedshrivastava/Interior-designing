@@ -32,7 +32,6 @@ const TABS = [
     { key: 'commission_type',   label: 'Commission Types' },
     { key: 'employees',         label: 'Employees' },
     { key: 'salary_ledger',     label: 'Salary Ledger' },
-    { key: 'teams',             label: 'Contractor Teams' },
 ];
 
 const SETTING_TYPE_KEYS = ['work_type', 'payment_mode', 'expense_category', 'tds_section', 'unit', 'city', 'commission_type'];
@@ -54,7 +53,7 @@ const MasterData = ({ url }) => {
                 <div className="admin-header-split">
                     <div>
                         <h1>Master Data</h1>
-                        <p className="admin-subtitle">Material catalog, dropdown lists, employees, and contractor teams — the data everything else references.</p>
+                        <p className="admin-subtitle">Material catalog, dropdown lists, and employees — the data everything else references.</p>
                     </div>
                 </div>
 

@@ -1,6 +1,6 @@
 import FinanceWork from '../models/financeWork.js';
 import FinanceProject from '../models/financeProject.js';
-import FinanceWorkTeamAssignment from '../models/financeWorkTeamAssignment.js';
+import FinanceWorkContractorAssignment from '../models/financeWorkContractorAssignment.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 
@@ -17,15 +17,16 @@ const listWorks = async (req, res) => {
     }
 };
 
-// `teamAssignments` — [{ teamId, notes }], at least one required. Team
-// assignment is no longer a single field on the Work itself; see
-// financeWorkTeamAssignment.js for adding/removing teams on an existing Work.
+// `contractorAssignments` — [{ contractorVendorId, notes }], at least one
+// required. Contractor assignment is no longer a single field on the Work
+// itself; see financeWorkContractorAssignment.js for adding/removing
+// contractors on an existing Work.
 const addWork = async (req, res) => {
     try {
-        const { projectId, workType, teamAssignments, workOrderNumber, startDate, estimatedAreaSqft, notes } = req.body;
-        const assignments = Array.isArray(teamAssignments) ? teamAssignments.filter(a => a?.teamId) : [];
+        const { projectId, workType, contractorAssignments, workOrderNumber, startDate, estimatedAreaSqft, notes } = req.body;
+        const assignments = Array.isArray(contractorAssignments) ? contractorAssignments.filter(a => a?.contractorVendorId) : [];
         if (!projectId || !workType || !assignments.length) {
-            return res.status(400).json({ success: false, message: 'Project, work type, and at least one team are required' });
+            return res.status(400).json({ success: false, message: 'Project, work type, and at least one contractor are required' });
         }
         if (!estimatedAreaSqft || Number(estimatedAreaSqft) <= 0) {
             return res.status(400).json({ success: false, message: 'Estimated area is required' });
@@ -38,11 +39,11 @@ const addWork = async (req, res) => {
             notes: notes || '',
         });
         await item.save();
-        await FinanceWorkTeamAssignment.insertMany(
-            assignments.map(a => ({ workId: item._id, teamId: a.teamId, notes: a.notes || '' }))
+        await FinanceWorkContractorAssignment.insertMany(
+            assignments.map(a => ({ workId: item._id, contractorVendorId: a.contractorVendorId, notes: a.notes || '' }))
         );
         broadcast({ type: 'financeWorksChanged', projectId });
-        broadcast({ type: 'financeWorkTeamAssignmentsChanged', projectId });
+        broadcast({ type: 'financeWorkContractorAssignmentsChanged', projectId });
 
         const project = await FinanceProject.findById(projectId).select('name');
         await logActivity({
@@ -62,8 +63,9 @@ const addWork = async (req, res) => {
 };
 
 // completedAreaSqft is deliberately never accepted here — it's a running
-// total only the measurement-save automation is allowed to change. Team
-// assignment also isn't accepted here anymore — see financeWorkTeamAssignment.js.
+// total only the measurement-save automation is allowed to change.
+// Contractor assignment also isn't accepted here anymore — see
+// financeWorkContractorAssignment.js.
 const updateWork = async (req, res) => {
     try {
         const { _id, workType, workOrderNumber, startDate, estimatedAreaSqft, status, notes } = req.body;

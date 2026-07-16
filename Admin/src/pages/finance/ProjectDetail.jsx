@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import WorkTypeRatesManager from '../../components/finance/WorkTypeRatesManager';
-import TeamRatesManager from '../../components/finance/TeamRatesManager';
+import ContractorRatesManager from '../../components/finance/ContractorRatesManager';
 import WorksManager from '../../components/finance/WorksManager';
 import MeasurementsManager from '../../components/finance/MeasurementsManager';
 import StockMovementsManager from '../../components/finance/StockMovementsManager';
@@ -312,8 +312,8 @@ const ProjectDetail = ({ url }) => {
                         <WorksManager url={url} projectId={id} onWorksChanged={() => setWorksVersion(v => v + 1)} />
                         <h3 style={{ margin: '32px 0 8px' }}>Work Type Rates</h3>
                         <WorkTypeRatesManager url={url} projectId={id} worksVersion={worksVersion} />
-                        <h3 style={{ margin: '28px 0 8px' }}>Team Rates</h3>
-                        <TeamRatesManager url={url} projectId={id} worksVersion={worksVersion} />
+                        <h3 style={{ margin: '28px 0 8px' }}>Contractor Rates</h3>
+                        <ContractorRatesManager url={url} projectId={id} worksVersion={worksVersion} />
                     </div>
                 )}
 
@@ -325,7 +325,7 @@ const ProjectDetail = ({ url }) => {
                     <div className="list-table">
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr' }}><b>Contractor</b><b>Work Types</b></div>
                         {contractors.length === 0 ? (
-                            <div className="admin-empty-state"><p>No contractor assigned to any Work yet — add a Work and pick a team under the Works tab.</p></div>
+                            <div className="admin-empty-state"><p>No contractor assigned to any Work yet — add a Work and pick a contractor under the Works tab.</p></div>
                         ) : contractors.map(c => (
                             <div key={c.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
                                 <p>{c.vendorName}</p>

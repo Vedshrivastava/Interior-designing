@@ -3,33 +3,36 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import QuickAddPicker from './QuickAddPicker';
+import { FINANCE_MASTERS } from '../../config/financeMasters';
+import { emptyFormFromFields, renderMasterField } from './masterFieldRenderer';
+
+const CONTRACTOR_PRESET = { vendorType: 'labour_contractor' };
 
 /*
- * A Work's team assignment / a Team Rate row can only ever reference a
- * contractor financeTeam — that's what drives the rate x area billing
- * engine. Daily-wage labour has no workId at all (deliberately — a
- * labourer can help across several Works in a day) and is paid per day,
- * not by rate, so it structurally can't be "assigned" the same way or
- * shown in that picker's own dropdown.
+ * A Work's contractor assignment / a Contractor Rate row can only ever
+ * reference a financeVendor with vendorType 'labour_contractor' — that's
+ * what drives the rate x area billing engine. Daily-wage labour has no
+ * workId at all (deliberately — a labourer can help across several Works
+ * in a day) and is paid per day, not by rate, so it structurally can't be
+ * "assigned" the same way or shown in that picker's own dropdown.
  *
  * What CAN be unified is the "+ Add New" entry point: pick a type up
  * front, and the Labour branch does the whole add-a-crew-member task
  * right here (pick/create a Supervisor, see their roster, add a member)
- * instead of silently assuming Contractor and showing an irrelevant
- * vendor field. Only the Contractor branch calls onTeamCreated — the
- * Labour branch never feeds back into whatever picker opened this,
- * since there's nothing for it to select.
+ * instead of silently assuming Contractor. Only the Contractor branch
+ * calls onContractorCreated — the Labour branch never feeds back into
+ * whatever picker opened this, since there's nothing for it to select.
  */
-const AddTeamOrLabourModal = ({ url, onClose, onTeamCreated }) => {
+const AddContractorOrLabourModal = ({ url, onClose, onContractorCreated }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const vendorResource = FINANCE_MASTERS.vendors;
+    const visibleFields = vendorResource.fields.filter(f => !(f.key in CONTRACTOR_PRESET));
 
     const [type, setType] = useState('contractor');
 
-    const [teamName, setTeamName] = useState('');
-    const [vendorId, setVendorId] = useState('');
-    const [teamNotes, setTeamNotes] = useState('');
-    const [savingTeam, setSavingTeam] = useState(false);
+    const [vendorForm, setVendorForm] = useState({ ...emptyFormFromFields(vendorResource.fields), ...CONTRACTOR_PRESET });
+    const [savingVendor, setSavingVendor] = useState(false);
 
     const [supervisorId, setSupervisorId] = useState('');
     const [roster, setRoster] = useState([]);
@@ -38,6 +41,8 @@ const AddTeamOrLabourModal = ({ url, onClose, onTeamCreated }) => {
     const [memberRate, setMemberRate] = useState('');
     const [memberNotes, setMemberNotes] = useState('');
     const [savingMember, setSavingMember] = useState(false);
+
+    const setVendorField = (key, value) => setVendorForm(prev => ({ ...prev, [key]: value }));
 
     const fetchRoster = (supId) => {
         setLoadingRoster(true);
@@ -51,21 +56,19 @@ const AddTeamOrLabourModal = ({ url, onClose, onTeamCreated }) => {
         if (supervisorId) fetchRoster(supervisorId); else setRoster([]);
     }, [supervisorId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const submitContractorTeam = async (e) => {
+    const submitContractor = async (e) => {
         e.preventDefault();
-        if (!teamName.trim()) return toast.error('Team name is required');
-        setSavingTeam(true);
+        if (!String(vendorForm.name || '').trim()) return toast.error('Name is required');
+        setSavingVendor(true);
         try {
-            const res = await axios.post(`${url}/api/finance/teams/add`, {
-                name: teamName.trim(), contractorVendorId: vendorId || null, notes: teamNotes,
-            }, authHeader);
+            const res = await axios.post(`${url}/api/finance/vendors/add`, vendorForm, authHeader);
             if (res.data.success) {
-                toast.success('Contractor team added');
-                onTeamCreated(res.data.data._id);
+                toast.success('Contractor added');
+                onContractorCreated(res.data.data._id);
             } else toast.error(res.data.message);
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Error adding team');
-        } finally { setSavingTeam(false); }
+            toast.error(err.response?.data?.message || 'Error adding contractor');
+        } finally { setSavingVendor(false); }
     };
 
     const addMember = async (e) => {
@@ -90,7 +93,7 @@ const AddTeamOrLabourModal = ({ url, onClose, onTeamCreated }) => {
     return ReactDOM.createPortal(
         <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
             <div className="loader-modal-box edit-modal">
-                <h2>Add Team</h2>
+                <h2>Add Contractor or Labour</h2>
 
                 <div className="add-cat-list" style={{ position: 'static', boxShadow: 'none', animation: 'none', display: 'flex', gap: '6px', marginBottom: '18px', padding: 0 }}>
                     <div
@@ -98,7 +101,7 @@ const AddTeamOrLabourModal = ({ url, onClose, onTeamCreated }) => {
                         style={{ flex: 1, justifyContent: 'center', border: '1px solid rgba(201,168,124,0.28)' }}
                         onClick={() => setType('contractor')}
                     >
-                        <span>Contractor Team</span>
+                        <span>Contractor</span>
                     </div>
                     <div
                         className={`add-cat-option${type === 'labour' ? ' active' : ''}`}
@@ -110,32 +113,22 @@ const AddTeamOrLabourModal = ({ url, onClose, onTeamCreated }) => {
                 </div>
 
                 {type === 'contractor' ? (
-                    <form className="flex-col" onSubmit={submitContractorTeam}>
-                        <div className="add-product-name flex-col">
-                            <p>Team Name *</p>
-                            <input type="text" value={teamName} onChange={e => setTeamName(e.target.value)} />
-                        </div>
-                        <div className="add-product-name flex-col">
-                            <p>Labour Contractor (vendor)</p>
-                            <QuickAddPicker
-                                url={url} resourceKey="vendors" value={vendorId} onChange={setVendorId}
-                                filter={v => v.vendorType === 'labour_contractor'} presetValues={{ vendorType: 'labour_contractor' }}
-                                placeholder="— None —"
-                            />
-                        </div>
-                        <div className="add-product-name flex-col">
-                            <p>Notes</p>
-                            <textarea rows="3" value={teamNotes} onChange={e => setTeamNotes(e.target.value)} />
-                        </div>
+                    <form className="flex-col" onSubmit={submitContractor}>
+                        {visibleFields.filter(f => !f.showIf || f.showIf(vendorForm)).map(f => (
+                            <div key={f.key} className="add-product-name flex-col">
+                                <p>{f.label}{f.required ? ' *' : ''}</p>
+                                {renderMasterField(f, vendorForm, setVendorField, { url })}
+                            </div>
+                        ))}
                         <div className="edit-modal-actions">
                             <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
-                            <button type="submit" className="add-btn" disabled={savingTeam}>{savingTeam ? 'Saving…' : 'Save'}</button>
+                            <button type="submit" className="add-btn" disabled={savingVendor}>{savingVendor ? 'Saving…' : 'Save'}</button>
                         </div>
                     </form>
                 ) : (
                     <div className="flex-col">
                         <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                            Casual daily-wage labour is paid per day via Daily Labour entries, not a rate — this crew won't need (or show up in) Team Rates.
+                            Casual daily-wage labour is paid per day via Daily Labour entries, not a rate — this crew won't need (or show up in) Contractor Rates.
                         </p>
                         <div className="add-product-name flex-col">
                             <p>Supervisor *</p>
@@ -193,4 +186,4 @@ const AddTeamOrLabourModal = ({ url, onClose, onTeamCreated }) => {
     );
 };
 
-export default AddTeamOrLabourModal;
+export default AddContractorOrLabourModal;

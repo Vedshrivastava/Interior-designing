@@ -2,7 +2,10 @@ import FinanceRunningBill from '../models/financeRunningBill.js';
 import FinanceReceipt from '../models/financeReceipt.js';
 import FinanceProject from '../models/financeProject.js';
 
-const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material'];
+// Advance-contract projects bill via Running Bills too, once work starts
+// (see financeRunningBill.js) — the advance itself just shows up as a
+// received-before-billed credit in the balance below.
+const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance'];
 
 // Computed on the fly, same rule as Payables and current-stock — never
 // stored. issuedTotal only counts `issued` bills (drafts aren't billed

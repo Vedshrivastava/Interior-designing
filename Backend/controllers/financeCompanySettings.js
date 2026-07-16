@@ -215,7 +215,8 @@ const checkLowStock = async (settings) => {
 
 const checkOverdueReceivables = async (settings) => {
     if (!settings.overdueReceivableAlertEnabled) return { checked: 0, notified: 0 };
-    const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material'];
+    // Advance-contract projects bill via Running Bills too, once work starts.
+    const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance'];
     const projects = await FinanceProject.find({ deleted: { $ne: true }, contractType: { $in: BILLABLE_CONTRACT_TYPES } }).populate('clientId', 'name');
 
     let checked = 0;

@@ -38,7 +38,8 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 // instances aren't plain objects. A lean query avoids that footgun.
 const getCompanyForPdf = async () => (await FinanceCompanySettings.findOne({ deleted: { $ne: true } }).lean()) || null;
 
-const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material'];
+// Advance-contract projects bill via Running Bills too, once work starts.
+const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance'];
 
 /*
  * Reports is a pure rollup layer — every endpoint here is read-only,

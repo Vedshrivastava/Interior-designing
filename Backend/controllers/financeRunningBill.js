@@ -9,7 +9,10 @@ import { logActivity } from '../utils/financeActivityLog.js';
 import PDFDocument from 'pdfkit';
 import { writeLetterhead, writeSectionHeading, writeFooter, drawInfoBox, drawTable, contentBox, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
 
-const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material'];
+// Advance-contract projects bill exactly like With Material once work
+// starts — the advance is a credit drawn down against the first bill(s),
+// not a separate billing track (see applyAdvanceCredit below).
+const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance'];
 
 const listRunningBills = async (req, res) => {
     try {
@@ -37,7 +40,7 @@ const computeBillLineItems = async (projectId, periodFrom, periodTo) => {
     const project = await FinanceProject.findById(projectId);
     if (!project) throw new Error('Project not found');
     if (!BILLABLE_CONTRACT_TYPES.includes(project.contractType)) {
-        throw new Error("Advance-contract projects don't use Running Bills — they track payment via the advance fields instead");
+        throw new Error('This project\'s contract type does not use Running Bills');
     }
 
     const measurements = await FinanceMeasurement.find({
@@ -102,6 +105,40 @@ const previewRunningBill = async (req, res) => {
     }
 };
 
+// Applies as much of an Advance-contract project's still-undrawn advance
+// credit as fits against a newly generated bill, oldest first (in
+// practice there's only ever one). A credit smaller than the bill's
+// grandTotal gets fully linked to it and leaves the rest of the bill to
+// be paid normally; a credit bigger than the bill gets split — the
+// portion this bill consumes becomes its own linked receipt, the
+// remainder stays unlinked (isAdvance, runningBillId null) for the next
+// bill. No-op for with_material/without_material projects, and for
+// advance projects with nothing left undrawn.
+const applyAdvanceCredit = async (projectId, bill) => {
+    let remaining = bill.totalAmount + (bill.gstAmount || 0);
+    if (remaining <= 0) return;
+
+    const undrawn = await FinanceReceipt.find({ projectId, isAdvance: true, runningBillId: null, deleted: { $ne: true } }).sort({ receiptDate: 1 });
+    for (const receipt of undrawn) {
+        if (remaining <= 0) break;
+        if (receipt.amount <= remaining) {
+            receipt.runningBillId = bill._id;
+            await receipt.save();
+            remaining -= receipt.amount;
+        } else {
+            const appliedAmount = remaining;
+            receipt.amount -= appliedAmount;
+            await receipt.save(); // stays unlinked, reduced, for the next bill
+            await FinanceReceipt.create({
+                clientId: receipt.clientId, projectId: receipt.projectId,
+                runningBillId: bill._id, amount: appliedAmount, receiptDate: receipt.receiptDate,
+                isAdvance: true, notes: `Advance applied to Bill #${bill.billNumber}`,
+            });
+            remaining = 0;
+        }
+    }
+};
+
 // gstRate is optional — when given, gstAmount is computed off totalAmount
 // and frozen here at generation time, same as every other amount on this
 // document. If the request omits it, this falls back to
@@ -141,6 +178,10 @@ const generateRunningBill = async (req, res) => {
             status: 'draft',
         });
         await bill.save();
+
+        if (project.contractType === 'advance') {
+            await applyAdvanceCredit(projectId, bill);
+        }
 
         await FinanceMeasurement.updateMany(
             { _id: { $in: measurementIds } },
@@ -388,7 +429,7 @@ const downloadBillStatement = async (req, res) => {
                 rows: data.payments.map((p) => [
                     formatDate(p.receiptDate),
                     formatCurrency(p.amount),
-                    p.paymentMode || '—',
+                    p.isAdvance ? 'Advance' : (p.paymentMode || '—'),
                     p.utrNumber || '—',
                 ]),
             });

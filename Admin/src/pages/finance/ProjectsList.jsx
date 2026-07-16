@@ -10,7 +10,7 @@ import '../../styles/dashboard.css';
 
 const CONTRACT_TYPE_LABEL = { with_material: 'With Material', without_material: 'Without Material', advance: 'Advance' };
 const STATUS_LABEL = { draft: 'Draft', active: 'Active', completed: 'Completed' };
-const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material'];
+const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance'];
 
 const ProjectsList = ({ url }) => {
     const navigate = useNavigate();
@@ -36,8 +36,8 @@ const ProjectsList = ({ url }) => {
     useEffect(() => { fetchList(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Mini-dashboard stats — profitability per active project, and
-    // %billed-vs-collected per billable project (with_material/
-    // without_material only — advance contracts don't use Running Bills).
+    // %billed-vs-collected per billable project (all three contract
+    // types now — advance draws its credit down against its own bills).
     useEffect(() => {
         if (list.length === 0) { setProfitData([]); setBilledVsCollected([]); return; }
         let cancelled = false;

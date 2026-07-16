@@ -4,6 +4,10 @@ import FinanceContractorRate from '../models/financeContractorRate.js';
 import FinanceWork from '../models/financeWork.js';
 import FinanceWorkContractorAssignment from '../models/financeWorkContractorAssignment.js';
 import FinanceVendor from '../models/financeVendor.js';
+import FinanceReceipt from '../models/financeReceipt.js';
+import FinanceCompanySettings from '../models/financeCompanySettings.js';
+import PDFDocument from 'pdfkit';
+import { writeLetterhead, drawInfoBox, writeFooter, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 
@@ -217,21 +221,102 @@ const recordAdvanceInvoiced = async (req, res) => {
     }
 };
 
+// Revisitable — not just a New Project Wizard step. Also creates the
+// financeReceipt that actually carries this money (runningBillId null,
+// isAdvance true) so it's real, drawable-down credit once billing starts,
+// not just a boolean on the project. Guarded against being called twice
+// for the same project, which would otherwise double-book the receipt.
 const recordAdvanceReceived = async (req, res) => {
     try {
         const { _id, notes } = req.body;
         const project = await FinanceProject.findById(_id);
         if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
         if (project.contractType !== 'advance') return res.status(400).json({ success: false, message: 'Not an Advance project' });
+        if (project.advanceReceived) return res.status(400).json({ success: false, message: 'Advance already recorded for this project' });
+
         project.advanceReceived = true;
         project.advanceReceivedAt = new Date();
         project.advanceReceivedNotes = notes || '';
         await project.save();
+
+        await FinanceReceipt.create({
+            clientId: project.clientId, projectId: project._id,
+            amount: project.advanceAmount, receiptDate: project.advanceReceivedAt,
+            notes: 'Advance payment', isAdvance: true,
+        });
+
         broadcast({ type: 'financeProjectsChanged' });
+        broadcast({ type: 'financeReceiptsChanged', projectId: project._id, clientId: project.clientId });
         res.json({ success: true, message: 'Advance payment recorded', data: project });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error recording advance payment' });
+    }
+};
+
+// Client-facing PDF for the advance itself — deliberately not a Running
+// Bill (no line items exist yet at advance time, nothing's been measured).
+// Reads straight from the project's own advance fields rather than the
+// financeReceipt(s) it created, since those may since have been split/
+// linked against later bills by generateRunningBill's drawdown step —
+// that's internal bookkeeping the client's receipt shouldn't reflect.
+const downloadAdvanceReceipt = async (req, res) => {
+    try {
+        const project = await FinanceProject.findById(req.params.id).populate('clientId');
+        if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+        if (project.contractType !== 'advance' || !project.advanceReceived) {
+            return res.status(400).json({ success: false, message: 'No advance payment recorded for this project yet' });
+        }
+
+        const company = await FinanceCompanySettings.findOne({ deleted: { $ne: true } }).lean();
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="Advance-Receipt-${project.name.replace(/[^a-z0-9]+/gi, '-')}.pdf"`);
+
+        const doc = new PDFDocument({ margin: 50, bufferPages: true });
+        doc.pipe(res);
+
+        await writeLetterhead(doc, 'Advance Payment Receipt', company, formatDate(project.advanceReceivedAt));
+
+        const { left, width } = { left: doc.page.margins.left, width: doc.page.width - doc.page.margins.left - doc.page.margins.right };
+        const colWidth = (width - 24) / 2;
+        const infoTopY = doc.y;
+        const leftBottom = drawInfoBox(doc, left, colWidth, 'Received From', [
+            project.clientId?.name || '—',
+            project.clientId?.address,
+            project.clientId?.phone ? `Phone: ${project.clientId.phone}` : null,
+            project.clientId?.gstNumber ? `GSTIN: ${project.clientId.gstNumber}` : null,
+        ], company);
+        doc.y = infoTopY;
+        const rightBottom = drawInfoBox(doc, left + colWidth + 24, colWidth, 'Project', [
+            project.name,
+            project.siteLocation,
+            `Total Estimated Cost: ${formatCurrency(project.totalEstimatedCost)}`,
+            `Contract Percentage: ${project.contractPercentage}%`,
+        ], company);
+        doc.y = Math.max(leftBottom, rightBottom) + 16;
+
+        const accentColor = company?.accentColor || '#2c3e50';
+        const bannerH = 46;
+        doc.rect(left, doc.y, width, bannerH).fill('#eafaf1');
+        doc.fillColor('#1e8449').font('Helvetica-Bold').fontSize(15)
+            .text(`Advance Received: ${formatCurrency(project.advanceAmount)}`, left + 14, doc.y + 14);
+        doc.fillColor('#000000').font('Helvetica').fontSize(10);
+        doc.y += bannerH + 14;
+
+        doc.font('Helvetica').fontSize(10);
+        doc.text(`Date Received: ${formatDate(project.advanceReceivedAt)}`);
+        if (project.advanceReceivedNotes) doc.text(`Notes: ${project.advanceReceivedNotes}`);
+        doc.moveDown(0.8);
+        doc.fillColor(accentColor).font('Helvetica-Bold').fontSize(10)
+            .text('This advance is adjustable against the final project cost and will be drawn down against your first running bill(s) as work is billed.');
+        doc.fillColor('#000000').font('Helvetica').fontSize(10);
+
+        writeFooter(doc, company);
+        doc.end();
+    } catch (err) {
+        console.error(err);
+        if (!res.headersSent) res.status(500).json({ success: false, message: 'Error generating advance receipt PDF' });
     }
 };
 
@@ -296,5 +381,5 @@ const removeFinanceProject = async (req, res) => {
 
 export {
     listFinanceProjects, getFinanceProject, addFinanceProject, updateFinanceProject,
-    recordAdvanceInvoiced, recordAdvanceReceived, activateFinanceProject, removeFinanceProject,
+    recordAdvanceInvoiced, recordAdvanceReceived, downloadAdvanceReceipt, activateFinanceProject, removeFinanceProject,
 };

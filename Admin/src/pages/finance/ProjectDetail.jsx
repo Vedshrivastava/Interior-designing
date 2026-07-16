@@ -22,7 +22,7 @@ import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material'];
+const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance'];
 
 /*
  * Tier-2 dashboard for one project — KPI cards (revenue through
@@ -214,6 +214,9 @@ const ProjectDetail = ({ url }) => {
     const [contractors, setContractors] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activating, setActivating] = useState(false);
+    const [advanceNotes, setAdvanceNotes] = useState('');
+    const [markingInvoiced, setMarkingInvoiced] = useState(false);
+    const [markingReceived, setMarkingReceived] = useState(false);
 
     // Progress % is never stored — computed here from the same works list
     // WorksManager fetches, just so it's visible without switching tabs.
@@ -290,6 +293,40 @@ const ProjectDetail = ({ url }) => {
         finally { setActivating(false); }
     };
 
+    // Revisitable here — not just the New Project Wizard's one-time step.
+    const markAdvanceInvoiced = async () => {
+        setMarkingInvoiced(true);
+        try {
+            const res = await axios.post(`${url}/api/finance/projects/advance-invoiced`, { _id: id }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); await fetchProject(); }
+            else toast.error(res.data.message);
+        } catch (err) { toast.error(err.response?.data?.message || 'Error updating advance status'); }
+        finally { setMarkingInvoiced(false); }
+    };
+
+    const markAdvanceReceived = async () => {
+        setMarkingReceived(true);
+        try {
+            const res = await axios.post(`${url}/api/finance/projects/advance-received`, { _id: id, notes: advanceNotes }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); setAdvanceNotes(''); await fetchProject(); }
+            else toast.error(res.data.message);
+        } catch (err) { toast.error(err.response?.data?.message || 'Error recording advance payment'); }
+        finally { setMarkingReceived(false); }
+    };
+
+    // Protected download — same blob-via-authed-fetch pattern as the Bill
+    // Statement PDF (a plain <a href> can't carry the Bearer token).
+    const downloadAdvanceReceipt = async () => {
+        try {
+            const res = await axios.get(`${url}/api/finance/projects/${id}/advance-receipt/download`, { ...authHeader, responseType: 'blob' });
+            const blobUrl = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+            const a = document.createElement('a');
+            a.href = blobUrl; a.download = `Advance-Receipt-${project.name}.pdf`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+        } catch { toast.error('Error downloading advance receipt'); }
+    };
+
     if (loading) {
         return <div className="list add flex-col"><div className="admin-list-container"><div className="admin-empty-state"><p>Loading…</p></div></div></div>;
     }
@@ -336,7 +373,36 @@ const ProjectDetail = ({ url }) => {
                                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Total Estimated Cost</b></p><p>₹{project.totalEstimatedCost?.toLocaleString('en-IN')}</p></div>
                                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Contract Percentage</b></p><p>{project.contractPercentage}%</p></div>
                                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Advance Amount</b></p><p>₹{project.advanceAmount?.toLocaleString('en-IN')}</p></div>
-                                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Advance Received</b></p><p>{project.advanceReceived ? `Yes — ${new Date(project.advanceReceivedAt).toLocaleDateString()}` : 'Not yet'}</p></div>
+                                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                                        <p><b>Advance Invoiced</b></p>
+                                        <div>
+                                            {project.advanceInvoiced ? (
+                                                <span>Yes — {new Date(project.advanceInvoicedAt).toLocaleDateString()}</span>
+                                            ) : (
+                                                <button type="button" className="add-point-btn" disabled={markingInvoiced} onClick={markAdvanceInvoiced}>
+                                                    {markingInvoiced ? 'Saving…' : 'Mark Invoiced'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                                        <p><b>Advance Received</b></p>
+                                        <div>
+                                            {project.advanceReceived ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <span>Yes — {new Date(project.advanceReceivedAt).toLocaleDateString()}</span>
+                                                    <p onClick={downloadAdvanceReceipt} className="cursor edit-action" style={{ margin: 0 }}>Download Receipt</p>
+                                                </div>
+                                            ) : (
+                                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                    <input type="text" placeholder="Notes (optional)" value={advanceNotes} onChange={e => setAdvanceNotes(e.target.value)} style={{ flex: 1 }} />
+                                                    <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} disabled={markingReceived} onClick={markAdvanceReceived}>
+                                                        {markingReceived ? 'Saving…' : 'Record Received'}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </>
                             )}
                             <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Notes</b></p><p>{project.notes || '—'}</p></div>
@@ -403,11 +469,7 @@ const ProjectDetail = ({ url }) => {
                 )}
 
                 {activeTab === 'quotations' && <ProjectQuotationsManager url={url} projectId={id} />}
-                {activeTab === 'runningBills' && (
-                    project.contractType === 'advance'
-                        ? <PlaceholderTab text="Advance-contract projects don't use Running Bills — see the advance payment fields on the Overview tab instead." />
-                        : <RunningBillsManager url={url} projectId={id} />
-                )}
+                {activeTab === 'runningBills' && <RunningBillsManager url={url} projectId={id} />}
                 {activeTab === 'receipts' && <ReceiptsManager url={url} projectId={id} />}
                 {activeTab === 'expenses' && <PlaceholderTab text="Site expenses logged against this project." />}
                 {activeTab === 'documents' && (

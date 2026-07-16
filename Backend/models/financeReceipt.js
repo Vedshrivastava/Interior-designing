@@ -24,6 +24,15 @@ const financeReceiptSchema = new mongoose.Schema({
     utrNumber:       { type: String, default: '' },
     notes:           { type: String, default: '' },
 
+    // Set only on the receipt created when an Advance-contract project's
+    // advance is recorded (see recordAdvanceReceived). Starts with
+    // runningBillId null (undrawn credit); generateRunningBill applies it
+    // against that project's first bill(s) as they're generated, splitting
+    // it across bills if the advance is bigger than one bill's total — see
+    // that function's applyAdvanceCredit step. Statement PDFs use this
+    // flag to label the payment "(Advance)" instead of a fresh receipt.
+    isAdvance: { type: Boolean, default: false },
+
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },
     deletedBy: { type: String },

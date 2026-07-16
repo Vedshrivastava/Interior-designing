@@ -32,6 +32,9 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     const [generating, setGenerating] = useState(false);
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [gstEditItem, setGstEditItem] = useState(null);
+    const [gstEditValue, setGstEditValue] = useState('');
+    const [savingGst, setSavingGst] = useState(false);
 
     const fetchBills = async () => {
         setLoading(true);
@@ -111,6 +114,19 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
         } catch { toast.error('Error updating bill status'); }
     };
 
+    const openGstEdit = (bill) => { setGstEditValue(bill.gstRate ?? ''); setGstEditItem(bill); };
+
+    const saveGst = async () => {
+        setSavingGst(true);
+        try {
+            const res = await axios.post(`${url}/api/finance/running-bills/update-gst`, { _id: gstEditItem._id, gstRate: gstEditValue }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); setGstEditItem(null); await fetchBills(); }
+            else toast.error(res.data.message);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Error updating GST');
+        } finally { setSavingGst(false); }
+    };
+
     const confirmDelete = async () => {
         if (!confirmItem) return;
         setDeleting(true);
@@ -161,6 +177,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                                 <span className="item-category">{STATUS_LABEL[b.status]}</span>
                             </p>
                             <div className="action-buttons">
+                                {b.status === 'draft' && <p onClick={() => openGstEdit(b)} className="cursor edit-action">GST</p>}
                                 <p onClick={() => downloadStatement(b)} className="cursor edit-action">Statement</p>
                                 <p onClick={() => setConfirmItem(b)} className="cursor delete-action">X</p>
                             </div>
@@ -224,6 +241,33 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                             <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
                             <button type="button" className="add-btn" disabled={!preview || generating} onClick={confirmGenerate}>
                                 {generating ? 'Generating…' : 'Confirm & Generate'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {gstEditItem && ReactDOM.createPortal(
+                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal" style={{ maxWidth: '380px' }}>
+                        <h2>GST — Bill #{gstEditItem.billNumber}</h2>
+                        <p style={{ margin: '4px 0 16px', color: 'var(--text-lt)', fontSize: '0.9em' }}>
+                            Applies to the subtotal of ₹{gstEditItem.totalAmount.toLocaleString('en-IN')}. Leave blank for no GST.
+                        </p>
+                        <div className="add-product-name flex-col">
+                            <p>GST Rate %</p>
+                            <input type="number" value={gstEditValue} onChange={e => setGstEditValue(e.target.value)} autoFocus />
+                        </div>
+                        {gstEditValue !== '' && (
+                            <p style={{ margin: '12px 0 0', fontWeight: 600 }}>
+                                Grand Total: ₹{(gstEditItem.totalAmount * (1 + Number(gstEditValue) / 100)).toLocaleString('en-IN')}
+                            </p>
+                        )}
+                        <div className="edit-modal-actions">
+                            <button type="button" className="add-btn cancel-btn" onClick={() => setGstEditItem(null)}>Cancel</button>
+                            <button type="button" className="add-btn" disabled={savingGst} onClick={saveGst}>
+                                {savingGst ? 'Saving…' : 'Save'}
                             </button>
                         </div>
                     </div>

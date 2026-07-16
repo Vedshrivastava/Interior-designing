@@ -165,6 +165,32 @@ const generateRunningBill = async (req, res) => {
     }
 };
 
+// GST is only editable while a bill is still 'draft' — once issued, its
+// gstRate/gstAmount become the frozen source of truth for Output GST
+// reporting (see financeReports.js's CA Monthly Package, which sums
+// gstAmount across status: 'issued' bills), so changing it after that
+// point would silently rewrite already-reported tax figures. A bill can
+// always be moved back to draft via updateRunningBillStatus first.
+const updateRunningBillGst = async (req, res) => {
+    try {
+        const { _id, gstRate } = req.body;
+        const item = await FinanceRunningBill.findById(_id);
+        if (!item) return res.status(404).json({ success: false, message: 'Not found' });
+        if (item.status !== 'draft') {
+            return res.status(400).json({ success: false, message: 'GST can only be edited on a draft bill — set status back to Draft first' });
+        }
+        const hasGst = gstRate !== undefined && gstRate !== null && gstRate !== '';
+        item.gstRate = hasGst ? Number(gstRate) : null;
+        item.gstAmount = hasGst ? item.totalAmount * (Number(gstRate) / 100) : null;
+        await item.save();
+        broadcast({ type: 'financeRunningBillsChanged', projectId: item.projectId });
+        res.json({ success: true, message: 'GST updated', data: item });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error updating GST' });
+    }
+};
+
 const updateRunningBillStatus = async (req, res) => {
     try {
         const { _id, status } = req.body;
@@ -393,6 +419,6 @@ const downloadBillStatement = async (req, res) => {
 };
 
 export {
-    listRunningBills, previewRunningBill, generateRunningBill, updateRunningBillStatus, removeRunningBill,
+    listRunningBills, previewRunningBill, generateRunningBill, updateRunningBillGst, updateRunningBillStatus, removeRunningBill,
     getBillStatement, downloadBillStatement,
 };

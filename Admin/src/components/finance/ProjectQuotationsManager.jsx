@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import StyledDatePicker from './StyledDatePicker';
+import AddQuotationModal from './AddQuotationModal';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const QUOTATION_STATUS_LABEL = { pending: 'Pending', accepted: 'Accepted', rejected: 'Rejected' };
 
@@ -16,7 +18,15 @@ const QUOTATION_STATUS_LABEL = { pending: 'Pending', accepted: 'Accepted', rejec
  * Each quotation's original file uploads through financeProjectDocument
  * (tagged with quotationId) rather than being stored on the quotation
  * itself — same file, same record, so it also shows up untouched on this
- * project's own Documents tab with no extra plumbing there.
+ * project's own Documents tab with no extra plumbing there. A file can be
+ * attached right at creation (AddQuotationModal) or after the fact via the
+ * row's Upload/Replace action — both funnel through the same endpoint.
+ *
+ * The row's File actions (View/Upload) and Status actions (Accept/Reject)
+ * are two independent button groups, so they get their own column widths
+ * plus a divider between them — at the old 130px/160px widths the pill
+ * buttons overflowed their column and visually ran into each other
+ * ("ReplaceAccept").
  */
 const ProjectQuotationsManager = ({ url, projectId }) => {
     const token = localStorage.getItem('token');
@@ -24,8 +34,7 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
 
     const [quotations, setQuotations] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [form, setForm] = useState({ date: '', amount: '', notes: '' });
-    const [saving, setSaving] = useState(false);
+    const [addModalOpen, setAddModalOpen] = useState(false);
     const [uploadingId, setUploadingId] = useState(null);
     const fileInputRef = useRef(null);
     const uploadTargetRef = useRef(null);
@@ -39,26 +48,6 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
     };
 
     useEffect(() => { fetchList(); }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
-
-    const submit = async (e) => {
-        e.preventDefault();
-        if (!form.date) return toast.error('Date is required');
-        if (form.amount === '') return toast.error('Amount is required');
-        setSaving(true);
-        try {
-            const res = await axios.post(`${url}/api/finance/client-quotations/add`,
-                { projectId, date: form.date, amount: form.amount, notes: form.notes }, authHeader);
-            if (res.data.success) {
-                toast.success(res.data.message || 'Quotation added');
-                setForm({ date: '', amount: '', notes: '' });
-                fetchList();
-            } else toast.error(res.data.message);
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Error adding quotation');
-        } finally { setSaving(false); }
-    };
 
     const changeStatus = async (_id, status) => {
         try {
@@ -107,26 +96,21 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
         <div>
             <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileChosen} />
 
-            <form onSubmit={submit}>
-                <div className="wizard-field-grid">
-                    <div className="add-product-name flex-col">
-                        <p>Date *</p>
-                        <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Amount (₹) *</p>
-                        <input type="number" value={form.amount} onChange={e => setField('amount', e.target.value)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Notes</p>
-                        <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
-                    </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                <div>
+                    <h3 style={{ margin: '0 0 4px' }}>Quotations</h3>
+                    <p className="admin-subtitle" style={{ margin: 0 }}>Issued to the client before the work order / signed rate stage — accept one to move the project forward.</p>
                 </div>
-                <div className="wizard-actions" style={{ marginTop: '16px' }}>
-                    <span />
-                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Adding…' : '+ Add Quotation'}</button>
-                </div>
-            </form>
+                <button type="button" className="add-btn" onClick={() => setAddModalOpen(true)}>+ Add Quotation</button>
+            </div>
+
+            {addModalOpen && (
+                <AddQuotationModal
+                    url={url} projectId={projectId}
+                    onClose={() => setAddModalOpen(false)}
+                    onSaved={fetchList}
+                />
+            )}
 
             {loading ? (
                 <div className="admin-empty-state"><p>Loading…</p></div>
@@ -134,16 +118,16 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
                 <div className="admin-empty-state"><p>No quotations issued for this project yet.</p></div>
             ) : (
                 <div className="list-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '70px 1fr 1fr 110px 130px 160px' }}>
-                        <b>#</b><b>Date</b><b>Amount</b><b>Status</b><b>File</b><b>Action</b>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '60px 1fr 1fr 100px 170px 230px' }}>
+                        <b>#</b><b>Date</b><b>Amount</b><b>Status</b><b>File</b><b>Status Action</b>
                     </div>
                     {quotations.map(q => (
-                        <div key={q._id} className="list-table-format row-item" style={{ gridTemplateColumns: '70px 1fr 1fr 110px 130px 160px' }}>
+                        <div key={q._id} className="list-table-format row-item" style={{ gridTemplateColumns: '60px 1fr 1fr 100px 170px 230px' }}>
                             <p>#{q.quotationNumber}</p>
                             <p>{new Date(q.date).toLocaleDateString()}</p>
                             <p>₹{q.amount.toLocaleString('en-IN')}</p>
                             <p><span className="item-category">{QUOTATION_STATUS_LABEL[q.status]}</span></p>
-                            <div className="action-buttons">
+                            <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
                                 {q.documents?.[0] && (
                                     <a href={q.documents[0].fileUrl} target="_blank" rel="noreferrer" className="cursor edit-action" style={{ textDecoration: 'none' }}>View</a>
                                 )}
@@ -151,7 +135,7 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
                                     {uploadingId === q._id ? 'Uploading…' : q.documents?.[0] ? 'Replace' : 'Upload'}
                                 </p>
                             </div>
-                            <div className="action-buttons">
+                            <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px', borderLeft: '1px dashed rgba(201,168,124,0.35)', paddingLeft: '16px' }}>
                                 {q.status === 'pending' ? (
                                     <>
                                         <p onClick={() => changeStatus(q._id, 'accepted')} className="cursor edit-action">Accept</p>

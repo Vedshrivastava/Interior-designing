@@ -613,6 +613,34 @@
     opacity: 1;
 }
 
+/* File inputs — the native "Choose File" button otherwise renders unstyled
+   OS chrome; restyle it to match the app's pill action buttons instead. */
+.add-product-name input[type="file"] {
+    padding: 9px 14px;
+    cursor: pointer;
+}
+.add-product-name input[type="file"]::file-selector-button,
+.add-product-name input[type="file"]::-webkit-file-upload-button {
+    margin-right: 14px;
+    padding: 8px 16px;
+    border: 1px solid rgba(45,74,53,0.25);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--moss);
+    font-family: "DM Sans", sans-serif;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.22s ease;
+}
+.add-product-name input[type="file"]:hover::file-selector-button,
+.add-product-name input[type="file"]:hover::-webkit-file-upload-button {
+    color: var(--white);
+    background-color: var(--forest);
+    border-color: var(--forest);
+}
+
 /* Select custom arrow */
 .add-product-name select,
 .add-category-price select {

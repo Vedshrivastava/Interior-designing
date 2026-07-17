@@ -2,6 +2,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useWebSocket } from '../../hooks/useWebSocket';
+import StyledSelect from './StyledSelect';
+import StyledDatePicker from './StyledDatePicker';
+import AddMeasurementModal from './AddMeasurementModal';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 
@@ -27,6 +30,7 @@ const WorkMeasurementsSummary = ({ url, projectId, worksVersion }) => {
 
     const [workType, setWorkType] = useState('');
     const [date, setDate] = useState('');
+    const [addModalOpen, setAddModalOpen] = useState(false);
 
     const fetchAll = useCallback(async () => {
         if (!projectId) return;
@@ -116,19 +120,33 @@ const WorkMeasurementsSummary = ({ url, projectId, worksVersion }) => {
 
     return (
         <div>
-            <div className="wizard-field-grid" style={{ marginBottom: '20px' }}>
+            <div className="wizard-field-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))', marginBottom: '20px' }}>
                 <div className="add-product-name flex-col">
                     <p>Work Type</p>
-                    <select value={workType} onChange={e => setWorkType(e.target.value)}>
-                        <option value="">Select work type…</option>
-                        {workTypeOptions.map(w => <option key={w} value={w}>{w}</option>)}
-                    </select>
+                    <StyledSelect
+                        value={workType} onChange={setWorkType} placeholder="Select work type…"
+                        options={workTypeOptions.map(w => ({ value: w, label: w }))}
+                    />
                 </div>
                 <div className="add-product-name flex-col">
                     <p>Date</p>
-                    <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+                    <StyledDatePicker value={date} onChange={setDate} />
+                </div>
+                <div className="add-product-name flex-col">
+                    <p aria-hidden="true" style={{ visibility: 'hidden' }}>Add</p>
+                    <button type="button" className="add-btn" style={{ width: '100%' }} onClick={() => setAddModalOpen(true)}>
+                        + Add New Measurement
+                    </button>
                 </div>
             </div>
+
+            {addModalOpen && (
+                <AddMeasurementModal
+                    url={url} projectId={projectId} works={works}
+                    onClose={() => setAddModalOpen(false)}
+                    onSaved={fetchAll}
+                />
+            )}
 
             {!workType || !date ? (
                 <div className="admin-empty-state"><p>Select a work type and a date to see that day's measurements.</p></div>

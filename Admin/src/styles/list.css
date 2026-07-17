@@ -630,6 +630,17 @@
 }
 
 /* ══════════════════════════════════════════════
+   4e. MEASUREMENT TYPE TOGGLE — reuses the labour
+   chip look for a plain two-option Contractor /
+   Labour switch at the top of Add Measurement.
+══════════════════════════════════════════════ */
+.measurement-type-toggle {
+    display: flex;
+    gap: 8px;
+    margin: -8px 0 24px;
+}
+
+/* ══════════════════════════════════════════════
    5. EDIT MODAL — Elevated Overlay Form
 ══════════════════════════════════════════════ */
 

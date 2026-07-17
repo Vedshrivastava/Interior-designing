@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -9,6 +10,7 @@ import ContractorRatesManager from '../../components/finance/ContractorRatesMana
 import WorkersManager from '../../components/finance/WorkersManager';
 import WorksManager from '../../components/finance/WorksManager';
 import ProjectQuotationsManager from '../../components/finance/ProjectQuotationsManager';
+import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import WorkMeasurementsSummary from '../../components/finance/WorkMeasurementsSummary';
 import StockMovementsManager from '../../components/finance/StockMovementsManager';
 import RunningBillsManager from '../../components/finance/RunningBillsManager';
@@ -243,6 +245,33 @@ const ProjectDetail = ({ url }) => {
         } catch { /* silent — next tab revisit or WS message will retry */ }
     };
 
+    // Picking from the dropdown only stages the change — a single stray
+    // click here would silently reassign who's responsible for the whole
+    // project, so it's held in pendingSupervisor until confirmed. The name
+    // is resolved separately (QuickAddPicker only hands back an id) purely
+    // so the confirm dialog can say who, not just "change supervisor?".
+    const [pendingSupervisor, setPendingSupervisor] = useState(null); // { id, name } | null
+    const [savingSupervisor, setSavingSupervisor] = useState(false);
+
+    const stageSupervisorChange = async (employeeId) => {
+        if (!employeeId) { setPendingSupervisor({ id: '', name: '— None —' }); return; }
+        try {
+            const res = await axios.get(`${url}/api/finance/employees/list`, authHeader);
+            const name = res.data.success ? (res.data.data.find(e => e._id === employeeId)?.name || 'this employee') : 'this employee';
+            setPendingSupervisor({ id: employeeId, name });
+        } catch { setPendingSupervisor({ id: employeeId, name: 'this employee' }); }
+    };
+
+    const confirmSupervisorChange = async () => {
+        setSavingSupervisor(true);
+        try {
+            const res = await axios.post(`${url}/api/finance/projects/update`, { _id: id, assignedSupervisorId: pendingSupervisor.id || null }, authHeader);
+            if (res.data.success) { toast.success('Supervisor updated'); await refreshContractors(); setPendingSupervisor(null); }
+            else toast.error(res.data.message);
+        } catch (err) { toast.error(err.response?.data?.message || 'Error updating supervisor'); }
+        finally { setSavingSupervisor(false); }
+    };
+
     const refreshProgress = () => {
         axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: id } })
             .then(res => {
@@ -439,11 +468,41 @@ const ProjectDetail = ({ url }) => {
                 )}
 
                 {activeTab === 'supervisors' && (
-                    <div className="list-table">
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                            <p><b>Assigned Supervisor</b></p>
-                            <p>{project.assignedSupervisorId?.name || project.assignedSupervisor || '—'}</p>
+                    <div>
+                        <h3 style={{ margin: '0 0 4px' }}>Supervisor</h3>
+                        <p className="admin-subtitle" style={{ margin: '0 0 16px' }}>
+                            The employee overseeing this project on site — shown wherever this project appears under Supervisors, Attendance, and Site Operations.
+                        </p>
+                        <div className="add-product-name flex-col" style={{ maxWidth: '520px' }}>
+                            <p>Assigned Supervisor</p>
+                            <QuickAddPicker
+                                url={url} resourceKey="employees"
+                                value={project.assignedSupervisorId?._id || ''}
+                                onChange={stageSupervisorChange}
+                                placeholder="— None —"
+                            />
                         </div>
+                        {!project.assignedSupervisorId && project.assignedSupervisor && (
+                            <p className="admin-subtitle" style={{ margin: '12px 0 0' }}>
+                                Legacy free-text supervisor on record: "{project.assignedSupervisor}" — pick someone above to replace it with a real employee link.
+                            </p>
+                        )}
+
+                        {pendingSupervisor && ReactDOM.createPortal(
+                            <div className="bin-confirm-backdrop" onClick={() => !savingSupervisor && setPendingSupervisor(null)}>
+                                <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                                    <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                                    <h3>Change Supervisor?</h3>
+                                    <p className="bin-confirm-name">{pendingSupervisor.name}</p>
+                                    <p className="bin-confirm-warning">This replaces the supervisor assigned to "{project.name}" — visible immediately across Attendance and Site Operations.</p>
+                                    <div className="bin-confirm-actions">
+                                        <button className="bin-btn-cancel" onClick={() => setPendingSupervisor(null)} disabled={savingSupervisor}>Cancel</button>
+                                        <button className="bin-btn-delete" onClick={confirmSupervisorChange} disabled={savingSupervisor}>{savingSupervisor ? 'Saving…' : 'Yes, Change'}</button>
+                                    </div>
+                                </div>
+                            </div>,
+                            document.body
+                        )}
                     </div>
                 )}
 

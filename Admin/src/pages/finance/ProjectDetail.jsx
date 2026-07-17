@@ -184,7 +184,7 @@ const TABS = [
     { key: 'works',        label: 'Works' },
     { key: 'measurements', label: 'Measurements' },
     { key: 'materials',    label: 'Materials' },
-    { key: 'contractors',  label: 'Contractors' },
+    { key: 'contractors',  label: 'Workers' },
     { key: 'supervisors',  label: 'Supervisors' },
     { key: 'runningBills', label: 'Running Bills' },
     { key: 'receipts',     label: 'Receipts' },
@@ -207,7 +207,6 @@ const ProjectDetail = ({ url }) => {
     const [activeTab, setActiveTab] = useState('overview');
     const [worksVersion, setWorksVersion] = useState(0);
     const [project, setProject] = useState(null);
-    const [contractors, setContractors] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activating, setActivating] = useState(false);
     const [advanceNotes, setAdvanceNotes] = useState('');
@@ -224,7 +223,6 @@ const ProjectDetail = ({ url }) => {
             const res = await axios.get(`${url}/api/finance/projects/${id}`, authHeader);
             if (res.data.success) {
                 setProject(res.data.data.project);
-                setContractors(res.data.data.contractors || []);
             } else toast.error(res.data.message);
         } catch { toast.error('Error fetching project'); }
         finally { setLoading(false); }
@@ -241,7 +239,6 @@ const ProjectDetail = ({ url }) => {
             const res = await axios.get(`${url}/api/finance/projects/${id}`, authHeader);
             if (res.data.success) {
                 setProject(res.data.data.project);
-                setContractors(res.data.data.contractors || []);
             }
         } catch { /* silent — next tab revisit or WS message will retry */ }
     };
@@ -269,7 +266,7 @@ const ProjectDetail = ({ url }) => {
     // state, so every tab reflects a change the instant it happens —
     // whether it came from this page's own Quick Add flow, a different
     // tab, or another admin's session — not just on next tab revisit.
-    const WORKS_SECTION_EVENTS = ['financeWorksChanged', 'financeWorkContractorAssignmentsChanged', 'financeWorkTypeRatesChanged', 'financeContractorRatesChanged'];
+    const WORKS_SECTION_EVENTS = ['financeWorksChanged', 'financeWorkContractorAssignmentsChanged', 'financeWorkTypeRatesChanged', 'financeContractorRatesChanged', 'financeWorkLabourAssignmentsChanged'];
     useWebSocket(useCallback((msg) => {
         if (msg.projectId !== id || !WORKS_SECTION_EVENTS.includes(msg.type)) return;
         setWorksVersion(v => v + 1);
@@ -429,17 +426,16 @@ const ProjectDetail = ({ url }) => {
                 {activeTab === 'materials' && <StockMovementsManager url={url} projectId={id} />}
 
                 {activeTab === 'contractors' && (
-                    <div className="list-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr' }}><b>Contractor</b><b>Work Types</b></div>
-                        {contractors.length === 0 ? (
-                            <div className="admin-empty-state"><p>No contractor assigned to any Work yet — add a Work and pick a contractor under the Works tab.</p></div>
-                        ) : contractors.map(c => (
-                            <div key={c.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                                <p>{c.vendorName}</p>
-                                <p>{c.workTypes.join(', ')}</p>
-                            </div>
-                        ))}
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Referral Vendor</b></p><p>{project.referralVendorId?.name || '—'}</p></div>
+                    <div>
+                        <div className="list-table" style={{ marginBottom: '24px' }}>
+                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Referral Vendor</b></p><p>{project.referralVendorId?.name || '—'}</p></div>
+                        </div>
+
+                        <h3 style={{ margin: '0 0 8px' }}>Contractor Rates</h3>
+                        <ContractorRatesManager url={url} projectId={id} worksVersion={worksVersion} />
+
+                        <h3 style={{ margin: '28px 0 8px' }}>Labour Rates</h3>
+                        <WorkersManager url={url} projectId={id} worksVersion={worksVersion} />
                     </div>
                 )}
 

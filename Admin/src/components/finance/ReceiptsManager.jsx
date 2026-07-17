@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import StyledSelect from './StyledSelect';
+import StyledDatePicker from './StyledDatePicker';
+import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const emptyForm = { runningBillId: '', amount: '', receiptDate: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '' };
 
@@ -10,6 +16,13 @@ const emptyForm = { runningBillId: '', amount: '', receiptDate: '', paymentMode:
  * tab, `projectId` prop set) and unscoped (the Receipts page, no
  * `projectId` — a project picker is shown first). clientId is derived
  * from the selected project, not asked for separately.
+ *
+ * The Account column's "Cash" fallback used to fire whenever bankAccountId
+ * was empty — including receipts nothing ever asked about (the old
+ * advance-received flow didn't collect a payment mode or bank account at
+ * all), which made unrecorded payments falsely read as "Cash". It now only
+ * says Cash when a payment mode was actually captured; otherwise it's
+ * honestly "—".
  */
 const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
     const token = localStorage.getItem('token');
@@ -24,6 +37,7 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
     const [receipts, setReceipts] = useState([]);
     const [loading, setLoading] = useState(false);
 
+    const [modalOpen, setModalOpen] = useState(false);
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
 
@@ -59,6 +73,9 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
+    const openAdd = () => { setForm(emptyForm); setModalOpen(true); };
+    const closeModal = () => setModalOpen(false);
+
     const submit = async (e) => {
         e.preventDefault();
         if (!selectedProjectId || !projectDetail?.clientId) return toast.error('Select a project');
@@ -75,7 +92,8 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
             }, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message);
-                setForm(emptyForm);
+                await registerSettingIfNew(url, authHeader, 'payment_mode', form.paymentMode, paymentModes.map(m => ({ name: m })));
+                closeModal();
                 await fetchReceipts(selectedProjectId);
             } else toast.error(res.data.message);
         } catch (err) {
@@ -96,10 +114,10 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
             {!fixedProjectId && (
                 <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                     <p>Project</p>
-                    <select value={selectedProjectId} onChange={e => setSelectedProjectId(e.target.value)}>
-                        <option value="">Select project…</option>
-                        {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                    </select>
+                    <StyledSelect
+                        value={selectedProjectId} onChange={setSelectedProjectId} placeholder="Select project…"
+                        options={projects.map(p => ({ value: p._id, label: p.name }))}
+                    />
                 </div>
             )}
 
@@ -107,58 +125,75 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                 <div className="admin-empty-state"><p>Select a project to record or view receipts.</p></div>
             ) : (
                 <>
-                    <form onSubmit={submit} style={{ marginBottom: '28px' }}>
-                        <div className="wizard-field-grid">
-                            <div className="add-product-name flex-col">
-                                <p>Amount (₹) *</p>
-                                <input type="number" value={form.amount} onChange={e => setField('amount', e.target.value)} />
-                            </div>
-                            <div className="add-product-name flex-col">
-                                <p>Receipt Date *</p>
-                                <input type="date" value={form.receiptDate} onChange={e => setField('receiptDate', e.target.value)} />
-                            </div>
-                            <div className="add-product-name flex-col">
-                                <p>Against Bill (optional)</p>
-                                <select value={form.runningBillId} onChange={e => setField('runningBillId', e.target.value)}>
-                                    <option value="">— Not tied to a specific bill —</option>
-                                    {issuedBills.map(b => <option key={b._id} value={b._id}>#{b.billNumber} — ₹{b.totalAmount.toLocaleString('en-IN')}</option>)}
-                                </select>
-                            </div>
-                            <div className="add-product-name flex-col">
-                                <p>Payment Mode</p>
-                                <input type="text" list="payment-mode-options" value={form.paymentMode} onChange={e => setField('paymentMode', e.target.value)} />
-                                <datalist id="payment-mode-options">
-                                    {paymentModes.map(m => <option key={m} value={m} />)}
-                                </datalist>
-                            </div>
-                            <div className="add-product-name flex-col">
-                                <p>Bank Account (leave blank if cash)</p>
-                                <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)}>
-                                    <option value="">— Cash —</option>
-                                    {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
-                                </select>
-                            </div>
-                            <div className="add-product-name flex-col">
-                                <p>Bank / Cash Label (legacy free text, optional)</p>
-                                <input type="text" value={form.bankOrCashLabel} onChange={e => setField('bankOrCashLabel', e.target.value)} placeholder="e.g. HDFC Current A/c, or Cash" />
-                            </div>
-                            <div className="add-product-name flex-col">
-                                <p>UTR / Reference Number</p>
-                                <input type="text" value={form.utrNumber} onChange={e => setField('utrNumber', e.target.value)} />
-                            </div>
-                            <div className="add-product-name flex-col wizard-field-full">
-                                <p>Notes</p>
-                                <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
-                            </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                        <div>
+                            <h3 style={{ margin: '0 0 4px' }}>Receipts</h3>
+                            <p className="admin-subtitle" style={{ margin: 0 }}>Money actually received from the client — optionally tied to one issued bill.</p>
                         </div>
-                        <div className="wizard-actions" style={{ marginTop: '20px' }}>
-                            <span />
-                            <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Record Receipt'}</button>
-                        </div>
-                    </form>
+                        <button type="button" className="add-btn" onClick={openAdd}>+ Record Receipt</button>
+                    </div>
+
+                    {modalOpen && ReactDOM.createPortal(
+                        <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
+                            <div className="loader-modal-box edit-modal">
+                                <h2>Record Receipt</h2>
+                                <form onSubmit={submit}>
+                                    <div className="wizard-field-grid">
+                                        <div className="add-product-name flex-col">
+                                            <p>Amount (₹) *</p>
+                                            <input type="number" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                                        </div>
+                                        <div className="add-product-name flex-col">
+                                            <p>Receipt Date *</p>
+                                            <StyledDatePicker value={form.receiptDate} onChange={v => setField('receiptDate', v)} />
+                                        </div>
+                                        <div className="add-product-name flex-col wizard-field-full">
+                                            <p>Against Bill (optional)</p>
+                                            <StyledSelect
+                                                value={form.runningBillId} onChange={v => setField('runningBillId', v)}
+                                                placeholder="— Not tied to a specific bill —"
+                                                options={issuedBills.map(b => ({ value: b._id, label: `#${b.billNumber} — ₹${b.totalAmount.toLocaleString('en-IN')}` }))}
+                                            />
+                                        </div>
+                                        <div className="add-product-name flex-col">
+                                            <p>Payment Mode</p>
+                                            <SettingSelectField
+                                                settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
+                                                value={form.paymentMode} onChange={v => setField('paymentMode', v)} placeholder="e.g. Cash, Bank Transfer, UPI…"
+                                            />
+                                        </div>
+                                        <div className="add-product-name flex-col">
+                                            <p>Bank Account (leave blank if cash)</p>
+                                            <StyledSelect
+                                                value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="— Cash —"
+                                                options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} — ${a.bankName}` }))}
+                                            />
+                                        </div>
+                                        <div className="add-product-name flex-col">
+                                            <p>UTR / Reference Number</p>
+                                            <input type="text" value={form.utrNumber} onChange={e => setField('utrNumber', e.target.value)} />
+                                        </div>
+                                        <div className="add-product-name flex-col">
+                                            <p>Bank / Cash Label (legacy, optional)</p>
+                                            <input type="text" value={form.bankOrCashLabel} onChange={e => setField('bankOrCashLabel', e.target.value)} placeholder="e.g. HDFC Current A/c, or Cash" />
+                                        </div>
+                                        <div className="add-product-name flex-col wizard-field-full">
+                                            <p>Notes</p>
+                                            <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
+                                        </div>
+                                    </div>
+                                    <div className="edit-modal-actions">
+                                        <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
+                                        <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Record Receipt'}</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>,
+                        document.body
+                    )}
 
                     <div className="list-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1.2fr 1fr 90px' }}>
                             <b>Date</b><b>Amount</b><b>Bill</b><b>Mode</b><b>Account</b><b>Reference</b><b>Action</b>
                         </div>
                         {loading ? (
@@ -167,12 +202,12 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                             <div className="admin-empty-state"><p>No receipts recorded yet.</p></div>
                         ) : (
                             receipts.map(r => (
-                                <div key={r._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
+                                <div key={r._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1.2fr 1fr 90px' }}>
                                     <p>{new Date(r.receiptDate).toLocaleDateString()}</p>
                                     <p>₹{r.amount.toLocaleString('en-IN')}</p>
                                     <p>{r.runningBillId?.billNumber ? `#${r.runningBillId.billNumber}` : '—'}</p>
                                     <p>{r.paymentMode || '—'}</p>
-                                    <p>{r.bankAccountId?.accountName || 'Cash'}</p>
+                                    <p>{r.bankAccountId?.accountName || (r.paymentMode ? 'Cash' : '—')}</p>
                                     <p>{r.utrNumber || r.bankOrCashLabel || '—'}</p>
                                     <div className="action-buttons">
                                         <p onClick={() => removeReceipt(r)} className="cursor delete-action">X</p>

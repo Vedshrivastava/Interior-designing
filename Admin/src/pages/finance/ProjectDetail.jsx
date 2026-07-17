@@ -17,6 +17,8 @@ import RunningBillsManager from '../../components/finance/RunningBillsManager';
 import ReceiptsManager from '../../components/finance/ReceiptsManager';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import DocumentsTab from '../../components/finance/DocumentsTab';
+import StyledSelect from '../../components/finance/StyledSelect';
+import SettingSelectField, { registerSettingIfNew } from '../../components/finance/SettingSelectField';
 import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
@@ -212,6 +214,12 @@ const ProjectDetail = ({ url }) => {
     const [loading, setLoading] = useState(true);
     const [activating, setActivating] = useState(false);
     const [advanceNotes, setAdvanceNotes] = useState('');
+    const [advancePaymentMode, setAdvancePaymentMode] = useState('');
+    const [advanceBankAccountId, setAdvanceBankAccountId] = useState('');
+    const [advanceUtrNumber, setAdvanceUtrNumber] = useState('');
+    const [advanceModalOpen, setAdvanceModalOpen] = useState(false);
+    const [paymentModes, setPaymentModes] = useState([]);
+    const [bankAccounts, setBankAccounts] = useState([]);
     const [markingInvoiced, setMarkingInvoiced] = useState(false);
     const [markingReceived, setMarkingReceived] = useState(false);
 
@@ -231,6 +239,13 @@ const ProjectDetail = ({ url }) => {
     };
 
     useEffect(() => { fetchProject(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
+            .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
+        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
+            .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
+    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Same fetch as fetchProject, minus the loading flag — used for live
     // (WebSocket-driven) refreshes so the page doesn't flash back to its
@@ -329,8 +344,17 @@ const ProjectDetail = ({ url }) => {
     const markAdvanceReceived = async () => {
         setMarkingReceived(true);
         try {
-            const res = await axios.post(`${url}/api/finance/projects/advance-received`, { _id: id, notes: advanceNotes }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); setAdvanceNotes(''); await fetchProject(); }
+            const res = await axios.post(`${url}/api/finance/projects/advance-received`, {
+                _id: id, notes: advanceNotes,
+                paymentMode: advancePaymentMode, bankAccountId: advanceBankAccountId, utrNumber: advanceUtrNumber,
+            }, authHeader);
+            if (res.data.success) {
+                toast.success(res.data.message);
+                await registerSettingIfNew(url, authHeader, 'payment_mode', advancePaymentMode, paymentModes.map(m => ({ name: m })));
+                setAdvanceNotes(''); setAdvancePaymentMode(''); setAdvanceBankAccountId(''); setAdvanceUtrNumber('');
+                setAdvanceModalOpen(false);
+                await fetchProject();
+            }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording advance payment'); }
         finally { setMarkingReceived(false); }
@@ -416,12 +440,9 @@ const ProjectDetail = ({ url }) => {
                                                     <p onClick={downloadAdvanceReceipt} className="cursor edit-action" style={{ margin: 0 }}>Download Receipt</p>
                                                 </div>
                                             ) : (
-                                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                                    <input type="text" placeholder="Notes (optional)" value={advanceNotes} onChange={e => setAdvanceNotes(e.target.value)} style={{ flex: 1 }} />
-                                                    <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} disabled={markingReceived} onClick={markAdvanceReceived}>
-                                                        {markingReceived ? 'Saving…' : 'Record Received'}
-                                                    </button>
-                                                </div>
+                                                <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={() => setAdvanceModalOpen(true)}>
+                                                    Record Received
+                                                </button>
                                             )}
                                         </div>
                                     </div>
@@ -431,6 +452,48 @@ const ProjectDetail = ({ url }) => {
                         </div>
                         <ProjectOverviewTab url={url} projectId={id} contractType={project.contractType} onViewWorks={() => setActiveTab('works')} />
                     </div>
+                )}
+
+                {advanceModalOpen && ReactDOM.createPortal(
+                    <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+                        <div className="loader-modal-box edit-modal">
+                            <h2>Record Advance Received</h2>
+                            <p className="admin-subtitle" style={{ margin: '4px 0 16px' }}>
+                                Advance of ₹{project.advanceAmount?.toLocaleString('en-IN')} for "{project.name}" — how did it arrive?
+                            </p>
+                            <div className="wizard-field-grid">
+                                <div className="add-product-name flex-col">
+                                    <p>Payment Mode</p>
+                                    <SettingSelectField
+                                        settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
+                                        value={advancePaymentMode} onChange={setAdvancePaymentMode} placeholder="e.g. Cash, Bank Transfer, Cheque…"
+                                    />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Bank Account (leave blank if cash)</p>
+                                    <StyledSelect
+                                        value={advanceBankAccountId} onChange={setAdvanceBankAccountId} placeholder="— Cash —"
+                                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} — ${a.bankName}` }))}
+                                    />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>UTR / Cheque Number</p>
+                                    <input type="text" value={advanceUtrNumber} onChange={e => setAdvanceUtrNumber(e.target.value)} />
+                                </div>
+                                <div className="add-product-name flex-col wizard-field-full">
+                                    <p>Notes</p>
+                                    <input type="text" value={advanceNotes} onChange={e => setAdvanceNotes(e.target.value)} placeholder="Optional" />
+                                </div>
+                            </div>
+                            <div className="edit-modal-actions">
+                                <button type="button" className="add-btn cancel-btn" onClick={() => setAdvanceModalOpen(false)} disabled={markingReceived}>Cancel</button>
+                                <button type="button" className="add-btn" disabled={markingReceived} onClick={markAdvanceReceived}>
+                                    {markingReceived ? 'Saving…' : 'Record Received'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
                 )}
 
                 {activeTab === 'works' && (

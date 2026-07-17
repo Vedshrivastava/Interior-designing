@@ -6,6 +6,7 @@ import WorkTypeRatesManager from '../../components/finance/WorkTypeRatesManager'
 import ContractorRatesManager from '../../components/finance/ContractorRatesManager';
 import SettingSelectField, { registerSettingIfNew } from '../../components/finance/SettingSelectField';
 import QuickAddPicker from '../../components/finance/QuickAddPicker';
+import StyledSelect from '../../components/finance/StyledSelect';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 
@@ -34,6 +35,11 @@ const NewProjectWizard = ({ url }) => {
     const [totalEstimatedCost, setTotalEstimatedCost] = useState('');
     const [contractPercentage, setContractPercentage] = useState('');
     const [advanceNotes, setAdvanceNotes] = useState('');
+    const [advancePaymentMode, setAdvancePaymentMode] = useState('');
+    const [advanceBankAccountId, setAdvanceBankAccountId] = useState('');
+    const [advanceUtrNumber, setAdvanceUtrNumber] = useState('');
+    const [paymentModes, setPaymentModes] = useState([]);
+    const [bankAccounts, setBankAccounts] = useState([]);
 
     const [cityOptions, setCityOptions] = useState([]);
     const [stepKey, setStepKey] = useState('basic');
@@ -41,6 +47,8 @@ const NewProjectWizard = ({ url }) => {
 
     useEffect(() => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'city' } }).then(res => { if (res.data.success) setCityOptions(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } }).then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
+        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const steps = ['basic', 'type', 'setup', 'contractors', ...(contractType === 'advance' ? ['advance'] : []), 'activate'];
@@ -116,8 +124,15 @@ const NewProjectWizard = ({ url }) => {
 
     const markReceived = async () => {
         try {
-            const res = await axios.post(`${url}/api/finance/projects/advance-received`, { _id: projectId, notes: advanceNotes }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); setProject(res.data.data); }
+            const res = await axios.post(`${url}/api/finance/projects/advance-received`, {
+                _id: projectId, notes: advanceNotes,
+                paymentMode: advancePaymentMode, bankAccountId: advanceBankAccountId, utrNumber: advanceUtrNumber,
+            }, authHeader);
+            if (res.data.success) {
+                toast.success(res.data.message);
+                setProject(res.data.data);
+                await registerSettingIfNew(url, authHeader, 'payment_mode', advancePaymentMode, paymentModes.map(m => ({ name: m })));
+            }
             else toast.error(res.data.message);
         } catch { toast.error('Error recording advance payment'); }
     };
@@ -324,9 +339,29 @@ const NewProjectWizard = ({ url }) => {
                                 <p className="wizard-advance-amount">₹{Number(totalEstimatedCost * contractPercentage / 100 || 0).toLocaleString('en-IN')}</p>
                             </div>
 
-                            <div className="add-product-name flex-col" style={{ margin: '16px 0' }}>
-                                <p>Receipt Notes</p>
-                                <textarea rows="3" value={advanceNotes} onChange={e => setAdvanceNotes(e.target.value)} placeholder="e.g. Cheque #, bank, date received…" />
+                            <div className="wizard-field-grid" style={{ margin: '16px 0' }}>
+                                <div className="add-product-name flex-col">
+                                    <p>Payment Mode</p>
+                                    <SettingSelectField
+                                        settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
+                                        value={advancePaymentMode} onChange={setAdvancePaymentMode} placeholder="e.g. Cash, Bank Transfer, Cheque…"
+                                    />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Bank Account (leave blank if cash)</p>
+                                    <StyledSelect
+                                        value={advanceBankAccountId} onChange={setAdvanceBankAccountId} placeholder="— Cash —"
+                                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} — ${a.bankName}` }))}
+                                    />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>UTR / Cheque Number</p>
+                                    <input type="text" value={advanceUtrNumber} onChange={e => setAdvanceUtrNumber(e.target.value)} />
+                                </div>
+                                <div className="add-product-name flex-col wizard-field-full">
+                                    <p>Receipt Notes</p>
+                                    <textarea rows="3" value={advanceNotes} onChange={e => setAdvanceNotes(e.target.value)} placeholder="Any other detail worth keeping on record" />
+                                </div>
                             </div>
 
                             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>

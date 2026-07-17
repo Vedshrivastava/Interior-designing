@@ -228,7 +228,7 @@ const recordAdvanceInvoiced = async (req, res) => {
 // for the same project, which would otherwise double-book the receipt.
 const recordAdvanceReceived = async (req, res) => {
     try {
-        const { _id, notes } = req.body;
+        const { _id, notes, paymentMode, bankAccountId, utrNumber } = req.body;
         const project = await FinanceProject.findById(_id);
         if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
         if (project.contractType !== 'advance') return res.status(400).json({ success: false, message: 'Not an Advance project' });
@@ -243,6 +243,7 @@ const recordAdvanceReceived = async (req, res) => {
             clientId: project.clientId, projectId: project._id,
             amount: project.advanceAmount, receiptDate: project.advanceReceivedAt,
             notes: 'Advance payment', isAdvance: true,
+            paymentMode: paymentMode || '', bankAccountId: bankAccountId || null, utrNumber: utrNumber || '',
         });
 
         broadcast({ type: 'financeProjectsChanged' });

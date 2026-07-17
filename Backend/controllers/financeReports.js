@@ -1122,11 +1122,15 @@ const getExpenseAnalysis = async (req, res) => {
             if (from) filter.date.$gte = new Date(from);
             if (to) filter.date.$lte = new Date(to);
         }
-        const expenses = await FinanceExpense.find(filter).populate('projectId', 'name').sort({ date: -1 });
+        const expenses = await FinanceExpense.find(filter)
+            .populate('projectId', 'name').populate('workId', 'workType').populate('relatedToId', 'name vendorType')
+            .sort({ date: -1 });
         const total = expenses.reduce((s, e) => s + e.amount, 0);
 
         const byCategoryMap = new Map();
         const byProjectMap = new Map();
+        const byWorkMap = new Map();
+        const byRelatedToMap = new Map();
         for (const e of expenses) {
             const cat = e.expenseCategory || 'Uncategorized';
             byCategoryMap.set(cat, (byCategoryMap.get(cat) || 0) + e.amount);
@@ -1135,6 +1139,21 @@ const getExpenseAnalysis = async (req, res) => {
             const projName = e.projectId ? e.projectId.name : 'General / overhead';
             if (!byProjectMap.has(projKey)) byProjectMap.set(projKey, { projectId: e.projectId?._id || null, projectName: projName, amount: 0 });
             byProjectMap.get(projKey).amount += e.amount;
+
+            if (e.workId) {
+                const workKey = e.workId._id.toString();
+                if (!byWorkMap.has(workKey)) byWorkMap.set(workKey, { workId: e.workId._id, workType: e.workId.workType, amount: 0 });
+                byWorkMap.get(workKey).amount += e.amount;
+            }
+
+            if (e.relatedToId) {
+                const relKey = e.relatedToId._id.toString();
+                const relLabel = e.relatedToType === 'financeEmployee' ? 'Employee'
+                    : e.relatedToType === 'financeLabourer' ? 'Labourer'
+                    : e.relatedToId.vendorType === 'labour_contractor' ? 'Contractor' : 'Vendor';
+                if (!byRelatedToMap.has(relKey)) byRelatedToMap.set(relKey, { relatedToId: e.relatedToId._id, relatedToType: relLabel, name: e.relatedToId.name, amount: 0 });
+                byRelatedToMap.get(relKey).amount += e.amount;
+            }
         }
 
         res.json({
@@ -1143,6 +1162,8 @@ const getExpenseAnalysis = async (req, res) => {
                 total,
                 byCategory: [...byCategoryMap.entries()].map(([cat, amount]) => ({ category: cat, amount })).sort((a, b) => b.amount - a.amount),
                 byProject: [...byProjectMap.values()].sort((a, b) => b.amount - a.amount),
+                byWork: [...byWorkMap.values()].sort((a, b) => b.amount - a.amount),
+                byRelatedTo: [...byRelatedToMap.values()].sort((a, b) => b.amount - a.amount),
                 expenses,
             },
         });

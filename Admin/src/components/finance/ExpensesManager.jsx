@@ -11,17 +11,25 @@ import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const emptyForm = { expenseCategory: '', projectId: '', workId: '', relatedToType: '', relatedToId: '', amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', notes: '' };
+const emptyForm = { expenseCategory: '', projectId: '', workId: '', relatedToUiType: '', relatedToId: '', amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', notes: '' };
 const emptySettleForm = { amount: '', date: '', paymentMode: '', bankAccountId: '' };
 const PAID_STATUS_OPTIONS = [
     { value: 'paid', label: 'Paid now' },
     { value: 'pending', label: 'Record as pending — settle later' },
 ];
-const RELATED_TO_TYPE_OPTIONS = [
-    { value: 'financeEmployee', label: 'Employee' },
-    { value: 'financeVendor', label: 'Vendor (incl. contractor / supplier)' },
+
+// UI-level "who" categories — more granular than the schema's own
+// relatedToType, since Contractor and Vendor/Supplier both save as the same
+// financeVendor ref (distinguished only by vendorType, which the filter
+// below applies), matching how people actually think about "who this was
+// for" on site rather than the underlying collection.
+const RELATED_TO_UI_OPTIONS = [
+    { value: 'employee', label: 'Employee / Supervisor', backendType: 'financeEmployee', resourceKey: 'employees' },
+    { value: 'contractor', label: 'Contractor', backendType: 'financeVendor', resourceKey: 'vendors', filter: v => v.vendorType === 'labour_contractor', presetValues: { vendorType: 'labour_contractor' } },
+    { value: 'labourer', label: 'Labourer', backendType: 'financeLabourer', resourceKey: 'labourers' },
+    { value: 'vendor', label: 'Vendor / Supplier', backendType: 'financeVendor', resourceKey: 'vendors', filter: v => v.vendorType !== 'labour_contractor' },
 ];
-const RELATED_TO_RESOURCE_KEY = { financeEmployee: 'employees', financeVendor: 'vendors' };
+const relatedToUiConfig = (uiType) => RELATED_TO_UI_OPTIONS.find(o => o.value === uiType);
 const workLabel = (w) => `${w.workType}${w.workOrderNumber ? ` — ${w.workOrderNumber}` : ''} (${w.completedAreaSqft}/${w.estimatedAreaSqft} sqft)`;
 
 /*
@@ -112,7 +120,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
     const setProjectField = (value) => setForm(prev => ({ ...prev, projectId: value, workId: '' }));
-    const setRelatedToType = (value) => setForm(prev => ({ ...prev, relatedToType: value, relatedToId: '' }));
+    const setRelatedToUiType = (value) => setForm(prev => ({ ...prev, relatedToUiType: value, relatedToId: '' }));
 
     const openAdd = () => { setForm({ ...emptyForm, projectId: fixedProjectId || '' }); setPaidNow(true); setModalOpen(true); };
     const closeModal = () => setModalOpen(false);
@@ -123,7 +131,12 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
         if (!form.date) return toast.error('Date is required');
         setSaving(true);
         try {
-            const payload = paidNow ? form : { ...form, paymentMode: '', bankOrCashLabel: '', bankAccountId: '' };
+            const { relatedToUiType, ...rest } = form;
+            const payload = {
+                ...rest,
+                relatedToType: form.relatedToId ? relatedToUiConfig(relatedToUiType)?.backendType || null : null,
+                ...(paidNow ? {} : { paymentMode: '', bankOrCashLabel: '', bankAccountId: '' }),
+            };
             const res = await axios.post(`${url}/api/finance/expenses/add`, payload, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message);
@@ -227,14 +240,19 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
                                 <div className="add-product-name flex-col">
                                     <p>Related To (optional)</p>
                                     <StyledSelect
-                                        value={form.relatedToType} onChange={setRelatedToType} placeholder="— None —"
-                                        options={RELATED_TO_TYPE_OPTIONS}
+                                        value={form.relatedToUiType} onChange={setRelatedToUiType} placeholder="— None —"
+                                        options={RELATED_TO_UI_OPTIONS}
                                     />
                                 </div>
-                                {form.relatedToType && (
+                                {form.relatedToUiType && (
                                     <div className="add-product-name flex-col">
-                                        <p>{form.relatedToType === 'financeEmployee' ? 'Employee' : 'Vendor'}</p>
-                                        <QuickAddPicker url={url} resourceKey={RELATED_TO_RESOURCE_KEY[form.relatedToType]} value={form.relatedToId} onChange={v => setField('relatedToId', v)} />
+                                        <p>{relatedToUiConfig(form.relatedToUiType).label}</p>
+                                        <QuickAddPicker
+                                            url={url} resourceKey={relatedToUiConfig(form.relatedToUiType).resourceKey}
+                                            filter={relatedToUiConfig(form.relatedToUiType).filter}
+                                            presetValues={relatedToUiConfig(form.relatedToUiType).presetValues}
+                                            value={form.relatedToId} onChange={v => setField('relatedToId', v)}
+                                        />
                                     </div>
                                 )}
                                 <div className="add-product-name flex-col">

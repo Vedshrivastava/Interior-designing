@@ -9,11 +9,13 @@ const financeExpenseSchema = new mongoose.Schema({
     workId:          { type: mongoose.Schema.Types.ObjectId, ref: 'financeWork', default: null }, // optional — scoped to one Work under projectId, not validated against it beyond the UI only offering that project's Works
 
     // Who/what this expense was actually for — optional, and deliberately
-    // narrower than a full polymorphic "any collection" ref: only
-    // financeEmployee and financeVendor (which already covers contractors,
-    // material suppliers, and referral vendors via vendorType) are valid.
-    // Same refPath pattern as financeActivityLog's entityType/entityId.
-    relatedToType: { type: String, enum: ['financeEmployee', 'financeVendor', null], default: null },
+    // narrower than a full polymorphic "any collection" ref: financeEmployee
+    // (staff/supervisors), financeLabourer (day-wage roster), and
+    // financeVendor (covers both Contractor and plain Vendor/Supplier in the
+    // UI, distinguished there by vendorType, not by a separate stored type)
+    // are the only valid targets. Same refPath pattern as
+    // financeActivityLog's entityType/entityId.
+    relatedToType: { type: String, enum: ['financeEmployee', 'financeVendor', 'financeLabourer', null], default: null },
     relatedToId:   { type: mongoose.Schema.Types.ObjectId, refPath: 'relatedToType', default: null },
 
     amount: { type: Number, required: true },

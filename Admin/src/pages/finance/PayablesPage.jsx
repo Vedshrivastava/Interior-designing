@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import ExpensesManager from '../../components/finance/ExpensesManager';
+import ExpenseAnalysisView from '../../components/finance/ExpenseAnalysisView';
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -13,6 +14,7 @@ const TABS = [
     { key: 'salary',     label: 'Salary' },
     { key: 'commission', label: 'Commission' },
     { key: 'other',      label: 'Other Expenses' },
+    { key: 'other-analysis', label: 'Expense Analysis' },
 ];
 
 /*
@@ -251,6 +253,7 @@ const PayablesPage = ({ url }) => {
             {activeTab === 'salary' && <PayablesSalaryTab url={url} />}
             {activeTab === 'commission' && <PayablesCommissionTab url={url} />}
             {activeTab === 'other' && <ExpensesManager url={url} highlightId={searchParams.get('expenseId')} />}
+            {activeTab === 'other-analysis' && <ExpenseAnalysisView url={url} />}
         </FinanceTabShell>
     );
 };

@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import StyledSelect from './StyledSelect';
+import StyledDatePicker from './StyledDatePicker';
 import '../../styles/list.css';
+import '../../styles/add.css';
 
 const ExpenseAnalysisView = ({ url }) => {
     const token = localStorage.getItem('token');
@@ -36,28 +39,24 @@ const ExpenseAnalysisView = ({ url }) => {
 
     return (
         <div>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '20px' }}>
-                <div className="add-product-name flex-col">
+            <h3 style={{ margin: '0 0 4px' }}>Expense Analysis</h3>
+            <p className="admin-subtitle" style={{ margin: '0 0 16px' }}>Every general/site expense, totalled by category, project, work, and person/entity — filter to narrow it down.</p>
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '20px' }}>
+                <div className="add-product-name flex-col" style={{ maxWidth: '260px' }}>
                     <p>Project</p>
-                    <select value={projectId} onChange={e => setProjectId(e.target.value)}>
-                        <option value="">All projects</option>
-                        {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                    </select>
+                    <StyledSelect value={projectId} onChange={setProjectId} placeholder="All projects" options={projects.map(p => ({ value: p._id, label: p.name }))} />
                 </div>
-                <div className="add-product-name flex-col">
+                <div className="add-product-name flex-col" style={{ maxWidth: '220px' }}>
                     <p>Category</p>
-                    <select value={category} onChange={e => setCategory(e.target.value)}>
-                        <option value="">All categories</option>
-                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <StyledSelect value={category} onChange={setCategory} placeholder="All categories" options={categories.map(c => ({ value: c, label: c }))} />
                 </div>
-                <div className="add-product-name flex-col">
+                <div className="add-product-name flex-col" style={{ maxWidth: '180px' }}>
                     <p>From</p>
-                    <input type="date" value={from} onChange={e => setFrom(e.target.value)} />
+                    <StyledDatePicker value={from} onChange={setFrom} />
                 </div>
-                <div className="add-product-name flex-col">
+                <div className="add-product-name flex-col" style={{ maxWidth: '180px' }}>
                     <p>To</p>
-                    <input type="date" value={to} onChange={e => setTo(e.target.value)} />
+                    <StyledDatePicker value={to} onChange={setTo} align="right" />
                 </div>
             </div>
 
@@ -82,7 +81,7 @@ const ExpenseAnalysisView = ({ url }) => {
                     </div>
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By project</p>
-                    <div className="list-table">
+                    <div className="list-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
                             <b>Project</b><b>Amount</b>
                         </div>
@@ -92,6 +91,38 @@ const ExpenseAnalysisView = ({ url }) => {
                             </div>
                         ))}
                     </div>
+
+                    {data.byWork.length > 0 && (
+                        <>
+                            <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By work</p>
+                            <div className="list-table" style={{ marginBottom: '24px' }}>
+                                <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
+                                    <b>Work</b><b>Amount</b>
+                                </div>
+                                {data.byWork.map(w => (
+                                    <div key={w.workId} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
+                                        <p>{w.workType}</p><p>₹{w.amount.toLocaleString('en-IN')}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+
+                    {data.byRelatedTo.length > 0 && (
+                        <>
+                            <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By person / entity</p>
+                            <div className="list-table">
+                                <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr' }}>
+                                    <b>Name</b><b>Type</b><b>Amount</b>
+                                </div>
+                                {data.byRelatedTo.map(r => (
+                                    <div key={r.relatedToId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.6fr 1fr 1fr' }}>
+                                        <p>{r.name}</p><p><span className="item-category">{r.relatedToType}</span></p><p>₹{r.amount.toLocaleString('en-IN')}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </>
             )}
         </div>

@@ -3,6 +3,12 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
 
+// Same dashboardCache idea as FinanceHome.jsx, keyed by projectId ('' means
+// "all projects", itself a valid cacheable key) since this table's data
+// changes with the picker — a bare singleton would show project A's rows
+// after switching to project B.
+const contractorAnalysisCache = new Map();
+
 /* Same balancePayable formula as the individual Contractor Ledger
    (Contractors > Ledger tab) — every labour contractor in one comparable
    table instead of picking one at a time. Optional project filter. */
@@ -11,17 +17,19 @@ const ContractorAnalysisTable = ({ url }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [projects, setProjects] = useState([]);
     const [projectId, setProjectId] = useState('');
-    const [rows, setRows] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [rows, setRows] = useState(contractorAnalysisCache.get('') || []);
+    const [loading, setLoading] = useState(!contractorAnalysisCache.has(''));
 
     useEffect(() => {
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        setLoading(true);
+        const cached = contractorAnalysisCache.get(projectId);
+        if (cached) { setRows(cached); setLoading(false); }
+        else setLoading(true);
         axios.get(`${url}/api/finance/reports/contractor-analysis`, { ...authHeader, params: projectId ? { projectId } : {} })
-            .then(res => { if (res.data.success) setRows(res.data.data); })
+            .then(res => { if (res.data.success) { setRows(res.data.data); contractorAnalysisCache.set(projectId, res.data.data); } })
             .catch(() => toast.error('Error fetching contractor analysis'))
             .finally(() => setLoading(false));
     }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps

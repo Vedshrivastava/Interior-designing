@@ -29,6 +29,11 @@ const TABS = [
 const IS_CONTRACTOR = (v) => v.vendorType === 'labour_contractor';
 const VENDOR_SCOPED_TABS = ['projects', 'works', 'measurements', 'ledger', 'settlements', 'documents'];
 
+// Same dashboardCache pattern as FinanceHome.jsx — the Overview tab always
+// shows the same company-wide aggregate (no picker scoping it), so a
+// single module-level cache is enough.
+let contractorsOverviewCache = null;
+
 /* Projects this contractor is actually on — derived from their teams' Works,
    not the old single project-level field. Reuses the contractor ledger
    endpoint (no projectId param → every work across every project this
@@ -97,13 +102,13 @@ const ContractorPicker = ({ url, selectedVendorId, onChange }) => (
 const ContractorsOverviewTab = ({ url, onSelectContractor }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [summary, setSummary] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [summary, setSummary] = useState(contractorsOverviewCache);
+    const [loading, setLoading] = useState(!contractorsOverviewCache);
 
     useEffect(() => {
-        setLoading(true);
+        if (!contractorsOverviewCache) setLoading(true);
         axios.get(`${url}/api/finance/reports/contractors-summary`, authHeader)
-            .then(res => { if (res.data.success) setSummary(res.data.data); })
+            .then(res => { if (res.data.success) { setSummary(res.data.data); contractorsOverviewCache = res.data.data; } })
             .catch(() => {})
             .finally(() => setLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps

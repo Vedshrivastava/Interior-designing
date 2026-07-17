@@ -12,24 +12,34 @@ const CONTRACT_TYPE_LABEL = { with_material: 'With Material', without_material: 
 const STATUS_LABEL = { draft: 'Draft', active: 'Active', completed: 'Completed' };
 const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance'];
 
+// Kept outside the component so they survive a route remount, same
+// dashboardCache pattern as FinanceHome.jsx/ClientsPage.jsx — revisiting
+// All Projects paints instantly from the last-known list/stats instead of
+// every chart/row reverting to a loading state, while a fresh fetch
+// quietly brings both up to date in the background. Two separate caches
+// since the list resolves fast and the stats depend on a slower N+1
+// fan-out chained off it.
+let projectsListCache = null;
+let projectsStatsCache = null; // { profitData, billedVsCollected }
+
 const ProjectsList = ({ url }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-    const [list, setList] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [list, setList] = useState(projectsListCache || []);
+    const [loading, setLoading] = useState(!projectsListCache);
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
-    const [profitData, setProfitData] = useState([]);
-    const [billedVsCollected, setBilledVsCollected] = useState([]);
-    const [statsLoading, setStatsLoading] = useState(true);
+    const [profitData, setProfitData] = useState(projectsStatsCache?.profitData || []);
+    const [billedVsCollected, setBilledVsCollected] = useState(projectsStatsCache?.billedVsCollected || []);
+    const [statsLoading, setStatsLoading] = useState(!projectsStatsCache);
 
     const fetchList = async () => {
-        setLoading(true);
+        if (!projectsListCache) setLoading(true);
         try {
             const res = await axios.get(`${url}/api/finance/projects/list`, authHeader);
-            if (res.data.success) setList(res.data.data);
+            if (res.data.success) { setList(res.data.data); projectsListCache = res.data.data; }
         } catch { toast.error('Error fetching projects'); }
         finally { setLoading(false); }
     };
@@ -41,14 +51,14 @@ const ProjectsList = ({ url }) => {
     // types now — advance draws its credit down against its own bills).
     useEffect(() => {
         if (list.length === 0) {
-            setProfitData([]); setBilledVsCollected([]);
+            if (!projectsStatsCache) { setProfitData([]); setBilledVsCollected([]); }
             // The list itself might just still be loading (empty for now,
             // not confirmed empty) — only report these stats as "not
             // loading" once the list fetch has genuinely finished.
-            setStatsLoading(loading);
+            setStatsLoading(projectsStatsCache ? false : loading);
             return;
         }
-        setStatsLoading(true);
+        if (!projectsStatsCache) setStatsLoading(true);
         let cancelled = false;
         (async () => {
             const activeProjects = list.filter(p => p.status === 'active');
@@ -57,7 +67,8 @@ const ProjectsList = ({ url }) => {
                     .then(r => (r.data.success ? { projectName: p.name, projectId: p._id, profit: r.data.data.profit } : null))
                     .catch(() => null)
             ));
-            if (!cancelled) setProfitData(profits.filter(Boolean));
+            const nextProfitData = profits.filter(Boolean);
+            if (!cancelled) setProfitData(nextProfitData);
 
             const billableProjects = list.filter(p => BILLABLE_CONTRACT_TYPES.includes(p.contractType));
             const receivables = await Promise.all(billableProjects.map(p =>
@@ -65,7 +76,12 @@ const ProjectsList = ({ url }) => {
                     .then(r => (r.data.success ? { projectName: p.name, projectId: p._id, billed: r.data.data.issuedTotal, collected: r.data.data.receivedTotal } : null))
                     .catch(() => null)
             ));
-            if (!cancelled) { setBilledVsCollected(receivables.filter(Boolean).filter(r => r.billed > 0)); setStatsLoading(false); }
+            const nextBilledVsCollected = receivables.filter(Boolean).filter(r => r.billed > 0);
+            if (!cancelled) {
+                setBilledVsCollected(nextBilledVsCollected);
+                projectsStatsCache = { profitData: nextProfitData, billedVsCollected: nextBilledVsCollected };
+                setStatsLoading(false);
+            }
         })();
         return () => { cancelled = true; };
     }, [list]); // eslint-disable-line react-hooks/exhaustive-deps

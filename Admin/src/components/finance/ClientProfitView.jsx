@@ -3,14 +3,17 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
 
+// Same dashboardCache idea as FinanceHome.jsx, keyed by clientId.
+const clientProfitCache = new Map();
+
 /* Client picker + a rollup across every project belonging to that client —
    each row links back into Project Profit for that one project. */
 const ClientProfitView = ({ url, clientId, onSelectClient, onViewProjectProfit }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [clients, setClients] = useState([]);
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const [data, setData] = useState(clientProfitCache.get(clientId) || null);
+    const [loading, setLoading] = useState(!!clientId && !clientProfitCache.has(clientId));
 
     useEffect(() => {
         axios.get(`${url}/api/finance/clients/list`, authHeader).then(res => { if (res.data.success) setClients(res.data.data); }).catch(() => {});
@@ -18,9 +21,11 @@ const ClientProfitView = ({ url, clientId, onSelectClient, onViewProjectProfit }
 
     useEffect(() => {
         if (!clientId) { setData(null); return; }
-        setLoading(true);
+        const existing = clientProfitCache.get(clientId);
+        if (existing) { setData(existing); setLoading(false); }
+        else setLoading(true);
         axios.get(`${url}/api/finance/reports/client-profit`, { ...authHeader, params: { clientId } })
-            .then(res => { if (res.data.success) setData(res.data.data); })
+            .then(res => { if (res.data.success) { setData(res.data.data); clientProfitCache.set(clientId, res.data.data); } })
             .catch(() => toast.error('Error fetching client profit'))
             .finally(() => setLoading(false));
     }, [url, clientId]); // eslint-disable-line react-hooks/exhaustive-deps

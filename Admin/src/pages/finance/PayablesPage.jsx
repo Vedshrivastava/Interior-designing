@@ -9,6 +9,16 @@ import ExpenseAnalysisView from '../../components/finance/ExpenseAnalysisView';
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 const OTHER_CATEGORY = 'Others';
 
+// Kept outside their components so each survives a route remount, same
+// dashboardCache pattern as FinanceHome.jsx — revisiting a tab paints
+// instantly from the last-known rows instead of redoing the N+1 ledger
+// fan-out and sitting on "Loading…" again, while a fresh fetch quietly
+// brings it up to date in the background.
+let vendorPayablesCache = null;
+let contractorPayablesCache = null;
+let salaryPayablesCache = null;
+let commissionPayablesCache = null;
+
 const TABS = [
     { key: 'vendor',           label: 'Vendor' },
     { key: 'contractor',       label: 'Contractor' },
@@ -32,8 +42,8 @@ const PayablesContractorTab = ({ url }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [rows, setRows] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [rows, setRows] = useState(contractorPayablesCache || []);
+    const [loading, setLoading] = useState(!contractorPayablesCache);
 
     useEffect(() => {
         let cancelled = false;
@@ -46,7 +56,11 @@ const PayablesContractorTab = ({ url }) => {
                         .then(res => (res.data.success ? { vendorId: v._id, vendorName: v.name, ...res.data.data.totals } : null))
                         .catch(() => null)
                 ));
-                if (!cancelled) setRows(ledgers.filter(Boolean).sort((a, b) => b.balancePayable - a.balancePayable));
+                if (!cancelled) {
+                    const next = ledgers.filter(Boolean).sort((a, b) => b.balancePayable - a.balancePayable);
+                    setRows(next);
+                    contractorPayablesCache = next;
+                }
             } catch {
                 if (!cancelled) toast.error('Error fetching contractor payables');
             } finally {
@@ -86,8 +100,8 @@ const PayablesVendorTab = ({ url }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [rows, setRows] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [rows, setRows] = useState(vendorPayablesCache || []);
+    const [loading, setLoading] = useState(!vendorPayablesCache);
 
     useEffect(() => {
         let cancelled = false;
@@ -100,7 +114,11 @@ const PayablesVendorTab = ({ url }) => {
                         .then(res => (res.data.success ? { vendorId: v._id, vendorName: v.name, ...res.data.data.totals } : null))
                         .catch(() => null)
                 ));
-                if (!cancelled) setRows(ledgers.filter(Boolean).sort((a, b) => b.amountOwed - a.amountOwed));
+                if (!cancelled) {
+                    const next = ledgers.filter(Boolean).sort((a, b) => b.amountOwed - a.amountOwed);
+                    setRows(next);
+                    vendorPayablesCache = next;
+                }
             } catch {
                 if (!cancelled) toast.error('Error fetching vendor payables');
             } finally {
@@ -138,9 +156,13 @@ const PayablesVendorTab = ({ url }) => {
 const PayablesSalaryTab = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [rows, setRows] = useState([]);
-    const [loading, setLoading] = useState(true);
     const month = thisMonth();
+    // Cached per month, not just once — "For June" and "For July" are
+    // genuinely different data, so a cache hit only counts if it's for
+    // the same month this render is asking about.
+    const cacheHit = salaryPayablesCache?.month === month ? salaryPayablesCache.rows : null;
+    const [rows, setRows] = useState(cacheHit || []);
+    const [loading, setLoading] = useState(!cacheHit);
 
     useEffect(() => {
         let cancelled = false;
@@ -153,7 +175,11 @@ const PayablesSalaryTab = ({ url }) => {
                         .then(res => (res.data.success ? res.data.data : null))
                         .catch(() => null)
                 ));
-                if (!cancelled) setRows(ledgers.filter(Boolean).sort((a, b) => b.balanceDue - a.balanceDue));
+                if (!cancelled) {
+                    const next = ledgers.filter(Boolean).sort((a, b) => b.balanceDue - a.balanceDue);
+                    setRows(next);
+                    salaryPayablesCache = { month, rows: next };
+                }
             } catch {
                 if (!cancelled) toast.error('Error fetching salary payables');
             } finally {
@@ -192,8 +218,8 @@ const PayablesCommissionTab = ({ url }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [rows, setRows] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [rows, setRows] = useState(commissionPayablesCache || []);
+    const [loading, setLoading] = useState(!commissionPayablesCache);
 
     useEffect(() => {
         let cancelled = false;
@@ -206,7 +232,11 @@ const PayablesCommissionTab = ({ url }) => {
                         .then(res => (res.data.success ? { vendorId: v._id, vendorName: v.name, ...res.data.data.totals } : null))
                         .catch(() => null)
                 ));
-                if (!cancelled) setRows(ledgers.filter(Boolean).sort((a, b) => b.commissionPayable - a.commissionPayable));
+                if (!cancelled) {
+                    const next = ledgers.filter(Boolean).sort((a, b) => b.commissionPayable - a.commissionPayable);
+                    setRows(next);
+                    commissionPayablesCache = next;
+                }
             } catch {
                 if (!cancelled) toast.error('Error fetching commission payables');
             } finally {

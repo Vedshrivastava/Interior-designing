@@ -13,6 +13,11 @@ const TABS = [
 ];
 const STATUS_FILTER = { running: undefined, pending: 'draft', approved: 'issued' };
 
+// Same dashboardCache pattern as FinanceHome.jsx — Pending Receipts is a
+// global, cross-project rollup (not scoped by the page's own project
+// picker), so a single module-level cache is enough.
+let pendingReceiptsCache = null;
+
 const ProjectPicker = ({ url, selectedProjectId, onChange }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -41,12 +46,12 @@ const PendingReceiptsTab = ({ url }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [rows, setRows] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [rows, setRows] = useState(pendingReceiptsCache || []);
+    const [loading, setLoading] = useState(!pendingReceiptsCache);
 
     useEffect(() => {
         axios.get(`${url}/api/finance/receivables/summary`, authHeader)
-            .then(res => { if (res.data.success) setRows(res.data.data); })
+            .then(res => { if (res.data.success) { setRows(res.data.data); pendingReceiptsCache = res.data.data; } })
             .catch(() => toast.error('Error fetching receivables'))
             .finally(() => setLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps

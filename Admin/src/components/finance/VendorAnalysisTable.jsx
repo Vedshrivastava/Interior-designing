@@ -3,6 +3,10 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
 
+// Same dashboardCache idea as FinanceHome.jsx, keyed by projectId ('' means
+// "all projects") since this table's data changes with the picker.
+const vendorAnalysisCache = new Map();
+
 /* Same amountOwed formula as the individual Vendor Ledger (Procurement >
    Ledger tab) — every material-supplier vendor in one comparable table.
    Referral vendors aren't included here; they get their own Commission
@@ -12,17 +16,19 @@ const VendorAnalysisTable = ({ url }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [projects, setProjects] = useState([]);
     const [projectId, setProjectId] = useState('');
-    const [rows, setRows] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [rows, setRows] = useState(vendorAnalysisCache.get('') || []);
+    const [loading, setLoading] = useState(!vendorAnalysisCache.has(''));
 
     useEffect(() => {
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        setLoading(true);
+        const cached = vendorAnalysisCache.get(projectId);
+        if (cached) { setRows(cached); setLoading(false); }
+        else setLoading(true);
         axios.get(`${url}/api/finance/reports/vendor-analysis`, { ...authHeader, params: projectId ? { projectId } : {} })
-            .then(res => { if (res.data.success) setRows(res.data.data); })
+            .then(res => { if (res.data.success) { setRows(res.data.data); vendorAnalysisCache.set(projectId, res.data.data); } })
             .catch(() => toast.error('Error fetching vendor analysis'))
             .finally(() => setLoading(false));
     }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps

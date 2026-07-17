@@ -3,22 +3,31 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
 
+// Same dashboardCache idea as FinanceHome.jsx, keyed by projectId ('' means
+// "all projects") since this table's data changes with the picker. Stock
+// figures here can genuinely move day to day, but the background refetch
+// on every mount keeps this at most one silent refresh stale — same
+// tradeoff as every other cached view in this app.
+const materialAnalysisCache = new Map();
+
 const MaterialAnalysisView = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [projects, setProjects] = useState([]);
     const [projectId, setProjectId] = useState('');
-    const [rows, setRows] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [rows, setRows] = useState(materialAnalysisCache.get('') || []);
+    const [loading, setLoading] = useState(!materialAnalysisCache.has(''));
 
     useEffect(() => {
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        setLoading(true);
+        const cached = materialAnalysisCache.get(projectId);
+        if (cached) { setRows(cached); setLoading(false); }
+        else setLoading(true);
         axios.get(`${url}/api/finance/reports/material-analysis`, { ...authHeader, params: projectId ? { projectId } : {} })
-            .then(res => { if (res.data.success) setRows(res.data.data); })
+            .then(res => { if (res.data.success) { setRows(res.data.data); materialAnalysisCache.set(projectId, res.data.data); } })
             .catch(() => toast.error('Error fetching material analysis'))
             .finally(() => setLoading(false));
     }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps

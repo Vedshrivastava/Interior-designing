@@ -3,20 +3,25 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
 
+// Same dashboardCache idea as FinanceHome.jsx, keyed by workId.
+const workProfitCache = new Map();
+
 /* No standalone picker here by design — reached by drilling in from a
    project's Works tab (WorksManager's "View Profit" link) or from Project
    Profit's own Works list, both of which pass a workId in. */
 const WorkProfitView = ({ url, workId }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const [data, setData] = useState(workProfitCache.get(workId) || null);
+    const [loading, setLoading] = useState(!!workId && !workProfitCache.has(workId));
 
     useEffect(() => {
         if (!workId) { setData(null); return; }
-        setLoading(true);
+        const existing = workProfitCache.get(workId);
+        if (existing) { setData(existing); setLoading(false); }
+        else setLoading(true);
         axios.get(`${url}/api/finance/reports/work-profit`, { ...authHeader, params: { workId } })
-            .then(res => { if (res.data.success) setData(res.data.data); })
+            .then(res => { if (res.data.success) { setData(res.data.data); workProfitCache.set(workId, res.data.data); } })
             .catch(() => toast.error('Error fetching work profit'))
             .finally(() => setLoading(false));
     }, [url, workId]); // eslint-disable-line react-hooks/exhaustive-deps

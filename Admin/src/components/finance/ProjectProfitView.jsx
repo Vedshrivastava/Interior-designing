@@ -3,6 +3,11 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
 
+// Same dashboardCache idea as FinanceHome.jsx, keyed by projectId — this
+// view only ever fetches once a project's picked, so there's no "all
+// projects" bucket to seed, just one cache entry per project visited.
+const projectProfitCache = new Map(); // projectId -> { data, works }
+
 /* Project picker + the full Revenue/Cost/Profit breakdown for one project,
    plus a Works list underneath purely so "View Work Profit" links have
    something to drill into — Project Profit itself only returns project-
@@ -11,9 +16,10 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [projects, setProjects] = useState([]);
-    const [data, setData] = useState(null);
-    const [works, setWorks] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const cached = projectProfitCache.get(projectId);
+    const [data, setData] = useState(cached?.data || null);
+    const [works, setWorks] = useState(cached?.works || []);
+    const [loading, setLoading] = useState(!!projectId && !cached);
 
     useEffect(() => {
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
@@ -21,13 +27,18 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
 
     useEffect(() => {
         if (!projectId) { setData(null); setWorks([]); return; }
-        setLoading(true);
+        const existing = projectProfitCache.get(projectId);
+        if (existing) { setData(existing.data); setWorks(existing.works); setLoading(false); }
+        else setLoading(true);
         Promise.all([
             axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId } }),
             axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } }),
         ]).then(([profitRes, worksRes]) => {
-            if (profitRes.data.success) setData(profitRes.data.data);
-            if (worksRes.data.success) setWorks(worksRes.data.data);
+            const nextData = profitRes.data.success ? profitRes.data.data : null;
+            const nextWorks = worksRes.data.success ? worksRes.data.data : [];
+            if (profitRes.data.success) setData(nextData);
+            if (worksRes.data.success) setWorks(nextWorks);
+            if (profitRes.data.success && worksRes.data.success) projectProfitCache.set(projectId, { data: nextData, works: nextWorks });
         }).catch(() => toast.error('Error fetching project profit'))
           .finally(() => setLoading(false));
     }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps

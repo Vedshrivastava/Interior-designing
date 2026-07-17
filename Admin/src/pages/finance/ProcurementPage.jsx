@@ -23,6 +23,11 @@ const TABS = [
 const NON_CONTRACTOR = (v) => v.vendorType !== 'labour_contractor';
 const IS_REFERRAL = (v) => v.vendorType === 'referral';
 
+// Same dashboardCache pattern as FinanceHome.jsx — the Vendors overview
+// tab always shows the same company-wide aggregate (no picker scoping it),
+// so a single module-level cache is enough.
+let vendorsOverviewCache = null;
+
 /* Shared by the Ledger tab — there's no separate routed vendor detail page
    (mirrors how Contractors' Ledger tab works: a picker on this same page,
    not a new :vendorId route), so picking a vendor happens right here.
@@ -46,13 +51,13 @@ const VendorPicker = ({ url, selectedVendorId, onChange, filter, presetValues })
 const ProcurementVendorsOverviewTab = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [summary, setSummary] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [summary, setSummary] = useState(vendorsOverviewCache);
+    const [loading, setLoading] = useState(!vendorsOverviewCache);
 
     useEffect(() => {
-        setLoading(true);
+        if (!vendorsOverviewCache) setLoading(true);
         axios.get(`${url}/api/finance/reports/vendors-summary`, authHeader)
-            .then(res => { if (res.data.success) setSummary(res.data.data); })
+            .then(res => { if (res.data.success) { setSummary(res.data.data); vendorsOverviewCache = res.data.data; } })
             .catch(() => {})
             .finally(() => setLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps

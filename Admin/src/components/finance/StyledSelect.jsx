@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 
 // Single-select dropdown matching AddDesign.jsx's category picker
 // (.add-cat-dropdown / .add-cat-trigger / .add-cat-list / .add-cat-option).
+// Re-clicking the already-selected option clears it back to the placeholder
+// — the one reset affordance every consumer gets for free, app-wide,
+// without each caller having to remember to seed an empty option itself.
 const StyledSelect = ({ value, onChange, options, placeholder = 'Select…', disabled = false }) => {
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
@@ -32,7 +35,7 @@ const StyledSelect = ({ value, onChange, options, placeholder = 'Select…', dis
                         <li
                             key={opt.value}
                             className={`add-cat-option${value === opt.value ? ' active' : ''}`}
-                            onClick={() => { onChange(opt.value); setOpen(false); }}
+                            onClick={() => { onChange(value === opt.value ? '' : opt.value); setOpen(false); }}
                         >
                             <span>{opt.label}</span>
                             {value === opt.value && <i className="fa fa-check" />}

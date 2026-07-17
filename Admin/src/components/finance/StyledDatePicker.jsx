@@ -45,7 +45,7 @@ const StyledDatePicker = ({ value, onChange, placeholder = 'dd/mm/yyyy', align =
 
     const pick = (day) => {
         const iso = moment({ year: viewYear, month: viewMonth, day }).format('YYYY-MM-DD');
-        onChange(iso);
+        onChange(iso === value ? '' : iso);
         setOpen(false);
     };
 

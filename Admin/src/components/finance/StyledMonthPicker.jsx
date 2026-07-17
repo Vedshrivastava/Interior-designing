@@ -24,7 +24,8 @@ const StyledMonthPicker = ({ value, onChange, placeholder = 'mm/yyyy', align = '
     };
 
     const pick = (monthIndex) => {
-        onChange(moment({ year: viewYear, month: monthIndex }).format('YYYY-MM'));
+        const iso = moment({ year: viewYear, month: monthIndex }).format('YYYY-MM');
+        onChange(iso === value ? '' : iso);
         setOpen(false);
     };
 
@@ -56,6 +57,11 @@ const StyledMonthPicker = ({ value, onChange, placeholder = 'mm/yyyy', align = '
                             );
                         })}
                     </div>
+                    {value && (
+                        <button type="button" className="date-picker-clear" onClick={() => { onChange(''); setOpen(false); }}>
+                            Clear
+                        </button>
+                    )}
                 </div>
             )}
         </div>

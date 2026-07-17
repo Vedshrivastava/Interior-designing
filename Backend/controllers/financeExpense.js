@@ -30,10 +30,11 @@ const withBalances = async (items) => {
 
 const listExpenses = async (req, res) => {
     try {
-        const { projectId, expenseCategory, dateFrom, dateTo } = req.query;
+        const { projectId, expenseCategory, relatedToId, dateFrom, dateTo } = req.query;
         const filter = { deleted: { $ne: true } };
         if (projectId) filter.projectId = projectId;
         if (expenseCategory) filter.expenseCategory = expenseCategory;
+        if (relatedToId) filter.relatedToId = relatedToId;
         if (dateFrom || dateTo) {
             filter.date = {};
             if (dateFrom) filter.date.$gte = new Date(dateFrom);

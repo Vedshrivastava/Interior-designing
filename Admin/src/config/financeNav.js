@@ -185,9 +185,9 @@ export const FINANCE_NAV_SECTIONS = [
       },
       {
         to: '/finance/payables', icon: faMoneyBillWave, label: 'Payables',
-        // Bespoke component — all four tabs real. Contractor tab pulls
-        // balancePayable from GET /api/finance/contractors/:vendorId/ledger
-        // (Contractor Ledger build); Vendor tab pulls amountOwed from
+        // Bespoke component. Contractor tab pulls balancePayable from
+        // GET /api/finance/contractors/:vendorId/ledger (Contractor Ledger
+        // build); Vendor tab pulls amountOwed from
         // GET /api/finance/vendors/:vendorId/ledger (Procurement build);
         // Salary tab pulls balanceDue per employee for the current month
         // from GET /api/finance/employees/:employeeId/salary-ledger;
@@ -195,16 +195,21 @@ export const FINANCE_NAV_SECTIONS = [
         // GET /api/finance/vendors/:vendorId/commission-ledger. Payables
         // stays COMPUTED throughout — no "financePayable" model exists
         // anywhere; every tab is a read of another collection's ledger.
-        // General/site expenses used to live here as a fifth "Other
-        // Expenses" tab; moved out to its own top-level Expenses entry
-        // below once that grew a Work/person-entity link and its own
-        // Analysis view — buried inside Payables with no sidebar icon of
-        // its own made it hard to find.
+        // Other Expenses / Company Expenses are the two exceptions — both
+        // ExpensesManager pre-filtered (fixedCategory: 'Others' /
+        // fixedRelatedTo: the company singleton), reusing the same
+        // component the dedicated Expenses page's Log tab renders unscoped.
+        // Kept here too (not just under Expenses) because these are the
+        // two shapes someone actually reaches for from Payables day to
+        // day — a stray receipt with no real category, or a director's
+        // hotel stay tagged straight to the company.
         tabs: [
-          { key: 'vendor',     label: 'Vendor',          description: 'Amount owed per vendor — purchases minus returns and payments already made.' },
-          { key: 'contractor', label: 'Contractor',      description: 'Balance payable per contractor — earnings minus advances, deductions, and payments already made.' },
-          { key: 'salary',     label: 'Salary',          description: 'Balance due per employee for the current month — expected salary minus salary payments made.' },
-          { key: 'commission', label: 'Commission',      description: 'Commission payable per referral vendor — earned commission minus payments already made.' },
+          { key: 'vendor',     label: 'Vendor',            description: 'Amount owed per vendor — purchases minus returns and payments already made.' },
+          { key: 'contractor', label: 'Contractor',        description: 'Balance payable per contractor — earnings minus advances, deductions, and payments already made.' },
+          { key: 'salary',     label: 'Salary',            description: 'Balance due per employee for the current month — expected salary minus salary payments made.' },
+          { key: 'commission', label: 'Commission',        description: 'Commission payable per referral vendor — earned commission minus payments already made.' },
+          { key: 'company',    label: 'Company Expenses',  description: "Expenses tied to the company itself — director travel, hotel stays, and similar." },
+          { key: 'other',      label: 'Other Expenses',    description: 'Quick, unlinked expenses under the "Others" category — just an amount, date, and note.' },
         ],
       },
       {

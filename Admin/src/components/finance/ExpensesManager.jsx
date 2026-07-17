@@ -31,21 +31,29 @@ const workLabel = (w) => `${w.workType}${w.workOrderNumber ? ` — ${w.workOrder
  *
  * Every expense can optionally link to a Work (scoped to whichever project
  * it's under) and a "Related To" person/entity — Employee/Supervisor,
- * Contractor, Labourer, or Vendor/Supplier (Contractor and Vendor both
- * save as the same financeVendor ref, just filtered differently) — Notes
- * stays free text for whatever those links don't capture.
+ * Contractor, Labourer, Vendor/Supplier, or Company (Contractor and Vendor
+ * both save as the same financeVendor ref, just filtered differently) —
+ * Notes stays free text for whatever those links don't capture.
  *
- * Reused three ways: unscoped on Payments' Miscellaneous tab and the
- * dedicated Expenses page's Log tab (own heading comes from FinanceTabShell
- * there — this is also the one place the full Work/Related To columns
- * show, since it's meant to be the "detail" view), and scoped to one
- * project via `projectId` on Project Detail's Expenses tab (own heading
- * rendered here instead, same as Quotations/Receipts; Project field/column
- * disappear since it'd repeat the same name on every row, and each row
- * gets a "Details" link back to the Expenses page's Log tab instead, via
- * `highlightId`).
+ * Reused five ways, each hiding whichever fields/columns its own scoping
+ * already answers so the form only ever asks what it doesn't already know:
+ *   - Unscoped on Payments' Miscellaneous tab and the dedicated Expenses
+ *     page's Log tab (own heading comes from FinanceTabShell there — this
+ *     is also the one place every column shows, since it's meant to be the
+ *     "detail" view).
+ *   - Scoped to one project via `projectId` on Project Detail's Expenses
+ *     tab — Project field/column disappear, each row gets a "Details" link
+ *     back to the Expenses page's Log tab instead, via `highlightId`.
+ *   - Scoped to one category via `fixedCategory` on Payables' Other
+ *     Expenses tab (e.g. "Others") — Category, Work, and Related To
+ *     fields/columns all disappear too, since that tab is deliberately for
+ *     quick, unlinked entries ("just a note is enough").
+ *   - Scoped to one Related To target via `fixedRelatedTo` on Payables'
+ *     Company Expenses tab — Related To field/column disappears, always
+ *     posting that fixed type+id (e.g. every director hotel stay tagged
+ *     straight to the company, no picker step).
  */
-const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
+const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedRelatedTo, highlightId }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -70,16 +78,29 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
     const [payments, setPayments] = useState([]);
     const [paymentsLoading, setPaymentsLoading] = useState(false);
 
+    // The four scoping props are independent — a caller can combine them
+    // (though today only one is ever set at a time) — so the fetch/columns/
+    // form logic below all key off these four flags rather than one big
+    // "which of the five modes am I" switch.
+    const hideProjectField = !!fixedProjectId;
+    const hideCategoryField = !!fixedCategory;
+    const hideWorkField = !!fixedCategory;
+    const hideRelatedToField = !!fixedCategory || !!fixedRelatedTo;
+
     const fetchExpenses = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${url}/api/finance/expenses/list`, { ...authHeader, params: fixedProjectId ? { projectId: fixedProjectId } : {} });
+            const params = {};
+            if (fixedProjectId) params.projectId = fixedProjectId;
+            if (fixedCategory) params.expenseCategory = fixedCategory;
+            if (fixedRelatedTo) params.relatedToId = fixedRelatedTo.id;
+            const res = await axios.get(`${url}/api/finance/expenses/list`, { ...authHeader, params });
             if (res.data.success) setExpenses(res.data.data);
         } catch { toast.error('Error fetching expenses'); }
         finally { setLoading(false); }
     };
 
-    useEffect(() => { fetchExpenses(); }, [fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { fetchExpenses(); }, [fixedProjectId, fixedCategory, fixedRelatedTo?.id]); // eslint-disable-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (!fixedProjectId) {
             axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
@@ -115,7 +136,10 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
         relatedToId: value === 'company' ? (company?._id || '') : '',
     }));
 
-    const openAdd = () => { setForm({ ...emptyForm, projectId: fixedProjectId || '' }); setPaidNow(true); setModalOpen(true); };
+    const openAdd = () => {
+        setForm({ ...emptyForm, projectId: fixedProjectId || '', expenseCategory: fixedCategory || '' });
+        setPaidNow(true); setModalOpen(true);
+    };
     const closeModal = () => setModalOpen(false);
 
     const submit = async (e) => {
@@ -127,7 +151,8 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
             const { relatedToUiType, ...rest } = form;
             const payload = {
                 ...rest,
-                relatedToType: form.relatedToId ? relatedToUiConfig(relatedToUiType)?.backendType || null : null,
+                relatedToType: fixedRelatedTo ? fixedRelatedTo.type : (form.relatedToId ? relatedToUiConfig(relatedToUiType)?.backendType || null : null),
+                relatedToId: fixedRelatedTo ? fixedRelatedTo.id : form.relatedToId,
                 ...(paidNow ? {} : { paymentMode: '', bankOrCashLabel: '', bankAccountId: '' }),
             };
             const res = await axios.post(`${url}/api/finance/expenses/add`, payload, authHeader);
@@ -187,15 +212,30 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
         return { label: 'Pending', color: '#c0392b' };
     };
 
-    const columns = fixedProjectId ? '1fr 1.2fr 1fr 1fr 1fr 150px' : '1fr 1.1fr 1.2fr 1.2fr 1.3fr 1fr 1fr 1fr 150px';
+    const columns = [
+        '1fr',
+        !hideCategoryField && '1.1fr',
+        !hideProjectField && '1.2fr',
+        !hideWorkField && '1.2fr',
+        !hideRelatedToField && '1.3fr',
+        '1fr', '1fr', '1fr', '150px',
+    ].filter(Boolean).join(' ');
+
+    const heading = fixedRelatedTo
+        ? { title: fixedRelatedTo.label, subtitle: 'Expenses tied to the company itself — director travel, hotel stays, and similar. Use Notes to say what it was, e.g. matched against a bank statement line.' }
+        : fixedCategory
+        ? { title: `${fixedCategory} Expenses`, subtitle: `Quick, unlinked entries under the "${fixedCategory}" category — an amount, a date, and a note is enough.` }
+        : hideProjectField
+        ? { title: 'Expenses', subtitle: 'Site expenses logged against this project — paid now, or recorded pending and settled later.' }
+        : null;
 
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                {fixedProjectId ? (
+                {heading ? (
                     <div>
-                        <h3 style={{ margin: '0 0 4px' }}>Expenses</h3>
-                        <p className="admin-subtitle" style={{ margin: 0 }}>Site expenses logged against this project — paid now, or recorded pending and settled later.</p>
+                        <h3 style={{ margin: '0 0 4px' }}>{heading.title}</h3>
+                        <p className="admin-subtitle" style={{ margin: 0 }}>{heading.subtitle}</p>
                     </div>
                 ) : <span />}
                 <button type="button" className="add-btn" onClick={openAdd}>+ Record Expense</button>
@@ -207,14 +247,16 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
                         <h2>Record Expense</h2>
                         <form onSubmit={submit}>
                             <div className="wizard-field-grid">
-                                <div className="add-product-name flex-col">
-                                    <p>Category</p>
-                                    <SettingSelectField
-                                        settingType="expense_category" options={categories.map(c => ({ _id: c, name: c }))}
-                                        value={form.expenseCategory} onChange={v => setField('expenseCategory', v)} placeholder="e.g. Fuel, Tools, Site Snacks…"
-                                    />
-                                </div>
-                                {!fixedProjectId && (
+                                {!hideCategoryField && (
+                                    <div className="add-product-name flex-col">
+                                        <p>Category</p>
+                                        <SettingSelectField
+                                            settingType="expense_category" options={categories.map(c => ({ _id: c, name: c }))}
+                                            value={form.expenseCategory} onChange={v => setField('expenseCategory', v)} placeholder="e.g. Fuel, Tools, Site Snacks…"
+                                        />
+                                    </div>
+                                )}
+                                {!hideProjectField && (
                                     <div className="add-product-name flex-col">
                                         <p>Project (optional — general overhead if blank)</p>
                                         <StyledSelect
@@ -223,28 +265,32 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
                                         />
                                     </div>
                                 )}
-                                <div className="add-product-name flex-col">
-                                    <p>Work (optional{effectiveProjectId ? '' : ' — pick a project first'})</p>
-                                    <StyledSelect
-                                        value={form.workId} onChange={v => setField('workId', v)} placeholder="— Not tied to a Work —"
-                                        disabled={!effectiveProjectId} options={worksForProject.map(w => ({ value: w._id, label: workLabel(w) }))}
-                                    />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Related To (optional)</p>
-                                    <StyledSelect
-                                        value={form.relatedToUiType} onChange={setRelatedToUiType} placeholder="— None —"
-                                        options={RELATED_TO_UI_OPTIONS}
-                                    />
-                                </div>
-                                {form.relatedToUiType && relatedToUiConfig(form.relatedToUiType).singleton ? (
+                                {!hideWorkField && (
+                                    <div className="add-product-name flex-col">
+                                        <p>Work (optional{effectiveProjectId ? '' : ' — pick a project first'})</p>
+                                        <StyledSelect
+                                            value={form.workId} onChange={v => setField('workId', v)} placeholder="— Not tied to a Work —"
+                                            disabled={!effectiveProjectId} options={worksForProject.map(w => ({ value: w._id, label: workLabel(w) }))}
+                                        />
+                                    </div>
+                                )}
+                                {!hideRelatedToField && (
+                                    <div className="add-product-name flex-col">
+                                        <p>Related To (optional)</p>
+                                        <StyledSelect
+                                            value={form.relatedToUiType} onChange={setRelatedToUiType} placeholder="— None —"
+                                            options={RELATED_TO_UI_OPTIONS}
+                                        />
+                                    </div>
+                                )}
+                                {!hideRelatedToField && form.relatedToUiType && relatedToUiConfig(form.relatedToUiType).singleton ? (
                                     <div className="add-product-name flex-col">
                                         <p>{relatedToUiConfig(form.relatedToUiType).label}</p>
                                         <p style={{ padding: '14px 16px', color: 'var(--text-lt)', fontStyle: 'italic' }}>
                                             {company?.companyName || 'Loading…'}
                                         </p>
                                     </div>
-                                ) : form.relatedToUiType && (
+                                ) : !hideRelatedToField && form.relatedToUiType && (
                                     <div className="add-product-name flex-col">
                                         <p>{relatedToUiConfig(form.relatedToUiType).label}</p>
                                         <QuickAddPicker
@@ -293,8 +339,11 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
 
             <div className="list-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: columns }}>
-                    <b>Date</b><b>Category</b>
-                    {!fixedProjectId && <><b>Project</b><b>Work</b><b>Related To</b></>}
+                    <b>Date</b>
+                    {!hideCategoryField && <b>Category</b>}
+                    {!hideProjectField && <b>Project</b>}
+                    {!hideWorkField && <b>Work</b>}
+                    {!hideRelatedToField && <b>Related To</b>}
                     <b>Amount</b><b>Paid</b><b>Status</b><b>Action</b>
                 </div>
                 {loading ? (
@@ -310,14 +359,10 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
                                 style={{ gridTemplateColumns: columns, ...(flashId === e._id ? { background: 'rgba(201,168,124,0.28)', transition: 'background 2s ease' } : {}) }}
                             >
                                 <p>{new Date(e.date).toLocaleDateString()}</p>
-                                <p>{e.expenseCategory || '—'}</p>
-                                {!fixedProjectId && (
-                                    <>
-                                        <p>{e.projectId?.name || 'General'}</p>
-                                        <p>{e.workId?.workType || '—'}</p>
-                                        <p>{e.relatedToId?.name || e.relatedToId?.companyName || '—'}</p>
-                                    </>
-                                )}
+                                {!hideCategoryField && <p>{e.expenseCategory || '—'}</p>}
+                                {!hideProjectField && <p>{e.projectId?.name || 'General'}</p>}
+                                {!hideWorkField && <p>{e.workId?.workType || '—'}</p>}
+                                {!hideRelatedToField && <p>{e.relatedToId?.name || e.relatedToId?.companyName || '—'}</p>}
                                 <p>₹{e.amount.toLocaleString('en-IN')}</p>
                                 <p>₹{e.paidAmount.toLocaleString('en-IN')}</p>
                                 <p><span className="item-category" style={{ color: status.color }}>{status.label}</span></p>

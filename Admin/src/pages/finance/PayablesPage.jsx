@@ -3,14 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
+import ExpensesManager from '../../components/finance/ExpensesManager';
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
+const OTHER_CATEGORY = 'Others';
 
 const TABS = [
     { key: 'vendor',     label: 'Vendor' },
     { key: 'contractor', label: 'Contractor' },
     { key: 'salary',     label: 'Salary' },
     { key: 'commission', label: 'Commission' },
+    { key: 'company',    label: 'Company Expenses' },
+    { key: 'other',      label: 'Other Expenses' },
 ];
 
 /*
@@ -231,11 +235,20 @@ const PayablesCommissionTab = ({ url }) => {
 
 const PayablesPage = ({ url }) => {
     const [activeTab, setActiveTab] = useState(TABS[0].key);
+    const [companyId, setCompanyId] = useState('');
+    const [companyName, setCompanyName] = useState('Company');
+    const token = localStorage.getItem('token');
+
+    useEffect(() => {
+        axios.get(`${url}/api/finance/settings/company`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => { if (res.data.success) { setCompanyId(res.data.data._id); setCompanyName(res.data.data.companyName); } })
+            .catch(() => {});
+    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <FinanceTabShell
             label="Payables"
-            subtitle="Computed from vendor balance + contractor balance + unpaid salary + unpaid commission — never a directly-writable record. General/site expenses now live under Expenses instead."
+            subtitle="Computed from vendor balance + contractor balance + unpaid salary + unpaid commission — never a directly-writable record. The full Expenses log/analysis lives under Expenses; these two tabs are quick, pre-filtered views of the same data."
             tabs={TABS}
             activeKey={activeTab}
             onTabChange={setActiveTab}
@@ -244,6 +257,10 @@ const PayablesPage = ({ url }) => {
             {activeTab === 'contractor' && <PayablesContractorTab url={url} />}
             {activeTab === 'salary' && <PayablesSalaryTab url={url} />}
             {activeTab === 'commission' && <PayablesCommissionTab url={url} />}
+            {activeTab === 'other' && <ExpensesManager url={url} fixedCategory={OTHER_CATEGORY} />}
+            {activeTab === 'company' && companyId && (
+                <ExpensesManager url={url} fixedRelatedTo={{ type: 'financeCompanySettings', id: companyId, label: `${companyName} Expenses` }} />
+            )}
         </FinanceTabShell>
     );
 };

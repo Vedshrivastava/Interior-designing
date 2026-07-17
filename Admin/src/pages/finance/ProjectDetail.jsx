@@ -181,7 +181,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
 const TABS = [
     { key: 'overview',     label: 'Overview' },
     { key: 'quotations',   label: 'Quotations' },
-    { key: 'works',        label: 'Works' },
+    { key: 'works',        label: 'Works & Rates' },
     { key: 'measurements', label: 'Measurements' },
     { key: 'materials',    label: 'Materials' },
     { key: 'contractors',  label: 'Workers' },
@@ -427,10 +427,6 @@ const ProjectDetail = ({ url }) => {
 
                 {activeTab === 'contractors' && (
                     <div>
-                        <div className="list-table" style={{ marginBottom: '24px' }}>
-                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Referral Vendor</b></p><p>{project.referralVendorId?.name || '—'}</p></div>
-                        </div>
-
                         <h3 style={{ margin: '0 0 8px' }}>Contractor Rates</h3>
                         <ContractorRatesManager url={url} projectId={id} worksVersion={worksVersion} />
 

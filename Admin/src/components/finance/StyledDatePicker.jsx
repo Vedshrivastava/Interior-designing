@@ -15,7 +15,7 @@ const buildGrid = (viewYear, viewMonth) => {
 // Custom calendar dropdown — native <input type="date"> popups are OS-rendered
 // and can't be styled, so this reuses the app's dropdown chrome
 // (.add-cat-dropdown / .add-cat-trigger) with a themed calendar grid instead.
-const StyledDatePicker = ({ value, onChange, placeholder = 'dd/mm/yyyy' }) => {
+const StyledDatePicker = ({ value, onChange, placeholder = 'dd/mm/yyyy', align = 'left' }) => {
     const [open, setOpen] = useState(false);
     const selected = value ? moment(value, 'YYYY-MM-DD') : null;
     const [viewYear, setViewYear] = useState((selected || moment()).year());
@@ -57,7 +57,7 @@ const StyledDatePicker = ({ value, onChange, placeholder = 'dd/mm/yyyy' }) => {
             </button>
 
             {open && (
-                <div className="date-picker-panel">
+                <div className="date-picker-panel" style={align === 'right' ? { left: 'auto', right: 0 } : undefined}>
                     <div className="date-picker-nav">
                         <button type="button" onClick={() => shiftMonth(-1)}><i className="fa fa-chevron-left" /></button>
                         <span>{moment({ year: viewYear, month: viewMonth }).format('MMMM YYYY')}</span>

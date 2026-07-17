@@ -10,6 +10,7 @@ import FinanceWorkTypeRate from '../models/financeWorkTypeRate.js';
 import FinanceRunningBill from '../models/financeRunningBill.js';
 import FinancePurchase from '../models/financePurchase.js';
 import FinanceStockMovement from '../models/financeStockMovement.js';
+import { computeCurrentStock } from './financeStockMovement.js';
 import FinanceMaterial from '../models/financeMaterial.js';
 import FinanceReceipt from '../models/financeReceipt.js';
 import FinanceExpense from '../models/financeExpense.js';
@@ -409,23 +410,34 @@ const computeWorkProfit = async (work) => {
     return { revenue, contractorCost, contractorBreakdown, labourCost, labourBreakdown, materialCost, profit, areaBilledSqft };
 };
 
-// One day's slice — or, with `cumulative: true`, everything from the
-// work's start through that date — of the same contractor/labour cost
-// math computeWorkProfit does over all time. How much area was covered
-// and how much that cost (at current rates), so a measurement's
-// "Details" link can answer "what happened that day" (or "where did we
-// stand as of that day") without losing the all-time totals
-// computeWorkProfit already provides. Mirrors computeWorkProfit's
-// approval gate on contractor area (unapproved area is reported but
-// excluded from cost) so this stays a true component/prefix of the
-// cumulative figure, not a differently-defined number.
-const computeWorkDayReport = async (work, dateKey, { cumulative = false } = {}) => {
-    const dayEnd = new Date(`${dateKey}T23:59:59.999Z`);
-    const dateFilter = cumulative ? { $lte: dayEnd } : { $gte: new Date(`${dateKey}T00:00:00.000Z`), $lte: dayEnd };
+// Everything about one Work — area, contractor/labour cost + breakdown,
+// material used/wasted, and the daily cost/sqft trend — scoped to one
+// date window instead of computeWorkProfit's fixed all-time scope.
+// `dateStart`/`dateEnd` are both nullable; null on both means all time,
+// only `dateEnd` set means "from the work's start through that date",
+// both set means a bounded window (a single day, or a month). Mirrors
+// computeWorkProfit's approval gate on contractor area (unapproved area
+// is reported but excluded from cost) so this stays a true component of
+// the all-time figure at any window, not a differently-defined number.
+const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) => {
+    const dateFilter = {};
+    if (dateStart) dateFilter.$gte = dateStart;
+    if (dateEnd) dateFilter.$lte = dateEnd;
+    const hasDateFilter = Object.keys(dateFilter).length > 0;
 
-    const [measurements, labourMeasurements] = await Promise.all([
-        FinanceMeasurement.find({ workId: work._id, date: dateFilter, deleted: { $ne: true } }),
-        FinanceLabourMeasurement.find({ workId: work._id, date: dateFilter, deleted: { $ne: true } }),
+    const [measurements, labourMeasurements, taggedWaste, projectWasteTotal] = await Promise.all([
+        FinanceMeasurement.find({ workId: work._id, ...(hasDateFilter ? { date: dateFilter } : {}), deleted: { $ne: true } }).sort({ date: 1 }),
+        FinanceLabourMeasurement.find({ workId: work._id, ...(hasDateFilter ? { date: dateFilter } : {}), deleted: { $ne: true } }),
+        FinanceStockMovement.aggregate([
+            { $match: { workId: work._id, movementType: 'waste', deleted: { $ne: true }, ...(hasDateFilter ? { date: dateFilter } : {}) } },
+            { $group: { _id: '$materialId', qty: { $sum: '$quantity' } } },
+        ]),
+        // Untagged waste at this project — reported separately, honestly,
+        // rather than silently folded into or excluded from this work's number.
+        FinanceStockMovement.aggregate([
+            { $match: { projectId: work.projectId, movementType: 'waste', workId: null, deleted: { $ne: true }, ...(hasDateFilter ? { date: dateFilter } : {}) } },
+            { $group: { _id: '$materialId', qty: { $sum: '$quantity' } } },
+        ]),
     ]);
 
     const areaByVendor = new Map();
@@ -493,11 +505,54 @@ const computeWorkDayReport = async (work, dateKey, { cumulative = false } = {}) 
         + [...areaByLabourer.values()].reduce((sum, a) => sum + a, 0)
     );
 
+    // Material Used — traced via each measurement's own materialUsed[],
+    // not re-derived from stock movements (measurements already store it).
+    const materialIds = new Set();
+    const usedByMaterial = new Map();
+    for (const m of measurements) {
+        for (const u of m.materialUsed) {
+            const key = u.materialId.toString();
+            materialIds.add(key);
+            usedByMaterial.set(key, (usedByMaterial.get(key) || 0) + u.quantity);
+        }
+    }
+    for (const r of taggedWaste) materialIds.add(r._id.toString());
+    for (const r of projectWasteTotal) materialIds.add(r._id.toString());
+    const materials = materialIds.size ? await FinanceMaterial.find({ _id: { $in: [...materialIds] } }, 'name unit') : [];
+    const materialById = new Map(materials.map(m => [m._id.toString(), m]));
+    const nameUnit = (id) => ({ materialName: materialById.get(id.toString())?.name || 'Unknown', unit: materialById.get(id.toString())?.unit || '' });
+
+    const materialUsed = [...usedByMaterial.entries()].map(([id, qty]) => ({ materialId: id, quantity: qty, ...nameUnit(id) }));
+    const materialWasted = taggedWaste.map(r => ({ materialId: r._id, quantity: r.qty, ...nameUnit(r._id) }));
+    const projectLevelWaste = projectWasteTotal.map(r => ({ materialId: r._id, quantity: r.qty, ...nameUnit(r._id) }));
+
+    // Daily breakdown + Average Cost/Sqft = mean of each day's costPerSqft
+    // ratio within the scope, NOT totalMaterialCost / totalArea — days with
+    // zero material cost recorded are skipped, not counted as a zero ratio.
+    const byDate = new Map();
+    for (const m of measurements) {
+        const dateKey = new Date(m.date).toISOString().slice(0, 10);
+        if (!byDate.has(dateKey)) byDate.set(dateKey, { areaCoveredSqft: 0, materialCost: 0 });
+        const entry = byDate.get(dateKey);
+        entry.areaCoveredSqft += m.areaCoveredSqft;
+        for (const u of m.materialUsed) entry.materialCost += u.quantity * (avgRate.get(u.materialId.toString()) || 0);
+    }
+    const dailyBreakdown = [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, e]) => ({
+        date, areaCoveredSqft: e.areaCoveredSqft, materialCost: e.materialCost,
+        costPerSqft: e.areaCoveredSqft > 0 ? e.materialCost / e.areaCoveredSqft : 0,
+    }));
+    const ratiosWithMaterialCost = dailyBreakdown.filter(d => d.materialCost > 0).map(d => d.costPerSqft);
+    const averageCostPerSqft = ratiosWithMaterialCost.length > 0
+        ? ratiosWithMaterialCost.reduce((a, b) => a + b, 0) / ratiosWithMaterialCost.length
+        : 0;
+
     return {
-        date: dateKey, cumulative, areaCoveredSqft,
+        areaCoveredSqft,
         contractorCost, contractorBreakdown,
         labourCost, labourBreakdown,
         totalCost: round2(contractorCost + labourCost),
+        materialUsed, materialWasted, projectLevelWaste,
+        dailyBreakdown, averageCostPerSqft,
     };
 };
 
@@ -526,10 +581,15 @@ const getWorkProfit = async (req, res) => {
     }
 };
 
-// New Tier-2 endpoint — everything about one work for one month.
+// Tier-2 endpoint — everything about one work, scoped to exactly one of
+// Day / Month / All Time at a time (never several simultaneous sections
+// on the page — that got confusing fast). Revenue and Profit are the one
+// exception left unscoped: they come from issued running bills, which
+// aren't measurement-dated, so a "daily profit" isn't a coherent number
+// to invent — they're always all-time, computeWorkProfit's own scope.
 const getWorkDetail = async (req, res) => {
     try {
-        const { workId, month, date, upto } = req.query;
+        const { workId, scope: rawScope, month, date, upto } = req.query;
         if (!workId) return res.status(400).json({ success: false, message: 'workId is required' });
         const work = await FinanceWork.findOne({ _id: workId, deleted: { $ne: true } });
         if (!work) return res.status(404).json({ success: false, message: 'Work not found' });
@@ -537,78 +597,44 @@ const getWorkDetail = async (req, res) => {
         // ObjectId below since it feeds several other queries as a filter
         // value (computeWorkProfit, material avg rates, stock movements).
         const workProject = await FinanceProject.findById(work.projectId, 'name');
-
-        const monthKey = month && /^\d{4}-\d{2}$/.test(month) ? month : new Date().toISOString().slice(0, 7);
-        const { start, end } = monthBounds(monthKey);
         const progressPercent = work.estimatedAreaSqft > 0 ? Math.min(100, Math.round((work.completedAreaSqft / work.estimatedAreaSqft) * 100)) : 0;
-        const dateKey = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
-        const cumulative = upto === 'true' || upto === '1';
 
-        const [measurements, materials, taggedWaste, projectWasteTotal, avgRate, workProfit, dayReport] = await Promise.all([
-            FinanceMeasurement.find({ workId, deleted: { $ne: true } }).sort({ date: 1 }),
-            FinanceMaterial.find({ deleted: { $ne: true } }, 'name unit'),
-            FinanceStockMovement.aggregate([
-                { $match: { workId: new mongoose.Types.ObjectId(workId), movementType: 'waste', deleted: { $ne: true } } },
-                { $group: { _id: '$materialId', qty: { $sum: '$quantity' } } },
-            ]),
-            // Untagged waste at this project — reported separately, honestly,
-            // rather than silently folded into or excluded from this work's number.
-            FinanceStockMovement.aggregate([
-                { $match: { projectId: work.projectId, movementType: 'waste', workId: null, deleted: { $ne: true } } },
-                { $group: { _id: '$materialId', qty: { $sum: '$quantity' } } },
-            ]),
+        const scope = ['day', 'month', 'alltime'].includes(rawScope) ? rawScope : 'alltime';
+        let dateStart = null, dateEnd = null, scopeLabel = 'All Time';
+        let monthKey = null, dateKey = null, cumulative = false;
+
+        if (scope === 'day') {
+            dateKey = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date().toISOString().slice(0, 10);
+            cumulative = upto === 'true' || upto === '1';
+            dateEnd = new Date(`${dateKey}T23:59:59.999Z`);
+            if (!cumulative) dateStart = new Date(`${dateKey}T00:00:00.000Z`);
+            scopeLabel = cumulative ? `Up to ${dateKey}` : `On ${dateKey}`;
+        } else if (scope === 'month') {
+            monthKey = month && /^\d{4}-\d{2}$/.test(month) ? month : new Date().toISOString().slice(0, 7);
+            const bounds = monthBounds(monthKey);
+            dateStart = bounds.start; dateEnd = bounds.end;
+            scopeLabel = monthKey;
+        }
+
+        const [avgRate, workProfit, materialStock] = await Promise.all([
             computeMaterialAvgRates(work.projectId),
             computeWorkProfit(work),
-            dateKey ? computeWorkDayReport(work, dateKey, { cumulative }) : Promise.resolve(null),
+            computeCurrentStock(work.projectId),
         ]);
-        const materialById = new Map(materials.map(m => [m._id.toString(), m]));
-        const nameUnit = (id) => ({ materialName: materialById.get(id.toString())?.name || 'Unknown', unit: materialById.get(id.toString())?.unit || '' });
-
-        // Material Used — traced via each measurement's own materialUsed[],
-        // not re-derived from stock movements (measurements already store it).
-        const usedByMaterial = new Map();
-        for (const m of measurements) {
-            for (const u of m.materialUsed) {
-                const key = u.materialId.toString();
-                usedByMaterial.set(key, (usedByMaterial.get(key) || 0) + u.quantity);
-            }
-        }
-        const materialUsed = [...usedByMaterial.entries()].map(([id, qty]) => ({ materialId: id, quantity: qty, ...nameUnit(id) }));
-        const materialWasted = taggedWaste.map(r => ({ materialId: r._id, quantity: r.qty, ...nameUnit(r._id) }));
-        const projectLevelWaste = projectWasteTotal.map(r => ({ materialId: r._id, quantity: r.qty, ...nameUnit(r._id) }));
-
-        // Daily breakdown + Average Cost/Sqft (month) = mean of each day's
-        // costPerSqft, NOT totalMaterialCost / totalArea — days with zero
-        // material cost recorded are skipped, not counted as a zero ratio.
-        const byDate = new Map();
-        for (const m of measurements) {
-            if (m.date < start || m.date > end) continue;
-            const dateKey = new Date(m.date).toISOString().slice(0, 10);
-            if (!byDate.has(dateKey)) byDate.set(dateKey, { areaCoveredSqft: 0, materialCost: 0 });
-            const entry = byDate.get(dateKey);
-            entry.areaCoveredSqft += m.areaCoveredSqft;
-            for (const u of m.materialUsed) entry.materialCost += u.quantity * (avgRate.get(u.materialId.toString()) || 0);
-        }
-        const dailyBreakdown = [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, e]) => ({
-            date, areaCoveredSqft: e.areaCoveredSqft, materialCost: e.materialCost,
-            costPerSqft: e.areaCoveredSqft > 0 ? e.materialCost / e.areaCoveredSqft : 0,
-        }));
-        const ratiosWithMaterialCost = dailyBreakdown.filter(d => d.materialCost > 0).map(d => d.costPerSqft);
-        const averageCostPerSqft = ratiosWithMaterialCost.length > 0
-            ? ratiosWithMaterialCost.reduce((a, b) => a + b, 0) / ratiosWithMaterialCost.length
-            : 0;
+        const report = await computeWorkScopedReport(work, { dateStart, dateEnd, avgRate });
 
         res.json({
             success: true,
             data: {
                 workId: work._id, projectId: work.projectId, projectName: workProject?.name || '—', workType: work.workType,
                 estimatedAreaSqft: work.estimatedAreaSqft, completedAreaSqft: work.completedAreaSqft, progressPercent,
-                materialUsed, materialWasted, projectLevelWaste,
-                month: monthKey, dailyBreakdown, averageCostPerSqft,
-                contractorCost: workProfit.contractorCost, contractorBreakdown: workProfit.contractorBreakdown,
-                labourCost: workProfit.labourCost, labourBreakdown: workProfit.labourBreakdown,
+                scope, scopeLabel, month: monthKey, date: dateKey, cumulative,
+                ...report,
                 revenue: workProfit.revenue, profit: workProfit.profit,
-                dayReport,
+                // Project-wide, always current — dump/return movements
+                // aren't tied to one Work, so "material left" can't be
+                // scoped to this Work's Day/Month/All Time selector.
+                materialStock,
             },
         });
     } catch (err) {

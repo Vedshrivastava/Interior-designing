@@ -93,43 +93,51 @@ const removeStockMovement = async (req, res) => {
 
 // Current stock is never stored — always SUM(dump) − SUM(consume) −
 // SUM(return) − SUM(waste), grouped by (projectId, materialId), computed
-// fresh on every call.
+// fresh on every call. Stock is inherently project-wide (dump/return
+// movements don't carry a workId — material dumped at a site can go to
+// any Work there), so this is never scoped to one Work or one date
+// window, unlike Work Detail's own Day/Month/All Time report — exported
+// so that report can show "what's actually left" for context without
+// pretending stock is somehow Work-specific.
+export const computeCurrentStock = async (projectId, materialId) => {
+    const match = { projectId: new mongoose.Types.ObjectId(projectId), deleted: { $ne: true } };
+    if (materialId) match.materialId = new mongoose.Types.ObjectId(materialId);
+
+    return FinanceStockMovement.aggregate([
+        { $match: match },
+        {
+            $group: {
+                _id: '$materialId',
+                dump:    { $sum: { $cond: [{ $eq: ['$movementType', 'dump'] }, '$quantity', 0] } },
+                consume: { $sum: { $cond: [{ $eq: ['$movementType', 'consume'] }, '$quantity', 0] } },
+                returned: { $sum: { $cond: [{ $eq: ['$movementType', 'return'] }, '$quantity', 0] } },
+                waste:   { $sum: { $cond: [{ $eq: ['$movementType', 'waste'] }, '$quantity', 0] } },
+            },
+        },
+        {
+            $lookup: { from: 'financematerials', localField: '_id', foreignField: '_id', as: 'material' },
+        },
+        { $unwind: { path: '$material', preserveNullAndEmptyArrays: true } },
+        {
+            $project: {
+                _id: 0,
+                materialId: '$_id',
+                materialName: '$material.name',
+                unit: '$material.unit',
+                dump: 1, consume: 1, returned: 1, waste: 1,
+                currentStock: { $subtract: [{ $subtract: [{ $subtract: ['$dump', '$consume'] }, '$returned'] }, '$waste'] },
+            },
+        },
+        { $sort: { materialName: 1 } },
+    ]);
+};
+
 const getCurrentStock = async (req, res) => {
     try {
         const { projectId, materialId } = req.query;
         if (!projectId) return res.status(400).json({ success: false, message: 'projectId is required' });
 
-        const match = { projectId: new mongoose.Types.ObjectId(projectId), deleted: { $ne: true } };
-        if (materialId) match.materialId = new mongoose.Types.ObjectId(materialId);
-
-        const rows = await FinanceStockMovement.aggregate([
-            { $match: match },
-            {
-                $group: {
-                    _id: '$materialId',
-                    dump:    { $sum: { $cond: [{ $eq: ['$movementType', 'dump'] }, '$quantity', 0] } },
-                    consume: { $sum: { $cond: [{ $eq: ['$movementType', 'consume'] }, '$quantity', 0] } },
-                    returned: { $sum: { $cond: [{ $eq: ['$movementType', 'return'] }, '$quantity', 0] } },
-                    waste:   { $sum: { $cond: [{ $eq: ['$movementType', 'waste'] }, '$quantity', 0] } },
-                },
-            },
-            {
-                $lookup: { from: 'financematerials', localField: '_id', foreignField: '_id', as: 'material' },
-            },
-            { $unwind: { path: '$material', preserveNullAndEmptyArrays: true } },
-            {
-                $project: {
-                    _id: 0,
-                    materialId: '$_id',
-                    materialName: '$material.name',
-                    unit: '$material.unit',
-                    dump: 1, consume: 1, returned: 1, waste: 1,
-                    currentStock: { $subtract: [{ $subtract: [{ $subtract: ['$dump', '$consume'] }, '$returned'] }, '$waste'] },
-                },
-            },
-            { $sort: { materialName: 1 } },
-        ]);
-
+        const rows = await computeCurrentStock(projectId, materialId);
         res.json({ success: true, data: rows });
     } catch (err) {
         console.error(err);

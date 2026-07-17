@@ -9,6 +9,7 @@ import QuickAddPicker from './QuickAddPicker';
 import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 import '../../styles/add.css';
+import '../../styles/wizard.css';
 
 const STATUS_LABEL = { active: 'Active', completed: 'Completed' };
 
@@ -323,21 +324,26 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                             {!editingId && (
                                 <div className="add-product-name flex-col">
                                     <p>Contractor(s)</p>
-                                    <div className="add-product-points">
+                                    <div className="contractor-assign-box">
                                         {contractorAssignments.map((a, idx) => (
-                                            <div key={idx} className="point-input">
-                                                <div style={{ flex: 1 }}>
+                                            <div key={idx} className="contractor-assign-row">
+                                                <div className="contractor-assign-picker">
                                                     <ContractorOrLabourPicker url={url} value={a.contractorVendorId}
                                                         onChange={v => setAssignmentField(idx, 'contractorVendorId', v)} />
                                                 </div>
-                                                <input type="text" placeholder="Notes (optional)" value={a.notes}
-                                                    onChange={e => setAssignmentField(idx, 'notes', e.target.value)} style={{ flex: 1 }} />
+                                                <div className="contractor-assign-notes">
+                                                    <input type="text" placeholder="Notes (optional)" value={a.notes}
+                                                        onChange={e => setAssignmentField(idx, 'notes', e.target.value)} />
+                                                </div>
                                                 {contractorAssignments.length > 1 && (
-                                                    <button type="button" className="remove-point-btn" onClick={() => removeAssignmentRow(idx)}>X</button>
+                                                    <button type="button" className="contractor-assign-remove" aria-label="Remove contractor row"
+                                                        onClick={() => removeAssignmentRow(idx)}>×</button>
                                                 )}
                                             </div>
                                         ))}
-                                        <button type="button" className="add-point-btn" onClick={addAssignmentRow}>+ Add Contractor</button>
+                                        <div className="contractor-assign-footer">
+                                            <button type="button" className="add-point-btn" onClick={addAssignmentRow}>+ Add Contractor</button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -354,30 +360,32 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                                 </div>
                             )}
 
-                            <div className="add-product-name flex-col">
-                                <p>Work Order Number</p>
-                                <input type="text" value={form.workOrderNumber} onChange={e => setField('workOrderNumber', e.target.value)} />
-                            </div>
-                            <div className="add-product-name flex-col">
-                                <p>Start Date</p>
-                                <input type="date" value={form.startDate} onChange={e => setField('startDate', e.target.value)} />
-                            </div>
-                            <div className="add-product-name flex-col">
-                                <p>Estimated Area (sqft) *</p>
-                                <input type="number" value={form.estimatedAreaSqft} onChange={e => setField('estimatedAreaSqft', e.target.value)} />
-                            </div>
-                            {editingId && (
+                            <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
-                                    <p>Status</p>
-                                    <select value={form.status} onChange={e => setField('status', e.target.value)}>
-                                        <option value="active">Active</option>
-                                        <option value="completed">Completed</option>
-                                    </select>
+                                    <p>Work Order Number</p>
+                                    <input type="text" value={form.workOrderNumber} onChange={e => setField('workOrderNumber', e.target.value)} />
                                 </div>
-                            )}
-                            <div className="add-product-name flex-col">
-                                <p>Notes</p>
-                                <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
+                                <div className="add-product-name flex-col">
+                                    <p>Start Date</p>
+                                    <input type="date" value={form.startDate} onChange={e => setField('startDate', e.target.value)} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Estimated Area (sqft) *</p>
+                                    <input type="number" value={form.estimatedAreaSqft} onChange={e => setField('estimatedAreaSqft', e.target.value)} />
+                                </div>
+                                {editingId && (
+                                    <div className="add-product-name flex-col">
+                                        <p>Status</p>
+                                        <select value={form.status} onChange={e => setField('status', e.target.value)}>
+                                            <option value="active">Active</option>
+                                            <option value="completed">Completed</option>
+                                        </select>
+                                    </div>
+                                )}
+                                <div className="add-product-name flex-col wizard-field-full">
+                                    <p>Notes</p>
+                                    <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
+                                </div>
                             </div>
                             <div className="edit-modal-actions">
                                 <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
@@ -413,15 +421,21 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                         )}
                         <div className="add-product-name flex-col">
                             <p>Add Contractor</p>
-                            <div className="point-input">
-                                <div style={{ flex: 1 }}>
-                                    <ContractorOrLabourPicker url={url} value={newContractorVendorId} onChange={setNewContractorVendorId} />
+                            <div className="contractor-assign-box">
+                                <div className="contractor-assign-row">
+                                    <div className="contractor-assign-picker">
+                                        <ContractorOrLabourPicker url={url} value={newContractorVendorId} onChange={setNewContractorVendorId} />
+                                    </div>
+                                    <div className="contractor-assign-notes">
+                                        <input type="text" placeholder="Notes (optional)" value={newContractorNotes}
+                                            onChange={e => setNewContractorNotes(e.target.value)} />
+                                    </div>
                                 </div>
-                                <input type="text" placeholder="Notes (optional)" value={newContractorNotes}
-                                    onChange={e => setNewContractorNotes(e.target.value)} style={{ flex: 1 }} />
-                                <button type="button" className="add-point-btn" disabled={contractorsSaving} onClick={addWorkContractor}>
-                                    {contractorsSaving ? 'Adding…' : '+ Add'}
-                                </button>
+                                <div className="contractor-assign-footer">
+                                    <button type="button" className="add-point-btn" disabled={contractorsSaving} onClick={addWorkContractor}>
+                                        {contractorsSaving ? 'Adding…' : '+ Add'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div className="edit-modal-actions">

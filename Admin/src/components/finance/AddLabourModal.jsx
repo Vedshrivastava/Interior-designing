@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import '../../styles/wizard.css';
 
 /*
  * Quick-add a labourer (financeLabourer — a plain, company-wide name, not

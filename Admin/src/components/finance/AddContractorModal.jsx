@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
 import { emptyFormFromFields, renderMasterField } from './masterFieldRenderer';
+import '../../styles/wizard.css';
 
 const CONTRACTOR_PRESET = { vendorType: 'labour_contractor' };
 
@@ -46,13 +47,18 @@ const AddContractorModal = ({ url, onClose, onContractorCreated }) => {
         <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
             <div className="loader-modal-box edit-modal">
                 <h2>Add Contractor</h2>
-                <form className="flex-col" onSubmit={submit}>
-                    {visibleFields.filter(f => !f.showIf || f.showIf(vendorForm)).map(f => (
-                        <div key={f.key} className="add-product-name flex-col">
-                            <p>{f.label}{f.required ? ' *' : ''}</p>
-                            {renderMasterField(f, vendorForm, setVendorField, { url })}
-                        </div>
-                    ))}
+                <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
+                    Added as a labour contractor vendor, scoped to this Work's Contractor(s) list.
+                </p>
+                <form onSubmit={submit}>
+                    <div className="wizard-field-grid">
+                        {visibleFields.filter(f => !f.showIf || f.showIf(vendorForm)).map(f => (
+                            <div key={f.key} className={`add-product-name flex-col${f.type === 'textarea' ? ' wizard-field-full' : ''}`}>
+                                <p>{f.label}{f.required ? ' *' : ''}</p>
+                                {renderMasterField(f, vendorForm, setVendorField, { url })}
+                            </div>
+                        ))}
+                    </div>
                     <div className="edit-modal-actions">
                         <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
                         <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>

@@ -458,6 +458,178 @@
 .rate-entry-action { display: flex; align-items: center; }
 
 /* ══════════════════════════════════════════════
+   4c. LABOUR MULTI-SELECT — chip picker for forming
+   a Work's labour team, or batch-selecting several
+   labourers when setting a Labour Rate. Chips, not
+   native checkboxes — avoids fighting the global
+   `.add-product-name input` reset (which strips
+   native checkbox rendering with no replacement),
+   and reads more clearly as "tap to add/remove" at
+   a glance than a column of tiny boxes.
+══════════════════════════════════════════════ */
+.labour-select-box {
+    border: 1px solid var(--gold-line);
+    border-radius: var(--radius-sm);
+    background: linear-gradient(180deg, var(--parchment) 0%, var(--ivory) 100%);
+    padding: 14px;
+}
+.labour-select-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-height: 190px;
+    overflow-y: auto;
+    padding: 2px 2px 2px 0;
+}
+.labour-select-list::-webkit-scrollbar { width: 6px; }
+.labour-select-list::-webkit-scrollbar-thumb { background: var(--gold-line); border-radius: 3px; }
+.labour-select-empty {
+    font-size: 0.85rem;
+    color: var(--text-lt);
+    margin: 0;
+    padding: 4px 2px;
+}
+.labour-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 14px 8px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--gold-line);
+    background-color: var(--white);
+    color: var(--text-dark);
+    font-size: 0.85rem;
+    font-family: "DM Sans", sans-serif;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
+}
+.labour-chip:hover {
+    border-color: var(--gold);
+    background-color: var(--gold-dim);
+}
+.labour-chip:active { transform: scale(0.97); }
+.labour-chip.active {
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-lt) 100%);
+    border-color: var(--gold);
+    color: var(--green);
+    font-weight: 600;
+    box-shadow: 0 3px 10px rgba(201,168,124,0.4);
+}
+.labour-chip-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    border: 1.5px solid var(--gold-line);
+    background-color: var(--white);
+    flex-shrink: 0;
+    transition: all 0.18s ease;
+}
+.labour-chip.active .labour-chip-mark {
+    border-color: var(--green);
+    background-color: var(--green);
+}
+.labour-chip-mark svg {
+    width: 10px;
+    height: 10px;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.15s ease;
+}
+.labour-chip.active .labour-chip-mark svg { opacity: 1; transform: scale(1); }
+.labour-select-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+}
+.labour-select-count {
+    font-size: 0.78rem;
+    color: var(--text-lt);
+    letter-spacing: 0.2px;
+}
+
+/* ══════════════════════════════════════════════
+   4d. CONTRACTOR ASSIGNMENT ROWS — same gradient
+   card as the labour picker, one row per contractor
+   (picker + notes + remove), for Add Work's
+   Contractor(s) section and Manage Contractors.
+══════════════════════════════════════════════ */
+.contractor-assign-box {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid var(--gold-line);
+    border-radius: var(--radius-sm);
+    background: linear-gradient(180deg, var(--parchment) 0%, var(--ivory) 100%);
+    padding: 14px;
+}
+.contractor-assign-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: var(--white);
+    border: 1px solid var(--gold-line);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.contractor-assign-row:focus-within {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-dim);
+}
+.contractor-assign-picker { flex: 1.3; min-width: 0; }
+.contractor-assign-notes { flex: 1; min-width: 0; }
+.contractor-assign-notes input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--gold-line);
+    background-color: var(--ivory);
+    color: var(--text-dark);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-family: "DM Sans", sans-serif;
+    outline: none;
+    box-sizing: border-box;
+    transition: all 0.18s ease;
+}
+.contractor-assign-notes input:focus {
+    border-color: var(--gold);
+    background-color: var(--white);
+}
+.contractor-assign-remove {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid rgba(192,57,43,0.25);
+    background-color: var(--danger-dim);
+    color: var(--danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+.contractor-assign-remove:hover {
+    background-color: var(--danger);
+    color: var(--white);
+    transform: scale(1.06);
+}
+.contractor-assign-footer {
+    display: flex;
+    margin-top: 2px;
+}
+
+/* ══════════════════════════════════════════════
    5. EDIT MODAL — Elevated Overlay Form
 ══════════════════════════════════════════════ */
 

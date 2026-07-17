@@ -187,7 +187,6 @@ const TABS = [
     { key: 'materials',    label: 'Materials' },
     { key: 'contractors',  label: 'Contractors' },
     { key: 'supervisors',  label: 'Supervisors' },
-    { key: 'labour',       label: 'Workers' },
     { key: 'runningBills', label: 'Running Bills' },
     { key: 'receipts',     label: 'Receipts' },
     { key: 'expenses',     label: 'Expenses' },
@@ -416,10 +415,19 @@ const ProjectDetail = ({ url }) => {
                         <WorkTypeRatesManager url={url} projectId={id} worksVersion={worksVersion} />
                         <h3 style={{ margin: '28px 0 8px' }}>Contractor Rates</h3>
                         <ContractorRatesManager url={url} projectId={id} worksVersion={worksVersion} />
+                        <h3 style={{ margin: '28px 0 8px' }}>Worker Rates</h3>
+                        <WorkersManager url={url} projectId={id} worksVersion={worksVersion} />
                     </div>
                 )}
 
-                {activeTab === 'measurements' && <MeasurementsManager url={url} projectId={id} />}
+                {activeTab === 'measurements' && (
+                    <div>
+                        <h3 style={{ margin: '0 0 8px' }}>Contractor Measurements</h3>
+                        <MeasurementsManager url={url} projectId={id} />
+                        <h3 style={{ margin: '32px 0 8px' }}>Labour Measurements</h3>
+                        <LabourMeasurementsManager url={url} projectId={id} />
+                    </div>
+                )}
 
                 {activeTab === 'materials' && <StockMovementsManager url={url} projectId={id} />}
 
@@ -444,15 +452,6 @@ const ProjectDetail = ({ url }) => {
                             <p><b>Assigned Supervisor</b></p>
                             <p>{project.assignedSupervisorId?.name || project.assignedSupervisor || '—'}</p>
                         </div>
-                    </div>
-                )}
-
-                {activeTab === 'labour' && (
-                    <div>
-                        <h3 style={{ margin: '0 0 8px' }}>Workers</h3>
-                        <WorkersManager url={url} projectId={id} worksVersion={worksVersion} />
-                        <h3 style={{ margin: '32px 0 8px' }}>Measurements</h3>
-                        <LabourMeasurementsManager url={url} projectId={id} />
                     </div>
                 )}
 

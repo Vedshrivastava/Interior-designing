@@ -1,16 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import AddContractorOrLabourModal from './AddContractorOrLabourModal';
+import AddContractorModal from './AddContractorModal';
 
 /*
  * Drop-in picker wherever a Work's contractor assignment or a Contractor
- * Rate row picks a contractor. The dropdown itself stays scoped to
- * labour_contractor vendors on purpose (only that vendor type can be
- * rated/assigned that way) — what changes is "+ Add New", which asks
- * Contractor or Labour first instead of assuming Contractor. Picking
- * Labour routes into AddContractorOrLabourModal's own supervisor/roster
- * flow and never selects anything back here, since daily-wage labour was
- * never something this field could hold.
+ * Rate row picks a contractor — scoped to labour_contractor vendors only.
+ * Despite the name (kept for now to avoid touching every import site),
+ * this is contractor-only; labour has its own separate LabourPicker.
  */
 const ContractorOrLabourPicker = ({ url, value, onChange, placeholder }) => {
     const token = localStorage.getItem('token');
@@ -38,7 +34,7 @@ const ContractorOrLabourPicker = ({ url, value, onChange, placeholder }) => {
             </div>
 
             {modalOpen && (
-                <AddContractorOrLabourModal
+                <AddContractorModal
                     url={url}
                     onClose={() => setModalOpen(false)}
                     onContractorCreated={(id) => { fetchContractors(); onChange(id); setModalOpen(false); }}

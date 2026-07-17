@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import AddContractorOrLabourModal from './AddContractorOrLabourModal';
+import AddLabourModal from './AddLabourModal';
 
 /*
  * Single-select labourer picker — mirrors ContractorOrLabourPicker. Lists
- * every labourer company-wide (a labourer isn't owned by any supervisor)
- * and opens the same Contractor-or-Labour modal for "+ Add New", pre-set
- * to the Labour tab.
+ * every labourer company-wide (a labourer isn't owned by any supervisor).
  */
 const LabourPicker = ({ url, value, onChange, placeholder }) => {
     const token = localStorage.getItem('token');
@@ -34,9 +32,8 @@ const LabourPicker = ({ url, value, onChange, placeholder }) => {
             </div>
 
             {modalOpen && (
-                <AddContractorOrLabourModal
+                <AddLabourModal
                     url={url}
-                    initialType="labour"
                     onClose={() => setModalOpen(false)}
                     onLabourerCreated={(id) => { fetchLabourers(); onChange(id); setModalOpen(false); }}
                 />

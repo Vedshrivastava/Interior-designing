@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import AddContractorOrLabourModal from './AddContractorOrLabourModal';
+import AddLabourModal from './AddLabourModal';
 
 /*
  * Multi-select checkbox list of company-wide labourers — the building
@@ -47,9 +47,8 @@ const LabourMultiSelect = ({ url, selectedIds, onChange, excludeIds = [] }) => {
             <button type="button" className="add-point-btn" style={{ marginTop: '8px' }} onClick={() => setModalOpen(true)}>+ Add New Labourer</button>
 
             {modalOpen && (
-                <AddContractorOrLabourModal
+                <AddLabourModal
                     url={url}
-                    initialType="labour"
                     onClose={() => setModalOpen(false)}
                     onLabourerCreated={(id) => { fetchLabourers(); onChange([...selectedIds, id]); setModalOpen(false); }}
                 />

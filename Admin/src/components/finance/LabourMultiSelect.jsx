@@ -39,7 +39,11 @@ const LabourMultiSelect = ({ url, selectedIds, onChange, excludeIds = [] }) => {
                 ) : visible.map(l => (
                     <label key={l._id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', cursor: 'pointer' }}>
                         <input type="checkbox" checked={selectedIds.includes(l._id)} onChange={() => toggle(l._id)}
-                            style={{ width: '16px', height: '16px', flex: '0 0 16px', accentColor: 'var(--gold, #c9a87c)' }} />
+                            style={{
+                                width: '16px', height: '16px', flex: '0 0 16px', padding: 0, margin: 0,
+                                border: 'none', background: 'none', borderRadius: 0,
+                                accentColor: 'var(--gold, #c9a87c)', appearance: 'auto', WebkitAppearance: 'checkbox',
+                            }} />
                         <span>{l.name}</span>
                     </label>
                 ))}

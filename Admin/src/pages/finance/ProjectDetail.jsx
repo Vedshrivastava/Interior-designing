@@ -415,7 +415,7 @@ const ProjectDetail = ({ url }) => {
                         <WorkTypeRatesManager url={url} projectId={id} worksVersion={worksVersion} />
                         <h3 style={{ margin: '28px 0 8px' }}>Contractor Rates</h3>
                         <ContractorRatesManager url={url} projectId={id} worksVersion={worksVersion} />
-                        <h3 style={{ margin: '28px 0 8px' }}>Worker Rates</h3>
+                        <h3 style={{ margin: '28px 0 8px' }}>Labour Rates</h3>
                         <WorkersManager url={url} projectId={id} worksVersion={worksVersion} />
                     </div>
                 )}

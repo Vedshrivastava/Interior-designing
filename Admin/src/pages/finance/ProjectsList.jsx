@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
-import { ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
+import { ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ChartTooltip, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 
@@ -18,11 +18,12 @@ const ProjectsList = ({ url }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [list, setList] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
     const [profitData, setProfitData] = useState([]);
     const [billedVsCollected, setBilledVsCollected] = useState([]);
+    const [statsLoading, setStatsLoading] = useState(true);
 
     const fetchList = async () => {
         setLoading(true);
@@ -39,7 +40,15 @@ const ProjectsList = ({ url }) => {
     // %billed-vs-collected per billable project (all three contract
     // types now — advance draws its credit down against its own bills).
     useEffect(() => {
-        if (list.length === 0) { setProfitData([]); setBilledVsCollected([]); return; }
+        if (list.length === 0) {
+            setProfitData([]); setBilledVsCollected([]);
+            // The list itself might just still be loading (empty for now,
+            // not confirmed empty) — only report these stats as "not
+            // loading" once the list fetch has genuinely finished.
+            setStatsLoading(loading);
+            return;
+        }
+        setStatsLoading(true);
         let cancelled = false;
         (async () => {
             const activeProjects = list.filter(p => p.status === 'active');
@@ -56,7 +65,7 @@ const ProjectsList = ({ url }) => {
                     .then(r => (r.data.success ? { projectName: p.name, projectId: p._id, billed: r.data.data.issuedTotal, collected: r.data.data.receivedTotal } : null))
                     .catch(() => null)
             ));
-            if (!cancelled) setBilledVsCollected(receivables.filter(Boolean).filter(r => r.billed > 0));
+            if (!cancelled) { setBilledVsCollected(receivables.filter(Boolean).filter(r => r.billed > 0)); setStatsLoading(false); }
         })();
         return () => { cancelled = true; };
     }, [list]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -89,13 +98,13 @@ const ProjectsList = ({ url }) => {
 
                 <ChartGrid>
                     <ChartCard title="Profitability — active projects">
-                        {profitData.length > 0 ? (
+                        {loading || statsLoading ? <ChartSkeleton /> : profitData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={240}>
                                 <BarChart data={profitData} layout="vertical" margin={{ left: 24 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                     <XAxis type="number" tick={{ fontSize: 11 }} />
                                     <YAxis type="category" dataKey="projectName" tick={{ fontSize: 11 }} width={110} />
-                                    <Tooltip formatter={(v) => formatINR(v)} />
+                                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
                                     <Bar dataKey="profit" name="Profit" radius={[0, 4, 4, 0]} onClick={(d) => navigate(`/finance/projects/${d.projectId}`)} style={{ cursor: 'pointer' }}>
                                         {profitData.map((p, i) => <Cell key={i} fill={p.profit >= 0 ? CHART_COLORS[0] : CHART_COLORS[2]} />)}
                                     </Bar>
@@ -105,13 +114,13 @@ const ProjectsList = ({ url }) => {
                     </ChartCard>
 
                     <ChartCard title="Breakdown by contract type">
-                        {contractTypeData.length > 0 ? (
+                        {loading ? <ChartSkeleton /> : contractTypeData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={240}>
                                 <PieChart>
                                     <Pie data={contractTypeData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={85} paddingAngle={2}>
                                         {contractTypeData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                                     </Pie>
-                                    <Tooltip />
+                                    <Tooltip content={<ChartTooltip valueFormatter={(v) => `${v} project${v === 1 ? '' : 's'}`} />} />
                                     <Legend wrapperStyle={{ fontSize: 12 }} />
                                 </PieChart>
                             </ResponsiveContainer>
@@ -119,13 +128,13 @@ const ProjectsList = ({ url }) => {
                     </ChartCard>
 
                     <ChartCard title="% Billed vs Collected">
-                        {billedVsCollected.length > 0 ? (
+                        {loading || statsLoading ? <ChartSkeleton /> : billedVsCollected.length > 0 ? (
                             <ResponsiveContainer width="100%" height={240}>
                                 <BarChart data={billedVsCollected} layout="vertical" margin={{ left: 24 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                     <XAxis type="number" tick={{ fontSize: 11 }} />
                                     <YAxis type="category" dataKey="projectName" tick={{ fontSize: 11 }} width={110} />
-                                    <Tooltip formatter={(v) => formatINR(v)} />
+                                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
                                     <Legend wrapperStyle={{ fontSize: 12 }} />
                                     <Bar dataKey="billed" name="Billed" fill={CHART_COLORS[1]} onClick={(d) => navigate(`/finance/projects/${d.projectId}`)} style={{ cursor: 'pointer' }} />
                                     <Bar dataKey="collected" name="Collected" fill={CHART_COLORS[0]} onClick={(d) => navigate(`/finance/projects/${d.projectId}`)} style={{ cursor: 'pointer' }} />

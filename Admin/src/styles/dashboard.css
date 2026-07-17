@@ -258,6 +258,29 @@
     padding: 24px 0;
 }
 
+/* Chart loading skeleton — see ChartSkeleton in DashboardWidgets.jsx */
+.chart-skeleton {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+    height: 240px;
+    padding: 10px 6px;
+}
+
+.chart-skeleton-bar {
+    height: 14px;
+    border-radius: 7px;
+    background: linear-gradient(90deg, rgba(201, 168, 124, 0.12) 25%, rgba(201, 168, 124, 0.28) 37%, rgba(201, 168, 124, 0.12) 63%);
+    background-size: 400% 100%;
+    animation: chart-skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes chart-skeleton-shimmer {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+}
+
 /* ── Recent Activity panel ── its own row/footer layout so the "view all"
    action lines up with the card's own padding instead of hanging off the
    edge of a table built for a different (CRUD list) purpose. */

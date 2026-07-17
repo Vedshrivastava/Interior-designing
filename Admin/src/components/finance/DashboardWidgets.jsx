@@ -52,6 +52,20 @@ export const ChartGrid = ({ children }) => <div className="dash-chart-grid">{chi
 
 export const EmptyChart = ({ text = 'Not enough data yet.' }) => <div className="dash-empty">{text}</div>;
 
+// Shown in place of a chart while its data is still in flight — distinct
+// from EmptyChart on purpose, so "still loading" never reads as "confirmed
+// zero/none" (a real bug this fixed: a chart briefly showing "No active
+// bills" before its fetch had even returned). A few shimmering bars in
+// roughly the shape of the bar charts this dashboard actually uses, not a
+// generic spinner, so it reads as "this chart specifically" loading.
+export const ChartSkeleton = () => (
+    <div className="chart-skeleton" aria-busy="true" aria-label="Loading chart">
+        {[92, 68, 84, 55, 74].map((w, i) => (
+            <div key={i} className="chart-skeleton-bar" style={{ width: `${w}%`, animationDelay: `${i * 0.12}s` }} />
+        ))}
+    </div>
+);
+
 // Custom Recharts tooltip content — replaces the library's unstyled default
 // box (plain white, system border) with something matching the rest of
 // this dashboard. Pass as `<Tooltip content={<ChartTooltip />} />`; Recharts

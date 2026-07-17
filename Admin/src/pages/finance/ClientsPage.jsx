@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import MasterCrudTable from '../../components/finance/MasterCrudTable';
 import { ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ChartTooltip, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
@@ -35,15 +36,23 @@ const ClientsPage = ({ url }) => {
     const [sortKey, setSortKey] = useState('totalBilled');
     const clientTableRef = useRef(null);
 
-    useEffect(() => {
-        if (clientsSummaryCache) { setSummary(clientsSummaryCache); setLoading(false); }
-        else setLoading(true);
-
+    const fetchSummary = () => {
         axios.get(`${url}/api/finance/reports/clients-summary`, authHeader)
             .then(res => { if (res.data.success) { setSummary(res.data.data); clientsSummaryCache = res.data.data; } })
             .catch(() => {})
             .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        if (clientsSummaryCache) { setSummary(clientsSummaryCache); setLoading(false); }
+        else setLoading(true);
+        fetchSummary();
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // clients-summary rolls up FinanceClient + FinanceProject + FinanceRunningBill
+    // + FinanceReceipt — any of those changing elsewhere (a bill issued, a
+    // receipt logged) should update this page without needing a revisit.
+    useFinanceWsRefresh(['financeClientsChanged', 'financeProjectsChanged', 'financeRunningBillsChanged', 'financeReceiptsChanged'], fetchSummary);
 
     const clients = summary?.clients || [];
     const sorted = [...clients].sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));

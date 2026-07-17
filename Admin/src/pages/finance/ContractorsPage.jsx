@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from 'recharts';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import MasterCrudTable from '../../components/finance/MasterCrudTable';
@@ -105,13 +106,22 @@ const ContractorsOverviewTab = ({ url, onSelectContractor }) => {
     const [summary, setSummary] = useState(contractorsOverviewCache);
     const [loading, setLoading] = useState(!contractorsOverviewCache);
 
-    useEffect(() => {
-        if (!contractorsOverviewCache) setLoading(true);
+    const fetchSummary = () => {
         axios.get(`${url}/api/finance/reports/contractors-summary`, authHeader)
             .then(res => { if (res.data.success) { setSummary(res.data.data); contractorsOverviewCache = res.data.data; } })
             .catch(() => {})
             .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        if (!contractorsOverviewCache) setLoading(true);
+        fetchSummary();
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useFinanceWsRefresh([
+        'financeVendorsChanged', 'financeWorkContractorAssignmentsChanged', 'financeWorksChanged',
+        'financeContractorRatesChanged', 'financeMeasurementsChanged', 'financeContractorLedgerChanged',
+    ], fetchSummary);
 
     const contractors = summary?.contractors || [];
     const payableData = contractors.filter(c => c.balancePayable !== 0).map(c => ({ name: c.vendorName, balancePayable: c.balancePayable, vendorId: c.vendorId }));

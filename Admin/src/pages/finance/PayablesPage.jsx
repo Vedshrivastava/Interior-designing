@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import ExpensesManager from '../../components/finance/ExpensesManager';
 import ExpenseAnalysisView from '../../components/finance/ExpenseAnalysisView';
@@ -44,31 +45,40 @@ const PayablesContractorTab = ({ url }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [rows, setRows] = useState(contractorPayablesCache || []);
     const [loading, setLoading] = useState(!contractorPayablesCache);
+    const aliveRef = useRef(true);
+    useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false; }; }, []);
 
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const vendorsRes = await axios.get(`${url}/api/finance/vendors/list`, authHeader);
-                const contractors = vendorsRes.data.success ? vendorsRes.data.data.filter(v => v.vendorType === 'labour_contractor') : [];
-                const ledgers = await Promise.all(contractors.map(v =>
-                    axios.get(`${url}/api/finance/contractors/${v._id}/ledger`, authHeader)
-                        .then(res => (res.data.success ? { vendorId: v._id, vendorName: v.name, ...res.data.data.totals } : null))
-                        .catch(() => null)
-                ));
-                if (!cancelled) {
-                    const next = ledgers.filter(Boolean).sort((a, b) => b.balancePayable - a.balancePayable);
-                    setRows(next);
-                    contractorPayablesCache = next;
-                }
-            } catch {
-                if (!cancelled) toast.error('Error fetching contractor payables');
-            } finally {
-                if (!cancelled) setLoading(false);
+    const fetchRows = async () => {
+        try {
+            const vendorsRes = await axios.get(`${url}/api/finance/vendors/list`, authHeader);
+            const contractors = vendorsRes.data.success ? vendorsRes.data.data.filter(v => v.vendorType === 'labour_contractor') : [];
+            const ledgers = await Promise.all(contractors.map(v =>
+                axios.get(`${url}/api/finance/contractors/${v._id}/ledger`, authHeader)
+                    .then(res => (res.data.success ? { vendorId: v._id, vendorName: v.name, ...res.data.data.totals } : null))
+                    .catch(() => null)
+            ));
+            if (aliveRef.current) {
+                const next = ledgers.filter(Boolean).sort((a, b) => b.balancePayable - a.balancePayable);
+                setRows(next);
+                contractorPayablesCache = next;
             }
-        })();
-        return () => { cancelled = true; };
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+        } catch {
+            if (aliveRef.current) toast.error('Error fetching contractor payables');
+        } finally {
+            if (aliveRef.current) setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchRows(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Contractor balance payable is built from work assignments, measured
+    // area, contractor rates, and the advance/deduction/payment ledger —
+    // any of those changing (from this tab or elsewhere) should update the
+    // balance without waiting for a revisit.
+    useFinanceWsRefresh([
+        'financeVendorsChanged', 'financeWorksChanged', 'financeMeasurementsChanged',
+        'financeContractorRatesChanged', 'financeWorkContractorAssignmentsChanged', 'financeContractorLedgerChanged',
+    ], fetchRows);
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
     if (rows.length === 0) return <div className="admin-empty-state"><p>No labour contractors yet.</p></div>;
@@ -102,31 +112,33 @@ const PayablesVendorTab = ({ url }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [rows, setRows] = useState(vendorPayablesCache || []);
     const [loading, setLoading] = useState(!vendorPayablesCache);
+    const aliveRef = useRef(true);
+    useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false; }; }, []);
 
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const vendorsRes = await axios.get(`${url}/api/finance/vendors/list`, authHeader);
-                const nonContractors = vendorsRes.data.success ? vendorsRes.data.data.filter(v => v.vendorType !== 'labour_contractor') : [];
-                const ledgers = await Promise.all(nonContractors.map(v =>
-                    axios.get(`${url}/api/finance/vendors/${v._id}/ledger`, authHeader)
-                        .then(res => (res.data.success ? { vendorId: v._id, vendorName: v.name, ...res.data.data.totals } : null))
-                        .catch(() => null)
-                ));
-                if (!cancelled) {
-                    const next = ledgers.filter(Boolean).sort((a, b) => b.amountOwed - a.amountOwed);
-                    setRows(next);
-                    vendorPayablesCache = next;
-                }
-            } catch {
-                if (!cancelled) toast.error('Error fetching vendor payables');
-            } finally {
-                if (!cancelled) setLoading(false);
+    const fetchRows = async () => {
+        try {
+            const vendorsRes = await axios.get(`${url}/api/finance/vendors/list`, authHeader);
+            const nonContractors = vendorsRes.data.success ? vendorsRes.data.data.filter(v => v.vendorType !== 'labour_contractor') : [];
+            const ledgers = await Promise.all(nonContractors.map(v =>
+                axios.get(`${url}/api/finance/vendors/${v._id}/ledger`, authHeader)
+                    .then(res => (res.data.success ? { vendorId: v._id, vendorName: v.name, ...res.data.data.totals } : null))
+                    .catch(() => null)
+            ));
+            if (aliveRef.current) {
+                const next = ledgers.filter(Boolean).sort((a, b) => b.amountOwed - a.amountOwed);
+                setRows(next);
+                vendorPayablesCache = next;
             }
-        })();
-        return () => { cancelled = true; };
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+        } catch {
+            if (aliveRef.current) toast.error('Error fetching vendor payables');
+        } finally {
+            if (aliveRef.current) setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchRows(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useFinanceWsRefresh(['financeVendorsChanged', 'financePurchasesChanged', 'financeVendorLedgerChanged'], fetchRows);
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
     if (rows.length === 0) return <div className="admin-empty-state"><p>No vendors yet.</p></div>;
@@ -163,31 +175,33 @@ const PayablesSalaryTab = ({ url }) => {
     const cacheHit = salaryPayablesCache?.month === month ? salaryPayablesCache.rows : null;
     const [rows, setRows] = useState(cacheHit || []);
     const [loading, setLoading] = useState(!cacheHit);
+    const aliveRef = useRef(true);
+    useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false; }; }, []);
 
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const employeesRes = await axios.get(`${url}/api/finance/employees/list`, authHeader);
-                const employees = employeesRes.data.success ? employeesRes.data.data : [];
-                const ledgers = await Promise.all(employees.map(e =>
-                    axios.get(`${url}/api/finance/employees/${e._id}/salary-ledger`, { ...authHeader, params: { month } })
-                        .then(res => (res.data.success ? res.data.data : null))
-                        .catch(() => null)
-                ));
-                if (!cancelled) {
-                    const next = ledgers.filter(Boolean).sort((a, b) => b.balanceDue - a.balanceDue);
-                    setRows(next);
-                    salaryPayablesCache = { month, rows: next };
-                }
-            } catch {
-                if (!cancelled) toast.error('Error fetching salary payables');
-            } finally {
-                if (!cancelled) setLoading(false);
+    const fetchRows = async () => {
+        try {
+            const employeesRes = await axios.get(`${url}/api/finance/employees/list`, authHeader);
+            const employees = employeesRes.data.success ? employeesRes.data.data : [];
+            const ledgers = await Promise.all(employees.map(e =>
+                axios.get(`${url}/api/finance/employees/${e._id}/salary-ledger`, { ...authHeader, params: { month } })
+                    .then(res => (res.data.success ? res.data.data : null))
+                    .catch(() => null)
+            ));
+            if (aliveRef.current) {
+                const next = ledgers.filter(Boolean).sort((a, b) => b.balanceDue - a.balanceDue);
+                setRows(next);
+                salaryPayablesCache = { month, rows: next };
             }
-        })();
-        return () => { cancelled = true; };
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+        } catch {
+            if (aliveRef.current) toast.error('Error fetching salary payables');
+        } finally {
+            if (aliveRef.current) setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchRows(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useFinanceWsRefresh(['financeEmployeesChanged', 'financeSalaryPaymentsChanged'], fetchRows);
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
     if (rows.length === 0) return <div className="admin-empty-state"><p>No employees yet.</p></div>;
@@ -220,31 +234,33 @@ const PayablesCommissionTab = ({ url }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [rows, setRows] = useState(commissionPayablesCache || []);
     const [loading, setLoading] = useState(!commissionPayablesCache);
+    const aliveRef = useRef(true);
+    useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false; }; }, []);
 
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const vendorsRes = await axios.get(`${url}/api/finance/vendors/list`, authHeader);
-                const referrals = vendorsRes.data.success ? vendorsRes.data.data.filter(v => v.vendorType === 'referral') : [];
-                const ledgers = await Promise.all(referrals.map(v =>
-                    axios.get(`${url}/api/finance/vendors/${v._id}/commission-ledger`, authHeader)
-                        .then(res => (res.data.success ? { vendorId: v._id, vendorName: v.name, ...res.data.data.totals } : null))
-                        .catch(() => null)
-                ));
-                if (!cancelled) {
-                    const next = ledgers.filter(Boolean).sort((a, b) => b.commissionPayable - a.commissionPayable);
-                    setRows(next);
-                    commissionPayablesCache = next;
-                }
-            } catch {
-                if (!cancelled) toast.error('Error fetching commission payables');
-            } finally {
-                if (!cancelled) setLoading(false);
+    const fetchRows = async () => {
+        try {
+            const vendorsRes = await axios.get(`${url}/api/finance/vendors/list`, authHeader);
+            const referrals = vendorsRes.data.success ? vendorsRes.data.data.filter(v => v.vendorType === 'referral') : [];
+            const ledgers = await Promise.all(referrals.map(v =>
+                axios.get(`${url}/api/finance/vendors/${v._id}/commission-ledger`, authHeader)
+                    .then(res => (res.data.success ? { vendorId: v._id, vendorName: v.name, ...res.data.data.totals } : null))
+                    .catch(() => null)
+            ));
+            if (aliveRef.current) {
+                const next = ledgers.filter(Boolean).sort((a, b) => b.commissionPayable - a.commissionPayable);
+                setRows(next);
+                commissionPayablesCache = next;
             }
-        })();
-        return () => { cancelled = true; };
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+        } catch {
+            if (aliveRef.current) toast.error('Error fetching commission payables');
+        } finally {
+            if (aliveRef.current) setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchRows(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useFinanceWsRefresh(['financeVendorsChanged', 'financeProjectsChanged', 'financeWorksChanged', 'financeWorkTypeRatesChanged', 'financeCommissionPaymentsChanged'], fetchRows);
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
     if (rows.length === 0) return <div className="admin-empty-state"><p>No referral vendors yet.</p></div>;

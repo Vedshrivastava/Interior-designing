@@ -5,6 +5,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
 import { ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ChartTooltip, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 
@@ -45,6 +46,17 @@ const ProjectsList = ({ url }) => {
     };
 
     useEffect(() => { fetchList(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // A fresh fetchList() always hands back a new array reference (even when
+    // the underlying data is unchanged), so it alone is enough to also
+    // re-trigger the stats effect below via its [list] dependency — no need
+    // for a second, separate refresh path. Covers both project-master events
+    // and everything the profit/billed-vs-collected stats are built from.
+    useFinanceWsRefresh([
+        'financeProjectsChanged', 'financeWorkTypeRatesChanged', 'financeContractorRatesChanged',
+        'financeRunningBillsChanged', 'financeStockChanged', 'financeWorksChanged', 'financeMeasurementsChanged',
+        'financeExpensesChanged', 'financeLabourMeasurementsChanged', 'financeLabourRatesChanged', 'financeReceiptsChanged',
+    ], fetchList);
 
     // Mini-dashboard stats — profitability per active project, and
     // %billed-vs-collected per billable project (all three contract

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 
 // Same dashboardCache idea as FinanceHome.jsx, keyed by projectId ('' means
@@ -24,15 +25,24 @@ const ContractorAnalysisTable = ({ url }) => {
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => {
-        const cached = contractorAnalysisCache.get(projectId);
-        if (cached) { setRows(cached); setLoading(false); }
-        else setLoading(true);
+    const fetchRows = () => {
         axios.get(`${url}/api/finance/reports/contractor-analysis`, { ...authHeader, params: projectId ? { projectId } : {} })
             .then(res => { if (res.data.success) { setRows(res.data.data); contractorAnalysisCache.set(projectId, res.data.data); } })
             .catch(() => toast.error('Error fetching contractor analysis'))
             .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        const cached = contractorAnalysisCache.get(projectId);
+        if (cached) { setRows(cached); setLoading(false); }
+        else setLoading(true);
+        fetchRows();
     }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useFinanceWsRefresh([
+        'financeVendorsChanged', 'financeWorkContractorAssignmentsChanged', 'financeWorksChanged',
+        'financeContractorRatesChanged', 'financeMeasurementsChanged', 'financeContractorLedgerChanged',
+    ], fetchRows);
 
     return (
         <div>

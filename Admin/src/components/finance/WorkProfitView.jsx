@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 
 // Same dashboardCache idea as FinanceHome.jsx, keyed by workId.
@@ -15,16 +16,26 @@ const WorkProfitView = ({ url, workId }) => {
     const [data, setData] = useState(workProfitCache.get(workId) || null);
     const [loading, setLoading] = useState(!!workId && !workProfitCache.has(workId));
 
+    const fetchData = () => {
+        axios.get(`${url}/api/finance/reports/work-profit`, { ...authHeader, params: { workId } })
+            .then(res => { if (res.data.success) { setData(res.data.data); workProfitCache.set(workId, res.data.data); } })
+            .catch(() => toast.error('Error fetching work profit'))
+            .finally(() => setLoading(false));
+    };
+
     useEffect(() => {
         if (!workId) { setData(null); return; }
         const existing = workProfitCache.get(workId);
         if (existing) { setData(existing); setLoading(false); }
         else setLoading(true);
-        axios.get(`${url}/api/finance/reports/work-profit`, { ...authHeader, params: { workId } })
-            .then(res => { if (res.data.success) { setData(res.data.data); workProfitCache.set(workId, res.data.data); } })
-            .catch(() => toast.error('Error fetching work profit'))
-            .finally(() => setLoading(false));
+        fetchData();
     }, [url, workId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useFinanceWsRefresh([
+        'financeWorksChanged', 'financeRunningBillsChanged', 'financeMeasurementsChanged',
+        'financeWorkContractorAssignmentsChanged', 'financeContractorRatesChanged',
+        'financeLabourMeasurementsChanged', 'financeLabourRatesChanged', 'financeWorkTypeRatesChanged',
+    ], () => { if (workId) fetchData(); });
 
     if (!workId) {
         return <div className="admin-empty-state"><p>Open a project's Works tab and click "View Profit" on a work to see it here.</p></div>;

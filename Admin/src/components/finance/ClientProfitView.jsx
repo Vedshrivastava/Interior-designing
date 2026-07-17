@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 
 // Same dashboardCache idea as FinanceHome.jsx, keyed by clientId.
@@ -19,16 +20,25 @@ const ClientProfitView = ({ url, clientId, onSelectClient, onViewProjectProfit }
         axios.get(`${url}/api/finance/clients/list`, authHeader).then(res => { if (res.data.success) setClients(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    const fetchData = () => {
+        axios.get(`${url}/api/finance/reports/client-profit`, { ...authHeader, params: { clientId } })
+            .then(res => { if (res.data.success) { setData(res.data.data); clientProfitCache.set(clientId, res.data.data); } })
+            .catch(() => toast.error('Error fetching client profit'))
+            .finally(() => setLoading(false));
+    };
+
     useEffect(() => {
         if (!clientId) { setData(null); return; }
         const existing = clientProfitCache.get(clientId);
         if (existing) { setData(existing); setLoading(false); }
         else setLoading(true);
-        axios.get(`${url}/api/finance/reports/client-profit`, { ...authHeader, params: { clientId } })
-            .then(res => { if (res.data.success) { setData(res.data.data); clientProfitCache.set(clientId, res.data.data); } })
-            .catch(() => toast.error('Error fetching client profit'))
-            .finally(() => setLoading(false));
+        fetchData();
     }, [url, clientId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Wraps computeProjectProfit across every project for this client, so
+    // it inherits the same breadth — any finance broadcast triggers a
+    // silent refetch while a client is selected.
+    useFinanceWsRefresh(['*'], () => { if (clientId) fetchData(); });
 
     return (
         <div>

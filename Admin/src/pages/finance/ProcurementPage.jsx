@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import MasterCrudTable from '../../components/finance/MasterCrudTable';
 import QuickAddPicker from '../../components/finance/QuickAddPicker';
@@ -54,13 +55,19 @@ const ProcurementVendorsOverviewTab = ({ url }) => {
     const [summary, setSummary] = useState(vendorsOverviewCache);
     const [loading, setLoading] = useState(!vendorsOverviewCache);
 
-    useEffect(() => {
-        if (!vendorsOverviewCache) setLoading(true);
+    const fetchSummary = () => {
         axios.get(`${url}/api/finance/reports/vendors-summary`, authHeader)
             .then(res => { if (res.data.success) { setSummary(res.data.data); vendorsOverviewCache = res.data.data; } })
             .catch(() => {})
             .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        if (!vendorsOverviewCache) setLoading(true);
+        fetchSummary();
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useFinanceWsRefresh(['financeVendorsChanged', 'financePurchasesChanged', 'financeVendorLedgerChanged', 'financeMaterialsChanged'], fetchSummary);
 
     const vendors = summary?.vendors || [];
     const topVendors = [...vendors].sort((a, b) => b.purchases - a.purchases).slice(0, 8).map(v => ({ name: v.vendorName, purchases: v.purchases }));

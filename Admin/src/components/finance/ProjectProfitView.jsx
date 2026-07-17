@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 
 // Same dashboardCache idea as FinanceHome.jsx, keyed by projectId — this
@@ -25,11 +26,7 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => {
-        if (!projectId) { setData(null); setWorks([]); return; }
-        const existing = projectProfitCache.get(projectId);
-        if (existing) { setData(existing.data); setWorks(existing.works); setLoading(false); }
-        else setLoading(true);
+    const fetchData = () => {
         Promise.all([
             axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId } }),
             axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } }),
@@ -41,7 +38,21 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
             if (profitRes.data.success && worksRes.data.success) projectProfitCache.set(projectId, { data: nextData, works: nextWorks });
         }).catch(() => toast.error('Error fetching project profit'))
           .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        if (!projectId) { setData(null); setWorks([]); return; }
+        const existing = projectProfitCache.get(projectId);
+        if (existing) { setData(existing.data); setWorks(existing.works); setLoading(false); }
+        else setLoading(true);
+        fetchData();
     }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Project profit rolls up nearly every cost/revenue domain (bills,
+    // materials, contractor labour, commission, other expenses) — rather
+    // than a brittle allow-list, any finance broadcast triggers a silent
+    // refetch while a project is selected.
+    useFinanceWsRefresh(['*'], () => { if (projectId) fetchData(); });
 
     return (
         <div>

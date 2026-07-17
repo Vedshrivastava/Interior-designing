@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import RunningBillsManager from '../../components/finance/RunningBillsManager';
 
@@ -49,12 +50,16 @@ const PendingReceiptsTab = ({ url }) => {
     const [rows, setRows] = useState(pendingReceiptsCache || []);
     const [loading, setLoading] = useState(!pendingReceiptsCache);
 
-    useEffect(() => {
+    const fetchRows = () => {
         axios.get(`${url}/api/finance/receivables/summary`, authHeader)
             .then(res => { if (res.data.success) { setRows(res.data.data); pendingReceiptsCache = res.data.data; } })
             .catch(() => toast.error('Error fetching receivables'))
             .finally(() => setLoading(false));
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+
+    useEffect(() => { fetchRows(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useFinanceWsRefresh(['financeProjectsChanged', 'financeRunningBillsChanged', 'financeReceiptsChanged'], fetchRows);
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
     if (rows.length === 0) return <div className="admin-empty-state"><p>Nothing outstanding — every issued bill is fully received.</p></div>;

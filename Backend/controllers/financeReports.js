@@ -1113,10 +1113,11 @@ const getCashFlow = async (req, res) => {
 
 const getExpenseAnalysis = async (req, res) => {
     try {
-        const { projectId, category, from, to } = req.query;
+        const { projectId, category, relatedToId, from, to } = req.query;
         const filter = { deleted: { $ne: true } };
         if (projectId) filter.projectId = projectId;
         if (category) filter.expenseCategory = category;
+        if (relatedToId) filter.relatedToId = relatedToId;
         if (from || to) {
             filter.date = {};
             if (from) filter.date.$gte = new Date(from);

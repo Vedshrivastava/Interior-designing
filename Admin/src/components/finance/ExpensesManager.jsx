@@ -7,6 +7,7 @@ import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import QuickAddPicker from './QuickAddPicker';
+import { RELATED_TO_UI_OPTIONS, relatedToUiConfig } from '../../config/relatedToTypes';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -17,19 +18,6 @@ const PAID_STATUS_OPTIONS = [
     { value: 'paid', label: 'Paid now' },
     { value: 'pending', label: 'Record as pending — settle later' },
 ];
-
-// UI-level "who" categories — more granular than the schema's own
-// relatedToType, since Contractor and Vendor/Supplier both save as the same
-// financeVendor ref (distinguished only by vendorType, which the filter
-// below applies), matching how people actually think about "who this was
-// for" on site rather than the underlying collection.
-const RELATED_TO_UI_OPTIONS = [
-    { value: 'employee', label: 'Employee / Supervisor', backendType: 'financeEmployee', resourceKey: 'employees' },
-    { value: 'contractor', label: 'Contractor', backendType: 'financeVendor', resourceKey: 'vendors', filter: v => v.vendorType === 'labour_contractor', presetValues: { vendorType: 'labour_contractor' } },
-    { value: 'labourer', label: 'Labourer', backendType: 'financeLabourer', resourceKey: 'labourers' },
-    { value: 'vendor', label: 'Vendor / Supplier', backendType: 'financeVendor', resourceKey: 'vendors', filter: v => v.vendorType !== 'labour_contractor' },
-];
-const relatedToUiConfig = (uiType) => RELATED_TO_UI_OPTIONS.find(o => o.value === uiType);
 const workLabel = (w) => `${w.workType}${w.workOrderNumber ? ` — ${w.workOrderNumber}` : ''} (${w.completedAreaSqft}/${w.estimatedAreaSqft} sqft)`;
 
 /*
@@ -42,19 +30,19 @@ const workLabel = (w) => `${w.workType}${w.workOrderNumber ? ` — ${w.workOrder
  *     or more financeExpensePayment rows, added through the Settle action.
  *
  * Every expense can optionally link to a Work (scoped to whichever project
- * it's under) and a "Related To" person/entity (Employee or Vendor — not a
- * fully generic ref, since Vendor already covers contractors/suppliers/
- * referrals via vendorType) — Notes stays free text for whatever those
- * links don't capture.
+ * it's under) and a "Related To" person/entity — Employee/Supervisor,
+ * Contractor, Labourer, or Vendor/Supplier (Contractor and Vendor both
+ * save as the same financeVendor ref, just filtered differently) — Notes
+ * stays free text for whatever those links don't capture.
  *
- * Reused three ways: unscoped on Payments' Miscellaneous tab and Payables'
- * Other Expenses tab (own heading comes from FinanceTabShell there — this
- * is also the one place the full Work/Related To columns show, since it's
- * meant to be the "detail" view), and scoped to one project via
- * `projectId` on Project Detail's Expenses tab (own heading rendered here
- * instead, same as Quotations/Receipts; Project field/column disappear
- * since it'd repeat the same name on every row, and each row gets a
- * "Details" link back to this same unscoped view instead, via
+ * Reused three ways: unscoped on Payments' Miscellaneous tab and the
+ * dedicated Expenses page's Log tab (own heading comes from FinanceTabShell
+ * there — this is also the one place the full Work/Related To columns
+ * show, since it's meant to be the "detail" view), and scoped to one
+ * project via `projectId` on Project Detail's Expenses tab (own heading
+ * rendered here instead, same as Quotations/Receipts; Project field/column
+ * disappear since it'd repeat the same name on every row, and each row
+ * gets a "Details" link back to the Expenses page's Log tab instead, via
  * `highlightId`).
  */
 const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
@@ -323,7 +311,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
                                 <p><span className="item-category" style={{ color: status.color }}>{status.label}</span></p>
                                 <div className="action-buttons">
                                     {fixedProjectId && (
-                                        <p onClick={() => navigate(`/finance/payables?tab=other&expenseId=${e._id}`)} className="cursor edit-action">Details</p>
+                                        <p onClick={() => navigate(`/finance/expenses?tab=log&expenseId=${e._id}`)} className="cursor edit-action">Details</p>
                                     )}
                                     {e.balance > 0 && <p onClick={() => openSettle(e)} className="cursor edit-action">Settle</p>}
                                     <p onClick={() => remove(e._id)} className="cursor delete-action">X</p>

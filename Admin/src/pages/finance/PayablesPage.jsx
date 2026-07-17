@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
-import ExpensesManager from '../../components/finance/ExpensesManager';
-import ExpenseAnalysisView from '../../components/finance/ExpenseAnalysisView';
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -13,8 +11,6 @@ const TABS = [
     { key: 'contractor', label: 'Contractor' },
     { key: 'salary',     label: 'Salary' },
     { key: 'commission', label: 'Commission' },
-    { key: 'other',      label: 'Other Expenses' },
-    { key: 'other-analysis', label: 'Expense Analysis' },
 ];
 
 /*
@@ -234,16 +230,12 @@ const PayablesCommissionTab = ({ url }) => {
 };
 
 const PayablesPage = ({ url }) => {
-    const [searchParams] = useSearchParams();
-    // Supports deep-linking in from a project's Expenses tab: ?tab=other
-    // opens straight to Other Expenses, and ?expenseId= scrolls to + briefly
-    // highlights that one row so the "detail" view is obvious at a glance.
-    const [activeTab, setActiveTab] = useState(searchParams.get('tab') || TABS[0].key);
+    const [activeTab, setActiveTab] = useState(TABS[0].key);
 
     return (
         <FinanceTabShell
             label="Payables"
-            subtitle="Computed from vendor balance + contractor balance + unpaid salary + unpaid commission + unpaid expense heads — never a directly-writable record."
+            subtitle="Computed from vendor balance + contractor balance + unpaid salary + unpaid commission — never a directly-writable record. General/site expenses now live under Expenses instead."
             tabs={TABS}
             activeKey={activeTab}
             onTabChange={setActiveTab}
@@ -252,8 +244,6 @@ const PayablesPage = ({ url }) => {
             {activeTab === 'contractor' && <PayablesContractorTab url={url} />}
             {activeTab === 'salary' && <PayablesSalaryTab url={url} />}
             {activeTab === 'commission' && <PayablesCommissionTab url={url} />}
-            {activeTab === 'other' && <ExpensesManager url={url} highlightId={searchParams.get('expenseId')} />}
-            {activeTab === 'other-analysis' && <ExpenseAnalysisView url={url} />}
         </FinanceTabShell>
     );
 };

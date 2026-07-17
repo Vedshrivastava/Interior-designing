@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
+import { RELATED_TO_UI_OPTIONS, relatedToUiConfig } from '../../config/relatedToTypes';
 import '../../styles/list.css';
 import '../../styles/add.css';
 
@@ -13,6 +14,9 @@ const ExpenseAnalysisView = ({ url }) => {
     const [categories, setCategories] = useState([]);
     const [projectId, setProjectId] = useState('');
     const [category, setCategory] = useState('');
+    const [relatedToUiType, setRelatedToUiType] = useState('');
+    const [relatedToId, setRelatedToId] = useState('');
+    const [relatedToOptions, setRelatedToOptions] = useState([]);
     const [from, setFrom] = useState('');
     const [to, setTo] = useState('');
     const [data, setData] = useState(null);
@@ -24,18 +28,35 @@ const ExpenseAnalysisView = ({ url }) => {
             .then(res => { if (res.data.success) setCategories(res.data.data.map(s => s.name)); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // "Related To" is a two-step filter — pick the category (Employee/
+    // Contractor/Labourer/Vendor), then pick who, from that category's own
+    // filtered list — same resourceKey/filter config the Add Expense form
+    // uses, just without the "+ Add New" escape hatch a filter doesn't need.
+    useEffect(() => {
+        setRelatedToId('');
+        const config = relatedToUiConfig(relatedToUiType);
+        if (!config) { setRelatedToOptions([]); return; }
+        axios.get(`${url}/api/finance/${config.resourceKey}/list`, authHeader)
+            .then(res => {
+                if (!res.data.success) return;
+                const list = config.filter ? res.data.data.filter(config.filter) : res.data.data;
+                setRelatedToOptions(list);
+            }).catch(() => {});
+    }, [url, relatedToUiType]); // eslint-disable-line react-hooks/exhaustive-deps
+
     useEffect(() => {
         setLoading(true);
         const params = {};
         if (projectId) params.projectId = projectId;
         if (category) params.category = category;
+        if (relatedToId) params.relatedToId = relatedToId;
         if (from) params.from = from;
         if (to) params.to = to;
         axios.get(`${url}/api/finance/reports/expense-analysis`, { ...authHeader, params })
             .then(res => { if (res.data.success) setData(res.data.data); })
             .catch(() => toast.error('Error fetching expense analysis'))
             .finally(() => setLoading(false));
-    }, [url, projectId, category, from, to]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [url, projectId, category, relatedToId, from, to]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <div>
@@ -50,6 +71,19 @@ const ExpenseAnalysisView = ({ url }) => {
                     <p>Category</p>
                     <StyledSelect value={category} onChange={setCategory} placeholder="All categories" options={categories.map(c => ({ value: c, label: c }))} />
                 </div>
+                <div className="add-product-name flex-col" style={{ maxWidth: '200px' }}>
+                    <p>Related To</p>
+                    <StyledSelect value={relatedToUiType} onChange={setRelatedToUiType} placeholder="Any" options={RELATED_TO_UI_OPTIONS} />
+                </div>
+                {relatedToUiType && (
+                    <div className="add-product-name flex-col" style={{ maxWidth: '220px' }}>
+                        <p>{relatedToUiConfig(relatedToUiType).label}</p>
+                        <StyledSelect
+                            value={relatedToId} onChange={setRelatedToId} placeholder={`All ${relatedToUiConfig(relatedToUiType).label.toLowerCase()}s`}
+                            options={relatedToOptions.map(o => ({ value: o._id, label: o.name }))}
+                        />
+                    </div>
+                )}
                 <div className="add-product-name flex-col" style={{ maxWidth: '180px' }}>
                     <p>From</p>
                     <StyledDatePicker value={from} onChange={setFrom} />

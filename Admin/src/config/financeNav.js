@@ -3,7 +3,7 @@ import {
   faClipboardList, faCartShopping, faWarehouse, faHardHat, faUserShield,
   faPersonDigging, faFileInvoiceDollar, faReceipt, faMoneyBillWave,
   faMoneyBillTransfer, faBuildingColumns, faBook, faFileExport, faUsersGear,
-  faGear,
+  faGear, faSackDollar,
 } from '@fortawesome/free-solid-svg-icons';
 
 /*
@@ -185,25 +185,42 @@ export const FINANCE_NAV_SECTIONS = [
       },
       {
         to: '/finance/payables', icon: faMoneyBillWave, label: 'Payables',
-        // Bespoke component — all five tabs real as of the Salary +
-        // Commission + Other Expenses build. Contractor tab pulls
+        // Bespoke component — all four tabs real. Contractor tab pulls
         // balancePayable from GET /api/finance/contractors/:vendorId/ledger
         // (Contractor Ledger build); Vendor tab pulls amountOwed from
         // GET /api/finance/vendors/:vendorId/ledger (Procurement build);
         // Salary tab pulls balanceDue per employee for the current month
         // from GET /api/finance/employees/:employeeId/salary-ledger;
         // Commission tab pulls commissionPayable per referral vendor from
-        // GET /api/finance/vendors/:vendorId/commission-ledger; Other
-        // Expenses renders the raw financeExpense log directly (no balance
-        // to compute — it's paid when entered). Payables stays COMPUTED
-        // throughout — no "financePayable" model exists anywhere; every
-        // tab is a read of another collection's ledger/log.
+        // GET /api/finance/vendors/:vendorId/commission-ledger. Payables
+        // stays COMPUTED throughout — no "financePayable" model exists
+        // anywhere; every tab is a read of another collection's ledger.
+        // General/site expenses used to live here as a fifth "Other
+        // Expenses" tab; moved out to its own top-level Expenses entry
+        // below once that grew a Work/person-entity link and its own
+        // Analysis view — buried inside Payables with no sidebar icon of
+        // its own made it hard to find.
         tabs: [
           { key: 'vendor',     label: 'Vendor',          description: 'Amount owed per vendor — purchases minus returns and payments already made.' },
           { key: 'contractor', label: 'Contractor',      description: 'Balance payable per contractor — earnings minus advances, deductions, and payments already made.' },
           { key: 'salary',     label: 'Salary',          description: 'Balance due per employee for the current month — expected salary minus salary payments made.' },
           { key: 'commission', label: 'Commission',      description: 'Commission payable per referral vendor — earned commission minus payments already made.' },
-          { key: 'other',      label: 'Other Expenses',  description: 'Raw log of general company/site expenses — paid when entered, no balance to compute.' },
+        ],
+      },
+      {
+        to: '/finance/expenses', icon: faSackDollar, label: 'Expenses',
+        // Bespoke component. Log tab is ExpensesManager unscoped (same
+        // component Project Detail's own Expenses tab uses scoped, and
+        // Payments' Miscellaneous tab reuses too) — records paid-at-entry
+        // or pending-then-settled expenses, each optionally linked to a
+        // Work and a "Related To" person/entity (Employee, Contractor,
+        // Labourer, or Vendor/Supplier). Analysis tab totals the same data
+        // by category/project/work/person via GET
+        // /api/finance/reports/expense-analysis. ?expenseId= deep-links in
+        // from a project's own Expenses tab's "Details" action.
+        tabs: [
+          { key: 'log',      label: 'Log',      description: 'Every general/site expense — entry form and full history, paid now or settled later.' },
+          { key: 'analysis', label: 'Analysis', description: 'Totalled by category, project, work, and person/entity.' },
         ],
       },
       {
@@ -218,9 +235,9 @@ export const FINANCE_NAV_SECTIONS = [
         // posts to financeSalaryPayment (employee + month), Commission to
         // financeCommissionPayment (referral vendor only), Misc to
         // financeExpense (the same log ExpensesManager also renders under
-        // Payables > Other Expenses). All three auto-create a
-        // financeCashEntry when no bankAccountId is set, same bank/cash
-        // automation as every other payment type.
+        // Expenses > Log). All three auto-create a financeCashEntry when
+        // no bankAccountId is set, same bank/cash automation as every
+        // other payment type.
         tabs: [
           { key: 'vendor',     label: 'Vendor Payment',     description: 'Payments made to material vendors — entry form and history.' },
           { key: 'contractor', label: 'Contractor Payment', description: 'Payments made to labour contractors — entry form and history.' },

@@ -268,7 +268,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
             </div>
 
             <div className="list-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1.6fr 1fr 320px' }}>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.7fr 110px 440px' }}>
                     <b>Work Type</b><b>Completed / Estimated</b><b>Status</b><b>Action</b>
                 </div>
                 {loading ? (
@@ -279,7 +279,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                     works.map(w => {
                         const pct = w.estimatedAreaSqft > 0 ? Math.min(100, Math.round((w.completedAreaSqft / w.estimatedAreaSqft) * 100)) : 0;
                         return (
-                            <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1.6fr 1fr 320px' }}>
+                            <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.7fr 110px 440px' }}>
                                 <p>
                                     {w.workType}
                                     {w.quickAdded && (
@@ -294,7 +294,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                                 </p>
                                 <p>{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft ({pct}%)</p>
                                 <p><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
-                                <div className="action-buttons">
+                                <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
                                     <p onClick={() => navigate(`/finance/projects/${projectId}/works/${w._id}`)} className="cursor edit-action">Details</p>
                                     <p onClick={() => openContractorsModal(w)} className="cursor edit-action">Contractors</p>
                                     <p onClick={() => openLabourModal(w)} className="cursor edit-action">Labour</p>

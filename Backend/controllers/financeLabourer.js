@@ -2,7 +2,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import FinanceLabourer from '../models/financeLabourer.js';
 import FinanceLabourMeasurement from '../models/financeLabourMeasurement.js';
 import { broadcast } from '../middlewares/webSocket.js';
-import { uploadDocumentsWithNotes } from '../utils/uploadDocuments.js';
+import { uploadDocumentsWithNotes, addDocumentToRecord, removeDocumentFromRecord } from '../utils/uploadDocuments.js';
 
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,
@@ -77,4 +77,32 @@ const removeLabourer = async (req, res) => {
     }
 };
 
-export { listLabourers, addLabourer, updateLabourer, removeLabourer };
+const addLabourerDocument = async (req, res) => {
+    try {
+        const { labourerId, note } = req.body;
+        if (!labourerId) return res.status(400).json({ success: false, message: 'Labourer is required' });
+        if (!req.file) return res.status(400).json({ success: false, message: 'A file is required' });
+        const item = await addDocumentToRecord(FinanceLabourer, labourerId, req.file, note, 'labourer_documents');
+        if (!item) return res.status(404).json({ success: false, message: 'Labourer not found' });
+        broadcast({ type: 'financeLabourersChanged' });
+        res.json({ success: true, message: 'Document added', data: item });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error adding document' });
+    }
+};
+
+const removeLabourerDocument = async (req, res) => {
+    try {
+        const { labourerId, documentId } = req.body;
+        const item = await removeDocumentFromRecord(FinanceLabourer, labourerId, documentId);
+        if (!item) return res.status(404).json({ success: false, message: 'Labourer not found' });
+        broadcast({ type: 'financeLabourersChanged' });
+        res.json({ success: true, message: 'Document removed', data: item });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error removing document' });
+    }
+};
+
+export { listLabourers, addLabourer, updateLabourer, removeLabourer, addLabourerDocument, removeLabourerDocument };

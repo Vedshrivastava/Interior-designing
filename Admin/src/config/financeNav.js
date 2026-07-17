@@ -143,19 +143,22 @@ export const FINANCE_NAV_SECTIONS = [
         ],
       },
       {
-        to: '/finance/daily-labour', icon: faPersonDigging, label: 'Labour Measurements',
-        // Bespoke component. Each labourer is hired directly by the
-        // company and paid per sqft (financeLabourRate, per project + work
-        // type) — not a day rate. A supervisor logs each labourer's daily
-        // measured area against a Work; no per-entry approval gate, every
-        // logged sqft counts toward earnings, and correction (an engineer's
-        // periodic review, or a supervisor catching a mistake on the spot)
-        // happens afterward as a deduction on that labourer's own ledger.
-        // Feeds into Reports > Project Profit as its own Labour Cost line.
-        // Global entry form + list here isn't scoped to one project — same
-        // LabourMeasurementsManager component a project's own Labour tab
-        // reuses, just with nothing pre-scoped.
-        tabs: [{ key: 'list', label: 'All Entries', description: 'Every labour measurement across every project — entry form + filterable list.' }],
+        to: '/finance/daily-labour', icon: faPersonDigging, label: 'Labourers',
+        // Bespoke component — restructured to mirror Contractors' page
+        // (picker + Overview/Projects/Works/Measurements/Ledger/Documents),
+        // adapted for individual labourers instead of vendors. Each
+        // labourer is hired directly by the company and paid per sqft
+        // (financeLabourRate, per project + work type) — not a day rate. A
+        // supervisor logs each labourer's daily measured area against a
+        // Work; no per-entry approval gate, every logged sqft counts
+        // toward earnings, and correction (an engineer's periodic review,
+        // or a supervisor catching a mistake on the spot) happens
+        // afterward as a deduction on that labourer's own ledger. Feeds
+        // into Reports > Project Profit as its own Labour Cost line. "All
+        // Entries" stays the original unscoped global entry form + list —
+        // same LabourMeasurementsManager component a project's own Labour
+        // tab reuses.
+        tabs: [{ key: 'entries', label: 'All Entries', description: 'Every labour measurement across every project — entry form + filterable list, plus a per-labourer Overview/Projects/Works/Measurements/Ledger/Documents view.' }],
       },
     ],
   },

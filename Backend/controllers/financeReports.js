@@ -409,6 +409,96 @@ const computeWorkProfit = async (work) => {
     return { revenue, contractorCost, contractorBreakdown, labourCost, labourBreakdown, materialCost, profit, areaBilledSqft };
 };
 
+// One day's slice of the same contractor/labour cost math computeWorkProfit
+// does cumulatively — how much area was covered and how much that cost
+// (at current rates) on exactly this date, so a measurement's "Details"
+// link can answer "what happened that day" without losing the all-time
+// totals computeWorkProfit already provides. Mirrors computeWorkProfit's
+// approval gate on contractor area (unapproved area is reported but
+// excluded from cost) so a day's contractorCost is a true component of
+// the cumulative figure, not a differently-defined number.
+const computeWorkDayReport = async (work, dateKey) => {
+    const dayStart = new Date(`${dateKey}T00:00:00.000Z`);
+    const dayEnd = new Date(`${dateKey}T23:59:59.999Z`);
+
+    const [measurements, labourMeasurements] = await Promise.all([
+        FinanceMeasurement.find({ workId: work._id, date: { $gte: dayStart, $lte: dayEnd }, deleted: { $ne: true } }),
+        FinanceLabourMeasurement.find({ workId: work._id, date: { $gte: dayStart, $lte: dayEnd }, deleted: { $ne: true } }),
+    ]);
+
+    const areaByVendor = new Map();
+    for (const m of measurements) {
+        if (!m.contractorVendorId) continue;
+        const key = m.contractorVendorId.toString();
+        const cur = areaByVendor.get(key) || { totalArea: 0, approvedArea: 0 };
+        cur.totalArea += m.areaCoveredSqft;
+        if (m.engineerApproved) cur.approvedArea += m.areaCoveredSqft;
+        areaByVendor.set(key, cur);
+    }
+    let contractorCost = 0;
+    const contractorBreakdown = [];
+    if (areaByVendor.size) {
+        const vendorIds = [...areaByVendor.keys()];
+        const [rates, vendors] = await Promise.all([
+            FinanceContractorRate.find({ projectId: work.projectId, contractorVendorId: { $in: vendorIds }, workType: work.workType, deleted: { $ne: true } }),
+            FinanceVendor.find({ _id: { $in: vendorIds }, deleted: { $ne: true } }),
+        ]);
+        const rateByVendor = new Map(rates.map(r => [r.contractorVendorId.toString(), r]));
+        const vendorById = new Map(vendors.map(v => [v._id.toString(), v]));
+        for (const [vendorId, { totalArea, approvedArea }] of areaByVendor) {
+            const perUnit = rateByVendor.get(vendorId)?.ratePerSqft || 0;
+            const neglectedArea = round2(totalArea - approvedArea);
+            const earnings = round2(approvedArea * perUnit);
+            contractorCost += earnings;
+            contractorBreakdown.push({
+                vendorId, vendorName: vendorById.get(vendorId)?.name || '—',
+                areaSqft: round2(totalArea), approvedAreaSqft: round2(approvedArea), neglectedAreaSqft: neglectedArea,
+                rate: perUnit, earnings, neglectedAmount: round2(neglectedArea * perUnit),
+            });
+        }
+    }
+    contractorCost = round2(contractorCost);
+
+    const areaByLabourer = new Map();
+    for (const m of labourMeasurements) {
+        const key = m.labourerId.toString();
+        areaByLabourer.set(key, (areaByLabourer.get(key) || 0) + m.areaCoveredSqft);
+    }
+    let labourCost = 0;
+    const labourBreakdown = [];
+    if (areaByLabourer.size) {
+        const labourerIds = [...areaByLabourer.keys()];
+        const [labourRates, labourers] = await Promise.all([
+            FinanceLabourRate.find({ projectId: work.projectId, labourerId: { $in: labourerIds }, workType: work.workType, deleted: { $ne: true } }),
+            FinanceLabourer.find({ _id: { $in: labourerIds }, deleted: { $ne: true } }),
+        ]);
+        const rateByLabourer = new Map(labourRates.map(r => [r.labourerId.toString(), r]));
+        const labourerById = new Map(labourers.map(l => [l._id.toString(), l]));
+        for (const [labourerId, totalArea] of areaByLabourer) {
+            const perUnit = rateByLabourer.get(labourerId)?.ratePerSqft || 0;
+            const earnings = round2(totalArea * perUnit);
+            labourCost += earnings;
+            labourBreakdown.push({
+                labourerId, labourerName: labourerById.get(labourerId)?.name || '—',
+                areaSqft: round2(totalArea), rate: perUnit, earnings,
+            });
+        }
+    }
+    labourCost = round2(labourCost);
+
+    const areaCoveredSqft = round2(
+        [...areaByVendor.values()].reduce((sum, v) => sum + v.totalArea, 0)
+        + [...areaByLabourer.values()].reduce((sum, a) => sum + a, 0)
+    );
+
+    return {
+        date: dateKey, areaCoveredSqft,
+        contractorCost, contractorBreakdown,
+        labourCost, labourBreakdown,
+        totalCost: round2(contractorCost + labourCost),
+    };
+};
+
 const getWorkProfit = async (req, res) => {
     try {
         const { workId } = req.query;
@@ -437,7 +527,7 @@ const getWorkProfit = async (req, res) => {
 // New Tier-2 endpoint — everything about one work for one month.
 const getWorkDetail = async (req, res) => {
     try {
-        const { workId, month } = req.query;
+        const { workId, month, date } = req.query;
         if (!workId) return res.status(400).json({ success: false, message: 'workId is required' });
         const work = await FinanceWork.findOne({ _id: workId, deleted: { $ne: true } });
         if (!work) return res.status(404).json({ success: false, message: 'Work not found' });
@@ -445,8 +535,9 @@ const getWorkDetail = async (req, res) => {
         const monthKey = month && /^\d{4}-\d{2}$/.test(month) ? month : new Date().toISOString().slice(0, 7);
         const { start, end } = monthBounds(monthKey);
         const progressPercent = work.estimatedAreaSqft > 0 ? Math.min(100, Math.round((work.completedAreaSqft / work.estimatedAreaSqft) * 100)) : 0;
+        const dateKey = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
 
-        const [measurements, materials, taggedWaste, projectWasteTotal, avgRate, workProfit] = await Promise.all([
+        const [measurements, materials, taggedWaste, projectWasteTotal, avgRate, workProfit, dayReport] = await Promise.all([
             FinanceMeasurement.find({ workId, deleted: { $ne: true } }).sort({ date: 1 }),
             FinanceMaterial.find({ deleted: { $ne: true } }, 'name unit'),
             FinanceStockMovement.aggregate([
@@ -461,6 +552,7 @@ const getWorkDetail = async (req, res) => {
             ]),
             computeMaterialAvgRates(work.projectId),
             computeWorkProfit(work),
+            dateKey ? computeWorkDayReport(work, dateKey) : Promise.resolve(null),
         ]);
         const materialById = new Map(materials.map(m => [m._id.toString(), m]));
         const nameUnit = (id) => ({ materialName: materialById.get(id.toString())?.name || 'Unknown', unit: materialById.get(id.toString())?.unit || '' });
@@ -509,6 +601,7 @@ const getWorkDetail = async (req, res) => {
                 contractorCost: workProfit.contractorCost, contractorBreakdown: workProfit.contractorBreakdown,
                 labourCost: workProfit.labourCost, labourBreakdown: workProfit.labourBreakdown,
                 revenue: workProfit.revenue, profit: workProfit.profit,
+                dayReport,
             },
         });
     } catch (err) {

@@ -1,5 +1,13 @@
+import { v2 as cloudinary } from 'cloudinary';
 import FinanceEmployee from '../models/financeEmployee.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { addDocumentToRecord, removeDocumentFromRecord } from '../utils/uploadDocuments.js';
+
+cloudinary.config({
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.CLOUD_API_KEY,
+    api_secret: process.env.CLOUD_API_SECRET,
+});
 
 const listFinanceEmployees = async (req, res) => {
     try {
@@ -57,4 +65,32 @@ const removeFinanceEmployee = async (req, res) => {
     }
 };
 
-export { listFinanceEmployees, addFinanceEmployee, updateFinanceEmployee, removeFinanceEmployee };
+const addEmployeeDocument = async (req, res) => {
+    try {
+        const { employeeId, note } = req.body;
+        if (!employeeId) return res.status(400).json({ success: false, message: 'Employee is required' });
+        if (!req.file) return res.status(400).json({ success: false, message: 'A file is required' });
+        const item = await addDocumentToRecord(FinanceEmployee, employeeId, req.file, note, 'employee_documents');
+        if (!item) return res.status(404).json({ success: false, message: 'Employee not found' });
+        broadcast({ type: 'financeEmployeesChanged' });
+        res.json({ success: true, message: 'Document added', data: item });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error adding document' });
+    }
+};
+
+const removeEmployeeDocument = async (req, res) => {
+    try {
+        const { employeeId, documentId } = req.body;
+        const item = await removeDocumentFromRecord(FinanceEmployee, employeeId, documentId);
+        if (!item) return res.status(404).json({ success: false, message: 'Employee not found' });
+        broadcast({ type: 'financeEmployeesChanged' });
+        res.json({ success: true, message: 'Document removed', data: item });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error removing document' });
+    }
+};
+
+export { listFinanceEmployees, addFinanceEmployee, updateFinanceEmployee, removeFinanceEmployee, addEmployeeDocument, removeEmployeeDocument };

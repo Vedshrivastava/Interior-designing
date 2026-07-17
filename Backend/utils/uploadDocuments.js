@@ -22,3 +22,25 @@ export const uploadDocumentsWithNotes = async (files, notes, folder) => {
     }
     return documents;
 };
+
+// Shared "add one document to an existing person" action — Labourer,
+// Vendor (Contractor), and Employee (Supervisor) records all carry the
+// same `documents: [{url, note}]` shape and get it filled in identically
+// from their respective "Documents" tab in the People pages, not just at
+// creation time like uploadDocumentsWithNotes above already covers.
+export const addDocumentToRecord = async (Model, id, file, note, folder) => {
+    const item = await Model.findById(id);
+    if (!item) return null;
+    if (!file) return item;
+    const [doc] = await uploadDocumentsWithNotes([file], [note], folder);
+    if (doc) { item.documents.push(doc); await item.save(); }
+    return item;
+};
+
+export const removeDocumentFromRecord = async (Model, id, documentId) => {
+    const item = await Model.findById(id);
+    if (!item) return null;
+    item.documents = item.documents.filter(d => d._id.toString() !== documentId);
+    await item.save();
+    return item;
+};

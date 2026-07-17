@@ -1,36 +1,50 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
+import StyledDatePicker from '../../components/finance/StyledDatePicker';
+import StyledMonthPicker from '../../components/finance/StyledMonthPicker';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 
 /*
- * Tier-2 drill-down for one work — new route, didn't exist before this
- * build (Work Profit used to only be reachable via the Reports page's
- * picker). Everything here comes from GET /reports/work-detail.
+ * Tier-2 drill-down for one work — reached identically from the Works
+ * tab's "Details" action and from a measurement row's "Details" action
+ * (project Measurements tab / Site Operations), same route either way.
+ * Everything here comes from GET /reports/work-detail. Month drives the
+ * all-time-context daily material-cost chart; Date (optional, pre-filled
+ * via ?date= when arriving from a measurement row) adds a same-page
+ * "on this day" report — area covered and contractor/labour cost for
+ * exactly that date — alongside the existing all-time totals, not
+ * instead of them.
  */
 const WorkDetail = ({ url }) => {
     const { id: projectId, workId } = useParams();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [month, setMonth] = useState(thisMonth());
+    const [date, setDate] = useState(searchParams.get('date') || '');
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const setDateFilter = (v) => { setDate(v); setSearchParams(v ? { date: v } : {}); };
+
     useEffect(() => {
         setLoading(true);
-        axios.get(`${url}/api/finance/reports/work-detail`, { ...authHeader, params: { workId, month } })
+        const params = { workId, month };
+        if (date) params.date = date;
+        axios.get(`${url}/api/finance/reports/work-detail`, { ...authHeader, params })
             .then(res => { if (res.data.success) setData(res.data.data); else toast.error(res.data.message); })
             .catch(() => toast.error('Error fetching work detail'))
             .finally(() => setLoading(false));
-    }, [url, workId, month]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [url, workId, month, date]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (loading) {
         return <div className="list add flex-col"><div className="admin-list-container"><div className="admin-empty-state"><p>Loading…</p></div></div></div>;
@@ -50,11 +64,72 @@ const WorkDetail = ({ url }) => {
                         <h1>{data.workType}</h1>
                         <p className="admin-subtitle">{data.completedAreaSqft} / {data.estimatedAreaSqft} sqft completed</p>
                     </div>
-                    <div className="add-product-name flex-col" style={{ maxWidth: '180px' }}>
-                        <p>Month</p>
-                        <input type="month" value={month} onChange={e => setMonth(e.target.value)} />
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <div className="add-product-name flex-col" style={{ maxWidth: '160px' }}>
+                            <p>Date</p>
+                            <StyledDatePicker value={date} onChange={setDateFilter} />
+                        </div>
+                        <div className="add-product-name flex-col" style={{ maxWidth: '180px' }}>
+                            <p>Month</p>
+                            <StyledMonthPicker value={month} onChange={setMonth} align="right" />
+                        </div>
                     </div>
                 </div>
+
+                {date && (
+                    <div className="list-table" style={{ marginBottom: '24px' }}>
+                        <div className="rate-group-header">
+                            <span className="rate-group-bar" />
+                            <b>On {new Date(date).toLocaleDateString()}</b>
+                        </div>
+                        {!data.dayReport || data.dayReport.areaCoveredSqft === 0 ? (
+                            <div className="admin-empty-state"><p>No measurements logged for this Work on this date.</p></div>
+                        ) : (
+                            <div style={{ padding: '20px' }}>
+                                <KpiGrid>
+                                    <KpiCard label="Area Covered" value={`${data.dayReport.areaCoveredSqft} sqft`} />
+                                    <KpiCard label="Contractor Cost" value={formatINR(data.dayReport.contractorCost)} />
+                                    <KpiCard label="Labour Cost" value={formatINR(data.dayReport.labourCost)} />
+                                    <KpiCard label="Total Cost" value={formatINR(data.dayReport.totalCost)} />
+                                </KpiGrid>
+
+                                {data.dayReport.contractorBreakdown.length > 0 && (
+                                    <div className="list-table" style={{ marginTop: '20px' }}>
+                                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
+                                            <b>Contractor</b><b>Area (sqft)</b><b>Rate</b><b>Earnings</b>
+                                        </div>
+                                        {data.dayReport.contractorBreakdown.map(b => (
+                                            <div key={b.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
+                                                <p>{b.vendorName}</p>
+                                                <p>{b.areaSqft}</p>
+                                                <p>{formatINR(b.rate)}</p>
+                                                <p>{formatINR(b.earnings)}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {data.dayReport.labourBreakdown.length > 0 && (
+                                    <div className="list-table" style={{ marginTop: '20px' }}>
+                                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
+                                            <b>Labourer</b><b>Area (sqft)</b><b>Rate</b><b>Earnings</b>
+                                        </div>
+                                        {data.dayReport.labourBreakdown.map(b => (
+                                            <div key={b.labourerId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
+                                                <p>{b.labourerName}</p>
+                                                <p>{b.areaSqft}</p>
+                                                <p>{formatINR(b.rate)}</p>
+                                                <p>{formatINR(b.earnings)}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {date && <h3 style={{ margin: '0 0 4px' }}>All-Time Totals</h3>}
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px' }}>
                     <div style={{

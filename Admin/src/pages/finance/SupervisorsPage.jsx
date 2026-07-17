@@ -9,6 +9,7 @@ import SupervisorIncentivesManager from '../../components/finance/SupervisorInce
 import SupervisorDeductionsManager from '../../components/finance/SupervisorDeductionsManager';
 import SalaryLedgerView from '../../components/finance/SalaryLedgerView';
 import QuickAddPicker from '../../components/finance/QuickAddPicker';
+import PersonDocumentsView from '../../components/finance/PersonDocumentsView';
 import '../../styles/list.css';
 
 const TABS = [
@@ -20,6 +21,7 @@ const TABS = [
     { key: 'salary',      label: 'Salary' },
     { key: 'incentives',  label: 'Incentives' },
     { key: 'deductions',  label: 'Deductions' },
+    { key: 'documents',   label: 'Documents' },
 ];
 
 /* Read-only — a labourer isn't owned by any supervisor, so this is
@@ -192,6 +194,7 @@ const SupervisorsPage = ({ url }) => {
                     {activeTab === 'salary' && <SalaryLedgerView url={url} employeeId={selectedEmployeeId} />}
                     {activeTab === 'incentives' && <SupervisorIncentivesManager url={url} employeeId={selectedEmployeeId} />}
                     {activeTab === 'deductions' && <SupervisorDeductionsManager url={url} employeeId={selectedEmployeeId} />}
+                    {activeTab === 'documents' && <PersonDocumentsView url={url} resourceKey="employees" entityId={selectedEmployeeId} entityLabel="supervisor" />}
                 </>
             )}
         </FinanceTabShell>

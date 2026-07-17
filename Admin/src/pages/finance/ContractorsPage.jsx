@@ -10,6 +10,7 @@ import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import ContractorWorksView from '../../components/finance/ContractorWorksView';
 import ContractorMeasurementsView from '../../components/finance/ContractorMeasurementsView';
 import ContractorLedgerView from '../../components/finance/ContractorLedgerView';
+import PersonDocumentsView from '../../components/finance/PersonDocumentsView';
 import { ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
@@ -26,7 +27,7 @@ const TABS = [
 ];
 
 const IS_CONTRACTOR = (v) => v.vendorType === 'labour_contractor';
-const VENDOR_SCOPED_TABS = ['projects', 'works', 'measurements', 'ledger', 'settlements'];
+const VENDOR_SCOPED_TABS = ['projects', 'works', 'measurements', 'ledger', 'settlements', 'documents'];
 
 /* Projects this contractor is actually on — derived from their teams' Works,
    not the old single project-level field. Reuses the contractor ledger
@@ -216,7 +217,7 @@ const ContractorsPage = ({ url }) => {
             )}
 
             {activeTab === 'bills' && <PlaceholderTab text="Bills raised by/for this contractor." />}
-            {activeTab === 'documents' && <PlaceholderTab text="Documents on file for this contractor." />}
+            {activeTab === 'documents' && <PersonDocumentsView url={url} resourceKey="vendors" entityId={selectedVendorId} entityLabel="contractor" />}
         </FinanceTabShell>
     );
 };

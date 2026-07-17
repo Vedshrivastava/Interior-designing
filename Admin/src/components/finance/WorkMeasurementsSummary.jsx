@@ -179,7 +179,11 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
                 </div>
                 <div className="add-product-name flex-col">
                     <p aria-hidden="true" style={{ visibility: 'hidden' }}>Add</p>
-                    <button type="button" className="add-btn" style={{ width: '100%' }} onClick={() => setAddModalOpen(true)}>
+                    <button
+                        type="button" className="add-btn"
+                        style={{ width: '100%', boxSizing: 'border-box', border: '1px solid transparent', margin: 0 }}
+                        onClick={() => setAddModalOpen(true)}
+                    >
                         + Add New Measurement
                     </button>
                 </div>
@@ -243,7 +247,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
                                         <p>{m.remarks || '—'}</p>
                                         <div className="action-buttons">
                                             <p
-                                                onClick={() => navigate(`/finance/projects/${crossProject ? (m.projectId?._id || m.projectId) : fixedProjectId}/works/${m.workId?._id || m.workId}`)}
+                                                onClick={() => navigate(`/finance/projects/${crossProject ? (m.projectId?._id || m.projectId) : fixedProjectId}/works/${m.workId?._id || m.workId}?date=${toDateKey(m.date)}`)}
                                                 className="cursor edit-action"
                                             >
                                                 Details

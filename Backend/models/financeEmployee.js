@@ -8,6 +8,15 @@ const financeEmployeeSchema = new mongoose.Schema({
     salary:      { type: Number, default: 0 },
     joiningDate: { type: Date },
     notes:       { type: String, default: '' },
+
+    // ID proof, appointment letter, etc. — each carries its own note
+    // saying what the document is. Also covers Supervisors, who are just
+    // financeEmployee rows with no separate model.
+    documents: [{
+        url:  { type: String, required: true },
+        note: { type: String, default: '' },
+    }],
+
     deleted:     { type: Boolean, default: false },
     deletedAt:   { type: Date },
     deletedBy:   { type: String },

@@ -1,7 +1,7 @@
 import { v2 as cloudinary } from 'cloudinary';
 import FinanceVendor from '../models/financeVendor.js';
 import { broadcast } from '../middlewares/webSocket.js';
-import { uploadDocumentsWithNotes } from '../utils/uploadDocuments.js';
+import { uploadDocumentsWithNotes, addDocumentToRecord, removeDocumentFromRecord } from '../utils/uploadDocuments.js';
 
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,
@@ -76,4 +76,32 @@ const removeFinanceVendor = async (req, res) => {
     }
 };
 
-export { listFinanceVendors, addFinanceVendor, updateFinanceVendor, removeFinanceVendor };
+const addVendorDocument = async (req, res) => {
+    try {
+        const { vendorId, note } = req.body;
+        if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
+        if (!req.file) return res.status(400).json({ success: false, message: 'A file is required' });
+        const item = await addDocumentToRecord(FinanceVendor, vendorId, req.file, note, 'vendor_documents');
+        if (!item) return res.status(404).json({ success: false, message: 'Vendor not found' });
+        broadcast({ type: 'financeVendorsChanged' });
+        res.json({ success: true, message: 'Document added', data: item });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error adding document' });
+    }
+};
+
+const removeVendorDocument = async (req, res) => {
+    try {
+        const { vendorId, documentId } = req.body;
+        const item = await removeDocumentFromRecord(FinanceVendor, vendorId, documentId);
+        if (!item) return res.status(404).json({ success: false, message: 'Vendor not found' });
+        broadcast({ type: 'financeVendorsChanged' });
+        res.json({ success: true, message: 'Document removed', data: item });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error removing document' });
+    }
+};
+
+export { listFinanceVendors, addFinanceVendor, updateFinanceVendor, removeFinanceVendor, addVendorDocument, removeVendorDocument };

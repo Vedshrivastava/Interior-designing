@@ -374,6 +374,35 @@
     font-weight: 600;
 }
 
+.month-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.month-picker-cell {
+    padding: 10px 0;
+    border: none;
+    background: none;
+    border-radius: var(--radius-sm);
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-mid);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.month-picker-cell:hover {
+    background: rgba(201,168,124,0.14);
+    color: var(--green);
+}
+
+.month-picker-cell.active {
+    background: var(--green);
+    color: var(--gold-lt);
+    font-weight: 600;
+}
+
 .date-picker-clear {
     width: 100%;
     margin-top: 12px;

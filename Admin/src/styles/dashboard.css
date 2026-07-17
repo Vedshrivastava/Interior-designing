@@ -148,6 +148,17 @@
 .dash-kpi-value.tone-danger { color: var(--danger, #c0392b); }
 .dash-kpi-value.tone-good   { color: var(--moss, #2d4a35); }
 
+/* KPI card loading state — see KpiCard's `loading` prop in DashboardWidgets.jsx */
+.kpi-skeleton-bar {
+    width: 64%;
+    height: 1.15rem;
+    margin-top: 3px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(201, 168, 124, 0.12) 25%, rgba(201, 168, 124, 0.28) 37%, rgba(201, 168, 124, 0.12) 63%);
+    background-size: 400% 100%;
+    animation: chart-skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
 .dash-kpi-sub {
     font-size: 0.74rem;
     color: var(--text-lt, #9a8e84);

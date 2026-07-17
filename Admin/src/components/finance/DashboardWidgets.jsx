@@ -16,9 +16,13 @@ export const formatINR = (n) => `₹${Math.round(n || 0).toLocaleString('en-IN')
 // same icon set the sidebar already uses, so no new dependency. `hero`
 // (optional): the two headline this-month figures stay physically bigger
 // than every count/alert card below, but use the exact same white-card
-// look — no separate color treatment.
-export const KpiCard = ({ label, value, sub, onClick, tone, icon, hero }) => (
-    <div className={`dash-kpi-card${onClick ? ' clickable' : ''}${hero ? ' hero' : ''}${tone ? ` tone-${tone}` : ''}`} onClick={onClick}>
+// look — no separate color treatment. `loading` (optional): the card,
+// icon, and label render immediately (the grid's shape never jumps around
+// as data arrives) with a shimmer bar standing in for the value — same
+// "this piece specifically is still loading" idea as ChartSkeleton, at
+// KPI-card scale. Not clickable while loading (there's nothing to show yet).
+export const KpiCard = ({ label, value, sub, onClick, tone, icon, hero, loading }) => (
+    <div className={`dash-kpi-card${onClick && !loading ? ' clickable' : ''}${hero ? ' hero' : ''}${tone ? ` tone-${tone}` : ''}`} onClick={loading ? undefined : onClick}>
         <div className="dash-kpi-row">
             {icon && (
                 <div className={`dash-kpi-icon${tone ? ` tone-${tone}` : ''}`}>
@@ -27,10 +31,10 @@ export const KpiCard = ({ label, value, sub, onClick, tone, icon, hero }) => (
             )}
             <div className="dash-kpi-text">
                 <p className="dash-kpi-label">{label}</p>
-                <p className={`dash-kpi-value${tone ? ` tone-${tone}` : ''}`}>{value}</p>
+                {loading ? <div className="kpi-skeleton-bar" /> : <p className={`dash-kpi-value${tone ? ` tone-${tone}` : ''}`}>{value}</p>}
             </div>
         </div>
-        {sub && <p className="dash-kpi-sub">{sub}</p>}
+        {!loading && sub && <p className="dash-kpi-sub">{sub}</p>}
     </div>
 );
 
@@ -89,11 +93,14 @@ export const ChartTooltip = ({ active, payload, label, valueFormatter = formatIN
 // Recent Activity panel — its own component (not a reuse of the generic
 // list-table CRUD styling) so its row layout and "view all" footer can be
 // built to match this card's own padding, instead of a manually-placed
-// link that doesn't line up with anything else in the card.
-export const ActivityCard = ({ title, items, renderRow, onViewAll, viewAllLabel = 'View Full Timeline', emptyText = 'No activity recorded yet.' }) => (
+// link that doesn't line up with anything else in the card. `loading`
+// (optional): shows ChartSkeleton in place of the list/empty-state, same
+// reasoning as everywhere else it's used — "no activity yet" must never
+// be what a still-in-flight fetch looks like.
+export const ActivityCard = ({ title, items, renderRow, onViewAll, viewAllLabel = 'View Full Timeline', emptyText = 'No activity recorded yet.', loading }) => (
     <div className="dash-chart-card dash-activity-card">
         <p className="dash-chart-title">{title}</p>
-        {items?.length > 0 ? (
+        {loading ? <ChartSkeleton /> : items?.length > 0 ? (
             <div className="dash-activity-list">
                 {items.map(renderRow)}
             </div>

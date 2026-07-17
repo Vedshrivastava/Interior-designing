@@ -10,7 +10,7 @@ import {
     faCartShopping, faHardHat, faReceipt, faBuilding, faClipboardList, faPersonDigging,
     faRulerCombined, faTriangleExclamation,
 } from '@fortawesome/free-solid-svg-icons';
-import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ActivityCard, ChartTooltip, CHART_COLORS, formatINR } from '../components/finance/DashboardWidgets';
+import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ActivityCard, ChartTooltip, CHART_COLORS, formatINR } from '../components/finance/DashboardWidgets';
 import '../styles/welcome.css';
 import '../styles/list.css';
 
@@ -24,9 +24,9 @@ const truncateLabel = (name, max = 15) => (name.length > max ? `${name.slice(0, 
 
 // Kept outside the component so it survives a route remount — navigating
 // away and back to the dashboard shows the last-known view instantly
-// instead of blanking to a spinner again, while a fresh fetch quietly
-// brings it up to date in the background. Only a genuine first load (no
-// cache yet) shows the full loading state.
+// instead of every card/chart reverting to its skeleton again, while a
+// fresh fetch quietly brings it up to date in the background. Only a
+// genuine first load (no cache yet) shows any skeleton at all.
 let dashboardCache = null;
 
 // Recharts' own Y-axis tick <Text> component applies its own word-wrapping
@@ -55,7 +55,14 @@ const FinanceHome = ({ url }) => {
     const [trends, setTrends] = useState(null);
     const [projectProfits, setProjectProfits] = useState([]);
     const [payablesBreakdown, setPayablesBreakdown] = useState(null);
-    const [loading, setLoading] = useState(true);
+    // Two independent flags, not one — summary/trends resolve in the first
+    // request batch, but projectProfits/payablesBreakdown depend on a
+    // second, chained N+1 fan-out (salary/commission ledgers, per-project
+    // profit) that's meaningfully slower. Gating everything behind a single
+    // flag meant the whole page (including the KPI cards, which only need
+    // the fast batch) sat behind a blank spinner waiting on the slow one.
+    const [phase1Loading, setPhase1Loading] = useState(true);
+    const [phase2Loading, setPhase2Loading] = useState(true);
 
     // Check-on-load, not a background job — no cron infrastructure exists
     // in this codebase. Silent: de-duplication (24h cooldown per
@@ -74,9 +81,11 @@ const FinanceHome = ({ url }) => {
             setTrends(dashboardCache.trends);
             setProjectProfits(dashboardCache.projectProfits);
             setPayablesBreakdown(dashboardCache.payablesBreakdown);
-            setLoading(false);
+            setPhase1Loading(false);
+            setPhase2Loading(false);
         } else {
-            setLoading(true);
+            setPhase1Loading(true);
+            setPhase2Loading(true);
         }
 
         (async () => {
@@ -98,6 +107,7 @@ const FinanceHome = ({ url }) => {
                 const nextTrends = trendsRes.data.success ? trendsRes.data.data : null;
                 if (nextSummary) setSummary(nextSummary);
                 if (nextTrends) setTrends(nextTrends);
+                setPhase1Loading(false);
 
                 // Payables breakdown donut — vendor/contractor come straight off
                 // the summary; salary/commission need the same N+1 ledger
@@ -130,6 +140,7 @@ const FinanceHome = ({ url }) => {
 
                 setPayablesBreakdown(nextPayablesBreakdown);
                 setProjectProfits(nextProjectProfits);
+                setPhase2Loading(false);
                 dashboardCache = {
                     summary: nextSummary, trends: nextTrends,
                     projectProfits: nextProjectProfits, payablesBreakdown: nextPayablesBreakdown,
@@ -138,7 +149,7 @@ const FinanceHome = ({ url }) => {
                 // Dashboard degrades gracefully — a failed fetch just leaves
                 // that section's empty state showing, no toast noise on load.
             } finally {
-                if (!cancelled) setLoading(false);
+                if (!cancelled) { setPhase1Loading(false); setPhase2Loading(false); }
             }
         })();
         return () => { cancelled = true; };
@@ -151,18 +162,6 @@ const FinanceHome = ({ url }) => {
         { name: 'Commission', value: payablesBreakdown.commission },
     ].filter(d => d.value > 0) : [];
 
-    if (loading) {
-        return (
-            <div className="dash-page-loader">
-                <div className="loader-modal-box">
-                    <div className="loader-ring"></div>
-                    <p>Loading Dashboard</p>
-                    <span>Gathering the latest numbers...</span>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className="list add flex-col">
             <div className="admin-list-container">
@@ -174,32 +173,32 @@ const FinanceHome = ({ url }) => {
                 </div>
 
                 <KpiGrid hero>
-                    <KpiCard hero icon={faMoneyBillTransfer} label="This Month Revenue" value={formatINR(summary?.thisMonthRevenue)} onClick={() => navigate('/finance/receivables')} />
-                    <KpiCard hero icon={faArrowTrendUp} label="This Month Profit" value={formatINR(summary?.thisMonthProfit)} onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.thisMonthProfit >= 0 ? 'good' : 'danger'} />
+                    <KpiCard hero loading={phase1Loading} icon={faMoneyBillTransfer} label="This Month Revenue" value={formatINR(summary?.thisMonthRevenue)} onClick={() => navigate('/finance/receivables')} />
+                    <KpiCard hero loading={phase1Loading} icon={faArrowTrendUp} label="This Month Profit" value={formatINR(summary?.thisMonthProfit)} onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.thisMonthProfit >= 0 ? 'good' : 'danger'} />
                 </KpiGrid>
 
                 <KpiSectionLabel>Cash &amp; Receivables</KpiSectionLabel>
                 <KpiGrid>
-                    <KpiCard icon={faBuildingColumns} label="Cash in Bank" value={formatINR(summary?.cashInBank)} onClick={() => navigate('/finance/bank')} />
-                    <KpiCard icon={faWallet} label="Cash in Hand" value={formatINR(summary?.cashInHand)} onClick={() => navigate('/finance/cash-book')} />
-                    <KpiCard icon={faFileInvoiceDollar} label="Client Receivables" value={formatINR(summary?.clientReceivables)} onClick={() => navigate('/finance/clients')} tone={summary?.clientReceivables > 0 ? 'danger' : 'good'} />
-                    <KpiCard icon={faCartShopping} label="Vendor Payables" value={formatINR(summary?.vendorPayables)} onClick={() => navigate('/finance/procurement')} />
-                    <KpiCard icon={faHardHat} label="Contractor Payables" value={formatINR(summary?.contractorPayables)} onClick={() => navigate('/finance/contractors')} />
-                    <KpiCard icon={faReceipt} label="Running Bills Ready" value={summary?.runningBillsReady ?? 0} onClick={() => navigate('/finance/receivables')} />
+                    <KpiCard loading={phase1Loading} icon={faBuildingColumns} label="Cash in Bank" value={formatINR(summary?.cashInBank)} onClick={() => navigate('/finance/bank')} />
+                    <KpiCard loading={phase1Loading} icon={faWallet} label="Cash in Hand" value={formatINR(summary?.cashInHand)} onClick={() => navigate('/finance/cash-book')} />
+                    <KpiCard loading={phase1Loading} icon={faFileInvoiceDollar} label="Client Receivables" value={formatINR(summary?.clientReceivables)} onClick={() => navigate('/finance/clients')} tone={summary?.clientReceivables > 0 ? 'danger' : 'good'} />
+                    <KpiCard loading={phase1Loading} icon={faCartShopping} label="Vendor Payables" value={formatINR(summary?.vendorPayables)} onClick={() => navigate('/finance/procurement')} />
+                    <KpiCard loading={phase1Loading} icon={faHardHat} label="Contractor Payables" value={formatINR(summary?.contractorPayables)} onClick={() => navigate('/finance/contractors')} />
+                    <KpiCard loading={phase1Loading} icon={faReceipt} label="Running Bills Ready" value={summary?.runningBillsReady ?? 0} onClick={() => navigate('/finance/receivables')} />
                 </KpiGrid>
 
                 <KpiSectionLabel>Site Activity</KpiSectionLabel>
                 <KpiGrid>
-                    <KpiCard icon={faBuilding} label="Active Projects" value={summary?.activeProjects ?? 0} onClick={() => navigate('/finance/projects')} />
-                    <KpiCard icon={faClipboardList} label="Active Works" value={summary?.activeWorks ?? 0} onClick={() => navigate('/finance/projects')} />
-                    <KpiCard icon={faPersonDigging} label="Labour Working Today" value={summary?.labourWorkingToday ?? 0} onClick={() => navigate('/finance/daily-labour')} />
-                    <KpiCard icon={faRulerCombined} label="Today's Measurement" value={`${(summary?.todaysMeasurementSqft || 0).toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/site-operations')} />
-                    <KpiCard icon={faTriangleExclamation} label="Material Low Alerts" value={summary?.materialLowAlerts ?? 0} onClick={() => navigate('/finance/site-inventory?filter=low-stock')} tone={summary?.materialLowAlerts > 0 ? 'danger' : 'good'} />
+                    <KpiCard loading={phase1Loading} icon={faBuilding} label="Active Projects" value={summary?.activeProjects ?? 0} onClick={() => navigate('/finance/projects')} />
+                    <KpiCard loading={phase1Loading} icon={faClipboardList} label="Active Works" value={summary?.activeWorks ?? 0} onClick={() => navigate('/finance/projects')} />
+                    <KpiCard loading={phase1Loading} icon={faPersonDigging} label="Labour Working Today" value={summary?.labourWorkingToday ?? 0} onClick={() => navigate('/finance/daily-labour')} />
+                    <KpiCard loading={phase1Loading} icon={faRulerCombined} label="Today's Measurement" value={`${(summary?.todaysMeasurementSqft || 0).toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/site-operations')} />
+                    <KpiCard loading={phase1Loading} icon={faTriangleExclamation} label="Material Low Alerts" value={summary?.materialLowAlerts ?? 0} onClick={() => navigate('/finance/site-inventory?filter=low-stock')} tone={summary?.materialLowAlerts > 0 ? 'danger' : 'good'} />
                 </KpiGrid>
 
                 <ChartGrid>
                     <ChartCard title="Revenue vs Cost — last 6 months">
-                        {trends?.revenueVsCost?.length > 0 ? (
+                        {phase1Loading ? <ChartSkeleton /> : trends?.revenueVsCost?.length > 0 ? (
                             <ResponsiveContainer width="100%" height={260}>
                                 <ComposedChart data={trends.revenueVsCost}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
@@ -215,7 +214,7 @@ const FinanceHome = ({ url }) => {
                     </ChartCard>
 
                     <ChartCard title="Cash Flow — last 30 days">
-                        {trends?.cashFlowSeries?.length > 0 ? (
+                        {phase1Loading ? <ChartSkeleton /> : trends?.cashFlowSeries?.length > 0 ? (
                             <ResponsiveContainer width="100%" height={260}>
                                 <AreaChart data={trends.cashFlowSeries}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
@@ -231,7 +230,7 @@ const FinanceHome = ({ url }) => {
                     </ChartCard>
 
                     <ChartCard title="Project Profitability">
-                        {projectProfits.length > 0 ? (
+                        {phase2Loading ? <ChartSkeleton /> : projectProfits.length > 0 ? (
                             <ResponsiveContainer width="100%" height={Math.max(260, projectProfits.length * 38)}>
                                 <ComposedChart data={projectProfits} layout="vertical" margin={{ left: 24 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
@@ -255,7 +254,7 @@ const FinanceHome = ({ url }) => {
                     </ChartCard>
 
                     <ChartCard title="Payables Breakdown">
-                        {payablesData.length > 0 ? (
+                        {phase2Loading ? <ChartSkeleton /> : payablesData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={260}>
                                 <PieChart>
                                     <Pie data={payablesData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={2}>
@@ -271,6 +270,7 @@ const FinanceHome = ({ url }) => {
 
                 <ActivityCard
                     title="Recent Activity"
+                    loading={phase1Loading}
                     items={summary?.recentActivities}
                     onViewAll={() => navigate('/finance/activity')}
                     renderRow={(a) => (

@@ -4,7 +4,7 @@ import axios from 'axios';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import MasterCrudTable from '../../components/finance/MasterCrudTable';
-import { ChartCard, ChartGrid, EmptyChart, ChartTooltip, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
+import { ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ChartTooltip, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 
@@ -50,25 +50,27 @@ const ClientsPage = ({ url }) => {
             subtitle="Client master — billed, received, and outstanding at a glance. Click a client to open their detail view."
             headerAction={<button type="button" className="add-btn" style={{ minWidth: 'auto', padding: '12px 24px', alignSelf: 'center' }} onClick={() => clientTableRef.current?.openAdd()}>+ Add Client</button>}
         >
-            {!loading && clients.length > 0 && (
+            {(loading || clients.length > 0) && (
                 <>
                     <ChartGrid>
                         <ChartCard title="Top Clients by Revenue">
-                            <ResponsiveContainer width="100%" height={240}>
-                                <BarChart data={topClients} layout="vertical" margin={{ left: 24 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                                    <XAxis type="number" tick={{ fontSize: 11 }} />
-                                    <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
-                                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
-                                    <Bar
-                                        dataKey="revenue" name="Revenue" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} activeBar={false}
-                                        cursor="pointer" onClick={(data) => navigate(`/finance/clients/${data.clientId}`)}
-                                    />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            {loading ? <ChartSkeleton /> : (
+                                <ResponsiveContainer width="100%" height={240}>
+                                    <BarChart data={topClients} layout="vertical" margin={{ left: 24 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                        <XAxis type="number" tick={{ fontSize: 11 }} />
+                                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
+                                        <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
+                                        <Bar
+                                            dataKey="revenue" name="Revenue" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} activeBar={false}
+                                            cursor="pointer" onClick={(data) => navigate(`/finance/clients/${data.clientId}`)}
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
                         </ChartCard>
                         <ChartCard title="Receivables Aging">
-                            {agingData.some(a => a.amount > 0) ? (
+                            {loading ? <ChartSkeleton /> : agingData.some(a => a.amount > 0) ? (
                                 <ResponsiveContainer width="100%" height={240}>
                                     <BarChart data={agingData}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
@@ -91,7 +93,9 @@ const ClientsPage = ({ url }) => {
                             {sortableHeader('totalReceived', 'Received')}
                             {sortableHeader('outstanding', 'Outstanding')}
                         </div>
-                        {sorted.map(c => (
+                        {loading ? (
+                            <div className="admin-empty-state"><p>Loading…</p></div>
+                        ) : sorted.map(c => (
                             <div key={c.clientId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr' }}>
                                 <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/clients/${c.clientId}`)}>{c.clientName}</p>
                                 <p>{formatINR(c.totalBilled)}</p>

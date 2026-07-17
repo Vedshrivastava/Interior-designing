@@ -562,6 +562,7 @@ const ClientDetail = ({ url }) => {
             {activeTab === 'documents' && (
                 <DocumentsTab
                     url={url} apiBase="client-documents" scopeParam="clientId" scopeId={client._id}
+                    title="Documents" subtitle="KYC, GSTIN, and general agreements — outlives any one project."
                     emptyText="No documents on file for this client yet."
                 />
             )}

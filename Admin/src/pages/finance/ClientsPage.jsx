@@ -10,6 +10,14 @@ import '../../styles/dashboard.css';
 
 const AGE_BUCKETS = ['0-30', '30-60', '60-90', '90+'];
 
+// Kept outside the component so it survives a route remount, same as
+// FinanceHome.jsx's dashboardCache — navigating away and back to Clients
+// shows the last-known summary instantly instead of every chart/table
+// reverting to a loading state again, while a fresh fetch quietly brings
+// it up to date in the background. Only a genuine first load (no cache
+// yet) shows any loading state at all.
+let clientsSummaryCache = null;
+
 /*
  * Tier 1 mini-dashboard for Clients — billed/received/outstanding per
  * client, top clients by revenue, and receivables aging, on top of the
@@ -22,15 +30,17 @@ const ClientsPage = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-    const [summary, setSummary] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [summary, setSummary] = useState(clientsSummaryCache);
+    const [loading, setLoading] = useState(!clientsSummaryCache);
     const [sortKey, setSortKey] = useState('totalBilled');
     const clientTableRef = useRef(null);
 
     useEffect(() => {
-        setLoading(true);
+        if (clientsSummaryCache) { setSummary(clientsSummaryCache); setLoading(false); }
+        else setLoading(true);
+
         axios.get(`${url}/api/finance/reports/clients-summary`, authHeader)
-            .then(res => { if (res.data.success) setSummary(res.data.data); })
+            .then(res => { if (res.data.success) { setSummary(res.data.data); clientsSummaryCache = res.data.data; } })
             .catch(() => {})
             .finally(() => setLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps

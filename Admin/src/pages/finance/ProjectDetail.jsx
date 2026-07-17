@@ -577,6 +577,7 @@ const ProjectDetail = ({ url }) => {
                 {activeTab === 'documents' && (
                     <DocumentsTab
                         url={url} apiBase="project-documents" scopeParam="projectId" scopeId={id}
+                        title="Documents" subtitle="Work orders, site approvals, floor plans — specific to this project."
                         emptyText="No documents on file for this project yet."
                     />
                 )}

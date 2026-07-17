@@ -407,7 +407,10 @@ const ProjectDetail = ({ url }) => {
                 {activeTab === 'works' && (
                     <div>
                         <WorksManager url={url} projectId={id} worksVersion={worksVersion} onWorksChanged={() => setWorksVersion(v => v + 1)} />
-                        <h3 style={{ margin: '32px 0 8px' }}>Work Type Rates</h3>
+                        <h3 style={{ margin: '32px 0 4px' }}>Work Type Rates</h3>
+                        <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>
+                            Referral Person: {project.referralVendorId?.name || '— None —'}
+                        </p>
                         <WorkTypeRatesManager url={url} projectId={id} worksVersion={worksVersion} />
                         <h3 style={{ margin: '28px 0 8px' }}>Contractor Rates</h3>
                         <ContractorRatesManager url={url} projectId={id} worksVersion={worksVersion} />

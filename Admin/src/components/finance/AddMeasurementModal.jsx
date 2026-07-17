@@ -133,7 +133,13 @@ const AddMeasurementModal = ({ url, projectId, works, onClose, onSaved }) => {
                                 <p>Contractor *</p>
                                 <StyledSelect
                                     value={form.contractorVendorId} onChange={v => setField('contractorVendorId', v)}
-                                    placeholder={form.workId ? 'Select contractor…' : 'Select a work first'} options={contractorOptions}
+                                    placeholder={
+                                        !form.workId ? 'Select a work first'
+                                            : contractorOptions.length === 0 ? 'No contractor assigned for this work'
+                                                : 'Select contractor…'
+                                    }
+                                    options={contractorOptions}
+                                    disabled={!form.workId || contractorOptions.length === 0}
                                 />
                             </div>
                         ) : (
@@ -141,7 +147,13 @@ const AddMeasurementModal = ({ url, projectId, works, onClose, onSaved }) => {
                                 <p>Labourer *</p>
                                 <StyledSelect
                                     value={form.labourerId} onChange={v => setField('labourerId', v)}
-                                    placeholder={form.workId ? 'Select labourer…' : 'Select a work first'} options={labourerOptions}
+                                    placeholder={
+                                        !form.workId ? 'Select a work first'
+                                            : labourerOptions.length === 0 ? 'No labour assigned for this work'
+                                                : 'Select labourer…'
+                                    }
+                                    options={labourerOptions}
+                                    disabled={!form.workId || labourerOptions.length === 0}
                                 />
                             </div>
                         )}

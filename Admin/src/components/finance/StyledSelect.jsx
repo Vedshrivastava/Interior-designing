@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 
 // Single-select dropdown matching AddDesign.jsx's category picker
 // (.add-cat-dropdown / .add-cat-trigger / .add-cat-list / .add-cat-option).
-const StyledSelect = ({ value, onChange, options, placeholder = 'Select…' }) => {
+const StyledSelect = ({ value, onChange, options, placeholder = 'Select…', disabled = false }) => {
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
 
@@ -18,14 +18,15 @@ const StyledSelect = ({ value, onChange, options, placeholder = 'Select…' }) =
         <div className="add-cat-dropdown" ref={ref}>
             <button
                 type="button"
-                className={`add-cat-trigger${open ? ' open' : ''}`}
-                onClick={() => setOpen(o => !o)}
+                className={`add-cat-trigger${open ? ' open' : ''}${disabled ? ' disabled' : ''}`}
+                onClick={() => !disabled && setOpen(o => !o)}
+                disabled={disabled}
             >
                 <span>{selected ? selected.label : placeholder}</span>
                 <i className="fa fa-chevron-down" />
             </button>
 
-            {open && (
+            {open && !disabled && (
                 <ul className="add-cat-list">
                     {options.map(opt => (
                         <li

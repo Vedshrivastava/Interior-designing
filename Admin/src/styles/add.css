@@ -197,6 +197,14 @@
     box-shadow: 0 0 0 4px rgba(201,168,124,0.12);
 }
 
+.add-cat-trigger.disabled,
+.add-cat-trigger.disabled:hover {
+    cursor: not-allowed;
+    color: var(--text-lt);
+    background-color: rgba(201,168,124,0.05);
+    border-color: rgba(201,168,124,0.16);
+}
+
 .add-cat-trigger i {
     color: var(--text-lt);
     font-size: 0.72rem;

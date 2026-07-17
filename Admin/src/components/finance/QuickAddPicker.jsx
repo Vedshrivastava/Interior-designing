@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
 import { emptyFormFromFields, renderMasterField } from './masterFieldRenderer';
 import { registerSettingIfNew } from './SettingSelectField';
+import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 
 /*
@@ -86,10 +87,13 @@ const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValue
     return (
         <>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled} style={{ flex: 1 }}>
-                    <option value="">{placeholder || `Select ${resource.label.toLowerCase()}…`}</option>
-                    {displayList.map(item => <option key={item._id} value={item._id}>{item.name}</option>)}
-                </select>
+                <div style={{ flex: 1 }}>
+                    <StyledSelect
+                        value={value} onChange={onChange} disabled={disabled}
+                        placeholder={placeholder || `Select ${resource.label.toLowerCase()}…`}
+                        options={displayList.map(item => ({ value: item._id, label: item.name }))}
+                    />
+                </div>
                 <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={openAdd} disabled={disabled}>+ Add New</button>
             </div>
 

@@ -1,21 +1,26 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import QuickAddPicker from './QuickAddPicker';
+import StyledDatePicker from './StyledDatePicker';
+import AddStockMovementModal from './AddStockMovementModal';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
 const MOVEMENT_LABEL = { dump: 'Dump', consume: 'Consume', return: 'Return', waste: 'Waste' };
-const MANUAL_TYPES = ['dump', 'return', 'waste'];
-
-const emptyForm = { materialId: '', movementType: 'dump', quantity: '', date: '', notes: '' };
 
 /* Site Inventory ledger for one project — current stock (computed on the
-   fly server-side, never stored), a manual Dump/Return/Waste entry form,
-   and the full movement history including the `consume` rows the
-   measurement-save automation creates (read-only here). */
+   fly server-side, never stored), a "+ Add Movement" dialog for manual
+   Dump/Return/Waste entries, and the full movement history including the
+   `consume` rows the measurement-save automation creates (read-only
+   here). From/To date filters keep the history from just growing
+   forever unscoped — "From Project Start" jumps straight to the
+   project's own startDate instead of hunting for it on the calendar.
+   Consume rows link through to the Work they belong to, same "Details"
+   pattern as Works/Measurements. */
 const StockMovementsManager = ({ url, projectId }) => {
+    const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -23,8 +28,10 @@ const StockMovementsManager = ({ url, projectId }) => {
     const [movements, setMovements] = useState([]);
     const [loadingStock, setLoadingStock] = useState(true);
     const [loadingHistory, setLoadingHistory] = useState(true);
-    const [form, setForm] = useState(emptyForm);
-    const [saving, setSaving] = useState(false);
+    const [projectStartDate, setProjectStartDate] = useState('');
+    const [fromDate, setFromDate] = useState('');
+    const [toDate, setToDate] = useState('');
+    const [addModalOpen, setAddModalOpen] = useState(false);
 
     const fetchStock = async () => {
         setLoadingStock(true);
@@ -44,28 +51,21 @@ const StockMovementsManager = ({ url, projectId }) => {
         finally { setLoadingHistory(false); }
     };
 
-    useEffect(() => { if (projectId) { fetchStock(); fetchHistory(); } }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        if (!projectId) return;
+        fetchStock();
+        fetchHistory();
+        axios.get(`${url}/api/finance/projects/${projectId}`, authHeader)
+            .then(res => { if (res.data.success && res.data.data.project?.startDate) setProjectStartDate(res.data.data.project.startDate.slice(0, 10)); })
+            .catch(() => {});
+    }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
-
-    const submit = async (e) => {
-        e.preventDefault();
-        if (!form.materialId) return toast.error('Material is required');
-        if (!form.quantity || Number(form.quantity) <= 0) return toast.error('Quantity must be greater than zero');
-        if (!form.date) return toast.error('Date is required');
-
-        setSaving(true);
-        try {
-            const res = await axios.post(`${url}/api/finance/stock-movements/add`, { ...form, projectId }, authHeader);
-            if (res.data.success) {
-                toast.success(res.data.message);
-                setForm(emptyForm);
-                await Promise.all([fetchStock(), fetchHistory()]);
-            } else toast.error(res.data.message);
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Error recording movement');
-        } finally { setSaving(false); }
-    };
+    const filteredMovements = movements.filter(m => {
+        const dateKey = new Date(m.date).toISOString().slice(0, 10);
+        if (fromDate && dateKey < fromDate) return false;
+        if (toDate && dateKey > toDate) return false;
+        return true;
+    });
 
     const removeMovement = async (item) => {
         try {
@@ -77,8 +77,9 @@ const StockMovementsManager = ({ url, projectId }) => {
 
     return (
         <div>
-            <h3 style={{ marginBottom: '8px' }}>Current Stock</h3>
-            <div className="list-table" style={{ marginBottom: '28px' }}>
+            <h3 style={{ marginBottom: '4px' }}>Current Stock</h3>
+            <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>Always current — SUM(dump) − SUM(consume) − SUM(return) − SUM(waste), computed fresh, never stored.</p>
+            <div className="list-table" style={{ marginBottom: '32px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1fr 1fr' }}>
                     <b>Material</b><b>Unit</b><b>Current Stock</b>
                 </div>
@@ -97,56 +98,64 @@ const StockMovementsManager = ({ url, projectId }) => {
                 )}
             </div>
 
-            <h3 style={{ marginBottom: '8px' }}>Record Dump / Return / Waste</h3>
-            <form onSubmit={submit}>
-                <div className="wizard-field-grid">
-                    <div className="add-product-name flex-col">
-                        <p>Material *</p>
-                        <QuickAddPicker url={url} resourceKey="materials" value={form.materialId} onChange={v => setField('materialId', v)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Movement Type *</p>
-                        <select value={form.movementType} onChange={e => setField('movementType', e.target.value)}>
-                            {MANUAL_TYPES.map(t => <option key={t} value={t}>{MOVEMENT_LABEL[t]}</option>)}
-                        </select>
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Quantity *</p>
-                        <input type="number" value={form.quantity} onChange={e => setField('quantity', e.target.value)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Date *</p>
-                        <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} />
-                    </div>
-                    <div className="add-product-name flex-col wizard-field-full">
-                        <p>Notes</p>
-                        <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
-                    </div>
+            <h3 style={{ marginBottom: '4px' }}>Movement History</h3>
+            <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>Every dump, consume, return, and waste movement ever recorded at this project — filter by date to narrow it down.</p>
+            <div className="wizard-field-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0,220px))', marginBottom: '10px', alignItems: 'end' }}>
+                <div className="add-product-name flex-col">
+                    <p>From</p>
+                    <StyledDatePicker value={fromDate} onChange={setFromDate} />
                 </div>
-                <div className="wizard-actions" style={{ marginTop: '16px' }}>
-                    <span />
-                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Movement'}</button>
+                <div className="add-product-name flex-col">
+                    <p>To</p>
+                    <StyledDatePicker value={toDate} onChange={setToDate} />
                 </div>
-            </form>
+                <div className="add-product-name flex-col">
+                    <p aria-hidden="true" style={{ visibility: 'hidden' }}>Add</p>
+                    <button type="button" className="add-btn" style={{ width: '100%', boxSizing: 'border-box', border: '1px solid transparent', margin: 0 }} onClick={() => setAddModalOpen(true)}>
+                        + Add Movement
+                    </button>
+                </div>
+            </div>
 
-            <h3 style={{ marginBottom: '8px' }}>Movement History</h3>
+            {projectStartDate && (
+                <div style={{ marginBottom: '16px' }}>
+                    <button
+                        type="button"
+                        className={`labour-chip${fromDate === projectStartDate ? ' active' : ''}`}
+                        onClick={() => setFromDate(projectStartDate)}
+                    >
+                        From Project Start
+                    </button>
+                </div>
+            )}
+
+            {addModalOpen && (
+                <AddStockMovementModal
+                    url={url} projectId={projectId}
+                    onClose={() => setAddModalOpen(false)}
+                    onSaved={() => { fetchStock(); fetchHistory(); }}
+                />
+            )}
+
             <div className="list-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.3fr 1fr 1fr 1fr 100px' }}>
-                    <b>Date</b><b>Material</b><b>Type</b><b>Quantity</b><b>Notes</b><b>Action</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr 1fr 130px' }}>
+                    <b>Date</b><b>Material</b><b>Type</b><b>Work</b><b>Quantity</b><b>Notes</b><b>Action</b>
                 </div>
                 {loadingHistory ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
-                ) : movements.length === 0 ? (
-                    <div className="admin-empty-state"><p>No movements yet.</p></div>
+                ) : filteredMovements.length === 0 ? (
+                    <div className="admin-empty-state"><p>{movements.length === 0 ? 'No movements yet.' : 'No movements in this date range.'}</p></div>
                 ) : (
-                    movements.map(m => (
-                        <div key={m._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.3fr 1fr 1fr 1fr 100px' }}>
+                    filteredMovements.map(m => (
+                        <div key={m._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr 1fr 130px' }}>
                             <p>{new Date(m.date).toLocaleDateString()}</p>
                             <p>{m.materialId?.name || '—'}</p>
                             <p><span className="item-category">{MOVEMENT_LABEL[m.movementType]}{m.relatedMeasurementId ? ' (auto)' : ''}</span></p>
+                            <p>{m.workId?.workType || '—'}</p>
                             <p>{m.quantity} {m.materialId?.unit || ''}</p>
                             <p>{m.notes || '—'}</p>
                             <div className="action-buttons">
+                                {m.workId && <p onClick={() => navigate(`/finance/projects/${projectId}/works/${m.workId._id}`)} className="cursor edit-action">Details</p>}
                                 {!m.relatedMeasurementId && <p onClick={() => removeMovement(m)} className="cursor delete-action">X</p>}
                             </div>
                         </div>

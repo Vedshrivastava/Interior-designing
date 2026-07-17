@@ -18,6 +18,7 @@ const listStockMovements = async (req, res) => {
         if (movementType) filter.movementType = movementType;
         const items = await FinanceStockMovement.find(filter)
             .populate('materialId', 'name unit')
+            .populate('workId', 'workType')
             .sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {

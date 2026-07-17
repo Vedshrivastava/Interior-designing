@@ -1,6 +1,14 @@
+import { v2 as cloudinary } from 'cloudinary';
 import FinanceLabourer from '../models/financeLabourer.js';
 import FinanceLabourMeasurement from '../models/financeLabourMeasurement.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { uploadDocumentsWithNotes } from '../utils/uploadDocuments.js';
+
+cloudinary.config({
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.CLOUD_API_KEY,
+    api_secret: process.env.CLOUD_API_SECRET,
+});
 
 const listLabourers = async (req, res) => {
     try {
@@ -16,7 +24,14 @@ const addLabourer = async (req, res) => {
     try {
         const { name, notes } = req.body;
         if (!name || !name.trim()) return res.status(400).json({ success: false, message: 'Name is required' });
-        const item = new FinanceLabourer({ name: name.trim(), notes: notes || '' });
+
+        let documentNotes = [];
+        if (req.body.documentNotes) {
+            try { documentNotes = JSON.parse(req.body.documentNotes); } catch { documentNotes = []; }
+        }
+        const documents = await uploadDocumentsWithNotes(req.files, documentNotes, 'labourer_documents');
+
+        const item = new FinanceLabourer({ name: name.trim(), notes: notes || '', documents });
         await item.save();
         broadcast({ type: 'financeLabourersChanged' });
         res.json({ success: true, message: 'Labourer added', data: item });

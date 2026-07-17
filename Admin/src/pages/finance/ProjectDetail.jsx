@@ -421,10 +421,7 @@ const ProjectDetail = ({ url }) => {
 
                 {activeTab === 'measurements' && (
                     <div>
-                        <h3 style={{ margin: '0 0 8px' }}>Measurements</h3>
-                        <p className="admin-subtitle" style={{ margin: '0 0 16px' }}>
-                            Entry happens from Site Operations / Labour Measurements — this is a read-only view of what's been logged here.
-                        </p>
+                        <h3 style={{ margin: '0 0 16px' }}>Measurements</h3>
                         <WorkMeasurementsSummary url={url} projectId={id} worksVersion={worksVersion} />
                     </div>
                 )}

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
 import { emptyFormFromFields, renderMasterField } from './masterFieldRenderer';
+import DocumentUploadList from './DocumentUploadList';
 import '../../styles/wizard.css';
 
 const CONTRACTOR_PRESET = { vendorType: 'labour_contractor' };
@@ -24,6 +25,7 @@ const AddContractorModal = ({ url, onClose, onContractorCreated }) => {
     const visibleFields = vendorResource.fields.filter(f => !(f.key in CONTRACTOR_PRESET));
 
     const [vendorForm, setVendorForm] = useState({ ...emptyFormFromFields(vendorResource.fields), ...CONTRACTOR_PRESET });
+    const [documentLines, setDocumentLines] = useState([]);
     const [saving, setSaving] = useState(false);
 
     const setVendorField = (key, value) => setVendorForm(prev => ({ ...prev, [key]: value }));
@@ -33,7 +35,15 @@ const AddContractorModal = ({ url, onClose, onContractorCreated }) => {
         if (!String(vendorForm.name || '').trim()) return toast.error('Name is required');
         setSaving(true);
         try {
-            const res = await axios.post(`${url}/api/finance/vendors/add`, vendorForm, authHeader);
+            const validDocs = documentLines.filter(l => l.file);
+            const data = new FormData();
+            Object.entries(vendorForm).forEach(([key, value]) => data.append(key, value ?? ''));
+            data.append('documentNotes', JSON.stringify(validDocs.map(l => l.note)));
+            validDocs.forEach(l => data.append('documents', l.file));
+
+            const res = await axios.post(`${url}/api/finance/vendors/add`, data, {
+                headers: { ...authHeader.headers, 'Content-Type': 'multipart/form-data' },
+            });
             if (res.data.success) {
                 toast.success('Contractor added');
                 onContractorCreated(res.data.data._id);
@@ -59,6 +69,7 @@ const AddContractorModal = ({ url, onClose, onContractorCreated }) => {
                             </div>
                         ))}
                     </div>
+                    <DocumentUploadList lines={documentLines} onChange={setDocumentLines} />
                     <div className="edit-modal-actions">
                         <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
                         <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>

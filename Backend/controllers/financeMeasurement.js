@@ -1,6 +1,3 @@
-import { v2 as cloudinary } from 'cloudinary';
-import fs from 'fs';
-import dotenv from 'dotenv';
 import FinanceMeasurement from '../models/financeMeasurement.js';
 import FinanceWork from '../models/financeWork.js';
 import FinanceProject from '../models/financeProject.js';
@@ -9,24 +6,19 @@ import FinanceWorkContractorAssignment from '../models/financeWorkContractorAssi
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 
-dotenv.config();
-
-cloudinary.config({
-    cloud_name: process.env.CLOUD_NAME,
-    api_key: process.env.CLOUD_API_KEY,
-    api_secret: process.env.CLOUD_API_SECRET,
-});
-
+// projectId is optional — omit it for a cross-project view (Site
+// Operations' Daily Measurements).
 const listMeasurements = async (req, res) => {
     try {
         const { projectId, workId } = req.query;
-        if (!projectId) return res.status(400).json({ success: false, message: 'projectId is required' });
-        const filter = { projectId, deleted: { $ne: true } };
+        const filter = { deleted: { $ne: true } };
+        if (projectId) filter.projectId = projectId;
         if (workId) filter.workId = workId;
         const items = await FinanceMeasurement.find(filter)
             .populate('workId', 'workType workOrderNumber')
             .populate('materialUsed.materialId', 'name unit')
             .populate('contractorVendorId', 'name')
+            .populate('projectId', 'name')
             .sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {
@@ -69,36 +61,15 @@ const addMeasurement = async (req, res) => {
         const project = await FinanceProject.findById(projectId);
         if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
-        // materialUsed arrives as a JSON string over multipart/form-data,
-        // same convention as `points`/`subcategories` on design.js.
-        let materialUsed = [];
-        if (req.body.materialUsed) {
-            try { materialUsed = JSON.parse(req.body.materialUsed); } catch { materialUsed = []; }
-        }
-        materialUsed = Array.isArray(materialUsed)
-            ? materialUsed.filter(m => m && m.materialId && Number(m.quantity) > 0).map(m => ({ materialId: m.materialId, quantity: Number(m.quantity) }))
+        let materialUsed = Array.isArray(req.body.materialUsed)
+            ? req.body.materialUsed.filter(m => m && m.materialId && Number(m.quantity) > 0).map(m => ({ materialId: m.materialId, quantity: Number(m.quantity) }))
             : [];
         if (!project.materialTrackingEnabled) materialUsed = [];
-
-        // Photos → Cloudinary, same pattern as design/product image uploads.
-        let photoUrls = [];
-        if (req.files && req.files.length > 0) {
-            for (const file of req.files) {
-                try {
-                    const result = await cloudinary.uploader.upload(file.path, { folder: 'measurement_photos' });
-                    photoUrls.push(result.secure_url);
-                    fs.unlinkSync(file.path);
-                } catch (uploadError) {
-                    console.error(`Error uploading file ${file.path}:`, uploadError);
-                }
-            }
-        }
 
         const measurement = new FinanceMeasurement({
             projectId, workId, date, contractorVendorId, areaCoveredSqft,
             supervisorName: supervisorName || '',
             materialUsed,
-            photos: photoUrls,
             remarks: remarks || '',
         });
         await measurement.save();

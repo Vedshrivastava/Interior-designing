@@ -1,5 +1,13 @@
+import { v2 as cloudinary } from 'cloudinary';
 import FinanceVendor from '../models/financeVendor.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { uploadDocumentsWithNotes } from '../utils/uploadDocuments.js';
+
+cloudinary.config({
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.CLOUD_API_KEY,
+    api_secret: process.env.CLOUD_API_SECRET,
+});
 
 const listFinanceVendors = async (req, res) => {
     try {
@@ -15,9 +23,16 @@ const addFinanceVendor = async (req, res) => {
     try {
         const { name, vendorType, phone, email, address, gstNumber, commissionTypeLabel, notes } = req.body;
         if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
+
+        let documentNotes = [];
+        if (req.body.documentNotes) {
+            try { documentNotes = JSON.parse(req.body.documentNotes); } catch { documentNotes = []; }
+        }
+        const documents = await uploadDocumentsWithNotes(req.files, documentNotes, 'vendor_documents');
+
         const item = new FinanceVendor({
             name: name.trim(), vendorType, phone, email, address, gstNumber,
-            commissionTypeLabel: commissionTypeLabel || '', notes,
+            commissionTypeLabel: commissionTypeLabel || '', notes, documents,
         });
         await item.save();
         broadcast({ type: 'financeVendorsChanged' });

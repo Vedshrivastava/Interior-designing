@@ -5,17 +5,20 @@ import FinanceWorkLabourAssignment from '../models/financeWorkLabourAssignment.j
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 
+// projectId is optional — omit it for a cross-project view (Site
+// Operations' Daily Measurements).
 const listLabourMeasurements = async (req, res) => {
     try {
         const { projectId, workId, labourerId } = req.query;
-        if (!projectId) return res.status(400).json({ success: false, message: 'projectId is required' });
-        const filter = { projectId, deleted: { $ne: true } };
+        const filter = { deleted: { $ne: true } };
+        if (projectId) filter.projectId = projectId;
         if (workId) filter.workId = workId;
         if (labourerId) filter.labourerId = labourerId;
         const items = await FinanceLabourMeasurement.find(filter)
             .populate('workId', 'workType workOrderNumber')
             .populate('labourerId', 'name')
             .populate('supervisorId', 'name')
+            .populate('projectId', 'name')
             .sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {

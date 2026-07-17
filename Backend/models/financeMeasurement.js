@@ -23,7 +23,6 @@ const financeMeasurementSchema = new mongoose.Schema({
         quantity:   { type: Number, required: true },
     }],
 
-    photos:  { type: [String], default: [] }, // Cloudinary URLs, same upload pattern as design/product images
     remarks: { type: String, default: '' },
 
     // Approval gates two things: whether this area is billable to the

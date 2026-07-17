@@ -12,6 +12,13 @@ const financeLabourerSchema = new mongoose.Schema({
     name:  { type: String, required: true },
     notes: { type: String, default: '' },
 
+    // ID proof, agreement, etc. — attached when the labourer is added,
+    // each carrying its own note saying what the document is.
+    documents: [{
+        url:  { type: String, required: true },
+        note: { type: String, default: '' },
+    }],
+
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },
     deletedBy: { type: String },

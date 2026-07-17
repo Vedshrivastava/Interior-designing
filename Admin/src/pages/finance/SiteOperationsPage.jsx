@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
-import MeasurementsManager from '../../components/finance/MeasurementsManager';
+import WorkMeasurementsSummary from '../../components/finance/WorkMeasurementsSummary';
 import MaterialConsumptionList from '../../components/finance/MaterialConsumptionList';
 
 const TABS = [
@@ -21,7 +21,7 @@ const SiteOperationsPage = ({ url }) => {
             activeKey={activeTab}
             onTabChange={setActiveTab}
         >
-            {activeTab === 'measurements' && <MeasurementsManager url={url} />}
+            {activeTab === 'measurements' && <WorkMeasurementsSummary url={url} />}
             {activeTab === 'consumption' && <MaterialConsumptionList url={url} />}
             {activeTab === 'diary' && <PlaceholderTab text="Daily site notes and issues log." />}
         </FinanceTabShell>

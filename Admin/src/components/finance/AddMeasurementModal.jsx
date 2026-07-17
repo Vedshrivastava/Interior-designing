@@ -7,38 +7,52 @@ import StyledDatePicker from './StyledDatePicker';
 
 const emptyState = {
     measurementType: 'contractor',
-    workId: '', contractorVendorId: '', labourerId: '',
+    projectId: '', workId: '', contractorVendorId: '', labourerId: '',
     date: '', supervisorName: '', areaCoveredSqft: '', remarks: '',
 };
 
 /*
- * Log a single day's measurement against a Work, from the project's
- * Measurements tab, without leaving the page. Contractor and Labour
- * measurements are different underlying models (financeMeasurement vs.
+ * Log a single day's measurement without leaving the page — used both
+ * scoped to one project (a project's own Measurements tab, `projectId`
+ * fixed) and unscoped (Site Operations' Daily Measurements, no
+ * `projectId` — a Project field is shown first, same dual-mode pattern as
+ * WorkMeasurementsSummary). Contractor and Labour measurements are
+ * different underlying models (financeMeasurement vs.
  * financeLabourMeasurement) with different fields — the type toggle at
- * the top switches which sub-form and which endpoint is used, everything
- * else mirrors Site Operations' / Labour Measurements' own entry forms
- * exactly so the two stay in lockstep.
+ * the top switches which sub-form and which endpoint is used.
  */
-const AddMeasurementModal = ({ url, projectId, works, onClose, onSaved }) => {
+const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId, onClose, onSaved }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-    const [form, setForm] = useState(emptyState);
+    const [form, setForm] = useState({ ...emptyState, projectId: fixedProjectId || defaultProjectId || '' });
+    const [projects, setProjects] = useState([]);
+    const [works, setWorks] = useState([]);
     const [workContractors, setWorkContractors] = useState([]);
     const [workLabourers, setWorkLabourers] = useState([]);
     const [materialTrackingEnabled, setMaterialTrackingEnabled] = useState(false);
     const [materials, setMaterials] = useState([]);
     const [materialLines, setMaterialLines] = useState([]);
-    const [photos, setPhotos] = useState([]);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/projects/${projectId}`, authHeader)
-            .then(res => { if (res.data.success) setMaterialTrackingEnabled(!!res.data.data.project?.materialTrackingEnabled); }).catch(() => {});
+        if (fixedProjectId) return;
+        axios.get(`${url}/api/finance/projects/list`, authHeader)
+            .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+    }, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
         axios.get(`${url}/api/finance/materials/list`, authHeader)
             .then(res => { if (res.data.success) setMaterials(res.data.data); }).catch(() => {});
-    }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        if (!form.projectId) { setWorks([]); setMaterialTrackingEnabled(false); return; }
+        axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: form.projectId } })
+            .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => setWorks([]));
+        axios.get(`${url}/api/finance/projects/${form.projectId}`, authHeader)
+            .then(res => { if (res.data.success) setMaterialTrackingEnabled(!!res.data.data.project?.materialTrackingEnabled); }).catch(() => {});
+    }, [url, form.projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (!form.workId) { setWorkContractors([]); setWorkLabourers([]); return; }
@@ -50,6 +64,7 @@ const AddMeasurementModal = ({ url, projectId, works, onClose, onSaved }) => {
 
     const setField = (key, value) => setForm(prev => {
         const next = { ...prev, [key]: value };
+        if (key === 'projectId') { next.workId = ''; next.contractorVendorId = ''; next.labourerId = ''; }
         if (key === 'workId') { next.contractorVendorId = ''; next.labourerId = ''; }
         if (key === 'measurementType') { next.contractorVendorId = ''; next.labourerId = ''; }
         return next;
@@ -59,6 +74,7 @@ const AddMeasurementModal = ({ url, projectId, works, onClose, onSaved }) => {
     const setMaterialLine = (idx, key, value) => setMaterialLines(prev => prev.map((l, i) => i === idx ? { ...l, [key]: value } : l));
     const removeMaterialLine = (idx) => setMaterialLines(prev => prev.filter((_, i) => i !== idx));
 
+    const projectOptions = projects.map(p => ({ value: p._id, label: p.name }));
     const workOptions = works.map(w => ({ value: w._id, label: `${w.workType}${w.workOrderNumber ? ` (${w.workOrderNumber})` : ''}` }));
     const contractorOptions = workContractors.map(a => ({ value: a.contractorVendorId?._id || a.contractorVendorId, label: a.contractorVendorId?.name || '—' }));
     const labourerOptions = workLabourers.map(a => ({
@@ -66,30 +82,21 @@ const AddMeasurementModal = ({ url, projectId, works, onClose, onSaved }) => {
         label: `${a.labourerId?.name || '—'}${a.supervisorId?.name ? ` — ${a.supervisorId.name}'s team` : ''}`,
     }));
 
-    const submitContractor = async () => {
-        const data = new FormData();
-        data.append('projectId', projectId);
-        data.append('workId', form.workId);
-        data.append('contractorVendorId', form.contractorVendorId);
-        data.append('date', form.date);
-        data.append('supervisorName', form.supervisorName);
-        data.append('areaCoveredSqft', form.areaCoveredSqft);
-        data.append('remarks', form.remarks);
-        data.append('materialUsed', JSON.stringify(materialLines.filter(l => l.materialId && Number(l.quantity) > 0)));
-        photos.forEach(f => data.append('photos', f));
-        return axios.post(`${url}/api/finance/measurements/add`, data, {
-            headers: { ...authHeader.headers, 'Content-Type': 'multipart/form-data' },
-        });
-    };
+    const submitContractor = () => axios.post(`${url}/api/finance/measurements/add`, {
+        projectId: form.projectId, workId: form.workId, contractorVendorId: form.contractorVendorId,
+        date: form.date, supervisorName: form.supervisorName, areaCoveredSqft: form.areaCoveredSqft,
+        remarks: form.remarks, materialUsed: materialLines.filter(l => l.materialId && Number(l.quantity) > 0),
+    }, authHeader);
 
     const submitLabour = () => axios.post(`${url}/api/finance/labour-measurements/add`, {
-        projectId, workId: form.workId, labourerId: form.labourerId,
+        projectId: form.projectId, workId: form.workId, labourerId: form.labourerId,
         date: form.date, areaCoveredSqft: form.areaCoveredSqft, remarks: form.remarks,
     }, authHeader);
 
     const submit = async (e) => {
         e.preventDefault();
         const isContractor = form.measurementType === 'contractor';
+        if (!form.projectId) return toast.error('Project is required');
         if (!form.workId) return toast.error('Work is required');
         if (isContractor && !form.contractorVendorId) return toast.error('Contractor is required');
         if (!isContractor && !form.labourerId) return toast.error('Labourer is required');
@@ -123,9 +130,19 @@ const AddMeasurementModal = ({ url, projectId, works, onClose, onSaved }) => {
 
                 <form onSubmit={submit}>
                     <div className="wizard-field-grid">
+                        {!fixedProjectId && (
+                            <div className="add-product-name flex-col wizard-field-full">
+                                <p>Project *</p>
+                                <StyledSelect value={form.projectId} onChange={v => setField('projectId', v)} placeholder="Select project…" options={projectOptions} />
+                            </div>
+                        )}
                         <div className="add-product-name flex-col wizard-field-full">
                             <p>Work *</p>
-                            <StyledSelect value={form.workId} onChange={v => setField('workId', v)} placeholder="Select work…" options={workOptions} />
+                            <StyledSelect
+                                value={form.workId} onChange={v => setField('workId', v)}
+                                placeholder={form.projectId ? 'Select work…' : 'Select a project first'}
+                                options={workOptions} disabled={!form.projectId}
+                            />
                         </div>
 
                         {isContractor ? (
@@ -173,12 +190,6 @@ const AddMeasurementModal = ({ url, projectId, works, onClose, onSaved }) => {
                             </div>
                         )}
 
-                        {isContractor && (
-                            <div className="add-product-name flex-col wizard-field-full">
-                                <p>Photos</p>
-                                <input type="file" multiple accept="image/*" onChange={e => setPhotos(Array.from(e.target.files))} />
-                            </div>
-                        )}
                         <div className="add-product-name flex-col wizard-field-full">
                             <p>Remarks</p>
                             <textarea rows="2" value={form.remarks} onChange={e => setField('remarks', e.target.value)} />

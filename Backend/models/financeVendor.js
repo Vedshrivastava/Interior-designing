@@ -23,6 +23,14 @@ const financeVendorSchema = new mongoose.Schema({
     commissionTypeLabel: { type: String, default: '' },
 
     notes:      { type: String, default: '' },
+
+    // Agreement, GST cert, ID proof, etc. — attached when the vendor is
+    // added, each carrying its own note saying what the document is.
+    documents: [{
+        url:  { type: String, required: true },
+        note: { type: String, default: '' },
+    }],
+
     deleted:    { type: Boolean, default: false },
     deletedAt:  { type: Date },
     deletedBy:  { type: String },

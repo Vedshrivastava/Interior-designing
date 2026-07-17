@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import DocumentUploadList from './DocumentUploadList';
 import '../../styles/wizard.css';
 
 /*
@@ -17,6 +18,7 @@ const AddLabourModal = ({ url, onClose, onLabourerCreated }) => {
 
     const [name, setName] = useState('');
     const [notes, setNotes] = useState('');
+    const [documentLines, setDocumentLines] = useState([]);
     const [saving, setSaving] = useState(false);
 
     const submit = async (e) => {
@@ -24,7 +26,16 @@ const AddLabourModal = ({ url, onClose, onLabourerCreated }) => {
         if (!name.trim()) return toast.error('Name is required');
         setSaving(true);
         try {
-            const res = await axios.post(`${url}/api/finance/labourers/add`, { name: name.trim(), notes }, authHeader);
+            const validDocs = documentLines.filter(l => l.file);
+            const data = new FormData();
+            data.append('name', name.trim());
+            data.append('notes', notes);
+            data.append('documentNotes', JSON.stringify(validDocs.map(l => l.note)));
+            validDocs.forEach(l => data.append('documents', l.file));
+
+            const res = await axios.post(`${url}/api/finance/labourers/add`, data, {
+                headers: { ...authHeader.headers, 'Content-Type': 'multipart/form-data' },
+            });
             if (res.data.success) {
                 toast.success('Labourer added');
                 onLabourerCreated?.(res.data.data._id);
@@ -52,6 +63,7 @@ const AddLabourModal = ({ url, onClose, onLabourerCreated }) => {
                             <input type="text" value={notes} onChange={e => setNotes(e.target.value)} />
                         </div>
                     </div>
+                    <DocumentUploadList lines={documentLines} onChange={setDocumentLines} />
                     <div className="edit-modal-actions" style={{ marginTop: '16px' }}>
                         <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
                         <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>

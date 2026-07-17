@@ -6,11 +6,16 @@ import { assertLabourersAvailable } from '../utils/labourAvailability.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 
+// projectId is optional — omit it for a cross-project view (e.g. Site
+// Operations' Daily Measurements, scanning every project for a given work
+// type + date) instead of one project's Works tab.
 const listWorks = async (req, res) => {
     try {
         const { projectId } = req.query;
-        if (!projectId) return res.status(400).json({ success: false, message: 'projectId is required' });
-        const items = await FinanceWork.find({ projectId, deleted: { $ne: true } })
+        const filter = { deleted: { $ne: true } };
+        if (projectId) filter.projectId = projectId;
+        const items = await FinanceWork.find(filter)
+            .populate('projectId', 'name')
             .sort({ createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {

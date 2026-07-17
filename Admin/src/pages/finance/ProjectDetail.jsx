@@ -16,6 +16,7 @@ import StockMovementsManager from '../../components/finance/StockMovementsManage
 import RunningBillsManager from '../../components/finance/RunningBillsManager';
 import ReceiptsManager from '../../components/finance/ReceiptsManager';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
+import ExpensesManager from '../../components/finance/ExpensesManager';
 import DocumentsTab from '../../components/finance/DocumentsTab';
 import StyledSelect from '../../components/finance/StyledSelect';
 import SettingSelectField, { registerSettingIfNew } from '../../components/finance/SettingSelectField';
@@ -572,7 +573,7 @@ const ProjectDetail = ({ url }) => {
                 {activeTab === 'quotations' && <ProjectQuotationsManager url={url} projectId={id} />}
                 {activeTab === 'runningBills' && <RunningBillsManager url={url} projectId={id} />}
                 {activeTab === 'receipts' && <ReceiptsManager url={url} projectId={id} />}
-                {activeTab === 'expenses' && <PlaceholderTab text="Site expenses logged against this project." />}
+                {activeTab === 'expenses' && <ExpensesManager url={url} projectId={id} />}
                 {activeTab === 'documents' && (
                     <DocumentsTab
                         url={url} apiBase="project-documents" scopeParam="projectId" scopeId={id}

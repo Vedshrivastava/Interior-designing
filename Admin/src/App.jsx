@@ -41,7 +41,6 @@ import SiteInventoryPage from './pages/finance/SiteInventoryPage';
 import ReceivablesPage from './pages/finance/ReceivablesPage';
 import ReceiptsPage from './pages/finance/ReceiptsPage';
 import PayablesPage from './pages/finance/PayablesPage';
-import ExpensesPage from './pages/finance/ExpensesPage';
 import PaymentsPage from './pages/finance/PaymentsPage';
 import BankPage from './pages/finance/BankPage';
 import CashBookPage from './pages/finance/CashBookPage';
@@ -317,14 +316,6 @@ const App = () => {
               }
             />
             <Route
-              path='/finance/expenses'
-              element={
-                <ProtectedRoute setShowLogin={setShowLogin}>
-                  <ExpensesPage url={url} />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path='/finance/payments'
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
@@ -393,7 +384,7 @@ const App = () => {
               '/finance/clients', '/finance/procurement', '/finance/contractors',
               '/finance/site-operations', '/finance/site-inventory',
               '/finance/receivables', '/finance/receipts',
-              '/finance/payables', '/finance/expenses', '/finance/payments',
+              '/finance/payables', '/finance/payments',
               '/finance/bank', '/finance/cash-book', '/finance/reports',
               '/finance/supervisors', '/finance/daily-labour', '/finance/settings',
               '/finance/activity',

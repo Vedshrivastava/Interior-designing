@@ -31,19 +31,23 @@ const workLabel = (w) => `${w.workType}${w.workOrderNumber ? ` — ${w.workOrder
  *
  * Every expense can optionally link to a Work (scoped to whichever project
  * it's under) and a "Related To" person/entity — Employee/Supervisor,
- * Contractor, Labourer, Vendor/Supplier, or Company (Contractor and Vendor
- * both save as the same financeVendor ref, just filtered differently) —
- * Notes stays free text for whatever those links don't capture.
+ * Contractor, Labourer, or Vendor/Supplier (Contractor and Vendor both save
+ * as the same financeVendor ref, just filtered differently). Company isn't
+ * one of the RELATED_TO_UI_OPTIONS choices here — Payables' Company
+ * Expenses tab already covers that exact case via `fixedRelatedTo`, so
+ * offering it again in this dropdown too would just be two paths to the
+ * same outcome. Notes stays free text for whatever the links don't capture.
  *
  * Reused five ways, each hiding whichever fields/columns its own scoping
  * already answers so the form only ever asks what it doesn't already know:
- *   - Unscoped on Payments' Miscellaneous tab and the dedicated Expenses
- *     page's Log tab (own heading comes from FinanceTabShell there — this
- *     is also the one place every column shows, since it's meant to be the
- *     "detail" view).
+ *   - Unscoped on Payments' Miscellaneous tab and Payables' own Expenses
+ *     tab (own heading comes from FinanceTabShell there — this is also the
+ *     one place every column shows, since it's meant to be the "detail"
+ *     view; a full-detail modal covers whatever still doesn't fit in the
+ *     table, e.g. Notes).
  *   - Scoped to one project via `projectId` on Project Detail's Expenses
  *     tab — Project field/column disappear, each row gets a "Details" link
- *     back to the Expenses page's Log tab instead, via `highlightId`.
+ *     back to Payables' Expenses tab instead, via `highlightId`.
  *   - Scoped to one category via `fixedCategory` on Payables' Other
  *     Expenses tab (e.g. "Others") — Category, Work, and Related To
  *     fields/columns all disappear too, since that tab is deliberately for
@@ -61,7 +65,6 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     const [projects, setProjects] = useState([]);
     const [categories, setCategories] = useState([]);
     const [bankAccounts, setBankAccounts] = useState([]);
-    const [company, setCompany] = useState(null);
     const [expenses, setExpenses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [flashId, setFlashId] = useState(highlightId || null);
@@ -77,6 +80,8 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     const [settling, setSettling] = useState(false);
     const [payments, setPayments] = useState([]);
     const [paymentsLoading, setPaymentsLoading] = useState(false);
+
+    const [viewTarget, setViewTarget] = useState(null);
 
     // The four scoping props are independent — a caller can combine them
     // (though today only one is ever set at a time) — so the fetch/columns/
@@ -108,7 +113,6 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'expense_category' } })
             .then(res => { if (res.data.success) setCategories(res.data.data.map(s => s.name)); }).catch(() => {});
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/settings/company`, authHeader).then(res => { if (res.data.success) setCompany(res.data.data); }).catch(() => {});
     }, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Work options are scoped to whichever project is currently relevant —
@@ -131,10 +135,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
     const setProjectField = (value) => setForm(prev => ({ ...prev, projectId: value, workId: '' }));
-    const setRelatedToUiType = (value) => setForm(prev => ({
-        ...prev, relatedToUiType: value,
-        relatedToId: value === 'company' ? (company?._id || '') : '',
-    }));
+    const setRelatedToUiType = (value) => setForm(prev => ({ ...prev, relatedToUiType: value, relatedToId: '' }));
 
     const openAdd = () => {
         setForm({ ...emptyForm, projectId: fixedProjectId || '', expenseCategory: fixedCategory || '' });
@@ -212,13 +213,25 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
         return { label: 'Pending', color: '#c0392b' };
     };
 
+    // Same type-label logic as the backend's Expense Analysis breakdown
+    // (financeReports.js) — kept in sync by hand since this is the only
+    // other place a raw relatedToType needs to read as "Contractor" vs
+    // plain "Vendor".
+    const relatedToTypeLabel = (e) => {
+        if (!e.relatedToType) return null;
+        if (e.relatedToType === 'financeEmployee') return 'Employee';
+        if (e.relatedToType === 'financeLabourer') return 'Labourer';
+        if (e.relatedToType === 'financeCompanySettings') return 'Company';
+        return e.relatedToId?.vendorType === 'labour_contractor' ? 'Contractor' : 'Vendor';
+    };
+
     const columns = [
         '1fr',
         !hideCategoryField && '1.1fr',
         !hideProjectField && '1.2fr',
         !hideWorkField && '1.2fr',
         !hideRelatedToField && '1.3fr',
-        '1fr', '1fr', '1fr', '150px',
+        '1fr', '1fr', '1fr', '230px',
     ].filter(Boolean).join(' ');
 
     const heading = fixedRelatedTo
@@ -283,14 +296,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                         />
                                     </div>
                                 )}
-                                {!hideRelatedToField && form.relatedToUiType && relatedToUiConfig(form.relatedToUiType).singleton ? (
-                                    <div className="add-product-name flex-col">
-                                        <p>{relatedToUiConfig(form.relatedToUiType).label}</p>
-                                        <p style={{ padding: '14px 16px', color: 'var(--text-lt)', fontStyle: 'italic' }}>
-                                            {company?.companyName || 'Loading…'}
-                                        </p>
-                                    </div>
-                                ) : !hideRelatedToField && form.relatedToUiType && (
+                                {!hideRelatedToField && form.relatedToUiType && (
                                     <div className="add-product-name flex-col">
                                         <p>{relatedToUiConfig(form.relatedToUiType).label}</p>
                                         <QuickAddPicker
@@ -366,9 +372,10 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                 <p>₹{e.amount.toLocaleString('en-IN')}</p>
                                 <p>₹{e.paidAmount.toLocaleString('en-IN')}</p>
                                 <p><span className="item-category" style={{ color: status.color }}>{status.label}</span></p>
-                                <div className="action-buttons">
+                                <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
+                                    <p onClick={() => setViewTarget(e)} className="cursor edit-action">View</p>
                                     {fixedProjectId && (
-                                        <p onClick={() => navigate(`/finance/expenses?tab=log&expenseId=${e._id}`)} className="cursor edit-action">Details</p>
+                                        <p onClick={() => navigate(`/finance/payables?tab=expenses&expenseId=${e._id}`)} className="cursor edit-action">Details</p>
                                     )}
                                     {e.balance > 0 && <p onClick={() => openSettle(e)} className="cursor edit-action">Settle</p>}
                                     <p onClick={() => remove(e._id)} className="cursor delete-action">X</p>
@@ -427,6 +434,42 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                 <button type="submit" className="add-btn" disabled={settling}>{settling ? 'Saving…' : '+ Add Payment'}</button>
                             </div>
                         </form>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {viewTarget && ReactDOM.createPortal(
+                <div className="submit-loader-overlay" style={{ zIndex: 99999 }} onClick={() => setViewTarget(null)}>
+                    <div className="loader-modal-box edit-modal" onClick={e => e.stopPropagation()}>
+                        <h2>{viewTarget.expenseCategory || 'General'} — ₹{viewTarget.amount.toLocaleString('en-IN')}</h2>
+                        <div className="list-table" style={{ marginTop: '12px' }}>
+                            {[
+                                ['Category', viewTarget.expenseCategory || '—'],
+                                ['Amount', `₹${viewTarget.amount.toLocaleString('en-IN')}`],
+                                ['Paid', `₹${viewTarget.paidAmount.toLocaleString('en-IN')}`],
+                                ['Balance', `₹${viewTarget.balance.toLocaleString('en-IN')}`],
+                                ['Status', statusFor(viewTarget).label],
+                                ['Date', new Date(viewTarget.date).toLocaleDateString()],
+                                ['Project', viewTarget.projectId?.name || 'General / overhead'],
+                                ['Work', viewTarget.workId?.workType || '— Not tied to a Work —'],
+                                ['Related To', viewTarget.relatedToId ? `${relatedToTypeLabel(viewTarget)}: ${viewTarget.relatedToId.name || viewTarget.relatedToId.companyName}` : '— None —'],
+                                ['Payment Mode', viewTarget.paymentMode || '—'],
+                                ['Bank Account', viewTarget.bankAccountId?.accountName || (viewTarget.paymentMode ? 'Cash' : '—')],
+                                ['Bank / Cash Label', viewTarget.bankOrCashLabel || '—'],
+                                ['Recorded', viewTarget.createdAt ? new Date(viewTarget.createdAt).toLocaleString() : '—'],
+                            ].map(([label, value]) => (
+                                <div key={label} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.4fr' }}>
+                                    <p><b>{label}</b></p><p>{value}</p>
+                                </div>
+                            ))}
+                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.4fr', alignItems: 'start' }}>
+                                <p><b>Notes</b></p><p style={{ whiteSpace: 'pre-wrap' }}>{viewTarget.notes || '—'}</p>
+                            </div>
+                        </div>
+                        <div className="edit-modal-actions">
+                            <button type="button" className="add-btn cancel-btn" onClick={() => setViewTarget(null)}>Close</button>
+                        </div>
                     </div>
                 </div>,
                 document.body

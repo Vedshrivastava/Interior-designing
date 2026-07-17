@@ -28,20 +28,13 @@ const ExpenseAnalysisView = ({ url }) => {
             .then(res => { if (res.data.success) setCategories(res.data.data.map(s => s.name)); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // "Related To" is normally a two-step filter — pick the category
-    // (Employee/Contractor/Labourer/Vendor), then pick who, from that
-    // category's own filtered list. "Company" is a singleton (there's only
-    // one financeCompanySettings document), so it resolves straight to that
-    // one record instead of listing anything to choose from.
+    // "Related To" is a two-step filter — pick the category (Employee/
+    // Contractor/Labourer/Vendor), then pick who, from that category's own
+    // filtered list.
     useEffect(() => {
-        const config = relatedToUiConfig(relatedToUiType);
-        if (!config) { setRelatedToId(''); setRelatedToOptions([]); return; }
-        if (config.singleton) {
-            axios.get(`${url}/api/finance/settings/company`, authHeader)
-                .then(res => { if (res.data.success) setRelatedToId(res.data.data._id); }).catch(() => {});
-            return;
-        }
         setRelatedToId('');
+        const config = relatedToUiConfig(relatedToUiType);
+        if (!config) { setRelatedToOptions([]); return; }
         axios.get(`${url}/api/finance/${config.resourceKey}/list`, authHeader)
             .then(res => {
                 if (!res.data.success) return;
@@ -81,7 +74,7 @@ const ExpenseAnalysisView = ({ url }) => {
                     <p>Related To</p>
                     <StyledSelect value={relatedToUiType} onChange={setRelatedToUiType} placeholder="Any" options={RELATED_TO_UI_OPTIONS} />
                 </div>
-                {relatedToUiType && !relatedToUiConfig(relatedToUiType).singleton && (
+                {relatedToUiType && (
                     <div className="add-product-name flex-col" style={{ maxWidth: '220px' }}>
                         <p>{relatedToUiConfig(relatedToUiType).label}</p>
                         <StyledSelect

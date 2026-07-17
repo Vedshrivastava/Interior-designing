@@ -1,20 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import ExpensesManager from '../../components/finance/ExpensesManager';
+import ExpenseAnalysisView from '../../components/finance/ExpenseAnalysisView';
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 const OTHER_CATEGORY = 'Others';
 
 const TABS = [
-    { key: 'vendor',     label: 'Vendor' },
-    { key: 'contractor', label: 'Contractor' },
-    { key: 'salary',     label: 'Salary' },
-    { key: 'commission', label: 'Commission' },
-    { key: 'company',    label: 'Company Expenses' },
-    { key: 'other',      label: 'Other Expenses' },
+    { key: 'vendor',           label: 'Vendor' },
+    { key: 'contractor',       label: 'Contractor' },
+    { key: 'salary',           label: 'Salary' },
+    { key: 'commission',       label: 'Commission' },
+    { key: 'expenses',         label: 'Expenses' },
+    { key: 'expense-analysis', label: 'Expense Analysis' },
+    { key: 'company',          label: 'Company Expenses' },
+    { key: 'other',            label: 'Other Expenses' },
 ];
 
 /*
@@ -234,7 +237,11 @@ const PayablesCommissionTab = ({ url }) => {
 };
 
 const PayablesPage = ({ url }) => {
-    const [activeTab, setActiveTab] = useState(TABS[0].key);
+    const [searchParams] = useSearchParams();
+    // Supports deep-linking in from a project's own Expenses tab's
+    // "Details" action: ?tab=expenses opens straight to the full log, and
+    // ?expenseId= scrolls to + briefly highlights that one row.
+    const [activeTab, setActiveTab] = useState(searchParams.get('tab') || TABS[0].key);
     const [companyId, setCompanyId] = useState('');
     const [companyName, setCompanyName] = useState('Company');
     const token = localStorage.getItem('token');
@@ -248,7 +255,7 @@ const PayablesPage = ({ url }) => {
     return (
         <FinanceTabShell
             label="Payables"
-            subtitle="Computed from vendor balance + contractor balance + unpaid salary + unpaid commission — never a directly-writable record. The full Expenses log/analysis lives under Expenses; these two tabs are quick, pre-filtered views of the same data."
+            subtitle="Computed from vendor balance + contractor balance + unpaid salary + unpaid commission — never a directly-writable record. Expenses/Expense Analysis/Company Expenses/Other Expenses are reads of the expense log instead, not a ledger."
             tabs={TABS}
             activeKey={activeTab}
             onTabChange={setActiveTab}
@@ -257,10 +264,12 @@ const PayablesPage = ({ url }) => {
             {activeTab === 'contractor' && <PayablesContractorTab url={url} />}
             {activeTab === 'salary' && <PayablesSalaryTab url={url} />}
             {activeTab === 'commission' && <PayablesCommissionTab url={url} />}
-            {activeTab === 'other' && <ExpensesManager url={url} fixedCategory={OTHER_CATEGORY} />}
+            {activeTab === 'expenses' && <ExpensesManager url={url} highlightId={searchParams.get('expenseId')} />}
+            {activeTab === 'expense-analysis' && <ExpenseAnalysisView url={url} />}
             {activeTab === 'company' && companyId && (
                 <ExpensesManager url={url} fixedRelatedTo={{ type: 'financeCompanySettings', id: companyId, label: `${companyName} Expenses` }} />
             )}
+            {activeTab === 'other' && <ExpensesManager url={url} fixedCategory={OTHER_CATEGORY} />}
         </FinanceTabShell>
     );
 };

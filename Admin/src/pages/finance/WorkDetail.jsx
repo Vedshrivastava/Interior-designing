@@ -6,6 +6,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import StyledDatePicker from '../../components/finance/StyledDatePicker';
 import StyledMonthPicker from '../../components/finance/StyledMonthPicker';
+import ToggleSwitch from '../../components/finance/ToggleSwitch';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 
@@ -85,10 +86,7 @@ const WorkDetail = ({ url }) => {
                                 <span className="rate-group-bar" />
                                 <b>{upto ? `Up to ${new Date(date).toLocaleDateString()}` : `On ${new Date(date).toLocaleDateString()}`}</b>
                             </div>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-lt)', cursor: 'pointer' }}>
-                                <input type="checkbox" checked={upto} onChange={e => setUpto(e.target.checked)} />
-                                Include everything up to this date
-                            </label>
+                            <ToggleSwitch checked={upto} onChange={setUpto} label="Include everything up to this date" />
                         </div>
                         {!data.dayReport || data.dayReport.areaCoveredSqft === 0 ? (
                             <div className="admin-empty-state"><p>No measurements logged for this Work {upto ? 'up to' : 'on'} this date.</p></div>
@@ -137,7 +135,8 @@ const WorkDetail = ({ url }) => {
                     </div>
                 )}
 
-                {date && <h3 style={{ margin: '0 0 4px' }}>All-Time Totals</h3>}
+                <h3 style={{ margin: '0 0 4px' }}>All-Time Totals</h3>
+                <p className="admin-subtitle" style={{ margin: '0 0 16px' }}>Not affected by the Date or Month filters above — every measurement ever logged against this Work.</p>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px' }}>
                     <div style={{
@@ -153,11 +152,6 @@ const WorkDetail = ({ url }) => {
                 </div>
 
                 <KpiGrid>
-                    <KpiCard
-                        label="Average Cost/Sqft (this month)"
-                        value={formatINR(data.averageCostPerSqft)}
-                        sub="Mean of each day's cost/sqft ratio — not total cost ÷ total area"
-                    />
                     <KpiCard label="Contractor Cost" value={formatINR(data.contractorCost)} />
                     <KpiCard label="Labour Cost" value={formatINR(data.labourCost)} />
                     <KpiCard label="Revenue" value={formatINR(data.revenue)} />
@@ -195,6 +189,16 @@ const WorkDetail = ({ url }) => {
                         ))}
                     </div>
                 )}
+
+                <h3 style={{ margin: '28px 0 4px' }}>This Month — {new Date(`${month}-01`).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</h3>
+                <p className="admin-subtitle" style={{ margin: '0 0 16px' }}>Scoped to the Month filter above — change it to look at a different month.</p>
+                <KpiGrid>
+                    <KpiCard
+                        label="Average Cost/Sqft"
+                        value={formatINR(data.averageCostPerSqft)}
+                        sub="Mean of each day's cost/sqft ratio — not total cost ÷ total area"
+                    />
+                </KpiGrid>
 
                 <ChartGrid>
                     <ChartCard title={`Daily Cost/Sqft — ${month}`}>

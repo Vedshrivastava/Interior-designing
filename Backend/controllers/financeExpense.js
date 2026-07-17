@@ -41,7 +41,7 @@ const listExpenses = async (req, res) => {
         }
         const items = await FinanceExpense.find(filter)
             .populate('bankAccountId', 'accountName').populate('projectId', 'name')
-            .populate('workId', 'workType').populate('relatedToId', 'name')
+            .populate('workId', 'workType').populate('relatedToId', 'name companyName')
             .sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: await withBalances(items) });
     } catch (err) {

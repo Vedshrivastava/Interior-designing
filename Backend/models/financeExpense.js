@@ -10,12 +10,15 @@ const financeExpenseSchema = new mongoose.Schema({
 
     // Who/what this expense was actually for — optional, and deliberately
     // narrower than a full polymorphic "any collection" ref: financeEmployee
-    // (staff/supervisors), financeLabourer (day-wage roster), and
-    // financeVendor (covers both Contractor and plain Vendor/Supplier in the
-    // UI, distinguished there by vendorType, not by a separate stored type)
-    // are the only valid targets. Same refPath pattern as
-    // financeActivityLog's entityType/entityId.
-    relatedToType: { type: String, enum: ['financeEmployee', 'financeVendor', 'financeLabourer', null], default: null },
+    // (staff/supervisors), financeLabourer (day-wage roster), financeVendor
+    // (covers both Contractor and plain Vendor/Supplier in the UI,
+    // distinguished there by vendorType, not by a separate stored type),
+    // and financeCompanySettings (the company's own singleton — for a
+    // company-level/overhead expense the owner wants explicitly tagged
+    // rather than left with no Related To at all) are the only valid
+    // targets. Same refPath pattern as financeActivityLog's
+    // entityType/entityId.
+    relatedToType: { type: String, enum: ['financeEmployee', 'financeVendor', 'financeLabourer', 'financeCompanySettings', null], default: null },
     relatedToId:   { type: mongoose.Schema.Types.ObjectId, refPath: 'relatedToType', default: null },
 
     amount: { type: Number, required: true },

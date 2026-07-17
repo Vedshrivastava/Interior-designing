@@ -10,6 +10,10 @@ export const RELATED_TO_UI_OPTIONS = [
     { value: 'contractor', label: 'Contractor', backendType: 'financeVendor', resourceKey: 'vendors', filter: v => v.vendorType === 'labour_contractor', presetValues: { vendorType: 'labour_contractor' } },
     { value: 'labourer', label: 'Labourer', backendType: 'financeLabourer', resourceKey: 'labourers' },
     { value: 'vendor', label: 'Vendor / Supplier', backendType: 'financeVendor', resourceKey: 'vendors', filter: v => v.vendorType !== 'labour_contractor' },
+    // Singleton — there's only one financeCompanySettings document, so this
+    // resolves straight to it with no name-picker step, unlike the other
+    // four which each list real records to choose from.
+    { value: 'company', label: 'Company (this business)', backendType: 'financeCompanySettings', singleton: true },
 ];
 
 export const relatedToUiConfig = (uiType) => RELATED_TO_UI_OPTIONS.find(o => o.value === uiType);

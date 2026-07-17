@@ -1124,7 +1124,7 @@ const getExpenseAnalysis = async (req, res) => {
             if (to) filter.date.$lte = new Date(to);
         }
         const expenses = await FinanceExpense.find(filter)
-            .populate('projectId', 'name').populate('workId', 'workType').populate('relatedToId', 'name vendorType')
+            .populate('projectId', 'name').populate('workId', 'workType').populate('relatedToId', 'name vendorType companyName')
             .sort({ date: -1 });
         const total = expenses.reduce((s, e) => s + e.amount, 0);
 
@@ -1151,8 +1151,10 @@ const getExpenseAnalysis = async (req, res) => {
                 const relKey = e.relatedToId._id.toString();
                 const relLabel = e.relatedToType === 'financeEmployee' ? 'Employee'
                     : e.relatedToType === 'financeLabourer' ? 'Labourer'
+                    : e.relatedToType === 'financeCompanySettings' ? 'Company'
                     : e.relatedToId.vendorType === 'labour_contractor' ? 'Contractor' : 'Vendor';
-                if (!byRelatedToMap.has(relKey)) byRelatedToMap.set(relKey, { relatedToId: e.relatedToId._id, relatedToType: relLabel, name: e.relatedToId.name, amount: 0 });
+                const relName = e.relatedToId.name || e.relatedToId.companyName;
+                if (!byRelatedToMap.has(relKey)) byRelatedToMap.set(relKey, { relatedToId: e.relatedToId._id, relatedToType: relLabel, name: relName, amount: 0 });
                 byRelatedToMap.get(relKey).amount += e.amount;
             }
         }

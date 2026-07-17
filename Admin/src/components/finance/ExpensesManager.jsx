@@ -53,6 +53,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
     const [projects, setProjects] = useState([]);
     const [categories, setCategories] = useState([]);
     const [bankAccounts, setBankAccounts] = useState([]);
+    const [company, setCompany] = useState(null);
     const [expenses, setExpenses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [flashId, setFlashId] = useState(highlightId || null);
@@ -86,6 +87,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'expense_category' } })
             .then(res => { if (res.data.success) setCategories(res.data.data.map(s => s.name)); }).catch(() => {});
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/settings/company`, authHeader).then(res => { if (res.data.success) setCompany(res.data.data); }).catch(() => {});
     }, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Work options are scoped to whichever project is currently relevant —
@@ -108,7 +110,10 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
     const setProjectField = (value) => setForm(prev => ({ ...prev, projectId: value, workId: '' }));
-    const setRelatedToUiType = (value) => setForm(prev => ({ ...prev, relatedToUiType: value, relatedToId: '' }));
+    const setRelatedToUiType = (value) => setForm(prev => ({
+        ...prev, relatedToUiType: value,
+        relatedToId: value === 'company' ? (company?._id || '') : '',
+    }));
 
     const openAdd = () => { setForm({ ...emptyForm, projectId: fixedProjectId || '' }); setPaidNow(true); setModalOpen(true); };
     const closeModal = () => setModalOpen(false);
@@ -232,7 +237,14 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
                                         options={RELATED_TO_UI_OPTIONS}
                                     />
                                 </div>
-                                {form.relatedToUiType && (
+                                {form.relatedToUiType && relatedToUiConfig(form.relatedToUiType).singleton ? (
+                                    <div className="add-product-name flex-col">
+                                        <p>{relatedToUiConfig(form.relatedToUiType).label}</p>
+                                        <p style={{ padding: '14px 16px', color: 'var(--text-lt)', fontStyle: 'italic' }}>
+                                            {company?.companyName || 'Loading…'}
+                                        </p>
+                                    </div>
+                                ) : form.relatedToUiType && (
                                     <div className="add-product-name flex-col">
                                         <p>{relatedToUiConfig(form.relatedToUiType).label}</p>
                                         <QuickAddPicker
@@ -303,7 +315,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
                                     <>
                                         <p>{e.projectId?.name || 'General'}</p>
                                         <p>{e.workId?.workType || '—'}</p>
-                                        <p>{e.relatedToId?.name || '—'}</p>
+                                        <p>{e.relatedToId?.name || e.relatedToId?.companyName || '—'}</p>
                                     </>
                                 )}
                                 <p>₹{e.amount.toLocaleString('en-IN')}</p>

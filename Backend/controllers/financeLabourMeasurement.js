@@ -13,8 +13,9 @@ const listLabourMeasurements = async (req, res) => {
         if (workId) filter.workId = workId;
         if (labourerId) filter.labourerId = labourerId;
         const items = await FinanceLabourMeasurement.find(filter)
-            .populate('workId', 'workType')
+            .populate('workId', 'workType workOrderNumber')
             .populate('labourerId', 'name')
+            .populate('supervisorId', 'name')
             .sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {
@@ -44,8 +45,8 @@ const addLabourMeasurement = async (req, res) => {
         const work = await FinanceWork.findOne({ _id: workId, projectId, deleted: { $ne: true } });
         if (!work) return res.status(404).json({ success: false, message: 'Work not found for this project' });
 
-        const isAssigned = await FinanceWorkLabourAssignment.exists({ workId, labourerId, deleted: { $ne: true } });
-        if (!isAssigned) {
+        const assignment = await FinanceWorkLabourAssignment.findOne({ workId, labourerId, deleted: { $ne: true } });
+        if (!assignment) {
             return res.status(400).json({ success: false, message: 'Labourer is not assigned to this work' });
         }
 
@@ -54,7 +55,10 @@ const addLabourMeasurement = async (req, res) => {
 
         const measurement = new FinanceLabourMeasurement({
             projectId, workId, labourerId, date, areaCoveredSqft,
-            supervisorId: req.body.supervisorId || null,
+            // Whoever currently runs this labourer's team on this Work — the
+            // caller doesn't need to pass this explicitly, it's already a
+            // fact of the assignment, not something re-entered per measurement.
+            supervisorId: req.body.supervisorId || assignment.supervisorId || null,
             remarks: remarks || '',
         });
         await measurement.save();

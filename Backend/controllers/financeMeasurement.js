@@ -24,7 +24,7 @@ const listMeasurements = async (req, res) => {
         const filter = { projectId, deleted: { $ne: true } };
         if (workId) filter.workId = workId;
         const items = await FinanceMeasurement.find(filter)
-            .populate('workId', 'workType')
+            .populate('workId', 'workType workOrderNumber')
             .populate('materialUsed.materialId', 'name unit')
             .populate('contractorVendorId', 'name')
             .sort({ date: -1, createdAt: -1 });

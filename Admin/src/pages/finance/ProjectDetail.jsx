@@ -9,8 +9,7 @@ import ContractorRatesManager from '../../components/finance/ContractorRatesMana
 import WorkersManager from '../../components/finance/WorkersManager';
 import WorksManager from '../../components/finance/WorksManager';
 import ProjectQuotationsManager from '../../components/finance/ProjectQuotationsManager';
-import MeasurementsManager from '../../components/finance/MeasurementsManager';
-import LabourMeasurementsManager from '../../components/finance/LabourMeasurementsManager';
+import WorkMeasurementsSummary from '../../components/finance/WorkMeasurementsSummary';
 import StockMovementsManager from '../../components/finance/StockMovementsManager';
 import RunningBillsManager from '../../components/finance/RunningBillsManager';
 import ReceiptsManager from '../../components/finance/ReceiptsManager';
@@ -422,10 +421,11 @@ const ProjectDetail = ({ url }) => {
 
                 {activeTab === 'measurements' && (
                     <div>
-                        <h3 style={{ margin: '0 0 8px' }}>Contractor Measurements</h3>
-                        <MeasurementsManager url={url} projectId={id} />
-                        <h3 style={{ margin: '32px 0 8px' }}>Labour Measurements</h3>
-                        <LabourMeasurementsManager url={url} projectId={id} />
+                        <h3 style={{ margin: '0 0 8px' }}>Measurements</h3>
+                        <p className="admin-subtitle" style={{ margin: '0 0 16px' }}>
+                            Entry happens from Site Operations / Labour Measurements — this is a read-only view of what's been logged here.
+                        </p>
+                        <WorkMeasurementsSummary url={url} projectId={id} worksVersion={worksVersion} />
                     </div>
                 )}
 

@@ -31,20 +31,21 @@ const WorkDetail = ({ url }) => {
 
     const [month, setMonth] = useState(thisMonth());
     const [date, setDate] = useState(searchParams.get('date') || '');
+    const [upto, setUpto] = useState(false);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const setDateFilter = (v) => { setDate(v); setSearchParams(v ? { date: v } : {}); };
+    const setDateFilter = (v) => { setDate(v); setSearchParams(v ? { date: v } : {}); if (!v) setUpto(false); };
 
     useEffect(() => {
         setLoading(true);
         const params = { workId, month };
-        if (date) params.date = date;
+        if (date) { params.date = date; if (upto) params.upto = 'true'; }
         axios.get(`${url}/api/finance/reports/work-detail`, { ...authHeader, params })
             .then(res => { if (res.data.success) setData(res.data.data); else toast.error(res.data.message); })
             .catch(() => toast.error('Error fetching work detail'))
             .finally(() => setLoading(false));
-    }, [url, workId, month, date]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [url, workId, month, date, upto]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (loading) {
         return <div className="list add flex-col"><div className="admin-list-container"><div className="admin-empty-state"><p>Loading…</p></div></div></div>;
@@ -61,6 +62,7 @@ const WorkDetail = ({ url }) => {
                 <div className="admin-header-split">
                     <div>
                         <button type="button" className="admin-search-clear" style={{ position: 'static', fontSize: '0.8rem', color: 'var(--text-lt)', marginBottom: '8px' }} onClick={() => navigate(`/finance/projects/${projectId}`)}>← Back to Project</button>
+                        <p className="admin-subtitle" style={{ margin: '0 0 2px' }}>{data.projectName}</p>
                         <h1>{data.workType}</h1>
                         <p className="admin-subtitle">{data.completedAreaSqft} / {data.estimatedAreaSqft} sqft completed</p>
                     </div>
@@ -78,12 +80,18 @@ const WorkDetail = ({ url }) => {
 
                 {date && (
                     <div className="list-table" style={{ marginBottom: '24px' }}>
-                        <div className="rate-group-header">
-                            <span className="rate-group-bar" />
-                            <b>On {new Date(date).toLocaleDateString()}</b>
+                        <div className="rate-group-header" style={{ justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span className="rate-group-bar" />
+                                <b>{upto ? `Up to ${new Date(date).toLocaleDateString()}` : `On ${new Date(date).toLocaleDateString()}`}</b>
+                            </div>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-lt)', cursor: 'pointer' }}>
+                                <input type="checkbox" checked={upto} onChange={e => setUpto(e.target.checked)} />
+                                Include everything up to this date
+                            </label>
                         </div>
                         {!data.dayReport || data.dayReport.areaCoveredSqft === 0 ? (
-                            <div className="admin-empty-state"><p>No measurements logged for this Work on this date.</p></div>
+                            <div className="admin-empty-state"><p>No measurements logged for this Work {upto ? 'up to' : 'on'} this date.</p></div>
                         ) : (
                             <div style={{ padding: '20px' }}>
                                 <KpiGrid>

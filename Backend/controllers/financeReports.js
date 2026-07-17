@@ -409,21 +409,23 @@ const computeWorkProfit = async (work) => {
     return { revenue, contractorCost, contractorBreakdown, labourCost, labourBreakdown, materialCost, profit, areaBilledSqft };
 };
 
-// One day's slice of the same contractor/labour cost math computeWorkProfit
-// does cumulatively — how much area was covered and how much that cost
-// (at current rates) on exactly this date, so a measurement's "Details"
-// link can answer "what happened that day" without losing the all-time
-// totals computeWorkProfit already provides. Mirrors computeWorkProfit's
+// One day's slice — or, with `cumulative: true`, everything from the
+// work's start through that date — of the same contractor/labour cost
+// math computeWorkProfit does over all time. How much area was covered
+// and how much that cost (at current rates), so a measurement's
+// "Details" link can answer "what happened that day" (or "where did we
+// stand as of that day") without losing the all-time totals
+// computeWorkProfit already provides. Mirrors computeWorkProfit's
 // approval gate on contractor area (unapproved area is reported but
-// excluded from cost) so a day's contractorCost is a true component of
-// the cumulative figure, not a differently-defined number.
-const computeWorkDayReport = async (work, dateKey) => {
-    const dayStart = new Date(`${dateKey}T00:00:00.000Z`);
+// excluded from cost) so this stays a true component/prefix of the
+// cumulative figure, not a differently-defined number.
+const computeWorkDayReport = async (work, dateKey, { cumulative = false } = {}) => {
     const dayEnd = new Date(`${dateKey}T23:59:59.999Z`);
+    const dateFilter = cumulative ? { $lte: dayEnd } : { $gte: new Date(`${dateKey}T00:00:00.000Z`), $lte: dayEnd };
 
     const [measurements, labourMeasurements] = await Promise.all([
-        FinanceMeasurement.find({ workId: work._id, date: { $gte: dayStart, $lte: dayEnd }, deleted: { $ne: true } }),
-        FinanceLabourMeasurement.find({ workId: work._id, date: { $gte: dayStart, $lte: dayEnd }, deleted: { $ne: true } }),
+        FinanceMeasurement.find({ workId: work._id, date: dateFilter, deleted: { $ne: true } }),
+        FinanceLabourMeasurement.find({ workId: work._id, date: dateFilter, deleted: { $ne: true } }),
     ]);
 
     const areaByVendor = new Map();
@@ -492,7 +494,7 @@ const computeWorkDayReport = async (work, dateKey) => {
     );
 
     return {
-        date: dateKey, areaCoveredSqft,
+        date: dateKey, cumulative, areaCoveredSqft,
         contractorCost, contractorBreakdown,
         labourCost, labourBreakdown,
         totalCost: round2(contractorCost + labourCost),
@@ -527,15 +529,20 @@ const getWorkProfit = async (req, res) => {
 // New Tier-2 endpoint — everything about one work for one month.
 const getWorkDetail = async (req, res) => {
     try {
-        const { workId, month, date } = req.query;
+        const { workId, month, date, upto } = req.query;
         if (!workId) return res.status(400).json({ success: false, message: 'workId is required' });
         const work = await FinanceWork.findOne({ _id: workId, deleted: { $ne: true } });
         if (!work) return res.status(404).json({ success: false, message: 'Work not found' });
+        // Kept separate from `work` on purpose — work.projectId stays a raw
+        // ObjectId below since it feeds several other queries as a filter
+        // value (computeWorkProfit, material avg rates, stock movements).
+        const workProject = await FinanceProject.findById(work.projectId, 'name');
 
         const monthKey = month && /^\d{4}-\d{2}$/.test(month) ? month : new Date().toISOString().slice(0, 7);
         const { start, end } = monthBounds(monthKey);
         const progressPercent = work.estimatedAreaSqft > 0 ? Math.min(100, Math.round((work.completedAreaSqft / work.estimatedAreaSqft) * 100)) : 0;
         const dateKey = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
+        const cumulative = upto === 'true' || upto === '1';
 
         const [measurements, materials, taggedWaste, projectWasteTotal, avgRate, workProfit, dayReport] = await Promise.all([
             FinanceMeasurement.find({ workId, deleted: { $ne: true } }).sort({ date: 1 }),
@@ -552,7 +559,7 @@ const getWorkDetail = async (req, res) => {
             ]),
             computeMaterialAvgRates(work.projectId),
             computeWorkProfit(work),
-            dateKey ? computeWorkDayReport(work, dateKey) : Promise.resolve(null),
+            dateKey ? computeWorkDayReport(work, dateKey, { cumulative }) : Promise.resolve(null),
         ]);
         const materialById = new Map(materials.map(m => [m._id.toString(), m]));
         const nameUnit = (id) => ({ materialName: materialById.get(id.toString())?.name || 'Unknown', unit: materialById.get(id.toString())?.unit || '' });
@@ -594,7 +601,7 @@ const getWorkDetail = async (req, res) => {
         res.json({
             success: true,
             data: {
-                workId: work._id, projectId: work.projectId, workType: work.workType,
+                workId: work._id, projectId: work.projectId, projectName: workProject?.name || '—', workType: work.workType,
                 estimatedAreaSqft: work.estimatedAreaSqft, completedAreaSqft: work.completedAreaSqft, progressPercent,
                 materialUsed, materialWasted, projectLevelWaste,
                 month: monthKey, dailyBreakdown, averageCostPerSqft,

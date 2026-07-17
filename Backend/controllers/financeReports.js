@@ -292,6 +292,60 @@ const getClientProfit = async (req, res) => {
     }
 };
 
+// "Expected Total Pay" for a Work — a forward-looking figure, deliberately
+// separate from computeWorkProfit's contractorCost/labourCost (which are
+// backward-looking: actual measured/approved area to date). This instead
+// asks "what will this work actually pay out once finished, after
+// penalties": rate × estimatedAreaSqft (the full contract target) per
+// assigned contractor/labourer, minus every deduction manually entered
+// against this specific work (financeContractorDeduction/
+// financeLabourDeduction with a matching workId — see those controllers).
+// Reuses the exact same rate-lookup-by-(project, party, workType) shape as
+// computeWorkProfit so nothing drifts between the two.
+//
+// KNOWN LIMITATION: if a Work genuinely has more than one contributing
+// contractor/labourer, this sums each one's rate × the *full* estimated
+// area rather than a real split of who's doing which portion — accepted
+// because no data anywhere in this schema records that split (the same
+// simplification computeProjectContractorCost's callers already live
+// with). Harmless for the common case of one team per Work.
+const computeWorkExpectedPay = async (work) => {
+    const [contractorAssignments, labourAssignments, contractorMeasurements, labourMeasurements] = await Promise.all([
+        FinanceWorkContractorAssignment.find({ workId: work._id, deleted: { $ne: true } }, 'contractorVendorId'),
+        FinanceWorkLabourAssignment.find({ workId: work._id, deleted: { $ne: true } }, 'labourerId'),
+        FinanceMeasurement.find({ workId: work._id, deleted: { $ne: true } }, 'contractorVendorId'),
+        FinanceLabourMeasurement.find({ workId: work._id, deleted: { $ne: true } }, 'labourerId'),
+    ]);
+    const vendorIds = new Set([
+        ...contractorAssignments.map(a => a.contractorVendorId.toString()),
+        ...contractorMeasurements.filter(m => m.contractorVendorId).map(m => m.contractorVendorId.toString()),
+    ]);
+    const labourerIds = new Set([
+        ...labourAssignments.map(a => a.labourerId.toString()),
+        ...labourMeasurements.map(m => m.labourerId.toString()),
+    ]);
+
+    const [contractorRates, labourRates, contractorDeductionAgg, labourDeductionAgg] = await Promise.all([
+        vendorIds.size ? FinanceContractorRate.find({ projectId: work.projectId, contractorVendorId: { $in: [...vendorIds] }, workType: work.workType, deleted: { $ne: true } }) : [],
+        labourerIds.size ? FinanceLabourRate.find({ projectId: work.projectId, labourerId: { $in: [...labourerIds] }, workType: work.workType, deleted: { $ne: true } }) : [],
+        FinanceContractorDeduction.aggregate([
+            { $match: { workId: work._id, deleted: { $ne: true } } },
+            { $group: { _id: null, total: { $sum: '$amount' } } },
+        ]),
+        FinanceLabourDeduction.aggregate([
+            { $match: { workId: work._id, deleted: { $ne: true } } },
+            { $group: { _id: null, total: { $sum: '$amount' } } },
+        ]),
+    ]);
+
+    const expectedContractorPay = contractorRates.reduce((s, r) => s + work.estimatedAreaSqft * r.ratePerSqft, 0);
+    const expectedLabourPay = labourRates.reduce((s, r) => s + work.estimatedAreaSqft * r.ratePerSqft, 0);
+    const expectedPay = round2(expectedContractorPay + expectedLabourPay);
+    const deductedTotal = round2((contractorDeductionAgg[0]?.total || 0) + (labourDeductionAgg[0]?.total || 0));
+
+    return { expectedPay, deductedTotal, expectedPayNetOfDeductions: round2(expectedPay - deductedTotal) };
+};
+
 // Shared by getWorkProfit and getWorkDetail (Tier-2 work drill-down) so the
 // contractor-cost/revenue/profit numbers can never drift between the two.
 //
@@ -407,8 +461,12 @@ const computeWorkProfit = async (work) => {
 
     const materialCost = await computeWorkMaterialCost(work.projectId, work._id);
     const profit = revenue - contractorCost - labourCost - materialCost;
+    const { expectedPay, deductedTotal, expectedPayNetOfDeductions } = await computeWorkExpectedPay(work);
 
-    return { revenue, contractorCost, contractorBreakdown, labourCost, labourBreakdown, materialCost, profit, areaBilledSqft };
+    return {
+        revenue, contractorCost, contractorBreakdown, labourCost, labourBreakdown, materialCost, profit, areaBilledSqft,
+        expectedPay, deductedTotal, expectedPayNetOfDeductions,
+    };
 };
 
 // Everything about one Work — area, contractor/labour cost + breakdown,
@@ -632,6 +690,12 @@ const getWorkDetail = async (req, res) => {
                 scope, scopeLabel, month: monthKey, date: dateKey, cumulative,
                 ...report,
                 revenue: workProfit.revenue, profit: workProfit.profit,
+                // Forward-looking, all-time only like revenue/profit above —
+                // there's one estimatedAreaSqft per Work, not one per
+                // Day/Month, so "expected pay for just this month" isn't a
+                // coherent number either.
+                expectedPay: workProfit.expectedPay, deductedTotal: workProfit.deductedTotal,
+                expectedPayNetOfDeductions: workProfit.expectedPayNetOfDeductions,
                 // Project-wide, always current — dump/return movements
                 // aren't tied to one Work, so "material left" can't be
                 // scoped to this Work's Day/Month/All Time selector.
@@ -1462,8 +1526,9 @@ const getDashboardSummary = async (req, res) => {
         // mixed-with-every-event-type recentActivities feed), so every work
         // that had area logged today shows up as its own line, contractor and
         // labour entries combined into one sqft figure per work.
-        const todaysMeasurementSqft = todayContractorMeasurements.reduce((s, m) => s + m.areaCoveredSqft, 0)
-            + todayLabourMeasurements.reduce((s, m) => s + m.areaCoveredSqft, 0);
+        const todaysContractorMeasurementSqft = todayContractorMeasurements.reduce((s, m) => s + m.areaCoveredSqft, 0);
+        const todaysLabourMeasurementSqft = todayLabourMeasurements.reduce((s, m) => s + m.areaCoveredSqft, 0);
+        const todaysMeasurementSqft = todaysContractorMeasurementSqft + todaysLabourMeasurementSqft;
         const sqftByWorkId = new Map();
         for (const m of [...todayContractorMeasurements, ...todayLabourMeasurements]) {
             const key = m.workId.toString();
@@ -1494,14 +1559,24 @@ const getDashboardSummary = async (req, res) => {
             const key = r._id.toString();
             deductedByWorkId.set(key, (deductedByWorkId.get(key) || 0) + r.total);
         }
+        // expectedPay reuses computeWorkExpectedPay (only its expectedPay
+        // figure — deductedByWorkId above is already the same total, no
+        // need to make it re-derive that part).
+        const expectedPayByWorkId = new Map(
+            (await Promise.all(todaysWorksById.map(async w => [w._id.toString(), (await computeWorkExpectedPay(w)).expectedPay])))
+        );
         const todaysWorkActivity = todaysWorksById
-            .map(w => ({
-                workId: w._id, workType: w.workType,
-                projectId: w.projectId?._id, projectName: w.projectId?.name || '—',
-                sqft: sqftByWorkId.get(w._id.toString()) || 0,
-                estimatedAreaSqft: w.estimatedAreaSqft, completedAreaSqft: w.completedAreaSqft,
-                deductedAmount: deductedByWorkId.get(w._id.toString()) || 0,
-            }))
+            .map(w => {
+                const deductedAmount = deductedByWorkId.get(w._id.toString()) || 0;
+                const expectedPay = expectedPayByWorkId.get(w._id.toString()) || 0;
+                return {
+                    workId: w._id, workType: w.workType,
+                    projectId: w.projectId?._id, projectName: w.projectId?.name || '—',
+                    sqft: sqftByWorkId.get(w._id.toString()) || 0,
+                    estimatedAreaSqft: w.estimatedAreaSqft, completedAreaSqft: w.completedAreaSqft,
+                    deductedAmount, expectedPay, expectedPayNetOfDeductions: round2(expectedPay - deductedAmount),
+                };
+            })
             .sort((a, b) => b.sqft - a.sqft);
 
         const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost] = await Promise.all([
@@ -1530,7 +1605,7 @@ const getDashboardSummary = async (req, res) => {
                 activeWorks: activeWorksCount,
                 labourWorkingToday: labourersWorkingTodayIds.length,
                 materialLowAlerts: lowStockCount,
-                todaysMeasurementSqft, todaysWorkActivity,
+                todaysMeasurementSqft, todaysContractorMeasurementSqft, todaysLabourMeasurementSqft, todaysWorkActivity,
                 thisMonthRevenue, thisMonthProfit,
                 recentActivities,
             },

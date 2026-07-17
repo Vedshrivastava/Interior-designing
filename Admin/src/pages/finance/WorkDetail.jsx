@@ -146,6 +146,12 @@ const WorkDetail = ({ url }) => {
                         value={formatINR(data.averageCostPerSqft)}
                         sub="Mean of each day's cost/sqft ratio — not total cost ÷ total area"
                     />
+                    <KpiCard
+                        label="Expected Pay (Net of Deductions)"
+                        value={formatINR(data.expectedPayNetOfDeductions)}
+                        sub={data.deductedTotal > 0 ? `₹${data.expectedPay.toLocaleString('en-IN')} expected − ₹${data.deductedTotal.toLocaleString('en-IN')} deducted` : 'Rate × estimated area — always all-time, not scoped by the picker above'}
+                        tone={data.deductedTotal > 0 ? 'danger' : undefined}
+                    />
                 </KpiGrid>
 
                 {data.contractorBreakdown.length > 0 && (

@@ -174,6 +174,17 @@ const FinanceHome = ({ url }) => {
         { name: 'Commission', value: payablesBreakdown.commission },
     ].filter(d => d.value > 0) : [];
 
+    // One box per work type present in today's measurements (Putty, Paint,
+    // etc.) — a type can span several projects/works today, so this rolls
+    // those up into a single glanceable figure per type, same KpiCard style
+    // as the rest of Site Activity. The detailed by-work-by-project table
+    // below still has the per-row breakdown for drilling in further.
+    const measurementsByType = (summary?.todaysWorkActivity || []).reduce((acc, w) => {
+        acc[w.workType] = (acc[w.workType] || 0) + w.sqft;
+        return acc;
+    }, {});
+    const measurementTypeEntries = Object.entries(measurementsByType).sort((a, b) => b[1] - a[1]);
+
     return (
         <div className="list add flex-col">
             <div className="admin-list-container">
@@ -204,31 +215,52 @@ const FinanceHome = ({ url }) => {
                     <KpiCard loading={phase1Loading} icon={faBuilding} label="Active Projects" value={summary?.activeProjects ?? 0} onClick={() => navigate('/finance/projects')} />
                     <KpiCard loading={phase1Loading} icon={faClipboardList} label="Active Works" value={summary?.activeWorks ?? 0} onClick={() => navigate('/finance/projects')} />
                     <KpiCard loading={phase1Loading} icon={faPersonDigging} label="Personal Labour Working Today" value={summary?.labourWorkingToday ?? 0} onClick={() => navigate('/finance/daily-labour')} />
-                    <KpiCard loading={phase1Loading} icon={faRulerCombined} label="Today's Measurement" value={`${(summary?.todaysMeasurementSqft || 0).toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/site-operations')} />
+                    <KpiCard loading={phase1Loading} icon={faHardHat} label="Contractor Teams — Today" value={`${(summary?.todaysContractorMeasurementSqft || 0).toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/contractors')} />
+                    <KpiCard loading={phase1Loading} icon={faPersonDigging} label="Labour Teams — Today" value={`${(summary?.todaysLabourMeasurementSqft || 0).toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/daily-labour')} />
                     <KpiCard loading={phase1Loading} icon={faTriangleExclamation} label="Material Low Alerts" value={summary?.materialLowAlerts ?? 0} onClick={() => navigate('/finance/site-inventory?filter=low-stock')} tone={summary?.materialLowAlerts > 0 ? 'danger' : 'good'} />
                 </KpiGrid>
+
+                {/* One box per work type measured today (Putty, Paint, TV
+                    Unit...), rolled up across every project — replaces the
+                    single blended "Today's Measurement" total with a
+                    breakdown of what kind of work actually happened. */}
+                {(phase1Loading || measurementTypeEntries.length > 0) && (
+                    <KpiGrid>
+                        {phase1Loading ? (
+                            <KpiCard loading icon={faRulerCombined} label="Today's Measurements by Type" value="" />
+                        ) : measurementTypeEntries.map(([workType, sqft]) => (
+                            <KpiCard key={workType} icon={faRulerCombined} label={`${workType} — Today`} value={`${sqft.toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/site-operations')} />
+                        ))}
+                    </KpiGrid>
+                )}
 
                 {/* Today's measurements, one line per Work — not gated by
                     engineer approval (that only gates billing/earnings, not
                     what's shown as logged on site), and not mixed in with
                     the unrelated payment/mutation events in Recent Activity
-                    below. */}
+                    below. "Deducted" here is a manually-entered, discarded-
+                    work penalty (financeContractorDeduction/
+                    financeLabourDeduction with a workId) — a separate thing
+                    from "unapproved" (engineerApproved: false, still
+                    pending review, shown instead in the Contractor/Labour
+                    Ledger's own Neglected/Unapproved column). */}
                 {(phase1Loading || (summary?.todaysWorkActivity?.length > 0)) && (
                     <>
                         <KpiSectionLabel>Site Activity — Today's Measurements by Work</KpiSectionLabel>
                         <div className="list-table" style={{ marginBottom: '24px' }}>
-                            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1fr 1fr' }}>
-                                <b>Work</b><b>Project</b><b>Measured Today</b><b>Expected / Completed</b><b>Deducted (Negligence)</b>
+                            <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1.2fr 1fr 1fr 1fr 1fr' }}>
+                                <b>Work</b><b>Project</b><b>Measured Today</b><b>Expected / Completed</b><b>Deducted (Discarded)</b><b>Expected Pay (Net)</b>
                             </div>
                             {phase1Loading ? (
                                 <div className="admin-empty-state"><p>Loading…</p></div>
                             ) : summary.todaysWorkActivity.map(w => (
-                                <div key={w.workId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1fr 1fr' }}>
+                                <div key={w.workId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1.2fr 1fr 1fr 1fr 1fr' }}>
                                     <p>{w.workType}</p>
                                     <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${w.projectId}`)}>{w.projectName}</p>
                                     <p>{w.sqft.toLocaleString('en-IN')} sqft</p>
                                     <p>{w.completedAreaSqft.toLocaleString('en-IN')} / {w.estimatedAreaSqft.toLocaleString('en-IN')} sqft</p>
                                     <p style={{ color: w.deductedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>{w.deductedAmount > 0 ? formatINR(w.deductedAmount) : '—'}</p>
+                                    <p title="rate × estimated area, minus this work's deductions">{formatINR(w.expectedPayNetOfDeductions)}</p>
                                 </div>
                             ))}
                         </div>

@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import StyledDatePicker from './StyledDatePicker';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const STATUS_LABEL = { draft: 'Draft', issued: 'Issued' };
 
@@ -154,12 +157,16 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-                <button type="button" className="add-point-btn" onClick={openGenerate}>+ Generate Bill</button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                <div>
+                    <h3 style={{ margin: '0 0 4px' }}>Running Bills</h3>
+                    <p className="admin-subtitle" style={{ margin: 0 }}>Generated from approved, unbilled measurements — draft until issued; only issued bills count as revenue.</p>
+                </div>
+                <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={openGenerate}>+ Generate Bill</button>
             </div>
 
             <div className="list-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1fr 1fr 220px' }}>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1fr 110px 260px' }}>
                     <b>Bill #</b><b>Date</b><b>Period</b><b>Total</b><b>Status</b><b>Action</b>
                 </div>
                 {loading ? (
@@ -168,7 +175,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                     <div className="admin-empty-state"><p>No bills yet.</p></div>
                 ) : (
                     bills.map(b => (
-                        <div key={b._id} className="list-table-format row-item" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1fr 1fr 220px' }}>
+                        <div key={b._id} className="list-table-format row-item" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1fr 110px 260px' }}>
                             <p>#{b.billNumber}</p>
                             <p>{new Date(b.billDate).toLocaleDateString()}</p>
                             <p>{new Date(b.periodFrom).toLocaleDateString()} – {new Date(b.periodTo).toLocaleDateString()}</p>
@@ -183,7 +190,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                             <p onClick={() => toggleStatus(b)} className="cursor" style={{ color: b.status === 'issued' ? 'var(--moss)' : 'var(--text-lt)' }}>
                                 <span className="item-category">{STATUS_LABEL[b.status]}</span>
                             </p>
-                            <div className="action-buttons">
+                            <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
                                 {b.status === 'draft' && <p onClick={() => openGstEdit(b)} className="cursor edit-action">GST</p>}
                                 <p onClick={() => downloadStatement(b)} className="cursor edit-action">Statement</p>
                                 <p onClick={() => setConfirmItem(b)} className="cursor delete-action">X</p>
@@ -200,15 +207,15 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                         <div className="wizard-field-grid">
                             <div className="add-product-name flex-col">
                                 <p>Period From *</p>
-                                <input type="date" value={periodFrom} onChange={e => { setPeriodFrom(e.target.value); setPreview(null); }} />
+                                <StyledDatePicker value={periodFrom} onChange={v => { setPeriodFrom(v); setPreview(null); }} />
                             </div>
                             <div className="add-product-name flex-col">
                                 <p>Period To *</p>
-                                <input type="date" value={periodTo} onChange={e => { setPeriodTo(e.target.value); setPreview(null); }} />
+                                <StyledDatePicker value={periodTo} onChange={v => { setPeriodTo(v); setPreview(null); }} align="right" />
                             </div>
                             <div className="add-product-name flex-col">
                                 <p>Bill Date</p>
-                                <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} />
+                                <StyledDatePicker value={billDate} onChange={setBillDate} />
                             </div>
                             <div className="add-product-name flex-col">
                                 <p>GST Rate % (optional)</p>

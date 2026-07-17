@@ -55,17 +55,18 @@ const ContractorAnalysisTable = ({ url }) => {
             </div>
 
             <div className="list-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr 1fr' }}>
-                    <b>Contractor</b><b>Earnings</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>Balance Payable</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 0.9fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr' }}>
+                    <b>Contractor</b><b>Total</b><b>Approved</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>Balance Payable</b>
                 </div>
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
                 ) : rows.length === 0 ? (
                     <div className="admin-empty-state"><p>No labour contractors yet.</p></div>
                 ) : rows.map(r => (
-                    <div key={r.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr 1fr' }}>
+                    <div key={r.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 0.9fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr' }}>
                         <p>{r.vendorName}</p>
-                        <p>₹{r.earnings.toLocaleString('en-IN')}</p>
+                        <p>₹{r.totalAmount.toLocaleString('en-IN')}</p>
+                        <p style={{ color: r.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{r.earnings > 0 ? `₹${r.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
                         <p>₹{r.advances.toLocaleString('en-IN')}</p>
                         <p>₹{r.deductions.toLocaleString('en-IN')}</p>
                         <p>₹{r.payments.toLocaleString('en-IN')}</p>

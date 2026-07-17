@@ -12,6 +12,7 @@ const listSupervisorDeductions = async (req, res) => {
         if (projectId) filter.projectId = projectId;
         const items = await FinanceSupervisorDeduction.find(filter)
             .populate('projectId', 'name')
+            .populate('workId', 'workType')
             .sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {
@@ -22,14 +23,14 @@ const listSupervisorDeductions = async (req, res) => {
 
 const addSupervisorDeduction = async (req, res) => {
     try {
-        const { employeeId, projectId, amount, reason, date, notes } = req.body;
+        const { employeeId, projectId, workId, amount, reason, date, notes } = req.body;
         if (!employeeId) return res.status(400).json({ success: false, message: 'Employee is required' });
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!reason || !reason.trim()) return res.status(400).json({ success: false, message: 'Reason is required' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
         const item = new FinanceSupervisorDeduction({
-            employeeId, projectId: projectId || null, amount: Number(amount), reason: reason.trim(), date, notes: notes || '',
+            employeeId, projectId: projectId || null, workId: workId || null, amount: Number(amount), reason: reason.trim(), date, notes: notes || '',
         });
         await item.save();
         broadcast({ type: 'financeSupervisorDeductionsChanged', employeeId });

@@ -234,36 +234,28 @@ const FinanceHome = ({ url }) => {
                     </KpiGrid>
                 )}
 
-                {/* Today's measurements, one line per Work — not gated by
-                    engineer approval (that only gates billing/earnings, not
-                    what's shown as logged on site), and not mixed in with
-                    the unrelated payment/mutation events in Recent Activity
-                    below. "Deducted" here is a manually-entered, discarded-
-                    work penalty (financeContractorDeduction/
-                    financeLabourDeduction with a workId) — a separate thing
-                    from "unapproved" (engineerApproved: false, still
-                    pending review, shown instead in the Contractor/Labour
-                    Ledger's own Neglected/Unapproved column). */}
-                {(phase1Loading || (summary?.todaysWorkActivity?.length > 0)) && (
+                {/* Approved = billed to the client via an issued running
+                    bill — cumulative, not a "today" concept like the boxes
+                    above (a bill's approval doesn't expire). Same
+                    breakdown shape (by work type, plus a Contractor/Labour
+                    split) so it reads as the "resolved" counterpart to the
+                    raw activity above it. */}
+                {(phase1Loading || (summary?.approvedByWorkType?.length > 0)) && (
                     <>
-                        <KpiSectionLabel>Site Activity — Today's Measurements by Work</KpiSectionLabel>
-                        <div className="list-table" style={{ marginBottom: '24px' }}>
-                            <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1.2fr 1fr 1fr 1fr 1fr' }}>
-                                <b>Work</b><b>Project</b><b>Measured Today</b><b>Expected / Completed</b><b>Deducted (Discarded)</b><b>Expected Pay (Net)</b>
-                            </div>
+                        <KpiSectionLabel>Approved — Billed to Client</KpiSectionLabel>
+                        <KpiGrid>
                             {phase1Loading ? (
-                                <div className="admin-empty-state"><p>Loading…</p></div>
-                            ) : summary.todaysWorkActivity.map(w => (
-                                <div key={w.workId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1.2fr 1fr 1fr 1fr 1fr' }}>
-                                    <p>{w.workType}</p>
-                                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${w.projectId}`)}>{w.projectName}</p>
-                                    <p>{w.sqft.toLocaleString('en-IN')} sqft</p>
-                                    <p>{w.completedAreaSqft.toLocaleString('en-IN')} / {w.estimatedAreaSqft.toLocaleString('en-IN')} sqft</p>
-                                    <p style={{ color: w.deductedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>{w.deductedAmount > 0 ? formatINR(w.deductedAmount) : '—'}</p>
-                                    <p title="rate × estimated area, minus this work's deductions">{formatINR(w.expectedPayNetOfDeductions)}</p>
-                                </div>
-                            ))}
-                        </div>
+                                <KpiCard loading icon={faReceipt} label="Approved" value="" />
+                            ) : (
+                                <>
+                                    <KpiCard icon={faHardHat} label="Contractor Teams — Approved" value={formatINR(summary.approvedContractorTotal)} onClick={() => navigate('/finance/contractors')} tone="good" />
+                                    <KpiCard icon={faPersonDigging} label="Labour Teams — Approved" value={formatINR(summary.approvedLabourTotal)} onClick={() => navigate('/finance/daily-labour')} tone="good" />
+                                    {summary.approvedByWorkType.map(({ workType, sqft, amount }) => (
+                                        <KpiCard key={workType} icon={faReceipt} label={`${workType} — Approved`} value={`${sqft.toLocaleString('en-IN')} sqft`} sub={formatINR(amount)} onClick={() => navigate('/finance/receivables')} />
+                                    ))}
+                                </>
+                            )}
+                        </KpiGrid>
                     </>
                 )}
 

@@ -22,7 +22,7 @@ const buildMonthlyMoneyFlow = (advances, deductions, payments) => {
 };
 
 const emptyAdvanceForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', notes: '' };
-const emptyDeductionForm = { amount: '', reason: '', date: '', source: 'engineer_review', supervisorId: '', notes: '', workId: '' };
+const emptyDeductionForm = { areaSqft: '', reason: '', date: '', source: 'engineer_review', supervisorId: '', notes: '', workId: '' };
 const emptyPaymentForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', notes: '' };
 
 /*
@@ -82,13 +82,14 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
 
     const submitDeduction = async (e) => {
         e.preventDefault();
-        if (!deductionForm.amount || Number(deductionForm.amount) <= 0) return toast.error('Amount must be greater than zero');
+        if (!deductionForm.workId) return toast.error('Work is required — the deduction amount is derived from its rate');
+        if (!deductionForm.areaSqft || Number(deductionForm.areaSqft) <= 0) return toast.error('Sqft to deduct must be greater than zero');
         if (!deductionForm.reason.trim()) return toast.error('Reason is required');
         if (!deductionForm.date) return toast.error('Date is required');
         if (deductionForm.source === 'supervisor_catch' && !deductionForm.supervisorId) return toast.error('Supervisor is required when they caught the mistake');
         setSaving('deduction');
         try {
-            const res = await axios.post(`${url}/api/finance/labour-deductions/add`, { ...deductionForm, labourerId, projectId: projectId || null }, authHeader);
+            const res = await axios.post(`${url}/api/finance/labour-deductions/add`, { ...deductionForm, labourerId }, authHeader);
             if (res.data.success) {
                 toast.success(deductionForm.source === 'supervisor_catch' ? 'Deduction recorded, supervisor credited' : res.data.message);
                 setDeductionForm(emptyDeductionForm); await fetchLedger();
@@ -128,16 +129,23 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
     return (
         <div>
             <div className="list-table" style={{ marginBottom: '8px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                    <b>Earnings</b><b>Advances</b><b>Deductions</b><b>{totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
+                    <b>Total (All Logged)</b><b>Approved (Billed)</b><b>Unapproved</b><b>Advances</b><b>Deductions</b><b>{totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}</b>
                 </div>
-                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                    <p>₹{totals.earnings.toLocaleString('en-IN')}</p>
+                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
+                    <p>₹{totals.totalAmount.toLocaleString('en-IN')}</p>
+                    <p style={{ color: totals.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{totals.earnings > 0 ? `₹${totals.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
+                    <p style={{ color: totals.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>₹{totals.unapprovedAmount.toLocaleString('en-IN')}</p>
                     <p>₹{totals.advances.toLocaleString('en-IN')}</p>
                     <p>₹{totals.deductions.toLocaleString('en-IN')}</p>
                     <p style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</p>
                 </div>
             </div>
+            {totals.unapprovedAmount > 0 && (
+                <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
+                    ₹{totals.unapprovedAmount.toLocaleString('en-IN')} worth of measured work hasn't been billed to the client yet — it isn't counted as Approved earnings until a running bill covering it is issued (Receivables → Running Bills).
+                </p>
+            )}
 
             <div style={{ marginBottom: '28px', marginTop: '20px' }}>
                 <ChartCard title="Advances / Deductions / Payments — by month">
@@ -162,18 +170,24 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                 <>
                     <h3 style={{ marginBottom: '8px' }}>Works & Earnings</h3>
                     <div className="list-table" style={{ marginBottom: '28px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1fr' }}>
-                            <b>Project</b><b>Work Type</b><b>Done / Estimated</b><b>Earnings</b>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.9fr 1fr 0.9fr 1.1fr 0.9fr' }}>
+                            <b>Project</b><b>Work Type</b><b>Done / Estimated</b><b>Total</b><b>Approved (as of)</b><b>Unapproved</b>
                         </div>
                         {ledger.works.length === 0 ? (
                             <div className="admin-empty-state"><p>No works for this labourer yet.</p></div>
                         ) : (
                             ledger.works.map(w => (
-                                <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1fr' }}>
+                                <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.1fr 0.9fr 1fr 0.9fr 1.1fr 0.9fr' }}>
                                     <p>{w.projectName}</p>
                                     <p>{w.workType}</p>
                                     <p>{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft</p>
-                                    <p>{w.rate ? `₹${w.earnings.toLocaleString('en-IN')}` : <span title="No matching labour rate configured">— (no rate)</span>}</p>
+                                    <p>{w.rate ? `₹${w.totalAmount.toLocaleString('en-IN')}` : <span title="No matching labour rate configured">— (no rate)</span>}</p>
+                                    <p style={{ color: w.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>
+                                        {w.earnings > 0
+                                            ? <>₹{w.earnings.toLocaleString('en-IN')} <span style={{ fontWeight: 400, fontSize: '0.75rem' }}>({w.approvedAreaSqft} sqft{w.approvedDate ? `, ${new Date(w.approvedDate).toLocaleDateString()}` : ''})</span></>
+                                            : 'Unapproved'}
+                                    </p>
+                                    <p style={{ color: w.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>{w.rate ? `₹${w.unapprovedAmount.toLocaleString('en-IN')}` : '—'}</p>
                                 </div>
                             ))
                         )}
@@ -225,62 +239,72 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
 
             <h3 style={{ marginBottom: '8px' }}>Deductions</h3>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>
+                Sqft in, ₹ out — the amount is always derived from the picked work's rate, never typed directly.
                 "Supervisor caught it" also credits that supervisor an incentive for the same amount. "Engineer review" is just a cut here — periodic, not tied to a specific day's entry.
             </p>
-            <form onSubmit={submitDeduction}>
-                <div className="wizard-field-grid">
-                    <div className="add-product-name flex-col">
-                        <p>Amount (₹) *</p>
-                        <input type="number" value={deductionForm.amount} onChange={e => setDeductionForm(p => ({ ...p, amount: e.target.value }))} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Date *</p>
-                        <input type="date" value={deductionForm.date} onChange={e => setDeductionForm(p => ({ ...p, date: e.target.value }))} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Caught By *</p>
-                        <select value={deductionForm.source} onChange={e => setDeductionForm(p => ({ ...p, source: e.target.value, supervisorId: '' }))}>
-                            <option value="engineer_review">Engineer (periodic review)</option>
-                            <option value="supervisor_catch">Supervisor (caught &amp; fixed on the spot)</option>
-                        </select>
-                    </div>
-                    {deductionForm.source === 'supervisor_catch' && (
+            {showWorks && ledger.works.length === 0 ? (
+                <p className="admin-subtitle" style={{ marginBottom: '20px' }}>No works for this labourer yet — a deduction needs a work to derive its rate from.</p>
+            ) : (
+                <form onSubmit={submitDeduction}>
+                    <div className="wizard-field-grid">
                         <div className="add-product-name flex-col">
-                            <p>Supervisor *</p>
-                            <select value={deductionForm.supervisorId} onChange={e => setDeductionForm(p => ({ ...p, supervisorId: e.target.value }))}>
-                                <option value="">Select supervisor…</option>
-                                {supervisors.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
-                            </select>
-                        </div>
-                    )}
-                    <div className="add-product-name flex-col wizard-field-full">
-                        <p>Reason *</p>
-                        <input type="text" value={deductionForm.reason} onChange={e => setDeductionForm(p => ({ ...p, reason: e.target.value }))} placeholder="What went wrong, who's responsible" />
-                    </div>
-                    {showWorks && ledger.works.length > 0 && (
-                        <div className="add-product-name flex-col">
-                            <p>Work (optional — e.g. a negligence deduction caught on one specific work)</p>
+                            <p>Work *</p>
                             <select value={deductionForm.workId} onChange={e => setDeductionForm(p => ({ ...p, workId: e.target.value }))}>
-                                <option value="">— Not tied to a specific work —</option>
+                                <option value="">Select work…</option>
                                 {ledger.works.map(w => <option key={w._id} value={w._id}>{w.projectName} — {w.workType}</option>)}
                             </select>
                         </div>
-                    )}
-                </div>
-                <div className="wizard-actions" style={{ marginTop: '16px', marginBottom: '12px' }}>
-                    <span />
-                    <button type="submit" className="add-btn" disabled={saving === 'deduction'}>{saving === 'deduction' ? 'Saving…' : '+ Add Deduction'}</button>
-                </div>
-            </form>
+                        <div className="add-product-name flex-col">
+                            <p>Sqft to Deduct *</p>
+                            <input type="number" value={deductionForm.areaSqft} onChange={e => setDeductionForm(p => ({ ...p, areaSqft: e.target.value }))} />
+                        </div>
+                        <div className="add-product-name flex-col">
+                            <p>Date *</p>
+                            <input type="date" value={deductionForm.date} onChange={e => setDeductionForm(p => ({ ...p, date: e.target.value }))} />
+                        </div>
+                        <div className="add-product-name flex-col">
+                            <p>Caught By *</p>
+                            <select value={deductionForm.source} onChange={e => setDeductionForm(p => ({ ...p, source: e.target.value, supervisorId: '' }))}>
+                                <option value="engineer_review">Engineer (periodic review)</option>
+                                <option value="supervisor_catch">Supervisor (caught &amp; fixed on the spot)</option>
+                            </select>
+                        </div>
+                        {deductionForm.source === 'supervisor_catch' && (
+                            <div className="add-product-name flex-col">
+                                <p>Supervisor *</p>
+                                <select value={deductionForm.supervisorId} onChange={e => setDeductionForm(p => ({ ...p, supervisorId: e.target.value }))}>
+                                    <option value="">Select supervisor…</option>
+                                    {supervisors.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                                </select>
+                            </div>
+                        )}
+                        <div className="add-product-name flex-col wizard-field-full">
+                            <p>Reason *</p>
+                            <input type="text" value={deductionForm.reason} onChange={e => setDeductionForm(p => ({ ...p, reason: e.target.value }))} placeholder="What went wrong, who's responsible" />
+                        </div>
+                    </div>
+                    {deductionForm.workId && deductionForm.areaSqft > 0 && (() => {
+                        const rate = ledger.works.find(w => w._id === deductionForm.workId)?.rate;
+                        return rate
+                            ? <p className="admin-subtitle" style={{ marginTop: '8px' }}>≈ ₹{(rate * Number(deductionForm.areaSqft)).toLocaleString('en-IN')} at ₹{rate}/sqft</p>
+                            : <p className="admin-subtitle" style={{ marginTop: '8px', color: '#c0392b' }}>No rate configured for this work — deduction will be rejected.</p>;
+                    })()}
+                    <div className="wizard-actions" style={{ marginTop: '16px', marginBottom: '12px' }}>
+                        <span />
+                        <button type="submit" className="add-btn" disabled={saving === 'deduction'}>{saving === 'deduction' ? 'Saving…' : '+ Add Deduction'}</button>
+                    </div>
+                </form>
+            )}
             <div className="list-table" style={{ marginBottom: '28px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1.3fr 1fr 1fr 100px' }}>
-                    <b>Date</b><b>Amount</b><b>Reason</b><b>Caught By</b><b>Work</b><b>Action</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.8fr 1fr 1.2fr 1fr 1fr 100px' }}>
+                    <b>Date</b><b>Sqft</b><b>Amount</b><b>Reason</b><b>Caught By</b><b>Work</b><b>Action</b>
                 </div>
                 {ledger.deductions.length === 0 ? (
                     <div className="admin-empty-state"><p>No deductions yet.</p></div>
                 ) : ledger.deductions.map(d => (
-                    <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1.3fr 1fr 1fr 100px' }}>
+                    <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 1fr 1.2fr 1fr 1fr 100px' }}>
                         <p>{new Date(d.date).toLocaleDateString()}</p>
+                        <p>{d.areaSqft ?? '—'}</p>
                         <p>₹{d.amount.toLocaleString('en-IN')}</p>
                         <p>{d.reason}</p>
                         <p>{d.source === 'supervisor_catch' ? `Supervisor${d.supervisorId?.name ? ` (${d.supervisorId.name})` : ''}` : 'Engineer'}</p>

@@ -1,7 +1,7 @@
 import express from 'express';
 import { adminAuthMiddleware } from '../middlewares/auth.js';
 import {
-    getProjectProfit, getClientProfit, getWorkProfit, getWorkDetail,
+    getProjectProfit, getClientProfit, getWorkProfit, getWorkDetail, getDeductionPool,
     getContractorAnalysis, getContractorsSummary,
     getVendorAnalysis, getVendorsSummary,
     getMaterialAnalysis, getInventorySummary,
@@ -21,6 +21,7 @@ router.get('/project-profit',      adminAuthMiddleware, getProjectProfit);
 router.get('/client-profit',       adminAuthMiddleware, getClientProfit);
 router.get('/work-profit',         adminAuthMiddleware, getWorkProfit);
 router.get('/work-detail',         adminAuthMiddleware, getWorkDetail);
+router.get('/deduction-pool',      adminAuthMiddleware, getDeductionPool);
 router.get('/contractor-analysis', adminAuthMiddleware, getContractorAnalysis);
 router.get('/vendor-analysis',     adminAuthMiddleware, getVendorAnalysis);
 router.get('/material-analysis',   adminAuthMiddleware, getMaterialAnalysis);

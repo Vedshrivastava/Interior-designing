@@ -17,6 +17,7 @@ import FinanceExpense from '../models/financeExpense.js';
 import FinanceContractorAdvance from '../models/financeContractorAdvance.js';
 import FinanceContractorDeduction from '../models/financeContractorDeduction.js';
 import FinanceLabourDeduction from '../models/financeLabourDeduction.js';
+import FinanceSupervisorDeduction from '../models/financeSupervisorDeduction.js';
 import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import FinanceVendorPayment from '../models/financeVendorPayment.js';
 import FinanceSalaryPayment from '../models/financeSalaryPayment.js';
@@ -118,64 +119,131 @@ const computeWorkMaterialCost = async (projectId, workId) => {
 // unapproved measurements aren't a confirmed payable liability yet, same
 // gate financeRunningBill applies for client billing (see
 // financeContractorLedger.js's header note).
+// Cost = only sqft actually billed to the client (an issued running bill's
+// lineItems), not everything logged — see computeWorkApprovedBilling's
+// header comment for why this replaced the old engineerApproved filter.
+// Attribution follows the same "whichever type is present on this work"
+// rule as computeWorkExpectedPay; a work with genuinely both a contractor
+// and labour presence counts in both this and computeProjectLabourCost
+// (same accepted simplification as the rest of this module).
+// Returns { approvedAmount, totalAmount } — approvedAmount is what actually
+// feeds Profit (project-level cost); totalAmount is every logged sqft's
+// worth, unconditional, so views can show both side by side (same pattern
+// as everywhere else in this module).
 const computeProjectContractorCost = async (projectId) => {
     const works = await FinanceWork.find({ projectId, deleted: { $ne: true } });
-    if (!works.length) return 0;
-    const workById = new Map(works.map(w => [w._id.toString(), w]));
-    const measurements = await FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, engineerApproved: true, deleted: { $ne: true } });
-    if (!measurements.length) return 0;
+    if (!works.length) return { approvedAmount: 0, totalAmount: 0 };
 
-    const vendorIds = new Set();
-    const areaByVendorWorkType = new Map(); // `${contractorVendorId}_${workType}` -> area
-    for (const m of measurements) {
-        const work = workById.get(m.workId.toString());
-        if (!work || !m.contractorVendorId) continue;
-        vendorIds.add(m.contractorVendorId.toString());
-        const key = `${m.contractorVendorId}_${work.workType}`;
-        areaByVendorWorkType.set(key, (areaByVendorWorkType.get(key) || 0) + m.areaCoveredSqft);
+    const [contractorMeasurements, contractorAssignments, bills] = await Promise.all([
+        FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId contractorVendorId areaCoveredSqft'),
+        FinanceWorkContractorAssignment.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId contractorVendorId'),
+        FinanceRunningBill.find({ projectId, status: 'issued', deleted: { $ne: true } }, 'lineItems'),
+    ]);
+    const vendorIdsByWork = new Map(); // workId -> Set(vendorId)
+    const totalAreaByWorkVendor = new Map(); // `${workId}_${vendorId}` -> area
+    for (const m of [...contractorMeasurements, ...contractorAssignments]) {
+        if (!m.contractorVendorId) continue;
+        const key = m.workId.toString();
+        if (!vendorIdsByWork.has(key)) vendorIdsByWork.set(key, new Set());
+        vendorIdsByWork.get(key).add(m.contractorVendorId.toString());
     }
-    if (!areaByVendorWorkType.size) return 0;
+    for (const m of contractorMeasurements) {
+        if (!m.contractorVendorId) continue;
+        const key = `${m.workId}_${m.contractorVendorId}`;
+        totalAreaByWorkVendor.set(key, (totalAreaByWorkVendor.get(key) || 0) + m.areaCoveredSqft);
+    }
+    const contractorWorks = works.filter(w => vendorIdsByWork.has(w._id.toString()));
+    if (!contractorWorks.length) return { approvedAmount: 0, totalAmount: 0 };
 
-    const rates = await FinanceContractorRate.find({ projectId, contractorVendorId: { $in: [...vendorIds] }, deleted: { $ne: true } });
-    const rateByKey = new Map(rates.map(r => [`${r.contractorVendorId}_${r.workType}`, r]));
-    let total = 0;
-    for (const [key, area] of areaByVendorWorkType) {
-        const rate = rateByKey.get(key);
-        if (rate) total += area * (rate.ratePerSqft);
+    const approvedAreaByWork = new Map();
+    for (const bill of bills) {
+        for (const li of bill.lineItems) {
+            const key = li.workId.toString();
+            approvedAreaByWork.set(key, (approvedAreaByWork.get(key) || 0) + li.areaBilledSqft);
+        }
     }
-    return total;
+
+    const allVendorIds = [...new Set(contractorWorks.flatMap(w => [...(vendorIdsByWork.get(w._id.toString()) || [])]))];
+    const rates = await FinanceContractorRate.find({ projectId, contractorVendorId: { $in: allVendorIds }, deleted: { $ne: true } });
+    const rateByKey = new Map(rates.map(r => [`${r.contractorVendorId}_${r.workType}`, r.ratePerSqft]));
+
+    let approvedAmount = 0;
+    let totalAmount = 0;
+    for (const work of contractorWorks) {
+        const workApprovedArea = approvedAreaByWork.get(work._id.toString()) || 0;
+        const vendorIds = [...vendorIdsByWork.get(work._id.toString())];
+        const workTotalArea = vendorIds.reduce((s, id) => s + (totalAreaByWorkVendor.get(`${work._id}_${id}`) || 0), 0);
+        for (const vendorId of vendorIds) {
+            const rate = rateByKey.get(`${vendorId}_${work.workType}`);
+            if (!rate) continue;
+            const totalArea = totalAreaByWorkVendor.get(`${work._id}_${vendorId}`) || 0;
+            totalAmount += totalArea * rate;
+            // Split this work's approved (billed) area proportionally to
+            // each vendor's own share of the logged area — same reasoning
+            // as splitApprovedAreaByShare, inlined here since rates are
+            // looked up per (vendor, workType) not per work.
+            const approvedArea = workTotalArea > 0 ? workApprovedArea * (totalArea / workTotalArea) : 0;
+            approvedAmount += approvedArea * rate;
+        }
+    }
+    return { approvedAmount: round2(approvedAmount), totalAmount: round2(totalAmount) };
 };
 
 // Mirrors computeProjectContractorCost, at individual-labourer granularity.
-// No engineerApproved gate — financeLabourMeasurement has none, every
-// logged sqft counts toward cost immediately (correction happens via
-// financeLabourDeduction afterward, not an area exclusion here).
+// Labour never had an engineerApproved gate (every logged sqft counted
+// immediately) — this is the one genuine behavior change: labour cost now
+// also only counts billed-to-client sqft, same as contractor.
 const computeProjectLabourCost = async (projectId) => {
     const works = await FinanceWork.find({ projectId, deleted: { $ne: true } });
-    if (!works.length) return 0;
-    const workById = new Map(works.map(w => [w._id.toString(), w]));
-    const measurements = await FinanceLabourMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } });
-    if (!measurements.length) return 0;
+    if (!works.length) return { approvedAmount: 0, totalAmount: 0 };
 
-    const labourerIds = new Set();
-    const areaByLabourerWorkType = new Map(); // `${labourerId}_${workType}` -> area
-    for (const m of measurements) {
-        const work = workById.get(m.workId.toString());
-        if (!work) continue;
-        labourerIds.add(m.labourerId.toString());
-        const key = `${m.labourerId}_${work.workType}`;
-        areaByLabourerWorkType.set(key, (areaByLabourerWorkType.get(key) || 0) + m.areaCoveredSqft);
+    const [labourMeasurements, labourAssignments, bills] = await Promise.all([
+        FinanceLabourMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId labourerId areaCoveredSqft'),
+        FinanceWorkLabourAssignment.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId labourerId'),
+        FinanceRunningBill.find({ projectId, status: 'issued', deleted: { $ne: true } }, 'lineItems'),
+    ]);
+    const labourerIdsByWork = new Map();
+    const totalAreaByWorkLabourer = new Map(); // `${workId}_${labourerId}` -> area
+    for (const m of [...labourMeasurements, ...labourAssignments]) {
+        const key = m.workId.toString();
+        if (!labourerIdsByWork.has(key)) labourerIdsByWork.set(key, new Set());
+        labourerIdsByWork.get(key).add(m.labourerId.toString());
     }
-    if (!areaByLabourerWorkType.size) return 0;
+    for (const m of labourMeasurements) {
+        const key = `${m.workId}_${m.labourerId}`;
+        totalAreaByWorkLabourer.set(key, (totalAreaByWorkLabourer.get(key) || 0) + m.areaCoveredSqft);
+    }
+    const labourWorks = works.filter(w => labourerIdsByWork.has(w._id.toString()));
+    if (!labourWorks.length) return { approvedAmount: 0, totalAmount: 0 };
 
-    const rates = await FinanceLabourRate.find({ projectId, labourerId: { $in: [...labourerIds] }, deleted: { $ne: true } });
-    const rateByKey = new Map(rates.map(r => [`${r.labourerId}_${r.workType}`, r]));
-    let total = 0;
-    for (const [key, area] of areaByLabourerWorkType) {
-        const rate = rateByKey.get(key);
-        if (rate) total += area * rate.ratePerSqft;
+    const approvedAreaByWork = new Map();
+    for (const bill of bills) {
+        for (const li of bill.lineItems) {
+            const key = li.workId.toString();
+            approvedAreaByWork.set(key, (approvedAreaByWork.get(key) || 0) + li.areaBilledSqft);
+        }
     }
-    return total;
+
+    const allLabourerIds = [...new Set(labourWorks.flatMap(w => [...(labourerIdsByWork.get(w._id.toString()) || [])]))];
+    const rates = await FinanceLabourRate.find({ projectId, labourerId: { $in: allLabourerIds }, deleted: { $ne: true } });
+    const rateByKey = new Map(rates.map(r => [`${r.labourerId}_${r.workType}`, r.ratePerSqft]));
+
+    let approvedAmount = 0;
+    let totalAmount = 0;
+    for (const work of labourWorks) {
+        const workApprovedArea = approvedAreaByWork.get(work._id.toString()) || 0;
+        const labourerIds = [...labourerIdsByWork.get(work._id.toString())];
+        const workTotalArea = labourerIds.reduce((s, id) => s + (totalAreaByWorkLabourer.get(`${work._id}_${id}`) || 0), 0);
+        for (const labourerId of labourerIds) {
+            const rate = rateByKey.get(`${labourerId}_${work.workType}`);
+            if (!rate) continue;
+            const totalArea = totalAreaByWorkLabourer.get(`${work._id}_${labourerId}`) || 0;
+            totalAmount += totalArea * rate;
+            const approvedArea = workTotalArea > 0 ? workApprovedArea * (totalArea / workTotalArea) : 0;
+            approvedAmount += approvedArea * rate;
+        }
+    }
+    return { approvedAmount: round2(approvedAmount), totalAmount: round2(totalAmount) };
 };
 
 const computeProjectCommissionCost = async (project) => {
@@ -195,7 +263,7 @@ const computeProjectProfit = async (projectId) => {
     const project = await FinanceProject.findOne({ _id: projectId, deleted: { $ne: true } });
     if (!project) return null;
 
-    const [revenueAgg, materialCost, contractorCost, commissionCost, expenseAgg, labourCost] = await Promise.all([
+    const [revenueAgg, materialCost, contractorCostInfo, commissionCost, expenseAgg, labourCostInfo] = await Promise.all([
         FinanceRunningBill.aggregate([
             { $match: { projectId: project._id, status: 'issued', deleted: { $ne: true } } },
             { $group: { _id: null, total: { $sum: '$totalAmount' } } },
@@ -212,11 +280,17 @@ const computeProjectProfit = async (projectId) => {
 
     const revenue = revenueAgg[0]?.total || 0;
     const otherExpenses = expenseAgg[0]?.total || 0;
+    // Profit is built off Approved cost (what's actually billed to the
+    // client so far) — Total cost (every logged sqft, unconditional) is
+    // exposed alongside for context but never subtracted here.
+    const contractorCost = contractorCostInfo.approvedAmount;
+    const labourCost = labourCostInfo.approvedAmount;
     const profit = revenue - materialCost - contractorCost - commissionCost - otherExpenses - labourCost;
 
     return {
         projectId: project._id, projectName: project.name, clientId: project.clientId,
         revenue, materialCost, contractorCost, commissionCost, otherExpenses, labourCost, profit,
+        totalContractorCost: contractorCostInfo.totalAmount, totalLabourCost: labourCostInfo.totalAmount,
         marginPercent: revenue > 0 ? (profit / revenue) * 100 : 0,
     };
 };
@@ -281,8 +355,10 @@ const getClientProfit = async (req, res) => {
             commissionCost: acc.commissionCost + p.commissionCost,
             otherExpenses: acc.otherExpenses + p.otherExpenses,
             labourCost: acc.labourCost + p.labourCost,
+            totalContractorCost: acc.totalContractorCost + p.totalContractorCost,
+            totalLabourCost: acc.totalLabourCost + p.totalLabourCost,
             profit: acc.profit + p.profit,
-        }), { revenue: 0, materialCost: 0, contractorCost: 0, commissionCost: 0, otherExpenses: 0, labourCost: 0, profit: 0 });
+        }), { revenue: 0, materialCost: 0, contractorCost: 0, commissionCost: 0, otherExpenses: 0, labourCost: 0, totalContractorCost: 0, totalLabourCost: 0, profit: 0 });
         totals.marginPercent = totals.revenue > 0 ? (totals.profit / totals.revenue) * 100 : 0;
 
         res.json({ success: true, data: { clientId: client._id, clientName: client.name, projects: perProject, totals } });
@@ -291,6 +367,60 @@ const getClientProfit = async (req, res) => {
         res.status(500).json({ success: false, message: 'Error computing client profit' });
     }
 };
+
+// The sqft of a Work that's actually been billed to the client, via an
+// ISSUED running bill's lineItems (never a draft — a draft can still be
+// edited/deleted, so it isn't a real commitment yet). This IS "the area the
+// engineer approved" per the user's own framing: engineerApproved gates
+// which measurements COULD be billed (computeBillLineItems), issuing the
+// bill is the actual approval act. Deliberately reads financeRunningBill
+// only — never writes to it, never touches engineerApproved — so client
+// billing (generateRunningBill/updateRunningBillStatus/the per-measurement
+// Approve toggle in WorkMeasurementsSummary.jsx) stays completely
+// unaffected by this function existing.
+const computeWorkApprovedBilling = async (work) => {
+    // Thin single-work wrapper over getApprovedBillingByWorkId (declared
+    // below) — one implementation for both, nothing to drift.
+    const result = (await getApprovedBillingByWorkId([work._id])).get(work._id.toString()) || { areaSqft: 0, date: null };
+    return { approvedAreaSqft: result.areaSqft, approvedDate: result.date };
+};
+
+// Bulk sibling of computeWorkApprovedBilling — one query for many works at
+// once (a work only ever belongs to one project, so this is safe to call
+// across works from different projects too, e.g. one contractor's entire
+// portfolio company-wide). Returns Map<workId, { areaSqft, date }> — date
+// is the most recent issued bill's billDate that included this work.
+const getApprovedBillingByWorkId = async (workIds) => {
+    if (!workIds.length) return new Map();
+    const bills = await FinanceRunningBill.find(
+        { status: 'issued', deleted: { $ne: true }, 'lineItems.workId': { $in: workIds } },
+        'billDate lineItems'
+    );
+    const workIdSet = new Set(workIds.map(id => id.toString()));
+    const approvedByWorkId = new Map();
+    for (const bill of bills) {
+        for (const li of bill.lineItems) {
+            const key = li.workId.toString();
+            if (!workIdSet.has(key)) continue;
+            const cur = approvedByWorkId.get(key) || { areaSqft: 0, date: null };
+            cur.areaSqft += li.areaBilledSqft;
+            if (!cur.date || bill.billDate > cur.date) cur.date = bill.billDate;
+            approvedByWorkId.set(key, cur);
+        }
+    }
+    return approvedByWorkId;
+};
+
+// A running bill's lineItems only record a work-level billed total, never a
+// per-contractor/per-labourer split — so when more than one party
+// contributes to the same Work, this splits that work's approved sqft
+// proportionally to each party's own share of the logged (measured) area.
+// Exact for the overwhelmingly common case of one party per Work; the same
+// accepted simplification documented on computeWorkExpectedPay/
+// computeWorkProfit, now centralized so every earnings site applies it
+// identically instead of drifting.
+const splitApprovedAreaByShare = (approvedAreaSqft, partyArea, totalAreaAllParties) =>
+    totalAreaAllParties > 0 ? round2(approvedAreaSqft * (partyArea / totalAreaAllParties)) : 0;
 
 // "Expected Total Pay" for a Work — a forward-looking figure, deliberately
 // separate from computeWorkProfit's contractorCost/labourCost (which are
@@ -325,7 +455,7 @@ const computeWorkExpectedPay = async (work) => {
         ...labourMeasurements.map(m => m.labourerId.toString()),
     ]);
 
-    const [contractorRates, labourRates, contractorDeductionAgg, labourDeductionAgg] = await Promise.all([
+    const [contractorRates, labourRates, contractorDeductionAgg, labourDeductionAgg, supervisorDeductionAgg] = await Promise.all([
         vendorIds.size ? FinanceContractorRate.find({ projectId: work.projectId, contractorVendorId: { $in: [...vendorIds] }, workType: work.workType, deleted: { $ne: true } }) : [],
         labourerIds.size ? FinanceLabourRate.find({ projectId: work.projectId, labourerId: { $in: [...labourerIds] }, workType: work.workType, deleted: { $ne: true } }) : [],
         FinanceContractorDeduction.aggregate([
@@ -336,14 +466,43 @@ const computeWorkExpectedPay = async (work) => {
             { $match: { workId: work._id, deleted: { $ne: true } } },
             { $group: { _id: null, total: { $sum: '$amount' } } },
         ]),
+        // Supervisor deductions don't reduce this Work's own contractor/
+        // labour pay (a supervisor is paid salary, not an area rate) — but
+        // still count toward this work's overall "money withheld due to
+        // negligence" total, since that's the figure this function reports.
+        FinanceSupervisorDeduction.aggregate([
+            { $match: { workId: work._id, deleted: { $ne: true } } },
+            { $group: { _id: null, total: { $sum: '$amount' } } },
+        ]),
     ]);
 
     const expectedContractorPay = contractorRates.reduce((s, r) => s + work.estimatedAreaSqft * r.ratePerSqft, 0);
     const expectedLabourPay = labourRates.reduce((s, r) => s + work.estimatedAreaSqft * r.ratePerSqft, 0);
     const expectedPay = round2(expectedContractorPay + expectedLabourPay);
-    const deductedTotal = round2((contractorDeductionAgg[0]?.total || 0) + (labourDeductionAgg[0]?.total || 0));
+    const deductedTotal = round2((contractorDeductionAgg[0]?.total || 0) + (labourDeductionAgg[0]?.total || 0) + (supervisorDeductionAgg[0]?.total || 0));
 
-    return { expectedPay, deductedTotal, expectedPayNetOfDeductions: round2(expectedPay - deductedTotal) };
+    // Total = every logged sqft so far (work.completedAreaSqft, unconditional
+    // — same figure the dashboard's "show it even before approval" boxes
+    // use) × rate. Approved = only the sqft actually billed to the client
+    // via an issued running bill (computeWorkApprovedBilling) × the same
+    // rate — this, not Total, is what's actually owed to whoever did the
+    // work. Unapproved is simply the gap; never a separately entered figure.
+    const totalAreaSqft = work.completedAreaSqft;
+    const totalAmount = round2(
+        contractorRates.reduce((s, r) => s + totalAreaSqft * r.ratePerSqft, 0)
+        + labourRates.reduce((s, r) => s + totalAreaSqft * r.ratePerSqft, 0)
+    );
+    const { approvedAreaSqft, approvedDate } = await computeWorkApprovedBilling(work);
+    const approvedAmount = round2(
+        contractorRates.reduce((s, r) => s + approvedAreaSqft * r.ratePerSqft, 0)
+        + labourRates.reduce((s, r) => s + approvedAreaSqft * r.ratePerSqft, 0)
+    );
+
+    return {
+        expectedPay, deductedTotal, expectedPayNetOfDeductions: round2(expectedPay - deductedTotal),
+        totalAreaSqft, totalAmount, approvedAreaSqft, approvedAmount, approvedDate,
+        unapprovedAreaSqft: round2(totalAreaSqft - approvedAreaSqft), unapprovedAmount: round2(totalAmount - approvedAmount),
+    };
 };
 
 // Shared by getWorkProfit and getWorkDetail (Tier-2 work drill-down) so the
@@ -370,15 +529,23 @@ const computeWorkProfit = async (work) => {
     // one contributing contractor gets a per-contractor breakdown, not one
     // blended rate. `contractorCost` stays the summed total so nothing
     // reading only that field breaks.
+    //
+    // Total (areaSqft) is every logged sqft, unconditional — no more
+    // engineerApproved gating here (that flag now only gates billing, see
+    // computeWorkApprovedBilling's header comment). Approved
+    // (approvedAreaSqft) is this work's billed-to-client sqft
+    // (computeWorkApprovedBilling), distributed across contributing vendors
+    // proportional to each one's share of Total — lineItems only record a
+    // work-level billed figure, not a per-vendor split, so this is the best
+    // available attribution when more than one vendor's on a work (exact
+    // for the common single-vendor case).
+    const { approvedAreaSqft: workApprovedAreaSqft, approvedDate: workApprovedDate } = await computeWorkApprovedBilling(work);
     const measurements = await FinanceMeasurement.find({ workId: work._id, deleted: { $ne: true } });
-    const areaByVendor = new Map(); // contractorVendorId -> { totalArea, approvedArea }
+    const areaByVendor = new Map(); // contractorVendorId -> totalArea
     for (const m of measurements) {
         if (!m.contractorVendorId) continue;
         const key = m.contractorVendorId.toString();
-        const cur = areaByVendor.get(key) || { totalArea: 0, approvedArea: 0 };
-        cur.totalArea += m.areaCoveredSqft;
-        if (m.engineerApproved) cur.approvedArea += m.areaCoveredSqft;
-        areaByVendor.set(key, cur);
+        areaByVendor.set(key, (areaByVendor.get(key) || 0) + m.areaCoveredSqft);
     }
     // Seed assigned contractors with zero area too, so a brand-new Work
     // with a contractor assigned but no measurements yet still shows a
@@ -386,14 +553,12 @@ const computeWorkProfit = async (work) => {
     const assignments = await FinanceWorkContractorAssignment.find({ workId: work._id, deleted: { $ne: true } });
     for (const a of assignments) {
         const key = a.contractorVendorId.toString();
-        if (!areaByVendor.has(key)) areaByVendor.set(key, { totalArea: 0, approvedArea: 0 });
+        if (!areaByVendor.has(key)) areaByVendor.set(key, 0);
     }
 
-    // contractorCost only counts approved area — unapproved ("neglected")
-    // area is reported per-row (neglectedAreaSqft/neglectedAmount) but
-    // excluded from cost/profit, same gate the Contractor Ledger applies.
     let contractorCost = 0;
     const contractorBreakdown = [];
+    const totalVendorArea = [...areaByVendor.values()].reduce((s, a) => s + a, 0);
     if (areaByVendor.size) {
         const vendorIds = [...areaByVendor.keys()];
         const [rates, vendors] = await Promise.all([
@@ -402,27 +567,32 @@ const computeWorkProfit = async (work) => {
         ]);
         const rateByVendor = new Map(rates.map(r => [r.contractorVendorId.toString(), r]));
         const vendorById = new Map(vendors.map(v => [v._id.toString(), v]));
-        for (const [vendorId, { totalArea, approvedArea }] of areaByVendor) {
+        for (const [vendorId, totalArea] of areaByVendor) {
             const rate = rateByVendor.get(vendorId);
             const perUnit = rate ? (rate.ratePerSqft) : 0;
-            const neglectedArea = round2(totalArea - approvedArea);
-            const earnings = round2(approvedArea * perUnit);
-            const neglectedAmount = round2(neglectedArea * perUnit);
-            contractorCost += earnings;
+            const approvedArea = splitApprovedAreaByShare(workApprovedAreaSqft, totalArea, totalVendorArea);
+            const unapprovedArea = round2(totalArea - approvedArea);
+            const totalAmount = round2(totalArea * perUnit);
+            const approvedAmount = round2(approvedArea * perUnit);
+            contractorCost += approvedAmount;
             const vendor = vendorById.get(vendorId);
             contractorBreakdown.push({
                 vendorId, vendorName: vendor?.name || '—',
-                areaSqft: round2(totalArea), approvedAreaSqft: round2(approvedArea), neglectedAreaSqft: neglectedArea,
-                rate: perUnit, earnings, neglectedAmount,
+                areaSqft: round2(totalArea), approvedAreaSqft: approvedArea, unapprovedAreaSqft: unapprovedArea,
+                rate: perUnit, totalAmount, approvedAmount, unapprovedAmount: round2(totalAmount - approvedAmount),
+                approvedDate: workApprovedDate,
             });
         }
     }
 
     contractorCost = round2(contractorCost);
 
-    // Labour Cost — same per-person breakdown as contractor above, but no
-    // approval gate (financeLabourMeasurement has none) so every logged
-    // sqft counts as-is.
+    // Labour Cost — same per-person breakdown as contractor above. Labour
+    // never had an engineerApproved gate (every logged sqft was immediately
+    // payable) — this is the one genuine behavior change: labour earnings
+    // now also only count billed-to-client sqft. Same proportional
+    // distribution of this work's Approved sqft across contributing
+    // labourers as the contractor side above.
     const labourMeasurements = await FinanceLabourMeasurement.find({ workId: work._id, deleted: { $ne: true } });
     const areaByLabourer = new Map(); // labourerId -> totalArea
     for (const m of labourMeasurements) {
@@ -437,6 +607,7 @@ const computeWorkProfit = async (work) => {
 
     let labourCost = 0;
     const labourBreakdown = [];
+    const totalLabourerArea = [...areaByLabourer.values()].reduce((s, a) => s + a, 0);
     if (areaByLabourer.size) {
         const labourerIds = [...areaByLabourer.keys()];
         const [labourRates, labourers] = await Promise.all([
@@ -448,12 +619,17 @@ const computeWorkProfit = async (work) => {
         for (const [labourerId, totalArea] of areaByLabourer) {
             const rate = rateByLabourer.get(labourerId);
             const perUnit = rate ? rate.ratePerSqft : 0;
-            const earnings = round2(totalArea * perUnit);
-            labourCost += earnings;
+            const approvedArea = splitApprovedAreaByShare(workApprovedAreaSqft, totalArea, totalLabourerArea);
+            const unapprovedArea = round2(totalArea - approvedArea);
+            const totalAmount = round2(totalArea * perUnit);
+            const approvedAmount = round2(approvedArea * perUnit);
+            labourCost += approvedAmount;
             const labourer = labourerById.get(labourerId);
             labourBreakdown.push({
                 labourerId, labourerName: labourer?.name || '—',
-                areaSqft: round2(totalArea), rate: perUnit, earnings,
+                areaSqft: round2(totalArea), approvedAreaSqft: approvedArea, unapprovedAreaSqft: unapprovedArea,
+                rate: perUnit, totalAmount, approvedAmount, unapprovedAmount: round2(totalAmount - approvedAmount),
+                approvedDate: workApprovedDate,
             });
         }
     }
@@ -461,11 +637,15 @@ const computeWorkProfit = async (work) => {
 
     const materialCost = await computeWorkMaterialCost(work.projectId, work._id);
     const profit = revenue - contractorCost - labourCost - materialCost;
-    const { expectedPay, deductedTotal, expectedPayNetOfDeductions } = await computeWorkExpectedPay(work);
+    const {
+        expectedPay, deductedTotal, expectedPayNetOfDeductions,
+        totalAreaSqft, totalAmount, approvedAreaSqft, approvedAmount, approvedDate, unapprovedAreaSqft, unapprovedAmount,
+    } = await computeWorkExpectedPay(work);
 
     return {
         revenue, contractorCost, contractorBreakdown, labourCost, labourBreakdown, materialCost, profit, areaBilledSqft,
         expectedPay, deductedTotal, expectedPayNetOfDeductions,
+        totalAreaSqft, totalAmount, approvedAreaSqft, approvedAmount, approvedDate, unapprovedAreaSqft, unapprovedAmount,
     };
 };
 
@@ -474,10 +654,12 @@ const computeWorkProfit = async (work) => {
 // date window instead of computeWorkProfit's fixed all-time scope.
 // `dateStart`/`dateEnd` are both nullable; null on both means all time,
 // only `dateEnd` set means "from the work's start through that date",
-// both set means a bounded window (a single day, or a month). Mirrors
-// computeWorkProfit's approval gate on contractor area (unapproved area
-// is reported but excluded from cost) so this stays a true component of
-// the all-time figure at any window, not a differently-defined number.
+// both set means a bounded window (a single day, or a month). Always shows
+// 100% of logged area/cost for the window, unconditional — approval is a
+// whole-Work, billing-derived snapshot (computeWorkApprovedBilling), not
+// something attributable to one specific day or month, so this scoped view
+// doesn't attempt an approved/unapproved split at all (that only exists in
+// computeWorkProfit's all-time figures).
 const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) => {
     const dateFilter = {};
     if (dateStart) dateFilter.$gte = dateStart;
@@ -503,10 +685,7 @@ const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) =>
     for (const m of measurements) {
         if (!m.contractorVendorId) continue;
         const key = m.contractorVendorId.toString();
-        const cur = areaByVendor.get(key) || { totalArea: 0, approvedArea: 0 };
-        cur.totalArea += m.areaCoveredSqft;
-        if (m.engineerApproved) cur.approvedArea += m.areaCoveredSqft;
-        areaByVendor.set(key, cur);
+        areaByVendor.set(key, (areaByVendor.get(key) || 0) + m.areaCoveredSqft);
     }
     let contractorCost = 0;
     const contractorBreakdown = [];
@@ -518,15 +697,13 @@ const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) =>
         ]);
         const rateByVendor = new Map(rates.map(r => [r.contractorVendorId.toString(), r]));
         const vendorById = new Map(vendors.map(v => [v._id.toString(), v]));
-        for (const [vendorId, { totalArea, approvedArea }] of areaByVendor) {
+        for (const [vendorId, totalArea] of areaByVendor) {
             const perUnit = rateByVendor.get(vendorId)?.ratePerSqft || 0;
-            const neglectedArea = round2(totalArea - approvedArea);
-            const earnings = round2(approvedArea * perUnit);
+            const earnings = round2(totalArea * perUnit);
             contractorCost += earnings;
             contractorBreakdown.push({
                 vendorId, vendorName: vendorById.get(vendorId)?.name || '—',
-                areaSqft: round2(totalArea), approvedAreaSqft: round2(approvedArea), neglectedAreaSqft: neglectedArea,
-                rate: perUnit, earnings, neglectedAmount: round2(neglectedArea * perUnit),
+                areaSqft: round2(totalArea), rate: perUnit, earnings,
             });
         }
     }
@@ -560,7 +737,7 @@ const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) =>
     labourCost = round2(labourCost);
 
     const areaCoveredSqft = round2(
-        [...areaByVendor.values()].reduce((sum, v) => sum + v.totalArea, 0)
+        [...areaByVendor.values()].reduce((sum, a) => sum + a, 0)
         + [...areaByLabourer.values()].reduce((sum, a) => sum + a, 0)
     );
 
@@ -632,6 +809,10 @@ const getWorkProfit = async (req, res) => {
                 contractorBreakdown: wp.contractorBreakdown,
                 labourCost: wp.labourCost, labourBreakdown: wp.labourBreakdown,
                 materialCost: wp.materialCost, profit: wp.profit,
+                totalAreaSqft: wp.totalAreaSqft, totalAmount: wp.totalAmount,
+                approvedAreaSqft: wp.approvedAreaSqft, approvedAmount: wp.approvedAmount, approvedDate: wp.approvedDate,
+                unapprovedAreaSqft: wp.unapprovedAreaSqft, unapprovedAmount: wp.unapprovedAmount,
+                expectedPay: wp.expectedPay, deductedTotal: wp.deductedTotal, expectedPayNetOfDeductions: wp.expectedPayNetOfDeductions,
             },
         });
     } catch (err) {
@@ -689,6 +870,27 @@ const getWorkDetail = async (req, res) => {
                 estimatedAreaSqft: work.estimatedAreaSqft, completedAreaSqft: work.completedAreaSqft, progressPercent,
                 scope, scopeLabel, month: monthKey, date: dateKey, cumulative,
                 ...report,
+                // All-time, billing-approval-based — overrides the scoped
+                // (raw logged, ungated) contractorCost/labourCost `report`
+                // spread in above, same "always all-time" treatment
+                // revenue/profit already get: approval is a whole-Work
+                // billing snapshot, not attributable to one specific
+                // day/month. The scoped figures are kept under their own
+                // key in case the Day/Month view still wants to show raw
+                // logged cost for that window.
+                scopedContractorCost: report.contractorCost, scopedLabourCost: report.labourCost,
+                contractorCost: workProfit.contractorCost, labourCost: workProfit.labourCost,
+                // Per-type all-time totals (workProfit.contractorBreakdown/
+                // labourBreakdown already carry these per vendor/labourer —
+                // summed here so the Contractor Cost/Labour Cost KPI cards
+                // can each show their own "Total logged" figure next to
+                // their Approved one, distinct from computeWorkExpectedPay's
+                // blended totalAmount below).
+                totalContractorAmount: round2(workProfit.contractorBreakdown.reduce((s, b) => s + b.totalAmount, 0)),
+                totalLabourAmount: round2(workProfit.labourBreakdown.reduce((s, b) => s + b.totalAmount, 0)),
+                totalAreaSqft: workProfit.totalAreaSqft, totalAmount: workProfit.totalAmount,
+                approvedAreaSqft: workProfit.approvedAreaSqft, approvedAmount: workProfit.approvedAmount, approvedDate: workProfit.approvedDate,
+                unapprovedAreaSqft: workProfit.unapprovedAreaSqft, unapprovedAmount: workProfit.unapprovedAmount,
                 revenue: workProfit.revenue, profit: workProfit.profit,
                 // Forward-looking, all-time only like revenue/profit above —
                 // there's one estimatedAreaSqft per Work, not one per
@@ -708,6 +910,80 @@ const getWorkDetail = async (req, res) => {
     }
 };
 
+// Feeds the Deductions tab's reconciliation panel — for one (project,
+// workType), how much logged sqft never got billed to the client
+// (grossUnapprovedSqft, via computeWorkExpectedPay's unapprovedAreaSqft on
+// each matching work) minus how much of that gap has already been
+// allocated to a specific contractor/labourer (alreadyDeductedSqft, summed
+// off their own areaSqft field) = remainingSqft, the number the panel
+// counts down to zero. Also returns, per work, who's assigned and at what
+// rate, so the frontend picker doesn't need a second round-trip.
+const getDeductionPool = async (req, res) => {
+    try {
+        const { projectId, workType } = req.query;
+        if (!projectId || !workType) return res.status(400).json({ success: false, message: 'projectId and workType are required' });
+
+        const works = await FinanceWork.find({ projectId, workType, deleted: { $ne: true } });
+        if (!works.length) return res.json({ success: true, data: { grossUnapprovedSqft: 0, alreadyDeductedSqft: 0, remainingSqft: 0, works: [] } });
+
+        const workIds = works.map(w => w._id);
+        const [expectedPays, contractorAssignments, labourAssignments, contractorDeductions, labourDeductions] = await Promise.all([
+            Promise.all(works.map(w => computeWorkExpectedPay(w))),
+            FinanceWorkContractorAssignment.find({ workId: { $in: workIds }, deleted: { $ne: true } }),
+            FinanceWorkLabourAssignment.find({ workId: { $in: workIds }, deleted: { $ne: true } }),
+            FinanceContractorDeduction.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId areaSqft'),
+            FinanceLabourDeduction.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId areaSqft'),
+        ]);
+
+        const grossUnapprovedSqft = round2(expectedPays.reduce((s, wp) => s + wp.unapprovedAreaSqft, 0));
+        const alreadyDeductedSqft = round2(
+            contractorDeductions.reduce((s, d) => s + (d.areaSqft || 0), 0)
+            + labourDeductions.reduce((s, d) => s + (d.areaSqft || 0), 0)
+        );
+        const remainingSqft = round2(Math.max(0, grossUnapprovedSqft - alreadyDeductedSqft));
+
+        const vendorIdsByWork = new Map();
+        for (const a of contractorAssignments) {
+            const key = a.workId.toString();
+            if (!vendorIdsByWork.has(key)) vendorIdsByWork.set(key, new Set());
+            vendorIdsByWork.get(key).add(a.contractorVendorId.toString());
+        }
+        const labourerIdsByWork = new Map();
+        for (const a of labourAssignments) {
+            const key = a.workId.toString();
+            if (!labourerIdsByWork.has(key)) labourerIdsByWork.set(key, new Set());
+            labourerIdsByWork.get(key).add(a.labourerId.toString());
+        }
+        const allVendorIds = [...new Set([...vendorIdsByWork.values()].flatMap(s => [...s]))];
+        const allLabourerIds = [...new Set([...labourerIdsByWork.values()].flatMap(s => [...s]))];
+        const [rates, labourRates, vendors, labourers] = await Promise.all([
+            allVendorIds.length ? FinanceContractorRate.find({ projectId, contractorVendorId: { $in: allVendorIds }, workType, deleted: { $ne: true } }) : [],
+            allLabourerIds.length ? FinanceLabourRate.find({ projectId, labourerId: { $in: allLabourerIds }, workType, deleted: { $ne: true } }) : [],
+            allVendorIds.length ? FinanceVendor.find({ _id: { $in: allVendorIds } }) : [],
+            allLabourerIds.length ? FinanceLabourer.find({ _id: { $in: allLabourerIds } }) : [],
+        ]);
+        const rateByVendor = new Map(rates.map(r => [r.contractorVendorId.toString(), r.ratePerSqft]));
+        const rateByLabourer = new Map(labourRates.map(r => [r.labourerId.toString(), r.ratePerSqft]));
+        const vendorById = new Map(vendors.map(v => [v._id.toString(), v]));
+        const labourerById = new Map(labourers.map(l => [l._id.toString(), l]));
+
+        const worksOut = works.map((w, i) => ({
+            workId: w._id, workType: w.workType, unapprovedAreaSqft: expectedPays[i].unapprovedAreaSqft,
+            contractors: [...(vendorIdsByWork.get(w._id.toString()) || [])]
+                .map(id => ({ vendorId: id, vendorName: vendorById.get(id)?.name || '—', rate: rateByVendor.get(id) || null }))
+                .filter(c => c.rate !== null),
+            labourers: [...(labourerIdsByWork.get(w._id.toString()) || [])]
+                .map(id => ({ labourerId: id, labourerName: labourerById.get(id)?.name || '—', rate: rateByLabourer.get(id) || null }))
+                .filter(l => l.rate !== null),
+        }));
+
+        res.json({ success: true, data: { grossUnapprovedSqft, alreadyDeductedSqft, remainingSqft, works: worksOut } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing deduction pool' });
+    }
+};
+
 // Shared by getContractorAnalysis, dashboard summary, and the Contractors
 // Tier-1 mini-dashboard — one earnings/advances/deductions/payments/balance
 // row per labour contractor, optionally scoped to one project.
@@ -724,31 +1000,63 @@ const computeContractorAnalysisRows = async (projectId) => {
         const workById = new Map(works.map(w => [w._id.toString(), w]));
 
         const projectIds = [...new Set(works.map(w => w.projectId.toString()))];
-        const [rates, measurements] = await Promise.all([
+        const [rates, vendorMeasurements, allMeasurementsOnTheseWorks, approvedBillingByWorkId] = await Promise.all([
             projectIds.length
                 ? FinanceContractorRate.find({ projectId: { $in: projectIds }, contractorVendorId: v._id, deleted: { $ne: true } })
                 : [],
             works.length
-                ? FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, contractorVendorId: v._id, engineerApproved: true, deleted: { $ne: true } })
+                ? FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, contractorVendorId: v._id, deleted: { $ne: true } }, 'workId areaCoveredSqft')
                 : [],
+            // Every contractor's measurements on these same works (any
+            // vendor) — needed to proportionally split each work's billed
+            // area when more than one vendor contributes to it.
+            works.length
+                ? FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId areaCoveredSqft')
+                : [],
+            works.length ? getApprovedBillingByWorkId(works.map(w => w._id)) : new Map(),
         ]);
         const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.workType}`, r]));
 
-        // Measurement-level: each day's area attributes to this contractor
-        // directly (a Work can have another contractor on it too). Only
-        // engineer-approved area counts as earnings.
-        const areaByKey = new Map(); // `${projectId}_${workType}` -> area
-        for (const m of measurements) {
-            const work = workById.get(m.workId.toString());
-            if (!work) continue;
-            const key = `${work.projectId}_${work.workType}`;
-            areaByKey.set(key, (areaByKey.get(key) || 0) + m.areaCoveredSqft);
+        const totalAreaByWork = new Map(); // all vendors combined, per work
+        for (const m of allMeasurementsOnTheseWorks) {
+            const key = m.workId.toString();
+            totalAreaByWork.set(key, (totalAreaByWork.get(key) || 0) + m.areaCoveredSqft);
         }
-        let earnings = 0;
-        for (const [key, area] of areaByKey) {
+        const vendorAreaByWork = new Map(); // this vendor only, per work
+        for (const m of vendorMeasurements) {
+            const key = m.workId.toString();
+            vendorAreaByWork.set(key, (vendorAreaByWork.get(key) || 0) + m.areaCoveredSqft);
+        }
+
+        // Total = every logged sqft this vendor did, grouped by
+        // (projectId, workType) for rate lookup — same grouping as before,
+        // just no longer engineerApproved-gated. Approved = each work's
+        // billed-to-client sqft, proportionally split to this vendor's
+        // share (splitApprovedAreaByShare), same grouping.
+        const totalAreaByKey = new Map();
+        const approvedAreaByKey = new Map();
+        for (const work of works) {
+            const workKey = work._id.toString();
+            const vendorArea = vendorAreaByWork.get(workKey) || 0;
+            if (!vendorArea) continue;
+            const key = `${work.projectId}_${work.workType}`;
+            totalAreaByKey.set(key, (totalAreaByKey.get(key) || 0) + vendorArea);
+            const workApprovedArea = approvedBillingByWorkId.get(workKey)?.areaSqft || 0;
+            const vendorApprovedArea = splitApprovedAreaByShare(workApprovedArea, vendorArea, totalAreaByWork.get(workKey) || 0);
+            approvedAreaByKey.set(key, (approvedAreaByKey.get(key) || 0) + vendorApprovedArea);
+        }
+        let totalEarnings = 0;
+        for (const [key, area] of totalAreaByKey) {
+            const rate = rateByKey.get(key);
+            if (rate) totalEarnings += area * (rate.ratePerSqft);
+        }
+        let earnings = 0; // "Approved" — this is what actually feeds Balance Payable
+        for (const [key, area] of approvedAreaByKey) {
             const rate = rateByKey.get(key);
             if (rate) earnings += area * (rate.ratePerSqft);
         }
+        totalEarnings = round2(totalEarnings);
+        earnings = round2(earnings);
 
         const moneyFilter = { vendorId: v._id, deleted: { $ne: true } };
         if (projectId) moneyFilter.projectId = projectId;
@@ -762,7 +1070,13 @@ const computeContractorAnalysisRows = async (projectId) => {
         const paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
         const balancePayable = earnings - advancesTotal - deductionsTotal - paymentsTotal;
 
-        return { vendorId: v._id, vendorName: v.name, earnings, advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal, balancePayable };
+        return {
+            // Field names match financeContractorLedger.js's getContractorLedger
+            // totals shape (totalAmount/earnings/unapprovedAmount) so both
+            // feeds render identically on the frontend.
+            vendorId: v._id, vendorName: v.name, earnings, totalAmount: totalEarnings, unapprovedAmount: round2(totalEarnings - earnings),
+            advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal, balancePayable,
+        };
     }));
 };
 
@@ -799,11 +1113,15 @@ const getContractorsSummary = async (req, res) => {
 
                 const [rates, measurements] = await Promise.all([
                     FinanceContractorRate.find({ projectId: { $in: [...new Set(works.map(w => w.projectId.toString()))] }, contractorVendorId: v._id, deleted: { $ne: true } }),
-                    FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, contractorVendorId: v._id, engineerApproved: true, deleted: { $ne: true } }),
+                    FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, contractorVendorId: v._id, deleted: { $ne: true } }),
                 ]);
                 const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.workType}`, r]));
 
-                // Measurement-level, restricted to this contractor's own work.
+                // cost/sqft is just the configured rate either way (earnings
+                // ÷ area always cancels back to it) — not gated by billing
+                // approval, unlike `earnings` in computeContractorAnalysisRows
+                // above. Measurement-level, restricted to this contractor's
+                // own work.
                 const byType = new Map();
                 for (const m of measurements) {
                     const work = workById.get(m.workId.toString());
@@ -1287,9 +1605,14 @@ const computeCompanyWideMaterialCostInRange = async (start, end, projectIds = nu
 // history of its own, so this uses dated FinanceMeasurement rows (the only
 // dated record of "work done") as the proxy for when the area — and its
 // contractor cost — was actually incurred, same approximation the
-// project-progress chart relies on.
+// project-progress chart relies on. Ungated (every logged measurement in
+// range counts, not just billed-to-client ones) — same reasoning as
+// computeWorkScopedReport: billing approval is a whole-Work snapshot, not
+// attributable to a specific date range, so a monthly cost trend shows
+// real costs incurred that month regardless of how far client billing has
+// caught up.
 const computeCompanyWideContractorCostInRange = async (start, end, projectIds = null) => {
-    const match = { date: { $gte: start, $lte: end }, engineerApproved: true, deleted: { $ne: true } };
+    const match = { date: { $gte: start, $lte: end }, deleted: { $ne: true } };
     const measurements = await FinanceMeasurement.find(match).populate({ path: 'workId', select: 'projectId workType' });
     const relevant = measurements.filter(m => m.workId && m.contractorVendorId && (!projectIds || projectIds.some(id => id.toString() === m.workId.projectId.toString())));
     if (!relevant.length) return 0;
@@ -1462,6 +1785,92 @@ const computeAging = (bills, receipts) => {
     return buckets;
 };
 
+// Dashboard "Approved" section — every Work that's been billed to the
+// client via ANY issued running bill, company-wide, grouped by work type
+// (Putty/Paint/...) plus a Contractor-total/Labour-total split. Unlike the
+// Site Activity boxes above it (which show raw logged "today" activity,
+// deliberately unconditional), this is cumulative and billing-derived —
+// there's no "today" version of Approved, since a bill's approval doesn't
+// expire.
+//
+// KNOWN LIMITATION: same as computeWorkExpectedPay — a work with more than
+// one contributing vendor/labourer sums each one's rate × the work's full
+// approved area rather than a real split (no data records how a work's
+// billed area actually divides between multiple contributors). Acceptable
+// for a company-wide glance total; the precise per-work/per-vendor split
+// lives in the Ledger views instead.
+const computeDashboardApprovedBreakdown = async () => {
+    const issuedBills = await FinanceRunningBill.find({ status: 'issued', deleted: { $ne: true } }, 'lineItems');
+    const approvedAreaByWorkId = new Map();
+    for (const bill of issuedBills) {
+        for (const li of bill.lineItems) {
+            const key = li.workId.toString();
+            approvedAreaByWorkId.set(key, (approvedAreaByWorkId.get(key) || 0) + li.areaBilledSqft);
+        }
+    }
+    if (!approvedAreaByWorkId.size) return { byWorkType: [], contractorTotal: 0, labourTotal: 0 };
+
+    const workIds = [...approvedAreaByWorkId.keys()];
+    const works = await FinanceWork.find({ _id: { $in: workIds } }, 'workType projectId');
+    const [contractorAssignments, labourAssignments, contractorMeasurements, labourMeasurements] = await Promise.all([
+        FinanceWorkContractorAssignment.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId contractorVendorId'),
+        FinanceWorkLabourAssignment.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId labourerId'),
+        FinanceMeasurement.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId contractorVendorId'),
+        FinanceLabourMeasurement.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId labourerId'),
+    ]);
+    const vendorIdsByWork = new Map();
+    for (const a of [...contractorAssignments, ...contractorMeasurements]) {
+        if (!a.contractorVendorId) continue;
+        const key = a.workId.toString();
+        if (!vendorIdsByWork.has(key)) vendorIdsByWork.set(key, new Set());
+        vendorIdsByWork.get(key).add(a.contractorVendorId.toString());
+    }
+    const labourerIdsByWork = new Map();
+    for (const a of [...labourAssignments, ...labourMeasurements]) {
+        const key = a.workId.toString();
+        if (!labourerIdsByWork.has(key)) labourerIdsByWork.set(key, new Set());
+        labourerIdsByWork.get(key).add(a.labourerId.toString());
+    }
+
+    const projectIds = [...new Set(works.map(w => w.projectId.toString()))];
+    const allVendorIds = [...new Set([...vendorIdsByWork.values()].flatMap(s => [...s]))];
+    const allLabourerIds = [...new Set([...labourerIdsByWork.values()].flatMap(s => [...s]))];
+    const [contractorRates, labourRates] = await Promise.all([
+        allVendorIds.length ? FinanceContractorRate.find({ projectId: { $in: projectIds }, contractorVendorId: { $in: allVendorIds }, deleted: { $ne: true } }) : [],
+        allLabourerIds.length ? FinanceLabourRate.find({ projectId: { $in: projectIds }, labourerId: { $in: allLabourerIds }, deleted: { $ne: true } }) : [],
+    ]);
+    const contractorRateByKey = new Map(contractorRates.map(r => [`${r.projectId}_${r.contractorVendorId}_${r.workType}`, r.ratePerSqft]));
+    const labourRateByKey = new Map(labourRates.map(r => [`${r.projectId}_${r.labourerId}_${r.workType}`, r.ratePerSqft]));
+
+    const byWorkType = new Map(); // workType -> { sqft, amount }
+    let contractorTotal = 0, labourTotal = 0;
+    for (const w of works) {
+        const area = approvedAreaByWorkId.get(w._id.toString()) || 0;
+        if (!area) continue;
+        const vendorIds = [...(vendorIdsByWork.get(w._id.toString()) || [])];
+        const labourerIds = [...(labourerIdsByWork.get(w._id.toString()) || [])];
+        let workAmount = 0;
+        if (vendorIds.length) {
+            for (const vendorId of vendorIds) {
+                const rate = contractorRateByKey.get(`${w.projectId}_${vendorId}_${w.workType}`);
+                if (rate) { workAmount += area * rate; contractorTotal += area * rate; }
+            }
+        } else if (labourerIds.length) {
+            for (const labourerId of labourerIds) {
+                const rate = labourRateByKey.get(`${w.projectId}_${labourerId}_${w.workType}`);
+                if (rate) { workAmount += area * rate; labourTotal += area * rate; }
+            }
+        }
+        const cur = byWorkType.get(w.workType) || { sqft: 0, amount: 0 };
+        cur.sqft += area; cur.amount += workAmount;
+        byWorkType.set(w.workType, cur);
+    }
+    return {
+        byWorkType: [...byWorkType.entries()].map(([workType, v]) => ({ workType, sqft: round2(v.sqft), amount: round2(v.amount) })),
+        contractorTotal: round2(contractorTotal), labourTotal: round2(labourTotal),
+    };
+};
+
 // Tier-0 Company Dashboard KPIs — every number here is meant to be a
 // doorway into a Tier-1/Tier-2 page, not a granular breakdown of its own.
 const getDashboardSummary = async (req, res) => {
@@ -1535,7 +1944,7 @@ const getDashboardSummary = async (req, res) => {
             sqftByWorkId.set(key, (sqftByWorkId.get(key) || 0) + m.areaCoveredSqft);
         }
         const todaysWorkIds = [...sqftByWorkId.keys()];
-        const [todaysWorksById, workDeductions, workLabourDeductions] = await Promise.all([
+        const [todaysWorksById, workDeductions, workLabourDeductions, workSupervisorDeductions] = await Promise.all([
             FinanceWork.find({ _id: { $in: todaysWorkIds } }, 'workType projectId estimatedAreaSqft completedAreaSqft')
                 .populate('projectId', 'name'),
             // "Expectations vs reality" per work: estimatedAreaSqft (target)
@@ -1543,8 +1952,9 @@ const getDashboardSummary = async (req, res) => {
             // same "show it even before approval" rule as the KPI above).
             // Deducted total is a manually-entered figure (engineer/
             // supervisor typed in an amount against this specific work, see
-            // financeContractorDeduction.js/financeLabourDeduction.js
-            // workId field) — never auto-computed from the approval gate.
+            // financeContractorDeduction.js/financeLabourDeduction.js/
+            // financeSupervisorDeduction.js workId field) — never
+            // auto-computed from the approval gate.
             FinanceContractorDeduction.aggregate([
                 { $match: { workId: { $in: todaysWorkIds.map(id => new mongoose.Types.ObjectId(id)) }, deleted: { $ne: true } } },
                 { $group: { _id: '$workId', total: { $sum: '$amount' } } },
@@ -1553,9 +1963,13 @@ const getDashboardSummary = async (req, res) => {
                 { $match: { workId: { $in: todaysWorkIds.map(id => new mongoose.Types.ObjectId(id)) }, deleted: { $ne: true } } },
                 { $group: { _id: '$workId', total: { $sum: '$amount' } } },
             ]),
+            FinanceSupervisorDeduction.aggregate([
+                { $match: { workId: { $in: todaysWorkIds.map(id => new mongoose.Types.ObjectId(id)) }, deleted: { $ne: true } } },
+                { $group: { _id: '$workId', total: { $sum: '$amount' } } },
+            ]),
         ]);
         const deductedByWorkId = new Map();
-        for (const r of [...workDeductions, ...workLabourDeductions]) {
+        for (const r of [...workDeductions, ...workLabourDeductions, ...workSupervisorDeductions]) {
             const key = r._id.toString();
             deductedByWorkId.set(key, (deductedByWorkId.get(key) || 0) + r.total);
         }
@@ -1579,7 +1993,7 @@ const getDashboardSummary = async (req, res) => {
             })
             .sort((a, b) => b.sqft - a.sqft);
 
-        const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost] = await Promise.all([
+        const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown] = await Promise.all([
             computeCompanyWideMaterialCostInRange(monthStart, monthEnd, activeProjectIds),
             computeCompanyWideContractorCostInRange(monthStart, monthEnd, activeProjectIds),
             computeCompanyWideCommissionCostInRange(monthStart, monthEnd, activeProjectIds),
@@ -1588,6 +2002,7 @@ const getDashboardSummary = async (req, res) => {
                 { $group: { _id: null, total: { $sum: '$amount' } } },
             ]),
             computeCompanyWideLabourCostInRange(monthStart, monthEnd, activeProjectIds),
+            computeDashboardApprovedBreakdown(),
         ]);
         const thisMonthRevenue = monthRevenueAgg[0]?.total || 0;
         const thisMonthProfit = thisMonthRevenue - monthMaterialCost - monthContractorCost - monthCommissionCost
@@ -1606,6 +2021,8 @@ const getDashboardSummary = async (req, res) => {
                 labourWorkingToday: labourersWorkingTodayIds.length,
                 materialLowAlerts: lowStockCount,
                 todaysMeasurementSqft, todaysContractorMeasurementSqft, todaysLabourMeasurementSqft, todaysWorkActivity,
+                approvedByWorkType: approvedBreakdown.byWorkType,
+                approvedContractorTotal: approvedBreakdown.contractorTotal, approvedLabourTotal: approvedBreakdown.labourTotal,
                 thisMonthRevenue, thisMonthProfit,
                 recentActivities,
             },
@@ -1888,7 +2305,7 @@ const downloadCaMonthlyPackage = async (req, res) => {
 };
 
 export {
-    getProjectProfit, getClientProfit, getWorkProfit, getWorkDetail,
+    getProjectProfit, getClientProfit, getWorkProfit, getWorkDetail, getDeductionPool,
     getContractorAnalysis, getContractorsSummary,
     getVendorAnalysis, getVendorsSummary,
     getMaterialAnalysis, getInventorySummary,
@@ -1896,4 +2313,11 @@ export {
     getCaMonthlyPackage, downloadCaMonthlyPackage,
     getDashboardSummary, getDashboardTrends,
     getClientsSummary, getClientDetail,
+    // Shared with financeContractorLedger.js/financeLabourLedger.js so the
+    // "approved = billed to client via an issued running bill" figure and
+    // its multi-party proportional split never drift between this module
+    // and those (same cross-controller import pattern already used
+    // elsewhere in this codebase, e.g. financeMeasurement.js importing
+    // computeCurrentStock from financeStockMovement.js).
+    getApprovedBillingByWorkId, splitApprovedAreaByShare,
 };

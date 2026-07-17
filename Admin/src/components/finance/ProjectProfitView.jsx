@@ -81,14 +81,24 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                         <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                             <p>₹{data.revenue.toLocaleString('en-IN')}</p>
                             <p>₹{data.materialCost.toLocaleString('en-IN')}</p>
-                            <p>₹{data.contractorCost.toLocaleString('en-IN')}</p>
+                            <p>
+                                {data.contractorCost > 0 ? `₹${data.contractorCost.toLocaleString('en-IN')}` : (data.totalContractorCost > 0 ? <span style={{ color: '#c0392b' }}>Unapproved</span> : '₹0')}
+                                {data.totalContractorCost > data.contractorCost && (
+                                    <span style={{ display: 'block', fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>Total logged: ₹{data.totalContractorCost.toLocaleString('en-IN')}</span>
+                                )}
+                            </p>
                             <p>₹{data.commissionCost.toLocaleString('en-IN')}</p>
                         </div>
                         <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                             <b>Labour Cost</b><b>Other Expenses</b><b>Profit</b>
                         </div>
                         <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                            <p>₹{data.labourCost.toLocaleString('en-IN')}</p>
+                            <p>
+                                {data.labourCost > 0 ? `₹${data.labourCost.toLocaleString('en-IN')}` : (data.totalLabourCost > 0 ? <span style={{ color: '#c0392b' }}>Unapproved</span> : '₹0')}
+                                {data.totalLabourCost > data.labourCost && (
+                                    <span style={{ display: 'block', fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>Total logged: ₹{data.totalLabourCost.toLocaleString('en-IN')}</span>
+                                )}
+                            </p>
                             <p>₹{data.otherExpenses.toLocaleString('en-IN')}</p>
                             <p style={{ fontWeight: 700, color: data.profit >= 0 ? 'var(--moss)' : '#c0392b' }}>
                                 ₹{data.profit.toLocaleString('en-IN')} ({data.marginPercent.toFixed(1)}%)

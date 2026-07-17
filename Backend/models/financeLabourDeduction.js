@@ -15,11 +15,17 @@ import mongoose from 'mongoose';
 const financeLabourDeductionSchema = new mongoose.Schema({
     labourerId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeLabourer', required: true },
     projectId:  { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', default: null },
-    // Optional — same idea as financeContractorDeduction.workId: pins an
-    // 'engineer_review' negligence deduction to the specific Work it was
-    // caught on, so it can surface next to that Work's own measurements.
+    // Same idea as financeContractorDeduction.workId — required in
+    // practice (the controller needs it to look up a rate for areaSqft),
+    // kept `default: null` at the schema level only so it doesn't reject
+    // reading older rows saved before this field existed.
     workId:     { type: mongoose.Schema.Types.ObjectId, ref: 'financeWork', default: null },
 
+    // Always derived server-side from areaSqft × this labourer's
+    // configured rate for the work's workType — see controller. sqft is
+    // the human judgment call ("whose mistake, how much of it"), the ₹ is
+    // arithmetic from there.
+    areaSqft: { type: Number, required: true },
     amount: { type: Number, required: true },
     reason: { type: String, required: true },
     date:   { type: Date, required: true },

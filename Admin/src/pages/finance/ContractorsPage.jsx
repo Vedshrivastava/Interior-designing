@@ -174,13 +174,14 @@ const ContractorsOverviewTab = ({ url, onSelectContractor }) => {
                     </ChartGrid>
 
                     <div className="list-table" style={{ marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr 1fr' }}>
-                            <b>Contractor</b><b>Earnings</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>Balance Payable</b>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 0.9fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr' }}>
+                            <b>Contractor</b><b>Total</b><b>Approved</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>Balance Payable</b>
                         </div>
                         {contractors.map(c => (
-                            <div key={c.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr 1fr' }}>
+                            <div key={c.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 0.9fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr' }}>
                                 <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => onSelectContractor(c.vendorId)}>{c.vendorName}</p>
-                                <p>{formatINR(c.earnings)}</p>
+                                <p>{formatINR(c.totalAmount)}</p>
+                                <p style={{ color: c.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{c.earnings > 0 ? formatINR(c.earnings) : 'Unapproved'}</p>
                                 <p>{formatINR(c.advances)}</p>
                                 <p>{formatINR(c.deductions)}</p>
                                 <p>{formatINR(c.payments)}</p>

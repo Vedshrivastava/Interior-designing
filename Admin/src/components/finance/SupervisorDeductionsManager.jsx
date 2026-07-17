@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
 
-const emptyForm = { amount: '', reason: '', date: '', projectId: '', notes: '' };
+const emptyForm = { amount: '', reason: '', date: '', projectId: '', workId: '', notes: '' };
 
 /* Entry + list view for one supervisor's deductions — debit-side sibling
    of SupervisorIncentivesManager. Manual amount + reason, same as an
@@ -16,6 +16,7 @@ const SupervisorDeductionsManager = ({ url, employeeId }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [projects, setProjects] = useState([]);
+    const [works, setWorks] = useState([]);
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState(emptyForm);
@@ -35,7 +36,16 @@ const SupervisorDeductionsManager = ({ url, employeeId }) => {
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+    // Work picker is scoped to whichever project is picked above — a
+    // supervisor's deduction only makes sense pinned to a work within the
+    // same project, not any work company-wide.
+    useEffect(() => {
+        if (!form.projectId) { setWorks([]); return; }
+        axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: form.projectId } })
+            .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => {});
+    }, [url, form.projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value, ...(key === 'projectId' ? { workId: '' } : {}) }));
 
     const submit = async (e) => {
         e.preventDefault();
@@ -82,6 +92,15 @@ const SupervisorDeductionsManager = ({ url, employeeId }) => {
                             {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
                         </select>
                     </div>
+                    {form.projectId && works.length > 0 && (
+                        <div className="add-product-name flex-col">
+                            <p>Work (optional — e.g. a negligence deduction caught on one specific work)</p>
+                            <select value={form.workId} onChange={e => setField('workId', e.target.value)}>
+                                <option value="">— Not tied to a specific work —</option>
+                                {works.map(w => <option key={w._id} value={w._id}>{w.workType}</option>)}
+                            </select>
+                        </div>
+                    )}
                 </div>
                 <div className="wizard-actions" style={{ marginTop: '16px' }}>
                     <span />
@@ -90,19 +109,20 @@ const SupervisorDeductionsManager = ({ url, employeeId }) => {
             </form>
 
             <div className="list-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 1fr 100px' }}>
-                    <b>Date</b><b>Amount</b><b>Reason</b><b>Project</b><b>Action</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1.3fr 1fr 1fr 100px' }}>
+                    <b>Date</b><b>Amount</b><b>Reason</b><b>Project</b><b>Work</b><b>Action</b>
                 </div>
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
                 ) : entries.length === 0 ? (
                     <div className="admin-empty-state"><p>No deductions recorded yet.</p></div>
                 ) : entries.map(e => (
-                    <div key={e._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 1fr 100px' }}>
+                    <div key={e._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1.3fr 1fr 1fr 100px' }}>
                         <p>{new Date(e.date).toLocaleDateString()}</p>
                         <p>₹{e.amount.toLocaleString('en-IN')}</p>
                         <p>{e.reason}</p>
                         <p>{e.projectId?.name || '—'}</p>
+                        <p>{e.workId?.workType || '—'}</p>
                         <div className="action-buttons"><p onClick={() => remove(e._id)} className="cursor delete-action">X</p></div>
                     </div>
                 ))}

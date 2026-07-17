@@ -54,7 +54,12 @@ const WorkProfitView = ({ url, workId }) => {
                 </div>
                 <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                     <p>₹{data.revenue.toLocaleString('en-IN')}</p>
-                    <p>₹{data.contractorCost.toLocaleString('en-IN')}</p>
+                    <p>
+                        {data.contractorCost > 0 ? `₹${data.contractorCost.toLocaleString('en-IN')}` : (data.totalAmount > 0 ? <span style={{ color: '#c0392b' }}>Unapproved</span> : '₹0')}
+                        {data.totalAmount > data.contractorCost && (
+                            <span style={{ display: 'block', fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>Total logged: ₹{data.totalAmount.toLocaleString('en-IN')}</span>
+                        )}
+                    </p>
                     <p>₹{data.materialCost.toLocaleString('en-IN')}</p>
                     <p style={{ fontWeight: 700, color: data.profit >= 0 ? 'var(--moss)' : '#c0392b' }}>₹{data.profit.toLocaleString('en-IN')}</p>
                 </div>

@@ -131,8 +131,18 @@ const WorkDetail = ({ url }) => {
 
                 <KpiGrid>
                     <KpiCard label="Area Covered" value={`${data.areaCoveredSqft} sqft`} />
-                    <KpiCard label="Contractor Cost" value={formatINR(data.contractorCost)} />
-                    <KpiCard label="Labour Cost" value={formatINR(data.labourCost)} />
+                    <KpiCard
+                        label="Contractor Cost (Approved)"
+                        value={data.contractorCost > 0 ? formatINR(data.contractorCost) : (data.totalContractorAmount > 0 ? 'Unapproved' : formatINR(0))}
+                        tone={data.contractorCost > 0 ? 'good' : (data.totalContractorAmount > 0 ? 'danger' : undefined)}
+                        sub={data.totalContractorAmount > data.contractorCost ? `Total logged: ${formatINR(data.totalContractorAmount)}` : 'All-time, not scoped by the picker above'}
+                    />
+                    <KpiCard
+                        label="Labour Cost (Approved)"
+                        value={data.labourCost > 0 ? formatINR(data.labourCost) : (data.totalLabourAmount > 0 ? 'Unapproved' : formatINR(0))}
+                        tone={data.labourCost > 0 ? 'good' : (data.totalLabourAmount > 0 ? 'danger' : undefined)}
+                        sub={data.totalLabourAmount > data.labourCost ? `Total logged: ${formatINR(data.totalLabourAmount)}` : 'All-time, not scoped by the picker above'}
+                    />
                     {scope === 'alltime' ? (
                         <>
                             <KpiCard label="Revenue" value={formatINR(data.revenue)} />

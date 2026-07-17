@@ -7,6 +7,7 @@ import FinanceContractorAdvance from '../models/financeContractorAdvance.js';
 import FinanceContractorDeduction from '../models/financeContractorDeduction.js';
 import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import { assertContractorVendor } from '../utils/contractorVendor.js';
+import { getApprovedBillingByWorkId, splitApprovedAreaByShare } from './financeReports.js';
 
 // totalArea − approvedArea on floats accumulated across many measurements
 // produces artifacts like 21.300000000000001 — round for display/storage.
@@ -17,17 +18,21 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
  * Same anti-drift rule already used for current-stock, Receivables, and
  * Payables elsewhere in this codebase.
  *
- * Earnings only count engineer-approved area — unapproved ("neglected")
- * measured area is tracked separately (per-row neglectedAreaSqft/totals.
- * neglectedAmount) but excluded from what's actually owed, the same gate
- * financeRunningBill already applies for client billing. This means
- * Balance Payable can go negative: if a contractor's already been paid
- * more than their currently-approved work earns, that's "Extra Paid"
- * (an advance against work not yet approved), not a balance due — the
- * frontend is responsible for that framing, this endpoint just reports
- * the signed number.
+ * Earnings only count "Approved" area — the portion of a Work that's
+ * actually been billed to the client via an issued running bill (see
+ * financeReports.js's computeWorkApprovedBilling header comment for the
+ * full reasoning: issuing the bill IS the engineer's approval act). Total
+ * (every logged sqft, unconditional) is tracked separately per work
+ * (completedAreaSqft/totalAmount) alongside Approved
+ * (approvedAreaSqft/totals.earnings) — the gap between them is
+ * unapprovedAreaSqft/totals.unapprovedAmount, never a separately entered
+ * figure. This means Balance Payable can go negative: if a contractor's
+ * already been paid more than their currently-approved work earns, that's
+ * "Extra Paid" (an advance against work not yet billed), not a balance due
+ * — the frontend is responsible for that framing, this endpoint just
+ * reports the signed number.
  *
- * Balance Payable = Earnings − Advances − Deductions − Payments.
+ * Balance Payable = Approved Earnings − Advances − Deductions − Payments.
  *
  * INTERPRETATION FLAG: the source structure doc gives this as shorthand
  * ("Advance − Expense Given − Deductions = Balance Payable"). This is the
@@ -64,43 +69,64 @@ const getContractorLedger = async (req, res) => {
         // too. Rows are seeded at zero for every Work this vendor is
         // assigned to (so a brand-new Work with no measurements yet still
         // shows up), then filled in from measurements.
-        const areaByWork = new Map(); // workId -> { totalArea, approvedArea }
-        for (const w of works) areaByWork.set(w._id.toString(), { totalArea: 0, approvedArea: 0 });
+        const areaByWork = new Map(); // workId -> { totalArea, allVendorsArea }
+        for (const w of works) areaByWork.set(w._id.toString(), { totalArea: 0, allVendorsArea: 0 });
 
-        const measurements = works.length
-            ? await FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, contractorVendorId: vendorId, deleted: { $ne: true } })
-                .populate('workId', 'workType')
-                .sort({ date: -1 })
-            : [];
+        const [measurements, allVendorMeasurements, approvedBillingByWorkId] = await Promise.all([
+            works.length
+                ? FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, contractorVendorId: vendorId, deleted: { $ne: true } })
+                    .populate('workId', 'workType')
+                    .sort({ date: -1 })
+                : [],
+            // Every contractor's measurements on these works (any vendor) —
+            // needed to proportionally split a work's billed area when more
+            // than one vendor contributes to it (see splitApprovedAreaByShare).
+            works.length
+                ? FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId areaCoveredSqft')
+                : [],
+            works.length ? getApprovedBillingByWorkId(works.map(w => w._id)) : new Map(),
+        ]);
+        for (const m of allVendorMeasurements) {
+            const key = m.workId.toString();
+            const cur = areaByWork.get(key) || { totalArea: 0, allVendorsArea: 0 };
+            cur.allVendorsArea += m.areaCoveredSqft;
+            areaByWork.set(key, cur);
+        }
         for (const m of measurements) {
             const workKey = m.workId._id.toString();
-            const cur = areaByWork.get(workKey) || { totalArea: 0, approvedArea: 0 };
+            const cur = areaByWork.get(workKey) || { totalArea: 0, allVendorsArea: 0 };
             cur.totalArea += m.areaCoveredSqft;
-            if (m.engineerApproved) cur.approvedArea += m.areaCoveredSqft;
             areaByWork.set(workKey, cur);
         }
 
         let earningsTotal = 0;
-        let neglectedAmountTotal = 0;
+        let totalAmountTotal = 0;
+        let unapprovedAmountTotal = 0;
         const worksOut = [];
         for (const w of works) {
-            const { totalArea, approvedArea } = areaByWork.get(w._id.toString());
+            const workKey = w._id.toString();
+            const { totalArea, allVendorsArea } = areaByWork.get(workKey);
             const rate = rateByKey.get(`${w.projectId}_${w.workType}`);
             const rateValue = rate ? rate.ratePerSqft : 0;
-            const neglectedArea = round2(totalArea - approvedArea);
+            const workApprovedBilling = approvedBillingByWorkId.get(workKey) || { areaSqft: 0, date: null };
+            const approvedArea = splitApprovedAreaByShare(workApprovedBilling.areaSqft, totalArea, allVendorsArea);
+            const unapprovedArea = round2(totalArea - approvedArea);
+            const totalAmount = round2(rate ? totalArea * rateValue : 0);
             const earnings = round2(rate ? approvedArea * rateValue : 0);
-            const neglectedAmount = round2(rate ? neglectedArea * rateValue : 0);
+            const unapprovedAmount = round2(rate ? unapprovedArea * rateValue : 0);
             earningsTotal += earnings;
-            neglectedAmountTotal += neglectedAmount;
+            totalAmountTotal += totalAmount;
+            unapprovedAmountTotal += unapprovedAmount;
             worksOut.push({
                 _id: w._id,
                 projectId: w.projectId, projectName: projectNameById.get(w.projectId.toString()) || '—',
                 workType: w.workType,
                 estimatedAreaSqft: w.estimatedAreaSqft, completedAreaSqft: round2(totalArea),
-                approvedAreaSqft: round2(approvedArea), neglectedAreaSqft: neglectedArea,
+                approvedAreaSqft: approvedArea, unapprovedAreaSqft: unapprovedArea,
+                approvedDate: approvedArea > 0 ? workApprovedBilling.date : null,
                 status: w.status,
                 rate: rate ? rate.ratePerSqft : null,
-                earnings, neglectedAmount,
+                totalAmount, earnings, unapprovedAmount,
             });
         }
 
@@ -116,7 +142,8 @@ const getContractorLedger = async (req, res) => {
         const deductionsTotal = deductions.reduce((sum, d) => sum + d.amount, 0);
         const paymentsTotal = payments.reduce((sum, p) => sum + p.amount, 0);
         earningsTotal = round2(earningsTotal);
-        neglectedAmountTotal = round2(neglectedAmountTotal);
+        totalAmountTotal = round2(totalAmountTotal);
+        unapprovedAmountTotal = round2(unapprovedAmountTotal);
         const balancePayable = round2(earningsTotal - advancesTotal - deductionsTotal - paymentsTotal);
 
         res.json({
@@ -125,7 +152,7 @@ const getContractorLedger = async (req, res) => {
                 vendorId: vendor._id, vendorName: vendor.name,
                 works: worksOut, measurements, advances, deductions, payments,
                 totals: {
-                    earnings: earningsTotal, neglectedAmount: neglectedAmountTotal,
+                    earnings: earningsTotal, totalAmount: totalAmountTotal, unapprovedAmount: unapprovedAmountTotal,
                     advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal, balancePayable,
                 },
             },

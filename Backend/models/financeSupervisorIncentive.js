@@ -8,6 +8,13 @@ import mongoose from 'mongoose';
 const financeSupervisorIncentiveSchema = new mongoose.Schema({
     employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeEmployee', required: true },
     projectId:  { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', default: null },
+    // Optional — same idea as the workId already added to
+    // financeContractorDeduction/financeLabourDeduction/
+    // financeSupervisorDeduction this session: pins an incentive to the
+    // specific Work it was earned on. Supervisors don't measure area, so
+    // this is the closest thing to "approved amount" they get — presence
+    // of an incentive tied to a work, not a computed figure.
+    workId:     { type: mongoose.Schema.Types.ObjectId, ref: 'financeWork', default: null },
 
     amount: { type: Number, required: true },
     reason: { type: String, required: true },

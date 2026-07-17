@@ -14,6 +14,7 @@ const listSupervisorIncentives = async (req, res) => {
         const items = await FinanceSupervisorIncentive.find(filter)
             .populate('bankAccountId', 'accountName')
             .populate('projectId', 'name')
+            .populate('workId', 'workType')
             .sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {
@@ -27,14 +28,14 @@ const listSupervisorIncentives = async (req, res) => {
 // payment controller in this codebase.
 const addSupervisorIncentive = async (req, res) => {
     try {
-        const { employeeId, projectId, amount, reason, date, paymentMode, bankOrCashLabel, bankAccountId, notes } = req.body;
+        const { employeeId, projectId, workId, amount, reason, date, paymentMode, bankOrCashLabel, bankAccountId, notes } = req.body;
         if (!employeeId) return res.status(400).json({ success: false, message: 'Employee is required' });
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!reason || !reason.trim()) return res.status(400).json({ success: false, message: 'Reason is required' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
         const item = new FinanceSupervisorIncentive({
-            employeeId, projectId: projectId || null, amount: Number(amount), reason: reason.trim(), date,
+            employeeId, projectId: projectId || null, workId: workId || null, amount: Number(amount), reason: reason.trim(), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null,
             notes: notes || '',
         });

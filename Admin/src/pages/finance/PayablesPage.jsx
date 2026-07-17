@@ -6,6 +6,7 @@ import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import ExpensesManager from '../../components/finance/ExpensesManager';
 import ExpenseAnalysisView from '../../components/finance/ExpenseAnalysisView';
+import DeductionPanel from '../../components/finance/DeductionPanel';
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 const OTHER_CATEGORY = 'Others';
@@ -25,6 +26,7 @@ const TABS = [
     { key: 'contractor',       label: 'Contractor' },
     { key: 'salary',           label: 'Salary' },
     { key: 'commission',       label: 'Commission' },
+    { key: 'deductions',       label: 'Deductions' },
     { key: 'expenses',         label: 'Expenses' },
     { key: 'expense-analysis', label: 'Expense Analysis' },
     { key: 'company',          label: 'Company Expenses' },
@@ -85,13 +87,14 @@ const PayablesContractorTab = ({ url }) => {
 
     return (
         <div className="list-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr 1fr' }}>
-                <b>Contractor</b><b>Earnings</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>Balance Payable</b>
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 0.9fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr' }}>
+                <b>Contractor</b><b>Total</b><b>Approved</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>Balance Payable</b>
             </div>
             {rows.map(r => (
-                <div key={r.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr 1fr' }}>
+                <div key={r.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 0.9fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr' }}>
                     <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/contractors')}>{r.vendorName}</p>
-                    <p>₹{r.earnings.toLocaleString('en-IN')}</p>
+                    <p>₹{r.totalAmount.toLocaleString('en-IN')}</p>
+                    <p style={{ color: r.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{r.earnings > 0 ? `₹${r.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
                     <p>₹{r.advances.toLocaleString('en-IN')}</p>
                     <p>₹{r.deductions.toLocaleString('en-IN')}</p>
                     <p>₹{r.payments.toLocaleString('en-IN')}</p>
@@ -310,6 +313,7 @@ const PayablesPage = ({ url }) => {
             {activeTab === 'contractor' && <PayablesContractorTab url={url} />}
             {activeTab === 'salary' && <PayablesSalaryTab url={url} />}
             {activeTab === 'commission' && <PayablesCommissionTab url={url} />}
+            {activeTab === 'deductions' && <DeductionPanel url={url} />}
             {activeTab === 'expenses' && <ExpensesManager url={url} highlightId={searchParams.get('expenseId')} />}
             {activeTab === 'expense-analysis' && <ExpenseAnalysisView url={url} />}
             {activeTab === 'company' && companyId && (

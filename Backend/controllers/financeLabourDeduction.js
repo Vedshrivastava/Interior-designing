@@ -2,8 +2,22 @@ import FinanceLabourDeduction from '../models/financeLabourDeduction.js';
 import FinanceLabourer from '../models/financeLabourer.js';
 import FinanceSupervisorIncentive from '../models/financeSupervisorIncentive.js';
 import FinanceEmployee from '../models/financeEmployee.js';
+import FinanceWork from '../models/financeWork.js';
+import FinanceLabourRate from '../models/financeLabourRate.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
+
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+// Mirrors financeContractorDeduction.js's resolveContractorDeductionAmount
+// — amount is always derived here, never trusted from the client.
+const resolveLabourDeductionAmount = async (workId, labourerId, areaSqft) => {
+    const work = await FinanceWork.findOne({ _id: workId, deleted: { $ne: true } });
+    if (!work) throw new Error('Work not found');
+    const rate = await FinanceLabourRate.findOne({ projectId: work.projectId, labourerId, workType: work.workType, deleted: { $ne: true } });
+    if (!rate) throw new Error(`No labour rate configured for ${work.workType} on this project — add one before deducting`);
+    return { amount: round2(areaSqft * rate.ratePerSqft), projectId: work.projectId };
+};
 
 const listLabourDeductions = async (req, res) => {
     try {
@@ -34,11 +48,12 @@ const listLabourDeductions = async (req, res) => {
  */
 const addLabourDeduction = async (req, res) => {
     try {
-        const { labourerId, projectId, workId, amount, reason, date, source, supervisorId, notes } = req.body;
+        const { labourerId, workId, areaSqft, reason, date, source, supervisorId, notes } = req.body;
         if (!labourerId) return res.status(400).json({ success: false, message: 'Labourer is required' });
         const labourer = await FinanceLabourer.findOne({ _id: labourerId, deleted: { $ne: true } });
         if (!labourer) return res.status(404).json({ success: false, message: 'Labourer not found' });
-        if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
+        if (!workId) return res.status(400).json({ success: false, message: 'Work is required — the deduction amount is derived from its configured rate' });
+        if (!areaSqft || Number(areaSqft) <= 0) return res.status(400).json({ success: false, message: 'Sqft to deduct must be greater than zero' });
         if (!reason || !reason.trim()) return res.status(400).json({ success: false, message: 'Reason is required' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
         if (!['supervisor_catch', 'engineer_review'].includes(source)) {
@@ -48,8 +63,10 @@ const addLabourDeduction = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Supervisor is required when the supervisor caught the mistake' });
         }
 
+        const { amount, projectId } = await resolveLabourDeductionAmount(workId, labourerId, Number(areaSqft));
+
         const item = new FinanceLabourDeduction({
-            labourerId, projectId: projectId || null, workId: workId || null, amount: Number(amount), reason: reason.trim(), date,
+            labourerId, projectId, workId, areaSqft: Number(areaSqft), amount, reason: reason.trim(), date,
             source, supervisorId: source === 'supervisor_catch' ? supervisorId : null, notes: notes || '',
         });
         await item.save();
@@ -59,15 +76,15 @@ const addLabourDeduction = async (req, res) => {
             eventType: 'labour_deduction_applied',
             entityType: 'financeLabourDeduction',
             entityId: item._id,
-            projectId: projectId || null,
-            summary: `₹${Number(amount)} deducted from ${labourer.name} — ${reason.trim()}`,
-            amount: Number(amount),
+            projectId,
+            summary: `${areaSqft} sqft (₹${amount}) deducted from ${labourer.name} — ${reason.trim()}`,
+            amount,
             req,
         });
 
         if (source === 'supervisor_catch') {
             const incentive = new FinanceSupervisorIncentive({
-                employeeId: supervisorId, projectId: projectId || null, amount: Number(amount),
+                employeeId: supervisorId, projectId, workId, amount,
                 reason: `Caught and fixed: ${reason.trim()} (${labourer.name})`, date,
             });
             await incentive.save();
@@ -78,17 +95,16 @@ const addLabourDeduction = async (req, res) => {
                 eventType: 'supervisor_incentive_given',
                 entityType: 'financeSupervisorIncentive',
                 entityId: incentive._id,
-                projectId: projectId || null,
-                summary: `Incentive of ₹${Number(amount)} given to ${supervisor?.name || 'employee'} for catching ${labourer.name}'s mistake`,
-                amount: Number(amount),
+                projectId,
+                summary: `Incentive of ₹${amount} given to ${supervisor?.name || 'employee'} for catching ${labourer.name}'s mistake`,
+                amount,
                 req,
             });
         }
 
         res.json({ success: true, message: 'Deduction recorded', data: item });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Error recording deduction' });
+        res.status(400).json({ success: false, message: err.message || 'Error recording deduction' });
     }
 };
 

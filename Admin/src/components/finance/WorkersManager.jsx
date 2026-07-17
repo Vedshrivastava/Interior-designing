@@ -1,31 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import LabourMultiSelect from './LabourMultiSelect';
-import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-/* Manages financeLabourRate rows for one project — one row per (labourer,
-   work type), always per-sqft (labour has no per-day payment basis).
-   Renamed from "Labour Rates" to "Workers" — entry is batched: pick a
-   work type, type the rate once, multi-select every labourer who earns
-   that same rate for it on this project, submit once. Each selected
-   labourer still gets their own financeLabourRate row underneath (so
-   editing later, or a different rate on a different project, works per
-   person) — the batch is purely a data-entry convenience. */
+const pairKey = (workType, labourerId) => `${workType}::${labourerId}`;
+
+/* Manages financeLabourRate rows for one project — mirrors
+   ContractorRatesManager's grid exactly. Every (work type, labourer) pair
+   is already fully determined by who's currently on a Work's labour team
+   (financeWorkLabourAssignment) — there is nothing to freely "select", so
+   this renders one row per real pair, grouped by work type: a saved rate
+   shows read-only + Remove, an unset one shows an inline rate input.
+   Always per-sqft — labour has no per-day payment basis. Supervisor is
+   shown alongside each labourer since it's a fact about their current
+   assignment, not something this panel sets. */
 const WorkersManager = ({ url, projectId, worksVersion }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [items, setItems] = useState([]);
-    const [workTypeOptions, setWorkTypeOptions] = useState([]);
-    const [realWorkTypes, setRealWorkTypes] = useState(null);
-    const [workType, setWorkType] = useState('');
-    const [ratePerSqft, setRatePerSqft] = useState('');
-    const [selectedLabourerIds, setSelectedLabourerIds] = useState([]);
-    const [saving, setSaving] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    // Who's actually assigned to a Work of a given type on this project
+    // right now (from financeWorkLabourAssignment) — not the entire
+    // labourer master. Map<workType, Array<{labourerId, labourerName,
+    // supervisorName}>>.
+    const [labourersByWorkType, setLabourersByWorkType] = useState(new Map());
+
+    // Pending rate per unset (workType, labourerId) pair, keyed by pairKey,
+    // and which key is currently being saved.
+    const [pending, setPending] = useState({});
+    const [savingKey, setSavingKey] = useState(null);
 
     const fetchList = async () => {
         try {
@@ -34,40 +41,51 @@ const WorkersManager = ({ url, projectId, worksVersion }) => {
         } catch { toast.error('Error fetching worker rates'); }
     };
 
-    const fetchWorkTypeOptions = async () => {
+    const fetchAssignments = async () => {
         try {
-            const res = await axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } });
-            const fromWorks = res.data.success ? [...new Set(res.data.data.map(w => w.workType))] : [];
-            if (fromWorks.length) { setWorkTypeOptions(fromWorks); setRealWorkTypes(new Set(fromWorks)); return; }
-            setRealWorkTypes(null);
-            const settingsRes = await axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } });
-            if (settingsRes.data.success) setWorkTypeOptions(settingsRes.data.data.map(s => s.name));
-        } catch { /* leave empty — the picker's placeholder explains why */ }
+            const res = await axios.get(`${url}/api/finance/work-labour-assignments/list`, { ...authHeader, params: { projectId } });
+            if (!res.data.success) return;
+            const byType = new Map();
+            const seen = new Set(); // dedupe — a labourer can only be on one Work at a time, but guard anyway
+            for (const a of res.data.data) {
+                const workType = a.workId?.workType;
+                if (!workType || !a.labourerId) continue;
+                const dedupeKey = `${workType}::${a.labourerId._id}`;
+                if (seen.has(dedupeKey)) continue;
+                seen.add(dedupeKey);
+                if (!byType.has(workType)) byType.set(workType, []);
+                byType.get(workType).push({
+                    labourerId: a.labourerId._id, labourerName: a.labourerId.name,
+                    supervisorName: a.supervisorId?.name || '—',
+                });
+            }
+            setLabourersByWorkType(byType);
+        } catch { /* leave as-is */ }
     };
 
-    useEffect(() => { if (projectId) { fetchList(); fetchWorkTypeOptions(); } }, [projectId, worksVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        if (!projectId) return;
+        setLoading(true);
+        fetchList();
+        fetchAssignments().finally(() => setLoading(false));
+    }, [projectId, worksVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Labourers who already have a rate for the currently-picked work type
-    // on this project — hidden from the multi-select so re-submitting
-    // doesn't collide with an existing row (remove and re-add instead).
-    const alreadyRatedIds = items.filter(i => i.workType === workType).map(i => i.labourerId?._id || i.labourerId);
+    const setPendingField = (key, value) => setPending(prev => ({ ...prev, [key]: value }));
 
-    const submit = async (e) => {
-        e.preventDefault();
-        if (!workType.trim()) { toast.error('Work type is required'); return; }
-        if (ratePerSqft === '') { toast.error('Rate is required'); return; }
-        if (!selectedLabourerIds.length) { toast.error('Select at least one labourer'); return; }
-        setSaving(true);
+    const saveGridRate = async (workType, labourerId, key) => {
+        const rate = pending[key] ?? '';
+        if (rate === '') { toast.error('Rate is required'); return; }
+        setSavingKey(key);
         try {
-            const results = await Promise.allSettled(selectedLabourerIds.map(labourerId =>
-                axios.post(`${url}/api/finance/labour-rates/add`, { projectId, labourerId, workType: workType.trim(), ratePerSqft }, authHeader)
-            ));
-            const failed = results.filter(r => r.status === 'rejected' || !r.value?.data?.success);
-            if (failed.length) toast.error(`${failed.length} of ${results.length} failed — they may already have a rate for this work type`);
-            if (failed.length < results.length) toast.success(`Rate set for ${results.length - failed.length} labourer(s)`);
-            setRatePerSqft(''); setSelectedLabourerIds([]);
-            await fetchList();
-        } finally { setSaving(false); }
+            const res = await axios.post(`${url}/api/finance/labour-rates/add`, { projectId, labourerId, workType, ratePerSqft: rate }, authHeader);
+            if (res.data.success) {
+                toast.success(res.data.message || 'Rate saved');
+                setPending(prev => { const next = { ...prev }; delete next[key]; return next; });
+                await fetchList();
+            } else toast.error(res.data.message);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Error saving rate');
+        } finally { setSavingKey(null); }
     };
 
     const removeRate = async (_id) => {
@@ -78,72 +96,58 @@ const WorkersManager = ({ url, projectId, worksVersion }) => {
         } catch { toast.error('Error removing worker rate'); }
     };
 
+    const findExisting = (workType, labourerId) => items.find(i =>
+        i.workType === workType && (i.labourerId?._id || i.labourerId) === labourerId);
+
+    if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
+
     return (
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                Pick a work type, set the rate once, and select every labourer who earns that same rate for it on this project.
+                One row per labourer actually assigned to each work type — fill in a rate to confirm it.
             </p>
-
-            <form onSubmit={submit}>
-                <div className="wizard-field-grid">
-                    <div className="add-product-name flex-col">
-                        <p>Work Type *</p>
-                        <StyledSelect
-                            value={workType} onChange={setWorkType}
-                            placeholder={workTypeOptions.length ? 'Select work type…' : 'Add a Work first'}
-                            options={workTypeOptions.map(w => ({ value: w, label: w }))}
-                        />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Rate (₹/sqft) *</p>
-                        <input type="number" value={ratePerSqft} onChange={e => setRatePerSqft(e.target.value)} />
-                    </div>
+            {labourersByWorkType.size === 0 ? (
+                <div className="admin-empty-state"><p>No labour team assigned to any Work yet — add one from a Work's "Labour" action under the Works tab.</p></div>
+            ) : (
+                <div className="list-table">
+                    {[...labourersByWorkType.entries()].map(([workType, labourers]) => (
+                        <div key={workType}>
+                            <div className="rate-group-header"><span className="rate-group-bar" /><b>{workType}</b></div>
+                            {labourers.map(l => {
+                                const existing = findExisting(workType, l.labourerId);
+                                const key = pairKey(workType, l.labourerId);
+                                const rate = pending[key] ?? '';
+                                return (
+                                    <div key={key} className="list-table-format row-item rate-row" style={{ gridTemplateColumns: '1.2fr 1.2fr 1.1fr 130px' }}>
+                                        <p>{l.labourerName}</p>
+                                        <p className="admin-subtitle">{l.supervisorName}</p>
+                                        {existing ? (
+                                            <span className="rate-entry-saved">₹{existing.ratePerSqft} / sqft</span>
+                                        ) : (
+                                            <input
+                                                type="number" className="rate-entry-input" placeholder="Rate ₹/sqft" value={rate}
+                                                onChange={e => setPendingField(key, e.target.value)}
+                                            />
+                                        )}
+                                        <div className="rate-entry-action">
+                                            {existing ? (
+                                                <p onClick={() => removeRate(existing._id)} className="cursor delete-action" style={{ margin: 0 }}>Remove</p>
+                                            ) : (
+                                                <button
+                                                    type="button" className="add-point-btn" disabled={savingKey === key}
+                                                    onClick={() => saveGridRate(workType, l.labourerId, key)}
+                                                >
+                                                    {savingKey === key ? 'Saving…' : 'Save'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ))}
                 </div>
-                <div className="add-product-name flex-col" style={{ marginTop: '12px' }}>
-                    <p>Labourers *</p>
-                    <LabourMultiSelect url={url} selectedIds={selectedLabourerIds} onChange={setSelectedLabourerIds} excludeIds={alreadyRatedIds} />
-                </div>
-                <div className="wizard-actions" style={{ marginTop: '16px' }}>
-                    <span />
-                    <button type="submit" className="add-btn" disabled={saving}>
-                        {saving ? 'Saving…' : selectedLabourerIds.length > 1 ? `+ Set Rate for ${selectedLabourerIds.length} Labourers` : '+ Add Rate'}
-                    </button>
-                </div>
-            </form>
-
-            <div className="list-table" style={{ marginTop: '20px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 100px' }}>
-                    <b>Labourer</b><b>Work Type</b><b>Rate</b><b>Action</b>
-                </div>
-                {items.length === 0 ? (
-                    <div className="admin-empty-state"><p>No worker rates yet.</p></div>
-                ) : (
-                    items.map(item => {
-                        const isOrphaned = realWorkTypes && !realWorkTypes.has(item.workType);
-                        return (
-                            <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 100px' }}>
-                                <p>{item.labourerId?.name || '—'}</p>
-                                <p>
-                                    {item.workType}
-                                    {isOrphaned && (
-                                        <span
-                                            className="item-category"
-                                            style={{ marginLeft: '8px', background: 'rgba(192,57,43,0.12)', color: '#c0392b', borderColor: 'rgba(192,57,43,0.3)' }}
-                                            title="No Work with this type exists in this project yet — this rate isn't matched to anything and won't be used until one is added, or should be removed."
-                                        >
-                                            ⚠ No matching Work
-                                        </span>
-                                    )}
-                                </p>
-                                <p>₹{item.ratePerSqft}</p>
-                                <div className="action-buttons">
-                                    <p onClick={() => removeRate(item._id)} className="cursor delete-action">X</p>
-                                </div>
-                            </div>
-                        );
-                    })
-                )}
-            </div>
+            )}
         </div>
     );
 };

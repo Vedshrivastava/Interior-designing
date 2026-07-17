@@ -393,11 +393,14 @@
 }
 
 /* ══════════════════════════════════════════════
-   4b. RATE-ENTRY GRID — Contractor Rates / Work Type
-   Rates tabs: one row per real work type (and, for
-   Contractor Rates, per contractor within it), grouped
-   under a section header bar instead of a form + a
-   separate list.
+   4b. RATE-ENTRY GRID — Contractor Rates / Worker Rates
+   tabs: one row per real (work type, contractor/labourer)
+   pair, grouped under a section header bar instead of a
+   form + a separate list. Each row is a real grid (see
+   .rate-row) — name cell(s), then a Rate cell, then a
+   fixed-width Action cell — so every rate and every
+   action lines up in its own column instead of being
+   packed into one loosely wrapping area.
 ══════════════════════════════════════════════ */
 .rate-group-header {
     display: flex;
@@ -422,14 +425,13 @@
     color: var(--text-dark);
 }
 
-.rate-entry-row {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-.rate-entry-select,
+/* Tighter row padding than the default .list-table-format.row-item — these
+   grids read as a dense rate sheet, not a regular list, so the generous
+   default padding just left unused air on every row. */
+.rate-row { padding: 12px 20px; gap: 16px; }
+
 .rate-entry-input {
+    width: 110px;
     padding: 9px 12px;
     border: 1px solid var(--gold-line);
     background-color: var(--ivory);
@@ -440,18 +442,6 @@
     outline: none;
     transition: all 0.22s ease;
 }
-.rate-entry-select {
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a8e84' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    padding-right: 30px;
-    cursor: pointer;
-    min-width: 112px;
-}
-.rate-entry-input { width: 100px; }
-.rate-entry-select:focus,
 .rate-entry-input:focus {
     border-color: var(--gold);
     background-color: var(--white);
@@ -464,6 +454,8 @@
     font-weight: 600;
     color: var(--text-dark);
 }
+
+.rate-entry-action { display: flex; align-items: center; }
 
 /* ══════════════════════════════════════════════
    5. EDIT MODAL — Elevated Overlay Form

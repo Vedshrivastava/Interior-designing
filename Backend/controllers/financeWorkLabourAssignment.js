@@ -6,16 +6,25 @@ import { assertLabourersAvailable } from '../utils/labourAvailability.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 
-// Either workId (one Work's team roster) or supervisorId (every assignment
-// across every Work where this employee is running a team, for the
-// Supervisors page's read-only team view) — at least one is required.
+// workId (one Work's team roster), supervisorId (every assignment across
+// every Work where this employee is running a team, for the Supervisors
+// page's read-only team view), or projectId (every current assignment
+// across every Work in one project, for the Workers rate panel — it needs
+// "who's on what work type right now" without caring which specific Work)
+// — at least one is required.
 const listWorkLabourAssignments = async (req, res) => {
     try {
-        const { workId, supervisorId } = req.query;
-        if (!workId && !supervisorId) return res.status(400).json({ success: false, message: 'workId or supervisorId is required' });
-        const filter = { deleted: { $ne: true } };
+        const { workId, supervisorId, projectId } = req.query;
+        if (!workId && !supervisorId && !projectId) {
+            return res.status(400).json({ success: false, message: 'workId, supervisorId, or projectId is required' });
+        }
+        let filter = { deleted: { $ne: true } };
         if (workId) filter.workId = workId;
         if (supervisorId) filter.supervisorId = supervisorId;
+        if (projectId) {
+            const works = await FinanceWork.find({ projectId, deleted: { $ne: true } }, '_id');
+            filter.workId = { $in: works.map(w => w._id) };
+        }
         const rows = await FinanceWorkLabourAssignment.find(filter)
             .populate('labourerId', 'name')
             .populate('supervisorId', 'name')

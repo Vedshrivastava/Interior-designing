@@ -139,7 +139,7 @@ const computeProjectContractorCost = async (projectId) => {
     let total = 0;
     for (const [key, area] of areaByVendorWorkType) {
         const rate = rateByKey.get(key);
-        if (rate) total += area * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft);
+        if (rate) total += area * (rate.ratePerSqft);
     }
     return total;
 };
@@ -348,7 +348,7 @@ const computeWorkProfit = async (work) => {
         const vendorById = new Map(vendors.map(v => [v._id.toString(), v]));
         for (const [vendorId, { totalArea, approvedArea }] of areaByVendor) {
             const rate = rateByVendor.get(vendorId);
-            const perUnit = rate ? (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft) : 0;
+            const perUnit = rate ? (rate.ratePerSqft) : 0;
             const neglectedArea = round2(totalArea - approvedArea);
             const earnings = round2(approvedArea * perUnit);
             const neglectedAmount = round2(neglectedArea * perUnit);
@@ -556,7 +556,7 @@ const computeContractorAnalysisRows = async (projectId) => {
         let earnings = 0;
         for (const [key, area] of areaByKey) {
             const rate = rateByKey.get(key);
-            if (rate) earnings += area * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft);
+            if (rate) earnings += area * (rate.ratePerSqft);
         }
 
         const moneyFilter = { vendorId: v._id, deleted: { $ne: true } };
@@ -618,7 +618,7 @@ const getContractorsSummary = async (req, res) => {
                     const work = workById.get(m.workId.toString());
                     if (!work) continue;
                     const rate = rateByKey.get(`${work.projectId}_${work.workType}`);
-                    const earnings = rate ? m.areaCoveredSqft * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft) : 0;
+                    const earnings = rate ? m.areaCoveredSqft * (rate.ratePerSqft) : 0;
                     if (!byType.has(work.workType)) byType.set(work.workType, { area: 0, earnings: 0 });
                     const t = byType.get(work.workType);
                     t.area += m.areaCoveredSqft;
@@ -1103,7 +1103,7 @@ const computeCompanyWideContractorCostInRange = async (start, end, projectIds = 
         const [workId, vendorId] = key.split('_');
         const w = workById.get(workId);
         const rate = rateByKey.get(`${w.projectId}_${vendorId}_${w.workType}`);
-        if (rate) total += area * (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft);
+        if (rate) total += area * (rate.ratePerSqft);
     }
     return total;
 };

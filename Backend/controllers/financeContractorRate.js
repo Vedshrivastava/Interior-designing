@@ -19,12 +19,12 @@ const listContractorRates = async (req, res) => {
 
 const addContractorRate = async (req, res) => {
     try {
-        const { projectId, contractorVendorId, workType, paymentBasis, ratePerSqft, ratePerDay } = req.body;
+        const { projectId, contractorVendorId, workType, ratePerSqft } = req.body;
         if (!projectId || !contractorVendorId || !workType) {
             return res.status(400).json({ success: false, message: 'Project, contractor, and work type are required' });
         }
-        if (!['per_sqft', 'per_day'].includes(paymentBasis)) {
-            return res.status(400).json({ success: false, message: 'A valid payment basis is required' });
+        if (!ratePerSqft || Number(ratePerSqft) <= 0) {
+            return res.status(400).json({ success: false, message: 'Rate must be greater than zero' });
         }
         await assertContractorVendor(contractorVendorId);
 
@@ -43,9 +43,7 @@ const addContractorRate = async (req, res) => {
         if (existing) return res.status(400).json({ success: false, message: 'This contractor already has a rate for this work type on this project' });
 
         const item = new FinanceContractorRate({
-            projectId, contractorVendorId, workType, paymentBasis,
-            ratePerSqft: Number(ratePerSqft) || 0,
-            ratePerDay: Number(ratePerDay) || 0,
+            projectId, contractorVendorId, workType, ratePerSqft: Number(ratePerSqft),
         });
         await item.save();
         broadcast({ type: 'financeContractorRatesChanged', projectId });

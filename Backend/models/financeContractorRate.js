@@ -13,9 +13,7 @@ const financeContractorRateSchema = new mongoose.Schema({
     contractorVendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', required: true },
     workType:          { type: String, required: true },
 
-    paymentBasis: { type: String, enum: ['per_sqft', 'per_day'], required: true },
-    ratePerSqft:  { type: Number, default: 0 },
-    ratePerDay:   { type: Number, default: 0 },
+    ratePerSqft: { type: Number, required: true },
 
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },

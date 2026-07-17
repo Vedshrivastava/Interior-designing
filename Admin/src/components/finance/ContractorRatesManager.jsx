@@ -8,7 +8,7 @@ import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const emptyForm = { contractorVendorId: '', workType: '', paymentBasis: 'per_sqft', rate: '' };
+const emptyForm = { contractorVendorId: '', workType: '', rate: '' };
 const pairKey = (workType, vendorId) => `${workType}::${vendorId}`;
 
 /* Manages financeContractorRate rows for one project — used in both the
@@ -128,11 +128,7 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
         if (form.rate === '') { toast.error('Rate is required'); return; }
         setSaving(true);
         try {
-            const payload = {
-                projectId, contractorVendorId: form.contractorVendorId, workType: form.workType.trim(), paymentBasis: form.paymentBasis,
-                ratePerSqft: form.paymentBasis === 'per_sqft' ? form.rate : 0,
-                ratePerDay: form.paymentBasis === 'per_day' ? form.rate : 0,
-            };
+            const payload = { projectId, contractorVendorId: form.contractorVendorId, workType: form.workType.trim(), ratePerSqft: form.rate };
             const res = await axios.post(`${url}/api/finance/contractor-rates/add`, payload, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message || 'Contractor rate added');
@@ -147,18 +143,14 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
     // --- Grid (real Works exist) ---
 
     const setPendingField = (key, field, value) =>
-        setPending(prev => ({ ...prev, [key]: { ...(prev[key] || { paymentBasis: 'per_sqft', rate: '' }), [field]: value } }));
+        setPending(prev => ({ ...prev, [key]: { ...(prev[key] || { rate: '' }), [field]: value } }));
 
     const saveGridRate = async (workType, contractorVendorId, key) => {
-        const entry = pending[key] || { paymentBasis: 'per_sqft', rate: '' };
+        const entry = pending[key] || { rate: '' };
         if (entry.rate === '') { toast.error('Rate is required'); return; }
         setSavingKey(key);
         try {
-            const payload = {
-                projectId, contractorVendorId, workType, paymentBasis: entry.paymentBasis,
-                ratePerSqft: entry.paymentBasis === 'per_sqft' ? entry.rate : 0,
-                ratePerDay: entry.paymentBasis === 'per_day' ? entry.rate : 0,
-            };
+            const payload = { projectId, contractorVendorId, workType, ratePerSqft: entry.rate };
             const res = await axios.post(`${url}/api/finance/contractor-rates/add`, payload, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message || 'Rate saved');
@@ -212,14 +204,7 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
                                 <ContractorOrLabourPicker url={url} value={form.contractorVendorId} onChange={v => setField('contractorVendorId', v)} />
                             </div>
                             <div className="add-product-name flex-col">
-                                <p>Payment Basis *</p>
-                                <select value={form.paymentBasis} onChange={e => setField('paymentBasis', e.target.value)}>
-                                    <option value="per_sqft">Per Sqft</option>
-                                    <option value="per_day">Per Day</option>
-                                </select>
-                            </div>
-                            <div className="add-product-name flex-col">
-                                <p>{form.paymentBasis === 'per_sqft' ? 'Rate (₹/sqft) *' : 'Rate (₹/day) *'}</p>
+                                <p>Rate (₹/sqft) *</p>
                                 <input type="number" value={form.rate} onChange={e => setField('rate', e.target.value)} />
                             </div>
                         </div>
@@ -241,35 +226,28 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
                                 {contractors.map(c => {
                                     const existing = findExisting(workType, c.vendorId);
                                     const key = pairKey(workType, c.vendorId);
-                                    const entry = pending[key] || { paymentBasis: 'per_sqft', rate: '' };
+                                    const entry = pending[key] || { rate: '' };
                                     return (
-                                        <div key={key} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 2.7fr' }}>
+                                        <div key={key} className="list-table-format row-item rate-row" style={{ gridTemplateColumns: '1.6fr 1.1fr 130px' }}>
                                             <p>{c.vendorName}</p>
-                                            <div className="rate-entry-row">
+                                            {existing ? (
+                                                <span className="rate-entry-saved">₹{existing.ratePerSqft} / sqft</span>
+                                            ) : (
+                                                <input
+                                                    type="number" className="rate-entry-input" placeholder="Rate ₹/sqft" value={entry.rate}
+                                                    onChange={e => setPendingField(key, 'rate', e.target.value)}
+                                                />
+                                            )}
+                                            <div className="rate-entry-action">
                                                 {existing ? (
-                                                    <>
-                                                        <span className="rate-entry-saved">
-                                                            ₹{existing.paymentBasis === 'per_sqft' ? existing.ratePerSqft : existing.ratePerDay} / {existing.paymentBasis === 'per_sqft' ? 'sqft' : 'day'}
-                                                        </span>
-                                                        <p onClick={() => removeRate(existing._id)} className="cursor delete-action" style={{ margin: 0 }}>Remove</p>
-                                                    </>
+                                                    <p onClick={() => removeRate(existing._id)} className="cursor delete-action" style={{ margin: 0 }}>Remove</p>
                                                 ) : (
-                                                    <>
-                                                        <select className="rate-entry-select" value={entry.paymentBasis} onChange={e => setPendingField(key, 'paymentBasis', e.target.value)}>
-                                                            <option value="per_sqft">Per Sqft</option>
-                                                            <option value="per_day">Per Day</option>
-                                                        </select>
-                                                        <input
-                                                            type="number" className="rate-entry-input" placeholder="Rate ₹" value={entry.rate}
-                                                            onChange={e => setPendingField(key, 'rate', e.target.value)}
-                                                        />
-                                                        <button
-                                                            type="button" className="add-point-btn" disabled={savingKey === key}
-                                                            onClick={() => saveGridRate(workType, c.vendorId, key)}
-                                                        >
-                                                            {savingKey === key ? 'Saving…' : 'Save'}
-                                                        </button>
-                                                    </>
+                                                    <button
+                                                        type="button" className="add-point-btn" disabled={savingKey === key}
+                                                        onClick={() => saveGridRate(workType, c.vendorId, key)}
+                                                    >
+                                                        {savingKey === key ? 'Saving…' : 'Save'}
+                                                    </button>
                                                 )}
                                             </div>
                                         </div>

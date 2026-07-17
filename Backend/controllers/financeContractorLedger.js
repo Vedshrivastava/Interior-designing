@@ -86,7 +86,7 @@ const getContractorLedger = async (req, res) => {
         for (const w of works) {
             const { totalArea, approvedArea } = areaByWork.get(w._id.toString());
             const rate = rateByKey.get(`${w.projectId}_${w.workType}`);
-            const rateValue = rate ? (rate.paymentBasis === 'per_day' ? rate.ratePerDay : rate.ratePerSqft) : 0;
+            const rateValue = rate ? rate.ratePerSqft : 0;
             const neglectedArea = round2(totalArea - approvedArea);
             const earnings = round2(rate ? approvedArea * rateValue : 0);
             const neglectedAmount = round2(rate ? neglectedArea * rateValue : 0);
@@ -99,7 +99,7 @@ const getContractorLedger = async (req, res) => {
                 estimatedAreaSqft: w.estimatedAreaSqft, completedAreaSqft: round2(totalArea),
                 approvedAreaSqft: round2(approvedArea), neglectedAreaSqft: neglectedArea,
                 status: w.status,
-                rate: rate ? { paymentBasis: rate.paymentBasis, ratePerSqft: rate.ratePerSqft, ratePerDay: rate.ratePerDay } : null,
+                rate: rate ? rate.ratePerSqft : null,
                 earnings, neglectedAmount,
             });
         }

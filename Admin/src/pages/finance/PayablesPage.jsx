@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
@@ -232,7 +232,11 @@ const PayablesCommissionTab = ({ url }) => {
 };
 
 const PayablesPage = ({ url }) => {
-    const [activeTab, setActiveTab] = useState(TABS[0].key);
+    const [searchParams] = useSearchParams();
+    // Supports deep-linking in from a project's Expenses tab: ?tab=other
+    // opens straight to Other Expenses, and ?expenseId= scrolls to + briefly
+    // highlights that one row so the "detail" view is obvious at a glance.
+    const [activeTab, setActiveTab] = useState(searchParams.get('tab') || TABS[0].key);
 
     return (
         <FinanceTabShell
@@ -246,7 +250,7 @@ const PayablesPage = ({ url }) => {
             {activeTab === 'contractor' && <PayablesContractorTab url={url} />}
             {activeTab === 'salary' && <PayablesSalaryTab url={url} />}
             {activeTab === 'commission' && <PayablesCommissionTab url={url} />}
-            {activeTab === 'other' && <ExpensesManager url={url} />}
+            {activeTab === 'other' && <ExpensesManager url={url} highlightId={searchParams.get('expenseId')} />}
         </FinanceTabShell>
     );
 };

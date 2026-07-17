@@ -6,6 +6,15 @@ import mongoose from 'mongoose';
 const financeExpenseSchema = new mongoose.Schema({
     expenseCategory: { type: String, default: '' }, // reuses financeSetting's expense_category values
     projectId:       { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', default: null }, // some expenses are project-specific, some are general overhead
+    workId:          { type: mongoose.Schema.Types.ObjectId, ref: 'financeWork', default: null }, // optional — scoped to one Work under projectId, not validated against it beyond the UI only offering that project's Works
+
+    // Who/what this expense was actually for — optional, and deliberately
+    // narrower than a full polymorphic "any collection" ref: only
+    // financeEmployee and financeVendor (which already covers contractors,
+    // material suppliers, and referral vendors via vendorType) are valid.
+    // Same refPath pattern as financeActivityLog's entityType/entityId.
+    relatedToType: { type: String, enum: ['financeEmployee', 'financeVendor', null], default: null },
+    relatedToId:   { type: mongoose.Schema.Types.ObjectId, refPath: 'relatedToType', default: null },
 
     amount: { type: Number, required: true },
     date:   { type: Date, required: true },

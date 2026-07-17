@@ -1,20 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
+import QuickAddPicker from './QuickAddPicker';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const emptyForm = { expenseCategory: '', projectId: '', amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', notes: '' };
+const emptyForm = { expenseCategory: '', projectId: '', workId: '', relatedToType: '', relatedToId: '', amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', notes: '' };
 const emptySettleForm = { amount: '', date: '', paymentMode: '', bankAccountId: '' };
 const PAID_STATUS_OPTIONS = [
     { value: 'paid', label: 'Paid now' },
     { value: 'pending', label: 'Record as pending — settle later' },
 ];
+const RELATED_TO_TYPE_OPTIONS = [
+    { value: 'financeEmployee', label: 'Employee' },
+    { value: 'financeVendor', label: 'Vendor (incl. contractor / supplier)' },
+];
+const RELATED_TO_RESOURCE_KEY = { financeEmployee: 'employees', financeVendor: 'vendors' };
+const workLabel = (w) => `${w.workType}${w.workOrderNumber ? ` — ${w.workOrderNumber}` : ''} (${w.completedAreaSqft}/${w.estimatedAreaSqft} sqft)`;
 
 /*
  * General company/site expenses. Two ways an expense's cash side can play
@@ -24,14 +32,25 @@ const PAID_STATUS_OPTIONS = [
  *   - Record as pending — amount is logged as accrued with no payment info
  *     at all; it shows a balance until settled (partially or fully) via one
  *     or more financeExpensePayment rows, added through the Settle action.
+ *
+ * Every expense can optionally link to a Work (scoped to whichever project
+ * it's under) and a "Related To" person/entity (Employee or Vendor — not a
+ * fully generic ref, since Vendor already covers contractors/suppliers/
+ * referrals via vendorType) — Notes stays free text for whatever those
+ * links don't capture.
+ *
  * Reused three ways: unscoped on Payments' Miscellaneous tab and Payables'
- * Other Expenses tab (own heading comes from FinanceTabShell there), and
- * scoped to one project via `projectId` on Project Detail's Expenses tab
- * (own heading rendered here instead, same as Quotations/Receipts) — the
- * Project field and column disappear entirely when scoped, since it'd
- * just repeat the same name on every row.
+ * Other Expenses tab (own heading comes from FinanceTabShell there — this
+ * is also the one place the full Work/Related To columns show, since it's
+ * meant to be the "detail" view), and scoped to one project via
+ * `projectId` on Project Detail's Expenses tab (own heading rendered here
+ * instead, same as Quotations/Receipts; Project field/column disappear
+ * since it'd repeat the same name on every row, and each row gets a
+ * "Details" link back to this same unscoped view instead, via
+ * `highlightId`).
  */
-const ExpensesManager = ({ url, projectId: fixedProjectId }) => {
+const ExpensesManager = ({ url, projectId: fixedProjectId, highlightId }) => {
+    const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -40,9 +59,11 @@ const ExpensesManager = ({ url, projectId: fixedProjectId }) => {
     const [bankAccounts, setBankAccounts] = useState([]);
     const [expenses, setExpenses] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [flashId, setFlashId] = useState(highlightId || null);
 
     const [modalOpen, setModalOpen] = useState(false);
     const [form, setForm] = useState(emptyForm);
+    const [worksForProject, setWorksForProject] = useState([]);
     const [paidNow, setPaidNow] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -71,7 +92,27 @@ const ExpensesManager = ({ url, projectId: fixedProjectId }) => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
     }, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Work options are scoped to whichever project is currently relevant —
+    // the fixed one, or whatever's picked in the unscoped form right now.
+    const effectiveProjectId = fixedProjectId || form.projectId;
+    useEffect(() => {
+        if (!effectiveProjectId) { setWorksForProject([]); return; }
+        axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: effectiveProjectId } })
+            .then(res => { if (res.data.success) setWorksForProject(res.data.data); }).catch(() => {});
+    }, [url, effectiveProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Scroll to + briefly flash the row a "Details" link arrived for.
+    useEffect(() => {
+        if (!highlightId || loading) return;
+        const el = document.getElementById(`expense-row-${highlightId}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const t = setTimeout(() => setFlashId(null), 2500);
+        return () => clearTimeout(t);
+    }, [highlightId, loading]);
+
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+    const setProjectField = (value) => setForm(prev => ({ ...prev, projectId: value, workId: '' }));
+    const setRelatedToType = (value) => setForm(prev => ({ ...prev, relatedToType: value, relatedToId: '' }));
 
     const openAdd = () => { setForm({ ...emptyForm, projectId: fixedProjectId || '' }); setPaidNow(true); setModalOpen(true); };
     const closeModal = () => setModalOpen(false);
@@ -140,7 +181,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId }) => {
         return { label: 'Pending', color: '#c0392b' };
     };
 
-    const columns = fixedProjectId ? '1fr 1.2fr 1fr 1fr 1fr 140px' : '1fr 1.2fr 1.2fr 1fr 1fr 1fr 140px';
+    const columns = fixedProjectId ? '1fr 1.2fr 1fr 1fr 1fr 150px' : '1fr 1.1fr 1.2fr 1.2fr 1.3fr 1fr 1fr 1fr 150px';
 
     return (
         <div>
@@ -171,9 +212,29 @@ const ExpensesManager = ({ url, projectId: fixedProjectId }) => {
                                     <div className="add-product-name flex-col">
                                         <p>Project (optional — general overhead if blank)</p>
                                         <StyledSelect
-                                            value={form.projectId} onChange={v => setField('projectId', v)} placeholder="General / overhead"
+                                            value={form.projectId} onChange={setProjectField} placeholder="General / overhead"
                                             options={projects.map(p => ({ value: p._id, label: p.name }))}
                                         />
+                                    </div>
+                                )}
+                                <div className="add-product-name flex-col">
+                                    <p>Work (optional{effectiveProjectId ? '' : ' — pick a project first'})</p>
+                                    <StyledSelect
+                                        value={form.workId} onChange={v => setField('workId', v)} placeholder="— Not tied to a Work —"
+                                        disabled={!effectiveProjectId} options={worksForProject.map(w => ({ value: w._id, label: workLabel(w) }))}
+                                    />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Related To (optional)</p>
+                                    <StyledSelect
+                                        value={form.relatedToType} onChange={setRelatedToType} placeholder="— None —"
+                                        options={RELATED_TO_TYPE_OPTIONS}
+                                    />
+                                </div>
+                                {form.relatedToType && (
+                                    <div className="add-product-name flex-col">
+                                        <p>{form.relatedToType === 'financeEmployee' ? 'Employee' : 'Vendor'}</p>
+                                        <QuickAddPicker url={url} resourceKey={RELATED_TO_RESOURCE_KEY[form.relatedToType]} value={form.relatedToId} onChange={v => setField('relatedToId', v)} />
                                     </div>
                                 )}
                                 <div className="add-product-name flex-col">
@@ -199,7 +260,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId }) => {
                                 )}
                                 <div className="add-product-name flex-col wizard-field-full">
                                     <p>Notes</p>
-                                    <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
+                                    <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} placeholder="What was this actually for?" />
                                 </div>
                             </div>
                             <div className="edit-modal-actions">
@@ -214,7 +275,9 @@ const ExpensesManager = ({ url, projectId: fixedProjectId }) => {
 
             <div className="list-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: columns }}>
-                    <b>Date</b><b>Category</b>{!fixedProjectId && <b>Project</b>}<b>Amount</b><b>Paid</b><b>Status</b><b>Action</b>
+                    <b>Date</b><b>Category</b>
+                    {!fixedProjectId && <><b>Project</b><b>Work</b><b>Related To</b></>}
+                    <b>Amount</b><b>Paid</b><b>Status</b><b>Action</b>
                 </div>
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
@@ -224,14 +287,26 @@ const ExpensesManager = ({ url, projectId: fixedProjectId }) => {
                     expenses.map(e => {
                         const status = statusFor(e);
                         return (
-                            <div key={e._id} className="list-table-format row-item" style={{ gridTemplateColumns: columns }}>
+                            <div
+                                key={e._id} id={`expense-row-${e._id}`} className="list-table-format row-item"
+                                style={{ gridTemplateColumns: columns, ...(flashId === e._id ? { background: 'rgba(201,168,124,0.28)', transition: 'background 2s ease' } : {}) }}
+                            >
                                 <p>{new Date(e.date).toLocaleDateString()}</p>
                                 <p>{e.expenseCategory || '—'}</p>
-                                {!fixedProjectId && <p>{e.projectId?.name || 'General'}</p>}
+                                {!fixedProjectId && (
+                                    <>
+                                        <p>{e.projectId?.name || 'General'}</p>
+                                        <p>{e.workId?.workType || '—'}</p>
+                                        <p>{e.relatedToId?.name || '—'}</p>
+                                    </>
+                                )}
                                 <p>₹{e.amount.toLocaleString('en-IN')}</p>
                                 <p>₹{e.paidAmount.toLocaleString('en-IN')}</p>
                                 <p><span className="item-category" style={{ color: status.color }}>{status.label}</span></p>
                                 <div className="action-buttons">
+                                    {fixedProjectId && (
+                                        <p onClick={() => navigate(`/finance/payables?tab=other&expenseId=${e._id}`)} className="cursor edit-action">Details</p>
+                                    )}
                                     {e.balance > 0 && <p onClick={() => openSettle(e)} className="cursor edit-action">Settle</p>}
                                     <p onClick={() => remove(e._id)} className="cursor delete-action">X</p>
                                 </div>

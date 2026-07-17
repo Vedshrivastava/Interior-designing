@@ -39,7 +39,10 @@ const listExpenses = async (req, res) => {
             if (dateFrom) filter.date.$gte = new Date(dateFrom);
             if (dateTo) filter.date.$lte = new Date(dateTo);
         }
-        const items = await FinanceExpense.find(filter).populate('bankAccountId', 'accountName').populate('projectId', 'name').sort({ date: -1, createdAt: -1 });
+        const items = await FinanceExpense.find(filter)
+            .populate('bankAccountId', 'accountName').populate('projectId', 'name')
+            .populate('workId', 'workType').populate('relatedToId', 'name')
+            .sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: await withBalances(items) });
     } catch (err) {
         console.error(err);
@@ -59,12 +62,13 @@ const listExpenses = async (req, res) => {
 // went through the paid-at-entry path) read correctly with no migration.
 const addExpense = async (req, res) => {
     try {
-        const { expenseCategory, projectId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, notes } = req.body;
+        const { expenseCategory, projectId, workId, relatedToType, relatedToId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, notes } = req.body;
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
         const item = new FinanceExpense({
-            expenseCategory: expenseCategory || '', projectId: projectId || null, amount: Number(amount), date,
+            expenseCategory: expenseCategory || '', projectId: projectId || null, workId: workId || null, amount: Number(amount), date,
+            relatedToType: relatedToId ? (relatedToType || null) : null, relatedToId: relatedToId || null,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null,
             notes: notes || '',
         });

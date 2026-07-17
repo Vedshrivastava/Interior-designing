@@ -34,7 +34,7 @@ const listLabourDeductions = async (req, res) => {
  */
 const addLabourDeduction = async (req, res) => {
     try {
-        const { labourerId, projectId, amount, reason, date, source, supervisorId, notes } = req.body;
+        const { labourerId, projectId, workId, amount, reason, date, source, supervisorId, notes } = req.body;
         if (!labourerId) return res.status(400).json({ success: false, message: 'Labourer is required' });
         const labourer = await FinanceLabourer.findOne({ _id: labourerId, deleted: { $ne: true } });
         if (!labourer) return res.status(404).json({ success: false, message: 'Labourer not found' });
@@ -49,7 +49,7 @@ const addLabourDeduction = async (req, res) => {
         }
 
         const item = new FinanceLabourDeduction({
-            labourerId, projectId: projectId || null, amount: Number(amount), reason: reason.trim(), date,
+            labourerId, projectId: projectId || null, workId: workId || null, amount: Number(amount), reason: reason.trim(), date,
             source, supervisorId: source === 'supervisor_catch' ? supervisorId : null, notes: notes || '',
         });
         await item.save();

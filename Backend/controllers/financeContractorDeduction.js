@@ -20,7 +20,7 @@ const listContractorDeductions = async (req, res) => {
 
 const addContractorDeduction = async (req, res) => {
     try {
-        const { vendorId, projectId, amount, reason, date, notes } = req.body;
+        const { vendorId, projectId, workId, amount, reason, date, notes } = req.body;
         if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
         const vendor = await assertContractorVendor(vendorId);
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
@@ -28,7 +28,7 @@ const addContractorDeduction = async (req, res) => {
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
         const item = new FinanceContractorDeduction({
-            vendorId, projectId: projectId || null, amount: Number(amount), reason: reason.trim(), date, notes: notes || '',
+            vendorId, projectId: projectId || null, workId: workId || null, amount: Number(amount), reason: reason.trim(), date, notes: notes || '',
         });
         await item.save();
         broadcast({ type: 'financeContractorLedgerChanged', vendorId });
@@ -51,7 +51,7 @@ const addContractorDeduction = async (req, res) => {
 
 const updateContractorDeduction = async (req, res) => {
     try {
-        const { _id, projectId, amount, reason, date, notes } = req.body;
+        const { _id, projectId, workId, amount, reason, date, notes } = req.body;
         const existing = await FinanceContractorDeduction.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Not found' });
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
@@ -59,7 +59,7 @@ const updateContractorDeduction = async (req, res) => {
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
         await FinanceContractorDeduction.findByIdAndUpdate(_id, {
-            projectId: projectId || null, amount: Number(amount), reason: reason.trim(), date, notes: notes || '',
+            projectId: projectId || null, workId: workId || null, amount: Number(amount), reason: reason.trim(), date, notes: notes || '',
         });
         broadcast({ type: 'financeContractorLedgerChanged', vendorId: existing.vendorId });
         res.json({ success: true, message: 'Deduction updated' });

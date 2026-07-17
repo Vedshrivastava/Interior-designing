@@ -15,6 +15,10 @@ import mongoose from 'mongoose';
 const financeLabourDeductionSchema = new mongoose.Schema({
     labourerId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeLabourer', required: true },
     projectId:  { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', default: null },
+    // Optional — same idea as financeContractorDeduction.workId: pins an
+    // 'engineer_review' negligence deduction to the specific Work it was
+    // caught on, so it can surface next to that Work's own measurements.
+    workId:     { type: mongoose.Schema.Types.ObjectId, ref: 'financeWork', default: null },
 
     amount: { type: Number, required: true },
     reason: { type: String, required: true },

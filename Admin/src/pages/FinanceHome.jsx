@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useFinanceWsRefresh } from '../hooks/useFinanceWsRefresh';
 import {
     ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
     AreaChart, Area, PieChart, Pie, Cell,
@@ -73,9 +74,77 @@ const FinanceHome = ({ url }) => {
         axios.get(`${url}/api/finance/settings/check-alerts`, authHeader).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => {
-        let cancelled = false;
+    // Guards state updates after unmount for both the mount-triggered load
+    // and any later WebSocket-triggered background refresh below.
+    const aliveRef = useRef(true);
+    useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false; }; }, []);
 
+    const fetchDashboard = async () => {
+        try {
+            // Root requests fired together — employees/vendors/projects
+            // don't depend on summary/trends (or each other), so there's
+            // no reason to wait for one batch before starting the next.
+            const month = thisMonth();
+            const [summaryRes, trendsRes, employeesRes, vendorsRes, projectsRes] = await Promise.all([
+                axios.get(`${url}/api/finance/reports/dashboard-summary`, authHeader),
+                axios.get(`${url}/api/finance/reports/dashboard-trends`, { ...authHeader, params: { months: 6 } }),
+                axios.get(`${url}/api/finance/employees/list`, authHeader),
+                axios.get(`${url}/api/finance/vendors/list`, authHeader),
+                axios.get(`${url}/api/finance/projects/list`, authHeader),
+            ]);
+            if (!aliveRef.current) return;
+
+            const nextSummary = summaryRes.data.success ? summaryRes.data.data : null;
+            const nextTrends = trendsRes.data.success ? trendsRes.data.data : null;
+            if (nextSummary) setSummary(nextSummary);
+            if (nextTrends) setTrends(nextTrends);
+            setPhase1Loading(false);
+
+            // Payables breakdown donut — vendor/contractor come straight off
+            // the summary; salary/commission need the same N+1 ledger
+            // fan-out PayablesPage.jsx already does (no aggregate endpoint
+            // exists for either), scoped to this month. Project Profitability
+            // needs one profit call per active project — both fan-outs run
+            // together since neither depends on the other.
+            const employees = employeesRes.data.success ? employeesRes.data.data : [];
+            const referralVendors = (vendorsRes.data.success ? vendorsRes.data.data : []).filter(v => v.vendorType === 'referral');
+            const activeProjects = (projectsRes.data.success ? projectsRes.data.data : []).filter(p => p.status === 'active');
+
+            const [salaryLedgers, commissionLedgers, profits] = await Promise.all([
+                Promise.all(employees.map(e => axios.get(`${url}/api/finance/employees/${e._id}/salary-ledger`, { ...authHeader, params: { month } }).then(r => r.data.success ? r.data.data : null).catch(() => null))),
+                Promise.all(referralVendors.map(v => axios.get(`${url}/api/finance/vendors/${v._id}/commission-ledger`, authHeader).then(r => r.data.success ? r.data.data : null).catch(() => null))),
+                Promise.all(activeProjects.map(p => axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId: p._id } })
+                    .then(r => (r.data.success ? { projectId: p._id, projectName: p.name, profit: r.data.data.profit } : null))
+                    .catch(() => null))),
+            ]);
+            if (!aliveRef.current) return;
+
+            const salaryPayable = salaryLedgers.filter(Boolean).reduce((s, l) => s + (l.balanceDue || 0), 0);
+            const commissionPayable = commissionLedgers.filter(Boolean).reduce((s, l) => s + (l.commissionPayable || 0), 0);
+            const nextPayablesBreakdown = {
+                vendor: nextSummary?.vendorPayables || 0,
+                contractor: nextSummary?.contractorPayables || 0,
+                salary: salaryPayable,
+                commission: commissionPayable,
+            };
+            const nextProjectProfits = profits.filter(Boolean);
+
+            setPayablesBreakdown(nextPayablesBreakdown);
+            setProjectProfits(nextProjectProfits);
+            setPhase2Loading(false);
+            dashboardCache = {
+                summary: nextSummary, trends: nextTrends,
+                projectProfits: nextProjectProfits, payablesBreakdown: nextPayablesBreakdown,
+            };
+        } catch {
+            // Dashboard degrades gracefully — a failed fetch just leaves
+            // that section's empty state showing, no toast noise on load.
+        } finally {
+            if (aliveRef.current) { setPhase1Loading(false); setPhase2Loading(false); }
+        }
+    };
+
+    useEffect(() => {
         if (dashboardCache) {
             setSummary(dashboardCache.summary);
             setTrends(dashboardCache.trends);
@@ -87,73 +156,16 @@ const FinanceHome = ({ url }) => {
             setPhase1Loading(true);
             setPhase2Loading(true);
         }
-
-        (async () => {
-            try {
-                // Root requests fired together — employees/vendors/projects
-                // don't depend on summary/trends (or each other), so there's
-                // no reason to wait for one batch before starting the next.
-                const month = thisMonth();
-                const [summaryRes, trendsRes, employeesRes, vendorsRes, projectsRes] = await Promise.all([
-                    axios.get(`${url}/api/finance/reports/dashboard-summary`, authHeader),
-                    axios.get(`${url}/api/finance/reports/dashboard-trends`, { ...authHeader, params: { months: 6 } }),
-                    axios.get(`${url}/api/finance/employees/list`, authHeader),
-                    axios.get(`${url}/api/finance/vendors/list`, authHeader),
-                    axios.get(`${url}/api/finance/projects/list`, authHeader),
-                ]);
-                if (cancelled) return;
-
-                const nextSummary = summaryRes.data.success ? summaryRes.data.data : null;
-                const nextTrends = trendsRes.data.success ? trendsRes.data.data : null;
-                if (nextSummary) setSummary(nextSummary);
-                if (nextTrends) setTrends(nextTrends);
-                setPhase1Loading(false);
-
-                // Payables breakdown donut — vendor/contractor come straight off
-                // the summary; salary/commission need the same N+1 ledger
-                // fan-out PayablesPage.jsx already does (no aggregate endpoint
-                // exists for either), scoped to this month. Project Profitability
-                // needs one profit call per active project — both fan-outs run
-                // together since neither depends on the other.
-                const employees = employeesRes.data.success ? employeesRes.data.data : [];
-                const referralVendors = (vendorsRes.data.success ? vendorsRes.data.data : []).filter(v => v.vendorType === 'referral');
-                const activeProjects = (projectsRes.data.success ? projectsRes.data.data : []).filter(p => p.status === 'active');
-
-                const [salaryLedgers, commissionLedgers, profits] = await Promise.all([
-                    Promise.all(employees.map(e => axios.get(`${url}/api/finance/employees/${e._id}/salary-ledger`, { ...authHeader, params: { month } }).then(r => r.data.success ? r.data.data : null).catch(() => null))),
-                    Promise.all(referralVendors.map(v => axios.get(`${url}/api/finance/vendors/${v._id}/commission-ledger`, authHeader).then(r => r.data.success ? r.data.data : null).catch(() => null))),
-                    Promise.all(activeProjects.map(p => axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId: p._id } })
-                        .then(r => (r.data.success ? { projectId: p._id, projectName: p.name, profit: r.data.data.profit } : null))
-                        .catch(() => null))),
-                ]);
-                if (cancelled) return;
-
-                const salaryPayable = salaryLedgers.filter(Boolean).reduce((s, l) => s + (l.balanceDue || 0), 0);
-                const commissionPayable = commissionLedgers.filter(Boolean).reduce((s, l) => s + (l.commissionPayable || 0), 0);
-                const nextPayablesBreakdown = {
-                    vendor: nextSummary?.vendorPayables || 0,
-                    contractor: nextSummary?.contractorPayables || 0,
-                    salary: salaryPayable,
-                    commission: commissionPayable,
-                };
-                const nextProjectProfits = profits.filter(Boolean);
-
-                setPayablesBreakdown(nextPayablesBreakdown);
-                setProjectProfits(nextProjectProfits);
-                setPhase2Loading(false);
-                dashboardCache = {
-                    summary: nextSummary, trends: nextTrends,
-                    projectProfits: nextProjectProfits, payablesBreakdown: nextPayablesBreakdown,
-                };
-            } catch {
-                // Dashboard degrades gracefully — a failed fetch just leaves
-                // that section's empty state showing, no toast noise on load.
-            } finally {
-                if (!cancelled) { setPhase1Loading(false); setPhase2Loading(false); }
-            }
-        })();
-        return () => { cancelled = true; };
+        fetchDashboard();
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Nearly every finance mutation feeds into this dashboard's KPIs/charts
+    // somewhere (revenue, cash, payables, labour, materials...), so rather
+    // than maintain a brittle allow-list of ~20 event types, any finance
+    // broadcast triggers a silent background refetch — cheap since it never
+    // touches the loading flags (data's already on screen) or the cache
+    // structure, just quietly replaces both when the response lands.
+    useFinanceWsRefresh(['*'], fetchDashboard);
 
     const payablesData = payablesBreakdown ? [
         { name: 'Vendor', value: payablesBreakdown.vendor },
@@ -191,10 +203,37 @@ const FinanceHome = ({ url }) => {
                 <KpiGrid>
                     <KpiCard loading={phase1Loading} icon={faBuilding} label="Active Projects" value={summary?.activeProjects ?? 0} onClick={() => navigate('/finance/projects')} />
                     <KpiCard loading={phase1Loading} icon={faClipboardList} label="Active Works" value={summary?.activeWorks ?? 0} onClick={() => navigate('/finance/projects')} />
-                    <KpiCard loading={phase1Loading} icon={faPersonDigging} label="Labour Working Today" value={summary?.labourWorkingToday ?? 0} onClick={() => navigate('/finance/daily-labour')} />
+                    <KpiCard loading={phase1Loading} icon={faPersonDigging} label="Personal Labour Working Today" value={summary?.labourWorkingToday ?? 0} onClick={() => navigate('/finance/daily-labour')} />
                     <KpiCard loading={phase1Loading} icon={faRulerCombined} label="Today's Measurement" value={`${(summary?.todaysMeasurementSqft || 0).toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/site-operations')} />
                     <KpiCard loading={phase1Loading} icon={faTriangleExclamation} label="Material Low Alerts" value={summary?.materialLowAlerts ?? 0} onClick={() => navigate('/finance/site-inventory?filter=low-stock')} tone={summary?.materialLowAlerts > 0 ? 'danger' : 'good'} />
                 </KpiGrid>
+
+                {/* Today's measurements, one line per Work — not gated by
+                    engineer approval (that only gates billing/earnings, not
+                    what's shown as logged on site), and not mixed in with
+                    the unrelated payment/mutation events in Recent Activity
+                    below. */}
+                {(phase1Loading || (summary?.todaysWorkActivity?.length > 0)) && (
+                    <>
+                        <KpiSectionLabel>Site Activity — Today's Measurements by Work</KpiSectionLabel>
+                        <div className="list-table" style={{ marginBottom: '24px' }}>
+                            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1fr 1fr' }}>
+                                <b>Work</b><b>Project</b><b>Measured Today</b><b>Expected / Completed</b><b>Deducted (Negligence)</b>
+                            </div>
+                            {phase1Loading ? (
+                                <div className="admin-empty-state"><p>Loading…</p></div>
+                            ) : summary.todaysWorkActivity.map(w => (
+                                <div key={w.workId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1fr 1fr' }}>
+                                    <p>{w.workType}</p>
+                                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${w.projectId}`)}>{w.projectName}</p>
+                                    <p>{w.sqft.toLocaleString('en-IN')} sqft</p>
+                                    <p>{w.completedAreaSqft.toLocaleString('en-IN')} / {w.estimatedAreaSqft.toLocaleString('en-IN')} sqft</p>
+                                    <p style={{ color: w.deductedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>{w.deductedAmount > 0 ? formatINR(w.deductedAmount) : '—'}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                )}
 
                 <ChartGrid>
                     <ChartCard title="Revenue vs Cost — last 6 months">

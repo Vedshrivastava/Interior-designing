@@ -16,6 +16,7 @@ import FinanceReceipt from '../models/financeReceipt.js';
 import FinanceExpense from '../models/financeExpense.js';
 import FinanceContractorAdvance from '../models/financeContractorAdvance.js';
 import FinanceContractorDeduction from '../models/financeContractorDeduction.js';
+import FinanceLabourDeduction from '../models/financeLabourDeduction.js';
 import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import FinanceVendorPayment from '../models/financeVendorPayment.js';
 import FinanceSalaryPayment from '../models/financeSalaryPayment.js';
@@ -1415,7 +1416,7 @@ const getDashboardSummary = async (req, res) => {
         const [
             bankAccounts, cashEntriesToDate, issuedAgg, receivedAgg, contractorRows, vendorRows,
             readyProjectIds, activeProjectsCount, activeWorksCount, labourersWorkingTodayIds, lowStockCount,
-            todayMeasurementAgg, monthRevenueAgg, recentActivities,
+            todayContractorMeasurements, todayLabourMeasurements, monthRevenueAgg, recentActivities,
         ] = await Promise.all([
             FinanceBankAccount.find({ deleted: { $ne: true } }),
             FinanceCashEntry.find({ deleted: { $ne: true }, date: { $lte: todayEnd } }),
@@ -1434,10 +1435,14 @@ const getDashboardSummary = async (req, res) => {
             FinanceWork.countDocuments({ status: 'active', deleted: { $ne: true } }),
             FinanceLabourMeasurement.distinct('labourerId', { date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true } }),
             computeLowStockMaterialCount(activeProjectIds),
-            FinanceMeasurement.aggregate([
-                { $match: { date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true } } },
-                { $group: { _id: null, total: { $sum: '$areaCoveredSqft' } } },
-            ]),
+            // Today's Measurement / Site Activity deliberately reads both
+            // contractor and labour measurements with no engineerApproved
+            // filter — completedAreaSqft itself updates unapproved (see
+            // financeMeasurement.js/financeLabourMeasurement.js add
+            // handlers), so the dashboard should show what was actually
+            // logged on site today, not what's cleared for billing yet.
+            FinanceMeasurement.find({ date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true } }, 'workId areaCoveredSqft'),
+            FinanceLabourMeasurement.find({ date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true } }, 'workId areaCoveredSqft'),
             FinanceRunningBill.aggregate([
                 { $match: { status: 'issued', billDate: { $gte: monthStart, $lte: monthEnd }, deleted: { $ne: true } } },
                 { $group: { _id: null, total: { $sum: '$totalAmount' } } },
@@ -1452,6 +1457,52 @@ const getDashboardSummary = async (req, res) => {
         }));
         const cashInBank = bankBalances.reduce((a, b) => a + b, 0);
         const cashInHand = cashEntriesToDate.reduce((sum, e) => sum + (e.type === 'in' ? e.amount : -e.amount), 0);
+
+        // Site Activity — today's measurements spliced by Work (not the flat,
+        // mixed-with-every-event-type recentActivities feed), so every work
+        // that had area logged today shows up as its own line, contractor and
+        // labour entries combined into one sqft figure per work.
+        const todaysMeasurementSqft = todayContractorMeasurements.reduce((s, m) => s + m.areaCoveredSqft, 0)
+            + todayLabourMeasurements.reduce((s, m) => s + m.areaCoveredSqft, 0);
+        const sqftByWorkId = new Map();
+        for (const m of [...todayContractorMeasurements, ...todayLabourMeasurements]) {
+            const key = m.workId.toString();
+            sqftByWorkId.set(key, (sqftByWorkId.get(key) || 0) + m.areaCoveredSqft);
+        }
+        const todaysWorkIds = [...sqftByWorkId.keys()];
+        const [todaysWorksById, workDeductions, workLabourDeductions] = await Promise.all([
+            FinanceWork.find({ _id: { $in: todaysWorkIds } }, 'workType projectId estimatedAreaSqft completedAreaSqft')
+                .populate('projectId', 'name'),
+            // "Expectations vs reality" per work: estimatedAreaSqft (target)
+            // vs completedAreaSqft (logged so far, unapproved-inclusive —
+            // same "show it even before approval" rule as the KPI above).
+            // Deducted total is a manually-entered figure (engineer/
+            // supervisor typed in an amount against this specific work, see
+            // financeContractorDeduction.js/financeLabourDeduction.js
+            // workId field) — never auto-computed from the approval gate.
+            FinanceContractorDeduction.aggregate([
+                { $match: { workId: { $in: todaysWorkIds.map(id => new mongoose.Types.ObjectId(id)) }, deleted: { $ne: true } } },
+                { $group: { _id: '$workId', total: { $sum: '$amount' } } },
+            ]),
+            FinanceLabourDeduction.aggregate([
+                { $match: { workId: { $in: todaysWorkIds.map(id => new mongoose.Types.ObjectId(id)) }, deleted: { $ne: true } } },
+                { $group: { _id: '$workId', total: { $sum: '$amount' } } },
+            ]),
+        ]);
+        const deductedByWorkId = new Map();
+        for (const r of [...workDeductions, ...workLabourDeductions]) {
+            const key = r._id.toString();
+            deductedByWorkId.set(key, (deductedByWorkId.get(key) || 0) + r.total);
+        }
+        const todaysWorkActivity = todaysWorksById
+            .map(w => ({
+                workId: w._id, workType: w.workType,
+                projectId: w.projectId?._id, projectName: w.projectId?.name || '—',
+                sqft: sqftByWorkId.get(w._id.toString()) || 0,
+                estimatedAreaSqft: w.estimatedAreaSqft, completedAreaSqft: w.completedAreaSqft,
+                deductedAmount: deductedByWorkId.get(w._id.toString()) || 0,
+            }))
+            .sort((a, b) => b.sqft - a.sqft);
 
         const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost] = await Promise.all([
             computeCompanyWideMaterialCostInRange(monthStart, monthEnd, activeProjectIds),
@@ -1479,7 +1530,7 @@ const getDashboardSummary = async (req, res) => {
                 activeWorks: activeWorksCount,
                 labourWorkingToday: labourersWorkingTodayIds.length,
                 materialLowAlerts: lowStockCount,
-                todaysMeasurementSqft: todayMeasurementAgg[0]?.total || 0,
+                todaysMeasurementSqft, todaysWorkActivity,
                 thisMonthRevenue, thisMonthProfit,
                 recentActivities,
             },

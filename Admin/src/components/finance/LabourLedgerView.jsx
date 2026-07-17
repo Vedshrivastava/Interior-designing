@@ -22,7 +22,7 @@ const buildMonthlyMoneyFlow = (advances, deductions, payments) => {
 };
 
 const emptyAdvanceForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', notes: '' };
-const emptyDeductionForm = { amount: '', reason: '', date: '', source: 'engineer_review', supervisorId: '', notes: '' };
+const emptyDeductionForm = { amount: '', reason: '', date: '', source: 'engineer_review', supervisorId: '', notes: '', workId: '' };
 const emptyPaymentForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', notes: '' };
 
 /*
@@ -257,6 +257,15 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                         <p>Reason *</p>
                         <input type="text" value={deductionForm.reason} onChange={e => setDeductionForm(p => ({ ...p, reason: e.target.value }))} placeholder="What went wrong, who's responsible" />
                     </div>
+                    {showWorks && ledger.works.length > 0 && (
+                        <div className="add-product-name flex-col">
+                            <p>Work (optional — e.g. a negligence deduction caught on one specific work)</p>
+                            <select value={deductionForm.workId} onChange={e => setDeductionForm(p => ({ ...p, workId: e.target.value }))}>
+                                <option value="">— Not tied to a specific work —</option>
+                                {ledger.works.map(w => <option key={w._id} value={w._id}>{w.projectName} — {w.workType}</option>)}
+                            </select>
+                        </div>
+                    )}
                 </div>
                 <div className="wizard-actions" style={{ marginTop: '16px', marginBottom: '12px' }}>
                     <span />
@@ -264,17 +273,18 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                 </div>
             </form>
             <div className="list-table" style={{ marginBottom: '28px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 1fr 100px' }}>
-                    <b>Date</b><b>Amount</b><b>Reason</b><b>Caught By</b><b>Action</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1.3fr 1fr 1fr 100px' }}>
+                    <b>Date</b><b>Amount</b><b>Reason</b><b>Caught By</b><b>Work</b><b>Action</b>
                 </div>
                 {ledger.deductions.length === 0 ? (
                     <div className="admin-empty-state"><p>No deductions yet.</p></div>
                 ) : ledger.deductions.map(d => (
-                    <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 1fr 100px' }}>
+                    <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1.3fr 1fr 1fr 100px' }}>
                         <p>{new Date(d.date).toLocaleDateString()}</p>
                         <p>₹{d.amount.toLocaleString('en-IN')}</p>
                         <p>{d.reason}</p>
                         <p>{d.source === 'supervisor_catch' ? `Supervisor${d.supervisorId?.name ? ` (${d.supervisorId.name})` : ''}` : 'Engineer'}</p>
+                        <p>{ledger.works.find(w => w._id === (d.workId?._id || d.workId))?.workType || '—'}</p>
                         <div className="action-buttons"><p onClick={() => remove('deduction', d._id)} className="cursor delete-action">X</p></div>
                     </div>
                 ))}

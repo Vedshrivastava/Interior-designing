@@ -214,6 +214,8 @@ const ProjectDetail = ({ url }) => {
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activating, setActivating] = useState(false);
+    const [completing, setCompleting] = useState(false);
+    const [completionBlockers, setCompletionBlockers] = useState(null); // [{category,label,amount}] | null
     const [advanceNotes, setAdvanceNotes] = useState('');
     const [advancePaymentMode, setAdvancePaymentMode] = useState('');
     const [advanceBankAccountId, setAdvanceBankAccountId] = useState('');
@@ -331,6 +333,25 @@ const ProjectDetail = ({ url }) => {
         finally { setActivating(false); }
     };
 
+    // Warn-don't-block: the first call (no override) either completes
+    // outright or comes back with a blockers[] list to show; "Complete
+    // Anyway" in that modal resends with confirmOverride:true.
+    const completeProject = async (confirmOverride = false) => {
+        setCompleting(true);
+        try {
+            const res = await axios.post(`${url}/api/finance/projects/complete`, { _id: id, confirmOverride }, authHeader);
+            // A 200 always means success here — the backend returns 400
+            // whenever blockers stop completion, which axios routes to the
+            // catch block below instead.
+            toast.success(res.data.message);
+            setCompletionBlockers(null);
+            await fetchProject();
+        } catch (err) {
+            if (err.response?.data?.blockers) setCompletionBlockers(err.response.data.blockers);
+            else toast.error(err.response?.data?.message || 'Error completing project');
+        } finally { setCompleting(false); }
+    };
+
     // Revisitable here — not just the New Project Wizard's one-time step.
     const markAdvanceInvoiced = async () => {
         setMarkingInvoiced(true);
@@ -396,6 +417,11 @@ const ProjectDetail = ({ url }) => {
                     {project.status === 'draft' && (
                         <button type="button" className="add-point-btn" disabled={activating} onClick={activate}>
                             {activating ? 'Activating…' : 'Activate Project'}
+                        </button>
+                    )}
+                    {project.status === 'active' && (
+                        <button type="button" className="add-point-btn" disabled={completing} onClick={() => completeProject(false)}>
+                            {completing ? 'Checking…' : 'Mark Completed'}
                         </button>
                     )}
                 </div>
@@ -585,6 +611,31 @@ const ProjectDetail = ({ url }) => {
                 {activeTab === 'timeline' && <PlaceholderTab text="Chronological activity log for this project." />}
                 {activeTab === 'profitability' && <PlaceholderTab text="Lifetime billing, cost, and profit summary for this project." phase="Phase 2" />}
             </div>
+
+            {completionBlockers && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !completing && setCompletionBlockers(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>This project has outstanding items</h3>
+                        <p className="bin-confirm-name" style={{ display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' }}>
+                            {completionBlockers.map((b, i) => (
+                                <span key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                                    <span>{b.label}</span>
+                                    <b style={{ whiteSpace: 'nowrap' }}>{b.amount < 0 ? '-' : ''}₹{Math.abs(b.amount).toLocaleString('en-IN')}</b>
+                                </span>
+                            ))}
+                        </p>
+                        <p className="bin-confirm-warning">A project can still be completed with these left open — this is just a heads-up before you do.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setCompletionBlockers(null)} disabled={completing}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={() => completeProject(true)} disabled={completing}>
+                                {completing ? 'Completing…' : 'Complete Anyway'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };

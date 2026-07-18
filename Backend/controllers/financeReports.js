@@ -25,7 +25,10 @@ import FinanceCommissionPayment from '../models/financeCommissionPayment.js';
 import FinanceLabourMeasurement from '../models/financeLabourMeasurement.js';
 import FinanceLabourRate from '../models/financeLabourRate.js';
 import FinanceWorkLabourAssignment from '../models/financeWorkLabourAssignment.js';
+import FinanceLabourAdvance from '../models/financeLabourAdvance.js';
+import FinanceLabourPayment from '../models/financeLabourPayment.js';
 import FinanceLabourer from '../models/financeLabourer.js';
+import { summarizeProject } from './financeReceivable.js';
 import FinanceSetting from '../models/financeSetting.js';
 import FinanceBankAccount from '../models/financeBankAccount.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
@@ -1811,7 +1814,11 @@ const computeDashboardApprovedBreakdown = async () => {
     if (!approvedAreaByWorkId.size) return { byWorkType: [], contractorTotal: 0, labourTotal: 0 };
 
     const workIds = [...approvedAreaByWorkId.keys()];
-    const works = await FinanceWork.find({ _id: { $in: workIds } }, 'workType projectId');
+    // status: {$ne:'completed'} — this is a live operational pipeline
+    // widget ("what's currently moving through billing"), not a financial
+    // rollup, so a finished project's already-billed work drops out of it
+    // once complete (it still counts toward Total Revenue/Profit elsewhere).
+    const works = await FinanceWork.find({ _id: { $in: workIds }, status: { $ne: 'completed' } }, 'workType projectId');
     const [contractorAssignments, labourAssignments, contractorMeasurements, labourMeasurements] = await Promise.all([
         FinanceWorkContractorAssignment.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId contractorVendorId'),
         FinanceWorkLabourAssignment.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId labourerId'),
@@ -1879,7 +1886,12 @@ const computeDashboardApprovedBreakdown = async () => {
 // Total-vs-Approved gap, not the full picture.
 const computeReadyProjectIds = async (billableProjectIds) => {
     const works = await FinanceWork.find(
-        { projectId: { $in: billableProjectIds }, deleted: { $ne: true }, completedAreaSqft: { $gt: 0 } },
+        // status: {$ne:'completed'} — a completed Work is done accruing
+        // billable area either way (its project's completion pre-flight
+        // check already surfaced any leftover unbilled sqft, and the user
+        // either cleared it or explicitly overrode), so it shouldn't keep
+        // nudging "ready to bill" on the dashboard forever after.
+        { projectId: { $in: billableProjectIds }, deleted: { $ne: true }, completedAreaSqft: { $gt: 0 }, status: { $ne: 'completed' } },
         'projectId completedAreaSqft'
     );
     if (!works.length) return [];
@@ -1890,6 +1902,163 @@ const computeReadyProjectIds = async (billableProjectIds) => {
         if (w.completedAreaSqft - approved > 0.001) readyProjectIds.add(w.projectId.toString());
     }
     return [...readyProjectIds];
+};
+
+// Pre-flight check for "Mark Project Completed" (financeProject.js's
+// completeFinanceProject) — everything that could still be financially
+// outstanding on this project, gathered from the same computations already
+// used elsewhere (nothing new invented) so this can never drift from what
+// the Ledgers/Payables/Receivables pages themselves would show. Warn-only
+// by design (the caller decides whether blockers actually stop completion)
+// — this just reports what's there.
+const getProjectCompletionReadiness = async (projectId) => {
+    const project = await FinanceProject.findById(projectId);
+    if (!project) throw new Error('Project not found');
+
+    const works = await FinanceWork.find({ projectId, deleted: { $ne: true } });
+    const workIds = works.map(w => w._id);
+    const blockers = [];
+
+    if (workIds.length) {
+        // Unbilled/unapproved work — every work's own Total-vs-Approved gap,
+        // same figure the Deduction Pool and Ledgers already surface.
+        const expectedPays = await Promise.all(works.map(w => computeWorkExpectedPay(w)));
+        const unapprovedAreaSqft = round2(expectedPays.reduce((s, wp) => s + wp.unapprovedAreaSqft, 0));
+        const unapprovedAmount = round2(expectedPays.reduce((s, wp) => s + wp.unapprovedAmount, 0));
+        if (unapprovedAreaSqft > 0.01) {
+            blockers.push({ category: 'unbilled_work', label: `${unapprovedAreaSqft} sqft logged but never billed to the client`, amount: unapprovedAmount });
+        }
+
+        // Contractor/labour balances still owed on THIS project specifically
+        // — same formula as the Ledgers (earnings − advances − deductions −
+        // payments), narrowed to this project's Works via the assignment
+        // rows still on them.
+        const [contractorAssignments, labourAssignments] = await Promise.all([
+            FinanceWorkContractorAssignment.find({ workId: { $in: workIds }, deleted: { $ne: true } }),
+            FinanceWorkLabourAssignment.find({ workId: { $in: workIds }, deleted: { $ne: true } }),
+        ]);
+
+        if (contractorAssignments.length) {
+            const vendorIds = new Set(contractorAssignments.map(a => a.contractorVendorId.toString()));
+            const rows = await computeContractorAnalysisRows(projectId);
+            for (const r of rows) {
+                if (vendorIds.has(r.vendorId.toString()) && Math.abs(r.balancePayable) > 0.5) {
+                    blockers.push({ category: 'contractor_balance', label: `${r.vendorName} — contractor balance`, amount: round2(r.balancePayable) });
+                }
+            }
+        }
+
+        if (labourAssignments.length) {
+            const labourBalances = await computeLabourBalancesForProject(projectId, works);
+            for (const r of labourBalances) {
+                if (Math.abs(r.balancePayable) > 0.5) {
+                    blockers.push({ category: 'labour_balance', label: `${r.labourerName} — labour balance`, amount: r.balancePayable });
+                }
+            }
+        }
+    }
+
+    // Draft bills — money already earned that hasn't even been sent to the
+    // client yet, let alone paid.
+    const draftBills = await FinanceRunningBill.find({ projectId, status: 'draft', deleted: { $ne: true } });
+    if (draftBills.length) {
+        const draftTotal = round2(draftBills.reduce((s, b) => s + b.totalAmount, 0));
+        blockers.push({ category: 'draft_bills', label: `${draftBills.length} draft bill${draftBills.length === 1 ? '' : 's'} never issued to the client`, amount: draftTotal });
+    }
+
+    // Vendor (material supplier) balances on this project.
+    const vendorRows = await computeVendorAnalysisRows(projectId);
+    for (const r of vendorRows.filter(r => Math.abs(r.amountOwed) > 0.5)) {
+        blockers.push({ category: 'vendor_balance', label: `${r.vendorName} — material supplier balance`, amount: round2(r.amountOwed) });
+    }
+
+    // Client receivables — issued bills the client hasn't fully paid yet.
+    const receivable = await summarizeProject(project);
+    if (receivable.balance > 0.5) {
+        blockers.push({ category: 'receivable', label: 'Outstanding balance owed by the client', amount: round2(receivable.balance) });
+    }
+
+    // Advance credit not yet drawn down against a bill (advance-contract
+    // projects only) — same query generateRunningBill's applyAdvanceCredit
+    // uses to find drawable advance receipts.
+    if (project.contractType === 'advance') {
+        if (!project.advanceReceived) {
+            blockers.push({ category: 'advance_not_received', label: 'Advance payment was never recorded as received', amount: project.advanceAmount || 0 });
+        } else {
+            const undrawn = await FinanceReceipt.find({ projectId, isAdvance: true, runningBillId: null, deleted: { $ne: true } });
+            const undrawnTotal = round2(undrawn.reduce((s, r) => s + r.amount, 0));
+            if (undrawnTotal > 0.5) {
+                blockers.push({ category: 'advance_undrawn', label: 'Advance credit not yet drawn against any bill', amount: undrawnTotal });
+            }
+        }
+    }
+
+    return { blockers, hasBlockers: blockers.length > 0 };
+};
+
+// Bulk labour-balance helper for getProjectCompletionReadiness — no
+// company-wide bulk equivalent of getContractorLedger exists for labour
+// (unlike computeContractorAnalysisRows on the contractor side), so this
+// mirrors that same formula, narrowed to one project's Works directly
+// rather than scanning every labourer in the company.
+const computeLabourBalancesForProject = async (projectId, works) => {
+    const workIds = works.map(w => w._id);
+    const [assignments, allMeasurements, approvedBillingByWorkId] = await Promise.all([
+        FinanceWorkLabourAssignment.find({ workId: { $in: workIds }, deleted: { $ne: true } }),
+        FinanceLabourMeasurement.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId labourerId areaCoveredSqft'),
+        getApprovedBillingByWorkId(workIds),
+    ]);
+    const labourerIds = [...new Set(assignments.map(a => a.labourerId.toString()))];
+    if (!labourerIds.length) return [];
+
+    const [labourers, rates] = await Promise.all([
+        FinanceLabourer.find({ _id: { $in: labourerIds } }),
+        FinanceLabourRate.find({ projectId, labourerId: { $in: labourerIds }, deleted: { $ne: true } }),
+    ]);
+    const labourerById = new Map(labourers.map(l => [l._id.toString(), l]));
+    const rateByKey = new Map(rates.map(r => [`${r.labourerId}_${r.workType}`, r.ratePerSqft]));
+
+    const totalAreaByWork = new Map();
+    const areaByLabourerWork = new Map();
+    for (const m of allMeasurements) {
+        const wk = m.workId.toString();
+        totalAreaByWork.set(wk, (totalAreaByWork.get(wk) || 0) + m.areaCoveredSqft);
+        const key = `${m.labourerId}_${wk}`;
+        areaByLabourerWork.set(key, (areaByLabourerWork.get(key) || 0) + m.areaCoveredSqft);
+    }
+
+    const earningsByLabourer = new Map();
+    for (const w of works) {
+        const wk = w._id.toString();
+        const totalArea = totalAreaByWork.get(wk) || 0;
+        if (!totalArea) continue;
+        const workApprovedArea = approvedBillingByWorkId.get(wk)?.areaSqft || 0;
+        for (const labourerId of labourerIds) {
+            const labourerArea = areaByLabourerWork.get(`${labourerId}_${wk}`) || 0;
+            if (!labourerArea) continue;
+            const rate = rateByKey.get(`${labourerId}_${w.workType}`);
+            if (!rate) continue;
+            const approvedArea = splitApprovedAreaByShare(workApprovedArea, labourerArea, totalArea);
+            earningsByLabourer.set(labourerId, (earningsByLabourer.get(labourerId) || 0) + approvedArea * rate);
+        }
+    }
+
+    const moneyFilter = { projectId, deleted: { $ne: true } };
+    return Promise.all(labourerIds.map(async (labourerId) => {
+        const [advances, deductions, payments] = await Promise.all([
+            FinanceLabourAdvance.find({ ...moneyFilter, labourerId }),
+            FinanceLabourDeduction.find({ ...moneyFilter, labourerId }),
+            FinanceLabourPayment.find({ ...moneyFilter, labourerId }),
+        ]);
+        const earnings = round2(earningsByLabourer.get(labourerId) || 0);
+        const advancesTotal = advances.reduce((s, a) => s + a.amount, 0);
+        const deductionsTotal = deductions.reduce((s, d) => s + d.amount, 0);
+        const paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
+        return {
+            labourerId, labourerName: labourerById.get(labourerId)?.name || '—',
+            balancePayable: round2(earnings - advancesTotal - deductionsTotal - paymentsTotal),
+        };
+    }));
 };
 
 // Tier-0 Company Dashboard KPIs — every number here is meant to be a
@@ -1906,6 +2075,11 @@ const getDashboardSummary = async (req, res) => {
         const billableProjectIds = billableProjects.map(p => p._id);
         const activeProjects = await FinanceProject.find({ status: 'active', deleted: { $ne: true } }, '_id');
         const activeProjectIds = activeProjects.map(p => p._id);
+        // Completed Works are done accruing "today's site activity" — a
+        // finished project's historical revenue/cost still counts toward
+        // Total Profit below, it just stops nudging the operational
+        // "what's happening today" cards.
+        const completedWorkIds = await FinanceWork.distinct('_id', { status: 'completed', deleted: { $ne: true } });
 
         const [
             bankAccounts, cashEntriesToDate, issuedAgg, receivedAgg, contractorRows, vendorRows,
@@ -1927,7 +2101,7 @@ const getDashboardSummary = async (req, res) => {
             computeReadyProjectIds(billableProjectIds),
             FinanceProject.countDocuments({ status: 'active', deleted: { $ne: true } }),
             FinanceWork.countDocuments({ status: 'active', deleted: { $ne: true } }),
-            FinanceLabourMeasurement.distinct('labourerId', { date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true } }),
+            FinanceLabourMeasurement.distinct('labourerId', { date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true }, workId: { $nin: completedWorkIds } }),
             computeLowStockMaterialCount(activeProjectIds),
             // Today's Measurement / Site Activity deliberately reads both
             // contractor and labour measurements with no engineerApproved
@@ -1935,8 +2109,9 @@ const getDashboardSummary = async (req, res) => {
             // financeMeasurement.js/financeLabourMeasurement.js add
             // handlers), so the dashboard should show what was actually
             // logged on site today, not what's cleared for billing yet.
-            FinanceMeasurement.find({ date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true } }, 'workId areaCoveredSqft'),
-            FinanceLabourMeasurement.find({ date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true } }, 'workId areaCoveredSqft'),
+            // Excludes completed Works — see completedWorkIds above.
+            FinanceMeasurement.find({ date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true }, workId: { $nin: completedWorkIds } }, 'workId areaCoveredSqft'),
+            FinanceLabourMeasurement.find({ date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true }, workId: { $nin: completedWorkIds } }, 'workId areaCoveredSqft'),
             FinanceRunningBill.aggregate([
                 { $match: { status: 'issued', billDate: { $gte: monthStart, $lte: monthEnd }, deleted: { $ne: true } } },
                 { $group: { _id: null, total: { $sum: '$totalAmount' } } },
@@ -2014,15 +2189,21 @@ const getDashboardSummary = async (req, res) => {
             })
             .sort((a, b) => b.sqft - a.sqft);
 
+        // Unscoped by project status (company-wide, matching getDashboardTrends'
+        // already-correct 6-month chart and thisMonthRevenue below) — a
+        // completed project's costs this month are still real costs; scoping
+        // this to activeProjectIds only (as it used to) silently dropped a
+        // just-completed project's cost from the same month its revenue
+        // still counted, overstating This Month Profit.
         const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown] = await Promise.all([
-            computeCompanyWideMaterialCostInRange(monthStart, monthEnd, activeProjectIds),
-            computeCompanyWideContractorCostInRange(monthStart, monthEnd, activeProjectIds),
-            computeCompanyWideCommissionCostInRange(monthStart, monthEnd, activeProjectIds),
+            computeCompanyWideMaterialCostInRange(monthStart, monthEnd),
+            computeCompanyWideContractorCostInRange(monthStart, monthEnd),
+            computeCompanyWideCommissionCostInRange(monthStart, monthEnd),
             FinanceExpense.aggregate([
-                { $match: { projectId: { $in: activeProjectIds }, date: { $gte: monthStart, $lte: monthEnd }, deleted: { $ne: true } } },
+                { $match: { date: { $gte: monthStart, $lte: monthEnd }, deleted: { $ne: true } } },
                 { $group: { _id: null, total: { $sum: '$amount' } } },
             ]),
-            computeCompanyWideLabourCostInRange(monthStart, monthEnd, activeProjectIds),
+            computeCompanyWideLabourCostInRange(monthStart, monthEnd),
             computeDashboardApprovedBreakdown(),
         ]);
         const thisMonthRevenue = monthRevenueAgg[0]?.total || 0;
@@ -2341,4 +2522,7 @@ export {
     // elsewhere in this codebase, e.g. financeMeasurement.js importing
     // computeCurrentStock from financeStockMovement.js).
     getApprovedBillingByWorkId, splitApprovedAreaByShare, computeWorkExpectedPay,
+    // Shared with financeProject.js's completion-readiness endpoint + the
+    // "Mark Completed" action itself — same reasoning as the export above.
+    getProjectCompletionReadiness,
 };

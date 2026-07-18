@@ -80,9 +80,19 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
         setForm(prev => (prev.labourerId === form.labourerId ? { ...prev, supervisorId } : prev));
     }, [form.labourerId, workLabourers]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // A material valid for one Work's type may not be for another — clear
-    // any picked lines rather than leave a stale, no-longer-listed selection.
-    useEffect(() => { setMaterialLines([]); }, [form.workId]);
+    // Which materials a Work can use isn't a free choice — it's already
+    // declared once, per work type, via financeMaterial.workTypes (Masters
+    // → Material Master). So this derives a fixed checklist (one quantity
+    // box per applicable material) instead of a searchable pick-and-add
+    // list; nothing to "add", the set is already known the moment a Work
+    // is selected. Untagged materials count as usable everywhere (see the
+    // field's own doc comment), same rule the checklist honors here.
+    useEffect(() => {
+        if (!form.workId) { setMaterialLines([]); return; }
+        const workType = works.find(w => w._id === form.workId)?.workType;
+        const applicable = materials.filter(m => !m.workTypes?.length || m.workTypes.includes(workType));
+        setMaterialLines(applicable.map(m => ({ materialId: m._id, quantity: '' })));
+    }, [form.workId, materials, works]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => {
         const next = { ...prev, [key]: value };
@@ -97,9 +107,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
         checkSupervisor(candidateId, form.workId, () => setField('supervisorId', candidateId));
     };
 
-    const addMaterialLine = () => setMaterialLines(prev => [...prev, { materialId: '', quantity: '' }]);
     const setMaterialLine = (idx, key, value) => setMaterialLines(prev => prev.map((l, i) => i === idx ? { ...l, [key]: value } : l));
-    const removeMaterialLine = (idx) => setMaterialLines(prev => prev.filter((_, i) => i !== idx));
 
     const projectOptions = projects.map(p => ({ value: p._id, label: p.name }));
     const workOptions = works.map(w => ({ value: w._id, label: `${w.workType}${w.workOrderNumber ? ` (${w.workOrderNumber})` : ''}` }));
@@ -144,8 +152,6 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
     };
 
     const isContractor = form.measurementType === 'contractor';
-    const selectedWorkType = works.find(w => w._id === form.workId)?.workType;
-    const materialsForWork = materials.filter(m => !m.workTypes?.length || m.workTypes.includes(selectedWorkType));
 
     return <>{ReactDOM.createPortal(
         <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
@@ -232,24 +238,27 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
 
                     {isContractor && materialTrackingEnabled && (
                         <div style={{ margin: '4px 0 20px' }}>
-                            <p className="admin-subtitle" style={{ marginBottom: '8px' }}>Material Used</p>
-                            {materialLines.map((line, idx) => {
-                                const selectedMaterial = materials.find(m => m._id === line.materialId);
+                            <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
+                                Material Used {materialLines.length > 0 && `— for ${form.areaCoveredSqft || '?'} sqft covered above, not per material`}
+                            </p>
+                            {!form.workId ? (
+                                <p className="admin-subtitle">Select a work first.</p>
+                            ) : materialLines.length === 0 ? (
+                                <p className="admin-subtitle">
+                                    No materials are tagged to this work type yet — add them from Masters → Material Master.
+                                </p>
+                            ) : materialLines.map((line, idx) => {
+                                const material = materials.find(m => m._id === line.materialId);
                                 return (
-                                    <div key={idx} style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'center' }}>
-                                        <select value={line.materialId} onChange={e => setMaterialLine(idx, 'materialId', e.target.value)} style={{ flex: 2 }}>
-                                            <option value="">Select material…</option>
-                                            {materialsForWork.map(m => <option key={m._id} value={m._id}>{m.name}{m.unit ? ` (${m.unit})` : ''}</option>)}
-                                        </select>
+                                    <div key={line.materialId} style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'center' }}>
+                                        <p style={{ flex: 2, margin: 0 }}>{material?.name || '—'}</p>
                                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <input type="number" placeholder="Quantity" value={line.quantity} onChange={e => setMaterialLine(idx, 'quantity', e.target.value)} style={{ width: '100%' }} />
-                                            {selectedMaterial?.unit && <span className="admin-subtitle" style={{ whiteSpace: 'nowrap' }}>{selectedMaterial.unit}</span>}
+                                            {material?.unit && <span className="admin-subtitle" style={{ whiteSpace: 'nowrap' }}>{material.unit}</span>}
                                         </div>
-                                        <button type="button" className="remove-point-btn" onClick={() => removeMaterialLine(idx)}>X</button>
                                     </div>
                                 );
                             })}
-                            <button type="button" className="add-point-btn" onClick={addMaterialLine}>+ Add Material</button>
                         </div>
                     )}
 

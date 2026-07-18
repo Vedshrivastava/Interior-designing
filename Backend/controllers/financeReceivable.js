@@ -73,4 +73,4 @@ const getReceivablesSummary = async (req, res) => {
     }
 };
 
-export { getReceivablesSummary };
+export { getReceivablesSummary, summarizeProject };

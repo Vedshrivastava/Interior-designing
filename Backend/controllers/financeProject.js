@@ -3,6 +3,7 @@ import FinanceWorkTypeRate from '../models/financeWorkTypeRate.js';
 import FinanceContractorRate from '../models/financeContractorRate.js';
 import FinanceWork from '../models/financeWork.js';
 import FinanceWorkContractorAssignment from '../models/financeWorkContractorAssignment.js';
+import FinanceWorkLabourAssignment from '../models/financeWorkLabourAssignment.js';
 import FinanceVendor from '../models/financeVendor.js';
 import FinanceReceipt from '../models/financeReceipt.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
@@ -10,6 +11,10 @@ import PDFDocument from 'pdfkit';
 import { writeLetterhead, drawInfoBox, writeFooter, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
+// Cross-controller import — same established pattern as
+// financeContractorLedger.js/financeLabourLedger.js/financeRunningBill.js
+// already importing shared computations from financeReports.js.
+import { getProjectCompletionReadiness } from './financeReports.js';
 
 // Contractor is per-Work, via financeWorkContractorAssignment ->
 // financeVendor directly (a Work can have more than one contractor) — not
@@ -365,6 +370,94 @@ const activateFinanceProject = async (req, res) => {
     }
 };
 
+const getCompletionReadiness = async (req, res) => {
+    try {
+        const readiness = await getProjectCompletionReadiness(req.params.id);
+        res.json({ success: true, data: readiness });
+    } catch (err) {
+        console.error(err);
+        res.status(err.message === 'Project not found' ? 404 : 500)
+            .json({ success: false, message: err.message || 'Error computing completion readiness' });
+    }
+};
+
+// Warn-don't-block: a blockers[] list is always computed and returned, but
+// only actually stops completion the first time (confirmOverride absent) —
+// resubmitting with confirmOverride:true completes regardless of what's
+// still outstanding. Real projects often close with a small retention/last
+// invoice deliberately left open, so a hard block would leave a
+// practically-finished project stuck over one stray balance.
+const completeFinanceProject = async (req, res) => {
+    try {
+        const { _id, confirmOverride } = req.body;
+        const project = await FinanceProject.findById(_id);
+        if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+        if (project.status === 'completed') return res.json({ success: true, message: 'Already completed', data: project });
+        if (project.status !== 'active') {
+            return res.status(400).json({ success: false, message: 'Only an active project can be marked completed' });
+        }
+
+        const readiness = await getProjectCompletionReadiness(_id);
+        if (readiness.hasBlockers && !confirmOverride) {
+            return res.status(400).json({ success: false, message: 'This project has outstanding items', blockers: readiness.blockers });
+        }
+
+        project.status = 'completed';
+        await project.save();
+
+        // Cascade — mirrors this codebase's existing soft-delete-cascade
+        // pattern (e.g. removeLabourPayment -> FinanceCashEntry,
+        // removePurchase -> FinanceStockMovement), just triggered by a
+        // status flip instead of a deletion. This is what actually frees
+        // labourers/supervisors for reassignment: assertLabourersAvailable
+        // (utils/labourAvailability.js) only looks for non-deleted
+        // financeWorkLabourAssignment rows, so soft-deleting them here is
+        // enough — no change needed to that check itself.
+        const works = await FinanceWork.find({ projectId: _id, deleted: { $ne: true } }, '_id');
+        const workIds = works.map(w => w._id);
+        if (workIds.length) {
+            await FinanceWork.updateMany({ _id: { $in: workIds } }, { status: 'completed' });
+            const deletedBy = req.userName || 'Admin';
+            await Promise.all([
+                FinanceWorkLabourAssignment.updateMany(
+                    { workId: { $in: workIds }, deleted: { $ne: true } },
+                    { deleted: true, deletedAt: new Date(), deletedBy }
+                ),
+                // Contractor assignments get the same release for data
+                // hygiene/consistency, even though no contractor-side
+                // availability block exists to relieve — a contractor
+                // brings a whole crew, not one physical person, so nothing
+                // was blocking reassignment for them in the first place.
+                FinanceWorkContractorAssignment.updateMany(
+                    { workId: { $in: workIds }, deleted: { $ne: true } },
+                    { deleted: true, deletedAt: new Date(), deletedBy }
+                ),
+            ]);
+        }
+
+        broadcast({ type: 'financeProjectsChanged' });
+        broadcast({ type: 'financeWorksChanged', projectId: project._id });
+        broadcast({ type: 'financeWorkLabourAssignmentsChanged', projectId: project._id });
+        broadcast({ type: 'financeWorkContractorAssignmentsChanged', projectId: project._id });
+
+        await logActivity({
+            eventType: 'project_completed',
+            entityType: 'financeProject',
+            entityId: project._id,
+            projectId: project._id,
+            summary: readiness.hasBlockers
+                ? `Project '${project.name}' marked completed (with ${readiness.blockers.length} outstanding item${readiness.blockers.length === 1 ? '' : 's'} overridden)`
+                : `Project '${project.name}' marked completed`,
+            req,
+        });
+
+        res.json({ success: true, message: 'Project marked completed', data: project });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error completing project' });
+    }
+};
+
 const removeFinanceProject = async (req, res) => {
     try {
         const { _id } = req.body;
@@ -382,5 +475,6 @@ const removeFinanceProject = async (req, res) => {
 
 export {
     listFinanceProjects, getFinanceProject, addFinanceProject, updateFinanceProject,
-    recordAdvanceInvoiced, recordAdvanceReceived, downloadAdvanceReceipt, activateFinanceProject, removeFinanceProject,
+    recordAdvanceInvoiced, recordAdvanceReceived, downloadAdvanceReceipt, activateFinanceProject,
+    getCompletionReadiness, completeFinanceProject, removeFinanceProject,
 };

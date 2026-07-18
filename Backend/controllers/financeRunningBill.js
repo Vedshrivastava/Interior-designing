@@ -1,11 +1,12 @@
 import FinanceRunningBill from '../models/financeRunningBill.js';
-import FinanceMeasurement from '../models/financeMeasurement.js';
+import FinanceWork from '../models/financeWork.js';
 import FinanceWorkTypeRate from '../models/financeWorkTypeRate.js';
 import FinanceProject from '../models/financeProject.js';
 import FinanceReceipt from '../models/financeReceipt.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
+import { computeWorkExpectedPay, splitApprovedAreaByShare } from './financeReports.js';
 import PDFDocument from 'pdfkit';
 import { writeLetterhead, writeSectionHeading, writeFooter, drawInfoBox, drawTable, contentBox, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
 
@@ -13,6 +14,8 @@ import { writeLetterhead, writeSectionHeading, writeFooter, drawInfoBox, drawTab
 // starts — the advance is a credit drawn down against the first bill(s),
 // not a separate billing track (see applyAdvanceCredit below).
 const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance'];
+
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 const listRunningBills = async (req, res) => {
     try {
@@ -28,81 +31,107 @@ const listRunningBills = async (req, res) => {
     }
 };
 
+// How much sqft is available to approve for one work type in a project —
+// Total logged so far minus what's already been approved via an issued
+// bill (computeWorkExpectedPay's unapprovedAreaSqft, the exact same figure
+// shown in the Contractor/Labour Ledger and Deduction Panel), summed
+// across every Work of that type. Reused by both the "what can I approve"
+// menu and the actual generation's own validation, so they can never
+// disagree about the ceiling.
+const computeAvailableByWorkType = async (projectId) => {
+    const works = await FinanceWork.find({ projectId, deleted: { $ne: true } });
+    const worksByType = new Map();
+    for (const w of works) {
+        if (!worksByType.has(w.workType)) worksByType.set(w.workType, []);
+        worksByType.get(w.workType).push(w);
+    }
+    const workTypes = [...worksByType.keys()];
+    const rates = await FinanceWorkTypeRate.find({ projectId, workType: { $in: workTypes }, deleted: { $ne: true } });
+    const rateByType = new Map(rates.map(r => [r.workType, r.clientRatePerSqft]));
+
+    const result = [];
+    for (const [workType, typeWorks] of worksByType) {
+        const expectedPays = await Promise.all(typeWorks.map(w => computeWorkExpectedPay(w)));
+        const availableSqft = round2(expectedPays.reduce((s, wp) => s + wp.unapprovedAreaSqft, 0));
+        if (availableSqft <= 0) continue;
+        result.push({ workType, availableSqft, clientRatePerSqft: rateByType.get(workType) ?? null });
+    }
+    return result;
+};
+
+const getAvailableToApprove = async (req, res) => {
+    try {
+        const { projectId } = req.query;
+        if (!projectId) return res.status(400).json({ success: false, message: 'projectId is required' });
+        const project = await FinanceProject.findById(projectId);
+        if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+        if (!BILLABLE_CONTRACT_TYPES.includes(project.contractType)) {
+            return res.status(400).json({ success: false, message: 'This project\'s contract type does not use Running Bills' });
+        }
+        const data = await computeAvailableByWorkType(projectId);
+        res.json({ success: true, data });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing available work' });
+    }
+};
+
 /*
- * Shared by generate() and preview() so the UI's "preview line items before
- * confirming" step and the actual generation can never compute different
- * numbers. Pulls approved, unbilled measurements in the date range, groups
- * by work, and snapshots the current financeWorkTypeRate per work type.
- * Throws with a plain message on any validation failure — callers turn
- * that into a 400.
+ * Builds a bill's lineItems from the engineer's own typed sqft-per-work-type
+ * figures (`workTypeSqft: { [workType]: approvedSqft }`) — never an
+ * auto-sum of measurements. The engineer reviews everything logged since
+ * the last bill and states what they're actually confirming, which can be
+ * less than what's available (some may be rejected/incomplete) but never
+ * more (validated below). One work type can span several Works (e.g. two
+ * rooms both getting Putty) — schema still needs one lineItem per Work, so
+ * the typed figure is distributed proportionally to each Work's own share
+ * of what's available (splitApprovedAreaByShare, same helper the Ledgers/
+ * Deduction Panel already use for the identical multi-work problem).
  */
-const computeBillLineItems = async (projectId, periodFrom, periodTo) => {
+const computeBillLineItems = async (projectId, workTypeSqft) => {
     const project = await FinanceProject.findById(projectId);
     if (!project) throw new Error('Project not found');
     if (!BILLABLE_CONTRACT_TYPES.includes(project.contractType)) {
         throw new Error('This project\'s contract type does not use Running Bills');
     }
 
-    const measurements = await FinanceMeasurement.find({
-        projectId,
-        deleted: { $ne: true },
-        engineerApproved: true,
-        billedInRunningBillId: null,
-        date: { $gte: new Date(periodFrom), $lte: new Date(periodTo) },
-    }).populate('workId', 'workType');
+    const entries = Object.entries(workTypeSqft || {}).filter(([, sqft]) => Number(sqft) > 0);
+    if (!entries.length) throw new Error('Enter approved sqft for at least one work type');
 
-    if (measurements.length === 0) {
-        throw new Error('No approved, unbilled measurements in this date range');
-    }
-
-    // Group by work
-    const byWork = new Map();
-    for (const m of measurements) {
-        if (!m.workId) continue; // orphaned reference — skip defensively
-        const key = m.workId._id.toString();
-        if (!byWork.has(key)) byWork.set(key, { workId: m.workId._id, workType: m.workId.workType, areaBilledSqft: 0, measurementIds: [] });
-        const entry = byWork.get(key);
-        entry.areaBilledSqft += m.areaCoveredSqft;
-        entry.measurementIds.push(m._id);
-    }
-
-    const workTypes = [...new Set([...byWork.values()].map(e => e.workType))];
+    const workTypes = entries.map(([wt]) => wt);
     const rates = await FinanceWorkTypeRate.find({ projectId, workType: { $in: workTypes }, deleted: { $ne: true } });
-    const rateByWorkType = new Map(rates.map(r => [r.workType, r]));
-
-    const missingRates = workTypes.filter(wt => !rateByWorkType.has(wt));
+    const rateByType = new Map(rates.map(r => [r.workType, r]));
+    const missingRates = workTypes.filter(wt => !rateByType.has(wt));
     if (missingRates.length > 0) {
         throw new Error(`No client rate configured for: ${missingRates.join(', ')} — add a Work Type Rate first`);
     }
 
-    const lineItems = [...byWork.values()].map(entry => {
-        const rate = rateByWorkType.get(entry.workType);
-        return {
-            workId: entry.workId,
-            workType: entry.workType,
-            areaBilledSqft: entry.areaBilledSqft,
-            clientRatePerSqft: rate.clientRatePerSqft,
-            amount: entry.areaBilledSqft * rate.clientRatePerSqft,
-        };
-    });
-
-    const totalAmount = lineItems.reduce((sum, li) => sum + li.amount, 0);
-    const measurementIds = measurements.map(m => m._id);
-
-    return { lineItems, totalAmount, measurementIds, project };
-};
-
-const previewRunningBill = async (req, res) => {
-    try {
-        const { projectId, periodFrom, periodTo } = req.query;
-        if (!projectId || !periodFrom || !periodTo) {
-            return res.status(400).json({ success: false, message: 'projectId, periodFrom, and periodTo are required' });
+    const lineItems = [];
+    for (const [workType, sqftRaw] of entries) {
+        const approvedSqft = Number(sqftRaw);
+        const works = await FinanceWork.find({ projectId, workType, deleted: { $ne: true } });
+        const expectedPays = await Promise.all(works.map(w => computeWorkExpectedPay(w)));
+        const totalAvailable = round2(expectedPays.reduce((s, wp) => s + wp.unapprovedAreaSqft, 0));
+        if (approvedSqft > totalAvailable) {
+            throw new Error(`Cannot approve more than the ${totalAvailable} sqft available for ${workType}`);
         }
-        const { lineItems, totalAmount } = await computeBillLineItems(projectId, periodFrom, periodTo);
-        res.json({ success: true, data: { lineItems, totalAmount } });
-    } catch (err) {
-        res.status(400).json({ success: false, message: err.message });
+        const rate = rateByType.get(workType);
+        works.forEach((w, i) => {
+            const workAvailable = expectedPays[i].unapprovedAreaSqft;
+            if (workAvailable <= 0) return;
+            const workSqft = splitApprovedAreaByShare(approvedSqft, workAvailable, totalAvailable);
+            if (workSqft <= 0) return;
+            lineItems.push({
+                workId: w._id, workType,
+                areaBilledSqft: workSqft, clientRatePerSqft: rate.clientRatePerSqft,
+                amount: round2(workSqft * rate.clientRatePerSqft),
+            });
+        });
     }
+    if (!lineItems.length) throw new Error('Nothing to bill — the entered sqft split to zero across this work type\'s works');
+
+    const totalAmount = round2(lineItems.reduce((sum, li) => sum + li.amount, 0));
+    return { lineItems, totalAmount, project };
 };
 
 // Applies as much of an Advance-contract project's still-undrawn advance
@@ -148,12 +177,10 @@ const applyAdvanceCredit = async (projectId, bill) => {
 // GST off the statement even though a business-wide default is configured.
 const generateRunningBill = async (req, res) => {
     try {
-        const { projectId, periodFrom, periodTo, billDate, gstRate } = req.body;
-        if (!projectId || !periodFrom || !periodTo) {
-            return res.status(400).json({ success: false, message: 'projectId, periodFrom, and periodTo are required' });
-        }
+        const { projectId, periodFrom, periodTo, billDate, gstRate, workTypeSqft } = req.body;
+        if (!projectId) return res.status(400).json({ success: false, message: 'projectId is required' });
 
-        const { lineItems, totalAmount, measurementIds, project } = await computeBillLineItems(projectId, periodFrom, periodTo);
+        const { lineItems, totalAmount, project } = await computeBillLineItems(projectId, workTypeSqft);
 
         const billCount = await FinanceRunningBill.countDocuments({ projectId });
         const billNumber = String(billCount + 1);
@@ -167,11 +194,15 @@ const generateRunningBill = async (req, res) => {
             }
         }
         const hasGst = effectiveGstRate !== null;
+        const resolvedBillDate = billDate || new Date();
 
         const bill = new FinanceRunningBill({
             projectId, billNumber,
-            billDate: billDate || new Date(),
-            periodFrom, periodTo,
+            billDate: resolvedBillDate,
+            // Descriptive only now (shown on the statement PDF) — nothing
+            // queries by these anymore, so a sensible fallback beats a
+            // hard requirement.
+            periodFrom: periodFrom || resolvedBillDate, periodTo: periodTo || resolvedBillDate,
             lineItems, totalAmount,
             gstRate: hasGst ? effectiveGstRate : null,
             gstAmount: hasGst ? totalAmount * (effectiveGstRate / 100) : null,
@@ -182,11 +213,6 @@ const generateRunningBill = async (req, res) => {
         if (project.contractType === 'advance') {
             await applyAdvanceCredit(projectId, bill);
         }
-
-        await FinanceMeasurement.updateMany(
-            { _id: { $in: measurementIds } },
-            { billedInRunningBillId: bill._id }
-        );
 
         broadcast({ type: 'financeRunningBillsChanged', projectId });
 
@@ -251,11 +277,11 @@ const updateRunningBillStatus = async (req, res) => {
 };
 
 // Unlike removeMeasurement/removeWork (which leave their downstream effects
-// as historical artifacts on delete), removing a bill DOES reverse its one
-// effect: it clears billedInRunningBillId on every measurement it consumed.
-// Without that, those measurements would be permanently stuck "billed" to a
-// deleted bill and could never be billed again — a real dead end, not just
-// a stale record.
+// A clean soft-delete now, nothing else to reverse — availability is
+// derived fresh every time from issued bills' lineItems
+// (computeWorkExpectedPay/getApprovedBillingByWorkId), not tracked on
+// individual measurements, so deleting a bill automatically makes its sqft
+// available to approve again without touching financeMeasurement at all.
 const removeRunningBill = async (req, res) => {
     try {
         const { _id } = req.body;
@@ -264,10 +290,9 @@ const removeRunningBill = async (req, res) => {
 
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
-        await FinanceMeasurement.updateMany({ billedInRunningBillId: item._id }, { billedInRunningBillId: null });
 
         broadcast({ type: 'financeRunningBillsChanged', projectId: item.projectId });
-        res.json({ success: true, message: `Bill #${item.billNumber} moved to recovery bin — its measurements are billable again` });
+        res.json({ success: true, message: `Bill #${item.billNumber} moved to recovery bin — its sqft is available to approve again` });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error removing bill' });
@@ -460,6 +485,6 @@ const downloadBillStatement = async (req, res) => {
 };
 
 export {
-    listRunningBills, previewRunningBill, generateRunningBill, updateRunningBillGst, updateRunningBillStatus, removeRunningBill,
+    listRunningBills, getAvailableToApprove, generateRunningBill, updateRunningBillGst, updateRunningBillStatus, removeRunningBill,
     getBillStatement, downloadBillStatement,
 };

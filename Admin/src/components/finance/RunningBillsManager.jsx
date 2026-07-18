@@ -10,11 +10,13 @@ import '../../styles/add.css';
 const STATUS_LABEL = { draft: 'Draft', issued: 'Issued' };
 
 /*
- * Running Bills for one project — list + a "Generate Bill" flow that
- * previews line items (GET /running-bills/preview) before the user
- * confirms (POST /running-bills/generate). Both endpoints share the exact
- * same server-side computation, so the preview can't lie about what
- * generation will actually produce.
+ * Running Bills for one project — list + a "Generate Bill" flow. GET
+ * /running-bills/available returns, per work type, how much logged sqft
+ * hasn't been approved yet (Total minus what's already in an issued bill);
+ * the engineer edits those figures down to what they're actually
+ * confirming (never up — that's the real ceiling) before generating. The
+ * ₹ amount is always computed server-side from the configured Work Type
+ * Rate, never trusted from the client.
  *
  * `statusFilter` (optional): 'draft' | 'issued' — used by the Receivables
  * page's Pending Bills / Approved Bills tabs to show the same list, filtered.
@@ -30,8 +32,9 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     const [periodTo, setPeriodTo] = useState('');
     const [billDate, setBillDate] = useState('');
     const [gstRate, setGstRate] = useState('');
-    const [preview, setPreview] = useState(null);
-    const [previewing, setPreviewing] = useState(false);
+    const [available, setAvailable] = useState(null);
+    const [loadingAvailable, setLoadingAvailable] = useState(false);
+    const [workTypeSqft, setWorkTypeSqft] = useState({});
     const [generating, setGenerating] = useState(false);
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
@@ -51,7 +54,8 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     useEffect(() => { if (projectId) fetchBills(); }, [projectId, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const openGenerate = () => {
-        setPeriodFrom(''); setPeriodTo(''); setBillDate(new Date().toISOString().slice(0, 10)); setGstRate(''); setPreview(null);
+        setPeriodFrom(''); setPeriodTo(''); setBillDate(new Date().toISOString().slice(0, 10)); setGstRate('');
+        setAvailable(null); setWorkTypeSqft({});
         setModalOpen(true);
         // Prefill (not lock) gstRate from Settings > GST.
         axios.get(`${url}/api/finance/settings/company`, authHeader).then(res => {
@@ -60,9 +64,9 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
         }).catch(() => {});
         // Prefill "From" with the day after the last bill's period end
         // (any status, ignoring statusFilter — this needs the true latest
-        // bill), so periods can't accidentally overlap and double-count a
-        // boundary-day measurement. Falls back to the project's start date
-        // for a project's very first bill.
+        // bill) — purely descriptive on the statement now, nothing queries
+        // by it, but still a nice touch. Falls back to the project's start
+        // date for a project's very first bill.
         axios.get(`${url}/api/finance/running-bills/list`, { ...authHeader, params: { projectId } }).then(res => {
             if (!res.data.success) return;
             const latest = [...res.data.data].sort((a, b) => new Date(b.periodTo) - new Date(a.periodTo))[0];
@@ -78,26 +82,35 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                 }).catch(() => {});
             }
         }).catch(() => {});
+        // What's available to approve, per work type — the engineer edits
+        // these sqft values down from the logged ceiling before generating;
+        // never auto-summed/locked in from measurement checkboxes.
+        setLoadingAvailable(true);
+        axios.get(`${url}/api/finance/running-bills/available`, { ...authHeader, params: { projectId } }).then(res => {
+            if (res.data.success) {
+                setAvailable(res.data.data);
+                setWorkTypeSqft(Object.fromEntries(res.data.data.map(a => [a.workType, String(a.availableSqft)])));
+            } else toast.error(res.data.message);
+        }).catch(err => toast.error(err.response?.data?.message || 'Error fetching available work'))
+          .finally(() => setLoadingAvailable(false));
     };
     const closeModal = () => setModalOpen(false);
 
-    const runPreview = async () => {
-        if (!periodFrom || !periodTo) return toast.error('Select a date range');
-        setPreviewing(true);
-        setPreview(null);
-        try {
-            const res = await axios.get(`${url}/api/finance/running-bills/preview`, { ...authHeader, params: { projectId, periodFrom, periodTo } });
-            if (res.data.success) setPreview(res.data.data);
-            else toast.error(res.data.message);
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Error building preview');
-        } finally { setPreviewing(false); }
-    };
+    const setSqftFor = (workType, value) => setWorkTypeSqft(prev => ({ ...prev, [workType]: value }));
+
+    const totalPreviewAmount = (available || []).reduce((sum, a) => {
+        const sqft = Number(workTypeSqft[a.workType]) || 0;
+        return sum + sqft * (a.clientRatePerSqft || 0);
+    }, 0);
 
     const confirmGenerate = async () => {
+        const payloadSqft = Object.fromEntries(
+            Object.entries(workTypeSqft).filter(([, v]) => Number(v) > 0).map(([wt, v]) => [wt, Number(v)])
+        );
+        if (!Object.keys(payloadSqft).length) return toast.error('Enter approved sqft for at least one work type');
         setGenerating(true);
         try {
-            const res = await axios.post(`${url}/api/finance/running-bills/generate`, { projectId, periodFrom, periodTo, billDate, gstRate }, authHeader);
+            const res = await axios.post(`${url}/api/finance/running-bills/generate`, { projectId, periodFrom, periodTo, billDate, gstRate, workTypeSqft: payloadSqft }, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message);
                 closeModal();
@@ -160,7 +173,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                 <div>
                     <h3 style={{ margin: '0 0 4px' }}>Running Bills</h3>
-                    <p className="admin-subtitle" style={{ margin: 0 }}>Generated from approved, unbilled measurements — draft until issued; only issued bills count as revenue.</p>
+                    <p className="admin-subtitle" style={{ margin: 0 }}>Sqft is manually confirmed per work type at generation — draft until issued; only issued bills count as revenue or approved work.</p>
                 </div>
                 <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={openGenerate}>+ Generate Bill</button>
             </div>
@@ -202,16 +215,19 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
 
             {modalOpen && ReactDOM.createPortal(
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal" style={{ maxWidth: '620px' }}>
+                    <div className="loader-modal-box edit-modal" style={{ maxWidth: '660px' }}>
                         <h2>Generate Running Bill</h2>
+                        <p className="admin-subtitle" style={{ margin: '4px 0 16px' }}>
+                            Sqft below is pre-filled with everything logged and not yet approved — edit it down to what you're actually confirming for each work type. The ₹ amount is always derived from the configured rate.
+                        </p>
                         <div className="wizard-field-grid">
                             <div className="add-product-name flex-col">
-                                <p>Period From *</p>
-                                <StyledDatePicker value={periodFrom} onChange={v => { setPeriodFrom(v); setPreview(null); }} />
+                                <p>Period From</p>
+                                <StyledDatePicker value={periodFrom} onChange={setPeriodFrom} />
                             </div>
                             <div className="add-product-name flex-col">
-                                <p>Period To *</p>
-                                <StyledDatePicker value={periodTo} onChange={v => { setPeriodTo(v); setPreview(null); }} align="right" />
+                                <p>Period To</p>
+                                <StyledDatePicker value={periodTo} onChange={setPeriodTo} align="right" />
                             </div>
                             <div className="add-product-name flex-col">
                                 <p>Bill Date</p>
@@ -223,29 +239,38 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                             </div>
                         </div>
 
-                        <div style={{ margin: '16px 0' }}>
-                            <button type="button" className="add-point-btn" disabled={previewing} onClick={runPreview}>
-                                {previewing ? 'Building preview…' : 'Preview Line Items'}
-                            </button>
-                        </div>
-
-                        {preview && (
-                            <div className="list-table" style={{ marginBottom: '16px' }}>
-                                <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
-                                    <b>Work Type</b><b>Area</b><b>Rate</b><b>Amount</b>
+                        {loadingAvailable ? (
+                            <div className="admin-empty-state" style={{ margin: '16px 0' }}><p>Loading available work…</p></div>
+                        ) : !available || available.length === 0 ? (
+                            <div className="admin-empty-state" style={{ margin: '16px 0' }}><p>Nothing logged and unapproved for this project right now.</p></div>
+                        ) : (
+                            <div className="list-table" style={{ margin: '16px 0' }}>
+                                <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1fr' }}>
+                                    <b>Work Type</b><b>Approved Sqft</b><b>Rate</b><b>Amount</b>
                                 </div>
-                                {preview.lineItems.map((li, i) => (
-                                    <div key={i} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
-                                        <p>{li.workType}</p>
-                                        <p>{li.areaBilledSqft} sqft</p>
-                                        <p>₹{li.clientRatePerSqft}/sqft</p>
-                                        <p>₹{li.amount.toLocaleString('en-IN')}</p>
-                                    </div>
-                                ))}
+                                {available.map(a => {
+                                    const sqft = Number(workTypeSqft[a.workType]) || 0;
+                                    const amount = sqft * (a.clientRatePerSqft || 0);
+                                    return (
+                                        <div key={a.workType} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1fr' }}>
+                                            <p>{a.workType} <span style={{ fontSize: '0.75rem', color: 'var(--text-lt)' }}>(of {a.availableSqft} available)</span></p>
+                                            <p>
+                                                <input
+                                                    type="number" min={0} max={a.availableSqft}
+                                                    value={workTypeSqft[a.workType] ?? ''}
+                                                    onChange={e => setSqftFor(a.workType, e.target.value)}
+                                                    style={{ width: '90px' }}
+                                                />
+                                            </p>
+                                            <p>{a.clientRatePerSqft != null ? `₹${a.clientRatePerSqft}/sqft` : <span title="No Work Type Rate configured">— (no rate)</span>}</p>
+                                            <p>₹{amount.toLocaleString('en-IN')}</p>
+                                        </div>
+                                    );
+                                })}
                                 <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr', fontWeight: 600 }}>
                                     <p>
-                                        Total: ₹{preview.totalAmount.toLocaleString('en-IN')}
-                                        {gstRate && ` + GST (${gstRate}%): ₹${(preview.totalAmount * (Number(gstRate) / 100)).toLocaleString('en-IN')}`}
+                                        Total: ₹{totalPreviewAmount.toLocaleString('en-IN')}
+                                        {gstRate && ` + GST (${gstRate}%): ₹${(totalPreviewAmount * (Number(gstRate) / 100)).toLocaleString('en-IN')}`}
                                     </p>
                                 </div>
                             </div>
@@ -253,7 +278,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
 
                         <div className="edit-modal-actions">
                             <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
-                            <button type="button" className="add-btn" disabled={!preview || generating} onClick={confirmGenerate}>
+                            <button type="button" className="add-btn" disabled={!available || available.length === 0 || generating} onClick={confirmGenerate}>
                                 {generating ? 'Generating…' : 'Confirm & Generate'}
                             </button>
                         </div>

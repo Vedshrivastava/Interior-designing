@@ -1871,6 +1871,27 @@ const computeDashboardApprovedBreakdown = async () => {
     };
 };
 
+// "Ready to Bill" — projects with at least one Work whose logged area
+// (completedAreaSqft, already stored — no query needed) exceeds what's
+// already been approved via an issued bill (getApprovedBillingByWorkId).
+// A lighter-weight sibling of computeWorkExpectedPay: skips the
+// deduction/expected-pay machinery entirely since this KPI only needs the
+// Total-vs-Approved gap, not the full picture.
+const computeReadyProjectIds = async (billableProjectIds) => {
+    const works = await FinanceWork.find(
+        { projectId: { $in: billableProjectIds }, deleted: { $ne: true }, completedAreaSqft: { $gt: 0 } },
+        'projectId completedAreaSqft'
+    );
+    if (!works.length) return [];
+    const approvedByWorkId = await getApprovedBillingByWorkId(works.map(w => w._id));
+    const readyProjectIds = new Set();
+    for (const w of works) {
+        const approved = approvedByWorkId.get(w._id.toString())?.areaSqft || 0;
+        if (w.completedAreaSqft - approved > 0.001) readyProjectIds.add(w.projectId.toString());
+    }
+    return [...readyProjectIds];
+};
+
 // Tier-0 Company Dashboard KPIs — every number here is meant to be a
 // doorway into a Tier-1/Tier-2 page, not a granular breakdown of its own.
 const getDashboardSummary = async (req, res) => {
@@ -1903,7 +1924,7 @@ const getDashboardSummary = async (req, res) => {
             ]),
             computeContractorAnalysisRows(),
             computeVendorAnalysisRows(),
-            FinanceMeasurement.distinct('projectId', { engineerApproved: true, billedInRunningBillId: null, deleted: { $ne: true } }),
+            computeReadyProjectIds(billableProjectIds),
             FinanceProject.countDocuments({ status: 'active', deleted: { $ne: true } }),
             FinanceWork.countDocuments({ status: 'active', deleted: { $ne: true } }),
             FinanceLabourMeasurement.distinct('labourerId', { date: { $gte: todayStart, $lte: todayEnd }, deleted: { $ne: true } }),
@@ -2319,5 +2340,5 @@ export {
     // and those (same cross-controller import pattern already used
     // elsewhere in this codebase, e.g. financeMeasurement.js importing
     // computeCurrentStock from financeStockMovement.js).
-    getApprovedBillingByWorkId, splitApprovedAreaByShare,
+    getApprovedBillingByWorkId, splitApprovedAreaByShare, computeWorkExpectedPay,
 };

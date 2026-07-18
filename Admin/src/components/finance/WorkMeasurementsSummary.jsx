@@ -79,14 +79,6 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
         : works;
     const workTypeOptions = [...new Set(worksInScope.map(w => w.workType))];
 
-    const toggleApprove = async (m) => {
-        try {
-            const res = await axios.post(`${url}/api/finance/measurements/update`, { _id: m._id, engineerApproved: !m.engineerApproved }, authHeader);
-            if (res.data.success) { toast.success('Updated'); await fetchAll(); }
-            else toast.error(res.data.message);
-        } catch { toast.error('Error updating measurement'); }
-    };
-
     const removeContractorMeasurement = async (m) => {
         try {
             const res = await axios.delete(`${url}/api/finance/measurements/remove`, { ...authHeader, data: { _id: m._id } });
@@ -150,7 +142,12 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
     }
 
     const totalRows = [...groups.values()].reduce((sum, g) => sum + g.rows.length, 0);
-    const columns = crossProject ? '1.3fr 1.6fr 1fr 1fr 1.3fr 150px' : '1.8fr 1fr 1fr 1.4fr 150px';
+    // No "Approved" column — that was never the real approval (see
+    // RunningBillsManager.jsx's Generate Bill flow, which is where sqft
+    // actually gets confirmed now, per work type not per daily entry).
+    // These rows stay a pure log of what was done — proof and data, not a
+    // pending/approved status.
+    const columns = crossProject ? '1.3fr 1.6fr 1fr 1.3fr 150px' : '1.8fr 1fr 1.4fr 150px';
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
 
@@ -215,7 +212,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
                                 </div>
                                 <div className="list-table-format title" style={{ gridTemplateColumns: columns }}>
                                     {crossProject && <b>Work</b>}
-                                    <b>Logged By</b><b>Area Covered</b><b>Approved</b><b>Remarks</b><b>Action</b>
+                                    <b>Logged By</b><b>Area Covered</b><b>Remarks</b><b>Action</b>
                                 </div>
                                 {g.rows.map(({ kind, data: m }) => (
                                     <div key={m._id} className="list-table-format row-item rate-row" style={{ gridTemplateColumns: columns }}>
@@ -237,13 +234,6 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
                                             </div>
                                         )}
                                         <p>{m.areaCoveredSqft} sqft</p>
-                                        {kind === 'contractor' ? (
-                                            <p onClick={() => toggleApprove(m)} className="cursor" style={{ color: m.engineerApproved ? 'var(--moss)' : 'var(--text-lt)' }}>
-                                                {m.engineerApproved ? '✓ Approved' : 'Pending'}
-                                            </p>
-                                        ) : (
-                                            <p style={{ color: 'var(--text-lt)' }}>—</p>
-                                        )}
                                         <p>{m.remarks || '—'}</p>
                                         <div className="action-buttons">
                                             <p

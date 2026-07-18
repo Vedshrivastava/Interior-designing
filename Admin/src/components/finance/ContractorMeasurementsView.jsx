@@ -26,15 +26,17 @@ const ContractorMeasurementsView = ({ url, vendorId }) => {
 
     return (
         <div className="list-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr' }}>
-                <b>Date</b><b>Work</b><b>Area Covered</b><b>Approved</b>
+            {/* No "Approved" column — that's decided per work type at bill
+                generation now (RunningBillsManager.jsx), not per daily
+                entry. This stays a pure log of what was done. */}
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1fr' }}>
+                <b>Date</b><b>Work</b><b>Area Covered</b>
             </div>
             {measurements.map(m => (
-                <div key={m._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr' }}>
+                <div key={m._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1fr' }}>
                     <p>{new Date(m.date).toLocaleDateString()}</p>
                     <p>{m.workId?.workType || '—'}</p>
                     <p>{m.areaCoveredSqft} sqft</p>
-                    <p style={{ color: m.engineerApproved ? 'var(--moss)' : 'var(--text-lt)' }}>{m.engineerApproved ? '✓ Approved' : 'Pending'}</p>
                 </div>
             ))}
         </div>

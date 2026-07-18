@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -10,7 +10,7 @@ const MOVEMENT_LABEL = { dump: 'Dump', return: 'Return', waste: 'Waste' };
 const MANUAL_TYPES = ['dump', 'return', 'waste'];
 const MOVEMENT_TYPE_OPTIONS = MANUAL_TYPES.map(t => ({ value: t, label: MOVEMENT_LABEL[t] }));
 
-const emptyForm = { materialId: '', movementType: 'dump', quantity: '', date: '', notes: '' };
+const emptyForm = { materialId: '', movementType: 'dump', quantity: '', date: '', notes: '', workId: '' };
 
 /*
  * Record a Dump/Return/Waste stock movement without leaving the Materials
@@ -23,9 +23,28 @@ const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [form, setForm] = useState(emptyForm);
+    const [works, setWorks] = useState([]);
     const [saving, setSaving] = useState(false);
 
-    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+    // Only waste is attributable to one specific Work (dump/return stay
+    // project-level, per the model) — this is what makes the material
+    // picker filterable by work type below.
+    useEffect(() => {
+        axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } })
+            .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => {});
+    }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const setField = (key, value) => setForm(prev => {
+        const next = { ...prev, [key]: value };
+        if (key === 'movementType' && value !== 'waste') { next.workId = ''; next.materialId = ''; }
+        if (key === 'workId') next.materialId = '';
+        return next;
+    });
+
+    const selectedWorkType = works.find(w => w._id === form.workId)?.workType;
+    const materialFilter = form.movementType === 'waste' && form.workId
+        ? (m => !m.workTypes?.length || m.workTypes.includes(selectedWorkType))
+        : undefined;
 
     const submit = async (e) => {
         e.preventDefault();
@@ -52,13 +71,23 @@ const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
                 <h2>Add Movement</h2>
                 <form onSubmit={submit}>
                     <div className="wizard-field-grid">
-                        <div className="add-product-name flex-col wizard-field-full">
-                            <p>Material *</p>
-                            <QuickAddPicker url={url} resourceKey="materials" value={form.materialId} onChange={v => setField('materialId', v)} />
-                        </div>
                         <div className="add-product-name flex-col">
                             <p>Movement Type *</p>
                             <StyledSelect value={form.movementType} onChange={v => setField('movementType', v)} options={MOVEMENT_TYPE_OPTIONS} />
+                        </div>
+                        {form.movementType === 'waste' && (
+                            <div className="add-product-name flex-col">
+                                <p>Work (optional)</p>
+                                <StyledSelect
+                                    value={form.workId} onChange={v => setField('workId', v)}
+                                    placeholder="Not tied to one Work…"
+                                    options={works.map(w => ({ value: w._id, label: `${w.workType}${w.workOrderNumber ? ` (${w.workOrderNumber})` : ''}` }))}
+                                />
+                            </div>
+                        )}
+                        <div className="add-product-name flex-col wizard-field-full">
+                            <p>Material *</p>
+                            <QuickAddPicker url={url} resourceKey="materials" value={form.materialId} onChange={v => setField('materialId', v)} filter={materialFilter} />
                         </div>
                         <div className="add-product-name flex-col">
                             <p>Quantity *</p>

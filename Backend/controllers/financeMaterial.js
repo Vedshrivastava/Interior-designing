@@ -13,11 +13,14 @@ const listFinanceMaterials = async (req, res) => {
 
 const addFinanceMaterial = async (req, res) => {
     try {
-        const { name, unit, minimumStockLevel, notes } = req.body;
+        const { name, unit, minimumStockLevel, notes, workTypes } = req.body;
         if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
         const existing = await FinanceMaterial.findOne({ name: name.trim() });
         if (existing) return res.status(400).json({ success: false, message: 'Material already exists' });
-        const item = new FinanceMaterial({ name: name.trim(), unit, minimumStockLevel, notes });
+        const item = new FinanceMaterial({
+            name: name.trim(), unit, minimumStockLevel, notes,
+            workTypes: (workTypes || []).map(w => w.trim()).filter(Boolean),
+        });
         await item.save();
         broadcast({ type: 'financeMaterialsChanged' });
         res.json({ success: true, message: 'Material added', data: item });
@@ -29,11 +32,14 @@ const addFinanceMaterial = async (req, res) => {
 
 const updateFinanceMaterial = async (req, res) => {
     try {
-        const { _id, name, unit, minimumStockLevel, notes } = req.body;
+        const { _id, name, unit, minimumStockLevel, notes, workTypes } = req.body;
         const existing = await FinanceMaterial.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Material not found' });
         if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
-        await FinanceMaterial.findByIdAndUpdate(_id, { name: name.trim(), unit, minimumStockLevel, notes });
+        await FinanceMaterial.findByIdAndUpdate(_id, {
+            name: name.trim(), unit, minimumStockLevel, notes,
+            workTypes: (workTypes || []).map(w => w.trim()).filter(Boolean),
+        });
         broadcast({ type: 'financeMaterialsChanged' });
         res.json({ success: true, message: 'Material updated' });
     } catch (err) {

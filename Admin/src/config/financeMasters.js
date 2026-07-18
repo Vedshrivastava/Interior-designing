@@ -74,12 +74,14 @@ export const FINANCE_MASTERS = {
             { key: 'name', label: 'Name', type: 'text', required: true },
             { key: 'unit', label: 'Unit', type: 'settingSelect', settingType: 'unit', placeholder: 'bag, sqft, kg, piece…' },
             { key: 'minimumStockLevel', label: 'Minimum Stock Level', type: 'number' },
+            { key: 'workTypes', label: 'Applicable Work Types (leave empty for all)', type: 'workTypeMultiSelect', settingType: 'work_type' },
             { key: 'notes', label: 'Notes', type: 'textarea' },
         ],
         columns: [
             { key: 'name', label: 'Name' },
             { key: 'unit', label: 'Unit' },
             { key: 'minimumStockLevel', label: 'Min. Stock' },
+            { key: 'workTypes', label: 'Work Types', joinArray: true, emptyLabel: 'All' },
         ],
     },
     // A plain, company-wide name — not owned by any supervisor. Which

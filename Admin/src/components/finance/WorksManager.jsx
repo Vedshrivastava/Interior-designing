@@ -7,6 +7,7 @@ import ContractorOrLabourPicker from './ContractorOrLabourPicker';
 import LabourMultiSelect from './LabourMultiSelect';
 import QuickAddPicker from './QuickAddPicker';
 import StyledSelect from './StyledSelect';
+import { useSupervisorConflictCheck } from './useSupervisorConflictCheck';
 import '../../styles/list.css';
 import '../../styles/add.css';
 import '../../styles/wizard.css';
@@ -66,6 +67,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
     const [teamNotes, setTeamNotes] = useState('');
     const [labourLoading, setLabourLoading] = useState(false);
     const [labourSaving, setLabourSaving] = useState(false);
+    const { checkSupervisor, modal: supervisorConflictModal } = useSupervisorConflictCheck(url);
 
     // `silent` skips the loading flag — used when this refetch is driven by
     // a WebSocket event (this project's data changed elsewhere, e.g. the
@@ -353,7 +355,11 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                                     <p>Labour Team{selectedLabourerIds.length > 0 ? ' *' : ''}</p>
                                     <p className="admin-subtitle" style={{ margin: '0 0 8px' }}>Pick a supervisor and the labourers they're bringing to this work — optional, only if you're assigning labour now.</p>
                                     <div style={{ marginBottom: '8px' }}>
-                                        <QuickAddPicker url={url} resourceKey="employees" value={labourSupervisorId} onChange={setLabourSupervisorId} placeholder="Select supervisor for this team…" />
+                                        <QuickAddPicker
+                                            url={url} resourceKey="employees" value={labourSupervisorId}
+                                            onChange={id => checkSupervisor(id, null, () => setLabourSupervisorId(id))}
+                                            placeholder="Select supervisor for this team…"
+                                        />
                                     </div>
                                     <LabourMultiSelect url={url} selectedIds={selectedLabourerIds} onChange={setSelectedLabourerIds} />
                                     <p className="admin-subtitle" style={{ marginTop: '6px' }}>At least one contractor or labourer is required.</p>
@@ -476,7 +482,11 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                             <p>Add a Team</p>
                             <p className="admin-subtitle" style={{ margin: '0 0 8px' }}>One supervisor + the labourers they're bringing — add again with a different supervisor to put a second team on this work.</p>
                             <div style={{ marginBottom: '8px' }}>
-                                <QuickAddPicker url={url} resourceKey="employees" value={teamSupervisorId} onChange={setTeamSupervisorId} placeholder="Select supervisor…" />
+                                <QuickAddPicker
+                                    url={url} resourceKey="employees" value={teamSupervisorId}
+                                    onChange={id => checkSupervisor(id, labourModalWork?._id, () => setTeamSupervisorId(id))}
+                                    placeholder="Select supervisor…"
+                                />
                             </div>
                             <LabourMultiSelect
                                 url={url} selectedIds={teamLabourerIds} onChange={setTeamLabourerIds}
@@ -512,6 +522,8 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                 </div>,
                 document.body
             )}
+
+            {supervisorConflictModal}
         </div>
     );
 };

@@ -6,7 +6,7 @@ import QuickAddPicker from './QuickAddPicker';
    for a FINANCE_MASTERS config only exists in one place. */
 export const emptyFormFromFields = (fields) =>
     fields.reduce((acc, f) => {
-        acc[f.key] = f.type === 'stringArray' ? [] : (f.default ?? '');
+        acc[f.key] = (f.type === 'stringArray' || f.type === 'workTypeMultiSelect') ? [] : (f.default ?? '');
         return acc;
     }, {});
 
@@ -48,6 +48,40 @@ export const renderMasterField = (f, form, setField, { url, settingOptions = {} 
                     {f.note && <p style={{ fontSize: '0.78rem', color: 'var(--text-lt)', marginTop: '4px' }}>{f.note}</p>}
                 </>
             );
+        case 'workTypeMultiSelect': {
+            const options = settingOptions[f.settingType] || [];
+            const selected = value || [];
+            const toggle = (name) => setField(f.key, selected.includes(name) ? selected.filter(n => n !== name) : [...selected, name]);
+            return (
+                <div className="labour-select-box">
+                    <div className="labour-select-list">
+                        {options.length === 0 ? (
+                            <p className="labour-select-empty">No work types set up yet — add one from Masters → Work Types.</p>
+                        ) : options.map(o => {
+                            const active = selected.includes(o.name);
+                            return (
+                                <button
+                                    type="button" key={o._id}
+                                    className={`labour-chip${active ? ' active' : ''}`}
+                                    onClick={() => toggle(o.name)}
+                                    aria-pressed={active}
+                                >
+                                    <span className="labour-chip-mark">
+                                        <svg viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M1 5L4.5 8.5L11 1.5" stroke="var(--gold-lt)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </span>
+                                    {o.name}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <div className="labour-select-footer">
+                        <span className="labour-select-count">{selected.length === 0 ? 'All work types' : `${selected.length} selected`}</span>
+                    </div>
+                </div>
+            );
+        }
         case 'stringArray':
             return (
                 <div className="add-product-points">

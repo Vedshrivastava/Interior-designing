@@ -4,11 +4,12 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
+import { useSupervisorConflictCheck } from './useSupervisorConflictCheck';
 
 const emptyState = {
     measurementType: 'contractor',
     projectId: '', workId: '', contractorVendorId: '', labourerId: '',
-    date: '', supervisorName: '', areaCoveredSqft: '', remarks: '',
+    date: '', supervisorId: '', areaCoveredSqft: '', remarks: '',
 };
 
 /*
@@ -30,10 +31,12 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
     const [works, setWorks] = useState([]);
     const [workContractors, setWorkContractors] = useState([]);
     const [workLabourers, setWorkLabourers] = useState([]);
+    const [employees, setEmployees] = useState([]);
     const [materialTrackingEnabled, setMaterialTrackingEnabled] = useState(false);
     const [materials, setMaterials] = useState([]);
     const [materialLines, setMaterialLines] = useState([]);
     const [saving, setSaving] = useState(false);
+    const { checkSupervisor, modal: supervisorConflictModal } = useSupervisorConflictCheck(url);
 
     useEffect(() => {
         if (fixedProjectId) return;
@@ -44,6 +47,8 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
     useEffect(() => {
         axios.get(`${url}/api/finance/materials/list`, authHeader)
             .then(res => { if (res.data.success) setMaterials(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/employees/list`, authHeader)
+            .then(res => { if (res.data.success) setEmployees(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
@@ -62,13 +67,35 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
             .then(res => { if (res.data.success) setWorkLabourers(res.data.data); }).catch(() => setWorkLabourers([]));
     }, [url, form.workId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // A labourer picked here is always already on this Work's roster (the
+    // dropdown itself is built from work-labour-assignments), so their
+    // supervisor is always known — pre-fill it rather than leaving the
+    // field blank. Still editable below (a substitute could've run the
+    // crew that day), routed through the conflict check when it's changed
+    // away from this default.
+    useEffect(() => {
+        if (!form.labourerId) return;
+        const assignment = workLabourers.find(a => (a.labourerId?._id || a.labourerId) === form.labourerId);
+        const supervisorId = assignment?.supervisorId?._id || assignment?.supervisorId || '';
+        setForm(prev => (prev.labourerId === form.labourerId ? { ...prev, supervisorId } : prev));
+    }, [form.labourerId, workLabourers]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // A material valid for one Work's type may not be for another — clear
+    // any picked lines rather than leave a stale, no-longer-listed selection.
+    useEffect(() => { setMaterialLines([]); }, [form.workId]);
+
     const setField = (key, value) => setForm(prev => {
         const next = { ...prev, [key]: value };
-        if (key === 'projectId') { next.workId = ''; next.contractorVendorId = ''; next.labourerId = ''; }
-        if (key === 'workId') { next.contractorVendorId = ''; next.labourerId = ''; }
-        if (key === 'measurementType') { next.contractorVendorId = ''; next.labourerId = ''; }
+        if (key === 'projectId') { next.workId = ''; next.contractorVendorId = ''; next.labourerId = ''; next.supervisorId = ''; }
+        if (key === 'workId') { next.contractorVendorId = ''; next.labourerId = ''; next.supervisorId = ''; }
+        if (key === 'measurementType') { next.contractorVendorId = ''; next.labourerId = ''; next.supervisorId = ''; }
         return next;
     });
+
+    const employeeOptions = employees.map(e => ({ value: e._id, label: e.name }));
+    const pickSupervisor = (candidateId) => {
+        checkSupervisor(candidateId, form.workId, () => setField('supervisorId', candidateId));
+    };
 
     const addMaterialLine = () => setMaterialLines(prev => [...prev, { materialId: '', quantity: '' }]);
     const setMaterialLine = (idx, key, value) => setMaterialLines(prev => prev.map((l, i) => i === idx ? { ...l, [key]: value } : l));
@@ -84,12 +111,12 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
 
     const submitContractor = () => axios.post(`${url}/api/finance/measurements/add`, {
         projectId: form.projectId, workId: form.workId, contractorVendorId: form.contractorVendorId,
-        date: form.date, supervisorName: form.supervisorName, areaCoveredSqft: form.areaCoveredSqft,
+        date: form.date, areaCoveredSqft: form.areaCoveredSqft,
         remarks: form.remarks, materialUsed: materialLines.filter(l => l.materialId && Number(l.quantity) > 0),
     }, authHeader);
 
     const submitLabour = () => axios.post(`${url}/api/finance/labour-measurements/add`, {
-        projectId: form.projectId, workId: form.workId, labourerId: form.labourerId,
+        projectId: form.projectId, workId: form.workId, labourerId: form.labourerId, supervisorId: form.supervisorId || undefined,
         date: form.date, areaCoveredSqft: form.areaCoveredSqft, remarks: form.remarks,
     }, authHeader);
 
@@ -117,8 +144,10 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
     };
 
     const isContractor = form.measurementType === 'contractor';
+    const selectedWorkType = works.find(w => w._id === form.workId)?.workType;
+    const materialsForWork = materials.filter(m => !m.workTypes?.length || m.workTypes.includes(selectedWorkType));
 
-    return ReactDOM.createPortal(
+    return <>{ReactDOM.createPortal(
         <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
             <div className="loader-modal-box edit-modal">
                 <h2>Add Measurement</h2>
@@ -183,10 +212,15 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                             <p>Area Covered (sqft) *</p>
                             <input type="number" value={form.areaCoveredSqft} onChange={e => setField('areaCoveredSqft', e.target.value)} />
                         </div>
-                        {isContractor && (
+                        {!isContractor && (
                             <div className="add-product-name flex-col">
                                 <p>Supervisor</p>
-                                <input type="text" value={form.supervisorName} onChange={e => setField('supervisorName', e.target.value)} />
+                                <StyledSelect
+                                    value={form.supervisorId} onChange={pickSupervisor}
+                                    placeholder={!form.labourerId ? 'Select a labourer first' : 'Select supervisor…'}
+                                    options={employeeOptions}
+                                    disabled={!form.labourerId}
+                                />
                             </div>
                         )}
 
@@ -199,16 +233,22 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                     {isContractor && materialTrackingEnabled && (
                         <div style={{ margin: '4px 0 20px' }}>
                             <p className="admin-subtitle" style={{ marginBottom: '8px' }}>Material Used</p>
-                            {materialLines.map((line, idx) => (
-                                <div key={idx} style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
-                                    <select value={line.materialId} onChange={e => setMaterialLine(idx, 'materialId', e.target.value)} style={{ flex: 2 }}>
-                                        <option value="">Select material…</option>
-                                        {materials.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}
-                                    </select>
-                                    <input type="number" placeholder="Quantity" value={line.quantity} onChange={e => setMaterialLine(idx, 'quantity', e.target.value)} style={{ flex: 1 }} />
-                                    <button type="button" className="remove-point-btn" onClick={() => removeMaterialLine(idx)}>X</button>
-                                </div>
-                            ))}
+                            {materialLines.map((line, idx) => {
+                                const selectedMaterial = materials.find(m => m._id === line.materialId);
+                                return (
+                                    <div key={idx} style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'center' }}>
+                                        <select value={line.materialId} onChange={e => setMaterialLine(idx, 'materialId', e.target.value)} style={{ flex: 2 }}>
+                                            <option value="">Select material…</option>
+                                            {materialsForWork.map(m => <option key={m._id} value={m._id}>{m.name}{m.unit ? ` (${m.unit})` : ''}</option>)}
+                                        </select>
+                                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <input type="number" placeholder="Quantity" value={line.quantity} onChange={e => setMaterialLine(idx, 'quantity', e.target.value)} style={{ width: '100%' }} />
+                                            {selectedMaterial?.unit && <span className="admin-subtitle" style={{ whiteSpace: 'nowrap' }}>{selectedMaterial.unit}</span>}
+                                        </div>
+                                        <button type="button" className="remove-point-btn" onClick={() => removeMaterialLine(idx)}>X</button>
+                                    </div>
+                                );
+                            })}
                             <button type="button" className="add-point-btn" onClick={addMaterialLine}>+ Add Material</button>
                         </div>
                     )}
@@ -221,7 +261,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
             </div>
         </div>,
         document.body
-    );
+    )}{supervisorConflictModal}</>;
 };
 
 export default AddMeasurementModal;

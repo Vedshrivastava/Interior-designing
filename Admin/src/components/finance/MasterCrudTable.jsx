@@ -47,6 +47,9 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
     // since vendorSelect fields render as a self-fetching QuickAddPicker.
     const needsVendors = resource.columns.some(c => c.vendorRef);
     const settingSelectFields = resource.fields.filter(f => f.type === 'settingSelect');
+    // Also covers workTypeMultiSelect — same options-fetch, just no
+    // register-if-new on submit (that stays scoped to settingSelectFields).
+    const settingFetchFields = resource.fields.filter(f => f.settingType);
 
     const fetchList = async () => {
         setLoading(true);
@@ -70,7 +73,7 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
     }, [needsVendors]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        settingSelectFields.forEach(f => {
+        settingFetchFields.forEach(f => {
             axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: f.settingType } })
                 .then(res => { if (res.data.success) setSettingOptions(prev => ({ ...prev, [f.settingType]: res.data.data })); })
                 .catch(() => {});
@@ -154,7 +157,7 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
         const value = item[col.key];
         let content;
         if (col.vendorRef) content = vendorName(value);
-        else if (col.joinArray) content = Array.isArray(value) && value.length > 0 ? value.join(', ') : '—';
+        else if (col.joinArray) content = Array.isArray(value) && value.length > 0 ? value.join(', ') : (col.emptyLabel || '—');
         else if (col.badge) {
             const opt = resource.fields.find(f => f.key === col.key)?.options?.find(o => o.value === value);
             content = value ? <span className="item-category">{opt?.label || value}</span> : '—';

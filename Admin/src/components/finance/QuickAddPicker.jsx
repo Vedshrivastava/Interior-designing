@@ -32,6 +32,9 @@ const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValue
     const [saving, setSaving] = useState(false);
 
     const settingSelectFields = resource.fields.filter(f => f.type === 'settingSelect');
+    // Also covers workTypeMultiSelect — same options-fetch, just no
+    // register-if-new on submit (that stays scoped to settingSelectFields).
+    const settingFetchFields = resource.fields.filter(f => f.settingType);
     const visibleFields = resource.fields.filter(f => !(f.key in presetValues));
 
     const fetchList = async () => {
@@ -44,7 +47,7 @@ const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValue
     useEffect(() => { fetchList(); }, [url, resourceKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        settingSelectFields.forEach(f => {
+        settingFetchFields.forEach(f => {
             axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: f.settingType } })
                 .then(res => { if (res.data.success) setSettingOptions(prev => ({ ...prev, [f.settingType]: res.data.data })); })
                 .catch(() => {});

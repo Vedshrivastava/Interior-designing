@@ -10,6 +10,14 @@ import mongoose from 'mongoose';
 // on financeLabourRate (per project + work type), not here either.
 const financeLabourerSchema = new mongoose.Schema({
     name:  { type: String, required: true },
+
+    // Mandatory — this is who actually gets paid when a labour payment is
+    // recorded against this labourer (financeLabourPayment).
+    accountName:   { type: String, required: true },
+    bankName:      { type: String, required: true },
+    accountNumber: { type: String, required: true },
+    ifscCode:      { type: String, required: true },
+
     notes: { type: String, default: '' },
 
     // ID proof, agreement, etc. — attached when the labourer is added,

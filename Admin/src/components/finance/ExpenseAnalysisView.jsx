@@ -60,7 +60,7 @@ const ExpenseAnalysisView = ({ url }) => {
     return (
         <div>
             <h3 style={{ margin: '0 0 4px' }}>Expense Analysis</h3>
-            <p className="admin-subtitle" style={{ margin: '0 0 16px' }}>Every general/site expense, totalled by category, project, work, and person/entity — filter to narrow it down.</p>
+            <p className="admin-subtitle" style={{ margin: '0 0 16px' }}>Every general/site expense, totalled by category, project, work, and person/entity; filter to narrow it down.</p>
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '20px' }}>
                 <div className="add-product-name flex-col" style={{ maxWidth: '260px' }}>
                     <p>Project</p>

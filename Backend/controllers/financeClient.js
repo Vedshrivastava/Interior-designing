@@ -13,10 +13,14 @@ const listFinanceClients = async (req, res) => {
 
 const addFinanceClient = async (req, res) => {
     try {
-        const { name, phone, email, address, gstNumber, notes } = req.body;
+        const { name, phone, email, address, gstNumber, accountName, bankName, accountNumber, ifscCode, notes } = req.body;
         if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
+        if (!accountName || !bankName || !accountNumber || !ifscCode) {
+            return res.status(400).json({ success: false, message: 'Bank account holder name, bank name, account number, and IFSC code are all required' });
+        }
         const item = new FinanceClient({
-            name: name.trim(), phone, email, address, gstNumber, notes,
+            name: name.trim(), phone, email, address, gstNumber,
+            accountName, bankName, accountNumber, ifscCode, notes,
         });
         await item.save();
         broadcast({ type: 'financeClientsChanged' });
@@ -29,11 +33,17 @@ const addFinanceClient = async (req, res) => {
 
 const updateFinanceClient = async (req, res) => {
     try {
-        const { _id, name, phone, email, address, gstNumber, notes } = req.body;
+        const { _id, name, phone, email, address, gstNumber, accountName, bankName, accountNumber, ifscCode, notes } = req.body;
         const existing = await FinanceClient.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Client not found' });
         if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
-        await FinanceClient.findByIdAndUpdate(_id, { name: name.trim(), phone, email, address, gstNumber, notes });
+        if (!accountName || !bankName || !accountNumber || !ifscCode) {
+            return res.status(400).json({ success: false, message: 'Bank account holder name, bank name, account number, and IFSC code are all required' });
+        }
+        await FinanceClient.findByIdAndUpdate(_id, {
+            name: name.trim(), phone, email, address, gstNumber,
+            accountName, bankName, accountNumber, ifscCode, notes,
+        });
         broadcast({ type: 'financeClientsChanged' });
         res.json({ success: true, message: 'Client updated' });
     } catch (err) {

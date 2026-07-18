@@ -56,19 +56,16 @@ const applyContractTypeRules = (data) => {
         out.materialTrackingEnabled = true;
     } else if (out.contractType === 'without_material') {
         out.materialTrackingEnabled = false;
-        out.referralVendorId = out.referralVendorId || null; // still optional, unlike advance
     } else if (out.contractType === 'advance') {
-        out.referralVendorId = null; // hidden — not applicable to advance
         if (out.materialTrackingEnabled === undefined) out.materialTrackingEnabled = true;
     }
+    out.referralVendorId = out.referralVendorId || null; // optional for every contract type
 
     if (out.contractType === 'advance') {
         out.totalEstimatedCost = Number(out.totalEstimatedCost) || 0;
-        out.contractPercentage = Number(out.contractPercentage) || 0;
-        out.advanceAmount = out.totalEstimatedCost * (out.contractPercentage / 100);
+        out.advanceAmount = Number(out.advanceAmount) || 0; // manually entered, not computed
     } else {
         out.totalEstimatedCost = 0;
-        out.contractPercentage = 0;
         out.advanceAmount = 0;
     }
     return out;
@@ -152,7 +149,6 @@ const addFinanceProject = async (req, res) => {
             referralVendorId: data.referralVendorId || null,
             materialTrackingEnabled: data.materialTrackingEnabled,
             totalEstimatedCost: data.totalEstimatedCost,
-            contractPercentage: data.contractPercentage,
             advanceAmount: data.advanceAmount,
             status: 'draft',
         });
@@ -199,7 +195,6 @@ const updateFinanceProject = async (req, res) => {
             referralVendorId: merged.referralVendorId,
             materialTrackingEnabled: merged.materialTrackingEnabled,
             totalEstimatedCost: merged.totalEstimatedCost,
-            contractPercentage: merged.contractPercentage,
             advanceAmount: merged.advanceAmount,
         });
         broadcast({ type: 'financeProjectsChanged' });
@@ -298,7 +293,6 @@ const downloadAdvanceReceipt = async (req, res) => {
             project.name,
             project.siteLocation,
             `Total Estimated Cost: ${formatCurrency(project.totalEstimatedCost)}`,
-            `Contract Percentage: ${project.contractPercentage}%`,
         ], company);
         doc.y = Math.max(leftBottom, rightBottom) + 16;
 
@@ -326,6 +320,31 @@ const downloadAdvanceReceipt = async (req, res) => {
     }
 };
 
+// Advance-only, and only meaningful with a referralVendorId set — the flat
+// manually-typed commission amount (see the model's own comment for why
+// this isn't sqft × rate the way With/Without Material's referral
+// commission is). Standalone endpoint rather than folding into the general
+// updateFinanceProject, since callers here (ProjectDetail's own inline
+// edit, and the Mark Completed confirm step) only ever want to touch this
+// one field, not resend the whole project form.
+const updateReferralCommission = async (req, res) => {
+    try {
+        const { _id, referralCommissionAmount } = req.body;
+        const project = await FinanceProject.findById(_id);
+        if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+        if (project.contractType !== 'advance') {
+            return res.status(400).json({ success: false, message: 'Referral commission is only manually entered for Advance projects' });
+        }
+        project.referralCommissionAmount = Number(referralCommissionAmount) || 0;
+        await project.save();
+        broadcast({ type: 'financeProjectsChanged' });
+        res.json({ success: true, message: 'Referral commission updated', data: project });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error updating referral commission' });
+    }
+};
+
 const activateFinanceProject = async (req, res) => {
     try {
         const { _id } = req.body;
@@ -342,7 +361,7 @@ const activateFinanceProject = async (req, res) => {
         if (workTypeRateCount === 0) missing.push('at least one work type rate');
         if (contractorRateCount === 0) missing.push('at least one contractor rate');
         if (project.contractType === 'advance') {
-            if (!project.totalEstimatedCost || !project.contractPercentage) missing.push('the total estimated cost and contract percentage');
+            if (!project.advanceAmount) missing.push('the advance amount');
             if (!project.advanceReceived) missing.push('the advance payment');
         }
 
@@ -475,6 +494,6 @@ const removeFinanceProject = async (req, res) => {
 
 export {
     listFinanceProjects, getFinanceProject, addFinanceProject, updateFinanceProject,
-    recordAdvanceInvoiced, recordAdvanceReceived, downloadAdvanceReceipt, activateFinanceProject,
+    recordAdvanceInvoiced, recordAdvanceReceived, downloadAdvanceReceipt, updateReferralCommission, activateFinanceProject,
     getCompletionReadiness, completeFinanceProject, removeFinanceProject,
 };

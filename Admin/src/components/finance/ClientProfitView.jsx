@@ -69,7 +69,7 @@ const ClientProfitView = ({ url, clientId, onSelectClient, onViewProjectProfit }
                     </div>
                     {(data.totals.totalContractorCost > data.totals.contractorCost || data.totals.totalLabourCost > data.totals.labourCost) && (
                         <p className="admin-subtitle" style={{ marginBottom: '10px', color: '#c0392b' }}>
-                            Contractor/labour costs above only count work already billed to the client — ₹{(data.totals.totalContractorCost - data.totals.contractorCost + data.totals.totalLabourCost - data.totals.labourCost).toLocaleString('en-IN')} more is logged but still Unapproved (not yet billed), so Profit will move once it's billed.
+                            Contractor/labour costs above only count work already billed to the client: ₹{(data.totals.totalContractorCost - data.totals.contractorCost + data.totals.totalLabourCost - data.totals.labourCost).toLocaleString('en-IN')} more is logged but still Unapproved (not yet billed), so Profit will move once it's billed.
                         </p>
                     )}
 

@@ -21,7 +21,7 @@ const BankBalanceView = ({ url }) => {
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
-    if (accounts.length === 0) return <div className="admin-empty-state"><p>No bank accounts yet — add one under All Accounts.</p></div>;
+    if (accounts.length === 0) return <div className="admin-empty-state"><p>No bank accounts yet; add one under All Accounts.</p></div>;
 
     const totalBalance = accounts.reduce((sum, a) => sum + a.currentBalance, 0);
 

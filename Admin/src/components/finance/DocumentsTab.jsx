@@ -13,7 +13,7 @@ import '../../styles/add.css';
  * on both sides (financeClientDocument / financeProjectDocument), so this
  * only needs the API prefix and the scope field name to work either way.
  */
-const DocumentsTab = ({ url, apiBase, scopeParam, scopeId, title = 'Documents', subtitle = 'Files on record — work orders, approvals, agreements, and anything else worth keeping.', emptyText = 'No documents on file yet.' }) => {
+const DocumentsTab = ({ url, apiBase, scopeParam, scopeId, title = 'Documents', subtitle = 'Files on record: work orders, approvals, agreements, and anything else worth keeping.', emptyText = 'No documents on file yet.' }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [documents, setDocuments] = useState([]);
@@ -127,7 +127,7 @@ const DocumentsTab = ({ url, apiBase, scopeParam, scopeId, title = 'Documents', 
                         <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1fr 1.5fr 150px' }}>
                             <p>{d.name}</p>
                             <p>{new Date(d.createdAt).toLocaleDateString()}</p>
-                            <p>{d.notes || '—'}</p>
+                            <p>{d.notes || '-'}</p>
                             <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
                                 <a href={d.fileUrl} target="_blank" rel="noreferrer" className="cursor edit-action" style={{ textDecoration: 'none' }}>View</a>
                                 <p onClick={() => setConfirmItem(d)} className="cursor delete-action">X</p>

@@ -30,11 +30,11 @@ export const renderMasterField = (f, form, setField, { url, settingOptions = {} 
                 <QuickAddPicker
                     url={url} resourceKey="vendors" value={value} onChange={v => setField(f.key, v)}
                     filter={v => v.vendorType === 'labour_contractor'} presetValues={{ vendorType: 'labour_contractor' }}
-                    placeholder="— None —"
+                    placeholder="None"
                 />
             );
         case 'employeeSelect':
-            return <QuickAddPicker url={url} resourceKey="employees" value={value} onChange={v => setField(f.key, v)} placeholder="— None —" />;
+            return <QuickAddPicker url={url} resourceKey="employees" value={value} onChange={v => setField(f.key, v)} placeholder="None" />;
         case 'settingSelect':
             return (
                 <>
@@ -56,7 +56,7 @@ export const renderMasterField = (f, form, setField, { url, settingOptions = {} 
                 <div className="labour-select-box">
                     <div className="labour-select-list">
                         {options.length === 0 ? (
-                            <p className="labour-select-empty">No work types set up yet — add one from Masters → Work Types.</p>
+                            <p className="labour-select-empty">No work types set up yet; add one from Masters → Work Types.</p>
                         ) : options.map(o => {
                             const active = selected.includes(o.name);
                             return (
@@ -82,6 +82,20 @@ export const renderMasterField = (f, form, setField, { url, settingOptions = {} 
                 </div>
             );
         }
+        case 'confirmText':
+            // Deliberately never pre-filled from an existing record (see
+            // MasterCrudTable's openEdit / QuickAddPicker — neither ever
+            // stores this key server-side, so it's always blank on open,
+            // even in Edit mode) — forces a fresh re-type every time
+            // rather than trivially matching a value that was itself
+            // copy-pasted in wrong. Paste is blocked for the same reason.
+            return (
+                <input
+                    type="text" value={value} placeholder={f.placeholder}
+                    onChange={e => setField(f.key, e.target.value)}
+                    onPaste={e => e.preventDefault()}
+                />
+            );
         case 'stringArray':
             return (
                 <div className="add-product-points">

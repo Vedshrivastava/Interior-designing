@@ -127,7 +127,7 @@ const DeductionPanel = ({ url }) => {
     return (
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                Pick a project and work type to see how much logged work never made it into an issued bill, then allocate sqft of that gap to whoever's responsible — the ₹ amount is always derived from their rate, never typed directly.
+                Pick a project and work type to see how much logged work never made it into an issued bill, then allocate sqft of that gap to whoever's responsible; the ₹ amount is always derived from their rate, never typed directly.
             </p>
 
             <div className="wizard-field-grid" style={{ marginBottom: '20px' }}>
@@ -270,7 +270,7 @@ const DeductionPanel = ({ url }) => {
 
                     <h3 style={{ marginBottom: '8px' }}>Supervisor</h3>
                     <p className="admin-subtitle" style={{ marginBottom: '12px' }}>
-                        Supervisors don't measure area — this stays a plain ₹ amount, entered manually.
+                        Supervisors don't measure area; this stays a plain ₹ amount, entered manually.
                     </p>
                     <form onSubmit={submitSupervisor}>
                         <div className="wizard-field-grid">
@@ -284,7 +284,7 @@ const DeductionPanel = ({ url }) => {
                             <div className="add-product-name flex-col">
                                 <p>Work (optional)</p>
                                 <select value={supervisorForm.workId} onChange={e => setSupervisorForm(p => ({ ...p, workId: e.target.value }))}>
-                                    <option value="">— Not tied to a specific work —</option>
+                                    <option value="">Not tied to a specific work</option>
                                     {(pool.works || []).map(w => <option key={w.workId} value={w.workId}>{w.workType}</option>)}
                                 </select>
                             </div>

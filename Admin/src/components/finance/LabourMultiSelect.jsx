@@ -37,7 +37,7 @@ const LabourMultiSelect = ({ url, selectedIds, onChange, excludeIds = [] }) => {
             <div className="labour-select-box">
                 <div className="labour-select-list">
                     {visible.length === 0 ? (
-                        <p className="labour-select-empty">No labourers available — add one below.</p>
+                        <p className="labour-select-empty">No labourers available; add one below.</p>
                     ) : visible.map(l => {
                         const active = selectedIds.includes(l._id);
                         return (

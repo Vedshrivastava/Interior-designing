@@ -66,7 +66,7 @@ const ClientsPage = ({ url }) => {
     return (
         <FinanceTabShell
             label="Clients"
-            subtitle="Client master — billed, received, and outstanding at a glance. Click a client to open their detail view."
+            subtitle="Client master: billed, received, and outstanding at a glance. Click a client to open their detail view."
             headerAction={<button type="button" className="add-btn" style={{ minWidth: 'auto', padding: '12px 24px', alignSelf: 'center' }} onClick={() => clientTableRef.current?.openAdd()}>+ Add Client</button>}
         >
             {(loading || clients.length > 0) && (

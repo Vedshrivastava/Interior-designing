@@ -133,7 +133,7 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                                     <option value="">{form.workId ? 'Select labourer…' : 'Select a work first'}</option>
                                     {workLabourers.map(a => (
                                         <option key={a._id || a.labourerId?._id} value={a.labourerId?._id || a.labourerId}>
-                                            {a.labourerId?.name}{a.supervisorId?.name ? ` — ${a.supervisorId.name}'s team` : ''}
+                                            {a.labourerId?.name}{a.supervisorId?.name ? ` · ${a.supervisorId.name}'s team` : ''}
                                         </option>
                                     ))}
                                 </select>
@@ -170,8 +170,8 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                             measurements.map(m => (
                                 <div key={m._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 100px' }}>
                                     <p>{new Date(m.date).toLocaleDateString()}</p>
-                                    <p>{m.workId?.workType || '—'}</p>
-                                    <p>{m.labourerId?.name || '—'}</p>
+                                    <p>{m.workId?.workType || '-'}</p>
+                                    <p>{m.labourerId?.name || '-'}</p>
                                     <p>{m.areaCoveredSqft} sqft</p>
                                     <div className="action-buttons">
                                         <p onClick={() => removeMeasurement(m)} className="cursor delete-action">X</p>

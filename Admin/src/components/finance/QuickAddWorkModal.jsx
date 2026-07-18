@@ -54,7 +54,7 @@ const QuickAddWorkModal = ({ url, projectId, initialWorkType, onClose, onCreated
                 projectId, workType: workType.trim(), estimatedAreaSqft, contractorAssignments: filledAssignments, quickAdded: true,
             }, authHeader);
             if (res.data.success) {
-                toast.success('Work added — fill in the rest later from the Works tab');
+                toast.success('Work added; fill in the rest later from the Works tab');
                 onCreated(res.data.data);
             } else toast.error(res.data.message);
         } catch (err) {
@@ -67,7 +67,7 @@ const QuickAddWorkModal = ({ url, projectId, initialWorkType, onClose, onCreated
             <div className="loader-modal-box edit-modal">
                 <h2>Add Work</h2>
                 <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                    No Works exist for this project yet, so there's nothing real to set a rate against. Add the minimum here —
+                    No Works exist for this project yet, so there's nothing real to set a rate against. Add the minimum here:
                     work order number, start date, and notes can be filled in later from the Works tab.
                 </p>
                 <form className="flex-col" onSubmit={submit}>

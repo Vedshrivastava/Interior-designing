@@ -49,12 +49,12 @@ const MaterialConsumptionList = ({ url }) => {
                     {loading ? (
                         <div className="admin-empty-state"><p>Loading…</p></div>
                     ) : movements.length === 0 ? (
-                        <div className="admin-empty-state"><p>No material consumed yet — this fills in as measurements are logged.</p></div>
+                        <div className="admin-empty-state"><p>No material consumed yet; this fills in as measurements are logged.</p></div>
                     ) : (
                         movements.map(m => (
                             <div key={m._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.3fr 1fr' }}>
                                 <p>{new Date(m.date).toLocaleDateString()}</p>
-                                <p>{m.materialId?.name || '—'}</p>
+                                <p>{m.materialId?.name || '-'}</p>
                                 <p>{m.quantity} {m.materialId?.unit || ''}</p>
                             </div>
                         ))

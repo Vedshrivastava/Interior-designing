@@ -53,10 +53,10 @@ const SupervisorTeamTab = ({ url, supervisorId }) => {
             </div>
             {rows.map(a => (
                 <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1.3fr' }}>
-                    <p>{a.labourerId?.name || '—'}</p>
-                    <p>{a.workId?.projectId?.name || '—'}</p>
-                    <p>{a.workId?.workType || '—'}</p>
-                    <p>{a.notes || '—'}</p>
+                    <p>{a.labourerId?.name || '-'}</p>
+                    <p>{a.workId?.projectId?.name || '-'}</p>
+                    <p>{a.workId?.workType || '-'}</p>
+                    <p>{a.notes || '-'}</p>
                 </div>
             ))}
         </div>
@@ -175,7 +175,7 @@ const SupervisorsPage = ({ url }) => {
     return (
         <FinanceTabShell
             label="Supervisors"
-            subtitle="A supervisor is a Master Data employee — pick one to see their assigned projects, current labour team, attendance, salary, incentives, and deductions."
+            subtitle="A supervisor is a Master Data employee; pick one to see their assigned projects, current labour team, attendance, salary, incentives, and deductions."
             tabs={TABS}
             activeKey={activeTab}
             onTabChange={setActiveTab}

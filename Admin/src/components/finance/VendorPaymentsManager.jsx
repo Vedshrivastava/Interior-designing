@@ -107,14 +107,14 @@ const VendorPaymentsManager = ({ url }) => {
                             <div className="add-product-name flex-col">
                                 <p>Bank Account</p>
                                 <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)}>
-                                    <option value="">— Cash —</option>
-                                    {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
+                                    <option value="">Cash</option>
+                                    {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} · {a.bankName}</option>)}
                                 </select>
                             </div>
                             <div className="add-product-name flex-col">
                                 <p>TDS Section</p>
                                 <select value={form.tdsSectionId} onChange={e => setField('tdsSectionId', e.target.value)}>
-                                    <option value="">— No TDS —</option>
+                                    <option value="">No TDS</option>
                                     {tdsSections.map(s => <option key={s._id} value={s._id}>{s.name}{s.code ? ` (${s.code})` : ''}</option>)}
                                 </select>
                             </div>
@@ -150,10 +150,10 @@ const VendorPaymentsManager = ({ url }) => {
                                 <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
                                     <p>{new Date(p.date).toLocaleDateString()}</p>
                                     <p>₹{p.amount.toLocaleString('en-IN')}</p>
-                                    <p>{p.paymentMode || '—'}</p>
+                                    <p>{p.paymentMode || '-'}</p>
                                     <p>{p.bankAccountId?.accountName || 'Cash'}</p>
-                                    <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '—'}</p>
-                                    <p>{p.attachmentUrl ? <a href={p.attachmentUrl} target="_blank" rel="noreferrer">View</a> : '—'}</p>
+                                    <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
+                                    <p>{p.attachmentUrl ? <a href={p.attachmentUrl} target="_blank" rel="noreferrer">View</a> : '-'}</p>
                                     <div className="action-buttons"><p onClick={() => remove(p._id)} className="cursor delete-action">X</p></div>
                                 </div>
                             ))

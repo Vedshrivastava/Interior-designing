@@ -63,6 +63,8 @@ const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValue
         e.preventDefault();
         const requiredField = resource.fields.find(f => f.required && !String(form[f.key] || '').trim());
         if (requiredField) { toast.error(`${requiredField.label} is required`); return; }
+        const mismatchField = resource.fields.find(f => f.type === 'confirmText' && form[f.key] !== form[f.matchKey]);
+        if (mismatchField) { toast.error(`${mismatchField.label} doesn't match`); return; }
 
         setSaving(true);
         try {

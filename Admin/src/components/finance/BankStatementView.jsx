@@ -36,7 +36,7 @@ const BankStatementView = ({ url }) => {
                 <p>Account</p>
                 <select value={selectedAccountId} onChange={e => setSelectedAccountId(e.target.value)}>
                     <option value="">Select account…</option>
-                    {accounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
+                    {accounts.map(a => <option key={a._id} value={a._id}>{a.accountName} · {a.bankName}</option>)}
                 </select>
             </div>
 
@@ -62,8 +62,8 @@ const BankStatementView = ({ url }) => {
                                 <div key={i} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr' }}>
                                     <p>{new Date(t.date).toLocaleDateString()}</p>
                                     <p>{DESCRIPTION_LABEL[t.sourceType] || t.description}</p>
-                                    <p style={{ color: 'var(--moss)' }}>{t.direction === 'credit' ? `₹${t.amount.toLocaleString('en-IN')}` : '—'}</p>
-                                    <p style={{ color: '#c0392b' }}>{t.direction === 'debit' ? `₹${t.amount.toLocaleString('en-IN')}` : '—'}</p>
+                                    <p style={{ color: 'var(--moss)' }}>{t.direction === 'credit' ? `₹${t.amount.toLocaleString('en-IN')}` : '-'}</p>
+                                    <p style={{ color: '#c0392b' }}>{t.direction === 'debit' ? `₹${t.amount.toLocaleString('en-IN')}` : '-'}</p>
                                     <p style={{ fontWeight: 600 }}>₹{t.runningBalance.toLocaleString('en-IN')}</p>
                                 </div>
                             ))

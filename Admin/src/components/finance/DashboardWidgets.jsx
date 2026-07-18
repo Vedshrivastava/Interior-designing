@@ -9,7 +9,13 @@ import '../../styles/dashboard.css';
 // with another library's color conventions.
 export const CHART_COLORS = ['#2d4a35', '#c9a87c', '#c0392b', '#4a7a8c', '#8a6d3e', '#9a8e84', '#6b8f71', '#b08968'];
 
-export const formatINR = (n) => `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
+// Sign goes before the ₹ symbol, not after — `${Math.round(n)}`.toLocaleString()
+// on a negative number already carries its own "-", so naively prefixing
+// "₹" produced "₹-3,00,000" instead of the conventional "-₹3,00,000".
+export const formatINR = (n) => {
+    const rounded = Math.round(n || 0);
+    return `${rounded < 0 ? '-' : ''}₹${Math.abs(rounded).toLocaleString('en-IN')}`;
+};
 
 // `icon` (optional): a @fortawesome/free-solid-svg-icons import, shown in a
 // tone-tinted badge beside the label/value column (not stacked above it) —

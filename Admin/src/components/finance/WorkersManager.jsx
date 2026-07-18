@@ -56,7 +56,7 @@ const WorkersManager = ({ url, projectId, worksVersion }) => {
                 if (!byType.has(workType)) byType.set(workType, []);
                 byType.get(workType).push({
                     labourerId: a.labourerId._id, labourerName: a.labourerId.name,
-                    supervisorName: a.supervisorId?.name || '—',
+                    supervisorName: a.supervisorId?.name || '-',
                 });
             }
             setLabourersByWorkType(byType);
@@ -104,10 +104,10 @@ const WorkersManager = ({ url, projectId, worksVersion }) => {
     return (
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                One row per labourer actually assigned to each work type — fill in a rate to confirm it.
+                One row per labourer actually assigned to each work type; fill in a rate to confirm it.
             </p>
             {labourersByWorkType.size === 0 ? (
-                <div className="admin-empty-state"><p>No labour team assigned to any Work yet — add one from a Work's "Labour" action under the Works tab.</p></div>
+                <div className="admin-empty-state"><p>No labour team assigned to any Work yet; add one from a Work's "Labour" action under the Works tab.</p></div>
             ) : (
                 <div className="list-table">
                     {[...labourersByWorkType.entries()].map(([workType, labourers]) => (

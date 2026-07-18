@@ -73,7 +73,7 @@ const ProjectTimelineTab = ({ url, projectId }) => {
                                         {e.summary}
                                         {e.performedBy && <span className="item-category" style={{ marginLeft: '8px' }}>{e.performedBy}</span>}
                                     </p>
-                                    <p>{e.amount != null ? `₹${e.amount.toLocaleString('en-IN')}` : '—'}</p>
+                                    <p>{e.amount != null ? `₹${e.amount.toLocaleString('en-IN')}` : '-'}</p>
                                 </div>
                             ))}
                         </div>

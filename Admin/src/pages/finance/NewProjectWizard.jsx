@@ -7,12 +7,13 @@ import ContractorRatesManager from '../../components/finance/ContractorRatesMana
 import SettingSelectField, { registerSettingIfNew } from '../../components/finance/SettingSelectField';
 import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import StyledSelect from '../../components/finance/StyledSelect';
+import StyledDatePicker from '../../components/finance/StyledDatePicker';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 
 const CONTRACT_TYPES = [
     { value: 'with_material', label: 'With Material', desc: 'You supply both labour and material; client billed per sqft, by work type.' },
-    { value: 'without_material', label: 'Without Material', desc: "Labour only; client billed per sqft, by work type — same billing as With Material, you just don't supply material." },
+    { value: 'without_material', label: 'Without Material', desc: "Labour only; client billed per sqft, by work type, same billing as With Material, you just don't supply material." },
     { value: 'advance', label: 'Advance', desc: 'Client pays an upfront advance (a % of an estimated total cost); billing then proceeds per sqft by work type exactly like With Material, with the advance drawn down against it before further cash changes hands.' },
 ];
 
@@ -33,7 +34,7 @@ const NewProjectWizard = ({ url }) => {
     const [referralVendorId, setReferralVendorId] = useState('');
     const [materialTrackingEnabled, setMaterialTrackingEnabled] = useState(true);
     const [totalEstimatedCost, setTotalEstimatedCost] = useState('');
-    const [contractPercentage, setContractPercentage] = useState('');
+    const [advanceAmount, setAdvanceAmount] = useState('');
     const [advanceNotes, setAdvanceNotes] = useState('');
     const [advancePaymentMode, setAdvancePaymentMode] = useState('');
     const [advanceBankAccountId, setAdvanceBankAccountId] = useState('');
@@ -54,8 +55,6 @@ const NewProjectWizard = ({ url }) => {
     const steps = ['basic', 'type', 'setup', 'contractors', ...(contractType === 'advance' ? ['advance'] : []), 'activate'];
     const stepLabels = { basic: 'Basic Info', type: 'Contract Type', setup: 'Setup', contractors: 'Contractor Rates', advance: 'Advance Payment', activate: 'Activate' };
     const stepIndex = steps.indexOf(stepKey);
-
-    const advanceAmount = (Number(totalEstimatedCost) || 0) * (Number(contractPercentage) || 0) / 100;
 
     const setBasicField = (key, value) => setBasic(prev => ({ ...prev, [key]: value }));
 
@@ -91,8 +90,8 @@ const NewProjectWizard = ({ url }) => {
 
     /* Step 3 → 4: persist the conditional setup fields */
     const goToContractors = async () => {
-        if (contractType === 'advance' && (!totalEstimatedCost || !contractPercentage)) {
-            return toast.error('Total estimated cost and contract percentage are required for Advance projects');
+        if (contractType === 'advance' && !advanceAmount) {
+            return toast.error('Advance amount is required for Advance projects');
         }
         setSaving(true);
         try {
@@ -100,10 +99,10 @@ const NewProjectWizard = ({ url }) => {
                 _id: projectId,
                 ...basic,
                 contractType,
-                referralVendorId: contractType === 'advance' ? null : (referralVendorId || null),
+                referralVendorId: referralVendorId || null,
                 materialTrackingEnabled,
                 totalEstimatedCost: contractType === 'advance' ? totalEstimatedCost : 0,
-                contractPercentage: contractType === 'advance' ? contractPercentage : 0,
+                advanceAmount: contractType === 'advance' ? advanceAmount : 0,
             }, authHeader);
             if (!res.data.success) { toast.error(res.data.message); return; }
             setStepKey('contractors');
@@ -154,6 +153,19 @@ const NewProjectWizard = ({ url }) => {
 
     const back = () => setStepKey(steps[Math.max(0, stepIndex - 1)]);
 
+    // Single source of truth for the primary (right-most) action per step —
+    // rendered once in the header instead of repeated at the bottom of
+    // every step block, now that there's no more boxed card giving each
+    // step its own visual "footer."
+    const primaryAction = {
+        basic:       { label: 'Next: Contract Type',   onClick: goToType },
+        type:        { label: saving ? 'Saving…' : 'Next: Setup',              onClick: goToSetup,           disabled: saving },
+        setup:       { label: saving ? 'Saving…' : 'Next: Contractor Rates',   onClick: goToContractors,     disabled: saving },
+        contractors: { label: contractType === 'advance' ? 'Next: Advance Payment' : 'Next: Activate', onClick: goToAdvanceOrActivate },
+        advance:     { label: 'Next: Activate',        onClick: () => setStepKey('activate') },
+        activate:    { label: saving ? 'Activating…' : 'Activate Project',     onClick: activate,            disabled: saving },
+    }[stepKey];
+
     return (
         <div className="list add flex-col">
             <div className="admin-list-container">
@@ -162,13 +174,21 @@ const NewProjectWizard = ({ url }) => {
                         <h1>New Project</h1>
                         <p className="admin-subtitle">
                             {projectId
-                                ? 'Draft saved as you go — you can leave and come back any time from All Projects.'
-                                : 'A guided setup — rates and teams get configured before this project can go live.'}
+                                ? 'Draft saved as you go; you can leave and come back any time from All Projects.'
+                                : 'A guided setup: rates and teams get configured before this project can go live.'}
                         </p>
                     </div>
-                    {projectId && (
-                        <button type="button" className="add-point-btn" onClick={() => navigate('/finance/projects')}>Save & Exit</button>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                        {projectId && (
+                            <button type="button" className="add-btn cancel-btn" onClick={() => navigate('/finance/projects')}>Save & Exit</button>
+                        )}
+                        {stepIndex > 0 && (
+                            <button type="button" className="add-btn cancel-btn" onClick={back}>Back</button>
+                        )}
+                        <button type="button" className="add-btn" disabled={primaryAction.disabled} onClick={primaryAction.onClick}>
+                            {primaryAction.label}
+                        </button>
+                    </div>
                 </div>
 
                 <div className="wizard-steps">
@@ -183,16 +203,17 @@ const NewProjectWizard = ({ url }) => {
                     ))}
                 </div>
 
-                <div className="edit-modal" style={{ boxShadow: 'none', maxWidth: '100%' }}>
+                <div className="wizard-step-body">
 
                     {/* ── Step 1: Basic Info ── */}
                     {stepKey === 'basic' && (
                         <>
                             <h2>Basic Info</h2>
+                            <p className="wizard-section-label">Project</p>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Project Name *</p>
-                                    <input type="text" value={basic.name} onChange={e => setBasicField('name', e.target.value)} />
+                                    <input type="text" value={basic.name} onChange={e => setBasicField('name', e.target.value)} placeholder="e.g. Malhotra Residence, Phase 1" />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Client *</p>
@@ -204,33 +225,33 @@ const NewProjectWizard = ({ url }) => {
                                     <SettingSelectField
                                         settingType="city" options={cityOptions}
                                         value={basic.siteLocation} onChange={v => setBasicField('siteLocation', v)}
+                                        placeholder="City or area…"
                                     />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Assigned Supervisor</p>
                                     <QuickAddPicker url={url} resourceKey="employees" value={basic.assignedSupervisorId}
-                                        onChange={v => setBasicField('assignedSupervisorId', v)} placeholder="— None —" />
+                                        onChange={v => setBasicField('assignedSupervisorId', v)} placeholder="None" />
                                 </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Assigned Supervisor (free text, legacy)</p>
-                                    <input type="text" value={basic.assignedSupervisor} onChange={e => setBasicField('assignedSupervisor', e.target.value)} placeholder="Only used if no supervisor is picked above" />
-                                </div>
+                            </div>
+
+                            <p className="wizard-section-label">Scope</p>
+                            <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Start Date</p>
-                                    <input type="date" value={basic.startDate} onChange={e => setBasicField('startDate', e.target.value)} />
+                                    <StyledDatePicker value={basic.startDate} onChange={v => setBasicField('startDate', v)} />
                                 </div>
                                 <div className="add-product-name flex-col">
-                                    <p>Estimated Area (sqft)</p>
-                                    <input type="number" value={basic.estimatedAreaSqft} onChange={e => setBasicField('estimatedAreaSqft', e.target.value)} />
+                                    <p>Estimated Area</p>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <input type="number" value={basic.estimatedAreaSqft} onChange={e => setBasicField('estimatedAreaSqft', e.target.value)} placeholder="0" style={{ flex: 1 }} />
+                                        <span className="admin-subtitle" style={{ whiteSpace: 'nowrap' }}>sqft</span>
+                                    </div>
                                 </div>
                                 <div className="add-product-name flex-col wizard-field-full">
                                     <p>Notes</p>
-                                    <textarea rows="3" value={basic.notes} onChange={e => setBasicField('notes', e.target.value)} />
+                                    <textarea rows="3" value={basic.notes} onChange={e => setBasicField('notes', e.target.value)} placeholder="Anything worth knowing before this project is set up…" />
                                 </div>
-                            </div>
-                            <div className="wizard-actions">
-                                <span />
-                                <button type="button" className="add-btn" onClick={goToType}>Next: Contract Type</button>
                             </div>
                         </>
                     )}
@@ -249,41 +270,38 @@ const NewProjectWizard = ({ url }) => {
                                     </button>
                                 ))}
                             </div>
-                            <div className="wizard-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={back}>Back</button>
-                                <button type="button" className="add-btn" disabled={saving} onClick={goToSetup}>
-                                    {saving ? 'Saving…' : 'Next: Setup'}
-                                </button>
-                            </div>
                         </>
                     )}
 
                     {/* ── Step 3: Conditional setup ── */}
                     {stepKey === 'setup' && (
                         <>
-                            <h2>Setup — {CONTRACT_TYPES.find(c => c.value === contractType)?.label}</h2>
+                            <h2>Setup: {CONTRACT_TYPES.find(c => c.value === contractType)?.label}</h2>
 
+                            <p className="wizard-section-label">Rates</p>
                             <WorkTypeRatesManager url={url} projectId={projectId} />
 
-                            {contractType !== 'advance' && (
-                                <div className="add-product-name flex-col" style={{ marginTop: '24px' }}>
-                                    <p>Referral Vendor (middleman) — optional</p>
+                            <p className="wizard-section-label">Referral</p>
+                            <div className="wizard-field-grid">
+                                <div className="add-product-name flex-col">
+                                    <p>Referral Vendor (middleman, optional)</p>
                                     <QuickAddPicker url={url} resourceKey="vendors" value={referralVendorId}
                                         onChange={setReferralVendorId}
                                         filter={v => v.vendorType === 'referral' || v.vendorType === 'other'}
-                                        presetValues={{ vendorType: 'referral' }} placeholder="— None —" />
+                                        presetValues={{ vendorType: 'referral' }} placeholder="None" />
                                 </div>
-                            )}
-                            {contractType === 'advance' && (
-                                <p className="wizard-hidden-note" style={{ marginTop: '24px' }}>Referral vendor isn't applicable to Advance contracts.</p>
+                            </div>
+                            {contractType === 'advance' && referralVendorId && (
+                                <p className="wizard-hidden-note">Commission for an Advance project's referral is a flat amount, entered manually when this project is marked Completed, not computed from sqft.</p>
                             )}
 
+                            <p className="wizard-section-label">Material Tracking</p>
                             {contractType === 'without_material' ? (
-                                <p className="wizard-hidden-note">Material tracking isn't applicable — this contract is labour only.</p>
+                                <p className="wizard-hidden-note">Material tracking isn't applicable: this contract is labour only.</p>
                             ) : contractType === 'with_material' ? (
                                 <p className="wizard-hidden-note">Material tracking is on for this contract (With Material always tracks material).</p>
                             ) : (
-                                <label className="featured-toggle" style={{ margin: '16px 0', display: 'flex' }}>
+                                <label className="featured-toggle" style={{ margin: '4px 0 16px', display: 'flex' }}>
                                     <input type="checkbox" checked={materialTrackingEnabled} onChange={e => setMaterialTrackingEnabled(e.target.checked)} />
                                     <span className="toggle-slider"></span>
                                     <span className="toggle-label">Track material for this project too</span>
@@ -291,28 +309,20 @@ const NewProjectWizard = ({ url }) => {
                             )}
 
                             {contractType === 'advance' && (
-                                <div className="wizard-field-grid" style={{ marginTop: '20px' }}>
-                                    <div className="add-product-name flex-col">
-                                        <p>Total Estimated Cost (₹) *</p>
-                                        <input type="number" value={totalEstimatedCost} onChange={e => setTotalEstimatedCost(e.target.value)} />
+                                <>
+                                    <p className="wizard-section-label">Advance Details</p>
+                                    <div className="wizard-field-grid">
+                                        <div className="add-product-name flex-col">
+                                            <p>Total Estimated Cost (₹, optional context)</p>
+                                            <input type="number" value={totalEstimatedCost} onChange={e => setTotalEstimatedCost(e.target.value)} placeholder="0" />
+                                        </div>
+                                        <div className="add-product-name flex-col">
+                                            <p>Advance Amount (₹) *</p>
+                                            <input type="number" value={advanceAmount} onChange={e => setAdvanceAmount(e.target.value)} placeholder="0" />
+                                        </div>
                                     </div>
-                                    <div className="add-product-name flex-col">
-                                        <p>Contract Percentage (%) *</p>
-                                        <input type="number" value={contractPercentage} onChange={e => setContractPercentage(e.target.value)} />
-                                    </div>
-                                    <div className="wizard-advance-summary wizard-field-full">
-                                        <p className="admin-subtitle" style={{ margin: 0 }}>Advance Amount (auto-computed)</p>
-                                        <p className="wizard-advance-amount">₹{advanceAmount.toLocaleString('en-IN')}</p>
-                                    </div>
-                                </div>
+                                </>
                             )}
-
-                            <div className="wizard-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={back}>Back</button>
-                                <button type="button" className="add-btn" disabled={saving} onClick={goToContractors}>
-                                    {saving ? 'Saving…' : 'Next: Contractor Rates'}
-                                </button>
-                            </div>
                         </>
                     )}
 
@@ -321,12 +331,6 @@ const NewProjectWizard = ({ url }) => {
                         <>
                             <h2>Contractor Assignment &amp; Rates</h2>
                             <ContractorRatesManager url={url} projectId={projectId} />
-                            <div className="wizard-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={back}>Back</button>
-                                <button type="button" className="add-btn" onClick={goToAdvanceOrActivate}>
-                                    {contractType === 'advance' ? 'Next: Advance Payment' : 'Next: Activate'}
-                                </button>
-                            </div>
                         </>
                     )}
 
@@ -336,7 +340,7 @@ const NewProjectWizard = ({ url }) => {
                             <h2>Record the Advance Invoice &amp; Receipt</h2>
                             <div className="wizard-advance-summary">
                                 <p className="admin-subtitle" style={{ margin: 0 }}>Advance Amount</p>
-                                <p className="wizard-advance-amount">₹{Number(totalEstimatedCost * contractPercentage / 100 || 0).toLocaleString('en-IN')}</p>
+                                <p className="wizard-advance-amount">₹{(Number(advanceAmount) || 0).toLocaleString('en-IN')}</p>
                             </div>
 
                             <div className="wizard-field-grid" style={{ margin: '16px 0' }}>
@@ -350,8 +354,8 @@ const NewProjectWizard = ({ url }) => {
                                 <div className="add-product-name flex-col">
                                     <p>Bank Account (leave blank if cash)</p>
                                     <StyledSelect
-                                        value={advanceBankAccountId} onChange={setAdvanceBankAccountId} placeholder="— Cash —"
-                                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} — ${a.bankName}` }))}
+                                        value={advanceBankAccountId} onChange={setAdvanceBankAccountId} placeholder="Cash"
+                                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                     />
                                 </div>
                                 <div className="add-product-name flex-col">
@@ -372,11 +376,6 @@ const NewProjectWizard = ({ url }) => {
                                     {project?.advanceReceived ? '✓ Payment Recorded' : 'Record Advance Received'}
                                 </button>
                             </div>
-
-                            <div className="wizard-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={back}>Back</button>
-                                <button type="button" className="add-btn" onClick={() => setStepKey('activate')}>Next: Activate</button>
-                            </div>
                         </>
                     )}
 
@@ -386,15 +385,9 @@ const NewProjectWizard = ({ url }) => {
                             <h2>Project Goes Live</h2>
                             <p className="admin-subtitle">
                                 Activating unlocks Daily Work Report entry for this project. If anything required is
-                                still missing — a work type rate, a contractor rate, or (for Advance) the payment — activation
-                                will tell you exactly what's left.
+                                still missing (a work type rate, a contractor rate, or, for Advance, the payment),
+                                activation will tell you exactly what's left.
                             </p>
-                            <div className="wizard-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={back}>Back</button>
-                                <button type="button" className="add-btn" disabled={saving} onClick={activate}>
-                                    {saving ? 'Activating…' : 'Activate Project'}
-                                </button>
-                            </div>
                         </>
                     )}
 

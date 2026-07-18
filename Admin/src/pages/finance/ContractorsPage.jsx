@@ -210,7 +210,7 @@ const ContractorsPage = ({ url }) => {
     return (
         <FinanceTabShell
             label="Contractors"
-            subtitle="Labour contractors — vendors with type Labour Contractor."
+            subtitle="Labour contractors: vendors with type Labour Contractor."
             tabs={TABS}
             activeKey={activeTab}
             onTabChange={setActiveTab}

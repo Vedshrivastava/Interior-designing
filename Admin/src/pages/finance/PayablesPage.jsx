@@ -304,7 +304,7 @@ const PayablesPage = ({ url }) => {
     return (
         <FinanceTabShell
             label="Payables"
-            subtitle="Computed from vendor balance + contractor balance + unpaid salary + unpaid commission — never a directly-writable record. Expenses/Expense Analysis/Company Expenses/Other Expenses are reads of the expense log instead, not a ledger."
+            subtitle="Computed from vendor balance + contractor balance + unpaid salary + unpaid commission: never a directly-writable record. Expenses/Expense Analysis/Company Expenses/Other Expenses are reads of the expense log instead, not a ledger."
             tabs={TABS}
             activeKey={activeTab}
             onTabChange={setActiveTab}

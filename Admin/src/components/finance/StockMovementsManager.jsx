@@ -78,7 +78,7 @@ const StockMovementsManager = ({ url, projectId }) => {
     return (
         <div>
             <h3 style={{ marginBottom: '4px' }}>Current Stock</h3>
-            <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>Always current — SUM(dump) − SUM(consume) − SUM(return) − SUM(waste), computed fresh, never stored.</p>
+            <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>Always current: SUM(dump) − SUM(consume) − SUM(return) − SUM(waste), computed fresh, never stored.</p>
             <div className="list-table" style={{ marginBottom: '32px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1fr 1fr' }}>
                     <b>Material</b><b>Unit</b><b>Current Stock</b>
@@ -90,8 +90,8 @@ const StockMovementsManager = ({ url, projectId }) => {
                 ) : (
                     stock.map(row => (
                         <div key={row.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1fr 1fr' }}>
-                            <p>{row.materialName || '—'}</p>
-                            <p>{row.unit || '—'}</p>
+                            <p>{row.materialName || '-'}</p>
+                            <p>{row.unit || '-'}</p>
                             <p style={{ color: row.currentStock < 0 ? '#c0392b' : undefined }}>{row.currentStock}</p>
                         </div>
                     ))
@@ -99,7 +99,7 @@ const StockMovementsManager = ({ url, projectId }) => {
             </div>
 
             <h3 style={{ marginBottom: '4px' }}>Movement History</h3>
-            <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>Every dump, consume, return, and waste movement ever recorded at this project — filter by date to narrow it down.</p>
+            <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>Every dump, consume, return, and waste movement ever recorded at this project; filter by date to narrow it down.</p>
             <div className="wizard-field-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0,220px))', marginBottom: '10px', alignItems: 'end' }}>
                 <div className="add-product-name flex-col">
                     <p>From</p>
@@ -149,11 +149,11 @@ const StockMovementsManager = ({ url, projectId }) => {
                     filteredMovements.map(m => (
                         <div key={m._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr 1fr 130px' }}>
                             <p>{new Date(m.date).toLocaleDateString()}</p>
-                            <p>{m.materialId?.name || '—'}</p>
+                            <p>{m.materialId?.name || '-'}</p>
                             <p><span className="item-category">{MOVEMENT_LABEL[m.movementType]}{m.relatedMeasurementId ? ' (auto)' : ''}</span></p>
-                            <p>{m.workId?.workType || '—'}</p>
+                            <p>{m.workId?.workType || '-'}</p>
                             <p>{m.quantity} {m.materialId?.unit || ''}</p>
-                            <p>{m.notes || '—'}</p>
+                            <p>{m.notes || '-'}</p>
                             <div className="action-buttons">
                                 {m.workId && <p onClick={() => navigate(`/finance/projects/${projectId}/works/${m.workId._id}`)} className="cursor edit-action">Details</p>}
                                 {!m.relatedMeasurementId && <p onClick={() => removeMovement(m)} className="cursor delete-action">X</p>}

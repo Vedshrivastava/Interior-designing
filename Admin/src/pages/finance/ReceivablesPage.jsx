@@ -62,7 +62,7 @@ const PendingReceiptsTab = ({ url }) => {
     useFinanceWsRefresh(['financeProjectsChanged', 'financeRunningBillsChanged', 'financeReceiptsChanged'], fetchRows);
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
-    if (rows.length === 0) return <div className="admin-empty-state"><p>Nothing outstanding — every issued bill is fully received.</p></div>;
+    if (rows.length === 0) return <div className="admin-empty-state"><p>Nothing outstanding: every issued bill is fully received.</p></div>;
 
     return (
         <div className="list-table">
@@ -72,7 +72,7 @@ const PendingReceiptsTab = ({ url }) => {
             {rows.map(r => (
                 <div key={r.projectId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1fr 1fr' }}>
                     <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${r.projectId}`)}>{r.projectName}</p>
-                    <p>{r.clientName || '—'}</p>
+                    <p>{r.clientName || '-'}</p>
                     <p>₹{r.issuedTotal.toLocaleString('en-IN')}</p>
                     <p>₹{r.receivedTotal.toLocaleString('en-IN')}</p>
                     <p style={{ color: '#c0392b', fontWeight: 600 }}>₹{r.balance.toLocaleString('en-IN')}</p>
@@ -89,7 +89,7 @@ const ReceivablesPage = ({ url }) => {
     return (
         <FinanceTabShell
             label="Receivables"
-            subtitle="Running bills, their approval status, and what's still outstanding — with_material / without_material projects only. Advance-contract projects track payment via their own advance fields instead."
+            subtitle="Running bills, their approval status, and what's still outstanding: with_material / without_material projects only. Advance-contract projects track payment via their own advance fields instead."
             tabs={TABS}
             activeKey={activeTab}
             onTabChange={setActiveTab}

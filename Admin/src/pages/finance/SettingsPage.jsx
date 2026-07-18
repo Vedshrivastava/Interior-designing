@@ -32,7 +32,7 @@ const SettingsPage = ({ url }) => {
     return (
         <FinanceTabShell
             label="Settings"
-            subtitle="System-level configuration — company profile, permissions, GST defaults, alert notifications, PDF branding, and data export."
+            subtitle="System-level configuration: company profile, permissions, GST defaults, alert notifications, PDF branding, and data export."
             tabs={TABS}
             activeKey={activeTab}
             onTabChange={setActiveTab}

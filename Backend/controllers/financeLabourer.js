@@ -22,8 +22,11 @@ const listLabourers = async (req, res) => {
 
 const addLabourer = async (req, res) => {
     try {
-        const { name, notes } = req.body;
+        const { name, accountName, bankName, accountNumber, ifscCode, notes } = req.body;
         if (!name || !name.trim()) return res.status(400).json({ success: false, message: 'Name is required' });
+        if (!accountName || !bankName || !accountNumber || !ifscCode) {
+            return res.status(400).json({ success: false, message: 'Bank account holder name, bank name, account number, and IFSC code are all required' });
+        }
 
         let documentNotes = [];
         if (req.body.documentNotes) {
@@ -31,7 +34,9 @@ const addLabourer = async (req, res) => {
         }
         const documents = await uploadDocumentsWithNotes(req.files, documentNotes, 'labourer_documents');
 
-        const item = new FinanceLabourer({ name: name.trim(), notes: notes || '', documents });
+        const item = new FinanceLabourer({
+            name: name.trim(), accountName, bankName, accountNumber, ifscCode, notes: notes || '', documents,
+        });
         await item.save();
         broadcast({ type: 'financeLabourersChanged' });
         res.json({ success: true, message: 'Labourer added', data: item });
@@ -43,12 +48,15 @@ const addLabourer = async (req, res) => {
 
 const updateLabourer = async (req, res) => {
     try {
-        const { _id, name, notes } = req.body;
+        const { _id, name, accountName, bankName, accountNumber, ifscCode, notes } = req.body;
         const existing = await FinanceLabourer.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Labourer not found' });
         if (!name || !name.trim()) return res.status(400).json({ success: false, message: 'Name is required' });
+        if (!accountName || !bankName || !accountNumber || !ifscCode) {
+            return res.status(400).json({ success: false, message: 'Bank account holder name, bank name, account number, and IFSC code are all required' });
+        }
         await FinanceLabourer.findByIdAndUpdate(_id, {
-            name: name.trim(), notes: notes || '',
+            name: name.trim(), accountName, bankName, accountNumber, ifscCode, notes: notes || '',
         });
         broadcast({ type: 'financeLabourersChanged' });
         res.json({ success: true, message: 'Labourer updated' });

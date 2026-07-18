@@ -20,7 +20,7 @@ const PaymentsPage = ({ url }) => {
     return (
         <FinanceTabShell
             label="Payments"
-            subtitle="All outgoing payments — client receipts live under Receipts instead."
+            subtitle="All outgoing payments; client receipts live under Receipts instead."
             tabs={TABS}
             activeKey={activeTab}
             onTabChange={setActiveTab}

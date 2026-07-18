@@ -96,7 +96,7 @@ const CommissionLedgerView = ({ url, vendorId }) => {
                         <p>{w.projectName}</p>
                         <p>{w.workType}</p>
                         <p>{w.completedAreaSqft} sqft</p>
-                        <p>{w.referralRatePerSqft != null ? `₹${w.referralRatePerSqft}/sqft` : <span title="No matching work type rate configured">— (no rate)</span>}</p>
+                        <p>{w.referralRatePerSqft != null ? `₹${w.referralRatePerSqft}/sqft` : <span title="No matching work type rate configured">(no rate)</span>}</p>
                         <p>₹{w.earnings.toLocaleString('en-IN')}</p>
                     </div>
                 ))}
@@ -116,14 +116,14 @@ const CommissionLedgerView = ({ url, vendorId }) => {
                     <div className="add-product-name flex-col">
                         <p>Bank Account</p>
                         <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)}>
-                            <option value="">— Cash —</option>
-                            {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
+                            <option value="">Cash</option>
+                            {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} · {a.bankName}</option>)}
                         </select>
                     </div>
                     <div className="add-product-name flex-col">
                         <p>TDS Section</p>
                         <select value={form.tdsSectionId} onChange={e => setField('tdsSectionId', e.target.value)}>
-                            <option value="">— No TDS —</option>
+                            <option value="">No TDS</option>
                             {tdsSections.map(s => <option key={s._id} value={s._id}>{s.name}{s.code ? ` (${s.code})` : ''}</option>)}
                         </select>
                     </div>
@@ -148,7 +148,7 @@ const CommissionLedgerView = ({ url, vendorId }) => {
                         <p>{new Date(p.date).toLocaleDateString()}</p>
                         <p>₹{p.amount.toLocaleString('en-IN')}</p>
                         <p>{p.bankAccountId?.accountName || 'Cash'}</p>
-                        <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '—'}</p>
+                        <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
                         <div className="action-buttons"><p onClick={() => remove(p._id)} className="cursor delete-action">X</p></div>
                     </div>
                 ))}

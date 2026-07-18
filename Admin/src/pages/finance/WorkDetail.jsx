@@ -113,7 +113,7 @@ const WorkDetail = ({ url }) => {
                 <p className="admin-subtitle" style={{ margin: '0 0 16px' }}>
                     {scope === 'alltime'
                         ? 'Every measurement ever logged against this Work.'
-                        : `Everything below — area, cost, material — is scoped to ${scope === 'day' ? 'this date' : 'this month'}.`}
+                        : `Everything below (area, cost, material) is scoped to ${scope === 'day' ? 'this date' : 'this month'}.`}
                 </p>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px' }}>
@@ -154,12 +154,12 @@ const WorkDetail = ({ url }) => {
                     <KpiCard
                         label="Average Material Cost/Sqft"
                         value={formatINR(data.averageCostPerSqft)}
-                        sub="Mean of each day's cost/sqft ratio — not total cost ÷ total area"
+                        sub="Mean of each day's cost/sqft ratio, not total cost ÷ total area"
                     />
                     <KpiCard
                         label="Expected Pay (Net of Deductions)"
                         value={formatINR(data.expectedPayNetOfDeductions)}
-                        sub={data.deductedTotal > 0 ? `₹${data.expectedPay.toLocaleString('en-IN')} expected − ₹${data.deductedTotal.toLocaleString('en-IN')} deducted` : 'Rate × estimated area — always all-time, not scoped by the picker above'}
+                        sub={data.deductedTotal > 0 ? `₹${data.expectedPay.toLocaleString('en-IN')} expected − ₹${data.deductedTotal.toLocaleString('en-IN')} deducted` : 'Rate × estimated area, always all-time, not scoped by the picker above'}
                         tone={data.deductedTotal > 0 ? 'danger' : undefined}
                     />
                 </KpiGrid>
@@ -197,7 +197,7 @@ const WorkDetail = ({ url }) => {
                 )}
 
                 <ChartGrid>
-                    <ChartCard title={`Daily Cost/Sqft — ${data.scopeLabel}`}>
+                    <ChartCard title={`Daily Cost/Sqft: ${data.scopeLabel}`}>
                         {data.dailyBreakdown.length > 0 ? (
                             <ResponsiveContainer width="100%" height={240}>
                                 <LineChart data={data.dailyBreakdown}>
@@ -240,7 +240,7 @@ const WorkDetail = ({ url }) => {
                     <div className="list-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: "1fr" }}><b>Project-Level Waste (not attributed to any specific work)</b></div>
                         <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
-                            Recorded before per-work waste tracking existed, or entered without picking a work — shown here separately rather than silently folded into or excluded from this work&apos;s numbers.
+                            Recorded before per-work waste tracking existed, or entered without picking a work; shown here separately rather than silently folded into or excluded from this work&apos;s numbers.
                         </p>
                         {data.projectLevelWaste.map(m => (
                             <div key={m.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
@@ -256,7 +256,7 @@ const WorkDetail = ({ url }) => {
                         <b>Project Material Stock</b><b>Dumped/Purchased</b><b>Consumed</b><b>Current Stock</b>
                     </div>
                     <p className="admin-subtitle" style={{ padding: '0 20px 8px' }}>
-                        Stock is tracked per project, not per Work — material dumped at this site can go to any Work here, so this is always current, not scoped by the selector above.
+                        Stock is tracked per project, not per Work; material dumped at this site can go to any Work here, so this is always current, not scoped by the selector above.
                     </p>
                     {data.materialStock.length === 0 ? (
                         <div className="admin-empty-state"><p>No material tracked at this project yet.</p></div>

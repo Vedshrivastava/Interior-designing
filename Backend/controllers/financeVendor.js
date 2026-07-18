@@ -21,8 +21,11 @@ const listFinanceVendors = async (req, res) => {
 
 const addFinanceVendor = async (req, res) => {
     try {
-        const { name, vendorType, phone, email, address, gstNumber, commissionTypeLabel, notes } = req.body;
+        const { name, vendorType, phone, email, address, gstNumber, accountName, bankName, accountNumber, ifscCode, commissionTypeLabel, notes } = req.body;
         if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
+        if (!accountName || !bankName || !accountNumber || !ifscCode) {
+            return res.status(400).json({ success: false, message: 'Bank account holder name, bank name, account number, and IFSC code are all required' });
+        }
 
         let documentNotes = [];
         if (req.body.documentNotes) {
@@ -32,6 +35,7 @@ const addFinanceVendor = async (req, res) => {
 
         const item = new FinanceVendor({
             name: name.trim(), vendorType, phone, email, address, gstNumber,
+            accountName, bankName, accountNumber, ifscCode,
             commissionTypeLabel: commissionTypeLabel || '', notes, documents,
         });
         await item.save();
@@ -45,12 +49,16 @@ const addFinanceVendor = async (req, res) => {
 
 const updateFinanceVendor = async (req, res) => {
     try {
-        const { _id, name, vendorType, phone, email, address, gstNumber, commissionTypeLabel, notes } = req.body;
+        const { _id, name, vendorType, phone, email, address, gstNumber, accountName, bankName, accountNumber, ifscCode, commissionTypeLabel, notes } = req.body;
         const existing = await FinanceVendor.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Vendor not found' });
         if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
+        if (!accountName || !bankName || !accountNumber || !ifscCode) {
+            return res.status(400).json({ success: false, message: 'Bank account holder name, bank name, account number, and IFSC code are all required' });
+        }
         await FinanceVendor.findByIdAndUpdate(_id, {
             name: name.trim(), vendorType, phone, email, address, gstNumber,
+            accountName, bankName, accountNumber, ifscCode,
             commissionTypeLabel: commissionTypeLabel || '', notes,
         });
         broadcast({ type: 'financeVendorsChanged' });

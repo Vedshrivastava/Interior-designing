@@ -36,7 +36,7 @@ export const useSupervisorConflictCheck = (url) => {
                 const workId = r.workId?._id || r.workId;
                 if (!workId || workId === excludeWorkId || seenWorkIds.has(workId)) continue;
                 seenWorkIds.add(workId);
-                conflicts.push({ projectName: r.workId?.projectId?.name || '—', workType: r.workId?.workType || '—' });
+                conflicts.push({ projectName: r.workId?.projectId?.name || '-', workType: r.workId?.workType || '-' });
             }
             if (!conflicts.length) { onProceed(); return; }
             setPending({ supervisorName: rows[0]?.supervisorId?.name || 'This supervisor', conflicts, onProceed });
@@ -52,10 +52,10 @@ export const useSupervisorConflictCheck = (url) => {
                 <h3>{pending.supervisorName} is already assigned elsewhere</h3>
                 <p className="bin-confirm-name" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     {pending.conflicts.map((c, i) => (
-                        <span key={i}>{c.projectName} — {c.workType}, maintaining a labour team there</span>
+                        <span key={i}>{c.projectName} · {c.workType}, maintaining a labour team there</span>
                     ))}
                 </p>
-                <p className="bin-confirm-warning">A supervisor can run more than one team — assign them here too?</p>
+                <p className="bin-confirm-warning">A supervisor can run more than one team; assign them here too?</p>
                 <div className="bin-confirm-actions">
                     <button className="bin-btn-cancel" onClick={() => setPending(null)}>Cancel</button>
                     <button className="bin-btn-delete" onClick={() => { pending.onProceed(); setPending(null); }}>Yes, Assign</button>

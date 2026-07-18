@@ -12,6 +12,14 @@ const financeVendorSchema = new mongoose.Schema({
     address:    { type: String, default: '' },
     gstNumber:  { type: String, default: '' },
 
+    // Mandatory for every person/entity the studio might ever pay —
+    // this is who actually gets paid when a payment is recorded against
+    // this vendor (financeContractorPayment/financeVendorPayment).
+    accountName:   { type: String, required: true },
+    bankName:      { type: String, required: true },
+    accountNumber: { type: String, required: true },
+    ifscCode:      { type: String, required: true },
+
     // Descriptive/reporting only — shown for vendorType 'referral' vendors,
     // populated from the Commission Types master (financeSetting,
     // settingType: 'commission_type'). Does NOT affect commission math:

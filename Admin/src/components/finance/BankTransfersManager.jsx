@@ -105,8 +105,8 @@ const BankTransfersManager = ({ url }) => {
                     transfers.map(t => (
                         <div key={t._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 100px' }}>
                             <p>{new Date(t.date).toLocaleDateString()}</p>
-                            <p>{t.fromAccountId?.accountName || '—'}</p>
-                            <p>{t.toAccountId?.accountName || '—'}</p>
+                            <p>{t.fromAccountId?.accountName || '-'}</p>
+                            <p>{t.toAccountId?.accountName || '-'}</p>
                             <p>₹{t.amount.toLocaleString('en-IN')}</p>
                             <div className="action-buttons"><p onClick={() => remove(t._id)} className="cursor delete-action">X</p></div>
                         </div>

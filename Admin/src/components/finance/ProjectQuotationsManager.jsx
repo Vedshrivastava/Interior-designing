@@ -99,7 +99,7 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                 <div>
                     <h3 style={{ margin: '0 0 4px' }}>Quotations</h3>
-                    <p className="admin-subtitle" style={{ margin: 0 }}>Issued to the client before the work order / signed rate stage — accept one to move the project forward.</p>
+                    <p className="admin-subtitle" style={{ margin: 0 }}>Issued to the client before the work order / signed rate stage; accept one to move the project forward.</p>
                 </div>
                 <button type="button" className="add-btn" onClick={() => setAddModalOpen(true)}>+ Add Quotation</button>
             </div>

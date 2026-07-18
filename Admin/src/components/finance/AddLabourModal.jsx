@@ -50,7 +50,7 @@ const AddLabourModal = ({ url, onClose, onLabourerCreated }) => {
             <div className="loader-modal-box edit-modal">
                 <h2>Add Labourer</h2>
                 <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                    Hired directly by the company, paid per sqft. Not owned by any supervisor — pick who runs their crew when you add them to a Work's team, and that can change project to project.
+                    Hired directly by the company, paid per sqft. Not owned by any supervisor; pick who runs their crew when you add them to a Work's team, and that can change project to project.
                 </p>
                 <form onSubmit={submit}>
                     <div className="wizard-field-grid">

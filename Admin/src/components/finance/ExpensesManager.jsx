@@ -16,9 +16,9 @@ const emptyForm = { expenseCategory: '', projectId: '', workId: '', relatedToUiT
 const emptySettleForm = { amount: '', date: '', paymentMode: '', bankAccountId: '' };
 const PAID_STATUS_OPTIONS = [
     { value: 'paid', label: 'Paid now' },
-    { value: 'pending', label: 'Record as pending — settle later' },
+    { value: 'pending', label: 'Record as pending, settle later' },
 ];
-const workLabel = (w) => `${w.workType}${w.workOrderNumber ? ` — ${w.workOrderNumber}` : ''} (${w.completedAreaSqft}/${w.estimatedAreaSqft} sqft)`;
+const workLabel = (w) => `${w.workType}${w.workOrderNumber ? ` · ${w.workOrderNumber}` : ''} (${w.completedAreaSqft}/${w.estimatedAreaSqft} sqft)`;
 
 /*
  * General company/site expenses. Two ways an expense's cash side can play
@@ -235,11 +235,11 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     ].filter(Boolean).join(' ');
 
     const heading = fixedRelatedTo
-        ? { title: fixedRelatedTo.label, subtitle: 'Expenses tied to the company itself — director travel, hotel stays, and similar. Use Notes to say what it was, e.g. matched against a bank statement line.' }
+        ? { title: fixedRelatedTo.label, subtitle: 'Expenses tied to the company itself: director travel, hotel stays, and similar. Use Notes to say what it was, e.g. matched against a bank statement line.' }
         : fixedCategory
-        ? { title: `${fixedCategory} Expenses`, subtitle: `Quick, unlinked entries under the "${fixedCategory}" category — an amount, a date, and a note is enough.` }
+        ? { title: `${fixedCategory} Expenses`, subtitle: `Quick, unlinked entries under the "${fixedCategory}" category: an amount, a date, and a note is enough.` }
         : hideProjectField
-        ? { title: 'Expenses', subtitle: 'Site expenses logged against this project — paid now, or recorded pending and settled later.' }
+        ? { title: 'Expenses', subtitle: 'Site expenses logged against this project: paid now, or recorded pending and settled later.' }
         : null;
 
     return (
@@ -271,7 +271,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                 )}
                                 {!hideProjectField && (
                                     <div className="add-product-name flex-col">
-                                        <p>Project (optional — general overhead if blank)</p>
+                                        <p>Project (optional, general overhead if blank)</p>
                                         <StyledSelect
                                             value={form.projectId} onChange={setProjectField} placeholder="General / overhead"
                                             options={projects.map(p => ({ value: p._id, label: p.name }))}
@@ -280,9 +280,9 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                 )}
                                 {!hideWorkField && (
                                     <div className="add-product-name flex-col">
-                                        <p>Work (optional{effectiveProjectId ? '' : ' — pick a project first'})</p>
+                                        <p>Work (optional{effectiveProjectId ? '' : ', pick a project first'})</p>
                                         <StyledSelect
-                                            value={form.workId} onChange={v => setField('workId', v)} placeholder="— Not tied to a Work —"
+                                            value={form.workId} onChange={v => setField('workId', v)} placeholder="Not tied to a Work"
                                             disabled={!effectiveProjectId} options={worksForProject.map(w => ({ value: w._id, label: workLabel(w) }))}
                                         />
                                     </div>
@@ -291,7 +291,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                     <div className="add-product-name flex-col">
                                         <p>Related To (optional)</p>
                                         <StyledSelect
-                                            value={form.relatedToUiType} onChange={setRelatedToUiType} placeholder="— None —"
+                                            value={form.relatedToUiType} onChange={setRelatedToUiType} placeholder="None"
                                             options={RELATED_TO_UI_OPTIONS}
                                         />
                                     </div>
@@ -323,8 +323,8 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                     <div className="add-product-name flex-col">
                                         <p>Bank Account (leave blank if cash)</p>
                                         <StyledSelect
-                                            value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="— Cash —"
-                                            options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} — ${a.bankName}` }))}
+                                            value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
+                                            options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                         />
                                     </div>
                                 )}
@@ -365,10 +365,10 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                     style={{ gridTemplateColumns: columns, ...(flashId === e._id ? { background: 'rgba(201,168,124,0.28)', transition: 'background 2s ease' } : {}) }}
                                 >
                                     <p>{new Date(e.date).toLocaleDateString()}</p>
-                                    {!hideCategoryField && <p>{e.expenseCategory || '—'}</p>}
+                                    {!hideCategoryField && <p>{e.expenseCategory || '-'}</p>}
                                     {!hideProjectField && <p>{e.projectId?.name || 'General'}</p>}
-                                    {!hideWorkField && <p>{e.workId?.workType || '—'}</p>}
-                                    {!hideRelatedToField && <p>{e.relatedToId?.name || e.relatedToId?.companyName || '—'}</p>}
+                                    {!hideWorkField && <p>{e.workId?.workType || '-'}</p>}
+                                    {!hideRelatedToField && <p>{e.relatedToId?.name || e.relatedToId?.companyName || '-'}</p>}
                                     <p>₹{e.amount.toLocaleString('en-IN')}</p>
                                     <p>₹{e.paidAmount.toLocaleString('en-IN')}</p>
                                     <p><span className="item-category" style={{ color: status.color }}>{status.label}</span></p>
@@ -389,7 +389,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
             {settleTarget && ReactDOM.createPortal(
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
                     <div className="loader-modal-box edit-modal">
-                        <h2>Settle Expense — {settleTarget.expenseCategory || 'General'}</h2>
+                        <h2>Settle Expense: {settleTarget.expenseCategory || 'General'}</h2>
                         <p className="admin-subtitle" style={{ margin: '4px 0 16px' }}>
                             Amount ₹{settleTarget.amount.toLocaleString('en-IN')} · Paid ₹{settleTarget.paidAmount?.toLocaleString('en-IN') ?? '0'} · Balance ₹{settleTarget.balance.toLocaleString('en-IN')}
                         </p>
@@ -424,8 +424,8 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                 <div className="add-product-name flex-col wizard-field-full">
                                     <p>Bank Account (leave blank if cash)</p>
                                     <StyledSelect
-                                        value={settleForm.bankAccountId} onChange={v => setSettleField('bankAccountId', v)} placeholder="— Cash —"
-                                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} — ${a.bankName}` }))}
+                                        value={settleForm.bankAccountId} onChange={v => setSettleField('bankAccountId', v)} placeholder="Cash"
+                                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                     />
                                 </div>
                             </div>
@@ -442,29 +442,29 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
             {viewTarget && ReactDOM.createPortal(
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }} onClick={() => setViewTarget(null)}>
                     <div className="loader-modal-box edit-modal" onClick={e => e.stopPropagation()}>
-                        <h2>{viewTarget.expenseCategory || 'General'} — ₹{viewTarget.amount.toLocaleString('en-IN')}</h2>
+                        <h2>{viewTarget.expenseCategory || 'General'} · ₹{viewTarget.amount.toLocaleString('en-IN')}</h2>
                         <div className="list-table" style={{ marginTop: '12px' }}>
                             {[
-                                ['Category', viewTarget.expenseCategory || '—'],
+                                ['Category', viewTarget.expenseCategory || '-'],
                                 ['Amount', `₹${viewTarget.amount.toLocaleString('en-IN')}`],
                                 ['Paid', `₹${viewTarget.paidAmount.toLocaleString('en-IN')}`],
                                 ['Balance', `₹${viewTarget.balance.toLocaleString('en-IN')}`],
                                 ['Status', statusFor(viewTarget).label],
                                 ['Date', new Date(viewTarget.date).toLocaleDateString()],
                                 ['Project', viewTarget.projectId?.name || 'General / overhead'],
-                                ['Work', viewTarget.workId?.workType || '— Not tied to a Work —'],
-                                ['Related To', viewTarget.relatedToId ? `${relatedToTypeLabel(viewTarget)}: ${viewTarget.relatedToId.name || viewTarget.relatedToId.companyName}` : '— None —'],
-                                ['Payment Mode', viewTarget.paymentMode || '—'],
-                                ['Bank Account', viewTarget.bankAccountId?.accountName || (viewTarget.paymentMode ? 'Cash' : '—')],
-                                ['Bank / Cash Label', viewTarget.bankOrCashLabel || '—'],
-                                ['Recorded', viewTarget.createdAt ? new Date(viewTarget.createdAt).toLocaleString() : '—'],
+                                ['Work', viewTarget.workId?.workType || 'Not tied to a Work'],
+                                ['Related To', viewTarget.relatedToId ? `${relatedToTypeLabel(viewTarget)}: ${viewTarget.relatedToId.name || viewTarget.relatedToId.companyName}` : 'None'],
+                                ['Payment Mode', viewTarget.paymentMode || '-'],
+                                ['Bank Account', viewTarget.bankAccountId?.accountName || (viewTarget.paymentMode ? 'Cash' : '-')],
+                                ['Bank / Cash Label', viewTarget.bankOrCashLabel || '-'],
+                                ['Recorded', viewTarget.createdAt ? new Date(viewTarget.createdAt).toLocaleString() : '-'],
                             ].map(([label, value]) => (
                                 <div key={label} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.4fr' }}>
                                     <p><b>{label}</b></p><p>{value}</p>
                                 </div>
                             ))}
                             <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.4fr', alignItems: 'start' }}>
-                                <p><b>Notes</b></p><p style={{ whiteSpace: 'pre-wrap' }}>{viewTarget.notes || '—'}</p>
+                                <p><b>Notes</b></p><p style={{ whiteSpace: 'pre-wrap' }}>{viewTarget.notes || '-'}</p>
                             </div>
                         </div>
                         <div className="edit-modal-actions">

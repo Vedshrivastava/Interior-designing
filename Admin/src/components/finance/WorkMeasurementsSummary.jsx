@@ -112,7 +112,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
             const key = crossProject ? (m.projectId?._id || m.projectId) : m.workId._id;
             if (!groups.has(key)) {
                 groups.set(key, crossProject
-                    ? { label: m.projectId?.name || '—', rows: [] }
+                    ? { label: m.projectId?.name || '-', rows: [] }
                     : { label: `${m.workId.workType}${m.workId.workOrderNumber ? ` (${m.workId.workOrderNumber})` : ''}`, rows: [] });
             }
             groups.get(key).rows.push({ kind, data: m });
@@ -221,20 +221,20 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
                                         )}
                                         {kind === 'contractor' ? (
                                             <div>
-                                                <p style={{ margin: 0 }}>{m.contractorVendorId?.name || '—'}</p>
+                                                <p style={{ margin: 0 }}>{m.contractorVendorId?.name || '-'}</p>
                                                 <span className="item-category" style={{ marginTop: '4px' }}>Contractor</span>
                                             </div>
                                         ) : (
                                             <div>
-                                                <p style={{ margin: 0 }}>{m.labourerId?.name || '—'}</p>
+                                                <p style={{ margin: 0 }}>{m.labourerId?.name || '-'}</p>
                                                 <span className="admin-subtitle" style={{ display: 'block', margin: '2px 0 4px' }}>
-                                                    Team: {m.supervisorId?.name || '—'}
+                                                    Team: {m.supervisorId?.name || '-'}
                                                 </span>
                                                 <span className="item-category">Labour</span>
                                             </div>
                                         )}
                                         <p>{m.areaCoveredSqft} sqft</p>
-                                        <p>{m.remarks || '—'}</p>
+                                        <p>{m.remarks || '-'}</p>
                                         <div className="action-buttons">
                                             <p
                                                 onClick={() => navigate(`/finance/projects/${crossProject ? (m.projectId?._id || m.projectId) : fixedProjectId}/works/${m.workId?._id || m.workId}?date=${toDateKey(m.date)}`)}

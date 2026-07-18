@@ -56,7 +56,7 @@ const CaMonthlyPackageView = ({ url }) => {
             {data && (
                 <>
                     <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                        For handoff to your CA — computed figures, not a filed return.
+                        For handoff to your CA: computed figures, not a filed return.
                     </p>
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>GST Summary</p>

@@ -14,8 +14,8 @@ const FinancePage = ({ label, phase, tabs = [] }) => {
   return (
     <FinanceTabShell
       label={label}
-      subtitle={tabs.length > 1 ? 'Select a tab below.' : "This section isn't built yet — it's on the roadmap."}
-      badge={phase && `${phase} — coming soon`}
+      subtitle={tabs.length > 1 ? 'Select a tab below.' : "This section isn't built yet; it's on the roadmap."}
+      badge={phase && `${phase} (coming soon)`}
       tabs={tabs}
       activeKey={activeKey}
       onTabChange={setActiveKey}

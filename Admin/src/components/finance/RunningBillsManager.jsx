@@ -173,7 +173,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                 <div>
                     <h3 style={{ margin: '0 0 4px' }}>Running Bills</h3>
-                    <p className="admin-subtitle" style={{ margin: 0 }}>Sqft is manually confirmed per work type at generation — draft until issued; only issued bills count as revenue or approved work.</p>
+                    <p className="admin-subtitle" style={{ margin: 0 }}>Sqft is manually confirmed per work type at generation: draft until issued; only issued bills count as revenue or approved work.</p>
                 </div>
                 <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={openGenerate}>+ Generate Bill</button>
             </div>
@@ -197,7 +197,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                                 {b.gstAmount
                                     ? ` + GST (${b.gstRate}%)`
                                     : (b.status === 'issued' && (
-                                        <span title="Mark this bill Draft to add GST — it's locked once issued." style={{ color: 'var(--text-lt)', fontSize: '0.85em' }}> · no GST</span>
+                                        <span title="Mark this bill Draft to add GST; it's locked once issued." style={{ color: 'var(--text-lt)', fontSize: '0.85em' }}> · no GST</span>
                                     ))}
                             </p>
                             <p onClick={() => toggleStatus(b)} className="cursor" style={{ color: b.status === 'issued' ? 'var(--moss)' : 'var(--text-lt)' }}>
@@ -218,7 +218,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                     <div className="loader-modal-box edit-modal" style={{ maxWidth: '660px' }}>
                         <h2>Generate Running Bill</h2>
                         <p className="admin-subtitle" style={{ margin: '4px 0 16px' }}>
-                            Sqft below is pre-filled with everything logged and not yet approved — edit it down to what you're actually confirming for each work type. The ₹ amount is always derived from the configured rate.
+                            Sqft below is pre-filled with everything logged and not yet approved; edit it down to what you're actually confirming for each work type. The ₹ amount is always derived from the configured rate.
                         </p>
                         <div className="wizard-field-grid">
                             <div className="add-product-name flex-col">
@@ -262,7 +262,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                                                     style={{ width: '90px' }}
                                                 />
                                             </p>
-                                            <p>{a.clientRatePerSqft != null ? `₹${a.clientRatePerSqft}/sqft` : <span title="No Work Type Rate configured">— (no rate)</span>}</p>
+                                            <p>{a.clientRatePerSqft != null ? `₹${a.clientRatePerSqft}/sqft` : <span title="No Work Type Rate configured">(no rate)</span>}</p>
                                             <p>₹{amount.toLocaleString('en-IN')}</p>
                                         </div>
                                     );
@@ -290,7 +290,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
             {gstEditItem && ReactDOM.createPortal(
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
                     <div className="loader-modal-box edit-modal" style={{ maxWidth: '380px' }}>
-                        <h2>GST — Bill #{gstEditItem.billNumber}</h2>
+                        <h2>GST: Bill #{gstEditItem.billNumber}</h2>
                         <p style={{ margin: '4px 0 16px', color: 'var(--text-lt)', fontSize: '0.9em' }}>
                             Applies to the subtotal of ₹{gstEditItem.totalAmount.toLocaleString('en-IN')}. Leave blank for no GST.
                         </p>
@@ -319,7 +319,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                     <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
                         <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
                         <h3>Remove Bill #{confirmItem.billNumber}?</h3>
-                        <p className="bin-confirm-warning">Its measurements become billable again — moved to Recovery Bin.</p>
+                        <p className="bin-confirm-warning">Its measurements become billable again; moved to Recovery Bin.</p>
                         <div className="bin-confirm-actions">
                             <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>
                             <button className="bin-btn-delete" onClick={confirmDelete} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>

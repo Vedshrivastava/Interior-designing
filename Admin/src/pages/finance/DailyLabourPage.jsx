@@ -94,7 +94,7 @@ const DailyLabourPage = ({ url }) => {
     return (
         <FinanceTabShell
             label="Labourers"
-            subtitle="Individual labourers hired directly by the company, paid per sqft — not a day rate."
+            subtitle="Individual labourers hired directly by the company, paid per sqft; not a day rate."
             tabs={TABS}
             activeKey={activeTab}
             onTabChange={setActiveTab}

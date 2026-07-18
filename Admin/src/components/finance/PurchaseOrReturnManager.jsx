@@ -151,12 +151,12 @@ const PurchaseOrReturnManager = ({ url, transactionType }) => {
                     items.map(item => (
                         <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 100px' }}>
                             <p>{new Date(item.date).toLocaleDateString()}</p>
-                            <p>{item.vendorId?.name || '—'}</p>
-                            <p>{item.materialId?.name || '—'} {item.materialId?.unit ? `(${item.materialId.unit})` : ''}</p>
+                            <p>{item.vendorId?.name || '-'}</p>
+                            <p>{item.materialId?.name || '-'} {item.materialId?.unit ? `(${item.materialId.unit})` : ''}</p>
                             <p>{item.quantity}</p>
                             <p>₹{item.ratePerUnit}</p>
                             <p>₹{item.totalAmount.toLocaleString('en-IN')}</p>
-                            <p>{item.gstAmount ? `₹${item.gstAmount.toLocaleString('en-IN')} (${item.gstRate}%)` : '—'}</p>
+                            <p>{item.gstAmount ? `₹${item.gstAmount.toLocaleString('en-IN')} (${item.gstRate}%)` : '-'}</p>
                             <div className="action-buttons">
                                 <p onClick={() => setConfirmItem(item)} className="cursor delete-action">X</p>
                             </div>
@@ -170,7 +170,7 @@ const PurchaseOrReturnManager = ({ url, transactionType }) => {
                     <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
                         <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
                         <h3>Remove this {isReturn ? 'return' : 'purchase'}?</h3>
-                        <p className="bin-confirm-warning">Its stock movement is removed too — moved to Recovery Bin.</p>
+                        <p className="bin-confirm-warning">Its stock movement is removed too; moved to Recovery Bin.</p>
                         <div className="bin-confirm-actions">
                             <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>
                             <button className="bin-btn-delete" onClick={confirmDelete} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>

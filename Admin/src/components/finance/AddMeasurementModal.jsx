@@ -111,10 +111,10 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
 
     const projectOptions = projects.map(p => ({ value: p._id, label: p.name }));
     const workOptions = works.map(w => ({ value: w._id, label: `${w.workType}${w.workOrderNumber ? ` (${w.workOrderNumber})` : ''}` }));
-    const contractorOptions = workContractors.map(a => ({ value: a.contractorVendorId?._id || a.contractorVendorId, label: a.contractorVendorId?.name || '—' }));
+    const contractorOptions = workContractors.map(a => ({ value: a.contractorVendorId?._id || a.contractorVendorId, label: a.contractorVendorId?.name || '-' }));
     const labourerOptions = workLabourers.map(a => ({
         value: a.labourerId?._id || a.labourerId,
-        label: `${a.labourerId?.name || '—'}${a.supervisorId?.name ? ` — ${a.supervisorId.name}'s team` : ''}`,
+        label: `${a.labourerId?.name || '-'}${a.supervisorId?.name ? ` · ${a.supervisorId.name}'s team` : ''}`,
     }));
 
     const submitContractor = () => axios.post(`${url}/api/finance/measurements/add`, {
@@ -239,19 +239,19 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                     {isContractor && materialTrackingEnabled && (
                         <div style={{ margin: '4px 0 20px' }}>
                             <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
-                                Material Used {materialLines.length > 0 && `— for ${form.areaCoveredSqft || '?'} sqft covered above, not per material`}
+                                Material Used {materialLines.length > 0 && `(for ${form.areaCoveredSqft || '?'} sqft covered above, not per material)`}
                             </p>
                             {!form.workId ? (
                                 <p className="admin-subtitle">Select a work first.</p>
                             ) : materialLines.length === 0 ? (
                                 <p className="admin-subtitle">
-                                    No materials are tagged to this work type yet — add them from Masters → Material Master.
+                                    No materials are tagged to this work type yet; add them from Masters → Material Master.
                                 </p>
                             ) : materialLines.map((line, idx) => {
                                 const material = materials.find(m => m._id === line.materialId);
                                 return (
                                     <div key={line.materialId} style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'center' }}>
-                                        <p style={{ flex: 2, margin: 0 }}>{material?.name || '—'}</p>
+                                        <p style={{ flex: 2, margin: 0 }}>{material?.name || '-'}</p>
                                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <input type="number" placeholder="Quantity" value={line.quantity} onChange={e => setMaterialLine(idx, 'quantity', e.target.value)} style={{ width: '100%' }} />
                                             {material?.unit && <span className="admin-subtitle" style={{ whiteSpace: 'nowrap' }}>{material.unit}</span>}

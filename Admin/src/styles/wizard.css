@@ -87,6 +87,70 @@
     margin: 0;
 }
 
+/* ── Step content typography — the wizard used to sit inside a boxed
+   .edit-modal card and inherited its h2/field-label look from that class;
+   now that steps render directly on the page (no white card), these two
+   rules keep the same heading/label treatment without dragging back the
+   box/shadow/background .edit-modal also carries. ── */
+.wizard-step-body h2 {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--green);
+    margin: 0 0 28px 0;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(201,168,124,0.22);
+    letter-spacing: -0.3px;
+}
+/* textarea isn't covered by add.css's general `.add-product-name input,
+   .add-product-name select` rule (only `.add-product-description textarea`
+   is, a different wrapper class than the wizard uses) — previously masked
+   by .edit-modal's own blanket input/textarea/select rule, exposed once
+   the wizard stopped using that wrapper. */
+.wizard-step-body textarea {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid rgba(201,168,124,0.28);
+    background-color: var(--ivory);
+    color: var(--green);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-family: "DM Sans", sans-serif;
+    outline: none;
+    resize: vertical;
+    transition: all 0.22s ease;
+    box-sizing: border-box;
+}
+.wizard-step-body textarea:focus {
+    border-color: var(--gold);
+    background: var(--white);
+    box-shadow: 0 0 0 4px rgba(201,168,124,0.12);
+}
+
+.wizard-step-body .add-product-name > p {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-lt);
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    margin: 0 0 8px 0;
+}
+
+/* ── Small uppercase divider between logical field groups within a step ── */
+.wizard-section-label {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-lt);
+    margin: 0 0 12px;
+    padding-left: 10px;
+    border-left: 3px solid var(--gold);
+}
+.wizard-section-label:not(:first-child) { margin-top: 24px; }
+
 /* ── Form grid ── */
 .wizard-field-grid {
     display: grid;

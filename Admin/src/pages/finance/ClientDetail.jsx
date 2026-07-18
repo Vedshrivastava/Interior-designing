@@ -149,7 +149,7 @@ const ClientProjectsTab = ({ url, clientId }) => {
                         <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${p._id}`)}>{p.name}</p>
                         <p><span className="item-category">{CONTRACT_TYPE_LABEL[p.contractType]}</span></p>
                         <p><span className="item-category">{STATUS_LABEL[p.status]}</span></p>
-                        <p>{p.workTypes.length > 0 ? p.workTypes.join(', ') : '—'}</p>
+                        <p>{p.workTypes.length > 0 ? p.workTypes.join(', ') : '-'}</p>
                     </div>
                 ))}
             </div>
@@ -275,8 +275,8 @@ const ClientReceiptsTab = ({ url, clientId }) => {
                 <div key={r._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
                     <p>{new Date(r.receiptDate).toLocaleDateString()}</p>
                     <p>₹{r.amount.toLocaleString('en-IN')}</p>
-                    <p>{r.paymentMode || '—'}</p>
-                    <p>{r.utrNumber || r.bankOrCashLabel || '—'}</p>
+                    <p>{r.paymentMode || '-'}</p>
+                    <p>{r.utrNumber || r.bankOrCashLabel || '-'}</p>
                 </div>
             ))}
         </div>
@@ -289,7 +289,7 @@ const ClientReceiptsTab = ({ url, clientId }) => {
 const useMergedFeed = (url, clientId) => {
     const { bills, receipts, loading } = useClientBillsAndReceipts(url, clientId);
     const feed = [
-        ...bills.filter(b => b.status === 'issued').map(b => ({ type: 'bill', date: b.billDate, amount: b.totalAmount, label: `Bill #${b.billNumber} issued — ${b.projectName}` })),
+        ...bills.filter(b => b.status === 'issued').map(b => ({ type: 'bill', date: b.billDate, amount: b.totalAmount, label: `Bill #${b.billNumber} issued · ${b.projectName}` })),
         ...receipts.map(r => ({ type: 'receipt', date: r.receiptDate, amount: r.amount, label: `Receipt received${r.paymentMode ? ` (${r.paymentMode})` : ''}` })),
     ];
     return { feed, loading };
@@ -377,7 +377,7 @@ const ClientQuotationsTab = ({ url, clientId }) => {
                     <p>
                         {q.documents?.[0]
                             ? <a href={q.documents[0].fileUrl} target="_blank" rel="noreferrer" className="cursor edit-action" style={{ textDecoration: 'none' }}>View</a>
-                            : '—'}
+                            : '-'}
                     </p>
                 </div>
             ))}
@@ -484,9 +484,9 @@ const ClientContactsTab = ({ url, clientId }) => {
                     {contacts.map(c => (
                         <div key={c._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1.3fr 120px' }}>
                             <p>{c.name}</p>
-                            <p>{c.designation || '—'}</p>
-                            <p>{c.phone || '—'}</p>
-                            <p>{c.email || '—'}</p>
+                            <p>{c.designation || '-'}</p>
+                            <p>{c.phone || '-'}</p>
+                            <p>{c.email || '-'}</p>
                             <div className="action-buttons">
                                 <p onClick={() => openEdit(c)} className="cursor edit-action">Edit</p>
                                 <p onClick={() => remove(c._id)} className="cursor delete-action">X</p>
@@ -546,12 +546,12 @@ const ClientDetail = ({ url }) => {
                 <ClientDashboardSummary url={url} clientId={client._id} />
                 <div className="list-table">
                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Name</b></p><p>{client.name}</p></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Phone</b></p><p>{client.phone || '—'}</p></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Email</b></p><p>{client.email || '—'}</p></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Address</b></p><p>{client.address || '—'}</p></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>GST Number</b></p><p>{client.gstNumber || '—'}</p></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Total Projects</b></p><p style={{ cursor: 'pointer' }} onClick={() => setActiveTab('projects')}>{projectCount ?? '—'}</p></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Notes</b></p><p>{client.notes || '—'}</p></div>
+                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Phone</b></p><p>{client.phone || '-'}</p></div>
+                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Email</b></p><p>{client.email || '-'}</p></div>
+                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Address</b></p><p>{client.address || '-'}</p></div>
+                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>GST Number</b></p><p>{client.gstNumber || '-'}</p></div>
+                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Total Projects</b></p><p style={{ cursor: 'pointer' }} onClick={() => setActiveTab('projects')}>{projectCount ?? '-'}</p></div>
+                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Notes</b></p><p>{client.notes || '-'}</p></div>
                 </div>
                 </div>
             )}
@@ -562,7 +562,7 @@ const ClientDetail = ({ url }) => {
             {activeTab === 'documents' && (
                 <DocumentsTab
                     url={url} apiBase="client-documents" scopeParam="clientId" scopeId={client._id}
-                    title="Documents" subtitle="KYC, GSTIN, and general agreements — outlives any one project."
+                    title="Documents" subtitle="KYC, GSTIN, and general agreements; outlives any one project."
                     emptyText="No documents on file for this client yet."
                 />
             )}

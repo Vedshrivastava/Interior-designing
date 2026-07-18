@@ -86,7 +86,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
 
     const submitDeduction = async (e) => {
         e.preventDefault();
-        if (!deductionForm.workId) return toast.error('Work is required — the deduction amount is derived from its rate');
+        if (!deductionForm.workId) return toast.error('Work is required: the deduction amount is derived from its rate');
         if (!deductionForm.areaSqft || Number(deductionForm.areaSqft) <= 0) return toast.error('Sqft to deduct must be greater than zero');
         if (!deductionForm.reason.trim()) return toast.error('Reason is required');
         if (!deductionForm.date) return toast.error('Date is required');
@@ -152,12 +152,12 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
             </div>
             {totals.unapprovedAmount > 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
-                    ₹{totals.unapprovedAmount.toLocaleString('en-IN')} worth of measured work hasn't been billed to the client yet — it isn't counted as Approved earnings until a running bill covering it is issued (Receivables → Running Bills).
+                    ₹{totals.unapprovedAmount.toLocaleString('en-IN')} worth of measured work hasn't been billed to the client yet; it isn't counted as Approved earnings until a running bill covering it is issued (Receivables → Running Bills).
                 </p>
             )}
 
             <div style={{ marginBottom: '28px', marginTop: '20px' }}>
-                <ChartCard title="Advances / Deductions / Payments — by month">
+                <ChartCard title="Advances / Deductions / Payments, by month">
                     {monthlyFlow.length > 0 ? (
                         <ResponsiveContainer width="100%" height={220}>
                             <BarChart data={monthlyFlow}>
@@ -190,13 +190,13 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                     <p>{w.projectName}</p>
                                     <p>{w.workType}</p>
                                     <p>{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft</p>
-                                    <p>{w.rate ? `₹${w.totalAmount.toLocaleString('en-IN')}` : <span title="No matching contractor rate configured">— (no rate)</span>}</p>
+                                    <p>{w.rate ? `₹${w.totalAmount.toLocaleString('en-IN')}` : <span title="No matching contractor rate configured">(no rate)</span>}</p>
                                     <p style={{ color: w.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>
                                         {w.earnings > 0
                                             ? <>₹{w.earnings.toLocaleString('en-IN')} <span style={{ fontWeight: 400, fontSize: '0.75rem' }}>({w.approvedAreaSqft} sqft{w.approvedDate ? `, ${new Date(w.approvedDate).toLocaleDateString()}` : ''})</span></>
                                             : 'Unapproved'}
                                     </p>
-                                    <p style={{ color: w.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>{w.rate ? `₹${w.unapprovedAmount.toLocaleString('en-IN')}` : '—'}</p>
+                                    <p style={{ color: w.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>{w.rate ? `₹${w.unapprovedAmount.toLocaleString('en-IN')}` : '-'}</p>
                                 </div>
                             ))
                         )}
@@ -239,8 +239,8 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                     <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
                         <p>{new Date(a.date).toLocaleDateString()}</p>
                         <p>₹{a.amount.toLocaleString('en-IN')}</p>
-                        <p>{a.paymentMode || '—'}</p>
-                        <p>{a.notes || '—'}</p>
+                        <p>{a.paymentMode || '-'}</p>
+                        <p>{a.notes || '-'}</p>
                         <div className="action-buttons"><p onClick={() => remove('advance', a._id)} className="cursor delete-action">X</p></div>
                     </div>
                 ))}
@@ -248,10 +248,10 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
 
             <h3 style={{ marginBottom: '8px' }}>Deductions</h3>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>
-                Sqft in, ₹ out — the amount is always derived from the picked work's rate, never typed directly.
+                Sqft in, ₹ out: the amount is always derived from the picked work's rate, never typed directly.
             </p>
             {showWorks && ledger.works.length === 0 ? (
-                <p className="admin-subtitle" style={{ marginBottom: '20px' }}>No works for this contractor yet — a deduction needs a work to derive its rate from.</p>
+                <p className="admin-subtitle" style={{ marginBottom: '20px' }}>No works for this contractor yet; a deduction needs a work to derive its rate from.</p>
             ) : (
                 <form onSubmit={submitDeduction}>
                     <div className="wizard-field-grid">
@@ -259,7 +259,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                             <p>Work *</p>
                             <select value={deductionForm.workId} onChange={e => setDeductionForm(p => ({ ...p, workId: e.target.value }))}>
                                 <option value="">Select work…</option>
-                                {ledger.works.map(w => <option key={w._id} value={w._id}>{w.projectName} — {w.workType}</option>)}
+                                {ledger.works.map(w => <option key={w._id} value={w._id}>{w.projectName} · {w.workType}</option>)}
                             </select>
                         </div>
                         <div className="add-product-name flex-col">
@@ -279,7 +279,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                         const rate = ledger.works.find(w => w._id === deductionForm.workId)?.rate;
                         return rate
                             ? <p className="admin-subtitle" style={{ marginTop: '8px' }}>≈ ₹{(rate * Number(deductionForm.areaSqft)).toLocaleString('en-IN')} at ₹{rate}/sqft</p>
-                            : <p className="admin-subtitle" style={{ marginTop: '8px', color: '#c0392b' }}>No rate configured for this work — deduction will be rejected.</p>;
+                            : <p className="admin-subtitle" style={{ marginTop: '8px', color: '#c0392b' }}>No rate configured for this work; deduction will be rejected.</p>;
                     })()}
                     <div className="wizard-actions" style={{ marginTop: '16px', marginBottom: '12px' }}>
                         <span />
@@ -296,10 +296,10 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                 ) : ledger.deductions.map(d => (
                     <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 1fr 1.3fr 1fr 100px' }}>
                         <p>{new Date(d.date).toLocaleDateString()}</p>
-                        <p>{d.areaSqft ?? '—'}</p>
+                        <p>{d.areaSqft ?? '-'}</p>
                         <p>₹{d.amount.toLocaleString('en-IN')}</p>
                         <p>{d.reason}</p>
-                        <p>{ledger.works.find(w => w._id === (d.workId?._id || d.workId))?.workType || '—'}</p>
+                        <p>{ledger.works.find(w => w._id === (d.workId?._id || d.workId))?.workType || '-'}</p>
                         <div className="action-buttons"><p onClick={() => remove('deduction', d._id)} className="cursor delete-action">X</p></div>
                     </div>
                 ))}
@@ -323,14 +323,14 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                     <div className="add-product-name flex-col">
                         <p>Bank Account</p>
                         <select value={paymentForm.bankAccountId} onChange={e => setPaymentForm(p => ({ ...p, bankAccountId: e.target.value }))}>
-                            <option value="">— Cash —</option>
-                            {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
+                            <option value="">Cash</option>
+                            {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} · {a.bankName}</option>)}
                         </select>
                     </div>
                     <div className="add-product-name flex-col">
                         <p>TDS Section</p>
                         <select value={paymentForm.tdsSectionId} onChange={e => setPaymentForm(p => ({ ...p, tdsSectionId: e.target.value }))}>
-                            <option value="">— No TDS —</option>
+                            <option value="">No TDS</option>
                             {tdsSections.map(s => <option key={s._id} value={s._id}>{s.name}{s.code ? ` (${s.code})` : ''}</option>)}
                         </select>
                     </div>
@@ -358,10 +358,10 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                     <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
                         <p>{new Date(p.date).toLocaleDateString()}</p>
                         <p>₹{p.amount.toLocaleString('en-IN')}</p>
-                        <p>{p.paymentMode || '—'}</p>
+                        <p>{p.paymentMode || '-'}</p>
                         <p>{p.bankAccountId?.accountName || 'Cash'}</p>
-                        <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '—'}</p>
-                        <p>{p.attachmentUrl ? <a href={p.attachmentUrl} target="_blank" rel="noreferrer">View</a> : '—'}</p>
+                        <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
+                        <p>{p.attachmentUrl ? <a href={p.attachmentUrl} target="_blank" rel="noreferrer">View</a> : '-'}</p>
                         <div className="action-buttons"><p onClick={() => remove('payment', p._id)} className="cursor delete-action">X</p></div>
                     </div>
                 ))}

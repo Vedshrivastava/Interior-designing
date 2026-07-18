@@ -16,7 +16,7 @@ const SiteOperationsPage = ({ url }) => {
     return (
         <FinanceTabShell
             label="Site Operations"
-            subtitle="Log daily measurements against a project's works — this drives completion %, contractor earnings, and material consumption automatically."
+            subtitle="Log daily measurements against a project's works: this drives completion %, contractor earnings, and material consumption automatically."
             tabs={TABS}
             activeKey={activeTab}
             onTabChange={setActiveTab}

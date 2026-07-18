@@ -69,7 +69,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
                     for (const p of purchasesRes.data.data) {
                         if (!p.vendorId) continue;
                         const key = p.vendorId._id || p.vendorId;
-                        if (!byVendor.has(key)) byVendor.set(key, { vendorId: key, vendorName: p.vendorId.name || '—', totalPurchased: 0 });
+                        if (!byVendor.has(key)) byVendor.set(key, { vendorId: key, vendorName: p.vendorId.name || '-', totalPurchased: 0 });
                         byVendor.get(key).totalPurchased += p.totalAmount;
                     }
                     setVendors([...byVendor.values()]);
@@ -229,6 +229,15 @@ const ProjectDetail = ({ url }) => {
     const [markingInvoiced, setMarkingInvoiced] = useState(false);
     const [markingReceived, setMarkingReceived] = useState(false);
 
+    // Advance-type referral commission: a flat manually-typed amount
+    // (see financeProject.referralCommissionAmount), editable any time from
+    // Overview and re-confirmed once more right before Mark Completed
+    // proceeds — that confirm step is the last real chance to get it right.
+    const [commissionInput, setCommissionInput] = useState('');
+    const [savingCommission, setSavingCommission] = useState(false);
+    const [completionCommissionConfirm, setCompletionCommissionConfirm] = useState(null); // { amount } | null
+    const [confirmingCompletion, setConfirmingCompletion] = useState(false);
+
     // Progress % is never stored — computed here from the same works list
     // WorksManager fetches, just so it's visible without switching tabs.
     const [progressPct, setProgressPct] = useState(null);
@@ -245,6 +254,10 @@ const ProjectDetail = ({ url }) => {
     };
 
     useEffect(() => { fetchProject(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        if (project) setCommissionInput(String(project.referralCommissionAmount || 0));
+    }, [project?._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
@@ -275,7 +288,7 @@ const ProjectDetail = ({ url }) => {
     const [savingSupervisor, setSavingSupervisor] = useState(false);
 
     const stageSupervisorChange = async (employeeId) => {
-        if (!employeeId) { setPendingSupervisor({ id: '', name: '— None —' }); return; }
+        if (!employeeId) { setPendingSupervisor({ id: '', name: 'None' }); return; }
         try {
             const res = await axios.get(`${url}/api/finance/employees/list`, authHeader);
             const name = res.data.success ? (res.data.data.find(e => e._id === employeeId)?.name || 'this employee') : 'this employee';
@@ -355,6 +368,38 @@ const ProjectDetail = ({ url }) => {
         } finally { setCompleting(false); }
     };
 
+    const saveCommission = async () => {
+        setSavingCommission(true);
+        try {
+            const res = await axios.post(`${url}/api/finance/projects/referral-commission`, { _id: id, referralCommissionAmount: commissionInput }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); await fetchProject(); }
+            else toast.error(res.data.message);
+        } catch (err) { toast.error(err.response?.data?.message || 'Error updating referral commission'); }
+        finally { setSavingCommission(false); }
+    };
+
+    // Advance projects with a referral vendor set always re-confirm the
+    // commission amount right here, even if it was already entered/edited
+    // earlier from Overview — this is the last real chance to get it right.
+    const handleMarkCompletedClick = () => {
+        if (project.contractType === 'advance' && project.referralVendorId) {
+            setCompletionCommissionConfirm({ amount: String(project.referralCommissionAmount || 0) });
+        } else {
+            completeProject(false);
+        }
+    };
+
+    const confirmCommissionAndComplete = async () => {
+        setConfirmingCompletion(true);
+        try {
+            const res = await axios.post(`${url}/api/finance/projects/referral-commission`, { _id: id, referralCommissionAmount: completionCommissionConfirm.amount }, authHeader);
+            if (!res.data.success) { toast.error(res.data.message); return; }
+            setCompletionCommissionConfirm(null);
+            await completeProject(false);
+        } catch (err) { toast.error(err.response?.data?.message || 'Error confirming referral commission'); }
+        finally { setConfirmingCompletion(false); }
+    };
+
     // Revisitable here — not just the New Project Wizard's one-time step.
     const markAdvanceInvoiced = async () => {
         setMarkingInvoiced(true);
@@ -423,7 +468,7 @@ const ProjectDetail = ({ url }) => {
                         </button>
                     )}
                     {project.status === 'active' && (
-                        <button type="button" className="add-point-btn" disabled={completing} onClick={() => completeProject(false)}>
+                        <button type="button" className="add-point-btn" disabled={completing} onClick={handleMarkCompletedClick}>
                             {completing ? 'Checking…' : 'Mark Completed'}
                         </button>
                     )}
@@ -440,20 +485,32 @@ const ProjectDetail = ({ url }) => {
                 {activeTab === 'overview' && (
                     <div>
                         <div className="list-table" style={{ marginBottom: '24px' }}>
-                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Site Location</b></p><p>{project.siteLocation || '—'}</p></div>
-                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Start Date</b></p><p>{project.startDate ? new Date(project.startDate).toLocaleDateString() : '—'}</p></div>
+                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Site Location</b></p><p>{project.siteLocation || '-'}</p></div>
+                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Start Date</b></p><p>{project.startDate ? new Date(project.startDate).toLocaleDateString() : '-'}</p></div>
                             <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Estimated Area</b></p><p>{project.estimatedAreaSqft || 0} sqft</p></div>
                             <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Material Tracking</b></p><p>{project.materialTrackingEnabled ? 'Enabled' : 'Disabled'}</p></div>
                             {project.contractType === 'advance' && (
                                 <>
                                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Total Estimated Cost</b></p><p>₹{project.totalEstimatedCost?.toLocaleString('en-IN')}</p></div>
-                                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Contract Percentage</b></p><p>{project.contractPercentage}%</p></div>
                                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Advance Amount</b></p><p>₹{project.advanceAmount?.toLocaleString('en-IN')}</p></div>
+                                    {project.referralVendorId && (
+                                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                                            <p><b>Referral Commission</b></p>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <input type="number" value={commissionInput} onChange={e => setCommissionInput(e.target.value)} style={{ maxWidth: '140px' }} />
+                                                {Number(commissionInput) !== (project.referralCommissionAmount || 0) && (
+                                                    <button type="button" className="add-point-btn" disabled={savingCommission} onClick={saveCommission}>
+                                                        {savingCommission ? 'Saving…' : 'Save'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
                                         <p><b>Advance Invoiced</b></p>
                                         <div>
                                             {project.advanceInvoiced ? (
-                                                <span>Yes — {new Date(project.advanceInvoicedAt).toLocaleDateString()}</span>
+                                                <span>Yes, {new Date(project.advanceInvoicedAt).toLocaleDateString()}</span>
                                             ) : (
                                                 <button type="button" className="add-point-btn" disabled={markingInvoiced} onClick={markAdvanceInvoiced}>
                                                     {markingInvoiced ? 'Saving…' : 'Mark Invoiced'}
@@ -466,7 +523,7 @@ const ProjectDetail = ({ url }) => {
                                         <div>
                                             {project.advanceReceived ? (
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                    <span>Yes — {new Date(project.advanceReceivedAt).toLocaleDateString()}</span>
+                                                    <span>Yes, {new Date(project.advanceReceivedAt).toLocaleDateString()}</span>
                                                     <p onClick={downloadAdvanceReceipt} className="cursor edit-action" style={{ margin: 0 }}>Download Receipt</p>
                                                 </div>
                                             ) : (
@@ -478,7 +535,7 @@ const ProjectDetail = ({ url }) => {
                                     </div>
                                 </>
                             )}
-                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Notes</b></p><p>{project.notes || '—'}</p></div>
+                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Notes</b></p><p>{project.notes || '-'}</p></div>
                         </div>
                         <ProjectOverviewTab url={url} projectId={id} contractType={project.contractType} onViewWorks={() => setActiveTab('works')} />
                     </div>
@@ -489,7 +546,7 @@ const ProjectDetail = ({ url }) => {
                         <div className="loader-modal-box edit-modal">
                             <h2>Record Advance Received</h2>
                             <p className="admin-subtitle" style={{ margin: '4px 0 16px' }}>
-                                Advance of ₹{project.advanceAmount?.toLocaleString('en-IN')} for "{project.name}" — how did it arrive?
+                                Advance of ₹{project.advanceAmount?.toLocaleString('en-IN')} for "{project.name}": how did it arrive?
                             </p>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
@@ -502,8 +559,8 @@ const ProjectDetail = ({ url }) => {
                                 <div className="add-product-name flex-col">
                                     <p>Bank Account (leave blank if cash)</p>
                                     <StyledSelect
-                                        value={advanceBankAccountId} onChange={setAdvanceBankAccountId} placeholder="— Cash —"
-                                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} — ${a.bankName}` }))}
+                                        value={advanceBankAccountId} onChange={setAdvanceBankAccountId} placeholder="Cash"
+                                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                     />
                                 </div>
                                 <div className="add-product-name flex-col">
@@ -531,7 +588,7 @@ const ProjectDetail = ({ url }) => {
                         <WorksManager url={url} projectId={id} worksVersion={worksVersion} onWorksChanged={() => setWorksVersion(v => v + 1)} />
                         <h3 style={{ margin: '32px 0 4px' }}>Work Type Rates</h3>
                         <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>
-                            Referral Person: {project.referralVendorId?.name || '— None —'}
+                            Referral Person: {project.referralVendorId?.name || 'None'}
                         </p>
                         <WorkTypeRatesManager url={url} projectId={id} worksVersion={worksVersion} />
                         <h3 style={{ margin: '28px 0 8px' }}>Contractor Rates</h3>
@@ -564,7 +621,7 @@ const ProjectDetail = ({ url }) => {
                     <div>
                         <h3 style={{ margin: '0 0 4px' }}>Supervisor</h3>
                         <p className="admin-subtitle" style={{ margin: '0 0 16px' }}>
-                            The employee overseeing this project on site — shown wherever this project appears under Supervisors, Attendance, and Site Operations.
+                            The employee overseeing this project on site, shown wherever this project appears under Supervisors, Attendance, and Site Operations.
                         </p>
                         <div className="add-product-name flex-col" style={{ maxWidth: '520px' }}>
                             <p>Assigned Supervisor</p>
@@ -572,12 +629,12 @@ const ProjectDetail = ({ url }) => {
                                 url={url} resourceKey="employees"
                                 value={project.assignedSupervisorId?._id || ''}
                                 onChange={stageSupervisorChange}
-                                placeholder="— None —"
+                                placeholder="None"
                             />
                         </div>
                         {!project.assignedSupervisorId && project.assignedSupervisor && (
                             <p className="admin-subtitle" style={{ margin: '12px 0 0' }}>
-                                Legacy free-text supervisor on record: "{project.assignedSupervisor}" — pick someone above to replace it with a real employee link.
+                                Legacy free-text supervisor on record: "{project.assignedSupervisor}". Pick someone above to replace it with a real employee link.
                             </p>
                         )}
 
@@ -587,7 +644,7 @@ const ProjectDetail = ({ url }) => {
                                     <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
                                     <h3>Change Supervisor?</h3>
                                     <p className="bin-confirm-name">{pendingSupervisor.name}</p>
-                                    <p className="bin-confirm-warning">This replaces the supervisor assigned to "{project.name}" — visible immediately across Attendance and Site Operations.</p>
+                                    <p className="bin-confirm-warning">This replaces the supervisor assigned to "{project.name}", visible immediately across Attendance and Site Operations.</p>
                                     <div className="bin-confirm-actions">
                                         <button className="bin-btn-cancel" onClick={() => setPendingSupervisor(null)} disabled={savingSupervisor}>Cancel</button>
                                         <button className="bin-btn-delete" onClick={confirmSupervisorChange} disabled={savingSupervisor}>{savingSupervisor ? 'Saving…' : 'Yes, Change'}</button>
@@ -606,7 +663,7 @@ const ProjectDetail = ({ url }) => {
                 {activeTab === 'documents' && (
                     <DocumentsTab
                         url={url} apiBase="project-documents" scopeParam="projectId" scopeId={id}
-                        title="Documents" subtitle="Work orders, site approvals, floor plans — specific to this project."
+                        title="Documents" subtitle="Work orders, site approvals, floor plans, specific to this project."
                         emptyText="No documents on file for this project yet."
                     />
                 )}
@@ -614,6 +671,31 @@ const ProjectDetail = ({ url }) => {
                 {activeTab === 'timeline' && <ProjectTimelineTab url={url} projectId={id} />}
                 {activeTab === 'profitability' && <ProjectProfitabilityTab url={url} projectId={id} contractType={project.contractType} />}
             </div>
+
+            {completionCommissionConfirm && ReactDOM.createPortal(
+                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal">
+                        <h2>Confirm Referral Commission</h2>
+                        <p className="admin-subtitle" style={{ margin: '4px 0 16px' }}>
+                            Referral Person: {project.referralVendorId?.name || 'None'}. Confirm the flat commission amount before completing "{project.name}".
+                        </p>
+                        <div className="add-product-name flex-col">
+                            <p>Referral Commission (₹)</p>
+                            <input
+                                type="number" value={completionCommissionConfirm.amount}
+                                onChange={e => setCompletionCommissionConfirm({ amount: e.target.value })}
+                            />
+                        </div>
+                        <div className="edit-modal-actions">
+                            <button type="button" className="add-btn cancel-btn" onClick={() => setCompletionCommissionConfirm(null)} disabled={confirmingCompletion || completing}>Cancel</button>
+                            <button type="button" className="add-btn" disabled={confirmingCompletion || completing} onClick={confirmCommissionAndComplete}>
+                                {confirmingCompletion || completing ? 'Confirming…' : 'Confirm & Continue'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
 
             {completionBlockers && ReactDOM.createPortal(
                 <div className="bin-confirm-backdrop" onClick={() => !completing && setCompletionBlockers(null)}>
@@ -628,7 +710,7 @@ const ProjectDetail = ({ url }) => {
                                 </span>
                             ))}
                         </p>
-                        <p className="bin-confirm-warning">A project can still be completed with these left open — this is just a heads-up before you do.</p>
+                        <p className="bin-confirm-warning">A project can still be completed with these left open; this is just a heads-up before you do.</p>
                         <div className="bin-confirm-actions">
                             <button className="bin-btn-cancel" onClick={() => setCompletionBlockers(null)} disabled={completing}>Cancel</button>
                             <button className="bin-btn-delete" onClick={() => completeProject(true)} disabled={completing}>

@@ -46,7 +46,7 @@ const WorkProfitView = ({ url, workId }) => {
     return (
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                {data.workType} — {data.completedAreaSqft} / {data.estimatedAreaSqft} sqft completed, {data.areaBilledSqft} sqft billed
+                {data.workType} · {data.completedAreaSqft} / {data.estimatedAreaSqft} sqft completed, {data.areaBilledSqft} sqft billed
             </p>
             <div className="list-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>

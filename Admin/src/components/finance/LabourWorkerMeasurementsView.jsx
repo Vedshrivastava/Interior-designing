@@ -34,7 +34,7 @@ const LabourWorkerMeasurementsView = ({ url, labourerId }) => {
             {measurements.map(m => (
                 <div key={m._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1fr' }}>
                     <p>{new Date(m.date).toLocaleDateString()}</p>
-                    <p>{m.workId?.workType || '—'}</p>
+                    <p>{m.workId?.workType || '-'}</p>
                     <p>{m.areaCoveredSqft} sqft</p>
                 </div>
             ))}

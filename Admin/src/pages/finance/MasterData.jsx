@@ -54,7 +54,7 @@ const MasterData = ({ url }) => {
                 <div className="admin-header-split">
                     <div>
                         <h1>Master Data</h1>
-                        <p className="admin-subtitle">Material catalog, dropdown lists, employees, and labourers — the data everything else references.</p>
+                        <p className="admin-subtitle">Material catalog, dropdown lists, employees, and labourers: the data everything else references.</p>
                     </div>
                 </div>
 

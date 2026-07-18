@@ -217,7 +217,7 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
             ) : (
                 <>
                     <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                        One row per contractor actually assigned to each work type — fill in a rate to confirm it.
+                        One row per contractor actually assigned to each work type; fill in a rate to confirm it.
                     </p>
                     <div className="list-table">
                         {[...contractorsByWorkType.entries()].map(([workType, contractors]) => (

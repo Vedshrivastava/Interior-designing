@@ -119,13 +119,13 @@ const ProjectsList = ({ url }) => {
                 <div className="admin-header-split">
                     <div>
                         <h1>All Projects</h1>
-                        <p className="admin-subtitle">Finance-tracked projects — contract type, rates, and readiness to go live.</p>
+                        <p className="admin-subtitle">Finance-tracked projects: contract type, rates, and readiness to go live.</p>
                     </div>
                     <button type="button" className="add-point-btn" onClick={() => navigate('/finance/projects/new')}>+ New Project</button>
                 </div>
 
                 <ChartGrid>
-                    <ChartCard title="Profitability — active projects">
+                    <ChartCard title="Profitability: active projects">
                         {loading || statsLoading ? <ChartSkeleton /> : profitData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={240}>
                                 <BarChart data={profitData} layout="vertical" margin={{ left: 24 }}>
@@ -179,12 +179,12 @@ const ProjectsList = ({ url }) => {
                     {loading ? (
                         <div className="admin-empty-state"><p>Loading…</p></div>
                     ) : list.length === 0 ? (
-                        <div className="admin-empty-state"><p>No projects yet — start with "+ New Project".</p></div>
+                        <div className="admin-empty-state"><p>No projects yet: start with "+ New Project".</p></div>
                     ) : (
                         list.map(item => (
                             <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1.3fr 1fr 1fr 1fr 100px' }}>
                                 <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${item._id}`)}>{item.name}</p>
-                                <p>{item.clientId?.name || '—'}</p>
+                                <p>{item.clientId?.name || '-'}</p>
                                 <p><span className="item-category">{CONTRACT_TYPE_LABEL[item.contractType]}</span></p>
                                 <p><span className="item-category">{STATUS_LABEL[item.status]}</span></p>
                                 <p>

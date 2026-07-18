@@ -113,7 +113,7 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
             </div>
 
             <div style={{ marginBottom: '28px' }}>
-                <ChartCard title="Purchases / Returns / Payments — by month">
+                <ChartCard title="Purchases / Returns / Payments, by month">
                     {monthlyFlow.length > 0 ? (
                         <ResponsiveContainer width="100%" height={220}>
                             <BarChart data={monthlyFlow}>
@@ -141,8 +141,8 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                 ) : ledger.purchases.map(p => (
                     <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr' }}>
                         <p>{new Date(p.date).toLocaleDateString()}</p>
-                        <p>{p.projectId?.name || '—'}</p>
-                        <p>{p.materialId?.name || '—'}</p>
+                        <p>{p.projectId?.name || '-'}</p>
+                        <p>{p.materialId?.name || '-'}</p>
                         <p>{p.quantity}</p>
                         <p>₹{p.totalAmount.toLocaleString('en-IN')}</p>
                     </div>
@@ -159,8 +159,8 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                 ) : ledger.returns.map(r => (
                     <div key={r._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr' }}>
                         <p>{new Date(r.date).toLocaleDateString()}</p>
-                        <p>{r.projectId?.name || '—'}</p>
-                        <p>{r.materialId?.name || '—'}</p>
+                        <p>{r.projectId?.name || '-'}</p>
+                        <p>{r.materialId?.name || '-'}</p>
                         <p>{r.quantity}</p>
                         <p>₹{r.totalAmount.toLocaleString('en-IN')}</p>
                     </div>
@@ -185,14 +185,14 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                     <div className="add-product-name flex-col">
                         <p>Bank Account</p>
                         <select value={paymentForm.bankAccountId} onChange={e => setPaymentForm(p => ({ ...p, bankAccountId: e.target.value }))}>
-                            <option value="">— Cash —</option>
-                            {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
+                            <option value="">Cash</option>
+                            {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} · {a.bankName}</option>)}
                         </select>
                     </div>
                     <div className="add-product-name flex-col">
                         <p>TDS Section</p>
                         <select value={paymentForm.tdsSectionId} onChange={e => setPaymentForm(p => ({ ...p, tdsSectionId: e.target.value }))}>
-                            <option value="">— No TDS —</option>
+                            <option value="">No TDS</option>
                             {tdsSections.map(s => <option key={s._id} value={s._id}>{s.name}{s.code ? ` (${s.code})` : ''}</option>)}
                         </select>
                     </div>
@@ -220,10 +220,10 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                     <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
                         <p>{new Date(p.date).toLocaleDateString()}</p>
                         <p>₹{p.amount.toLocaleString('en-IN')}</p>
-                        <p>{p.paymentMode || '—'}</p>
+                        <p>{p.paymentMode || '-'}</p>
                         <p>{p.bankAccountId?.accountName || 'Cash'}</p>
-                        <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '—'}</p>
-                        <p>{p.attachmentUrl ? <a href={p.attachmentUrl} target="_blank" rel="noreferrer">View</a> : '—'}</p>
+                        <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
+                        <p>{p.attachmentUrl ? <a href={p.attachmentUrl} target="_blank" rel="noreferrer">View</a> : '-'}</p>
                         <div className="action-buttons"><p onClick={() => removePayment(p._id)} className="cursor delete-action">X</p></div>
                     </div>
                 ))}

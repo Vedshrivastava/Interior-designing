@@ -22,7 +22,7 @@ const emptyForm = { runningBillId: '', amount: '', receiptDate: '', paymentMode:
  * advance-received flow didn't collect a payment mode or bank account at
  * all), which made unrecorded payments falsely read as "Cash". It now only
  * says Cash when a payment mode was actually captured; otherwise it's
- * honestly "—".
+ * honestly "-".
  */
 const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
     const token = localStorage.getItem('token');
@@ -128,7 +128,7 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                         <div>
                             <h3 style={{ margin: '0 0 4px' }}>Receipts</h3>
-                            <p className="admin-subtitle" style={{ margin: 0 }}>Money actually received from the client — optionally tied to one issued bill.</p>
+                            <p className="admin-subtitle" style={{ margin: 0 }}>Money actually received from the client, optionally tied to one issued bill.</p>
                         </div>
                         <button type="button" className="add-btn" onClick={openAdd}>+ Record Receipt</button>
                     </div>
@@ -151,8 +151,8 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                                             <p>Against Bill (optional)</p>
                                             <StyledSelect
                                                 value={form.runningBillId} onChange={v => setField('runningBillId', v)}
-                                                placeholder="— Not tied to a specific bill —"
-                                                options={issuedBills.map(b => ({ value: b._id, label: `#${b.billNumber} — ₹${b.totalAmount.toLocaleString('en-IN')}` }))}
+                                                placeholder="Not tied to a specific bill"
+                                                options={issuedBills.map(b => ({ value: b._id, label: `#${b.billNumber} · ₹${b.totalAmount.toLocaleString('en-IN')}` }))}
                                             />
                                         </div>
                                         <div className="add-product-name flex-col">
@@ -165,8 +165,8 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                                         <div className="add-product-name flex-col">
                                             <p>Bank Account (leave blank if cash)</p>
                                             <StyledSelect
-                                                value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="— Cash —"
-                                                options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} — ${a.bankName}` }))}
+                                                value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
+                                                options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                             />
                                         </div>
                                         <div className="add-product-name flex-col">
@@ -205,10 +205,10 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                                 <div key={r._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1.2fr 1fr 90px' }}>
                                     <p>{new Date(r.receiptDate).toLocaleDateString()}</p>
                                     <p>₹{r.amount.toLocaleString('en-IN')}</p>
-                                    <p>{r.runningBillId?.billNumber ? `#${r.runningBillId.billNumber}` : '—'}</p>
-                                    <p>{r.paymentMode || '—'}</p>
-                                    <p>{r.bankAccountId?.accountName || (r.paymentMode ? 'Cash' : '—')}</p>
-                                    <p>{r.utrNumber || r.bankOrCashLabel || '—'}</p>
+                                    <p>{r.runningBillId?.billNumber ? `#${r.runningBillId.billNumber}` : '-'}</p>
+                                    <p>{r.paymentMode || '-'}</p>
+                                    <p>{r.bankAccountId?.accountName || (r.paymentMode ? 'Cash' : '-')}</p>
+                                    <p>{r.utrNumber || r.bankOrCashLabel || '-'}</p>
                                     <div className="action-buttons">
                                         <p onClick={() => removeReceipt(r)} className="cursor delete-action">X</p>
                                     </div>

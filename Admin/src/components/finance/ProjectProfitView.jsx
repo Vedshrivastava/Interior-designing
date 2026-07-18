@@ -106,7 +106,7 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                         </div>
                     </div>
 
-                    <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Works — drill into a work's own profit</p>
+                    <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Works: drill into a work's own profit</p>
                     <div className="list-table">
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 140px' }}>
                             <b>Work Type</b><b>Completed / Estimated</b><b>Status</b><b>Action</b>

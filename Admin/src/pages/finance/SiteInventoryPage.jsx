@@ -53,7 +53,7 @@ const SiteInventoryPage = ({ url }) => {
     const wastageData = (summary?.wastageRateSorted || []).map(r => ({ ...r, wastagePercent: Math.round(r.wastageRate * 1000) / 10 }));
 
     return (
-        <FinanceTabShell label="Site Inventory" subtitle="Current stock, consumption trend, and wastage rate — manual dump/return/waste entry per project below.">
+        <FinanceTabShell label="Site Inventory" subtitle="Current stock, consumption trend, and wastage rate. Manual dump/return/waste entry per project below.">
             {!loading && stockTable.length > 0 && (
                 <>
                     <ChartGrid>
@@ -73,7 +73,7 @@ const SiteInventoryPage = ({ url }) => {
                                 </ResponsiveContainer>
                             ) : <EmptyChart text="No consumption recorded yet." />}
                         </ChartCard>
-                        <ChartCard title="Wastage Rate — highest first">
+                        <ChartCard title="Wastage Rate: highest first">
                             {wastageData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height={240}>
                                     <BarChart data={wastageData.slice(0, 10)} layout="vertical" margin={{ left: 24 }}>

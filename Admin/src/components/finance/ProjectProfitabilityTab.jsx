@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
-import { KpiCard, KpiGrid, formatINR } from './DashboardWidgets';
+import { KpiCard, KpiGrid, KpiSectionLabel, formatINR } from './DashboardWidgets';
 import '../../styles/list.css';
 
 const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance'];
@@ -79,16 +79,24 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
             </KpiGrid>
 
             {receivable && (
-                <div className="list-table" style={{ marginTop: '24px', marginBottom: '24px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Receivables</b></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1.3fr' }}>
-                        <p>Billed: {formatINR(receivable.issuedTotal)}</p>
-                        <p>Received: {formatINR(receivable.receivedTotal)}</p>
-                        <p style={{ color: receivable.balance > 0 ? '#c0392b' : 'var(--moss)' }}>Outstanding: {formatINR(receivable.balance)}</p>
-                        <p>{receivable.issuedBillCount} bill{receivable.issuedBillCount === 1 ? '' : 's'} issued</p>
-                        <p>{receivable.oldestIssuedBillDate ? `Oldest: ${new Date(receivable.oldestIssuedBillDate).toLocaleDateString()}` : '—'}</p>
-                    </div>
-                </div>
+                <>
+                    <KpiSectionLabel>Receivables</KpiSectionLabel>
+                    <KpiGrid>
+                        <KpiCard label="Billed" value={formatINR(receivable.issuedTotal)} />
+                        <KpiCard label="Received" value={formatINR(receivable.receivedTotal)} />
+                        {receivable.balance > 0 ? (
+                            <KpiCard label="Outstanding" value={formatINR(receivable.balance)} tone="danger" />
+                        ) : receivable.balance < 0 ? (
+                            <KpiCard label="Advance Credit" value={formatINR(Math.abs(receivable.balance))} sub="Received ahead of billing" tone="good" />
+                        ) : (
+                            <KpiCard label="Outstanding" value={formatINR(0)} tone="good" />
+                        )}
+                        <KpiCard label="Bills Issued" value={receivable.issuedBillCount} />
+                        {receivable.oldestIssuedBillDate && (
+                            <KpiCard label="Oldest Issued Bill" value={new Date(receivable.oldestIssuedBillDate).toLocaleDateString()} />
+                        )}
+                    </KpiGrid>
+                </>
             )}
 
             {contractors.length === 0 ? (

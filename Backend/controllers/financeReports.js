@@ -251,6 +251,12 @@ const computeProjectLabourCost = async (projectId) => {
 
 const computeProjectCommissionCost = async (project) => {
     if (!project.referralVendorId) return 0;
+    // Advance projects have no per-sqft referral math at all — commission is
+    // a flat, manually-typed amount (financeProject.referralCommissionAmount,
+    // editable any time), read fresh here so Profit/Client Profit move
+    // immediately whenever it's changed. With/Without Material keep the
+    // usual completedAreaSqft × referralRatePerSqft computation.
+    if (project.contractType === 'advance') return project.referralCommissionAmount || 0;
     const works = await FinanceWork.find({ projectId: project._id, deleted: { $ne: true } });
     if (!works.length) return 0;
     const rates = await FinanceWorkTypeRate.find({ projectId: project._id, deleted: { $ne: true } });
@@ -1789,7 +1795,10 @@ const computeCompanyWideLabourCostInRange = async (start, end, projectIds = null
 
 // Same measurement-date proxy as the contractor-cost helper above, scoped
 // to projects that actually have a referral vendor (commission only applies
-// there).
+// there). Known gap: Advance projects' referralCommissionAmount is a flat
+// manual figure with no date of its own, so it never contributes to this
+// date-ranged view (only to the lifetime computeProjectCommissionCost) —
+// same class of approximation as everything else in this function.
 const computeCompanyWideCommissionCostInRange = async (start, end, projectIds = null) => {
     const match = { date: { $gte: start, $lte: end }, deleted: { $ne: true } };
     const measurements = await FinanceMeasurement.find(match).populate({ path: 'workId', select: 'projectId workType' });

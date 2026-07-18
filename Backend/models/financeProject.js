@@ -25,7 +25,11 @@ const financeProjectSchema = new mongoose.Schema({
     assignedSupervisor:       { type: String, default: '' },
     assignedSupervisorId:     { type: mongoose.Schema.Types.ObjectId, ref: 'financeEmployee', default: null },
     labourContractorVendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', default: null },
-    referralVendorId:         { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', default: null }, // null for advance
+    // Optional for every contract type, including Advance — for With/Without
+    // Material, commission is computedAreaSqft × financeWorkTypeRate.
+    // referralRatePerSqft (see computeProjectCommissionCost); for Advance,
+    // there's no per-sqft commission math at all — see referralCommissionAmount.
+    referralVendorId:         { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', default: null },
 
     // Material Received/Issue logs available for this project — always true
     // for with_material, always false for without_material, owner's choice
@@ -33,9 +37,19 @@ const financeProjectSchema = new mongoose.Schema({
     materialTrackingEnabled: { type: Boolean, default: true },
 
     // Advance-only fields
-    totalEstimatedCost:  { type: Number, default: 0 },
-    contractPercentage:  { type: Number, default: 0 },
-    advanceAmount:       { type: Number, default: 0 }, // computed: cost × percentage
+    totalEstimatedCost:  { type: Number, default: 0 }, // optional context, doesn't drive anything
+    advanceAmount:       { type: Number, default: 0 }, // manually entered, not computed from a percentage
+
+    // Advance-only, and only meaningful when referralVendorId is set — a
+    // single manually-typed lump sum instead of the sqft × rate computation
+    // With/Without Material projects use (an Advance deal's referral fee is
+    // negotiated as a flat amount, not per square foot). Editable any time
+    // after being set (computeProjectCommissionCost always reads the current
+    // value fresh, so Profit/Client Profit/etc. move immediately when this
+    // changes) — and re-confirmed once more specifically when the project is
+    // marked Completed (see completeFinanceProject), since it's the last
+    // real chance to get it right.
+    referralCommissionAmount: { type: Number, default: 0 },
 
     // Advance-only — Step 5 of the wizard. Lightweight tracking until Phase 3
     // (Invoices/Payments) exists; will be replaced by a real invoice+payment

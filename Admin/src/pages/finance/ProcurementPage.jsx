@@ -163,7 +163,7 @@ const ProcurementPage = ({ url }) => {
     return (
         <FinanceTabShell
             label="Procurement"
-            subtitle="Material vendors and purchasing — labour contractors live under Contractors instead."
+            subtitle="Material vendors and purchasing; labour contractors live under Contractors instead."
             tabs={TABS}
             activeKey={activeTab}
             onTabChange={setActiveTab}

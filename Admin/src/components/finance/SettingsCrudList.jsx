@@ -124,8 +124,8 @@ const SettingsCrudList = ({ url, lockedType }) => {
                     items.map(item => (
                         <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr 1fr 140px' }}>
                             <p>{item.name}</p>
-                            <p>{item.code || '—'}</p>
-                            <p>{item.rate != null ? `${item.rate}%` : '—'}</p>
+                            <p>{item.code || '-'}</p>
+                            <p>{item.rate != null ? `${item.rate}%` : '-'}</p>
                             <div className="action-buttons">
                                 <p onClick={() => removeItem(item._id, item.name)} className="cursor delete-action">X</p>
                             </div>

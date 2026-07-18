@@ -33,7 +33,7 @@ const GstSettingsForm = ({ url }) => {
     return (
         <form onSubmit={submit} className="flex-col" style={{ maxWidth: '360px' }}>
             <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                Prefills (doesn't lock) the GST rate field on Running Bill generation and Purchase entry — still editable per document.
+                Prefills (doesn't lock) the GST rate field on Running Bill generation and Purchase entry; still editable per document.
             </p>
             <div className="add-product-name flex-col">
                 <p>Default GST Rate %</p>

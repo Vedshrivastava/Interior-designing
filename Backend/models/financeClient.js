@@ -6,6 +6,15 @@ const financeClientSchema = new mongoose.Schema({
     email:      { type: String, default: '' },
     address:    { type: String, default: '' },
     gstNumber:  { type: String, default: '' },
+
+    // Mandatory for every person/entity the studio might ever pay or
+    // refund — bank details, not payment history (see financeReceipt/
+    // financeContractorPayment/etc. for that).
+    accountName:   { type: String, required: true },
+    bankName:      { type: String, required: true },
+    accountNumber: { type: String, required: true },
+    ifscCode:      { type: String, required: true },
+
     notes:      { type: String, default: '' },
     deleted:    { type: Boolean, default: false },
     deletedAt:  { type: Date },

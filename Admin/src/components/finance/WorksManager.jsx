@@ -288,7 +288,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                                         <span
                                             className="item-category"
                                             style={{ marginLeft: '8px', background: 'rgba(192,57,43,0.12)', color: '#c0392b', borderColor: 'rgba(192,57,43,0.3)' }}
-                                            title="Added from Work Type Rates / Contractor Rates before full details were entered — open Edit and save to clear this."
+                                            title="Added from Work Type Rates / Contractor Rates before full details were entered; open Edit and save to clear this."
                                         >
                                             ⚠ Details Missing
                                         </span>
@@ -353,7 +353,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                             {!editingId && (
                                 <div className="add-product-name flex-col">
                                     <p>Labour Team{selectedLabourerIds.length > 0 ? ' *' : ''}</p>
-                                    <p className="admin-subtitle" style={{ margin: '0 0 8px' }}>Pick a supervisor and the labourers they're bringing to this work — optional, only if you're assigning labour now.</p>
+                                    <p className="admin-subtitle" style={{ margin: '0 0 8px' }}>Pick a supervisor and the labourers they're bringing to this work; optional, only if you're assigning labour now.</p>
                                     <div style={{ marginBottom: '8px' }}>
                                         <QuickAddPicker
                                             url={url} resourceKey="employees" value={labourSupervisorId}
@@ -406,7 +406,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
             {contractorsModalWork && ReactDOM.createPortal(
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
                     <div className="loader-modal-box edit-modal">
-                        <h2>Manage Contractors — {contractorsModalWork.workType}</h2>
+                        <h2>Manage Contractors: {contractorsModalWork.workType}</h2>
                         {contractorsLoading ? (
                             <div className="admin-empty-state"><p>Loading…</p></div>
                         ) : (
@@ -416,8 +416,8 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                                 </div>
                                 {workContractors.map(a => (
                                     <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1.5fr 100px' }}>
-                                        <p>{a.contractorVendorId?.name || '—'}</p>
-                                        <p>{a.notes || '—'}</p>
+                                        <p>{a.contractorVendorId?.name || '-'}</p>
+                                        <p>{a.notes || '-'}</p>
                                         <div className="action-buttons">
                                             <p onClick={() => removeWorkContractor(a._id)} className="cursor delete-action">X</p>
                                         </div>
@@ -456,7 +456,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
             {labourModalWork && ReactDOM.createPortal(
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
                     <div className="loader-modal-box edit-modal">
-                        <h2>Manage Labour — {labourModalWork.workType}</h2>
+                        <h2>Manage Labour: {labourModalWork.workType}</h2>
                         {labourLoading ? (
                             <div className="admin-empty-state"><p>Loading…</p></div>
                         ) : (
@@ -468,9 +468,9 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                                     <div className="admin-empty-state"><p>No labour team on this work yet.</p></div>
                                 ) : workLabourers.map(a => (
                                     <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1.3fr 1.3fr 100px' }}>
-                                        <p>{a.labourerId?.name || '—'}</p>
-                                        <p>{a.supervisorId?.name || '—'}</p>
-                                        <p>{a.notes || '—'}</p>
+                                        <p>{a.labourerId?.name || '-'}</p>
+                                        <p>{a.supervisorId?.name || '-'}</p>
+                                        <p>{a.notes || '-'}</p>
                                         <div className="action-buttons">
                                             <p onClick={() => removeWorkLabourer(a._id)} className="cursor delete-action">X</p>
                                         </div>
@@ -480,7 +480,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                         )}
                         <div className="add-product-name flex-col">
                             <p>Add a Team</p>
-                            <p className="admin-subtitle" style={{ margin: '0 0 8px' }}>One supervisor + the labourers they're bringing — add again with a different supervisor to put a second team on this work.</p>
+                            <p className="admin-subtitle" style={{ margin: '0 0 8px' }}>One supervisor + the labourers they're bringing; add again with a different supervisor to put a second team on this work.</p>
                             <div style={{ marginBottom: '8px' }}>
                                 <QuickAddPicker
                                     url={url} resourceKey="employees" value={teamSupervisorId}

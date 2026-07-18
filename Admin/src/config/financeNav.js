@@ -26,11 +26,11 @@ export const FINANCE_NAV_SECTIONS = [
         // destination, not a separate page. The real KPI dashboard (cash in
         // bank, receivables, today's profit, etc.) is still unbuilt future
         // work; this route stays the shortcut hub it already was.
-        tabs: [{ key: 'overview', label: 'Overview', description: 'Finance home — shortcuts into every section below.' }],
+        tabs: [{ key: 'overview', label: 'Overview', description: 'Finance home: shortcuts into every section below.' }],
       },
       {
         to: '/finance/activity', icon: faClockRotateLeft, label: 'Activity Timeline',
-        tabs: [{ key: 'timeline', label: 'Timeline', description: 'Chronological log of every create/update/delete across the finance workspace — who did what, when. No audit-trail mechanism exists in the backend yet.' }],
+        tabs: [{ key: 'timeline', label: 'Timeline', description: 'Chronological log of every create/update/delete across the finance workspace: who did what, when. No audit-trail mechanism exists in the backend yet.' }],
       },
     ],
   },
@@ -40,7 +40,7 @@ export const FINANCE_NAV_SECTIONS = [
       {
         to: '/finance/clients', icon: faUserTie, label: 'Clients',
         // Relocated out of Master Data — was the "Clients" tab there.
-        tabs: [{ key: 'list', label: 'List', description: "Client master — name, contact, billing details. Each client opens into its own detail view." }],
+        tabs: [{ key: 'list', label: 'List', description: "Client master: name, contact, billing details. Each client opens into its own detail view." }],
       },
     ],
   },
@@ -50,11 +50,11 @@ export const FINANCE_NAV_SECTIONS = [
     items: [
       {
         to: '/finance/projects', icon: faBuilding, label: 'All Projects',
-        tabs: [{ key: 'list', label: 'List', description: 'Project list with filters — links out to the New Project wizard or a project\'s detail page.' }],
+        tabs: [{ key: 'list', label: 'List', description: 'Project list with filters: links out to the New Project wizard or a project\'s detail page.' }],
       },
       {
         to: '/finance/projects/new', icon: faCirclePlus, label: 'New Project',
-        tabs: [{ key: 'wizard', label: 'Wizard', description: 'Guided 6-step setup: basic info, contract type, conditional rate setup, contractor assignment, and — for Advance contracts — the upfront payment.' }],
+        tabs: [{ key: 'wizard', label: 'Wizard', description: 'Guided 6-step setup: basic info, contract type, conditional rate setup, contractor assignment, and, for Advance contracts, the upfront payment.' }],
       },
     ],
   },
@@ -67,7 +67,7 @@ export const FINANCE_NAV_SECTIONS = [
         // Measurements + Site Inventory build — Daily Measurements and
         // Material Consumption are both live; Site Diary stays a placeholder.
         tabs: [
-          { key: 'measurements', label: 'Daily Measurements',   description: 'Mobile-first site entry — project, work, supervisor, area covered, materials used, photos. Saving updates the work\'s completed area and (if material tracking is on) logs stock consumption automatically.' },
+          { key: 'measurements', label: 'Daily Measurements',   description: 'Mobile-first site entry: project, work, supervisor, area covered, materials used, photos. Saving updates the work\'s completed area and (if material tracking is on) logs stock consumption automatically.' },
           { key: 'consumption',  label: 'Material Consumption', description: 'Read-only log of material consumed, generated only by measurement saves.' },
           { key: 'diary',        label: 'Site Diary',           description: 'Daily site notes and issues log.' },
         ],
@@ -89,7 +89,7 @@ export const FINANCE_NAV_SECTIONS = [
         // computed from financeWork completedAreaSqft ×
         // financeWorkTypeRate.referralRatePerSqft across the projects this
         // vendor referred, minus financeCommissionPayment payments.
-        tabs: [{ key: 'vendors', label: 'Vendors', description: 'Material suppliers and other non-contractor vendors — labour contractors live under Contractors instead.' }],
+        tabs: [{ key: 'vendors', label: 'Vendors', description: 'Material suppliers and other non-contractor vendors: labour contractors live under Contractors instead.' }],
       },
       {
         to: '/finance/site-inventory', icon: faWarehouse, label: 'Site Inventory',
@@ -138,8 +138,8 @@ export const FINANCE_NAV_SECTIONS = [
           { key: 'attendance',  label: 'Attendance',         description: 'Present / absent / half-day / leave, per day, for this employee.' },
           { key: 'performance', label: 'Performance',        description: 'Supervisor performance metrics.' },
           { key: 'salary',      label: 'Salary',             description: 'Same salary ledger as Masters, filtered to this employee.' },
-          { key: 'incentives',  label: 'Incentives',         description: 'Discretionary payouts on top of salary — includes automatic credits for catching and fixing a labourer\'s mistake on the spot.' },
-          { key: 'deductions',  label: 'Deductions',         description: 'Manual cuts against salary — typically entered when an engineer\'s periodic labour review finds the supervisor jointly accountable for a flaw.' },
+          { key: 'incentives',  label: 'Incentives',         description: 'Discretionary payouts on top of salary: includes automatic credits for catching and fixing a labourer\'s mistake on the spot.' },
+          { key: 'deductions',  label: 'Deductions',         description: 'Manual cuts against salary: typically entered when an engineer\'s periodic labour review finds the supervisor jointly accountable for a flaw.' },
         ],
       },
       {
@@ -158,7 +158,7 @@ export const FINANCE_NAV_SECTIONS = [
         // Entries" stays the original unscoped global entry form + list —
         // same LabourMeasurementsManager component a project's own Labour
         // tab reuses.
-        tabs: [{ key: 'entries', label: 'All Entries', description: 'Every labour measurement across every project — entry form + filterable list, plus a per-labourer Overview/Projects/Works/Measurements/Ledger/Documents view.' }],
+        tabs: [{ key: 'entries', label: 'All Entries', description: 'Every labour measurement across every project: entry form + filterable list, plus a per-labourer Overview/Projects/Works/Measurements/Ledger/Documents view.' }],
       },
     ],
   },
@@ -173,7 +173,7 @@ export const FINANCE_NAV_SECTIONS = [
         // on, so Pending Receipts (oldest issued bill first) is the honest
         // proxy instead of a guessed-at Overdue tab.
         tabs: [
-          { key: 'running-bills',    label: 'Running Bills',     description: "Every bill for a project — draft and issued — with a Generate Bill flow that previews line items before confirming." },
+          { key: 'running-bills',    label: 'Running Bills',     description: "Every bill for a project, draft and issued, with a Generate Bill flow that previews line items before confirming." },
           { key: 'pending-bills',    label: 'Pending Bills',     description: 'Bills generated but not yet issued (draft status).' },
           { key: 'approved-bills',   label: 'Approved Bills',    description: 'Bills issued to the client.' },
           { key: 'pending-receipts', label: 'Pending Receipts',  description: 'Every project with an issued bill and a positive outstanding balance, oldest bill first.' },
@@ -181,7 +181,7 @@ export const FINANCE_NAV_SECTIONS = [
       },
       {
         to: '/finance/receipts', icon: faReceipt, label: 'Receipts',
-        tabs: [{ key: 'received', label: 'Money Received', description: 'Client payments received — entry form and history, filterable by project.' }],
+        tabs: [{ key: 'received', label: 'Money Received', description: 'Client payments received: entry form and history, filterable by project.' }],
       },
       {
         to: '/finance/payables', icon: faMoneyBillWave, label: 'Payables',
@@ -207,14 +207,14 @@ export const FINANCE_NAV_SECTIONS = [
         // straight to the company, or a stray receipt with no real
         // category, neither needing the full Work/Related To form.
         tabs: [
-          { key: 'vendor',            label: 'Vendor',            description: 'Amount owed per vendor — purchases minus returns and payments already made.' },
-          { key: 'contractor',        label: 'Contractor',        description: 'Balance payable per contractor — earnings minus advances, deductions, and payments already made.' },
-          { key: 'salary',            label: 'Salary',            description: 'Balance due per employee for the current month — expected salary minus salary payments made.' },
-          { key: 'commission',        label: 'Commission',        description: 'Commission payable per referral vendor — earned commission minus payments already made.' },
-          { key: 'expenses',          label: 'Expenses',          description: 'Every general/site expense — entry form and full history, paid now or settled later.' },
+          { key: 'vendor',            label: 'Vendor',            description: 'Amount owed per vendor: purchases minus returns and payments already made.' },
+          { key: 'contractor',        label: 'Contractor',        description: 'Balance payable per contractor: earnings minus advances, deductions, and payments already made.' },
+          { key: 'salary',            label: 'Salary',            description: 'Balance due per employee for the current month: expected salary minus salary payments made.' },
+          { key: 'commission',        label: 'Commission',        description: 'Commission payable per referral vendor: earned commission minus payments already made.' },
+          { key: 'expenses',          label: 'Expenses',          description: 'Every general/site expense: entry form and full history, paid now or settled later.' },
           { key: 'expense-analysis',  label: 'Expense Analysis',  description: 'Totalled by category, project, work, and person/entity.' },
-          { key: 'company',           label: 'Company Expenses',  description: 'Expenses tied to the company itself — director travel, hotel stays, and similar.' },
-          { key: 'other',             label: 'Other Expenses',    description: 'Quick, unlinked expenses under the "Others" category — just an amount, date, and note.' },
+          { key: 'company',           label: 'Company Expenses',  description: 'Expenses tied to the company itself: director travel, hotel stays, and similar.' },
+          { key: 'other',             label: 'Other Expenses',    description: 'Quick, unlinked expenses under the "Others" category: just an amount, date, and note.' },
         ],
       },
       {
@@ -233,11 +233,11 @@ export const FINANCE_NAV_SECTIONS = [
         // no bankAccountId is set, same bank/cash automation as every
         // other payment type.
         tabs: [
-          { key: 'vendor',     label: 'Vendor Payment',     description: 'Payments made to material vendors — entry form and history.' },
-          { key: 'contractor', label: 'Contractor Payment', description: 'Payments made to labour contractors — entry form and history.' },
+          { key: 'vendor',     label: 'Vendor Payment',     description: 'Payments made to material vendors: entry form and history.' },
+          { key: 'contractor', label: 'Contractor Payment', description: 'Payments made to labour contractors: entry form and history.' },
           { key: 'salary',     label: 'Salary',             description: 'Salary payouts to employees, by month.' },
           { key: 'commission', label: 'Commission',         description: 'Referral commission payouts to referral-type vendors.' },
-          { key: 'misc',       label: 'Miscellaneous',      description: 'Any other outgoing payment — general company/site expenses.' },
+          { key: 'misc',       label: 'Miscellaneous',      description: 'Any other outgoing payment: general company/site expenses.' },
         ],
       },
       {
@@ -254,10 +254,10 @@ export const FINANCE_NAV_SECTIONS = [
         // reconciliation framing wasn't part of this build; collapsed
         // into the same Transactions tab instead of left stale.
         tabs: [
-          { key: 'accounts',     label: 'All Accounts',            description: 'Company bank accounts — add/edit, opening balance and date.' },
-          { key: 'balance',      label: 'Balance',                 description: 'Current balance per account — opening balance plus computed activity.' },
+          { key: 'accounts',     label: 'All Accounts',            description: 'Company bank accounts: add/edit, opening balance and date.' },
+          { key: 'balance',      label: 'Balance',                 description: 'Current balance per account: opening balance plus computed activity.' },
           { key: 'transactions', label: 'Transactions / Statements', description: 'Running-balance transaction list per account: every linked receipt, contractor/vendor payment, and transfer, in date order.' },
-          { key: 'transfers',    label: 'Transfers',               description: 'Transfers between our own accounts — a debit on one statement, a credit on the other.' },
+          { key: 'transfers',    label: 'Transfers',               description: 'Transfers between our own accounts: a debit on one statement, a credit on the other.' },
         ],
       },
       {
@@ -271,8 +271,8 @@ export const FINANCE_NAV_SECTIONS = [
         // the running total of every entry before the range, same
         // computed-on-read rule used everywhere else in this build.
         tabs: [
-          { key: 'cash-in',  label: 'Cash In',  description: 'Cash received — auto-generated from cash-mode receipts, plus manual entries for petty cash returns etc.' },
-          { key: 'cash-out', label: 'Cash Out', description: 'Cash paid out — auto-generated from cash-mode contractor/vendor payments, plus manual entries for petty cash, owner draws, etc.' },
+          { key: 'cash-in',  label: 'Cash In',  description: 'Cash received: auto-generated from cash-mode receipts, plus manual entries for petty cash returns etc.' },
+          { key: 'cash-out', label: 'Cash Out', description: 'Cash paid out: auto-generated from cash-mode contractor/vendor payments, plus manual entries for petty cash, owner draws, etc.' },
           { key: 'opening-closing', label: 'Opening / Closing', description: 'Opening and closing cash balance for a chosen date range.' },
         ],
       },
@@ -310,16 +310,16 @@ export const FINANCE_NAV_SECTIONS = [
         tabs: [
           { key: 'project-profit',       label: 'Project Profit',        description: 'Revenue minus material/contractor/commission/labour cost and other expenses, per project.' },
           { key: 'client-profit',        label: 'Client Profit',         description: 'Same breakdown, rolled up across every project for one client.' },
-          { key: 'work-profit',          label: 'Work Profit',           description: "Revenue billed minus contractor and material cost for one work — reached by drilling in from a project's Works tab." },
-          { key: 'contractor-analysis',  label: 'Contractor Analysis',   description: 'Earnings, advances, deductions, payments, and balance payable — every labour contractor side by side.' },
-          { key: 'vendor-analysis',      label: 'Vendor Analysis',       description: 'Purchases, returns, payments, and amount owed — every material-supplier vendor side by side.' },
+          { key: 'work-profit',          label: 'Work Profit',           description: "Revenue billed minus contractor and material cost for one work: reached by drilling in from a project's Works tab." },
+          { key: 'contractor-analysis',  label: 'Contractor Analysis',   description: 'Earnings, advances, deductions, payments, and balance payable: every labour contractor side by side.' },
+          { key: 'vendor-analysis',      label: 'Vendor Analysis',       description: 'Purchases, returns, payments, and amount owed: every material-supplier vendor side by side.' },
           { key: 'material-analysis',    label: 'Material Analysis',     description: 'Purchased, returned, consumed, wasted, current stock, and weighted-average cost per material.' },
           { key: 'cash-flow',            label: 'Cash Flow',             description: 'Total in (receipts) vs. out (contractor/vendor/salary/commission payments + expenses), by category and over a date range.' },
           { key: 'expense-analysis',     label: 'Expense Analysis',      description: 'financeExpense totals grouped by category and project, filterable by date range.' },
-          { key: 'ca-monthly-package',   label: 'CA Monthly Package',    description: 'GST, TDS, sales, purchase, expense, and bank/cash summary for one month — downloadable as a PDF for handoff to your CA. Real as of the CA Monthly Package + Client Bill Statement build.' },
+          { key: 'ca-monthly-package',   label: 'CA Monthly Package',    description: 'GST, TDS, sales, purchase, expense, and bank/cash summary for one month: downloadable as a PDF for handoff to your CA. Real as of the CA Monthly Package + Client Bill Statement build.' },
           { key: 'supervisor-analysis',  label: 'Supervisor Analysis',   description: 'Area supervised and incentive earned per supervisor.' },
           { key: 'labour-analysis',      label: 'Labour Analysis',       description: 'Labour days and cost per team/work type.' },
-          { key: 'reconciliation',       label: 'Reconciliation',        phase: 'Phase 6', description: "Guided month-end checklist — approve entries, settle labour, verify stock, invoice, chase receivables, pay vendors, GST, TDS, review. (Bank statement import/match itself now lives under Bank.)" },
+          { key: 'reconciliation',       label: 'Reconciliation',        phase: 'Phase 6', description: "Guided month-end checklist: approve entries, settle labour, verify stock, invoice, chase receivables, pay vendors, GST, TDS, review. (Bank statement import/match itself now lives under Bank.)" },
         ],
       },
     ],
@@ -364,12 +364,12 @@ export const FINANCE_NAV_SECTIONS = [
         // just split into tabs) except Permissions, which edits
         // user.allowedFinanceModules on ADMIN users instead.
         tabs: [
-          { key: 'fy',            label: 'Financial Year',  description: 'fyStartMonth (April-start by default) — Reports\' "This FY" date-range filters aren\'t wired to this yet, a small follow-up.' },
-          { key: 'company',       label: 'Company',         description: 'Company profile — name, address, GSTIN, PAN, logo. Used as real branding on the CA Monthly Package and Client Bill Statement PDFs.' },
-          { key: 'permissions',   label: 'Permissions',     description: 'MASTER-only — which finance sidebar sections each ADMIN user can access. Unrestricted by default; MASTER always has full access.' },
-          { key: 'gst',           label: 'GST',             description: 'defaultGstRate — prefills (not locks) the GST rate field on Running Bill / Purchase entry forms.' },
+          { key: 'fy',            label: 'Financial Year',  description: 'fyStartMonth (April-start by default): Reports\' "This FY" date-range filters aren\'t wired to this yet, a small follow-up.' },
+          { key: 'company',       label: 'Company',         description: 'Company profile: name, address, GSTIN, PAN, logo. Used as real branding on the CA Monthly Package and Client Bill Statement PDFs.' },
+          { key: 'permissions',   label: 'Permissions',     description: 'MASTER-only: which finance sidebar sections each ADMIN user can access. Unrestricted by default; MASTER always has full access.' },
+          { key: 'gst',           label: 'GST',             description: 'defaultGstRate: prefills (not locks) the GST rate field on Running Bill / Purchase entry forms.' },
           { key: 'notifications', label: 'Notifications',   description: 'Notification email list + low-stock and overdue-receivable alert toggles/thresholds. Checked on Dashboard load, not a background job.' },
-          { key: 'pdf',           label: 'PDF Templates',   description: 'accentColor + letterheadFooterText for generated PDFs — not a full visual template editor in this pass.' },
+          { key: 'pdf',           label: 'PDF Templates',   description: 'accentColor + letterheadFooterText for generated PDFs: not a full visual template editor in this pass.' },
           { key: 'backup',        label: 'Backup',          description: 'Export every finance collection as one zip of JSON files.' },
         ],
       },

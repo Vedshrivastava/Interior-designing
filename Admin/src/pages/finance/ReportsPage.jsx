@@ -55,7 +55,7 @@ const ReportsPage = ({ url }) => {
     return (
         <FinanceTabShell
             label="Reports"
-            subtitle="Rollups over every other module's data — read-only, computed fresh on every request. Material-cost figures use weighted-average costing (see each tab)."
+            subtitle="Rollups over every other module's data: read-only, computed fresh on every request. Material-cost figures use weighted-average costing (see each tab)."
             tabs={TABS}
             activeKey={activeTab}
             onTabChange={setActiveTab}
@@ -73,9 +73,9 @@ const ReportsPage = ({ url }) => {
             {activeTab === 'cash-flow' && <CashFlowView url={url} />}
             {activeTab === 'expense-analysis' && <ExpenseAnalysisView url={url} />}
             {activeTab === 'ca-monthly-package' && <CaMonthlyPackageView url={url} />}
-            {activeTab === 'supervisor-analysis' && <PlaceholderTab text="No aggregated report built yet — see a supervisor's own Incentives/Deductions tabs for their individual numbers." />}
-            {activeTab === 'labour-analysis' && <PlaceholderTab text="No aggregated report built yet — see a labourer's own ledger (via their supervisor's Roster tab) for individual numbers." />}
-            {activeTab === 'reconciliation' && <PlaceholderTab text="Guided month-end checklist — approve entries, settle labour, verify stock, invoice, chase receivables, pay vendors, GST, TDS, review." phase="Phase 6" />}
+            {activeTab === 'supervisor-analysis' && <PlaceholderTab text="No aggregated report built yet; see a supervisor's own Incentives/Deductions tabs for their individual numbers." />}
+            {activeTab === 'labour-analysis' && <PlaceholderTab text="No aggregated report built yet; see a labourer's own ledger (via their supervisor's Roster tab) for individual numbers." />}
+            {activeTab === 'reconciliation' && <PlaceholderTab text="Guided month-end checklist: approve entries, settle labour, verify stock, invoice, chase receivables, pay vendors, GST, TDS, review." phase="Phase 6" />}
         </FinanceTabShell>
     );
 };

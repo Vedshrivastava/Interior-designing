@@ -35,7 +35,7 @@ const FinancialYearForm = ({ url }) => {
     return (
         <form onSubmit={submit} className="flex-col" style={{ maxWidth: '360px' }}>
             <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                Reports' "This FY" date-range filters aren't wired to this yet — a small follow-up once this is set.
+                Reports' "This FY" date-range filters aren't wired to this yet; a small follow-up once this is set.
             </p>
             <div className="add-product-name flex-col">
                 <p>Financial Year Starts</p>

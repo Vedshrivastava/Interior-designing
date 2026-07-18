@@ -80,7 +80,7 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
         });
     }, [resourceKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const vendorName = (id) => vendors.find(v => v._id === (id?._id || id))?.name || '—';
+    const vendorName = (id) => vendors.find(v => v._id === (id?._id || id))?.name || '-';
 
     const openAdd = () => {
         setEditingId(null);
@@ -111,6 +111,8 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
         e.preventDefault();
         const requiredField = resource.fields.find(f => f.required && !String(form[f.key] || '').trim());
         if (requiredField) { toast.error(`${requiredField.label} is required`); return; }
+        const mismatchField = resource.fields.find(f => f.type === 'confirmText' && form[f.key] !== form[f.matchKey]);
+        if (mismatchField) { toast.error(`${mismatchField.label} doesn't match`); return; }
 
         setSaving(true);
         try {
@@ -157,11 +159,11 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
         const value = item[col.key];
         let content;
         if (col.vendorRef) content = vendorName(value);
-        else if (col.joinArray) content = Array.isArray(value) && value.length > 0 ? value.join(', ') : (col.emptyLabel || '—');
+        else if (col.joinArray) content = Array.isArray(value) && value.length > 0 ? value.join(', ') : (col.emptyLabel || '-');
         else if (col.badge) {
             const opt = resource.fields.find(f => f.key === col.key)?.options?.find(o => o.value === value);
-            content = value ? <span className="item-category">{opt?.label || value}</span> : '—';
-        } else content = value || '—';
+            content = value ? <span className="item-category">{opt?.label || value}</span> : '-';
+        } else content = value || '-';
 
         if (isFirst && getDetailLink) {
             return <span className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(getDetailLink(item))}>{content}</span>;

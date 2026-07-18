@@ -7,6 +7,15 @@ const financeEmployeeSchema = new mongoose.Schema({
     email:       { type: String, default: '' },
     salary:      { type: Number, default: 0 },
     joiningDate: { type: Date },
+
+    // Mandatory — this is who actually gets paid when salary is recorded
+    // against this employee (financeSalaryPayment); also covers
+    // Supervisors, who are just financeEmployee rows with no separate model.
+    accountName:   { type: String, required: true },
+    bankName:      { type: String, required: true },
+    accountNumber: { type: String, required: true },
+    ifscCode:      { type: String, required: true },
+
     notes:       { type: String, default: '' },
 
     // ID proof, appointment letter, etc. — each carries its own note

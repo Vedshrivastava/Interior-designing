@@ -88,8 +88,8 @@ const SalaryLedgerView = ({ url, employeeId }) => {
                     <div className="add-product-name flex-col">
                         <p>Bank Account</p>
                         <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)}>
-                            <option value="">— Cash —</option>
-                            {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} — {a.bankName}</option>)}
+                            <option value="">Cash</option>
+                            {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} · {a.bankName}</option>)}
                         </select>
                     </div>
                 </div>

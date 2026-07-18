@@ -90,7 +90,7 @@ const SupervisorAttendanceManager = ({ url, employeeId }) => {
                     <div key={e._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 100px' }}>
                         <p>{new Date(e.date).toLocaleDateString()}</p>
                         <p><span className="item-category">{STATUS_LABEL[e.status]}</span></p>
-                        <p>{e.notes || '—'}</p>
+                        <p>{e.notes || '-'}</p>
                         <div className="action-buttons"><p onClick={() => remove(e._id)} className="cursor delete-action">X</p></div>
                     </div>
                 ))}

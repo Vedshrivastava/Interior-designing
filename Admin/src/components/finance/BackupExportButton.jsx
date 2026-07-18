@@ -24,7 +24,7 @@ const BackupExportButton = ({ url }) => {
     return (
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                One zip containing one JSON file per finance collection — clients, vendors, projects, works, measurements,
+                One zip containing one JSON file per finance collection: clients, vendors, projects, works, measurements,
                 stock movements, running bills, receipts, contractor/vendor payments, purchases, bank accounts, cash entries,
                 salary/commission payments, expenses, daily labour, supervisor attendance/incentives, and settings.
                 Soft-deleted records are excluded.

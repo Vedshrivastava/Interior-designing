@@ -1094,6 +1094,109 @@ const getContractorAnalysis = async (req, res) => {
     }
 };
 
+// Direct labour-side mirror of computeContractorAnalysisRows — one
+// earnings/advances/deductions/payments/balance row per labourer,
+// optionally scoped to one project. No bulk company-wide labour ledger
+// existed before this (only the per-labourer getLabourLedger); this fills
+// that gap for Project Profitability's earnings table, same formula
+// financeLabourLedger.js's getLabourLedger already uses.
+const computeLabourAnalysisRows = async (projectId) => {
+    const labourers = await FinanceLabourer.find({ deleted: { $ne: true } });
+
+    return Promise.all(labourers.map(async (l) => {
+        const assignments = await FinanceWorkLabourAssignment.find({ labourerId: l._id, deleted: { $ne: true } });
+        const workIds = assignments.map(a => a.workId);
+
+        const workFilter = { _id: { $in: workIds }, deleted: { $ne: true } };
+        if (projectId) workFilter.projectId = projectId;
+        const works = workIds.length ? await FinanceWork.find(workFilter) : [];
+
+        const projectIds = [...new Set(works.map(w => w.projectId.toString()))];
+        const [rates, labourerMeasurements, allMeasurementsOnTheseWorks, approvedBillingByWorkId] = await Promise.all([
+            projectIds.length
+                ? FinanceLabourRate.find({ projectId: { $in: projectIds }, labourerId: l._id, deleted: { $ne: true } })
+                : [],
+            works.length
+                ? FinanceLabourMeasurement.find({ workId: { $in: works.map(w => w._id) }, labourerId: l._id, deleted: { $ne: true } }, 'workId areaCoveredSqft')
+                : [],
+            // Every labourer's measurements on these same works — needed to
+            // proportionally split each work's billed area when more than
+            // one labourer contributes to it.
+            works.length
+                ? FinanceLabourMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId areaCoveredSqft')
+                : [],
+            works.length ? getApprovedBillingByWorkId(works.map(w => w._id)) : new Map(),
+        ]);
+        const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.workType}`, r]));
+
+        const totalAreaByWork = new Map(); // all labourers combined, per work
+        for (const m of allMeasurementsOnTheseWorks) {
+            const key = m.workId.toString();
+            totalAreaByWork.set(key, (totalAreaByWork.get(key) || 0) + m.areaCoveredSqft);
+        }
+        const labourerAreaByWork = new Map(); // this labourer only, per work
+        for (const m of labourerMeasurements) {
+            const key = m.workId.toString();
+            labourerAreaByWork.set(key, (labourerAreaByWork.get(key) || 0) + m.areaCoveredSqft);
+        }
+
+        const totalAreaByKey = new Map();
+        const approvedAreaByKey = new Map();
+        for (const work of works) {
+            const workKey = work._id.toString();
+            const labourerArea = labourerAreaByWork.get(workKey) || 0;
+            if (!labourerArea) continue;
+            const key = `${work.projectId}_${work.workType}`;
+            totalAreaByKey.set(key, (totalAreaByKey.get(key) || 0) + labourerArea);
+            const workApprovedArea = approvedBillingByWorkId.get(workKey)?.areaSqft || 0;
+            const labourerApprovedArea = splitApprovedAreaByShare(workApprovedArea, labourerArea, totalAreaByWork.get(workKey) || 0);
+            approvedAreaByKey.set(key, (approvedAreaByKey.get(key) || 0) + labourerApprovedArea);
+        }
+        let totalEarnings = 0;
+        for (const [key, area] of totalAreaByKey) {
+            const rate = rateByKey.get(key);
+            if (rate) totalEarnings += area * (rate.ratePerSqft);
+        }
+        let earnings = 0; // "Approved" — this is what actually feeds Balance Payable
+        for (const [key, area] of approvedAreaByKey) {
+            const rate = rateByKey.get(key);
+            if (rate) earnings += area * (rate.ratePerSqft);
+        }
+        totalEarnings = round2(totalEarnings);
+        earnings = round2(earnings);
+
+        const moneyFilter = { labourerId: l._id, deleted: { $ne: true } };
+        if (projectId) moneyFilter.projectId = projectId;
+        const [advances, deductions, payments] = await Promise.all([
+            FinanceLabourAdvance.find(moneyFilter),
+            FinanceLabourDeduction.find(moneyFilter),
+            FinanceLabourPayment.find(moneyFilter),
+        ]);
+        const advancesTotal = advances.reduce((s, a) => s + a.amount, 0);
+        const deductionsTotal = deductions.reduce((s, d) => s + d.amount, 0);
+        const paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
+        const balancePayable = earnings - advancesTotal - deductionsTotal - paymentsTotal;
+
+        return {
+            // Field names match financeLabourLedger.js's getLabourLedger
+            // totals shape so both feeds render identically on the frontend.
+            labourerId: l._id, labourerName: l.name, earnings, totalAmount: totalEarnings, unapprovedAmount: round2(totalEarnings - earnings),
+            advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal, balancePayable,
+        };
+    }));
+};
+
+const getLabourAnalysis = async (req, res) => {
+    try {
+        const { projectId } = req.query;
+        const rows = await computeLabourAnalysisRows(projectId);
+        res.json({ success: true, data: rows.sort((a, b) => b.balancePayable - a.balancePayable) });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing labour analysis' });
+    }
+};
+
 // New Tier-1 endpoint for Contractors — wraps computeContractorAnalysisRows
 // for the table, plus cost-per-sqft grouped by work type (never blended
 // across types — a Putty rate isn't comparable to a Paint rate).
@@ -2508,7 +2611,7 @@ const downloadCaMonthlyPackage = async (req, res) => {
 
 export {
     getProjectProfit, getClientProfit, getWorkProfit, getWorkDetail, getDeductionPool,
-    getContractorAnalysis, getContractorsSummary,
+    getContractorAnalysis, getContractorsSummary, getLabourAnalysis,
     getVendorAnalysis, getVendorsSummary,
     getMaterialAnalysis, getInventorySummary,
     getCashFlow, getExpenseAnalysis,

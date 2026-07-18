@@ -32,7 +32,17 @@ const listExpenses = async (req, res) => {
     try {
         const { projectId, expenseCategory, relatedToId, dateFrom, dateTo } = req.query;
         const filter = { deleted: { $ne: true } };
-        if (projectId) filter.projectId = projectId;
+        if (projectId) {
+            filter.projectId = projectId;
+            // A company-overhead expense can still carry a projectId (cost
+            // attribution — see addExpense), but it belongs on Payables'
+            // Company Expenses tab, not a project's own Expenses tab, even
+            // when tagged to one — those two views are otherwise identical
+            // (same component, same endpoint), so the split has to happen
+            // here. Financial rollups (Project Profit/cost) are unaffected —
+            // they query FinanceExpense directly, never through this list.
+            filter.relatedToType = { $ne: 'financeCompanySettings' };
+        }
         if (expenseCategory) filter.expenseCategory = expenseCategory;
         if (relatedToId) filter.relatedToId = relatedToId;
         if (dateFrom || dateTo) {

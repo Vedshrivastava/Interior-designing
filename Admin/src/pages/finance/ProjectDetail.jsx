@@ -18,6 +18,9 @@ import ReceiptsManager from '../../components/finance/ReceiptsManager';
 import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import ExpensesManager from '../../components/finance/ExpensesManager';
 import DocumentsTab from '../../components/finance/DocumentsTab';
+import PhotosTab from '../../components/finance/PhotosTab';
+import ProjectTimelineTab from '../../components/finance/ProjectTimelineTab';
+import ProjectProfitabilityTab from '../../components/finance/ProjectProfitabilityTab';
 import StyledSelect from '../../components/finance/StyledSelect';
 import SettingSelectField, { registerSettingIfNew } from '../../components/finance/SettingSelectField';
 import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
@@ -607,9 +610,9 @@ const ProjectDetail = ({ url }) => {
                         emptyText="No documents on file for this project yet."
                     />
                 )}
-                {activeTab === 'photos' && <PlaceholderTab text="Site photos for this project." />}
-                {activeTab === 'timeline' && <PlaceholderTab text="Chronological activity log for this project." />}
-                {activeTab === 'profitability' && <PlaceholderTab text="Lifetime billing, cost, and profit summary for this project." phase="Phase 2" />}
+                {activeTab === 'photos' && <PhotosTab url={url} projectId={id} />}
+                {activeTab === 'timeline' && <ProjectTimelineTab url={url} projectId={id} />}
+                {activeTab === 'profitability' && <ProjectProfitabilityTab url={url} projectId={id} contractType={project.contractType} />}
             </div>
 
             {completionBlockers && ReactDOM.createPortal(

@@ -343,48 +343,48 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                 document.body
             )}
 
-            <div className="list-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: columns }}>
-                    <b>Date</b>
-                    {!hideCategoryField && <b>Category</b>}
-                    {!hideProjectField && <b>Project</b>}
-                    {!hideWorkField && <b>Work</b>}
-                    {!hideRelatedToField && <b>Related To</b>}
-                    <b>Amount</b><b>Paid</b><b>Status</b><b>Action</b>
-                </div>
-                {loading ? (
-                    <div className="admin-empty-state"><p>Loading…</p></div>
-                ) : expenses.length === 0 ? (
-                    <div className="admin-empty-state"><p>No expenses recorded yet.</p></div>
-                ) : (
-                    expenses.map(e => {
-                        const status = statusFor(e);
-                        return (
-                            <div
-                                key={e._id} id={`expense-row-${e._id}`} className="list-table-format row-item"
-                                style={{ gridTemplateColumns: columns, ...(flashId === e._id ? { background: 'rgba(201,168,124,0.28)', transition: 'background 2s ease' } : {}) }}
-                            >
-                                <p>{new Date(e.date).toLocaleDateString()}</p>
-                                {!hideCategoryField && <p>{e.expenseCategory || '—'}</p>}
-                                {!hideProjectField && <p>{e.projectId?.name || 'General'}</p>}
-                                {!hideWorkField && <p>{e.workId?.workType || '—'}</p>}
-                                {!hideRelatedToField && <p>{e.relatedToId?.name || e.relatedToId?.companyName || '—'}</p>}
-                                <p>₹{e.amount.toLocaleString('en-IN')}</p>
-                                <p>₹{e.paidAmount.toLocaleString('en-IN')}</p>
-                                <p><span className="item-category" style={{ color: status.color }}>{status.label}</span></p>
-                                <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
-                                    <p onClick={() => setViewTarget(e)} className="cursor edit-action">View</p>
-                                    {fixedProjectId && (
-                                        <p onClick={() => navigate(`/finance/payables?tab=expenses&expenseId=${e._id}`)} className="cursor edit-action">Details</p>
-                                    )}
-                                    {e.balance > 0 && <p onClick={() => openSettle(e)} className="cursor edit-action">Settle</p>}
-                                    <p onClick={() => remove(e._id)} className="cursor delete-action">X</p>
+            {loading ? (
+                <div className="admin-empty-state"><p>Loading…</p></div>
+            ) : expenses.length === 0 ? (
+                <div className="admin-empty-state"><p>No expenses recorded yet.</p></div>
+            ) : (
+                <div className="list-table">
+                    <div className="list-table-format title" style={{ gridTemplateColumns: columns }}>
+                        <b>Date</b>
+                        {!hideCategoryField && <b>Category</b>}
+                        {!hideProjectField && <b>Project</b>}
+                        {!hideWorkField && <b>Work</b>}
+                        {!hideRelatedToField && <b>Related To</b>}
+                        <b>Amount</b><b>Paid</b><b>Status</b><b>Action</b>
+                    </div>
+                    {expenses.map(e => {
+                            const status = statusFor(e);
+                            return (
+                                <div
+                                    key={e._id} id={`expense-row-${e._id}`} className="list-table-format row-item"
+                                    style={{ gridTemplateColumns: columns, ...(flashId === e._id ? { background: 'rgba(201,168,124,0.28)', transition: 'background 2s ease' } : {}) }}
+                                >
+                                    <p>{new Date(e.date).toLocaleDateString()}</p>
+                                    {!hideCategoryField && <p>{e.expenseCategory || '—'}</p>}
+                                    {!hideProjectField && <p>{e.projectId?.name || 'General'}</p>}
+                                    {!hideWorkField && <p>{e.workId?.workType || '—'}</p>}
+                                    {!hideRelatedToField && <p>{e.relatedToId?.name || e.relatedToId?.companyName || '—'}</p>}
+                                    <p>₹{e.amount.toLocaleString('en-IN')}</p>
+                                    <p>₹{e.paidAmount.toLocaleString('en-IN')}</p>
+                                    <p><span className="item-category" style={{ color: status.color }}>{status.label}</span></p>
+                                    <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
+                                        <p onClick={() => setViewTarget(e)} className="cursor edit-action">View</p>
+                                        {fixedProjectId && (
+                                            <p onClick={() => navigate(`/finance/payables?tab=expenses&expenseId=${e._id}`)} className="cursor edit-action">Details</p>
+                                        )}
+                                        {e.balance > 0 && <p onClick={() => openSettle(e)} className="cursor edit-action">Settle</p>}
+                                        <p onClick={() => remove(e._id)} className="cursor delete-action">X</p>
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })
-                )}
-            </div>
+                            );
+                        })}
+                </div>
+            )}
 
             {settleTarget && ReactDOM.createPortal(
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>

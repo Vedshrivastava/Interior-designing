@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
 
 const emptyForm = {
     companyName: '', address: '', gstin: '', pan: '', phone: '', email: '',
@@ -55,8 +56,7 @@ const CompanySettingsForm = ({ url }) => {
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
-    const submit = async (e) => {
-        e.preventDefault();
+    const submit = async () => {
         if (!form.companyName.trim()) return toast.error('Company name is required');
         setSaving(true);
         try {
@@ -83,57 +83,72 @@ const CompanySettingsForm = ({ url }) => {
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
 
     return (
-        <form onSubmit={submit} className="flex-col" style={{ maxWidth: '480px' }}>
-            <div className="add-product-name flex-col">
-                <p>Company Name *</p>
-                <input type="text" value={form.companyName} onChange={e => setField('companyName', e.target.value)} />
+        <div className="wizard-step-body">
+            <p className="wizard-section-label">Company</p>
+            <div className="wizard-field-grid">
+                <div className="add-product-name flex-col">
+                    <p>Company Name *</p>
+                    <input type="text" value={form.companyName} onChange={e => setField('companyName', e.target.value)} />
+                </div>
+                <div className="add-product-name flex-col">
+                    <p>Phone</p>
+                    <input type="text" value={form.phone} onChange={e => setField('phone', e.target.value)} />
+                </div>
+                <div className="add-product-name flex-col">
+                    <p>Email</p>
+                    <input type="email" value={form.email} onChange={e => setField('email', e.target.value)} />
+                </div>
+                <div className="add-product-name flex-col wizard-field-full">
+                    <p>Address</p>
+                    <textarea rows="2" value={form.address} onChange={e => setField('address', e.target.value)} />
+                </div>
             </div>
-            <div className="add-product-name flex-col">
-                <p>Address</p>
-                <textarea rows="2" value={form.address} onChange={e => setField('address', e.target.value)} />
+
+            <p className="wizard-section-label">Tax &amp; Billing</p>
+            <div className="wizard-field-grid">
+                <div className="add-product-name flex-col">
+                    <p>GSTIN</p>
+                    <input type="text" value={form.gstin} onChange={e => setField('gstin', e.target.value)} />
+                </div>
+                <div className="add-product-name flex-col">
+                    <p>PAN</p>
+                    <input type="text" value={form.pan} onChange={e => setField('pan', e.target.value)} />
+                </div>
+                <div className="add-product-name flex-col">
+                    <p>Default SAC Code</p>
+                    <input type="text" value={form.defaultSacCode} onChange={e => setField('defaultSacCode', e.target.value)} placeholder="e.g. 995461" />
+                    <p className="admin-subtitle" style={{ margin: '4px 0 0' }}>Printed once near the GST total on Bill Statements — leave blank to omit.</p>
+                </div>
+                <div className="add-product-name flex-col">
+                    <p>Payment Account (shown as "Pay To" on Bills &amp; Receipts)</p>
+                    <StyledSelect
+                        value={form.primaryBankAccountId} onChange={v => setField('primaryBankAccountId', v)} placeholder="None"
+                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                    />
+                </div>
             </div>
-            <div className="add-product-name flex-col">
-                <p>GSTIN</p>
-                <input type="text" value={form.gstin} onChange={e => setField('gstin', e.target.value)} />
+
+            <p className="wizard-section-label">Branding &amp; Signature</p>
+            <div className="wizard-field-grid">
+                <div className="add-product-name flex-col">
+                    <p>Authorized Signatory Name</p>
+                    <input type="text" value={form.authorizedSignatoryName} onChange={e => setField('authorizedSignatoryName', e.target.value)} />
+                    <p className="admin-subtitle" style={{ margin: '4px 0 0' }}>Adds a signature line to Bills &amp; Receipts — leave blank to omit.</p>
+                </div>
+                <div className="add-product-name flex-col">
+                    <p>Logo</p>
+                    {form.logoUrl && <img src={form.logoUrl} alt="Company logo" style={{ height: '48px', marginBottom: '8px' }} />}
+                    <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0] || null)} />
+                </div>
             </div>
-            <div className="add-product-name flex-col">
-                <p>PAN</p>
-                <input type="text" value={form.pan} onChange={e => setField('pan', e.target.value)} />
+
+            <div className="wizard-actions">
+                <span />
+                <button type="button" className="add-btn" disabled={saving} onClick={submit}>
+                    {saving ? 'Saving…' : 'Save'}
+                </button>
             </div>
-            <div className="add-product-name flex-col">
-                <p>Phone</p>
-                <input type="text" value={form.phone} onChange={e => setField('phone', e.target.value)} />
-            </div>
-            <div className="add-product-name flex-col">
-                <p>Email</p>
-                <input type="email" value={form.email} onChange={e => setField('email', e.target.value)} />
-            </div>
-            <div className="add-product-name flex-col">
-                <p>Payment Account (shown as "Pay To" on Bills & Receipts)</p>
-                <StyledSelect
-                    value={form.primaryBankAccountId} onChange={v => setField('primaryBankAccountId', v)} placeholder="None"
-                    options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
-                />
-            </div>
-            <div className="add-product-name flex-col">
-                <p>Default SAC Code</p>
-                <input type="text" value={form.defaultSacCode} onChange={e => setField('defaultSacCode', e.target.value)} placeholder="e.g. 995461" />
-                <p className="admin-subtitle" style={{ margin: '4px 0 0' }}>Printed once near the GST total on Bill Statements — leave blank to omit.</p>
-            </div>
-            <div className="add-product-name flex-col">
-                <p>Authorized Signatory Name</p>
-                <input type="text" value={form.authorizedSignatoryName} onChange={e => setField('authorizedSignatoryName', e.target.value)} />
-                <p className="admin-subtitle" style={{ margin: '4px 0 0' }}>Adds a signature line to Bills & Receipts — leave blank to omit.</p>
-            </div>
-            <div className="add-product-name flex-col">
-                <p>Logo</p>
-                {form.logoUrl && <img src={form.logoUrl} alt="Company logo" style={{ height: '48px', marginBottom: '8px' }} />}
-                <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0] || null)} />
-            </div>
-            <button type="submit" className="add-btn" disabled={saving} style={{ marginTop: '12px', alignSelf: 'flex-start' }}>
-                {saving ? 'Saving…' : 'Save'}
-            </button>
-        </form>
+        </div>
     );
 };
 

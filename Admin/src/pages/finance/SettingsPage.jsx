@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
-import FinancialYearForm from '../../components/finance/FinancialYearForm';
 import CompanySettingsForm from '../../components/finance/CompanySettingsForm';
 import PermissionsManager from '../../components/finance/PermissionsManager';
 import GstSettingsForm from '../../components/finance/GstSettingsForm';
@@ -9,7 +8,6 @@ import PdfTemplateSettingsForm from '../../components/finance/PdfTemplateSetting
 import BackupExportButton from '../../components/finance/BackupExportButton';
 
 const TABS = [
-    { key: 'fy',            label: 'Financial Year' },
     { key: 'company',       label: 'Company' },
     { key: 'permissions',   label: 'Permissions' },
     { key: 'gst',           label: 'GST' },
@@ -19,8 +17,8 @@ const TABS = [
 ];
 
 /*
- * Bespoke component, real as of the Settings build. Financial Year /
- * Company / GST / Notifications / PDF Templates all edit the same
+ * Bespoke component, real as of the Settings build. Company / GST /
+ * Notifications / PDF Templates all edit the same
  * financeCompanySettings singleton — each tab's own form only sends the
  * fields it owns (see each component), so switching tabs never risks
  * clobbering another tab's unsaved-elsewhere data. Permissions edits
@@ -37,7 +35,6 @@ const SettingsPage = ({ url }) => {
             activeKey={activeTab}
             onTabChange={setActiveTab}
         >
-            {activeTab === 'fy' && <FinancialYearForm url={url} />}
             {activeTab === 'company' && <CompanySettingsForm url={url} />}
             {activeTab === 'permissions' && <PermissionsManager url={url} />}
             {activeTab === 'gst' && <GstSettingsForm url={url} />}

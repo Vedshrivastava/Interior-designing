@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
 
 /* Scoped deliberately to a footer line — not a full visual template
    editor. The brand palette (deep green + gold) is fixed in the PDF
@@ -24,8 +25,7 @@ const PdfTemplateSettingsForm = ({ url }) => {
             .finally(() => setLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const submit = async (e) => {
-        e.preventDefault();
+    const submit = async () => {
         setSaving(true);
         try {
             const res = await axios.put(`${url}/api/finance/settings/company`, { letterheadFooterText }, authHeader);
@@ -38,15 +38,21 @@ const PdfTemplateSettingsForm = ({ url }) => {
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
 
     return (
-        <form onSubmit={submit} className="flex-col" style={{ maxWidth: '480px' }}>
-            <div className="add-product-name flex-col">
-                <p>Letterhead Footer Text</p>
-                <textarea rows="2" value={letterheadFooterText} onChange={e => setLetterheadFooterText(e.target.value)} placeholder="Shown at the bottom of the CA Monthly Package and Client Bill Statement PDFs" />
+        <div className="wizard-step-body">
+            <p className="wizard-section-label">PDF Templates</p>
+            <div className="wizard-field-grid">
+                <div className="add-product-name flex-col wizard-field-full">
+                    <p>Letterhead Footer Text</p>
+                    <textarea rows="2" value={letterheadFooterText} onChange={e => setLetterheadFooterText(e.target.value)} placeholder="Shown at the bottom of the CA Monthly Package and Client Bill Statement PDFs" />
+                </div>
             </div>
-            <button type="submit" className="add-btn" disabled={saving} style={{ marginTop: '12px', alignSelf: 'flex-start' }}>
-                {saving ? 'Saving…' : 'Save'}
-            </button>
-        </form>
+            <div className="wizard-actions">
+                <span />
+                <button type="button" className="add-btn" disabled={saving} onClick={submit}>
+                    {saving ? 'Saving…' : 'Save'}
+                </button>
+            </div>
+        </div>
     );
 };
 

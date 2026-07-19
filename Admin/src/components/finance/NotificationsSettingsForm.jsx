@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
 
 /* Email list + the two alert toggles/threshold — checked on Dashboard
    load (see FinanceHome.jsx), not a background job; no cron
@@ -44,8 +45,7 @@ const NotificationsSettingsForm = ({ url }) => {
     };
     const removeEmail = (email) => setEmails(prev => prev.filter(e => e !== email));
 
-    const submit = async (e) => {
-        e.preventDefault();
+    const submit = async () => {
         setSaving(true);
         try {
             const res = await axios.put(`${url}/api/finance/settings/notifications`, {
@@ -61,44 +61,67 @@ const NotificationsSettingsForm = ({ url }) => {
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
 
     return (
-        <form onSubmit={submit} className="flex-col" style={{ maxWidth: '480px' }}>
-            <div className="add-product-name flex-col">
-                <p>Notification Emails</p>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                    <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="owner@example.com" style={{ flex: 1 }} />
-                    <button type="button" className="add-point-btn" onClick={addEmail}>+ Add</button>
-                </div>
-                {emails.length === 0 ? (
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-lt)' }}>No notification emails yet.</p>
-                ) : emails.map(email => (
-                    <div key={email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
-                        <span>{email}</span>
-                        <p onClick={() => removeEmail(email)} className="cursor delete-action" style={{ margin: 0 }}>X</p>
+        <div className="wizard-step-body">
+            <p className="wizard-section-label">Recipients</p>
+            <div className="wizard-field-grid">
+                <div className="add-product-name flex-col wizard-field-full">
+                    <p>Add Notification Email</p>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="owner@example.com" style={{ flex: 1 }} />
+                        <button type="button" className="add-point-btn" onClick={addEmail}>+ Add</button>
                     </div>
-                ))}
+                </div>
             </div>
 
-            <div className="add-product-name flex-col" style={{ marginTop: '12px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input type="checkbox" checked={lowStockAlertEnabled} onChange={e => setLowStockAlertEnabled(e.target.checked)} />
-                    Low stock alerts
-                </label>
-            </div>
-            <div className="add-product-name flex-col">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input type="checkbox" checked={overdueReceivableAlertEnabled} onChange={e => setOverdueReceivableAlertEnabled(e.target.checked)} />
-                    Overdue receivable alerts
-                </label>
-            </div>
-            <div className="add-product-name flex-col">
-                <p>Overdue threshold (days since oldest unpaid bill)</p>
-                <input type="number" value={overdueReceivableDays} onChange={e => setOverdueReceivableDays(e.target.value)} />
+            {emails.length === 0 ? (
+                <div className="admin-empty-state" style={{ marginBottom: '20px' }}><p>No notification emails yet.</p></div>
+            ) : (
+                <div className="list-table" style={{ marginBottom: '20px' }}>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 100px' }}>
+                        <b>Email</b><b>Action</b>
+                    </div>
+                    {emails.map(email => (
+                        <div key={email} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 100px' }}>
+                            <p>{email}</p>
+                            <div className="action-buttons">
+                                <p onClick={() => removeEmail(email)} className="cursor delete-action">Remove</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            <p className="wizard-section-label">Alerts</p>
+            <div className="wizard-field-grid">
+                <div className="add-product-name flex-col">
+                    <p>Low Stock</p>
+                    <label className="featured-toggle" style={{ margin: 0, display: 'flex' }}>
+                        <input type="checkbox" checked={lowStockAlertEnabled} onChange={e => setLowStockAlertEnabled(e.target.checked)} />
+                        <span className="toggle-slider"></span>
+                        <span className="toggle-label">Alert when a material falls below its minimum stock level</span>
+                    </label>
+                </div>
+                <div className="add-product-name flex-col">
+                    <p>Overdue Receivables</p>
+                    <label className="featured-toggle" style={{ margin: 0, display: 'flex' }}>
+                        <input type="checkbox" checked={overdueReceivableAlertEnabled} onChange={e => setOverdueReceivableAlertEnabled(e.target.checked)} />
+                        <span className="toggle-slider"></span>
+                        <span className="toggle-label">Alert on unpaid bills past the threshold below</span>
+                    </label>
+                </div>
+                <div className="add-product-name flex-col">
+                    <p>Overdue Threshold (days since oldest unpaid bill)</p>
+                    <input type="number" value={overdueReceivableDays} onChange={e => setOverdueReceivableDays(e.target.value)} />
+                </div>
             </div>
 
-            <button type="submit" className="add-btn" disabled={saving} style={{ marginTop: '12px', alignSelf: 'flex-start' }}>
-                {saving ? 'Saving…' : 'Save'}
-            </button>
-        </form>
+            <div className="wizard-actions">
+                <span />
+                <button type="button" className="add-btn" disabled={saving} onClick={submit}>
+                    {saving ? 'Saving…' : 'Save'}
+                </button>
+            </div>
+        </div>
     );
 };
 

@@ -573,6 +573,7 @@
 ══════════════════════════════════════════════ */
 .add-product-name input,
 .add-product-name select,
+.add-product-name textarea,
 .add-product-description textarea,
 .add-category-price select,
 .add-category-price input,
@@ -592,6 +593,7 @@
 }
 
 /* Textarea refinement */
+.add-product-name textarea,
 .add-product-description textarea {
     resize: vertical;
     min-height: 100px;
@@ -656,6 +658,7 @@
 /* Focus state — gold ring */
 .add-product-name input:focus,
 .add-product-name select:focus,
+.add-product-name textarea:focus,
 .add-product-description textarea:focus,
 .add-category-price select:focus,
 .add-category-price input:focus,

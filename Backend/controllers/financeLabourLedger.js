@@ -15,18 +15,20 @@ import { writeLetterhead, writeSectionHeading, writeSignatureLine, writeFooter, 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 /*
- * Mirrors computeContractorLedger. Labour never had a per-measurement approval
- * flag (every logged sqft was immediately payable) — this is the one
- * genuine behavior change: Earnings (the figure that feeds Balance
- * Payable) now only counts "Approved" area, same billing-derived source as
- * the contractor side (see financeReports.js's computeWorkApprovedBilling
- * header comment — issuing a running bill to the client is the engineer's
- * approval act). Total (every logged sqft, unconditional) is tracked
- * alongside it per work; the gap is unapprovedAreaSqft/unapprovedAmount,
- * never a separately entered figure. The engineer's periodic review and a
- * supervisor's on-the-spot catch still show up only as financeLabourDeduction
- * rows, exactly like Advances/Payments — nothing computed, just summed —
- * and now subtract from Approved rather than Total.
+ * Mirrors computeContractorLedger. Earnings only count "Approved" area —
+ * the portion of a Work that's actually been REVIEWED (financeWorkReview,
+ * via WorkReviewPanel) — not merely logged, and no longer tied to whether
+ * the client has been billed yet either. Review is work-level, not
+ * per-labourer — when more than one labourer contributes to the same
+ * Work, this splits that work's reviewed sqft proportionally to each
+ * labourer's own share of the logged area (splitApprovedAreaByShare).
+ * Total (every logged sqft, unconditional) is tracked alongside it per
+ * work; the gap is unapprovedAreaSqft/unapprovedAmount ("pending
+ * review"), never a separately entered figure. Actual deductions
+ * (financeLabourDeduction) are a separate line item entirely — a real
+ * ₹/sqft debit against this specific labourer, entered in Payables once a
+ * work's rejected pool is attributed to whoever's responsible — not the
+ * same thing as a work simply not being reviewed yet.
  *
  * Balance Payable = Approved Earnings − Advances − Deductions − Payments.
  */
@@ -60,7 +62,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
                 .sort({ date: -1 })
             : [],
         // Every labourer's measurements on these works — needed to
-        // proportionally split a work's billed area when more than one
+        // proportionally split a work's reviewed area when more than one
         // labourer contributes to it (see splitApprovedAreaByShare).
         works.length
             ? FinanceLabourMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId areaCoveredSqft')
@@ -209,7 +211,7 @@ const downloadLabourBillStatement = async (req, res) => {
             ]),
         });
         doc.fontSize(8).fillColor('#888888')
-            .text('Approved sqft reflects work already included in an issued client bill; unapproved sqft has been measured but not yet billed to the client.', left, doc.y, { width });
+            .text('Approved sqft reflects work reviewed and confirmed; unapproved sqft has been measured but not yet reviewed.', left, doc.y, { width });
         doc.fillColor('#000000').fontSize(10);
         doc.moveDown(0.6);
 

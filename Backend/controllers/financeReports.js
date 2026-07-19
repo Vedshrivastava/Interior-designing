@@ -28,6 +28,7 @@ import FinanceWorkLabourAssignment from '../models/financeWorkLabourAssignment.j
 import FinanceLabourAdvance from '../models/financeLabourAdvance.js';
 import FinanceLabourPayment from '../models/financeLabourPayment.js';
 import FinanceLabourer from '../models/financeLabourer.js';
+import FinanceWorkReview from '../models/financeWorkReview.js';
 import { summarizeProject } from './financeReceivable.js';
 import FinanceSetting from '../models/financeSetting.js';
 import FinanceBankAccount from '../models/financeBankAccount.js';
@@ -195,7 +196,7 @@ const computeProjectContractorCost = async (projectId) => {
 // Mirrors computeProjectContractorCost, at individual-labourer granularity.
 // Labour never had an engineerApproved gate (every logged sqft counted
 // immediately) — this is the one genuine behavior change: labour cost now
-// also only counts billed-to-client sqft, same as contractor.
+// also only counts reviewed sqft (WorkReviewPanel), same as contractor.
 const computeProjectLabourCost = async (projectId) => {
     const works = await FinanceWork.find({ projectId, deleted: { $ne: true } });
     if (!works.length) return { approvedAmount: 0, totalAmount: 0 };
@@ -377,16 +378,16 @@ const getClientProfit = async (req, res) => {
     }
 };
 
-// The sqft of a Work that's actually been billed to the client, via an
-// ISSUED running bill's lineItems (never a draft — a draft can still be
-// edited/deleted, so it isn't a real commitment yet). This IS "the area the
-// engineer approved" per the user's own framing: engineerApproved gates
-// which measurements COULD be billed (computeBillLineItems), issuing the
-// bill is the actual approval act. Deliberately reads financeRunningBill
-// only — never writes to it, never touches engineerApproved — so client
-// billing (generateRunningBill/updateRunningBillStatus/the per-measurement
-// Approve toggle in WorkMeasurementsSummary.jsx) stays completely
-// unaffected by this function existing.
+// The sqft of a Work that's actually been REVIEWED — confirmed via the
+// WorkReviewPanel (Payables/Receivables → "Deductions"/review tab), not
+// merely logged. This is what "Approved" means everywhere in Finance as
+// of the review-gate build: reviewing a worker's logged sqft on a Work
+// (rejecting bad portions permanently, or marking the rest clean) is what
+// actually approves it — being included in an issued client bill is no
+// longer the approval act itself (Generate Bill's own ceiling is now
+// capped BY this reviewed figure, see computeBillLineItems). Deliberately
+// reads financeWorkReview only — never writes to it — so nothing here can
+// itself trigger or block a review.
 const computeWorkApprovedBilling = async (work) => {
     // Thin single-work wrapper over getApprovedBillingByWorkId (declared
     // below) — one implementation for both, nothing to drift.
@@ -397,27 +398,59 @@ const computeWorkApprovedBilling = async (work) => {
 // Bulk sibling of computeWorkApprovedBilling — one query for many works at
 // once (a work only ever belongs to one project, so this is safe to call
 // across works from different projects too, e.g. one contractor's entire
-// portfolio company-wide). Returns Map<workId, { areaSqft, date }> — date
-// is the most recent issued bill's billDate that included this work.
+// portfolio company-wide). Returns Map<workId, { areaSqft, date }> — sums
+// every worker's own reviewed ceiling (financeWorkReview.approvedAreaSqft)
+// for that Work; date is the most recent lastReviewedAt among them.
 const getApprovedBillingByWorkId = async (workIds) => {
+    if (!workIds.length) return new Map();
+    const reviews = await FinanceWorkReview.find(
+        { workId: { $in: workIds } },
+        'workId approvedAreaSqft lastReviewedAt'
+    );
+    const approvedByWorkId = new Map();
+    for (const r of reviews) {
+        const key = r.workId.toString();
+        const cur = approvedByWorkId.get(key) || { areaSqft: 0, date: null };
+        cur.areaSqft = round2(cur.areaSqft + r.approvedAreaSqft);
+        if (r.lastReviewedAt && (!cur.date || r.lastReviewedAt > cur.date)) cur.date = r.lastReviewedAt;
+        approvedByWorkId.set(key, cur);
+    }
+    return approvedByWorkId;
+};
+
+// How much of a Work's sqft has actually made it into an ISSUED client
+// bill's lineItems — kept as its own concept, separate from "Approved"
+// (now = reviewed, see getApprovedBillingByWorkId above). These two used
+// to be the same thing (issuing the bill WAS the approval act); now that
+// review happens first and independently, a work can have reviewed sqft
+// that hasn't been billed yet — that gap (reviewed − billed) is what
+// Generate Bill's own ceiling actually needs, NOT (logged − reviewed),
+// which instead means "still pending review" (see computeWorkExpectedPay's
+// availableToBillAreaSqft vs unapprovedAreaSqft).
+const getBilledAreaByWorkId = async (workIds) => {
     if (!workIds.length) return new Map();
     const bills = await FinanceRunningBill.find(
         { status: 'issued', deleted: { $ne: true }, 'lineItems.workId': { $in: workIds } },
         'billDate lineItems'
     );
     const workIdSet = new Set(workIds.map(id => id.toString()));
-    const approvedByWorkId = new Map();
+    const billedByWorkId = new Map();
     for (const bill of bills) {
         for (const li of bill.lineItems) {
             const key = li.workId.toString();
             if (!workIdSet.has(key)) continue;
-            const cur = approvedByWorkId.get(key) || { areaSqft: 0, date: null };
+            const cur = billedByWorkId.get(key) || { areaSqft: 0, date: null };
             cur.areaSqft += li.areaBilledSqft;
             if (!cur.date || bill.billDate > cur.date) cur.date = bill.billDate;
-            approvedByWorkId.set(key, cur);
+            billedByWorkId.set(key, cur);
         }
     }
-    return approvedByWorkId;
+    return billedByWorkId;
+};
+
+const computeWorkBilledArea = async (work) => {
+    const result = (await getBilledAreaByWorkId([work._id])).get(work._id.toString()) || { areaSqft: 0, date: null };
+    return { billedAreaSqft: result.areaSqft, billedDate: result.date };
 };
 
 // A running bill's lineItems only record a work-level billed total, never a
@@ -492,10 +525,11 @@ const computeWorkExpectedPay = async (work) => {
 
     // Total = every logged sqft so far (work.completedAreaSqft, unconditional
     // — same figure the dashboard's "show it even before approval" boxes
-    // use) × rate. Approved = only the sqft actually billed to the client
-    // via an issued running bill (computeWorkApprovedBilling) × the same
-    // rate — this, not Total, is what's actually owed to whoever did the
-    // work. Unapproved is simply the gap; never a separately entered figure.
+    // use) × rate. Approved = only the sqft actually reviewed and confirmed
+    // (computeWorkApprovedBilling, sourced from financeWorkReview) × the
+    // same rate — this, not Total, is what's actually owed to whoever did
+    // the work. Unapproved is simply the gap; never a separately entered
+    // figure.
     const totalAreaSqft = work.completedAreaSqft;
     const totalAmount = round2(
         contractorRates.reduce((s, r) => s + totalAreaSqft * r.ratePerSqft, 0)
@@ -507,10 +541,26 @@ const computeWorkExpectedPay = async (work) => {
         + labourRates.reduce((s, r) => s + approvedAreaSqft * r.ratePerSqft, 0)
     );
 
+    // Available to bill = Reviewed − already Billed — deliberately NOT the
+    // same gap as unapprovedAreaSqft (Total − Reviewed, "still pending
+    // review"). Generate Bill's own ceiling needs this one: sqft that's
+    // already been reviewed and confirmed, but hasn't made it into an
+    // issued bill yet. Reviewed sqft never disappears once billed (it
+    // still counts as this worker's Approved earnings either way) — this
+    // figure just tracks how much of it is still available for a *new*
+    // bill to draw on.
+    const { billedAreaSqft } = await computeWorkBilledArea(work);
+    const availableToBillAreaSqft = round2(Math.max(0, approvedAreaSqft - billedAreaSqft));
+    const availableToBillAmount = round2(
+        contractorRates.reduce((s, r) => s + availableToBillAreaSqft * r.ratePerSqft, 0)
+        + labourRates.reduce((s, r) => s + availableToBillAreaSqft * r.ratePerSqft, 0)
+    );
+
     return {
         expectedPay, deductedTotal, expectedPayNetOfDeductions: round2(expectedPay - deductedTotal),
         totalAreaSqft, totalAmount, approvedAreaSqft, approvedAmount, approvedDate,
         unapprovedAreaSqft: round2(totalAreaSqft - approvedAreaSqft), unapprovedAmount: round2(totalAmount - approvedAmount),
+        billedAreaSqft, availableToBillAreaSqft, availableToBillAmount,
     };
 };
 
@@ -539,10 +589,10 @@ const computeWorkProfit = async (work) => {
     // blended rate. `contractorCost` stays the summed total so nothing
     // reading only that field breaks.
     //
-    // Total (areaSqft) is every logged sqft, unconditional — no more
-    // engineerApproved gating here (that flag now only gates billing, see
-    // computeWorkApprovedBilling's header comment). Approved
-    // (approvedAreaSqft) is this work's billed-to-client sqft
+    // Total (areaSqft) is every logged sqft, unconditional — engineerApproved
+    // no longer gates anything here (see computeWorkApprovedBilling's header
+    // comment: reviewing via WorkReviewPanel is the real gate now). Approved
+    // (approvedAreaSqft) is this work's reviewed sqft
     // (computeWorkApprovedBilling), distributed across contributing vendors
     // proportional to each one's share of Total — lineItems only record a
     // work-level billed figure, not a per-vendor split, so this is the best
@@ -599,7 +649,7 @@ const computeWorkProfit = async (work) => {
     // Labour Cost — same per-person breakdown as contractor above. Labour
     // never had an engineerApproved gate (every logged sqft was immediately
     // payable) — this is the one genuine behavior change: labour earnings
-    // now also only count billed-to-client sqft. Same proportional
+    // now also only count reviewed sqft (WorkReviewPanel). Same proportional
     // distribution of this work's Approved sqft across contributing
     // labourers as the contractor side above.
     const labourMeasurements = await FinanceLabourMeasurement.find({ workId: work._id, deleted: { $ne: true } });
@@ -919,80 +969,6 @@ const getWorkDetail = async (req, res) => {
     }
 };
 
-// Feeds the Deductions tab's reconciliation panel — for one (project,
-// workType), how much logged sqft never got billed to the client
-// (grossUnapprovedSqft, via computeWorkExpectedPay's unapprovedAreaSqft on
-// each matching work) minus how much of that gap has already been
-// allocated to a specific contractor/labourer (alreadyDeductedSqft, summed
-// off their own areaSqft field) = remainingSqft, the number the panel
-// counts down to zero. Also returns, per work, who's assigned and at what
-// rate, so the frontend picker doesn't need a second round-trip.
-const getDeductionPool = async (req, res) => {
-    try {
-        const { projectId, workType } = req.query;
-        if (!projectId || !workType) return res.status(400).json({ success: false, message: 'projectId and workType are required' });
-
-        const works = await FinanceWork.find({ projectId, workType, deleted: { $ne: true } });
-        if (!works.length) return res.json({ success: true, data: { grossUnapprovedSqft: 0, alreadyDeductedSqft: 0, remainingSqft: 0, works: [] } });
-
-        const workIds = works.map(w => w._id);
-        const [expectedPays, contractorAssignments, labourAssignments, contractorDeductions, labourDeductions] = await Promise.all([
-            Promise.all(works.map(w => computeWorkExpectedPay(w))),
-            FinanceWorkContractorAssignment.find({ workId: { $in: workIds }, deleted: { $ne: true } }),
-            FinanceWorkLabourAssignment.find({ workId: { $in: workIds }, deleted: { $ne: true } }),
-            FinanceContractorDeduction.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId areaSqft'),
-            FinanceLabourDeduction.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId areaSqft'),
-        ]);
-
-        const grossUnapprovedSqft = round2(expectedPays.reduce((s, wp) => s + wp.unapprovedAreaSqft, 0));
-        const alreadyDeductedSqft = round2(
-            contractorDeductions.reduce((s, d) => s + (d.areaSqft || 0), 0)
-            + labourDeductions.reduce((s, d) => s + (d.areaSqft || 0), 0)
-        );
-        const remainingSqft = round2(Math.max(0, grossUnapprovedSqft - alreadyDeductedSqft));
-
-        const vendorIdsByWork = new Map();
-        for (const a of contractorAssignments) {
-            const key = a.workId.toString();
-            if (!vendorIdsByWork.has(key)) vendorIdsByWork.set(key, new Set());
-            vendorIdsByWork.get(key).add(a.contractorVendorId.toString());
-        }
-        const labourerIdsByWork = new Map();
-        for (const a of labourAssignments) {
-            const key = a.workId.toString();
-            if (!labourerIdsByWork.has(key)) labourerIdsByWork.set(key, new Set());
-            labourerIdsByWork.get(key).add(a.labourerId.toString());
-        }
-        const allVendorIds = [...new Set([...vendorIdsByWork.values()].flatMap(s => [...s]))];
-        const allLabourerIds = [...new Set([...labourerIdsByWork.values()].flatMap(s => [...s]))];
-        const [rates, labourRates, vendors, labourers] = await Promise.all([
-            allVendorIds.length ? FinanceContractorRate.find({ projectId, contractorVendorId: { $in: allVendorIds }, workType, deleted: { $ne: true } }) : [],
-            allLabourerIds.length ? FinanceLabourRate.find({ projectId, labourerId: { $in: allLabourerIds }, workType, deleted: { $ne: true } }) : [],
-            allVendorIds.length ? FinanceVendor.find({ _id: { $in: allVendorIds } }) : [],
-            allLabourerIds.length ? FinanceLabourer.find({ _id: { $in: allLabourerIds } }) : [],
-        ]);
-        const rateByVendor = new Map(rates.map(r => [r.contractorVendorId.toString(), r.ratePerSqft]));
-        const rateByLabourer = new Map(labourRates.map(r => [r.labourerId.toString(), r.ratePerSqft]));
-        const vendorById = new Map(vendors.map(v => [v._id.toString(), v]));
-        const labourerById = new Map(labourers.map(l => [l._id.toString(), l]));
-
-        const worksOut = works.map((w, i) => ({
-            workId: w._id, workType: w.workType, unapprovedAreaSqft: expectedPays[i].unapprovedAreaSqft,
-            contractors: [...(vendorIdsByWork.get(w._id.toString()) || [])]
-                .map(id => ({ vendorId: id, vendorName: vendorById.get(id)?.name || '—', rate: rateByVendor.get(id) || null }))
-                .filter(c => c.rate !== null),
-            labourers: [...(labourerIdsByWork.get(w._id.toString()) || [])]
-                .map(id => ({ labourerId: id, labourerName: labourerById.get(id)?.name || '—', rate: rateByLabourer.get(id) || null }))
-                .filter(l => l.rate !== null),
-        }));
-
-        res.json({ success: true, data: { grossUnapprovedSqft, alreadyDeductedSqft, remainingSqft, works: worksOut } });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Error computing deduction pool' });
-    }
-};
-
 // Shared by getContractorAnalysis, dashboard summary, and the Contractors
 // Tier-1 mini-dashboard — one earnings/advances/deductions/payments/balance
 // row per labour contractor, optionally scoped to one project.
@@ -1040,8 +1016,12 @@ const computeContractorAnalysisRows = async (projectId) => {
         // Total = every logged sqft this vendor did, grouped by
         // (projectId, workType) for rate lookup — same grouping as before,
         // just no longer engineerApproved-gated. Approved = each work's
-        // billed-to-client sqft, proportionally split to this vendor's
-        // share (splitApprovedAreaByShare), same grouping.
+        // reviewed sqft (WorkReviewPanel), proportionally split to this
+        // vendor's share (splitApprovedAreaByShare) — the Contractor
+        // Ledger itself reads financeWorkReview directly per worker for
+        // exact figures; this summary-level view keeps the same
+        // proportional-estimate simplification already accepted elsewhere
+        // in this file for the rare multi-worker-per-work case.
         const totalAreaByKey = new Map();
         const approvedAreaByKey = new Map();
         for (const work of works) {
@@ -1990,12 +1970,14 @@ const computeDashboardApprovedBreakdown = async () => {
     };
 };
 
-// "Ready to Bill" — projects with at least one Work whose logged area
-// (completedAreaSqft, already stored — no query needed) exceeds what's
-// already been approved via an issued bill (getApprovedBillingByWorkId).
-// A lighter-weight sibling of computeWorkExpectedPay: skips the
-// deduction/expected-pay machinery entirely since this KPI only needs the
-// Total-vs-Approved gap, not the full picture.
+// "Ready to Bill" — projects with at least one Work whose REVIEWED area
+// (getApprovedBillingByWorkId — "Approved" now means reviewed, not billed)
+// exceeds what's already in an issued bill (getBilledAreaByWorkId).
+// Deliberately NOT completedAreaSqft vs reviewed — that gap is "pending
+// review" (a project needing attention in the review panel, not one
+// that's actually ready for Generate Bill). A lighter-weight sibling of
+// computeWorkExpectedPay: skips the deduction/expected-pay machinery
+// entirely since this KPI only needs the Reviewed-vs-Billed gap.
 const computeReadyProjectIds = async (billableProjectIds) => {
     const works = await FinanceWork.find(
         // status: {$ne:'completed'} — a completed Work is done accruing
@@ -2007,11 +1989,16 @@ const computeReadyProjectIds = async (billableProjectIds) => {
         'projectId completedAreaSqft'
     );
     if (!works.length) return [];
-    const approvedByWorkId = await getApprovedBillingByWorkId(works.map(w => w._id));
+    const workIds = works.map(w => w._id);
+    const [approvedByWorkId, billedByWorkId] = await Promise.all([
+        getApprovedBillingByWorkId(workIds),
+        getBilledAreaByWorkId(workIds),
+    ]);
     const readyProjectIds = new Set();
     for (const w of works) {
         const approved = approvedByWorkId.get(w._id.toString())?.areaSqft || 0;
-        if (w.completedAreaSqft - approved > 0.001) readyProjectIds.add(w.projectId.toString());
+        const billed = billedByWorkId.get(w._id.toString())?.areaSqft || 0;
+        if (approved - billed > 0.001) readyProjectIds.add(w.projectId.toString());
     }
     return [...readyProjectIds];
 };
@@ -2032,13 +2019,15 @@ const getProjectCompletionReadiness = async (projectId) => {
     const blockers = [];
 
     if (workIds.length) {
-        // Unbilled/unapproved work — every work's own Total-vs-Approved gap,
-        // same figure the Deduction Pool and Ledgers already surface.
+        // Unreviewed work — every work's own Total-vs-Approved(reviewed) gap,
+        // same figure the review panel and Ledgers already surface. A
+        // project shouldn't be markable complete with work nobody's ever
+        // actually reviewed.
         const expectedPays = await Promise.all(works.map(w => computeWorkExpectedPay(w)));
         const unapprovedAreaSqft = round2(expectedPays.reduce((s, wp) => s + wp.unapprovedAreaSqft, 0));
         const unapprovedAmount = round2(expectedPays.reduce((s, wp) => s + wp.unapprovedAmount, 0));
         if (unapprovedAreaSqft > 0.01) {
-            blockers.push({ category: 'unbilled_work', label: `${unapprovedAreaSqft} sqft logged but never billed to the client`, amount: unapprovedAmount });
+            blockers.push({ category: 'unbilled_work', label: `${unapprovedAreaSqft} sqft logged but never reviewed`, amount: unapprovedAmount });
         }
 
         // Contractor/labour balances still owed on THIS project specifically
@@ -2621,7 +2610,7 @@ const downloadCaMonthlyPackage = async (req, res) => {
 };
 
 export {
-    getProjectProfit, getClientProfit, getWorkProfit, getWorkDetail, getDeductionPool,
+    getProjectProfit, getClientProfit, getWorkProfit, getWorkDetail,
     getContractorAnalysis, getContractorsSummary, getLabourAnalysis,
     getVendorAnalysis, getVendorsSummary,
     getMaterialAnalysis, getInventorySummary,

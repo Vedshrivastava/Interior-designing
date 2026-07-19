@@ -31,13 +31,17 @@ const listRunningBills = async (req, res) => {
     }
 };
 
-// How much sqft is available to approve for one work type in a project —
-// Total logged so far minus what's already been approved via an issued
-// bill (computeWorkExpectedPay's unapprovedAreaSqft, the exact same figure
-// shown in the Contractor/Labour Ledger and Deduction Panel), summed
-// across every Work of that type. Reused by both the "what can I approve"
-// menu and the actual generation's own validation, so they can never
-// disagree about the ceiling.
+// How much sqft is available to approve (bill) for one work type in a
+// project — sqft that's already been REVIEWED (see WorkReviewPanel /
+// financeWorkReview) minus what's already in an issued bill
+// (computeWorkExpectedPay's availableToBillAreaSqft), summed across every
+// Work of that type. Deliberately NOT the same as unapprovedAreaSqft
+// (Total − Reviewed, "still pending review") — a work with nothing
+// reviewed yet correctly offers 0 here regardless of how much is logged,
+// which is what actually gates Generate Bill on review having happened
+// first. Reused by both the "what can I approve" menu and the actual
+// generation's own validation, so they can never disagree about the
+// ceiling.
 const computeAvailableByWorkType = async (projectId) => {
     const works = await FinanceWork.find({ projectId, deleted: { $ne: true } });
     const worksByType = new Map();
@@ -52,7 +56,7 @@ const computeAvailableByWorkType = async (projectId) => {
     const result = [];
     for (const [workType, typeWorks] of worksByType) {
         const expectedPays = await Promise.all(typeWorks.map(w => computeWorkExpectedPay(w)));
-        const availableSqft = round2(expectedPays.reduce((s, wp) => s + wp.unapprovedAreaSqft, 0));
+        const availableSqft = round2(expectedPays.reduce((s, wp) => s + wp.availableToBillAreaSqft, 0));
         if (availableSqft <= 0) continue;
         result.push({ workType, availableSqft, clientRatePerSqft: rateByType.get(workType) ?? null });
     }
@@ -79,14 +83,15 @@ const getAvailableToApprove = async (req, res) => {
 /*
  * Builds a bill's lineItems from the engineer's own typed sqft-per-work-type
  * figures (`workTypeSqft: { [workType]: approvedSqft }`) — never an
- * auto-sum of measurements. The engineer reviews everything logged since
- * the last bill and states what they're actually confirming, which can be
- * less than what's available (some may be rejected/incomplete) but never
- * more (validated below). One work type can span several Works (e.g. two
- * rooms both getting Putty) — schema still needs one lineItem per Work, so
- * the typed figure is distributed proportionally to each Work's own share
- * of what's available (splitApprovedAreaByShare, same helper the Ledgers/
- * Deduction Panel already use for the identical multi-work problem).
+ * auto-sum of measurements. The ceiling here is sqft that's already been
+ * REVIEWED (WorkReviewPanel) and not yet billed — a work type with nothing
+ * reviewed yet offers 0, blocking it from being billed until review
+ * happens first, no separate explicit check needed. One work type can
+ * span several Works (e.g. two rooms both getting Putty) — schema still
+ * needs one lineItem per Work, so the typed figure is distributed
+ * proportionally to each Work's own share of what's available
+ * (splitApprovedAreaByShare, same helper the Ledgers use for the
+ * identical multi-work problem).
  */
 const computeBillLineItems = async (projectId, workTypeSqft) => {
     const project = await FinanceProject.findById(projectId);
@@ -111,13 +116,13 @@ const computeBillLineItems = async (projectId, workTypeSqft) => {
         const approvedSqft = Number(sqftRaw);
         const works = await FinanceWork.find({ projectId, workType, deleted: { $ne: true } });
         const expectedPays = await Promise.all(works.map(w => computeWorkExpectedPay(w)));
-        const totalAvailable = round2(expectedPays.reduce((s, wp) => s + wp.unapprovedAreaSqft, 0));
+        const totalAvailable = round2(expectedPays.reduce((s, wp) => s + wp.availableToBillAreaSqft, 0));
         if (approvedSqft > totalAvailable) {
-            throw new Error(`Cannot approve more than the ${totalAvailable} sqft available for ${workType}`);
+            throw new Error(`Cannot approve more than the ${totalAvailable} sqft available for ${workType} — review outstanding sqft first (Payables/Receivables → Deductions)`);
         }
         const rate = rateByType.get(workType);
         works.forEach((w, i) => {
-            const workAvailable = expectedPays[i].unapprovedAreaSqft;
+            const workAvailable = expectedPays[i].availableToBillAreaSqft;
             if (workAvailable <= 0) return;
             const workSqft = splitApprovedAreaByShare(approvedSqft, workAvailable, totalAvailable);
             if (workSqft <= 0) return;

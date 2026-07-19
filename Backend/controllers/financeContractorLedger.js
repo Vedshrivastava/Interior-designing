@@ -22,18 +22,25 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
  * Payables elsewhere in this codebase.
  *
  * Earnings only count "Approved" area — the portion of a Work that's
- * actually been billed to the client via an issued running bill (see
- * financeReports.js's computeWorkApprovedBilling header comment for the
- * full reasoning: issuing the bill IS the engineer's approval act). Total
- * (every logged sqft, unconditional) is tracked separately per work
+ * actually been REVIEWED (financeWorkReview, via WorkReviewPanel in
+ * Receivables/Payables) — not merely logged, and no longer tied to
+ * whether the client has been billed yet either (review is what unlocks
+ * earnings now; billing the client is a separate, later step). Review is
+ * work-level, not per-vendor — when more than one vendor contributes to
+ * the same Work, this splits that work's reviewed sqft proportionally to
+ * each vendor's own share of the logged (measured) area
+ * (splitApprovedAreaByShare), same accepted simplification used
+ * everywhere else in this codebase for the identical multi-party problem.
+ * Total (every logged sqft, unconditional) is tracked separately per work
  * (completedAreaSqft/totalAmount) alongside Approved
  * (approvedAreaSqft/totals.earnings) — the gap between them is
- * unapprovedAreaSqft/totals.unapprovedAmount, never a separately entered
- * figure. This means Balance Payable can go negative: if a contractor's
- * already been paid more than their currently-approved work earns, that's
- * "Extra Paid" (an advance against work not yet billed), not a balance due
- * — the frontend is responsible for that framing, this endpoint just
- * reports the signed number.
+ * unapprovedAreaSqft/totals.unapprovedAmount ("pending review"), never a
+ * separately entered figure. This means Balance Payable can go negative:
+ * if a contractor's already been paid more than their currently-reviewed
+ * work earns (routine right after this feature ships, since historical
+ * work was never reviewed), that's "Extra Paid," not a balance due — the
+ * frontend is responsible for that framing, this endpoint just reports
+ * the signed number.
  *
  * Balance Payable = Approved Earnings − Advances − Deductions − Payments.
  *
@@ -78,7 +85,7 @@ const computeContractorLedger = async (vendorId, projectId) => {
                 .sort({ date: -1 })
             : [],
         // Every contractor's measurements on these works (any vendor) —
-        // needed to proportionally split a work's billed area when more
+        // needed to proportionally split a work's reviewed area when more
         // than one vendor contributes to it (see splitApprovedAreaByShare).
         works.length
             ? FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId areaCoveredSqft')
@@ -235,7 +242,7 @@ const downloadContractorBillStatement = async (req, res) => {
             ]),
         });
         doc.fontSize(8).fillColor('#888888')
-            .text('Approved sqft reflects work already included in an issued client bill; unapproved sqft has been measured but not yet billed to the client.', left, doc.y, { width });
+            .text('Approved sqft reflects work reviewed and confirmed; unapproved sqft has been measured but not yet reviewed.', left, doc.y, { width });
         doc.fillColor('#000000').fontSize(10);
         doc.moveDown(0.6);
 

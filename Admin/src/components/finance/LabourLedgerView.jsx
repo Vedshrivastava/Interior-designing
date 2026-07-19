@@ -162,7 +162,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
 
             <div className="list-table" style={{ marginBottom: '8px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-                    <b>Total (All Logged)</b><b>Approved (Billed)</b><b>Unapproved</b><b>Advances</b><b>Deductions</b><b>{totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}</b>
+                    <b>Total (All Logged)</b><b>Approved (Reviewed)</b><b>Unapproved</b><b>Advances</b><b>Deductions</b><b>{totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}</b>
                 </div>
                 <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
                     <p>₹{totals.totalAmount.toLocaleString('en-IN')}</p>
@@ -175,7 +175,12 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
             </div>
             {totals.unapprovedAmount > 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
-                    ₹{totals.unapprovedAmount.toLocaleString('en-IN')} worth of measured work hasn't been billed to the client yet; it isn't counted as Approved earnings until a running bill covering it is issued (Receivables → Running Bills).
+                    ₹{totals.unapprovedAmount.toLocaleString('en-IN')} worth of measured work hasn't been reviewed yet; it isn't counted as Approved earnings until it's reviewed (Payables/Receivables → Deductions).
+                </p>
+            )}
+            {totals.balancePayable < 0 && (
+                <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
+                    Paid more than currently-approved work earns — some already-paid work is still pending review, not a balance owed back.
                 </p>
             )}
 

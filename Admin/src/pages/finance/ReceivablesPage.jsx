@@ -5,8 +5,10 @@ import { toast } from 'react-toastify';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import RunningBillsManager from '../../components/finance/RunningBillsManager';
+import WorkReviewPanel from '../../components/finance/WorkReviewPanel';
 
 const TABS = [
+    { key: 'review',   label: 'Work Review' },
     { key: 'running',  label: 'Running Bills' },
     { key: 'pending',  label: 'Pending Bills' },
     { key: 'approved', label: 'Approved Bills' },
@@ -97,9 +99,13 @@ const ReceivablesPage = ({ url }) => {
             {activeTab !== 'receipts' && (
                 <>
                     <ProjectPicker url={url} selectedProjectId={selectedProjectId} onChange={setSelectedProjectId} />
-                    {selectedProjectId
-                        ? <RunningBillsManager url={url} projectId={selectedProjectId} statusFilter={STATUS_FILTER[activeTab]} />
-                        : <div className="admin-empty-state"><p>Select a project to view its bills.</p></div>}
+                    {!selectedProjectId ? (
+                        <div className="admin-empty-state"><p>Select a project to view its {activeTab === 'review' ? 'work review' : 'bills'}.</p></div>
+                    ) : activeTab === 'review' ? (
+                        <WorkReviewPanel url={url} projectId={selectedProjectId} />
+                    ) : (
+                        <RunningBillsManager url={url} projectId={selectedProjectId} statusFilter={STATUS_FILTER[activeTab]} />
+                    )}
                 </>
             )}
             {activeTab === 'receipts' && <PendingReceiptsTab url={url} />}

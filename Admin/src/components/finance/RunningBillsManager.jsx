@@ -51,6 +51,8 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     const [downloadingId, setDownloadingId] = useState(null);
     const { progress: downloadProgress, run: runDownload } = useFileDownload(authHeader);
 
+    const [pendingReviewByType, setPendingReviewByType] = useState([]);
+
     const fetchBills = async () => {
         setLoading(true);
         try {
@@ -60,7 +62,26 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
         finally { setLoading(false); }
     };
 
-    useEffect(() => { if (projectId) fetchBills(); }, [projectId, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Surfaced as a banner below — work logged but never reviewed doesn't
+    // show up in Generate Bill's own ceiling at all (it offers 0 for a
+    // work type with nothing reviewed yet), so without this the engineer
+    // would have no way to notice it's sitting there. Same data source as
+    // WorkReviewPanel itself.
+    const fetchPendingReview = async () => {
+        if (!projectId) { setPendingReviewByType([]); return; }
+        try {
+            const res = await axios.get(`${url}/api/finance/work-reviews/project/${projectId}`, authHeader);
+            if (!res.data.success) return;
+            const byType = new Map();
+            for (const row of res.data.data.rows) {
+                if (row.pendingReviewSqft <= 0) continue;
+                byType.set(row.workType, (byType.get(row.workType) || 0) + row.pendingReviewSqft);
+            }
+            setPendingReviewByType([...byType.entries()].map(([workType, sqft]) => ({ workType, sqft: Math.round((sqft + Number.EPSILON) * 100) / 100 })));
+        } catch { /* non-critical — banner just stays empty */ }
+    };
+
+    useEffect(() => { if (projectId) { fetchBills(); fetchPendingReview(); } }, [projectId, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const openGenerate = () => {
         setWorkStartDate(''); setLastBillFromDate(''); setPeriodFromChoice('lastBill');
@@ -186,6 +207,12 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                 </div>
                 <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={openGenerate}>+ Generate Bill</button>
             </div>
+
+            {pendingReviewByType.length > 0 && (
+                <div className="admin-subtitle" style={{ background: '#fdf6e3', border: '1px solid #e8d9a8', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', color: '#8a6d1f' }}>
+                    {pendingReviewByType.map(p => `${p.sqft} sqft of ${p.workType}`).join(', ')} logged but not yet reviewed — review it in Payables/Receivables → Deductions before it can be billed.
+                </div>
+            )}
 
             <div className="list-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1fr 110px 260px' }}>

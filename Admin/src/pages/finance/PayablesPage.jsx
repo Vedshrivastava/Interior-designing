@@ -6,7 +6,7 @@ import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import ExpensesManager from '../../components/finance/ExpensesManager';
 import ExpenseAnalysisView from '../../components/finance/ExpenseAnalysisView';
-import DeductionPanel from '../../components/finance/DeductionPanel';
+import WorkDeductionAllocationPanel from '../../components/finance/WorkDeductionAllocationPanel';
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 const OTHER_CATEGORY = 'Others';
@@ -313,7 +313,7 @@ const PayablesPage = ({ url }) => {
             {activeTab === 'contractor' && <PayablesContractorTab url={url} />}
             {activeTab === 'salary' && <PayablesSalaryTab url={url} />}
             {activeTab === 'commission' && <PayablesCommissionTab url={url} />}
-            {activeTab === 'deductions' && <DeductionPanel url={url} />}
+            {activeTab === 'deductions' && <WorkDeductionAllocationPanel url={url} />}
             {activeTab === 'expenses' && <ExpensesManager url={url} highlightId={searchParams.get('expenseId')} />}
             {activeTab === 'expense-analysis' && <ExpenseAnalysisView url={url} />}
             {activeTab === 'company' && companyId && (

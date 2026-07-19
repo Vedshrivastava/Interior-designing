@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useWebSocket } from '../../hooks/useWebSocket';
 import WorkTypeRatesManager from '../../components/finance/WorkTypeRatesManager';
+import WorksManager from '../../components/finance/WorksManager';
 import ContractorRatesManager from '../../components/finance/ContractorRatesManager';
+import WorkersManager from '../../components/finance/WorkersManager';
+import { useProjectSupervisorConflictCheck } from '../../components/finance/useSupervisorConflictCheck';
 import SettingSelectField, { registerSettingIfNew } from '../../components/finance/SettingSelectField';
 import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import StyledSelect from '../../components/finance/StyledSelect';
@@ -42,9 +46,30 @@ const NewProjectWizard = ({ url }) => {
     const [paymentModes, setPaymentModes] = useState([]);
     const [bankAccounts, setBankAccounts] = useState([]);
 
+    const { checkProjectSupervisor, modal: supervisorConflictModal } = useProjectSupervisorConflictCheck(url);
+
     const [cityOptions, setCityOptions] = useState([]);
     const [stepKey, setStepKey] = useState('basic');
     const [saving, setSaving] = useState(false);
+    // Bumped by WorksManager (via onWorksChanged) whenever a Work or its
+    // contractor/labour assignments change — same signal Project Detail's
+    // Works & Rates tab uses to keep ContractorRatesManager/WorkersManager
+    // in sync, since Step 4 now embeds the exact same trio of components.
+    const [worksVersion, setWorksVersion] = useState(0);
+
+    // Same WebSocket subscription Project Detail's Works & Rates tab uses —
+    // without it, a Work created via WorkTypeRatesManager's or
+    // ContractorRatesManager's own "+ Add Work" quick-add nudge (not
+    // WorksManager's main button) never told this page's worksVersion to
+    // bump, so the new Work just silently didn't appear in the Works table
+    // until something else happened to trigger a refetch. Every relevant
+    // controller already broadcasts its own projectId-scoped event; this
+    // just needs to listen the same way Project Detail already does.
+    const WORKS_SECTION_EVENTS = ['financeWorksChanged', 'financeWorkContractorAssignmentsChanged', 'financeWorkTypeRatesChanged', 'financeContractorRatesChanged', 'financeWorkLabourAssignmentsChanged'];
+    useWebSocket(useCallback((msg) => {
+        if (!projectId || msg.projectId !== projectId || !WORKS_SECTION_EVENTS.includes(msg.type)) return;
+        setWorksVersion(v => v + 1);
+    }, [projectId])); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'city' } }).then(res => { if (res.data.success) setCityOptions(res.data.data); }).catch(() => {});
@@ -53,7 +78,7 @@ const NewProjectWizard = ({ url }) => {
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const steps = ['basic', 'type', 'setup', 'contractors', ...(contractType === 'advance' ? ['advance'] : []), 'activate'];
-    const stepLabels = { basic: 'Basic Info', type: 'Contract Type', setup: 'Setup', contractors: 'Contractor Rates', advance: 'Advance Payment', activate: 'Activate' };
+    const stepLabels = { basic: 'Basic Info', type: 'Contract Type', setup: 'Setup', contractors: 'Team & Rates', advance: 'Advance Payment', activate: 'Activate' };
     const stepIndex = steps.indexOf(stepKey);
 
     const setBasicField = (key, value) => setBasic(prev => ({ ...prev, [key]: value }));
@@ -105,6 +130,12 @@ const NewProjectWizard = ({ url }) => {
                 advanceAmount: contractType === 'advance' ? advanceAmount : 0,
             }, authHeader);
             if (!res.data.success) { toast.error(res.data.message); return; }
+            // /update only returns {success, message}, not the saved record —
+            // Team & Rates needs referralVendorId populated with a name (same
+            // "Referral Person: X" line Project Detail's own Works & Rates tab
+            // shows), so re-fetch the real, populated project here.
+            const projectRes = await axios.get(`${url}/api/finance/projects/${projectId}`, authHeader);
+            if (projectRes.data.success) setProject(projectRes.data.data.project);
             setStepKey('contractors');
         } catch (err) {
             toast.error(err.response?.data?.message || 'Error saving setup');
@@ -160,7 +191,7 @@ const NewProjectWizard = ({ url }) => {
     const primaryAction = {
         basic:       { label: 'Next: Contract Type',   onClick: goToType },
         type:        { label: saving ? 'Saving…' : 'Next: Setup',              onClick: goToSetup,           disabled: saving },
-        setup:       { label: saving ? 'Saving…' : 'Next: Contractor Rates',   onClick: goToContractors,     disabled: saving },
+        setup:       { label: saving ? 'Saving…' : 'Next: Team & Rates',       onClick: goToContractors,     disabled: saving },
         contractors: { label: contractType === 'advance' ? 'Next: Advance Payment' : 'Next: Activate', onClick: goToAdvanceOrActivate },
         advance:     { label: 'Next: Activate',        onClick: () => setStepKey('activate') },
         activate:    { label: saving ? 'Activating…' : 'Activate Project',     onClick: activate,            disabled: saving },
@@ -231,7 +262,10 @@ const NewProjectWizard = ({ url }) => {
                                 <div className="add-product-name flex-col">
                                     <p>Assigned Supervisor</p>
                                     <QuickAddPicker url={url} resourceKey="employees" value={basic.assignedSupervisorId}
-                                        onChange={v => setBasicField('assignedSupervisorId', v)} placeholder="None" />
+                                        onChange={v => {
+                                            setBasicField('assignedSupervisorId', v);
+                                            if (v) checkProjectSupervisor(v, projectId);
+                                        }} placeholder="None" />
                                 </div>
                             </div>
 
@@ -278,21 +312,16 @@ const NewProjectWizard = ({ url }) => {
                         <>
                             <h2>Setup: {CONTRACT_TYPES.find(c => c.value === contractType)?.label}</h2>
 
-                            <p className="wizard-section-label">Rates</p>
-                            <WorkTypeRatesManager url={url} projectId={projectId} />
-
                             <p className="wizard-section-label">Referral</p>
-                            <div className="wizard-field-grid">
-                                <div className="add-product-name flex-col">
-                                    <p>Referral Vendor (middleman, optional)</p>
-                                    <QuickAddPicker url={url} resourceKey="vendors" value={referralVendorId}
-                                        onChange={setReferralVendorId}
-                                        filter={v => v.vendorType === 'referral' || v.vendorType === 'other'}
-                                        presetValues={{ vendorType: 'referral' }} placeholder="None" />
-                                </div>
+                            <div className="add-product-name flex-col" style={{ maxWidth: '420px' }}>
+                                <p>Referral Vendor (middleman, optional)</p>
+                                <QuickAddPicker url={url} resourceKey="vendors" value={referralVendorId}
+                                    onChange={setReferralVendorId}
+                                    filter={v => v.vendorType === 'referral' || v.vendorType === 'other'}
+                                    presetValues={{ vendorType: 'referral' }} placeholder="None" />
                             </div>
                             {contractType === 'advance' && referralVendorId && (
-                                <p className="wizard-hidden-note">Commission for an Advance project's referral is a flat amount, entered manually when this project is marked Completed, not computed from sqft.</p>
+                                <p className="wizard-hidden-note" style={{ marginTop: '10px' }}>Commission for an Advance project's referral is a flat amount, entered manually when this project is marked Completed, not computed from sqft.</p>
                             )}
 
                             <p className="wizard-section-label">Material Tracking</p>
@@ -301,11 +330,14 @@ const NewProjectWizard = ({ url }) => {
                             ) : contractType === 'with_material' ? (
                                 <p className="wizard-hidden-note">Material tracking is on for this contract (With Material always tracks material).</p>
                             ) : (
-                                <label className="featured-toggle" style={{ margin: '4px 0 16px', display: 'flex' }}>
-                                    <input type="checkbox" checked={materialTrackingEnabled} onChange={e => setMaterialTrackingEnabled(e.target.checked)} />
-                                    <span className="toggle-slider"></span>
-                                    <span className="toggle-label">Track material for this project too</span>
-                                </label>
+                                <>
+                                    <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>Advance clients don't always get material supplied by the studio; your call, per project.</p>
+                                    <label className="featured-toggle" style={{ margin: 0, display: 'flex' }}>
+                                        <input type="checkbox" checked={materialTrackingEnabled} onChange={e => setMaterialTrackingEnabled(e.target.checked)} />
+                                        <span className="toggle-slider"></span>
+                                        <span className="toggle-label">Track material for this project too</span>
+                                    </label>
+                                </>
                             )}
 
                             {contractType === 'advance' && (
@@ -326,11 +358,26 @@ const NewProjectWizard = ({ url }) => {
                         </>
                     )}
 
-                    {/* ── Step 4: Contractor assignment & rates ── */}
+                    {/* ── Step 4: Team & Rates — the exact same Works, Work Type
+                         Rates, Contractor Rates, and Labour Rates components
+                         Project Detail's own Works & Rates tab uses (WorksManager's
+                         Add Work/Manage Contractors/Manage Labour modals included),
+                         so Works can be created with their contractor + labour
+                         teams right here instead of waiting until after
+                         activation. Setup (Step 3) no longer has its own Work
+                         Type Rates section — this is the only place that sets it,
+                         same as Project Detail. ── */}
                     {stepKey === 'contractors' && (
                         <>
-                            <h2>Contractor Assignment &amp; Rates</h2>
-                            <ContractorRatesManager url={url} projectId={projectId} />
+                            <h2>Team &amp; Rates</h2>
+                            <WorksManager url={url} projectId={projectId} worksVersion={worksVersion} onWorksChanged={() => setWorksVersion(v => v + 1)} />
+                            <div style={{ marginTop: '32px' }}>
+                                <WorkTypeRatesManager url={url} projectId={projectId} worksVersion={worksVersion} referralVendorName={project?.referralVendorId?.name} />
+                            </div>
+                            <h3 style={{ margin: '28px 0 8px' }}>Contractor Rates</h3>
+                            <ContractorRatesManager url={url} projectId={projectId} worksVersion={worksVersion} />
+                            <h3 style={{ margin: '28px 0 8px' }}>Labour Rates</h3>
+                            <WorkersManager url={url} projectId={projectId} worksVersion={worksVersion} />
                         </>
                     )}
 
@@ -393,6 +440,7 @@ const NewProjectWizard = ({ url }) => {
 
                 </div>
             </div>
+            {supervisorConflictModal}
         </div>
     );
 };

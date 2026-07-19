@@ -110,8 +110,8 @@
 .wizard-step-body textarea {
     width: 100%;
     padding: 14px 16px;
-    border: 1px solid rgba(201,168,124,0.28);
-    background-color: var(--ivory);
+    border: 1px solid rgba(201,168,124,0.4);
+    background-color: var(--white);
     color: var(--green);
     border-radius: var(--radius-sm);
     font-size: 0.9rem;
@@ -125,6 +125,36 @@
     border-color: var(--gold);
     background: var(--white);
     box-shadow: 0 0 0 4px rgba(201,168,124,0.12);
+}
+
+/* Blank fields were filled with the exact same ivory tone as the page
+   background (add.css's `.add-product-name input` / `.add-cat-trigger`,
+   shared by every text input, number input, and the custom
+   StyledSelect/StyledDatePicker dropdown trigger) — so an empty field
+   only read as "there" once you noticed its faint 28%-opacity border.
+   White fill against the ivory page gives every entry point real
+   contrast at a glance, without bringing back a boxed-card look. Scoped
+   to the wizard's own steps (Basic Info through Setup — where this was
+   flagged) via the extra .wizard-step-body ancestor, which also gives
+   this higher specificity than the add.css rules it overrides, so it
+   wins regardless of CSS load order. */
+.wizard-step-body .add-product-name input,
+.wizard-step-body .add-product-name select,
+.wizard-step-body .add-cat-trigger {
+    background-color: var(--white);
+    border-color: rgba(201,168,124,0.4);
+}
+.wizard-step-body .add-cat-trigger:hover {
+    border-color: rgba(201,168,124,0.65);
+}
+
+/* "Work Type Rates" heading + "+ Add Work" button, one row, button on the
+   right — WorkTypeRatesManager owns this internally now so both pages
+   render it identically instead of each supplying their own heading. */
+.wt-rates-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .wizard-step-body .add-product-name > p {

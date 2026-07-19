@@ -1,51 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import StyledSelect from './StyledSelect';
-import QuickAddWorkModal from './QuickAddWorkModal';
+import AddWorkModal from './AddWorkModal';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const emptyForm = { workType: '', clientRate: '', referralRate: '' };
+/* Manages financeWorkTypeRate rows for one project — used identically on
+   both Project Detail's Works & Rates tab and the New Project wizard's
+   Team & Rates step. Owns its own "Work Type Rates" heading, so both pages
+   render this section byte-for-byte the same way instead of each supplying
+   their own wrapper markup.
 
-/* Manages financeWorkTypeRate rows for one project — used in both the New
-   Project wizard (Step 3) and the Project Detail page's Work Type Rates tab.
-   `worksVersion` is only ever passed from the Project Detail page — used
-   here to gate the "+ Add Work" quick-add dialog, since offering it during
-   the wizard's Step 3 would force creating a Work before the wizard's own
-   flow is ready for that (Works only get added later, from Project Detail).
-
-   Unlike Contractor Rates, a work type rate has no contractor dimension —
-   it's just (project, workType) -> clientRate/referralRate. So once the
-   project has real Works, this is one row per real work type, no grouping
-   needed: a saved rate shows read-only + Remove, an unset one shows inline
-   Client/Referral inputs + Save. The old select-driven form only survives
-   as the fallback for a project with no real Works yet. */
-const WorkTypeRatesManager = ({ url, projectId, worksVersion }) => {
+   A work type rate only ever makes sense once this project has a real Work
+   of that type — there's no free "pick any work type and rate it" path
+   (there used to be one, a settings-master-list picker, but every caller
+   already passes worksVersion, so that path was permanently unreachable
+   dead code, not an actual fallback). So before any real Work exists, this
+   is just a nudge to add one (opens the same AddWorkModal every other
+   "Add Work" trigger uses); once real Works exist, one row per real work
+   type: a saved rate shows read-only + Remove, an unset one shows inline
+   Client/Referral inputs + Save — mirroring ContractorRatesManager/
+   WorkersManager's own grids exactly. */
+const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const allowQuickAddWork = worksVersion !== undefined;
 
     const [items, setItems] = useState([]);
-    const [workTypeOptions, setWorkTypeOptions] = useState([]);
     // null until this project has at least one real Work — gates the grid
-    // vs. fallback-form choice below, same reasoning as ContractorRatesManager.
-    // Deliberately distinct from loadingWorkTypes below: null means "checked,
-    // there genuinely aren't any" — it must never be the value shown while
-    // still waiting on the fetch, or the fallback form (built for a truly
-    // work-less project) flashes on screen every refresh before the real
-    // answer comes back.
+    // vs. empty-state choice below. Deliberately distinct from loading
+    // below: null must only ever mean "checked, there genuinely aren't
+    // any", never "haven't checked yet".
     const [realWorkTypes, setRealWorkTypes] = useState(null);
-    const [loadingWorkTypes, setLoadingWorkTypes] = useState(true);
+    const [loading, setLoading] = useState(true);
+    const [addWorkOpen, setAddWorkOpen] = useState(false);
 
-    // Fallback-form state (only used when realWorkTypes === null).
-    const [form, setForm] = useState(emptyForm);
-    const [saving, setSaving] = useState(false);
-    const [quickAddOpen, setQuickAddOpen] = useState(false);
-
-    // Grid state — pending client/referral rate per unset work type, keyed
-    // by workType, and which one is currently being saved.
+    // Pending rate per unset work type, keyed by workType, and which one
+    // is currently being saved.
     const [pending, setPending] = useState({});
     const [savingKey, setSavingKey] = useState(null);
 
@@ -56,58 +47,22 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion }) => {
         } catch { toast.error('Error fetching work type rates'); }
     };
 
-    // A rate should only ever be settable for a work type this project
-    // actually has a Work for — not free text. But the New Project wizard
-    // sets these rates in Step 3, before any Work exists (Works only get
-    // added later, from Project Detail) — so fall back to the Settings
-    // master list until this project has at least one real Work.
-    const refreshWorkTypeOptions = async () => {
+    const refreshRealWorkTypes = async () => {
         if (!projectId) return;
         try {
             const res = await axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } });
             const fromWorks = res.data.success ? [...new Set(res.data.data.map(w => w.workType))] : [];
-            if (fromWorks.length) { setWorkTypeOptions(fromWorks); setRealWorkTypes(new Set(fromWorks)); return; }
-            setRealWorkTypes(null);
-            const settingsRes = await axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } });
-            if (settingsRes.data.success) setWorkTypeOptions(settingsRes.data.data.map(s => s.name));
-        } catch { /* leave options as-is */ }
-        finally { setLoadingWorkTypes(false); }
+            setRealWorkTypes(fromWorks.length ? new Set(fromWorks) : null);
+        } catch { /* leave as-is */ }
+        finally { setLoading(false); }
     };
 
-    useEffect(() => { fetchList(); refreshWorkTypeOptions(); }, [projectId, worksVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { fetchList(); refreshRealWorkTypes(); }, [projectId, worksVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const handleWorkCreated = async (newWork) => {
-        setQuickAddOpen(false);
-        await refreshWorkTypeOptions();
-        setForm(prev => ({ ...prev, workType: newWork.workType }));
+    const handleWorkCreated = async () => {
+        setAddWorkOpen(false);
+        await refreshRealWorkTypes();
     };
-
-    // --- Fallback form (no real Works yet) ---
-
-    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
-
-    const submit = async (e) => {
-        e.preventDefault();
-        if (!form.workType.trim()) { toast.error('Work type is required'); return; }
-        if (form.clientRate === '') { toast.error('Client rate is required'); return; }
-        setSaving(true);
-        try {
-            const payload = {
-                projectId, workType: form.workType.trim(),
-                clientRatePerSqft: form.clientRate, referralRatePerSqft: form.referralRate || 0,
-            };
-            const res = await axios.post(`${url}/api/finance/work-type-rates/add`, payload, authHeader);
-            if (res.data.success) {
-                toast.success(res.data.message || 'Rate added');
-                setForm(emptyForm);
-                await fetchList();
-            } else toast.error(res.data.message);
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Error adding rate');
-        } finally { setSaving(false); }
-    };
-
-    // --- Grid (real Works exist) ---
 
     const setPendingField = (workType, field, value) =>
         setPending(prev => ({ ...prev, [workType]: { ...(prev[workType] || { clientRate: '', referralRate: '' }), [field]: value } }));
@@ -141,45 +96,20 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion }) => {
 
     return (
         <div>
-            {loadingWorkTypes ? (
+            <div className="wt-rates-header">
+                <h3 style={{ margin: 0 }}>Work Type Rates</h3>
+                {!loading && realWorkTypes === null && (
+                    <button type="button" className="add-btn" onClick={() => setAddWorkOpen(true)}>+ Add Work</button>
+                )}
+            </div>
+            <p className="admin-subtitle" style={{ margin: '4px 0 12px' }}>
+                Referral Person: {referralVendorName || 'None'}
+            </p>
+
+            {loading ? (
                 <div className="admin-empty-state"><p>Loading…</p></div>
             ) : realWorkTypes === null ? (
-                <>
-                    <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                        Client rate + referral rate, per work type. Required before this project can go active.
-                    </p>
-                    <form onSubmit={submit}>
-                        <div className="wizard-field-grid">
-                            <div className="add-product-name flex-col">
-                                <p>Work Type *</p>
-                                {allowQuickAddWork ? (
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                        <span className="admin-subtitle" style={{ flex: 1 }}>No Works added to this project yet</span>
-                                        <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={() => setQuickAddOpen(true)}>+ Add Work</button>
-                                    </div>
-                                ) : (
-                                    <StyledSelect
-                                        value={form.workType} onChange={v => setField('workType', v)}
-                                        placeholder={workTypeOptions.length ? 'Select work type…' : 'Add a Work first'}
-                                        options={workTypeOptions.map(w => ({ value: w, label: w }))}
-                                    />
-                                )}
-                            </div>
-                            <div className="add-product-name flex-col">
-                                <p>Client Rate (₹/sqft) *</p>
-                                <input type="number" value={form.clientRate} onChange={e => setField('clientRate', e.target.value)} />
-                            </div>
-                            <div className="add-product-name flex-col">
-                                <p>Referral Rate (₹/sqft)</p>
-                                <input type="number" value={form.referralRate} onChange={e => setField('referralRate', e.target.value)} />
-                            </div>
-                        </div>
-                        <div className="wizard-actions" style={{ marginTop: '16px' }}>
-                            <span />
-                            <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Adding…' : '+ Add Rate'}</button>
-                        </div>
-                    </form>
-                </>
+                <div className="admin-empty-state"><p>No Works added to this project yet; add one to set its client and referral rate.</p></div>
             ) : (
                 <>
                     <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
@@ -233,8 +163,8 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion }) => {
                 </>
             )}
 
-            {quickAddOpen && (
-                <QuickAddWorkModal url={url} projectId={projectId} onClose={() => setQuickAddOpen(false)} onCreated={handleWorkCreated} />
+            {addWorkOpen && (
+                <AddWorkModal url={url} projectId={projectId} onClose={() => setAddWorkOpen(false)} onSaved={handleWorkCreated} />
             )}
         </div>
     );

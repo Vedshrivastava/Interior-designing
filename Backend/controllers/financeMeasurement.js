@@ -7,13 +7,21 @@ import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 
 // projectId is optional — omit it for a cross-project view (Site
-// Operations' Daily Measurements).
+// Operations' Daily Measurements). date (optional, 'YYYY-MM-DD') scopes to
+// one calendar day — Site Operations' cross-project view otherwise has no
+// other bound and would pull the entire measurement history across every
+// project on every load/refetch.
 const listMeasurements = async (req, res) => {
     try {
-        const { projectId, workId } = req.query;
+        const { projectId, workId, date } = req.query;
         const filter = { deleted: { $ne: true } };
         if (projectId) filter.projectId = projectId;
         if (workId) filter.workId = workId;
+        if (date) {
+            const start = new Date(date);
+            const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+            filter.date = { $gte: start, $lt: end };
+        }
         const items = await FinanceMeasurement.find(filter)
             .populate('workId', 'workType workOrderNumber')
             .populate('materialUsed.materialId', 'name unit')

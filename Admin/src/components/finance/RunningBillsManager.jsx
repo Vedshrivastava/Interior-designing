@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
+import { useFileDownload } from '../../hooks/useFileDownload';
+import DownloadButton from './DownloadButton';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -28,7 +30,12 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     const [bills, setBills] = useState([]);
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
-    const [periodFrom, setPeriodFrom] = useState('');
+    // Period From is a choice between two resolved anchors, not a free
+    // date — see openGenerate's comment below for why.
+    const [workStartDate, setWorkStartDate] = useState('');
+    const [lastBillFromDate, setLastBillFromDate] = useState('');
+    const [periodFromChoice, setPeriodFromChoice] = useState('lastBill');
+    const periodFrom = (periodFromChoice === 'lastBill' && lastBillFromDate) ? lastBillFromDate : workStartDate;
     const [periodTo, setPeriodTo] = useState('');
     const [billDate, setBillDate] = useState('');
     const [gstRate, setGstRate] = useState('');
@@ -41,6 +48,8 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     const [gstEditItem, setGstEditItem] = useState(null);
     const [gstEditValue, setGstEditValue] = useState('');
     const [savingGst, setSavingGst] = useState(false);
+    const [downloadingId, setDownloadingId] = useState(null);
+    const { progress: downloadProgress, run: runDownload } = useFileDownload(authHeader);
 
     const fetchBills = async () => {
         setLoading(true);
@@ -54,7 +63,8 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     useEffect(() => { if (projectId) fetchBills(); }, [projectId, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const openGenerate = () => {
-        setPeriodFrom(''); setPeriodTo(''); setBillDate(new Date().toISOString().slice(0, 10)); setGstRate('');
+        setWorkStartDate(''); setLastBillFromDate(''); setPeriodFromChoice('lastBill');
+        setPeriodTo(''); setBillDate(new Date().toISOString().slice(0, 10)); setGstRate('');
         setAvailable(null); setWorkTypeSqft({});
         setModalOpen(true);
         // Prefill (not lock) gstRate from Settings > GST.
@@ -62,24 +72,28 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
             const rate = res.data.success ? res.data.data.defaultGstRate : null;
             if (rate !== null && rate !== undefined) setGstRate(rate);
         }).catch(() => {});
-        // Prefill "From" with the day after the last bill's period end
-        // (any status, ignoring statusFilter — this needs the true latest
-        // bill) — purely descriptive on the statement now, nothing queries
-        // by it, but still a nice touch. Falls back to the project's start
-        // date for a project's very first bill.
+        // Period From is purely descriptive on the statement (nothing
+        // queries by it), so rather than a free date picker the engineer
+        // just picks between the two anchors that ever actually make
+        // sense: the project's own start date, or the day after the last
+        // bill's period end (any status, ignoring statusFilter — this
+        // needs the true latest bill). Defaults to "from last bill" when
+        // one exists, else falls back to "from work start".
+        axios.get(`${url}/api/finance/projects/list`, authHeader).then(pRes => {
+            if (!pRes.data.success) return;
+            const project = pRes.data.data.find(p => p._id === projectId);
+            if (project?.startDate) setWorkStartDate(new Date(project.startDate).toISOString().slice(0, 10));
+        }).catch(() => {});
         axios.get(`${url}/api/finance/running-bills/list`, { ...authHeader, params: { projectId } }).then(res => {
             if (!res.data.success) return;
             const latest = [...res.data.data].sort((a, b) => new Date(b.periodTo) - new Date(a.periodTo))[0];
             if (latest) {
                 const next = new Date(latest.periodTo);
                 next.setDate(next.getDate() + 1);
-                setPeriodFrom(next.toISOString().slice(0, 10));
+                setLastBillFromDate(next.toISOString().slice(0, 10));
+                setPeriodFromChoice('lastBill');
             } else {
-                axios.get(`${url}/api/finance/projects/list`, authHeader).then(pRes => {
-                    if (!pRes.data.success) return;
-                    const project = pRes.data.data.find(p => p._id === projectId);
-                    if (project?.startDate) setPeriodFrom(new Date(project.startDate).toISOString().slice(0, 10));
-                }).catch(() => {});
+                setPeriodFromChoice('workStart');
             }
         }).catch(() => {});
         // What's available to approve, per work type — the engineer edits
@@ -154,18 +168,13 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
         finally { setDeleting(false); }
     };
 
-    // Protected download — the PDF endpoint needs the Bearer token, so a
-    // plain <a href> won't carry auth; fetch as a blob and trigger the
-    // save via a throwaway anchor instead.
+    // Protected download — a plain <a href> can't carry the Bearer token,
+    // so this fetches the PDF as a blob (see useFileDownload) with a real,
+    // live byte/percent readout while the transfer is in progress.
     const downloadStatement = async (bill) => {
-        try {
-            const res = await axios.get(`${url}/api/finance/running-bills/${bill._id}/statement/download`, { ...authHeader, responseType: 'blob' });
-            const blobUrl = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-            const a = document.createElement('a');
-            a.href = blobUrl; a.download = `Bill-Statement-${bill.billNumber}.pdf`;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            URL.revokeObjectURL(blobUrl);
-        } catch { toast.error('Error downloading statement'); }
+        setDownloadingId(bill._id);
+        await runDownload(url, `/api/finance/running-bills/${bill._id}/statement/download`, `Bill-Statement-${bill.billNumber}.pdf`, {}, 'Error downloading statement');
+        setDownloadingId(null);
     };
 
     return (
@@ -205,7 +214,10 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                             </p>
                             <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
                                 {b.status === 'draft' && <p onClick={() => openGstEdit(b)} className="cursor edit-action">GST</p>}
-                                <p onClick={() => downloadStatement(b)} className="cursor edit-action">Statement</p>
+                                <DownloadButton
+                                    as="p" downloading={downloadingId === b._id} progress={downloadingId === b._id ? downloadProgress : null}
+                                    idleLabel="Statement" onClick={() => downloadStatement(b)} className="cursor edit-action"
+                                />
                                 <p onClick={() => setConfirmItem(b)} className="cursor delete-action">X</p>
                             </div>
                         </div>
@@ -223,7 +235,28 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                         <div className="wizard-field-grid">
                             <div className="add-product-name flex-col">
                                 <p>Period From</p>
-                                <StyledDatePicker value={periodFrom} onChange={setPeriodFrom} />
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    <button
+                                        type="button"
+                                        className={`labour-chip${periodFromChoice === 'lastBill' ? ' active' : ''}`}
+                                        onClick={() => setPeriodFromChoice('lastBill')}
+                                        disabled={!lastBillFromDate}
+                                        style={!lastBillFromDate ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+                                        title={!lastBillFromDate ? 'No prior bill for this project yet' : undefined}
+                                    >
+                                        From Last Bill{lastBillFromDate ? ` — ${new Date(lastBillFromDate).toLocaleDateString()}` : ''}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`labour-chip${periodFromChoice === 'workStart' ? ' active' : ''}`}
+                                        onClick={() => setPeriodFromChoice('workStart')}
+                                        disabled={!workStartDate}
+                                        style={!workStartDate ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+                                        title={!workStartDate ? 'Project has no start date set' : undefined}
+                                    >
+                                        From Work Start{workStartDate ? ` — ${new Date(workStartDate).toLocaleDateString()}` : ''}
+                                    </button>
+                                </div>
                             </div>
                             <div className="add-product-name flex-col">
                                 <p>Period To</p>

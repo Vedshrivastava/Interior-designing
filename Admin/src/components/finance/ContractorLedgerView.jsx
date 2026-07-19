@@ -1,8 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { ChartCard, EmptyChart, CHART_COLORS, formatINR } from './DashboardWidgets';
+import StyledSelect from './StyledSelect';
+import DownloadButton from './DownloadButton';
+import { useFileDownload } from '../../hooks/useFileDownload';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -46,6 +49,8 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
     const [loading, setLoading] = useState(true);
     const [bankAccounts, setBankAccounts] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
+    const [billProjectId, setBillProjectId] = useState('');
+    const { downloading: downloadingBill, progress: billProgress, run: runBillDownload } = useFileDownload(authHeader);
 
     const [advanceForm, setAdvanceForm] = useState(emptyAdvanceForm);
     const [deductionForm, setDeductionForm] = useState(emptyDeductionForm);
@@ -119,6 +124,13 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
         finally { setSaving(''); }
     };
 
+    const billProjectOptions = useMemo(() => {
+        if (!ledger) return [];
+        const seen = new Map();
+        for (const w of ledger.works) seen.set(w.projectId, w.projectName);
+        return [...seen.entries()].map(([value, label]) => ({ value, label }));
+    }, [ledger]);
+
     const remove = async (kind, id) => {
         const endpoint = { advance: 'contractor-advances', deduction: 'contractor-deductions', payment: 'contractor-payments' }[kind];
         try {
@@ -136,6 +148,26 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
 
     return (
         <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '16px' }}>
+                <div className="add-product-name flex-col" style={{ minWidth: '220px' }}>
+                    <p>Download Payment Statement For</p>
+                    <StyledSelect
+                        value={billProjectId} onChange={setBillProjectId} placeholder="Select project…"
+                        options={billProjectOptions}
+                    />
+                </div>
+                <DownloadButton
+                    downloading={downloadingBill} progress={billProgress}
+                    idleLabel="Download Statement" className="add-btn"
+                    onClick={() => billProjectId && runBillDownload(
+                        url, `/api/finance/contractors/${vendorId}/ledger/download`,
+                        `Contractor-Statement-${ledger.vendorName}-${billProjectOptions.find(o => o.value === billProjectId)?.label}.pdf`,
+                        { projectId: billProjectId }, 'Error downloading statement'
+                    )}
+                    style={billProjectId ? undefined : { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' }}
+                />
+            </div>
+
             <div className="list-table" style={{ marginBottom: '8px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
                     <b>Total (All Logged)</b><b>Approved (Billed)</b><b>Unapproved</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>{totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}</b>

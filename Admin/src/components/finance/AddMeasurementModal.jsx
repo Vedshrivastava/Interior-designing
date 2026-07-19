@@ -22,11 +22,16 @@ const emptyState = {
  * financeLabourMeasurement) with different fields — the type toggle at
  * the top switches which sub-form and which endpoint is used.
  */
-const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId, onClose, onSaved }) => {
+const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId, defaultDate, defaultWorkId, onClose, onSaved }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-    const [form, setForm] = useState({ ...emptyState, projectId: fixedProjectId || defaultProjectId || '' });
+    const [form, setForm] = useState({
+        ...emptyState,
+        projectId: fixedProjectId || defaultProjectId || '',
+        date: defaultDate || '',
+        workId: defaultWorkId || '',
+    });
     const [projects, setProjects] = useState([]);
     const [works, setWorks] = useState([]);
     const [workContractors, setWorkContractors] = useState([]);

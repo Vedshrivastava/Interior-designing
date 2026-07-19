@@ -11,6 +11,11 @@ const financeReceiptSchema = new mongoose.Schema({
     // payment against the running balance).
     runningBillId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeRunningBill', default: null },
 
+    // Sequential per project, assigned at creation — same pattern as
+    // financeRunningBill's billNumber. Nullable so pre-existing receipts
+    // (created before this field existed) don't need a backfill.
+    receiptNumber: { type: String, default: null },
+
     amount:      { type: Number, required: true },
     receiptDate: { type: Date, required: true },
     paymentMode: { type: String, default: '' }, // reuses financeSetting's payment_mode values

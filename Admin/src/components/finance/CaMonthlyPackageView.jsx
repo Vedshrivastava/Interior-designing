@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useFileDownload } from '../../hooks/useFileDownload';
+import DownloadButton from './DownloadButton';
 import '../../styles/list.css';
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
@@ -15,7 +17,7 @@ const CaMonthlyPackageView = ({ url }) => {
     const [month, setMonth] = useState(thisMonth());
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [downloading, setDownloading] = useState(false);
+    const { downloading, progress, run } = useFileDownload(authHeader);
 
     const fetchPackage = async () => {
         setLoading(true);
@@ -27,18 +29,9 @@ const CaMonthlyPackageView = ({ url }) => {
         finally { setLoading(false); }
     };
 
-    const download = async () => {
-        setDownloading(true);
-        try {
-            const res = await axios.get(`${url}/api/finance/reports/ca-monthly-package/download`, { ...authHeader, params: { month }, responseType: 'blob' });
-            const blobUrl = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-            const a = document.createElement('a');
-            a.href = blobUrl; a.download = `CA-Monthly-Package-${month}.pdf`;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            URL.revokeObjectURL(blobUrl);
-        } catch { toast.error('Error downloading PDF'); }
-        finally { setDownloading(false); }
-    };
+    const download = () => run(
+        url, '/api/finance/reports/ca-monthly-package/download', `CA-Monthly-Package-${month}.pdf`, { month }, 'Error downloading PDF'
+    );
 
     return (
         <div>
@@ -49,7 +42,10 @@ const CaMonthlyPackageView = ({ url }) => {
                 </div>
                 <button type="button" className="add-point-btn" disabled={loading} onClick={fetchPackage}>{loading ? 'Loading…' : 'Preview'}</button>
                 {data && (
-                    <button type="button" className="add-point-btn" disabled={downloading} onClick={download}>{downloading ? 'Downloading…' : 'Download PDF'}</button>
+                    <DownloadButton
+                        downloading={downloading} progress={progress}
+                        idleLabel="Download PDF" onClick={download} className="add-point-btn"
+                    />
                 )}
             </div>
 

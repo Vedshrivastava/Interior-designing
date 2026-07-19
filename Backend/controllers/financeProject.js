@@ -8,7 +8,7 @@ import FinanceVendor from '../models/financeVendor.js';
 import FinanceReceipt from '../models/financeReceipt.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
 import PDFDocument from 'pdfkit';
-import { writeLetterhead, drawInfoBox, writeFooter, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
+import { writeLetterhead, drawInfoBox, writePaymentDetails, writeSignatureLine, writeFooter, formatCurrency, formatDate, BRAND_GREEN, paintPageBackground } from '../utils/pdfLetterhead.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 // Cross-controller import — same established pattern as
@@ -239,8 +239,12 @@ const recordAdvanceReceived = async (req, res) => {
         project.advanceReceivedNotes = notes || '';
         await project.save();
 
+        // Sequential per project, same pattern as financeRunningBill's
+        // billNumber — assigned once here, never re-derived.
+        const receiptCount = await FinanceReceipt.countDocuments({ projectId: project._id });
         await FinanceReceipt.create({
             clientId: project.clientId, projectId: project._id,
+            receiptNumber: String(receiptCount + 1),
             amount: project.advanceAmount, receiptDate: project.advanceReceivedAt,
             notes: 'Advance payment', isAdvance: true,
             paymentMode: paymentMode || '', bankAccountId: bankAccountId || null, utrNumber: utrNumber || '',
@@ -269,15 +273,27 @@ const downloadAdvanceReceipt = async (req, res) => {
             return res.status(400).json({ success: false, message: 'No advance payment recorded for this project yet' });
         }
 
-        const company = await FinanceCompanySettings.findOne({ deleted: { $ne: true } }).lean();
+        const company = await FinanceCompanySettings.findOne({ deleted: { $ne: true } })
+            .populate('primaryBankAccountId', 'accountName bankName accountNumber ifscCode').lean();
+
+        // Static payment metadata only (receipt number, how it was paid) —
+        // deliberately not the amount, same reasoning as this function's own
+        // comment above about not reading drawdown state from FinanceReceipt.
+        // Which bank/UTR the money actually came through never changes after
+        // the fact, unlike the amount, which can get split across bills.
+        const receipt = await FinanceReceipt.findOne({ projectId: project._id, isAdvance: true })
+            .populate('bankAccountId', 'accountName bankName').sort({ createdAt: 1 });
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="Advance-Receipt-${project.name.replace(/[^a-z0-9]+/gi, '-')}.pdf"`);
 
         const doc = new PDFDocument({ margin: 50, bufferPages: true });
         doc.pipe(res);
+        doc.on('pageAdded', () => paintPageBackground(doc));
+        paintPageBackground(doc);
 
-        await writeLetterhead(doc, 'Advance Payment Receipt', company, formatDate(project.advanceReceivedAt));
+        const rightLabel = receipt?.receiptNumber ? `Receipt #${receipt.receiptNumber}  •  ${formatDate(project.advanceReceivedAt)}` : formatDate(project.advanceReceivedAt);
+        await writeLetterhead(doc, 'Advance Payment Receipt', company, rightLabel);
 
         const { left, width } = { left: doc.page.margins.left, width: doc.page.width - doc.page.margins.left - doc.page.margins.right };
         const colWidth = (width - 24) / 2;
@@ -296,7 +312,6 @@ const downloadAdvanceReceipt = async (req, res) => {
         ], company);
         doc.y = Math.max(leftBottom, rightBottom) + 16;
 
-        const accentColor = company?.accentColor || '#2c3e50';
         const bannerH = 46;
         doc.rect(left, doc.y, width, bannerH).fill('#eafaf1');
         doc.fillColor('#1e8449').font('Helvetica-Bold').fontSize(15)
@@ -306,12 +321,17 @@ const downloadAdvanceReceipt = async (req, res) => {
 
         doc.font('Helvetica').fontSize(10);
         doc.text(`Date Received: ${formatDate(project.advanceReceivedAt)}`);
+        if (receipt?.paymentMode) doc.text(`Payment Mode: ${receipt.paymentMode}`);
+        if (receipt?.bankAccountId?.accountName) doc.text(`Received Into: ${receipt.bankAccountId.accountName}${receipt.bankAccountId.bankName ? ` (${receipt.bankAccountId.bankName})` : ''}`);
+        if (receipt?.utrNumber) doc.text(`UTR / Reference: ${receipt.utrNumber}`);
         if (project.advanceReceivedNotes) doc.text(`Notes: ${project.advanceReceivedNotes}`);
         doc.moveDown(0.8);
-        doc.fillColor(accentColor).font('Helvetica-Bold').fontSize(10)
+        doc.fillColor(BRAND_GREEN).font('Helvetica-Bold').fontSize(10)
             .text('This advance is adjustable against the final project cost and will be drawn down against your first running bill(s) as work is billed.');
         doc.fillColor('#000000').font('Helvetica').fontSize(10);
 
+        writePaymentDetails(doc, company);
+        writeSignatureLine(doc, company);
         writeFooter(doc, company);
         doc.end();
     } catch (err) {

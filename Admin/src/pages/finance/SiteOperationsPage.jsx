@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
-import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import WorkMeasurementsSummary from '../../components/finance/WorkMeasurementsSummary';
 import MaterialConsumptionList from '../../components/finance/MaterialConsumptionList';
+import SiteDiaryManager from '../../components/finance/SiteDiaryManager';
 
 const TABS = [
     { key: 'measurements', label: 'Daily Measurements' },
@@ -23,7 +23,7 @@ const SiteOperationsPage = ({ url }) => {
         >
             {activeTab === 'measurements' && <WorkMeasurementsSummary url={url} />}
             {activeTab === 'consumption' && <MaterialConsumptionList url={url} />}
-            {activeTab === 'diary' && <PlaceholderTab text="Daily site notes and issues log." />}
+            {activeTab === 'diary' && <SiteDiaryManager url={url} />}
         </FinanceTabShell>
     );
 };

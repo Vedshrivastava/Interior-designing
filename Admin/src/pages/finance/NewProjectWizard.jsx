@@ -9,6 +9,7 @@ import ContractorRatesManager from '../../components/finance/ContractorRatesMana
 import WorkersManager from '../../components/finance/WorkersManager';
 import { useProjectSupervisorConflictCheck } from '../../components/finance/useSupervisorConflictCheck';
 import SettingSelectField, { registerSettingIfNew } from '../../components/finance/SettingSelectField';
+import SettingPicker from '../../components/finance/SettingPicker';
 import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import StyledSelect from '../../components/finance/StyledSelect';
 import StyledDatePicker from '../../components/finance/StyledDatePicker';
@@ -71,9 +72,12 @@ const NewProjectWizard = ({ url }) => {
         setWorksVersion(v => v + 1);
     }, [projectId])); // eslint-disable-line react-hooks/exhaustive-deps
 
+    const fetchPaymentModes = () =>
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } }).then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
+
     useEffect(() => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'city' } }).then(res => { if (res.data.success) setCityOptions(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } }).then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
+        fetchPaymentModes();
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -161,7 +165,6 @@ const NewProjectWizard = ({ url }) => {
             if (res.data.success) {
                 toast.success(res.data.message);
                 setProject(res.data.data);
-                await registerSettingIfNew(url, authHeader, 'payment_mode', advancePaymentMode, paymentModes.map(m => ({ name: m })));
             }
             else toast.error(res.data.message);
         } catch { toast.error('Error recording advance payment'); }
@@ -390,39 +393,43 @@ const NewProjectWizard = ({ url }) => {
                                 <p className="wizard-advance-amount">₹{(Number(advanceAmount) || 0).toLocaleString('en-IN')}</p>
                             </div>
 
-                            <div className="wizard-field-grid" style={{ margin: '16px 0' }}>
+                            <p className="wizard-section-label">Step 1 · Invoice</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                                <p className="admin-subtitle" style={{ margin: 0 }}>Once the advance invoice has been sent to the client, mark it here.</p>
+                                <button type="button" className="add-point-btn" disabled={project?.advanceInvoiced} onClick={markInvoiced}>
+                                    {project?.advanceInvoiced ? '✓ Marked Invoiced' : 'Mark Advance Invoiced'}
+                                </button>
+                            </div>
+
+                            <p className="wizard-section-label">Step 2 · Receipt</p>
+                            <p className="admin-subtitle" style={{ margin: '0 0 16px' }}>How the client actually paid it; this becomes a real receipt against this project.</p>
+                            <div className="add-product-name flex-col" style={{ marginBottom: '20px' }}>
+                                <p>Payment Mode</p>
+                                <SettingPicker
+                                    url={url} settingType="payment_mode" options={paymentModes} onAdded={fetchPaymentModes}
+                                    value={advancePaymentMode} onChange={setAdvancePaymentMode} placeholder="Cash, Bank Transfer, Cheque…"
+                                />
+                            </div>
+                            <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
-                                    <p>Payment Mode</p>
-                                    <SettingSelectField
-                                        settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
-                                        value={advancePaymentMode} onChange={setAdvancePaymentMode} placeholder="e.g. Cash, Bank Transfer, Cheque…"
-                                    />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Bank Account (leave blank if cash)</p>
+                                    <p>Received Into (Your Bank Account)</p>
                                     <StyledSelect
-                                        value={advanceBankAccountId} onChange={setAdvanceBankAccountId} placeholder="Cash"
+                                        value={advanceBankAccountId} onChange={setAdvanceBankAccountId} placeholder="Cash, no bank account"
                                         options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                     />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>UTR / Cheque Number</p>
-                                    <input type="text" value={advanceUtrNumber} onChange={e => setAdvanceUtrNumber(e.target.value)} />
+                                    <input type="text" value={advanceUtrNumber} onChange={e => setAdvanceUtrNumber(e.target.value)} placeholder="Optional, reference number for this payment" />
                                 </div>
                                 <div className="add-product-name flex-col wizard-field-full">
                                     <p>Receipt Notes</p>
                                     <textarea rows="3" value={advanceNotes} onChange={e => setAdvanceNotes(e.target.value)} placeholder="Any other detail worth keeping on record" />
                                 </div>
                             </div>
-
-                            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                                <button type="button" className="add-point-btn" disabled={project?.advanceInvoiced} onClick={markInvoiced}>
-                                    {project?.advanceInvoiced ? '✓ Marked Invoiced' : 'Mark Advance Invoiced'}
-                                </button>
-                                <button type="button" className="add-point-btn" disabled={project?.advanceReceived} onClick={markReceived}>
-                                    {project?.advanceReceived ? '✓ Payment Recorded' : 'Record Advance Received'}
-                                </button>
-                            </div>
+                            <button type="button" className="add-btn" style={{ marginTop: '4px' }} disabled={project?.advanceReceived} onClick={markReceived}>
+                                {project?.advanceReceived ? '✓ Payment Recorded' : 'Record Advance Received'}
+                            </button>
                         </>
                     )}
 

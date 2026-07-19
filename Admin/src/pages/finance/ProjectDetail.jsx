@@ -5,6 +5,8 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { useWebSocket } from '../../hooks/useWebSocket';
+import { useFileDownload } from '../../hooks/useFileDownload';
+import DownloadButton from '../../components/finance/DownloadButton';
 import WorkTypeRatesManager from '../../components/finance/WorkTypeRatesManager';
 import ContractorRatesManager from '../../components/finance/ContractorRatesManager';
 import WorkersManager from '../../components/finance/WorkersManager';
@@ -12,17 +14,17 @@ import WorksManager from '../../components/finance/WorksManager';
 import ProjectQuotationsManager from '../../components/finance/ProjectQuotationsManager';
 import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import WorkMeasurementsSummary from '../../components/finance/WorkMeasurementsSummary';
+import SiteDiaryManager from '../../components/finance/SiteDiaryManager';
 import StockMovementsManager from '../../components/finance/StockMovementsManager';
 import RunningBillsManager from '../../components/finance/RunningBillsManager';
 import ReceiptsManager from '../../components/finance/ReceiptsManager';
-import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import ExpensesManager from '../../components/finance/ExpensesManager';
 import DocumentsTab from '../../components/finance/DocumentsTab';
 import PhotosTab from '../../components/finance/PhotosTab';
 import ProjectTimelineTab from '../../components/finance/ProjectTimelineTab';
 import ProjectProfitabilityTab from '../../components/finance/ProjectProfitabilityTab';
 import StyledSelect from '../../components/finance/StyledSelect';
-import SettingSelectField, { registerSettingIfNew } from '../../components/finance/SettingSelectField';
+import SettingPicker from '../../components/finance/SettingPicker';
 import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
@@ -191,6 +193,7 @@ const TABS = [
     { key: 'quotations',   label: 'Quotations' },
     { key: 'works',        label: 'Works & Rates' },
     { key: 'measurements', label: 'Measurements' },
+    { key: 'diary',        label: 'Diary' },
     { key: 'materials',    label: 'Materials' },
     { key: 'contractors',  label: 'Workers' },
     { key: 'supervisors',  label: 'Supervisors' },
@@ -228,6 +231,7 @@ const ProjectDetail = ({ url }) => {
     const [bankAccounts, setBankAccounts] = useState([]);
     const [markingInvoiced, setMarkingInvoiced] = useState(false);
     const [markingReceived, setMarkingReceived] = useState(false);
+    const { downloading: downloadingReceipt, progress: receiptProgress, run: runReceiptDownload } = useFileDownload(authHeader);
 
     // Advance-type referral commission: a flat manually-typed amount
     // (see financeProject.referralCommissionAmount), editable any time from
@@ -259,9 +263,12 @@ const ProjectDetail = ({ url }) => {
         if (project) setCommissionInput(String(project.referralCommissionAmount || 0));
     }, [project?._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => {
+    const fetchPaymentModes = () =>
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
             .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
+
+    useEffect(() => {
+        fetchPaymentModes();
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -420,7 +427,6 @@ const ProjectDetail = ({ url }) => {
             }, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message);
-                await registerSettingIfNew(url, authHeader, 'payment_mode', advancePaymentMode, paymentModes.map(m => ({ name: m })));
                 setAdvanceNotes(''); setAdvancePaymentMode(''); setAdvanceBankAccountId(''); setAdvanceUtrNumber('');
                 setAdvanceModalOpen(false);
                 await fetchProject();
@@ -430,18 +436,13 @@ const ProjectDetail = ({ url }) => {
         finally { setMarkingReceived(false); }
     };
 
-    // Protected download — same blob-via-authed-fetch pattern as the Bill
-    // Statement PDF (a plain <a href> can't carry the Bearer token).
-    const downloadAdvanceReceipt = async () => {
-        try {
-            const res = await axios.get(`${url}/api/finance/projects/${id}/advance-receipt/download`, { ...authHeader, responseType: 'blob' });
-            const blobUrl = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-            const a = document.createElement('a');
-            a.href = blobUrl; a.download = `Advance-Receipt-${project.name}.pdf`;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            URL.revokeObjectURL(blobUrl);
-        } catch { toast.error('Error downloading advance receipt'); }
-    };
+    // Protected download — a plain <a href> can't carry the Bearer token,
+    // so this fetches the PDF as a blob (see useFileDownload); its
+    // onDownloadProgress gives a real, live byte/percent readout while the
+    // transfer is in progress.
+    const downloadAdvanceReceipt = () => runReceiptDownload(
+        url, `/api/finance/projects/${id}/advance-receipt/download`, `Advance-Receipt-${project.name}.pdf`, {}, 'Error downloading advance receipt'
+    );
 
     if (loading) {
         return <div className="list add flex-col"><div className="admin-list-container"><div className="admin-empty-state"><p>Loading…</p></div></div></div>;
@@ -496,7 +497,7 @@ const ProjectDetail = ({ url }) => {
                                     {project.referralVendorId && (
                                         <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
                                             <p><b>Referral Commission</b></p>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <div className="add-product-name" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px', margin: 0 }}>
                                                 <input type="number" value={commissionInput} onChange={e => setCommissionInput(e.target.value)} style={{ maxWidth: '140px' }} />
                                                 {Number(commissionInput) !== (project.referralCommissionAmount || 0) && (
                                                     <button type="button" className="add-point-btn" disabled={savingCommission} onClick={saveCommission}>
@@ -524,7 +525,10 @@ const ProjectDetail = ({ url }) => {
                                             {project.advanceReceived ? (
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                     <span>Yes, {new Date(project.advanceReceivedAt).toLocaleDateString()}</span>
-                                                    <p onClick={downloadAdvanceReceipt} className="cursor edit-action" style={{ margin: 0 }}>Download Receipt</p>
+                                                    <DownloadButton
+                                                        as="p" downloading={downloadingReceipt} progress={receiptProgress}
+                                                        idleLabel="Download Receipt" onClick={downloadAdvanceReceipt} className="cursor edit-action" style={{ margin: 0 }}
+                                                    />
                                                 </div>
                                             ) : (
                                                 <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={() => setAdvanceModalOpen(true)}>
@@ -548,24 +552,24 @@ const ProjectDetail = ({ url }) => {
                             <p className="admin-subtitle" style={{ margin: '4px 0 16px' }}>
                                 Advance of ₹{project.advanceAmount?.toLocaleString('en-IN')} for "{project.name}": how did it arrive?
                             </p>
+                            <div className="add-product-name flex-col" style={{ marginBottom: '20px' }}>
+                                <p>Payment Mode</p>
+                                <SettingPicker
+                                    url={url} settingType="payment_mode" options={paymentModes} onAdded={fetchPaymentModes}
+                                    value={advancePaymentMode} onChange={setAdvancePaymentMode} placeholder="Cash, Bank Transfer, Cheque…"
+                                />
+                            </div>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
-                                    <p>Payment Mode</p>
-                                    <SettingSelectField
-                                        settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
-                                        value={advancePaymentMode} onChange={setAdvancePaymentMode} placeholder="e.g. Cash, Bank Transfer, Cheque…"
-                                    />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Bank Account (leave blank if cash)</p>
+                                    <p>Received Into (Your Bank Account)</p>
                                     <StyledSelect
-                                        value={advanceBankAccountId} onChange={setAdvanceBankAccountId} placeholder="Cash"
+                                        value={advanceBankAccountId} onChange={setAdvanceBankAccountId} placeholder="Cash, no bank account"
                                         options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                     />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>UTR / Cheque Number</p>
-                                    <input type="text" value={advanceUtrNumber} onChange={e => setAdvanceUtrNumber(e.target.value)} />
+                                    <input type="text" value={advanceUtrNumber} onChange={e => setAdvanceUtrNumber(e.target.value)} placeholder="Optional, reference number" />
                                 </div>
                                 <div className="add-product-name flex-col wizard-field-full">
                                     <p>Notes</p>
@@ -602,6 +606,8 @@ const ProjectDetail = ({ url }) => {
                         <WorkMeasurementsSummary url={url} projectId={id} worksVersion={worksVersion} />
                     </div>
                 )}
+
+                {activeTab === 'diary' && <SiteDiaryManager url={url} projectId={id} />}
 
                 {activeTab === 'materials' && <StockMovementsManager url={url} projectId={id} />}
 

@@ -67,6 +67,47 @@
     to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Small inline spinner for any button/link that triggers a blob download
+   (Statement, Advance Receipt, CA Monthly Package, Backup Export, …) — the
+   browser's own save dialog doesn't appear until the whole file has been
+   fetched and turned into an object URL, so with no visible feedback in
+   between, a click reads as "nothing happened" rather than "in progress".
+   `border-top-color: currentColor` picks up whatever text color the
+   button/link already has, so this drops into any context unstyled. */
+@keyframes btnSpin { to { transform: rotate(360deg); } }
+.btn-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(0,0,0,0.15);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: btnSpin 0.6s linear infinite;
+    margin-right: 6px;
+    vertical-align: -2px;
+}
+
+/* Determinate fill for the rare case a download response has a known
+   Content-Length (most of this app's PDFs stream chunked with no total,
+   so this only appears when the server happens to send one). */
+.btn-progress-track {
+    display: inline-block;
+    width: 48px;
+    height: 4px;
+    margin-left: 8px;
+    background: rgba(0,0,0,0.12);
+    border-radius: 2px;
+    overflow: hidden;
+    vertical-align: 1px;
+}
+.btn-progress-fill {
+    display: block;
+    height: 100%;
+    background: currentColor;
+    transition: width 0.15s linear;
+}
+
+
 /* ══════════════════════════════════════════════
    2. EDITORIAL HEADER
 ══════════════════════════════════════════════ */
@@ -369,6 +410,16 @@
     border-color: var(--forest);
     box-shadow: 0 4px 14px rgba(45,74,53,0.18);
     transform: translateY(-1px);
+}
+
+/* For .edit-action/.delete-action-style <p onClick> triggers mid-download —
+   these aren't real <button> elements, so they have no native disabled
+   state; this fakes one (dimmed, no pointer) while a download is in
+   flight, matching real buttons' disabled look elsewhere. */
+.disabled-action {
+    opacity: 0.55;
+    cursor: default;
+    pointer-events: none;
 }
 
 .delete-action {

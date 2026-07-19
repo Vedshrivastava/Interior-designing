@@ -3,12 +3,12 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
 
-/* Scoped deliberately to one accent color + a footer line — not a full
-   visual template editor in this pass. */
+/* Scoped deliberately to a footer line — not a full visual template
+   editor. The brand palette (deep green + gold) is fixed in the PDF
+   generation code, not admin-configurable. */
 const PdfTemplateSettingsForm = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [accentColor, setAccentColor] = useState('#2c3e50');
     const [letterheadFooterText, setLetterheadFooterText] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -17,7 +17,6 @@ const PdfTemplateSettingsForm = ({ url }) => {
         axios.get(`${url}/api/finance/settings/company`, authHeader)
             .then(res => {
                 if (res.data.success) {
-                    setAccentColor(res.data.data.accentColor || '#2c3e50');
                     setLetterheadFooterText(res.data.data.letterheadFooterText || '');
                 }
             })
@@ -29,7 +28,7 @@ const PdfTemplateSettingsForm = ({ url }) => {
         e.preventDefault();
         setSaving(true);
         try {
-            const res = await axios.put(`${url}/api/finance/settings/company`, { accentColor, letterheadFooterText }, authHeader);
+            const res = await axios.put(`${url}/api/finance/settings/company`, { letterheadFooterText }, authHeader);
             if (res.data.success) toast.success(res.data.message);
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error saving PDF template settings'); }
@@ -40,13 +39,6 @@ const PdfTemplateSettingsForm = ({ url }) => {
 
     return (
         <form onSubmit={submit} className="flex-col" style={{ maxWidth: '480px' }}>
-            <div className="add-product-name flex-col">
-                <p>Accent Color</p>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <input type="color" value={accentColor} onChange={e => setAccentColor(e.target.value)} style={{ width: '48px', height: '36px', padding: 0 }} />
-                    <input type="text" value={accentColor} onChange={e => setAccentColor(e.target.value)} style={{ flex: 1 }} />
-                </div>
-            </div>
             <div className="add-product-name flex-col">
                 <p>Letterhead Footer Text</p>
                 <textarea rows="2" value={letterheadFooterText} onChange={e => setLetterheadFooterText(e.target.value)} placeholder="Shown at the bottom of the CA Monthly Package and Client Bill Statement PDFs" />

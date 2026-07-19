@@ -68,7 +68,8 @@ const uploadLogo = async (file) => {
 const getCompanySettings = async (req, res) => {
     try {
         const doc = await getOrCreateSingleton();
-        res.json({ success: true, data: doc });
+        const populated = await doc.populate('primaryBankAccountId', 'accountName bankName accountNumber ifscCode');
+        res.json({ success: true, data: populated });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error fetching company settings' });
@@ -80,7 +81,8 @@ const getCompanySettings = async (req, res) => {
 // only the keys actually present in the request body are applied, so one
 // tab's save never clobbers another tab's fields.
 const UPDATABLE_FIELDS = [
-    'companyName', 'address', 'gstin', 'pan', 'letterheadFooterText', 'accentColor',
+    'companyName', 'address', 'gstin', 'pan', 'phone', 'email', 'letterheadFooterText', 'accentColor',
+    'authorizedSignatoryName', 'defaultSacCode', 'primaryBankAccountId',
     'defaultGstRate', 'fyStartMonth', 'notificationEmails',
     'lowStockAlertEnabled', 'overdueReceivableAlertEnabled', 'overdueReceivableDays',
 ];
@@ -95,11 +97,15 @@ const updateCompanySettings = async (req, res) => {
         if (update.notificationEmails && typeof update.notificationEmails === 'string') {
             update.notificationEmails = JSON.parse(update.notificationEmails);
         }
+        // StyledSelect's clear action sends '' — coerce to null so an
+        // empty string never hits the ObjectId cast.
+        if ('primaryBankAccountId' in update) update.primaryBankAccountId = update.primaryBankAccountId || null;
         if (req.file) {
             const logoUrl = await uploadLogo(req.file);
             if (logoUrl) update.logoUrl = logoUrl;
         }
-        const updated = await FinanceCompanySettings.findByIdAndUpdate(doc._id, update, { new: true });
+        const updated = await FinanceCompanySettings.findByIdAndUpdate(doc._id, update, { new: true })
+            .populate('primaryBankAccountId', 'accountName bankName accountNumber ifscCode');
         res.json({ success: true, message: 'Settings updated', data: updated });
     } catch (err) {
         console.error(err);

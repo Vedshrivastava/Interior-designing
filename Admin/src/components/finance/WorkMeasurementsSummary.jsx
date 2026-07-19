@@ -37,6 +37,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
     const [contractorMeasurements, setContractorMeasurements] = useState([]);
     const [labourMeasurements, setLabourMeasurements] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [measurementsLoading, setMeasurementsLoading] = useState(false);
 
     const [selectedProject, setSelectedProject] = useState('');
     const [workType, setWorkType] = useState('');
@@ -49,28 +50,50 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
             .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
     }, [url, crossProject]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const fetchAll = useCallback(async () => {
+    // Works power the Work Type dropdown and row grouping/labels — needed
+    // regardless of which date is selected, so fetched independently of
+    // (and far less often than) the day's measurements below.
+    const fetchWorks = useCallback(async () => {
         setLoading(true);
         try {
             const params = fixedProjectId ? { projectId: fixedProjectId } : {};
-            const [worksRes, contractorRes, labourRes] = await Promise.all([
-                axios.get(`${url}/api/finance/works/list`, { ...authHeader, params }),
-                axios.get(`${url}/api/finance/measurements/list`, { ...authHeader, params }),
-                axios.get(`${url}/api/finance/labour-measurements/list`, { ...authHeader, params }),
-            ]);
-            if (worksRes.data.success) setWorks(worksRes.data.data);
-            if (contractorRes.data.success) setContractorMeasurements(contractorRes.data.data);
-            if (labourRes.data.success) setLabourMeasurements(labourRes.data.data);
-        } catch { toast.error('Error fetching measurements'); }
+            const res = await axios.get(`${url}/api/finance/works/list`, { ...authHeader, params });
+            if (res.data.success) setWorks(res.data.data);
+        } catch { toast.error('Error fetching works'); }
         finally { setLoading(false); }
     }, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => { fetchAll(); }, [fetchAll, worksVersion]);
+    useEffect(() => { fetchWorks(); }, [fetchWorks, worksVersion]);
+
+    // Scoped to one calendar day — this view only ever displays one day's
+    // rows at a time (see the `!workType || !date` gate in the render
+    // below), so there's no reason to pull every measurement ever logged
+    // (cross-project, that's the entire company's history) just to filter
+    // almost all of it out client-side. That used to be exactly what
+    // happened here on every load and after every add/remove, and got
+    // slower — a long, whole-page "Loading…" — as the log grew.
+    const fetchMeasurements = useCallback(async () => {
+        if (!date) { setContractorMeasurements([]); setLabourMeasurements([]); return; }
+        setMeasurementsLoading(true);
+        try {
+            const params = fixedProjectId ? { projectId: fixedProjectId, date } : { date };
+            const [contractorRes, labourRes] = await Promise.all([
+                axios.get(`${url}/api/finance/measurements/list`, { ...authHeader, params }),
+                axios.get(`${url}/api/finance/labour-measurements/list`, { ...authHeader, params }),
+            ]);
+            if (contractorRes.data.success) setContractorMeasurements(contractorRes.data.data);
+            if (labourRes.data.success) setLabourMeasurements(labourRes.data.data);
+        } catch { toast.error('Error fetching measurements'); }
+        finally { setMeasurementsLoading(false); }
+    }, [url, fixedProjectId, date]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => { fetchMeasurements(); }, [fetchMeasurements]);
 
     useWebSocket(useCallback((msg) => {
         if (fixedProjectId && msg.projectId !== fixedProjectId) return;
-        if (['financeMeasurementsChanged', 'financeLabourMeasurementsChanged', 'financeWorksChanged'].includes(msg.type)) fetchAll();
-    }, [fixedProjectId, fetchAll]));
+        if (msg.type === 'financeWorksChanged') fetchWorks();
+        if (['financeMeasurementsChanged', 'financeLabourMeasurementsChanged'].includes(msg.type)) fetchMeasurements();
+    }, [fixedProjectId, fetchWorks, fetchMeasurements]));
 
     const setProjectFilter = (v) => { setSelectedProject(v); setWorkType(''); };
 
@@ -79,10 +102,20 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
         : works;
     const workTypeOptions = [...new Set(worksInScope.map(w => w.workType))];
 
+    // Prefills the Add Measurement dialog's Work field so re-logging
+    // another entry for the same work/day doesn't require re-picking it —
+    // only resolvable when the current filters already narrow to one
+    // project (fixedProjectId, or a Project chosen in the cross-project
+    // filter above); otherwise the modal has no project to look Works up
+    // against either.
+    const defaultWorkId = (fixedProjectId || selectedProject)
+        ? (worksInScope.find(w => w.workType === workType)?._id || '')
+        : '';
+
     const removeContractorMeasurement = async (m) => {
         try {
             const res = await axios.delete(`${url}/api/finance/measurements/remove`, { ...authHeader, data: { _id: m._id } });
-            if (res.data.success) { toast.success(res.data.message); await fetchAll(); }
+            if (res.data.success) { toast.success(res.data.message); await fetchMeasurements(); }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error removing measurement'); }
     };
@@ -90,7 +123,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
     const removeLabourMeasurement = async (m) => {
         try {
             const res = await axios.post(`${url}/api/finance/labour-measurements/remove`, { _id: m._id }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); await fetchAll(); }
+            if (res.data.success) { toast.success(res.data.message); await fetchMeasurements(); }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error removing measurement'); }
     };
@@ -153,7 +186,15 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
 
     return (
         <div>
-            <div className="wizard-field-grid" style={{ gridTemplateColumns: `repeat(${crossProject ? 4 : 3}, minmax(0,1fr))`, marginBottom: '20px' }}>
+            <div
+                className="wizard-field-grid"
+                style={{
+                    gridTemplateColumns: crossProject
+                        ? 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(230px,1.4fr)'
+                        : 'minmax(0,1fr) minmax(0,1fr) minmax(230px,1.4fr)',
+                    marginBottom: '20px',
+                }}
+            >
                 {crossProject && (
                     <div className="add-product-name flex-col">
                         <p>Project</p>
@@ -178,7 +219,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
                     <p aria-hidden="true" style={{ visibility: 'hidden' }}>Add</p>
                     <button
                         type="button" className="add-btn"
-                        style={{ width: '100%', boxSizing: 'border-box', border: '1px solid transparent', margin: 0 }}
+                        style={{ width: '100%', boxSizing: 'border-box', border: '1px solid transparent', margin: 0, whiteSpace: 'nowrap' }}
                         onClick={() => setAddModalOpen(true)}
                     >
                         + Add New Measurement
@@ -189,13 +230,16 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
             {addModalOpen && (
                 <AddMeasurementModal
                     url={url} projectId={fixedProjectId} defaultProjectId={selectedProject}
+                    defaultDate={date} defaultWorkId={defaultWorkId}
                     onClose={() => setAddModalOpen(false)}
-                    onSaved={fetchAll}
+                    onSaved={fetchMeasurements}
                 />
             )}
 
             {!workType || !date ? (
                 <div className="admin-empty-state"><p>Select a work type and a date to see that day's measurements.</p></div>
+            ) : measurementsLoading ? (
+                <div className="admin-empty-state"><p>Loading…</p></div>
             ) : totalRows === 0 ? (
                 <div className="admin-empty-state"><p>No measurements logged for {workType} on {new Date(date).toLocaleDateString()}.</p></div>
             ) : (

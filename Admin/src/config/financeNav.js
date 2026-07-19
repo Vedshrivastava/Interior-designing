@@ -67,9 +67,9 @@ export const FINANCE_NAV_SECTIONS = [
         // Measurements + Site Inventory build — Daily Measurements and
         // Material Consumption are both live; Site Diary stays a placeholder.
         tabs: [
-          { key: 'measurements', label: 'Daily Measurements',   description: 'Mobile-first site entry: project, work, supervisor, area covered, materials used, photos. Saving updates the work\'s completed area and (if material tracking is on) logs stock consumption automatically.' },
+          { key: 'measurements', label: 'Daily Measurements',   description: 'Mobile-first site entry: project, work, supervisor, area covered, materials used. Saving updates the work\'s completed area and (if material tracking is on) logs stock consumption automatically.' },
           { key: 'consumption',  label: 'Material Consumption', description: 'Read-only log of material consumed, generated only by measurement saves.' },
-          { key: 'diary',        label: 'Site Diary',           description: 'Daily site notes and issues log.' },
+          { key: 'diary',        label: 'Site Diary',           description: 'Daily site notes and an open/resolved issues log, per project.' },
         ],
       },
       {
@@ -369,7 +369,7 @@ export const FINANCE_NAV_SECTIONS = [
           { key: 'permissions',   label: 'Permissions',     description: 'MASTER-only: which finance sidebar sections each ADMIN user can access. Unrestricted by default; MASTER always has full access.' },
           { key: 'gst',           label: 'GST',             description: 'defaultGstRate: prefills (not locks) the GST rate field on Running Bill / Purchase entry forms.' },
           { key: 'notifications', label: 'Notifications',   description: 'Notification email list + low-stock and overdue-receivable alert toggles/thresholds. Checked on Dashboard load, not a background job.' },
-          { key: 'pdf',           label: 'PDF Templates',   description: 'accentColor + letterheadFooterText for generated PDFs: not a full visual template editor in this pass.' },
+          { key: 'pdf',           label: 'PDF Templates',   description: 'letterheadFooterText for generated PDFs. The brand color palette is fixed in code, not editable here.' },
           { key: 'backup',        label: 'Backup',          description: 'Export every finance collection as one zip of JSON files.' },
         ],
       },

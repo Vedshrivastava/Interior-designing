@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import StyledSelect from './StyledSelect';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 
 /* Read-only view of `consume` stock movements — these only ever come from
@@ -20,7 +22,7 @@ const MaterialConsumptionList = ({ url }) => {
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => {
+    const fetchMovements = useCallback(() => {
         if (!selectedProjectId) { setMovements([]); return; }
         setLoading(true);
         axios.get(`${url}/api/finance/stock-movements/list`, { ...authHeader, params: { projectId: selectedProjectId, movementType: 'consume' } })
@@ -29,14 +31,20 @@ const MaterialConsumptionList = ({ url }) => {
             .finally(() => setLoading(false));
     }, [url, selectedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    useEffect(() => { fetchMovements(); }, [fetchMovements]);
+    // A measurement logged elsewhere auto-generates the consume movements
+    // this list exists to show — without this, the list only reflects that
+    // automation after the project dropdown itself is re-toggled.
+    useFinanceWsRefresh(['financeStockChanged'], fetchMovements);
+
     return (
         <div>
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                 <p>Project</p>
-                <select value={selectedProjectId} onChange={e => setSelectedProjectId(e.target.value)}>
-                    <option value="">Select project…</option>
-                    {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                </select>
+                <StyledSelect
+                    value={selectedProjectId} onChange={setSelectedProjectId} placeholder="Select project…"
+                    options={projects.map(p => ({ value: p._id, label: p.name }))}
+                />
             </div>
 
             {!selectedProjectId ? (

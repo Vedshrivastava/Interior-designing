@@ -5,6 +5,8 @@ import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import DocumentsTab from '../../components/finance/DocumentsTab';
+import { useFileDownload } from '../../hooks/useFileDownload';
+import DownloadButton from '../../components/finance/DownloadButton';
 import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
@@ -220,20 +222,17 @@ const ClientBillsTab = ({ url, clientId }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const { bills, loading } = useClientBillsAndReceipts(url, clientId);
+    const { downloading, progress, run: runDownload } = useFileDownload(authHeader);
+    const [downloadingId, setDownloadingId] = useState(null);
 
-    // Protected download — the PDF endpoint needs the Bearer token, so a
-    // plain <a href> won't carry auth; fetch as a blob and trigger the
-    // save via a throwaway anchor instead. Same pattern as
-    // RunningBillsManager's own "Statement" action.
+    // Protected download — a plain <a href> can't carry the Bearer token,
+    // so this fetches the PDF as a blob (see useFileDownload) with a real,
+    // live byte/percent readout while the transfer is in progress. Same
+    // pattern as RunningBillsManager's own "Statement" action.
     const downloadStatement = async (b) => {
-        try {
-            const res = await axios.get(`${url}/api/finance/running-bills/${b._id}/statement/download`, { ...authHeader, responseType: 'blob' });
-            const blobUrl = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-            const a = document.createElement('a');
-            a.href = blobUrl; a.download = `Bill-Statement-${b.billNumber}.pdf`;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            URL.revokeObjectURL(blobUrl);
-        } catch { toast.error('Error downloading statement'); }
+        setDownloadingId(b._id);
+        await runDownload(url, `/api/finance/running-bills/${b._id}/statement/download`, `Bill-Statement-${b.billNumber}.pdf`, {}, 'Error downloading statement');
+        setDownloadingId(null);
     };
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
@@ -252,7 +251,10 @@ const ClientBillsTab = ({ url, clientId }) => {
                     <p>₹{b.totalAmount.toLocaleString('en-IN')}</p>
                     <p><span className="item-category">{BILL_STATUS_LABEL[b.status]}</span></p>
                     <div className="action-buttons">
-                        <p onClick={() => downloadStatement(b)} className="cursor edit-action">Statement</p>
+                        <DownloadButton
+                            as="p" downloading={downloadingId === b._id} progress={downloadingId === b._id ? progress : null}
+                            idleLabel="Statement" onClick={() => downloadStatement(b)} className="cursor edit-action"
+                        />
                     </div>
                 </div>
             ))}

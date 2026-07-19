@@ -1,25 +1,15 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { toast } from 'react-toastify';
+import React from 'react';
+import { useFileDownload } from '../../hooks/useFileDownload';
+import DownloadButton from './DownloadButton';
 
 const BackupExportButton = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const [downloading, setDownloading] = useState(false);
+    const { downloading, progress, run } = useFileDownload(authHeader);
 
-    const exportBackup = async () => {
-        setDownloading(true);
-        try {
-            const res = await axios.get(`${url}/api/finance/settings/backup/export`, { ...authHeader, responseType: 'blob' });
-            const blobUrl = URL.createObjectURL(new Blob([res.data], { type: 'application/zip' }));
-            const a = document.createElement('a');
-            a.href = blobUrl; a.download = `finance-backup-${new Date().toISOString().slice(0, 10)}.zip`;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            URL.revokeObjectURL(blobUrl);
-            toast.success('Backup downloaded');
-        } catch { toast.error('Error exporting backup'); }
-        finally { setDownloading(false); }
-    };
+    const exportBackup = () => run(
+        url, '/api/finance/settings/backup/export', `finance-backup-${new Date().toISOString().slice(0, 10)}.zip`, {}, 'Error exporting backup'
+    );
 
     return (
         <div>
@@ -29,9 +19,10 @@ const BackupExportButton = ({ url }) => {
                 salary/commission payments, expenses, daily labour, supervisor attendance/incentives, and settings.
                 Soft-deleted records are excluded.
             </p>
-            <button type="button" className="add-btn" onClick={exportBackup} disabled={downloading}>
-                {downloading ? 'Exporting…' : 'Export All Finance Data'}
-            </button>
+            <DownloadButton
+                downloading={downloading} progress={progress}
+                idleLabel="Export All Finance Data" onClick={exportBackup} className="add-btn"
+            />
         </div>
     );
 };

@@ -35,7 +35,7 @@ import FinanceCashEntry from '../models/financeCashEntry.js';
 import FinanceActivityLog from '../models/financeActivityLog.js';
 import { getAccountActivity } from './financeBankAccount.js';
 import PDFDocument from 'pdfkit';
-import { writeLetterhead, writeSectionHeading, writeFooter, formatCurrency, formatDate } from '../utils/pdfLetterhead.js';
+import { writeLetterhead, writeSectionHeading, writeFooter, formatCurrency, formatDate, paintPageBackground } from '../utils/pdfLetterhead.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
 
 // totalArea − approvedArea on floats accumulated across many measurements
@@ -2572,6 +2572,8 @@ const downloadCaMonthlyPackage = async (req, res) => {
 
         const doc = new PDFDocument({ margin: 50 });
         doc.pipe(res);
+        doc.on('pageAdded', () => paintPageBackground(doc));
+        paintPageBackground(doc);
 
         await writeLetterhead(doc, `CA Monthly Package — ${month}`, company);
         doc.font('Helvetica').fontSize(9).fillColor('#555555')

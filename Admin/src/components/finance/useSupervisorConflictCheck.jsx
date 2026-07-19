@@ -83,13 +83,13 @@ export const useSupervisorConflictCheck = (url) => {
  * Purely informational, not a confirm gate: the picker applies the
  * selection immediately (see NewProjectWizard.jsx's onChange), and this
  * just fetches in the background and pops a heads-up afterwards if there
- * turns out to be a conflict. Gating the visible selection on this
- * network round-trip (GET /projects/list, unfiltered — no dedicated
- * endpoint exists, mirroring SupervisorsPage.jsx's own client-side filter
- * for a supervisor's "Assigned Projects") made picking a supervisor feel
- * like it had hung for a beat every time, for a check that's advisory
- * anyway — a supervisor running more than one project (or team) is normal,
- * this is just a nudge to notice.
+ * turns out to be a conflict. This used to reuse GET /projects/list —
+ * unfiltered, and (more importantly) recomputing activation-readiness for
+ * every project in the company on every call — which made picking a
+ * supervisor feel like it had hung for a beat every time, for a check
+ * that's advisory anyway. GET /projects/supervisor-conflicts is a
+ * dedicated, server-filtered endpoint that returns just the handful of
+ * projects (if any) this one employee is assignedSupervisorId on.
  */
 export const useProjectSupervisorConflictCheck = (url) => {
     const token = localStorage.getItem('token');
@@ -103,16 +103,11 @@ export const useProjectSupervisorConflictCheck = (url) => {
         if (!employeeId) return;
         try {
             const [projectsRes, assignmentsRes] = await Promise.all([
-                axios.get(`${url}/api/finance/projects/list`, authHeader),
+                axios.get(`${url}/api/finance/projects/supervisor-conflicts`, { ...authHeader, params: { supervisorId: employeeId, excludeProjectId: excludeProjectId || undefined } }),
                 axios.get(`${url}/api/finance/work-labour-assignments/list`, { ...authHeader, params: { supervisorId: employeeId } }),
             ]);
 
-            const projects = projectsRes.data.success ? projectsRes.data.data : [];
-            const projectMatches = projects.filter(p =>
-                (p.assignedSupervisorId?._id || p.assignedSupervisorId) === employeeId
-                && p._id !== excludeProjectId
-                && p.status !== 'completed'
-            );
+            const projectMatches = projectsRes.data.success ? projectsRes.data.data : [];
 
             const rows = assignmentsRes.data.success ? assignmentsRes.data.data : [];
             const seenWorkIds = new Set();

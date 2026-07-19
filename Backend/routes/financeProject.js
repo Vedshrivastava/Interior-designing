@@ -3,12 +3,13 @@ import { adminAuthMiddleware } from '../middlewares/auth.js';
 import {
     listFinanceProjects, getFinanceProject, addFinanceProject, updateFinanceProject,
     recordAdvanceInvoiced, recordAdvanceReceived, downloadAdvanceReceipt, updateReferralCommission, activateFinanceProject,
-    getCompletionReadiness, completeFinanceProject, removeFinanceProject,
+    getCompletionReadiness, completeFinanceProject, removeFinanceProject, getSupervisorProjectConflicts,
 } from '../controllers/financeProject.js';
 
 const router = express.Router();
 
 router.get('/list',              adminAuthMiddleware, listFinanceProjects);
+router.get('/supervisor-conflicts', adminAuthMiddleware, getSupervisorProjectConflicts);
 router.get('/:id/advance-receipt/download', adminAuthMiddleware, downloadAdvanceReceipt);
 router.get('/:id/completion-readiness', adminAuthMiddleware, getCompletionReadiness);
 router.get('/:id',                adminAuthMiddleware, getFinanceProject);

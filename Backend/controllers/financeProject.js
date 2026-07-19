@@ -492,8 +492,34 @@ const removeFinanceProject = async (req, res) => {
     }
 };
 
+// Dedicated, fast lookup for the Assigned Supervisor conflict check
+// (New Project wizard's Basic Info step) — GET /projects/list was being
+// reused for this, but it recomputes activation-readiness (2 extra
+// countDocuments queries) for every project in the company on every call,
+// which made picking a supervisor feel slow for a check that only ever
+// needed { name, status } for the handful of projects one specific
+// employee is assignedSupervisorId on. Filtered server-side instead of
+// fetching everything and filtering client-side.
+const getSupervisorProjectConflicts = async (req, res) => {
+    try {
+        const { supervisorId, excludeProjectId } = req.query;
+        if (!supervisorId) return res.status(400).json({ success: false, message: 'supervisorId is required' });
+        const filter = {
+            deleted: { $ne: true },
+            assignedSupervisorId: supervisorId,
+            status: { $ne: 'completed' },
+        };
+        if (excludeProjectId) filter._id = { $ne: excludeProjectId };
+        const projects = await FinanceProject.find(filter, 'name assignedSupervisorId').populate('assignedSupervisorId', 'name');
+        res.json({ success: true, data: projects });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error checking supervisor conflicts' });
+    }
+};
+
 export {
     listFinanceProjects, getFinanceProject, addFinanceProject, updateFinanceProject,
     recordAdvanceInvoiced, recordAdvanceReceived, downloadAdvanceReceipt, updateReferralCommission, activateFinanceProject,
-    getCompletionReadiness, completeFinanceProject, removeFinanceProject,
+    getCompletionReadiness, completeFinanceProject, removeFinanceProject, getSupervisorProjectConflicts,
 };

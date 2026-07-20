@@ -222,17 +222,25 @@ const ClientBillsTab = ({ url, clientId }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const { bills, loading } = useClientBillsAndReceipts(url, clientId);
-    const { downloading, progress, run: runDownload } = useFileDownload(authHeader);
-    const [downloadingId, setDownloadingId] = useState(null);
+    const { progress, run: runDownload } = useFileDownload(authHeader);
+    const [downloadingKey, setDownloadingKey] = useState(null); // `${billId}:${mode}`
 
     // Protected download — a plain <a href> can't carry the Bearer token,
     // so this fetches the PDF as a blob (see useFileDownload) with a real,
     // live byte/percent readout while the transfer is in progress. Same
     // pattern as RunningBillsManager's own "Statement" action.
-    const downloadStatement = async (b) => {
-        setDownloadingId(b._id);
-        await runDownload(url, `/api/finance/running-bills/${b._id}/statement/download`, `Bill-Statement-${b.billNumber}.pdf`, {}, 'Error downloading statement');
-        setDownloadingId(null);
+    // mode: 'color' (default) or 'bw' — same route, just ?mode=bw for a
+    // grayscale statement meant for printing.
+    const downloadStatement = async (b, mode = 'color') => {
+        setDownloadingKey(`${b._id}:${mode}`);
+        const suffix = mode === 'bw' ? '-BW' : '';
+        await runDownload(
+            url, `/api/finance/running-bills/${b._id}/statement/download`,
+            `Bill-Statement-${b.billNumber}${suffix}.pdf`,
+            mode === 'bw' ? { mode: 'bw' } : {},
+            'Error downloading statement'
+        );
+        setDownloadingKey(null);
     };
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
@@ -240,20 +248,24 @@ const ClientBillsTab = ({ url, clientId }) => {
 
     return (
         <div className="list-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 0.7fr 1fr 1fr 1fr 120px' }}>
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.6fr 1fr 1fr 1fr 160px' }}>
                 <b>Project</b><b>Bill #</b><b>Date</b><b>Total</b><b>Status</b><b>Action</b>
             </div>
             {bills.map(b => (
-                <div key={b._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 0.7fr 1fr 1fr 1fr 120px' }}>
+                <div key={b._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 0.6fr 1fr 1fr 1fr 160px' }}>
                     <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${b.projectId}`)}>{b.projectName}</p>
                     <p>#{b.billNumber}</p>
                     <p>{new Date(b.billDate).toLocaleDateString()}</p>
                     <p>₹{b.totalAmount.toLocaleString('en-IN')}</p>
                     <p><span className="item-category">{BILL_STATUS_LABEL[b.status]}</span></p>
-                    <div className="action-buttons">
+                    <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
                         <DownloadButton
-                            as="p" downloading={downloadingId === b._id} progress={downloadingId === b._id ? progress : null}
-                            idleLabel="Statement" onClick={() => downloadStatement(b)} className="cursor edit-action"
+                            as="p" downloading={downloadingKey === `${b._id}:color`} progress={downloadingKey === `${b._id}:color` ? progress : null}
+                            idleLabel="Statement" onClick={() => downloadStatement(b, 'color')} className="cursor edit-action"
+                        />
+                        <DownloadButton
+                            as="p" downloading={downloadingKey === `${b._id}:bw`} progress={downloadingKey === `${b._id}:bw` ? progress : null}
+                            idleLabel="B&W" onClick={() => downloadStatement(b, 'bw')} className="cursor edit-action"
                         />
                     </div>
                 </div>

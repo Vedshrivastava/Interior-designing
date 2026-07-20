@@ -48,7 +48,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     const [gstEditItem, setGstEditItem] = useState(null);
     const [gstEditValue, setGstEditValue] = useState('');
     const [savingGst, setSavingGst] = useState(false);
-    const [downloadingId, setDownloadingId] = useState(null);
+    const [downloadingKey, setDownloadingKey] = useState(null); // `${billId}:${mode}`
     const { progress: downloadProgress, run: runDownload } = useFileDownload(authHeader);
 
     const [pendingReviewByType, setPendingReviewByType] = useState([]);
@@ -192,10 +192,18 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     // Protected download — a plain <a href> can't carry the Bearer token,
     // so this fetches the PDF as a blob (see useFileDownload) with a real,
     // live byte/percent readout while the transfer is in progress.
-    const downloadStatement = async (bill) => {
-        setDownloadingId(bill._id);
-        await runDownload(url, `/api/finance/running-bills/${bill._id}/statement/download`, `Bill-Statement-${bill.billNumber}.pdf`, {}, 'Error downloading statement');
-        setDownloadingId(null);
+    // mode: 'color' (default) or 'bw' — same route, just ?mode=bw for a
+    // grayscale statement meant for printing.
+    const downloadStatement = async (bill, mode = 'color') => {
+        setDownloadingKey(`${bill._id}:${mode}`);
+        const suffix = mode === 'bw' ? '-BW' : '';
+        await runDownload(
+            url, `/api/finance/running-bills/${bill._id}/statement/download`,
+            `Bill-Statement-${bill.billNumber}${suffix}.pdf`,
+            mode === 'bw' ? { mode: 'bw' } : {},
+            'Error downloading statement'
+        );
+        setDownloadingKey(null);
     };
 
     return (
@@ -242,8 +250,12 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                             <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
                                 {b.status === 'draft' && <p onClick={() => openGstEdit(b)} className="cursor edit-action">GST</p>}
                                 <DownloadButton
-                                    as="p" downloading={downloadingId === b._id} progress={downloadingId === b._id ? downloadProgress : null}
-                                    idleLabel="Statement" onClick={() => downloadStatement(b)} className="cursor edit-action"
+                                    as="p" downloading={downloadingKey === `${b._id}:color`} progress={downloadingKey === `${b._id}:color` ? downloadProgress : null}
+                                    idleLabel="Statement" onClick={() => downloadStatement(b, 'color')} className="cursor edit-action"
+                                />
+                                <DownloadButton
+                                    as="p" downloading={downloadingKey === `${b._id}:bw`} progress={downloadingKey === `${b._id}:bw` ? downloadProgress : null}
+                                    idleLabel="B&W" onClick={() => downloadStatement(b, 'bw')} className="cursor edit-action"
                                 />
                                 <p onClick={() => setConfirmItem(b)} className="cursor delete-action">X</p>
                             </div>

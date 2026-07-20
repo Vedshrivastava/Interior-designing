@@ -8,7 +8,7 @@ import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 import { computeWorkExpectedPay, splitApprovedAreaByShare } from './financeReports.js';
 import PDFDocument from 'pdfkit';
-import { writeLetterhead, writeSectionHeading, writePaymentDetails, writeSignatureLine, writeFooter, drawInfoBox, measureInfoBoxHeight, drawTable, contentBox, formatCurrency, formatDate, GOLD, BRAND_GREEN, paintPageBackground } from '../utils/pdfLetterhead.js';
+import { writeLetterhead, writeSectionHeading, writePaymentDetails, writeSignatureLine, writeFooter, drawInfoBox, measureInfoBoxHeight, drawTable, contentBox, formatCurrency, formatDate, getTheme, paintPageBackground } from '../utils/pdfLetterhead.js';
 
 // Advance-contract projects bill exactly like With Material once work
 // starts — the advance is a credit drawn down against the first bill(s),
@@ -364,13 +364,21 @@ const downloadBillStatement = async (req, res) => {
         const data = await computeBillStatement(req.params.id);
         if (!data) return res.status(404).json({ success: false, message: 'Bill not found' });
 
+        // ?mode=bw renders the identical layout in a grayscale palette for
+        // clients who print statements — same structure and weight, no
+        // color, so a black-and-white printer isn't asked to render fills
+        // it'll just turn to muddy gray anyway. Anything else (including no
+        // param) falls back to the branded color theme.
+        const mode = req.query.mode === 'bw' ? 'bw' : 'color';
+        const theme = getTheme(mode);
+
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="Bill-Statement-${data.bill.billNumber}.pdf"`);
+        res.setHeader('Content-Disposition', `attachment; filename="Bill-Statement-${data.bill.billNumber}${mode === 'bw' ? '-BW' : ''}.pdf"`);
 
         const doc = new PDFDocument({ margin: 50, bufferPages: true });
         doc.pipe(res);
-        doc.on('pageAdded', () => paintPageBackground(doc));
-        paintPageBackground(doc);
+        doc.on('pageAdded', () => paintPageBackground(doc, theme));
+        paintPageBackground(doc, theme);
 
         const { left, right, width } = contentBox(doc);
 
@@ -378,7 +386,8 @@ const downloadBillStatement = async (req, res) => {
             doc,
             'Client Bill Statement',
             data.company,
-            `Bill #${data.bill.billNumber}  •  ${formatDate(data.bill.billDate)}`
+            `Bill #${data.bill.billNumber}  •  ${formatDate(data.bill.billDate)}`,
+            theme
         );
 
         // Bill To / Bill Details side by side, rather than one long stack —
@@ -401,14 +410,14 @@ const downloadBillStatement = async (req, res) => {
             measureInfoBoxHeight(doc, colWidth, 'Bill To', billToLines),
             measureInfoBoxHeight(doc, colWidth, 'Bill Details', billDetailsLines),
         );
-        const leftBottom = drawInfoBox(doc, left, colWidth, 'Bill To', billToLines, data.company, matchedInfoHeight);
+        const leftBottom = drawInfoBox(doc, left, colWidth, 'Bill To', billToLines, data.company, matchedInfoHeight, theme);
         doc.y = infoTopY;
-        const rightBottom = drawInfoBox(doc, left + colWidth + 24, colWidth, 'Bill Details', billDetailsLines, data.company, matchedInfoHeight);
+        const rightBottom = drawInfoBox(doc, left + colWidth + 24, colWidth, 'Bill Details', billDetailsLines, data.company, matchedInfoHeight, theme);
         doc.y = Math.max(leftBottom, rightBottom) + 8;
 
-        writeSectionHeading(doc, 'Line Items', data.company);
+        writeSectionHeading(doc, 'Line Items', theme);
         drawTable(doc, {
-            company: data.company,
+            theme,
             columns: [
                 { label: 'Work Type', width: 182, align: 'left' },
                 { label: 'Verified Area (sqft)', width: 120, align: 'right' },
@@ -427,9 +436,10 @@ const downloadBillStatement = async (req, res) => {
         doc.fillColor('#000000').fontSize(10);
         doc.moveDown(0.6);
 
-        // Totals — a solid deep-green box (own visual weight, wider than a
-        // plain right-aligned stack): light rows for Subtotal/GST in gold-
-        // on-green, closed off with a gold rule and a larger Grand Total row.
+        // Totals — a solid, theme-primary-filled box (own visual weight,
+        // wider than a plain right-aligned stack): light accent-on-primary
+        // rows for Subtotal/GST, closed off with an accent rule and a
+        // larger Grand Total row.
         const totalsBoxWidth = 260;
         const totalsX = right - totalsBoxWidth;
         const totalsPad = 14;
@@ -442,34 +452,34 @@ const downloadBillStatement = async (req, res) => {
         const sacLine = (data.bill.gstAmount && data.company?.defaultSacCode) ? `SAC: ${data.company.defaultSacCode}` : null;
 
         const boxH = totalsPad + (lightRows.length * rowH) + (sacLine ? 14 : 0) + 8 + 34 + totalsPad;
-        doc.rect(totalsX, boxTopY, totalsBoxWidth, boxH).fill(BRAND_GREEN);
+        doc.rect(totalsX, boxTopY, totalsBoxWidth, boxH).fill(theme.primary);
 
         let ty = boxTopY + totalsPad;
         doc.font('Helvetica').fontSize(10);
         lightRows.forEach(([label, value]) => {
-            doc.fillColor(GOLD).text(label, totalsX + totalsPad, ty, { width: halfWidth });
-            doc.fillColor('#ffffff').text(value, totalsX + totalsBoxWidth / 2, ty, { width: halfWidth, align: 'right' });
+            doc.fillColor(theme.accent).text(label, totalsX + totalsPad, ty, { width: halfWidth });
+            doc.fillColor(theme.onPrimary).text(value, totalsX + totalsBoxWidth / 2, ty, { width: halfWidth, align: 'right' });
             ty += rowH;
         });
         if (sacLine) {
-            doc.fontSize(7.5).fillColor(GOLD).text(sacLine, totalsX + totalsPad, ty, { width: totalsBoxWidth - totalsPad * 2, align: 'right' });
+            doc.fontSize(7.5).fillColor(theme.accent).text(sacLine, totalsX + totalsPad, ty, { width: totalsBoxWidth - totalsPad * 2, align: 'right' });
             doc.fontSize(10);
             ty += 14;
         }
-        doc.moveTo(totalsX + totalsPad, ty + 2).lineTo(totalsX + totalsBoxWidth - totalsPad, ty + 2).strokeColor(GOLD).lineWidth(1).stroke();
+        doc.moveTo(totalsX + totalsPad, ty + 2).lineTo(totalsX + totalsBoxWidth - totalsPad, ty + 2).strokeColor(theme.accent).lineWidth(1).stroke();
         ty += 10;
-        doc.font('Helvetica-Bold').fontSize(11).fillColor(GOLD).text('Grand Total', totalsX + totalsPad, ty + 5, { width: halfWidth });
-        doc.fontSize(15).fillColor('#ffffff').text(formatCurrency(data.bill.grandTotal), totalsX + totalsBoxWidth / 2, ty, { width: halfWidth, align: 'right' });
+        doc.font('Helvetica-Bold').fontSize(11).fillColor(theme.accent).text('Grand Total', totalsX + totalsPad, ty + 5, { width: halfWidth });
+        doc.fontSize(15).fillColor(theme.onPrimary).text(formatCurrency(data.bill.grandTotal), totalsX + totalsBoxWidth / 2, ty, { width: halfWidth, align: 'right' });
         doc.fillColor('#000000').font('Helvetica').fontSize(10);
         doc.y = boxTopY + boxH + 14;
 
-        writeSectionHeading(doc, 'Payment History', data.company);
+        writeSectionHeading(doc, 'Payment History', theme);
         if (data.payments.length === 0) {
             doc.text('No payments recorded against this bill yet.');
             doc.moveDown(0.4);
         } else {
             drawTable(doc, {
-                company: data.company,
+                theme,
                 columns: [
                     { label: 'Date', width: 100, align: 'left' },
                     { label: 'Amount', width: 130, align: 'right' },
@@ -487,25 +497,25 @@ const downloadBillStatement = async (req, res) => {
             doc.moveDown(0.5);
         }
 
-        // Outstanding balance — a warm gold-on-ivory callout (not a red/green
-        // alarm banner) so the one number a client needs to act on stands
-        // out without reading like a warning; a routine business document,
-        // not a dunning notice.
+        // Outstanding balance — a warm callout (not a red/green alarm
+        // banner) so the one number a client needs to act on stands out
+        // without reading like a warning; a routine business document, not
+        // a dunning notice.
         const positiveBalance = data.outstandingBalance > 0;
         const bannerY = doc.y;
         const bannerH = 38;
-        doc.rect(left, bannerY, width, bannerH).fill('#f7ecd9');
-        doc.rect(left, bannerY, 4, bannerH).fill(GOLD);
-        doc.fillColor('#8a6d3b').font('Helvetica').fontSize(11.5)
+        doc.rect(left, bannerY, width, bannerH).fill(theme.bannerBg);
+        doc.rect(left, bannerY, 4, bannerH).fill(theme.accent);
+        doc.fillColor(theme.bannerLabel).font('Helvetica').fontSize(11.5)
             .text(positiveBalance ? 'Payment Due' : 'Fully Settled', left + 18, bannerY + (bannerH / 2) - 6);
-        doc.font('Helvetica-Bold').fontSize(14).fillColor(BRAND_GREEN)
+        doc.font('Helvetica-Bold').fontSize(14).fillColor(theme.primary)
             .text(formatCurrency(Math.abs(data.outstandingBalance)), left + 18, bannerY + (bannerH / 2) - 7, { width: width - 32, align: 'right' });
         doc.fillColor('#000000').font('Helvetica').fontSize(10);
         doc.y = bannerY + bannerH + 10;
 
-        writePaymentDetails(doc, data.company);
+        writePaymentDetails(doc, data.company, theme);
         writeSignatureLine(doc, data.company);
-        writeFooter(doc, data.company);
+        writeFooter(doc, data.company, theme);
         doc.end();
     } catch (err) {
         console.error(err);

@@ -221,7 +221,7 @@ const downloadContractorBillStatement = async (req, res) => {
         ], company);
         doc.y = Math.max(leftBottom, rightBottom) + 8;
 
-        writeSectionHeading(doc, 'Work-wise Breakdown', company);
+        writeSectionHeading(doc, 'Work-wise Breakdown');
         drawTable(doc, {
             company,
             columns: [
@@ -247,7 +247,7 @@ const downloadContractorBillStatement = async (req, res) => {
         doc.moveDown(0.6);
 
         if (data.deductions.length > 0) {
-            writeSectionHeading(doc, 'Deductions', company);
+            writeSectionHeading(doc, 'Deductions');
             drawTable(doc, {
                 company,
                 columns: [
@@ -269,7 +269,7 @@ const downloadContractorBillStatement = async (req, res) => {
         }
 
         if (data.advances.length > 0) {
-            writeSectionHeading(doc, 'Advances', company);
+            writeSectionHeading(doc, 'Advances');
             drawTable(doc, {
                 company,
                 columns: [
@@ -284,7 +284,7 @@ const downloadContractorBillStatement = async (req, res) => {
         }
 
         if (data.payments.length > 0) {
-            writeSectionHeading(doc, 'Payments', company);
+            writeSectionHeading(doc, 'Payments');
             drawTable(doc, {
                 company,
                 columns: [

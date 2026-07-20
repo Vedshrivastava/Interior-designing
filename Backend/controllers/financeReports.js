@@ -2569,12 +2569,12 @@ const downloadCaMonthlyPackage = async (req, res) => {
             .text('For handoff to your CA — these are computed figures, not a filed return. GST/TDS amounts reflect only what was entered against bills, purchases, and payments this month.');
         doc.fillColor('#000000');
 
-        writeSectionHeading(doc, 'GST Summary', company);
+        writeSectionHeading(doc, 'GST Summary');
         doc.text(`Output GST (from issued bills): ${formatCurrency(data.gst.outputGst)}`);
         doc.text(`Input GST (from purchases): ${formatCurrency(data.gst.inputGst)}`);
         doc.font('Helvetica-Bold').text(`Net GST Payable: ${formatCurrency(data.gst.netGstPayable)}`).font('Helvetica');
 
-        writeSectionHeading(doc, 'TDS Summary', company);
+        writeSectionHeading(doc, 'TDS Summary');
         if (data.tds.bySection.length === 0) {
             doc.text('No TDS recorded this month.');
         } else {
@@ -2582,21 +2582,21 @@ const downloadCaMonthlyPackage = async (req, res) => {
             doc.font('Helvetica-Bold').text(`Total TDS: ${formatCurrency(data.tds.totalTds)}`).font('Helvetica');
         }
 
-        writeSectionHeading(doc, 'Sales Summary', company);
+        writeSectionHeading(doc, 'Sales Summary');
         doc.text(`Total Billed (issued bills): ${formatCurrency(data.sales.totalBilled)}`);
         doc.text(`Bill Count: ${data.sales.billCount}`);
 
-        writeSectionHeading(doc, 'Purchase Summary', company);
+        writeSectionHeading(doc, 'Purchase Summary');
         doc.text(`Total Purchased: ${formatCurrency(data.purchases.totalPurchased)}`);
         doc.text(`Total Returned: ${formatCurrency(data.purchases.totalReturned)}`);
         doc.text(`Net Purchases: ${formatCurrency(data.purchases.netPurchases)}`);
         doc.text(`Purchase Count: ${data.purchases.purchaseCount}`);
 
-        writeSectionHeading(doc, 'Expense Summary', company);
+        writeSectionHeading(doc, 'Expense Summary');
         doc.text(`Total Expenses: ${formatCurrency(data.expenses.totalExpenses)}`);
         doc.text(`Expense Count: ${data.expenses.expenseCount}`);
 
-        writeSectionHeading(doc, 'Bank & Cash Position (as of month end)', company);
+        writeSectionHeading(doc, 'Bank & Cash Position (as of month end)');
         data.bankAndCash.bankAccounts.forEach(a => doc.text(`${a.accountName}: ${formatCurrency(a.closingBalance)}`));
         doc.text(`Cash: ${formatCurrency(data.bankAndCash.cashClosingBalance)}`);
         doc.font('Helvetica-Bold').text(`Total Position: ${formatCurrency(data.bankAndCash.totalPosition)}`).font('Helvetica');

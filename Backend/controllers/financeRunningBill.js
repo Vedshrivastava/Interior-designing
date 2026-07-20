@@ -489,7 +489,7 @@ const downloadBillStatement = async (req, res) => {
                 rows: data.payments.map((p) => [
                     formatDate(p.receiptDate),
                     formatCurrency(p.amount),
-                    p.isAdvance ? 'Advance' : (p.paymentMode || '—'),
+                    p.paymentMode || '—',
                     p.utrNumber || '—',
                 ]),
             });

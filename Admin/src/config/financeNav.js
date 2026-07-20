@@ -3,7 +3,7 @@ import {
   faClipboardList, faCartShopping, faWarehouse, faHardHat, faUserShield,
   faPersonDigging, faFileInvoiceDollar, faReceipt, faMoneyBillWave,
   faMoneyBillTransfer, faBuildingColumns, faBook, faFileExport, faUsersGear,
-  faGear,
+  faGear, faTrashCan,
 } from '@fortawesome/free-solid-svg-icons';
 
 /*
@@ -359,12 +359,13 @@ export const FINANCE_NAV_SECTIONS = [
       {
         to: '/finance/settings', icon: faGear, label: 'Settings',
         // Bespoke component, real as of the Settings build — every tab
-        // backed by the financeCompanySettings singleton (Company/FY/GST/
+        // backed by the financeCompanySettings singleton (Company/GST/
         // Notifications/PDF Templates all edit the same one document,
         // just split into tabs) except Permissions, which edits
-        // user.allowedFinanceModules on ADMIN users instead.
+        // user.allowedFinanceModules on ADMIN users instead. The
+        // Financial Year tab was removed (never wired to anything
+        // downstream — see the Settings redesign build).
         tabs: [
-          { key: 'fy',            label: 'Financial Year',  description: 'fyStartMonth (April-start by default): Reports\' "This FY" date-range filters aren\'t wired to this yet, a small follow-up.' },
           { key: 'company',       label: 'Company',         description: 'Company profile: name, address, GSTIN, PAN, logo. Used as real branding on the CA Monthly Package and Client Bill Statement PDFs.' },
           { key: 'permissions',   label: 'Permissions',     description: 'MASTER-only: which finance sidebar sections each ADMIN user can access. Unrestricted by default; MASTER always has full access.' },
           { key: 'gst',           label: 'GST',             description: 'defaultGstRate: prefills (not locks) the GST rate field on Running Bill / Purchase entry forms.' },
@@ -372,6 +373,17 @@ export const FINANCE_NAV_SECTIONS = [
           { key: 'pdf',           label: 'PDF Templates',   description: 'letterheadFooterText for generated PDFs. The brand color palette is fixed in code, not editable here.' },
           { key: 'backup',        label: 'Backup',          description: 'Export every finance collection as one zip of JSON files.' },
         ],
+      },
+      {
+        to: '/finance/recovery-bin', icon: faTrashCan, label: 'Recovery Bin',
+        // Bespoke component. Finance's own soft-delete trash — deliberately
+        // separate from the main Dashboard's Recovery Bin (public-site
+        // content only, see pages/RecoveryBin.jsx): covers exactly the 12
+        // Finance entities whose own list pages promise "Moved to Recovery
+        // Bin" on delete (Clients, Vendors, Employees, Labourers,
+        // Materials, Bank Accounts, Projects, Works, Running Bills,
+        // Purchases, Client/Project Documents). MASTER-only.
+        tabs: [{ key: 'bin', label: 'Bin', description: 'Restore a soft-deleted Finance record or remove it for good.' }],
       },
     ],
   },

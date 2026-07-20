@@ -49,6 +49,7 @@ import financeContractorDeductionRouter from "./routes/financeContractorDeductio
 import financeContractorPaymentRouter   from "./routes/financeContractorPayment.js";
 import financeContractorLedgerRouter    from "./routes/financeContractorLedger.js";
 import financeWorkReviewRouter          from "./routes/financeWorkReview.js";
+import financeRecoveryRouter            from "./routes/financeRecovery.js";
 import financePurchaseRouter      from "./routes/financePurchase.js";
 import financeVendorPaymentRouter from "./routes/financeVendorPayment.js";
 import financeVendorLedgerRouter  from "./routes/financeVendorLedger.js";
@@ -162,6 +163,7 @@ app.use('/api/finance/contractor-deductions', financeContractorDeductionRouter);
 app.use('/api/finance/contractor-payments',   financeContractorPaymentRouter);
 app.use('/api/finance/contractors',           financeContractorLedgerRouter);
 app.use('/api/finance/work-reviews',          financeWorkReviewRouter);
+app.use('/api/finance/recovery',              financeRecoveryRouter);
 app.use('/api/finance/purchases',       financePurchaseRouter);
 app.use('/api/finance/vendor-payments', financeVendorPaymentRouter);
 app.use('/api/finance/bank-accounts',   financeBankAccountRouter);

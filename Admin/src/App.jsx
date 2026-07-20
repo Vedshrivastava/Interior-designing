@@ -47,6 +47,7 @@ import CashBookPage from './pages/finance/CashBookPage';
 import ReportsPage from './pages/finance/ReportsPage';
 import SupervisorsPage from './pages/finance/SupervisorsPage';
 import SettingsPage from './pages/finance/SettingsPage';
+import FinanceRecoveryBin from './pages/finance/FinanceRecoveryBin';
 import DailyLabourPage from './pages/finance/DailyLabourPage';
 import ActivityTimelinePage from './pages/finance/ActivityTimelinePage';
 import { FINANCE_ROUTES } from './config/financeNav';
@@ -379,6 +380,14 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path='/finance/recovery-bin'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <FinanceRecoveryBin url={url} />
+                </ProtectedRoute>
+              }
+            />
             {FINANCE_ROUTES.filter(r => ![
               '/finance', '/finance/masters', '/finance/projects', '/finance/projects/new',
               '/finance/clients', '/finance/procurement', '/finance/contractors',
@@ -387,7 +396,7 @@ const App = () => {
               '/finance/payables', '/finance/payments',
               '/finance/bank', '/finance/cash-book', '/finance/reports',
               '/finance/supervisors', '/finance/daily-labour', '/finance/settings',
-              '/finance/activity',
+              '/finance/activity', '/finance/recovery-bin',
             ].includes(r.to)).map(({ to, label, phase, tabs }) => (
               <Route
                 key={to}

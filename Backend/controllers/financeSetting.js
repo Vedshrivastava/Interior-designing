@@ -21,9 +21,19 @@ const listFinanceSettings = async (req, res) => {
         }
 
         let items = await FinanceSetting.find({ settingType, deleted: { $ne: true } }).sort({ order: 1, createdAt: 1 });
+        // Seed defaults only the very first time this type is ever fetched —
+        // checked against ALL docs (deleted or not), not just the active
+        // count, so an admin who deliberately removed every TDS section
+        // doesn't have them silently resurrected on the next load (and,
+        // since those removed rows still occupy the unique
+        // (settingType, name) index as soft-deleted docs, re-inserting the
+        // same names would throw a duplicate-key error anyway).
         if (items.length === 0 && settingType === 'tds_section') {
-            await FinanceSetting.insertMany(TDS_SEED);
-            items = await FinanceSetting.find({ settingType, deleted: { $ne: true } }).sort({ order: 1 });
+            const everSeeded = await FinanceSetting.exists({ settingType: 'tds_section' });
+            if (!everSeeded) {
+                await FinanceSetting.insertMany(TDS_SEED);
+                items = await FinanceSetting.find({ settingType, deleted: { $ne: true } }).sort({ order: 1 });
+            }
         }
         res.json({ success: true, data: items });
     } catch (err) {

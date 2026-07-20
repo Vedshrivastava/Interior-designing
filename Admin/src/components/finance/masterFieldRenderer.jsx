@@ -1,6 +1,8 @@
 import React from 'react';
 import SettingSelectField from './SettingSelectField';
 import QuickAddPicker from './QuickAddPicker';
+import StyledSelect from './StyledSelect';
+import StyledDatePicker from './StyledDatePicker';
 
 /* Shared by MasterCrudTable and QuickAddPicker so the field-rendering logic
    for a FINANCE_MASTERS config only exists in one place. */
@@ -9,6 +11,23 @@ export const emptyFormFromFields = (fields) =>
         acc[f.key] = (f.type === 'stringArray' || f.type === 'workTypeMultiSelect') ? [] : (f.default ?? '');
         return acc;
     }, {});
+
+// Groups already-visible fields into consecutive runs sharing the same
+// `section` label (e.g. "Contact" / "Bank Details" / "Other"), each its
+// own wizard-field-grid under a wizard-section-label divider — same visual
+// grouping the Settings redesign uses. Fields with no `section` tag (older
+// or short resource configs like Materials/Bank Accounts, where a single
+// short list needs no grouping) fall into one unlabeled group.
+export const groupFieldsBySection = (fields) => {
+    const groups = [];
+    for (const f of fields) {
+        const section = f.section || null;
+        const last = groups[groups.length - 1];
+        if (last && last.section === section) last.fields.push(f);
+        else groups.push({ section, fields: [f] });
+    }
+    return groups;
+};
 
 // `vendorSelect` renders as a nested QuickAddPicker (not a plain select) so
 // a Team can be created without a side trip to add its contractor Vendor
@@ -21,9 +40,11 @@ export const renderMasterField = (f, form, setField, { url, settingOptions = {} 
             return <textarea rows="3" value={value} onChange={e => setField(f.key, e.target.value)} placeholder={f.placeholder} />;
         case 'select':
             return (
-                <select value={value} onChange={e => setField(f.key, e.target.value)}>
-                    {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
+                <StyledSelect
+                    value={value} onChange={v => setField(f.key, v)}
+                    placeholder={f.placeholder || `Select ${f.label.toLowerCase()}…`}
+                    options={f.options}
+                />
             );
         case 'vendorSelect':
             return (
@@ -109,6 +130,8 @@ export const renderMasterField = (f, form, setField, { url, settingOptions = {} 
                     <button type="button" className="add-point-btn" onClick={() => setField(f.key, [...(value || []), ''])}>+ Add {f.label.replace(/s$/, '')}</button>
                 </div>
             );
+        case 'date':
+            return <StyledDatePicker value={value} onChange={v => setField(f.key, v)} />;
         default:
             return <input type={f.type} value={value} placeholder={f.placeholder} onChange={e => setField(f.key, e.target.value)} />;
     }

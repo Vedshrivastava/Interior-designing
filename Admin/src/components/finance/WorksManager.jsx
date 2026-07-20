@@ -336,6 +336,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                                 <QuickAddPicker
                                     url={url} resourceKey="employees" value={teamSupervisorId}
                                     onChange={id => checkSupervisor(id, labourModalWork?._id, () => setTeamSupervisorId(id))}
+                                    filter={e => e.role === 'supervisor'} presetValues={{ role: 'supervisor' }}
                                     placeholder="Select supervisor…"
                                 />
                             </div>

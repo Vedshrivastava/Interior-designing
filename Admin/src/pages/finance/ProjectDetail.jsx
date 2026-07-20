@@ -633,6 +633,7 @@ const ProjectDetail = ({ url }) => {
                                 url={url} resourceKey="employees"
                                 value={project.assignedSupervisorId?._id || ''}
                                 onChange={stageSupervisorChange}
+                                filter={e => e.role === 'supervisor'} presetValues={{ role: 'supervisor' }}
                                 placeholder="None"
                             />
                         </div>

@@ -1,14 +1,23 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 
 /*
  * Dropdown-with-escape-hatch for a free-text field that's backed by a
- * financeSetting master list (Units, Cities, Commission Types) without
- * actually constraining the underlying field's type — financeMaterial.unit
- * and financeProject.siteLocation both stay plain Strings. A text input
- * with a <datalist> of existing values: pick a suggestion, or type
- * anything new (existing records with values not in the master list keep
- * displaying/editing fine, since this never validates against `options`).
+ * financeSetting master list (Units, Cities) without actually constraining
+ * the underlying field's type — financeMaterial.unit and
+ * financeProject.siteLocation both stay plain Strings: pick a suggestion,
+ * or type anything new (existing records with values not in the master
+ * list keep displaying/editing fine, since this never validates against
+ * `options`).
+ *
+ * A real, visible suggestion panel (same .add-cat-list/.add-cat-option
+ * look StyledSelect/SettingPicker already use), not a native
+ * `<input list>` datalist — that had the field's own escape-hatch
+ * philosophy right (typing something brand new is the common case here,
+ * unlike Payment Mode's small fixed set) but a datalist's near-invisible,
+ * browser-inconsistent affordance made the existing options easy to miss
+ * entirely, encouraging avoidable near-duplicates (e.g. "bag" vs "bags")
+ * purely from not seeing what already exists.
  *
  * Purely presentational — fetching `options` and auto-registering a newly
  * typed value back into the settingType master both happen in the parent
@@ -16,14 +25,45 @@ import axios from 'axios';
  * city field) so this can be reused without duplicating fetch logic.
  */
 const SettingSelectField = ({ settingType, options, value, onChange, placeholder }) => {
-    const listId = `setting-${settingType}-options`;
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+
+    useEffect(() => {
+        const onClickOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+        document.addEventListener('mousedown', onClickOutside);
+        return () => document.removeEventListener('mousedown', onClickOutside);
+    }, []);
+
+    const query = (value || '').toLowerCase();
+    const visible = query ? options.filter(o => o.name.toLowerCase().includes(query)) : options;
+
     return (
-        <>
-            <input type="text" list={listId} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
-            <datalist id={listId}>
-                {options.map(o => <option key={o._id} value={o.name} />)}
-            </datalist>
-        </>
+        <div className="add-cat-dropdown" ref={ref}>
+            <input
+                type="text"
+                className={`add-cat-trigger${open ? ' open' : ''}`}
+                style={{ cursor: 'text', textAlign: 'left' }}
+                value={value}
+                placeholder={placeholder}
+                onFocus={() => setOpen(true)}
+                onChange={e => onChange(e.target.value)}
+            />
+            {open && options.length > 0 && (
+                <ul className="add-cat-list">
+                    {visible.length === 0 ? (
+                        <li className="add-cat-option" style={{ cursor: 'default', color: 'var(--text-lt)' }}>No matches — keep typing to use a new value</li>
+                    ) : visible.map(o => (
+                        <li
+                            key={o._id}
+                            className={`add-cat-option${o.name === value ? ' active' : ''}`}
+                            onMouseDown={e => { e.preventDefault(); onChange(o.name); setOpen(false); }}
+                        >
+                            {o.name}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
     );
 };
 

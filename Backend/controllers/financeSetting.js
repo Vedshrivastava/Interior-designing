@@ -50,14 +50,29 @@ const addFinanceSetting = async (req, res) => {
         }
         if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
 
+        // Matches regardless of deleted state — the unique (settingType,
+        // name) index would reject a second insert of the same name
+        // anyway once one soft-deleted row already occupies it. If the
+        // match was actively deleted, this is really "re-add something I
+        // removed before": restore that same row (with today's code/rate)
+        // instead of either blocking with "Already exists" or throwing a
+        // duplicate-key error trying to insert a fresh one.
         const existing = await FinanceSetting.findOne({ settingType, name: name.trim() });
-        if (existing) return res.status(400).json({ success: false, message: 'Already exists' });
+        if (existing && !existing.deleted) return res.status(400).json({ success: false, message: 'Already exists' });
 
-        const count = await FinanceSetting.countDocuments({ settingType });
-        const item = new FinanceSetting({
-            settingType, name: name.trim(), code: code || '', rate: rate ?? null, order: count + 1,
-        });
-        await item.save();
+        let item;
+        if (existing) {
+            existing.deleted = false; existing.deletedAt = undefined; existing.deletedBy = undefined;
+            existing.code = code || ''; existing.rate = rate ?? null;
+            await existing.save();
+            item = existing;
+        } else {
+            const count = await FinanceSetting.countDocuments({ settingType });
+            item = new FinanceSetting({
+                settingType, name: name.trim(), code: code || '', rate: rate ?? null, order: count + 1,
+            });
+            await item.save();
+        }
         broadcast({ type: 'financeSettingsChanged', settingType });
         res.json({ success: true, message: 'Added', data: item });
     } catch (err) {

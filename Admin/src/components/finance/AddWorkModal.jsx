@@ -132,6 +132,7 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
                                         <QuickAddPicker
                                             url={url} resourceKey="employees" value={labourSupervisorId}
                                             onChange={id => checkSupervisor(id, null, () => setLabourSupervisorId(id))}
+                                            filter={e => e.role === 'supervisor'} presetValues={{ role: 'supervisor' }}
                                             placeholder="Select supervisor for this team…"
                                         />
                                     </div>

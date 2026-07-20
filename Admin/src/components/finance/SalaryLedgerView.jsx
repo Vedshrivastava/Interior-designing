@@ -42,8 +42,7 @@ const SalaryLedgerView = ({ url, employeeId }) => {
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
-    const submit = async (e) => {
-        e.preventDefault();
+    const submit = async () => {
         if (!/^\d{4}-\d{2}$/.test(form.month)) return toast.error('A valid month is required');
         if (!form.amount || Number(form.amount) <= 0) return toast.error('Amount must be greater than zero');
         if (!form.date) return toast.error('Date is required');
@@ -71,7 +70,8 @@ const SalaryLedgerView = ({ url, employeeId }) => {
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>Expected salary: ₹{ledger.expectedSalary.toLocaleString('en-IN')}/month</p>
 
-            <form onSubmit={submit}>
+            <div className="wizard-step-body">
+                <p className="wizard-section-label">Add Payment</p>
                 <div className="wizard-field-grid">
                     <div className="add-product-name flex-col">
                         <p>Month *</p>
@@ -95,9 +95,9 @@ const SalaryLedgerView = ({ url, employeeId }) => {
                 </div>
                 <div className="wizard-actions" style={{ marginTop: '16px', marginBottom: '12px' }}>
                     <span />
-                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Payment'}</button>
+                    <button type="button" className="add-btn" disabled={saving} onClick={submit}>{saving ? 'Saving…' : '+ Add Payment'}</button>
                 </div>
-            </form>
+            </div>
 
             <h3 style={{ margin: '20px 0 8px' }}>By Month</h3>
             <div className="list-table" style={{ marginBottom: '24px' }}>

@@ -3,6 +3,12 @@ import mongoose from 'mongoose';
 const financeEmployeeSchema = new mongoose.Schema({
     name:        { type: String, required: true },
     designation: { type: String, default: '' },
+    // Structured, unlike designation (free text) — the only thing every
+    // supervisor-assignment picker (New Project, Works, Supervisors page)
+    // actually filters on. designation stays purely descriptive (Data
+    // Entry, Social Media, Site Supervisor, whatever) and never gates
+    // anything.
+    role: { type: String, enum: ['supervisor', 'staff'], default: 'staff' },
     phone:       { type: String, default: '' },
     email:       { type: String, default: '' },
     salary:      { type: Number, default: 0 },

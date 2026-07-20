@@ -268,7 +268,9 @@ const NewProjectWizard = ({ url }) => {
                                         onChange={v => {
                                             setBasicField('assignedSupervisorId', v);
                                             if (v) checkProjectSupervisor(v, projectId);
-                                        }} placeholder="None" />
+                                        }}
+                                        filter={e => e.role === 'supervisor'} presetValues={{ role: 'supervisor' }}
+                                        placeholder="None" />
                                 </div>
                             </div>
 

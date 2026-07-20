@@ -21,10 +21,14 @@ const listFinanceEmployees = async (req, res) => {
 
 const addFinanceEmployee = async (req, res) => {
     try {
-        const { name, designation, phone, email, salary, joiningDate, notes } = req.body;
+        const { name, designation, role, phone, email, salary, joiningDate, accountName, bankName, accountNumber, ifscCode, notes } = req.body;
         if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
+        if (!accountName || !bankName || !accountNumber || !ifscCode) {
+            return res.status(400).json({ success: false, message: 'Bank account holder name, bank name, account number, and IFSC code are all required' });
+        }
         const item = new FinanceEmployee({
-            name: name.trim(), designation, phone, email, salary, joiningDate, notes,
+            name: name.trim(), designation, role, phone, email, salary, joiningDate,
+            accountName, bankName, accountNumber, ifscCode, notes,
         });
         await item.save();
         broadcast({ type: 'financeEmployeesChanged' });
@@ -37,11 +41,17 @@ const addFinanceEmployee = async (req, res) => {
 
 const updateFinanceEmployee = async (req, res) => {
     try {
-        const { _id, name, designation, phone, email, salary, joiningDate, notes } = req.body;
+        const { _id, name, designation, role, phone, email, salary, joiningDate, accountName, bankName, accountNumber, ifscCode, notes } = req.body;
         const existing = await FinanceEmployee.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Employee not found' });
         if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
-        await FinanceEmployee.findByIdAndUpdate(_id, { name: name.trim(), designation, phone, email, salary, joiningDate, notes });
+        if (!accountName || !bankName || !accountNumber || !ifscCode) {
+            return res.status(400).json({ success: false, message: 'Bank account holder name, bank name, account number, and IFSC code are all required' });
+        }
+        await FinanceEmployee.findByIdAndUpdate(_id, {
+            name: name.trim(), designation, role, phone, email, salary, joiningDate,
+            accountName, bankName, accountNumber, ifscCode, notes,
+        });
         broadcast({ type: 'financeEmployeesChanged' });
         res.json({ success: true, message: 'Employee updated' });
     } catch (err) {

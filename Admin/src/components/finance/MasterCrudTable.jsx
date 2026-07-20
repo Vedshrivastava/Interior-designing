@@ -5,9 +5,10 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
 import { registerSettingIfNew } from './SettingSelectField';
-import { emptyFormFromFields, renderMasterField } from './masterFieldRenderer';
+import { emptyFormFromFields, renderMasterField, groupFieldsBySection } from './masterFieldRenderer';
 import '../../styles/list.css';
 import '../../styles/add.css';
+import '../../styles/wizard.css';
 
 /* Generic add/list/edit/delete table for the simple Phase 0 masters
    (Clients, Vendors, Employees, Materials, Labour Teams) — one config-driven
@@ -41,6 +42,7 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
     const [saving, setSaving] = useState(false);
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [query, setQuery] = useState('');
 
     // Only needed for the read-only column display (e.g. Team's Contractor
     // column) — the form itself no longer needs a pre-fetched vendor list,
@@ -171,15 +173,22 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
         return content;
     };
 
-    const displayList = filter ? list.filter(filter) : list;
+    const searchKey = resource.columns[0]?.key;
+    const displayList = (filter ? list.filter(filter) : list)
+        .filter(item => !query || String(item[searchKey] || '').toLowerCase().includes(query.toLowerCase()));
 
     return (
         <div>
-            {!hideAddButton && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-                    <button type="button" className="add-point-btn" onClick={openAdd}>+ Add {resource.label}</button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                <div className="admin-search-wrap">
+                    <i className="fa-solid fa-magnifying-glass" />
+                    <input type="text" placeholder={`Search ${resource.labelPlural.toLowerCase()}…`} value={query} onChange={e => setQuery(e.target.value)} />
+                    {query && <button className="admin-search-clear" onClick={() => setQuery('')}>×</button>}
                 </div>
-            )}
+                {!hideAddButton && (
+                    <button type="button" className="add-point-btn" onClick={openAdd}>+ Add {resource.label}</button>
+                )}
+            </div>
 
             <div className="list-table">
                 <div className="list-table-format title"
@@ -210,12 +219,19 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
                     <div className="loader-modal-box edit-modal">
                         <h2>{editingId ? `Edit ${resource.label}` : `Add ${resource.label}`}</h2>
-                        <form className="flex-col" onSubmit={submit}>
-                            {resource.fields.filter(f => !f.showIf || f.showIf(form)).map(f => (
-                                <div key={f.key} className="add-product-name flex-col">
-                                    <p>{f.label}{f.required ? ' *' : ''}</p>
-                                    {renderMasterField(f, form, setField, { url, settingOptions })}
-                                </div>
+                        <form onSubmit={submit}>
+                            {groupFieldsBySection(resource.fields.filter(f => !f.showIf || f.showIf(form))).map((group, gi) => (
+                                <React.Fragment key={gi}>
+                                    {group.section && <p className="wizard-section-label">{group.section}</p>}
+                                    <div className="wizard-field-grid">
+                                        {group.fields.map(f => (
+                                            <div key={f.key} className={`add-product-name flex-col${f.type === 'textarea' ? ' wizard-field-full' : ''}`}>
+                                                <p>{f.label}{f.required ? ' *' : ''}</p>
+                                                {renderMasterField(f, form, setField, { url, settingOptions })}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </React.Fragment>
                             ))}
                             <div className="edit-modal-actions">
                                 <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>

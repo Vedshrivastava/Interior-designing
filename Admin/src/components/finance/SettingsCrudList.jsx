@@ -21,6 +21,7 @@ const SettingsCrudList = ({ url, lockedType }) => {
     const [code, setCode] = useState('');
     const [rate, setRate] = useState('');
     const [saving, setSaving] = useState(false);
+    const [query, setQuery] = useState('');
 
     const typeConfig = FINANCE_SETTING_TYPES.find(t => t.key === activeType);
 
@@ -38,8 +39,7 @@ const SettingsCrudList = ({ url, lockedType }) => {
 
     useEffect(() => { fetchList(); }, [activeType]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const addItem = async (e) => {
-        e.preventDefault();
+    const addItem = async () => {
         if (!name.trim()) { toast.error('Name is required'); return; }
         setSaving(true);
         try {
@@ -74,6 +74,8 @@ const SettingsCrudList = ({ url, lockedType }) => {
         }
     };
 
+    const visibleItems = items.filter(item => !query || item.name.toLowerCase().includes(query.toLowerCase()));
+
     return (
         <div>
             {!lockedType && (
@@ -86,31 +88,41 @@ const SettingsCrudList = ({ url, lockedType }) => {
                 </div>
             )}
 
-            <form onSubmit={addItem}>
+            <div className="wizard-step-body">
+                <p className="wizard-section-label">Add {typeConfig.label.replace(/s$/, '')}</p>
                 <div className="wizard-field-grid">
                     <div className="add-product-name flex-col">
                         <p>Name *</p>
                         <input type="text" placeholder={`New ${typeConfig.label.toLowerCase().replace(/s$/, '')} name`}
-                            value={name} onChange={e => setName(e.target.value)} />
+                            value={name} onChange={e => setName(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') addItem(); }} />
                     </div>
                     {typeConfig.hasCode && (
                         <div className="add-product-name flex-col">
                             <p>Code</p>
-                            <input type="text" placeholder="e.g. 194C-IND" value={code} onChange={e => setCode(e.target.value)} />
+                            <input type="text" placeholder="e.g. 194C-IND" value={code} onChange={e => setCode(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') addItem(); }} />
                         </div>
                     )}
                     {typeConfig.hasRate && (
                         <div className="add-product-name flex-col">
                             <p>Rate %</p>
-                            <input type="number" value={rate} onChange={e => setRate(e.target.value)} />
+                            <input type="number" value={rate} onChange={e => setRate(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') addItem(); }} />
                         </div>
                     )}
                 </div>
                 <div className="wizard-actions" style={{ marginTop: '16px' }}>
                     <span />
-                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Adding…' : '+ Add'}</button>
+                    <button type="button" className="add-btn" disabled={saving} onClick={addItem}>{saving ? 'Adding…' : '+ Add'}</button>
                 </div>
-            </form>
+            </div>
+
+            <div className="admin-search-wrap" style={{ margin: '20px 0 16px' }}>
+                <i className="fa-solid fa-magnifying-glass" />
+                <input type="text" placeholder={`Search ${typeConfig.label.toLowerCase()}…`} value={query} onChange={e => setQuery(e.target.value)} />
+                {query && <button className="admin-search-clear" onClick={() => setQuery('')}>×</button>}
+            </div>
 
             <div className="list-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr 1fr 140px' }}>
@@ -118,10 +130,10 @@ const SettingsCrudList = ({ url, lockedType }) => {
                 </div>
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
-                ) : items.length === 0 ? (
-                    <div className="admin-empty-state"><p>No {typeConfig.label.toLowerCase()} yet.</p></div>
+                ) : visibleItems.length === 0 ? (
+                    <div className="admin-empty-state"><p>{items.length === 0 ? `No ${typeConfig.label.toLowerCase()} yet.` : 'Nothing matches your search.'}</p></div>
                 ) : (
-                    items.map(item => (
+                    visibleItems.map(item => (
                         <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr 1fr 140px' }}>
                             <p>{item.name}</p>
                             <p>{item.code || '-'}</p>

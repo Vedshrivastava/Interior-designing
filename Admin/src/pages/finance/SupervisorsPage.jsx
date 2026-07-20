@@ -100,15 +100,21 @@ const SupervisorLabourLedgerTab = ({ url, supervisorId }) => {
 };
 
 /*
- * A Supervisor is a financeEmployee, not a separate entity — there's no
- * "isSupervisor" flag on that schema, so this picker lists every
- * employee (same as Masters > Employees). Same "picker on the same page"
- * pattern as Contractors/Procurement/Masters' own ledger tabs.
+ * A Supervisor is a financeEmployee, not a separate entity — filtered here
+ * by its role field (role === 'supervisor') so this picker only lists
+ * employees actually tagged as supervisors, not every employee (Data
+ * Entry, Social Media, etc. — see Masters > Employees). Same "picker on
+ * the same page" pattern as Contractors/Procurement/Masters' own ledger
+ * tabs.
  */
 const EmployeePicker = ({ url, selectedEmployeeId, onChange }) => (
     <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>
         <p>Supervisor</p>
-        <QuickAddPicker url={url} resourceKey="employees" value={selectedEmployeeId} onChange={onChange} placeholder="Select employee…" />
+        <QuickAddPicker
+            url={url} resourceKey="employees" value={selectedEmployeeId} onChange={onChange}
+            filter={e => e.role === 'supervisor'} presetValues={{ role: 'supervisor' }}
+            placeholder="Select supervisor…"
+        />
     </div>
 );
 

@@ -3,10 +3,11 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
-import { emptyFormFromFields, renderMasterField } from './masterFieldRenderer';
+import { emptyFormFromFields, renderMasterField, groupFieldsBySection } from './masterFieldRenderer';
 import { registerSettingIfNew } from './SettingSelectField';
 import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
 
 /*
  * Reusable "search or create" control for entity references (Client,
@@ -106,12 +107,19 @@ const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValue
                 <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
                     <div className="loader-modal-box edit-modal">
                         <h2>Add {resource.label}</h2>
-                        <form className="flex-col" onSubmit={submit}>
-                            {visibleFields.filter(f => !f.showIf || f.showIf(form)).map(f => (
-                                <div key={f.key} className="add-product-name flex-col">
-                                    <p>{f.label}{f.required ? ' *' : ''}</p>
-                                    {renderMasterField(f, form, setField, { url, settingOptions })}
-                                </div>
+                        <form onSubmit={submit}>
+                            {groupFieldsBySection(visibleFields.filter(f => !f.showIf || f.showIf(form))).map((group, gi) => (
+                                <React.Fragment key={gi}>
+                                    {group.section && <p className="wizard-section-label">{group.section}</p>}
+                                    <div className="wizard-field-grid">
+                                        {group.fields.map(f => (
+                                            <div key={f.key} className={`add-product-name flex-col${f.type === 'textarea' ? ' wizard-field-full' : ''}`}>
+                                                <p>{f.label}{f.required ? ' *' : ''}</p>
+                                                {renderMasterField(f, form, setField, { url, settingOptions })}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </React.Fragment>
                             ))}
                             <div className="edit-modal-actions">
                                 <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>

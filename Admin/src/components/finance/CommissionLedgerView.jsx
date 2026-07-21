@@ -74,31 +74,43 @@ const CommissionLedgerView = ({ url, vendorId }) => {
 
     return (
         <div>
-            <div className="list-table" style={{ marginBottom: '28px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                    <b>Commission Earned</b><b>Payments</b><b>Commission Payable</b>
+            <div className="list-table" style={{ marginBottom: '8px' }}>
+                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+                    <b>Total (All Logged)</b><b>Approved (Reviewed)</b><b>Unapproved</b><b>Payments</b><b>Commission Payable</b>
                 </div>
-                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                    <p>₹{totals.earnings.toLocaleString('en-IN')}</p>
+                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+                    <p>₹{totals.totalAmount.toLocaleString('en-IN')}</p>
+                    <p style={{ color: totals.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{totals.earnings > 0 ? `₹${totals.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
+                    <p style={{ color: totals.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>₹{totals.unapprovedAmount.toLocaleString('en-IN')}</p>
                     <p>₹{totals.payments.toLocaleString('en-IN')}</p>
                     <p style={{ fontWeight: 700, color: totals.commissionPayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{totals.commissionPayable.toLocaleString('en-IN')}</p>
                 </div>
             </div>
+            {totals.unapprovedAmount > 0 && (
+                <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
+                    ₹{totals.unapprovedAmount.toLocaleString('en-IN')} worth of referred work hasn't been reviewed yet; it isn't counted as Approved commission until it's reviewed (Payables/Receivables → Deductions).
+                </p>
+            )}
 
             <h3 style={{ marginBottom: '8px' }}>Earnings by Work</h3>
             <div className="list-table" style={{ marginBottom: '28px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr 1fr' }}>
-                    <b>Project</b><b>Work Type</b><b>Completed Area</b><b>Referral Cut</b><b>Earnings</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.9fr 1fr 0.9fr 1fr 0.9fr' }}>
+                    <b>Project</b><b>Work Type</b><b>Completed Area</b><b>Referral Cut</b><b>Approved</b><b>Unapproved</b>
                 </div>
                 {ledger.works.length === 0 ? (
                     <div className="admin-empty-state"><p>No referred works yet.</p></div>
                 ) : ledger.works.map(w => (
-                    <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr 1fr' }}>
+                    <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 0.9fr 1fr 0.9fr 1fr 0.9fr' }}>
                         <p>{w.projectName}</p>
                         <p>{w.workType}</p>
                         <p>{w.completedAreaSqft} sqft</p>
                         <p>{w.referralRatePerSqft != null ? `₹${w.referralRatePerSqft}/sqft` : <span title="No matching work type rate configured">(no rate)</span>}</p>
-                        <p>₹{w.earnings.toLocaleString('en-IN')}</p>
+                        <p style={{ color: w.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>
+                            {w.earnings > 0
+                                ? <>₹{w.earnings.toLocaleString('en-IN')} <span style={{ fontWeight: 400, fontSize: '0.75rem' }}>({w.approvedAreaSqft} sqft{w.approvedDate ? `, ${new Date(w.approvedDate).toLocaleDateString()}` : ''})</span></>
+                                : 'Unapproved'}
+                        </p>
+                        <p style={{ color: w.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>{w.referralRatePerSqft != null ? `₹${w.unapprovedAmount.toLocaleString('en-IN')}` : '-'}</p>
                     </div>
                 ))}
             </div>

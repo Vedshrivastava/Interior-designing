@@ -234,15 +234,18 @@ const FinanceHome = ({ url }) => {
                     </KpiGrid>
                 )}
 
-                {/* Approved = billed to the client via an issued running
-                    bill — cumulative, not a "today" concept like the boxes
-                    above (a bill's approval doesn't expire). Same
-                    breakdown shape (by work type, plus a Contractor/Labour
-                    split) so it reads as the "resolved" counterpart to the
-                    raw activity above it. */}
+                {/* Approved = reviewed (financeWorkReview), the same meaning
+                    "Approved" has everywhere else in the app now (Contractor/
+                    Labour/Commission/Labour Provider Ledgers) — cumulative,
+                    not a "today" concept like the boxes above (a review
+                    doesn't expire). Unapproved is its direct counterpart:
+                    the same measured work, logged but not yet reviewed —
+                    still a real prospective cost, just not payable yet, so
+                    it gets its own section rather than being invisible
+                    until someone opens a specific contractor's ledger. */}
                 {(phase1Loading || (summary?.approvedByWorkType?.length > 0)) && (
                     <>
-                        <KpiSectionLabel>Approved — Billed to Client</KpiSectionLabel>
+                        <KpiSectionLabel>Approved — Reviewed</KpiSectionLabel>
                         <KpiGrid>
                             {phase1Loading ? (
                                 <KpiCard loading icon={faReceipt} label="Approved" value="" />
@@ -252,6 +255,25 @@ const FinanceHome = ({ url }) => {
                                     <KpiCard icon={faPersonDigging} label="Labour Teams — Approved" value={formatINR(summary.approvedLabourTotal)} onClick={() => navigate('/finance/daily-labour')} tone="good" />
                                     {summary.approvedByWorkType.map(({ workType, sqft, amount }) => (
                                         <KpiCard key={workType} icon={faReceipt} label={`${workType} — Approved`} value={`${sqft.toLocaleString('en-IN')} sqft`} sub={formatINR(amount)} onClick={() => navigate('/finance/receivables')} />
+                                    ))}
+                                </>
+                            )}
+                        </KpiGrid>
+                    </>
+                )}
+
+                {(phase1Loading || (summary?.unapprovedByWorkType?.length > 0)) && (
+                    <>
+                        <KpiSectionLabel>Unapproved — Pending Review</KpiSectionLabel>
+                        <KpiGrid>
+                            {phase1Loading ? (
+                                <KpiCard loading icon={faTriangleExclamation} label="Unapproved" value="" />
+                            ) : (
+                                <>
+                                    <KpiCard icon={faHardHat} label="Contractor Teams — Unapproved" value={formatINR(summary.unapprovedContractorTotal)} onClick={() => navigate('/finance/contractors')} tone={summary.unapprovedContractorTotal > 0 ? 'danger' : undefined} />
+                                    <KpiCard icon={faPersonDigging} label="Labour Teams — Unapproved" value={formatINR(summary.unapprovedLabourTotal)} onClick={() => navigate('/finance/daily-labour')} tone={summary.unapprovedLabourTotal > 0 ? 'danger' : undefined} />
+                                    {summary.unapprovedByWorkType.map(({ workType, sqft, amount }) => (
+                                        <KpiCard key={workType} icon={faTriangleExclamation} label={`${workType} — Unapproved`} value={`${sqft.toLocaleString('en-IN')} sqft`} sub={formatINR(amount)} onClick={() => navigate('/finance/receivables')} tone={amount > 0 ? 'danger' : undefined} />
                                     ))}
                                 </>
                             )}

@@ -1894,46 +1894,52 @@ const computeAging = (bills, receipts) => {
 // billed area actually divides between multiple contributors). Acceptable
 // for a company-wide glance total; the precise per-work/per-vendor split
 // lives in the Ledger views instead.
+// "Approved" here means the same thing it means everywhere else in the
+// app now (financeWorkReview — reviewed, not billed): per (work,
+// contractor-or-labourer) actual measured area, split into what's been
+// reviewed (approvedAreaSqft) vs not yet (the remainder) — same shape
+// Contractor/Labour Ledger already surface per vendor, just company-wide
+// and grouped by work type here. Used to read straight off issued running
+// bills' lineItems (the pre-review "billed" meaning of Approved),
+// silently drifting out of step with every other Approved figure in the
+// app once review was introduced as its own confirmation step.
 const computeDashboardApprovedBreakdown = async () => {
-    const issuedBills = await FinanceRunningBill.find({ status: 'issued', deleted: { $ne: true } }, 'lineItems');
-    const approvedAreaByWorkId = new Map();
-    for (const bill of issuedBills) {
-        for (const li of bill.lineItems) {
-            const key = li.workId.toString();
-            approvedAreaByWorkId.set(key, (approvedAreaByWorkId.get(key) || 0) + li.areaBilledSqft);
-        }
-    }
-    if (!approvedAreaByWorkId.size) return { byWorkType: [], contractorTotal: 0, labourTotal: 0 };
-
-    const workIds = [...approvedAreaByWorkId.keys()];
     // status: {$ne:'completed'} — this is a live operational pipeline
-    // widget ("what's currently moving through billing"), not a financial
-    // rollup, so a finished project's already-billed work drops out of it
-    // once complete (it still counts toward Total Revenue/Profit elsewhere).
-    const works = await FinanceWork.find({ _id: { $in: workIds }, status: { $ne: 'completed' } }, 'workType projectId');
-    const [contractorAssignments, labourAssignments, contractorMeasurements, labourMeasurements] = await Promise.all([
-        FinanceWorkContractorAssignment.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId contractorVendorId'),
-        FinanceWorkLabourAssignment.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId labourerId'),
-        FinanceMeasurement.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId contractorVendorId'),
-        FinanceLabourMeasurement.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId labourerId'),
+    // widget ("what's currently moving through review/billing"), not a
+    // financial rollup, so a finished project's work drops out of it once
+    // complete (it still counts toward Total Revenue/Profit elsewhere).
+    const works = await FinanceWork.find({ status: { $ne: 'completed' }, deleted: { $ne: true } }, 'workType projectId');
+    if (!works.length) return { byWorkType: [], contractorTotal: 0, labourTotal: 0, unapprovedByWorkType: [], unapprovedContractorTotal: 0, unapprovedLabourTotal: 0 };
+    const workIds = works.map(w => w._id);
+    const workById = new Map(works.map(w => [w._id.toString(), w]));
+
+    const [contractorMeasurements, labourMeasurements, reviews] = await Promise.all([
+        FinanceMeasurement.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId contractorVendorId areaCoveredSqft'),
+        FinanceLabourMeasurement.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId labourerId areaCoveredSqft'),
+        FinanceWorkReview.find({ workId: { $in: workIds } }, 'workId partyType partyId approvedAreaSqft'),
     ]);
-    const vendorIdsByWork = new Map();
-    for (const a of [...contractorAssignments, ...contractorMeasurements]) {
-        if (!a.contractorVendorId) continue;
-        const key = a.workId.toString();
-        if (!vendorIdsByWork.has(key)) vendorIdsByWork.set(key, new Set());
-        vendorIdsByWork.get(key).add(a.contractorVendorId.toString());
+
+    const totalAreaByWorkContractor = new Map(); // `${workId}_${vendorId}` -> area
+    for (const m of contractorMeasurements) {
+        if (!m.contractorVendorId) continue;
+        const key = `${m.workId}_${m.contractorVendorId}`;
+        totalAreaByWorkContractor.set(key, (totalAreaByWorkContractor.get(key) || 0) + m.areaCoveredSqft);
     }
-    const labourerIdsByWork = new Map();
-    for (const a of [...labourAssignments, ...labourMeasurements]) {
-        const key = a.workId.toString();
-        if (!labourerIdsByWork.has(key)) labourerIdsByWork.set(key, new Set());
-        labourerIdsByWork.get(key).add(a.labourerId.toString());
+    const totalAreaByWorkLabourer = new Map();
+    for (const m of labourMeasurements) {
+        const key = `${m.workId}_${m.labourerId}`;
+        totalAreaByWorkLabourer.set(key, (totalAreaByWorkLabourer.get(key) || 0) + m.areaCoveredSqft);
+    }
+    const approvedAreaByWorkContractor = new Map();
+    const approvedAreaByWorkLabourer = new Map();
+    for (const r of reviews) {
+        const key = `${r.workId}_${r.partyId}`;
+        (r.partyType === 'contractor' ? approvedAreaByWorkContractor : approvedAreaByWorkLabourer).set(key, r.approvedAreaSqft);
     }
 
     const projectIds = [...new Set(works.map(w => w.projectId.toString()))];
-    const allVendorIds = [...new Set([...vendorIdsByWork.values()].flatMap(s => [...s]))];
-    const allLabourerIds = [...new Set([...labourerIdsByWork.values()].flatMap(s => [...s]))];
+    const allVendorIds = [...new Set([...totalAreaByWorkContractor.keys()].map(k => k.split('_')[1]))];
+    const allLabourerIds = [...new Set([...totalAreaByWorkLabourer.keys()].map(k => k.split('_')[1]))];
     const [contractorRates, labourRates] = await Promise.all([
         allVendorIds.length ? FinanceContractorRate.find({ projectId: { $in: projectIds }, contractorVendorId: { $in: allVendorIds }, deleted: { $ne: true } }) : [],
         allLabourerIds.length ? FinanceLabourRate.find({ projectId: { $in: projectIds }, labourerId: { $in: allLabourerIds }, deleted: { $ne: true } }) : [],
@@ -1941,32 +1947,43 @@ const computeDashboardApprovedBreakdown = async () => {
     const contractorRateByKey = new Map(contractorRates.map(r => [`${r.projectId}_${r.contractorVendorId}_${r.workType}`, r.ratePerSqft]));
     const labourRateByKey = new Map(labourRates.map(r => [`${r.projectId}_${r.labourerId}_${r.workType}`, r.ratePerSqft]));
 
-    const byWorkType = new Map(); // workType -> { sqft, amount }
-    let contractorTotal = 0, labourTotal = 0;
-    for (const w of works) {
-        const area = approvedAreaByWorkId.get(w._id.toString()) || 0;
-        if (!area) continue;
-        const vendorIds = [...(vendorIdsByWork.get(w._id.toString()) || [])];
-        const labourerIds = [...(labourerIdsByWork.get(w._id.toString()) || [])];
-        let workAmount = 0;
-        if (vendorIds.length) {
-            for (const vendorId of vendorIds) {
-                const rate = contractorRateByKey.get(`${w.projectId}_${vendorId}_${w.workType}`);
-                if (rate) { workAmount += area * rate; contractorTotal += area * rate; }
-            }
-        } else if (labourerIds.length) {
-            for (const labourerId of labourerIds) {
-                const rate = labourRateByKey.get(`${w.projectId}_${labourerId}_${w.workType}`);
-                if (rate) { workAmount += area * rate; labourTotal += area * rate; }
-            }
-        }
-        const cur = byWorkType.get(w.workType) || { sqft: 0, amount: 0 };
-        cur.sqft += area; cur.amount += workAmount;
-        byWorkType.set(w.workType, cur);
+    const bump = (map, workType, sqft, amount) => {
+        const cur = map.get(workType) || { sqft: 0, amount: 0 };
+        cur.sqft += sqft; cur.amount += amount;
+        map.set(workType, cur);
+    };
+    const byWorkType = new Map(), unapprovedByWorkType = new Map();
+    let contractorTotal = 0, labourTotal = 0, unapprovedContractorTotal = 0, unapprovedLabourTotal = 0;
+
+    for (const [key, totalArea] of totalAreaByWorkContractor) {
+        const [workId, vendorId] = key.split('_');
+        const w = workById.get(workId);
+        const rate = contractorRateByKey.get(`${w.projectId}_${vendorId}_${w.workType}`);
+        if (!rate) continue;
+        const approvedArea = Math.min(approvedAreaByWorkContractor.get(key) || 0, totalArea);
+        const unapprovedArea = totalArea - approvedArea;
+        contractorTotal += approvedArea * rate;
+        unapprovedContractorTotal += unapprovedArea * rate;
+        bump(byWorkType, w.workType, approvedArea, approvedArea * rate);
+        bump(unapprovedByWorkType, w.workType, unapprovedArea, unapprovedArea * rate);
     }
+    for (const [key, totalArea] of totalAreaByWorkLabourer) {
+        const [workId, labourerId] = key.split('_');
+        const w = workById.get(workId);
+        const rate = labourRateByKey.get(`${w.projectId}_${labourerId}_${w.workType}`);
+        if (!rate) continue;
+        const approvedArea = Math.min(approvedAreaByWorkLabourer.get(key) || 0, totalArea);
+        const unapprovedArea = totalArea - approvedArea;
+        labourTotal += approvedArea * rate;
+        unapprovedLabourTotal += unapprovedArea * rate;
+        bump(byWorkType, w.workType, approvedArea, approvedArea * rate);
+        bump(unapprovedByWorkType, w.workType, unapprovedArea, unapprovedArea * rate);
+    }
+
+    const toArray = (map) => [...map.entries()].map(([workType, v]) => ({ workType, sqft: round2(v.sqft), amount: round2(v.amount) })).sort((a, b) => b.sqft - a.sqft);
     return {
-        byWorkType: [...byWorkType.entries()].map(([workType, v]) => ({ workType, sqft: round2(v.sqft), amount: round2(v.amount) })),
-        contractorTotal: round2(contractorTotal), labourTotal: round2(labourTotal),
+        byWorkType: toArray(byWorkType), contractorTotal: round2(contractorTotal), labourTotal: round2(labourTotal),
+        unapprovedByWorkType: toArray(unapprovedByWorkType), unapprovedContractorTotal: round2(unapprovedContractorTotal), unapprovedLabourTotal: round2(unapprovedLabourTotal),
     };
 };
 
@@ -2326,6 +2343,8 @@ const getDashboardSummary = async (req, res) => {
                 todaysMeasurementSqft, todaysContractorMeasurementSqft, todaysLabourMeasurementSqft, todaysWorkActivity,
                 approvedByWorkType: approvedBreakdown.byWorkType,
                 approvedContractorTotal: approvedBreakdown.contractorTotal, approvedLabourTotal: approvedBreakdown.labourTotal,
+                unapprovedByWorkType: approvedBreakdown.unapprovedByWorkType,
+                unapprovedContractorTotal: approvedBreakdown.unapprovedContractorTotal, unapprovedLabourTotal: approvedBreakdown.unapprovedLabourTotal,
                 thisMonthRevenue, thisMonthProfit,
                 recentActivities,
             },

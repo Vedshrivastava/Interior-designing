@@ -109,7 +109,7 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
             {loading ? (
                 <div className="admin-empty-state"><p>Loading…</p></div>
             ) : realWorkTypes === null ? (
-                <div className="admin-empty-state"><p>No Works added to this project yet; add one to set its client and referral rate.</p></div>
+                <div className="admin-empty-state"><p>No Works added to this project yet; add one to set its client rate and referral cut.</p></div>
             ) : (
                 <>
                     <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
@@ -117,7 +117,7 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                     </p>
                     <div className="list-table">
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1.2fr 1.2fr 1fr' }}>
-                            <b>Work Type</b><b>Client Rate</b><b>Referral Rate</b><b>Action</b>
+                            <b>Work Type</b><b>Client Rate</b><b>Referral Cut</b><b>Action</b>
                         </div>
                         {[...realWorkTypes].map(workType => {
                             const existing = findExisting(workType);

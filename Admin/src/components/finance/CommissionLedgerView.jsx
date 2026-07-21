@@ -87,7 +87,7 @@ const CommissionLedgerView = ({ url, vendorId }) => {
             <h3 style={{ marginBottom: '8px' }}>Earnings by Work</h3>
             <div className="list-table" style={{ marginBottom: '28px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr 1fr' }}>
-                    <b>Project</b><b>Work Type</b><b>Completed Area</b><b>Referral Rate</b><b>Earnings</b>
+                    <b>Project</b><b>Work Type</b><b>Completed Area</b><b>Referral Cut</b><b>Earnings</b>
                 </div>
                 {ledger.works.length === 0 ? (
                     <div className="admin-empty-state"><p>No referred works yet.</p></div>

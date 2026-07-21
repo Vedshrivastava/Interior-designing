@@ -10,13 +10,22 @@ const MOVEMENT_LABEL = { dump: 'Dump', return: 'Return', waste: 'Waste' };
 const MANUAL_TYPES = ['dump', 'return', 'waste'];
 const MOVEMENT_TYPE_OPTIONS = MANUAL_TYPES.map(t => ({ value: t, label: MOVEMENT_LABEL[t] }));
 
-const emptyForm = { materialId: '', movementType: 'dump', quantity: '', date: '', notes: '', workId: '' };
+const emptyForm = { materialId: '', movementType: 'dump', quantity: '', date: '', notes: '', workId: '', vendorId: '' };
+const IS_MATERIAL_SUPPLIER = (v) => v.vendorType === 'material_supplier';
 
 /*
  * Record a Dump/Return/Waste stock movement without leaving the Materials
  * tab — same "+ Add" button → dialog pattern as Add Measurement. `consume`
  * movements aren't offered here; they're only ever created automatically
  * by the measurement-save automation, never entered manually.
+ *
+ * Dump/Return require a Vendor (material_supplier only, same scoping
+ * Procurement's own Add Vendor now uses) — material can't be recorded as
+ * coming in or going back without saying who it's coming from/going to.
+ * Waste has no vendor field: nothing to attribute a spoilage/loss to.
+ * Quantity-only here on purpose — cost/rate lives entirely in Purchase
+ * (Procurement), entered fresh every time there, never inferred from this
+ * screen or from vendor payment history.
  */
 const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
     const token = localStorage.getItem('token');
@@ -37,6 +46,7 @@ const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
     const setField = (key, value) => setForm(prev => {
         const next = { ...prev, [key]: value };
         if (key === 'movementType' && value !== 'waste') { next.workId = ''; next.materialId = ''; }
+        if (key === 'movementType' && value === 'waste') next.vendorId = '';
         if (key === 'workId') next.materialId = '';
         return next;
     });
@@ -50,6 +60,7 @@ const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
         e.preventDefault();
         e.stopPropagation();
         if (!form.materialId) return toast.error('Material is required');
+        if (form.movementType !== 'waste' && !form.vendorId) return toast.error('Vendor is required for a dump or return');
         if (!form.quantity || Number(form.quantity) <= 0) return toast.error('Quantity must be greater than zero');
         if (!form.date) return toast.error('Date is required');
 
@@ -76,13 +87,22 @@ const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
                             <p>Movement Type *</p>
                             <StyledSelect value={form.movementType} onChange={v => setField('movementType', v)} options={MOVEMENT_TYPE_OPTIONS} />
                         </div>
-                        {form.movementType === 'waste' && (
+                        {form.movementType === 'waste' ? (
                             <div className="add-product-name flex-col">
                                 <p>Work (optional)</p>
                                 <StyledSelect
                                     value={form.workId} onChange={v => setField('workId', v)}
                                     placeholder="Not tied to one Work…"
                                     options={works.map(w => ({ value: w._id, label: `${w.workType}${w.workOrderNumber ? ` (${w.workOrderNumber})` : ''}` }))}
+                                />
+                            </div>
+                        ) : (
+                            <div className="add-product-name flex-col">
+                                <p>Vendor *</p>
+                                <QuickAddPicker
+                                    url={url} resourceKey="vendors" value={form.vendorId} onChange={v => setField('vendorId', v)}
+                                    filter={IS_MATERIAL_SUPPLIER} presetValues={{ vendorType: 'material_supplier' }}
+                                    placeholder={form.movementType === 'return' ? 'Returning to…' : 'Supplied by…'}
                                 />
                             </div>
                         )}

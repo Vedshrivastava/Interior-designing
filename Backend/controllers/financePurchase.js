@@ -58,7 +58,7 @@ const addPurchase = async (req, res) => {
         await purchase.save();
 
         const movement = await FinanceStockMovement.create({
-            projectId, materialId,
+            projectId, materialId, vendorId,
             movementType: type === 'return' ? 'return' : 'dump',
             quantity: Number(quantity), date,
             relatedPurchaseId: purchase._id,

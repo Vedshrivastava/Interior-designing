@@ -8,6 +8,13 @@ const financeStockMovementSchema = new mongoose.Schema({
     projectId:  { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', required: true },
     materialId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeMaterial', required: true },
 
+    // Required (at the controller level) for manually-entered dump/return —
+    // material can't be recorded as coming in or going back without saying
+    // who it's coming from/going to. Auto-set from financePurchase.vendorId
+    // on purchase/return-linked movements; null on consume/waste, neither
+    // of which has a vendor relationship.
+    vendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', default: null },
+
     movementType: { type: String, enum: ['dump', 'consume', 'return', 'waste'], required: true },
     quantity:     { type: Number, required: true },
     date:         { type: Date, required: true },

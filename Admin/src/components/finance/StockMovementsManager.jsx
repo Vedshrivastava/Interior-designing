@@ -139,7 +139,7 @@ const StockMovementsManager = ({ url, projectId }) => {
 
             <div className="list-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr 1fr 130px' }}>
-                    <b>Date</b><b>Material</b><b>Type</b><b>Work</b><b>Quantity</b><b>Notes</b><b>Action</b>
+                    <b>Date</b><b>Material</b><b>Type</b><b>Vendor / Work</b><b>Quantity</b><b>Notes</b><b>Action</b>
                 </div>
                 {loadingHistory ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
@@ -151,7 +151,7 @@ const StockMovementsManager = ({ url, projectId }) => {
                             <p>{new Date(m.date).toLocaleDateString()}</p>
                             <p>{m.materialId?.name || '-'}</p>
                             <p><span className="item-category">{MOVEMENT_LABEL[m.movementType]}{m.relatedMeasurementId ? ' (auto)' : ''}</span></p>
-                            <p>{m.workId?.workType || '-'}</p>
+                            <p>{m.vendorId?.name || m.workId?.workType || '-'}</p>
                             <p>{m.quantity} {m.materialId?.unit || ''}</p>
                             <p>{m.notes || '-'}</p>
                             <div className="action-buttons">

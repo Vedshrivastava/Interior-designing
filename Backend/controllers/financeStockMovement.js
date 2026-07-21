@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import FinanceStockMovement from '../models/financeStockMovement.js';
 import FinanceMaterial from '../models/financeMaterial.js';
 import FinanceProject from '../models/financeProject.js';
+import FinanceVendor from '../models/financeVendor.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 
@@ -19,6 +20,7 @@ const listStockMovements = async (req, res) => {
         const items = await FinanceStockMovement.find(filter)
             .populate('materialId', 'name unit')
             .populate('workId', 'workType')
+            .populate('vendorId', 'name')
             .sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {
@@ -32,7 +34,7 @@ const listStockMovements = async (req, res) => {
 // stock ledger can't drift out of sync with what was actually measured.
 const addStockMovement = async (req, res) => {
     try {
-        const { projectId, materialId, movementType, quantity, date, notes, workId } = req.body;
+        const { projectId, materialId, movementType, quantity, date, notes, workId, vendorId } = req.body;
         if (!projectId || !materialId || !movementType || !date) {
             return res.status(400).json({ success: false, message: 'Project, material, movement type, and date are required' });
         }
@@ -42,8 +44,16 @@ const addStockMovement = async (req, res) => {
         if (!quantity || Number(quantity) <= 0) {
             return res.status(400).json({ success: false, message: 'Quantity must be greater than zero' });
         }
+        // Dump/return always mean material moving to/from a specific
+        // vendor — waste doesn't (nothing to attribute a spoilage/loss to).
+        if (movementType !== 'waste') {
+            if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required for a dump or return' });
+            const vendorExists = await FinanceVendor.exists({ _id: vendorId, deleted: { $ne: true } });
+            if (!vendorExists) return res.status(400).json({ success: false, message: 'Vendor not found' });
+        }
         const item = new FinanceStockMovement({
             projectId, materialId, movementType, quantity: Number(quantity), date, notes: notes || '',
+            vendorId: movementType !== 'waste' ? vendorId : null,
             // Only waste is attributable to one specific work — dump/return
             // stay project-level only, per the Site Inventory model.
             workId: movementType === 'waste' && workId ? workId : null,

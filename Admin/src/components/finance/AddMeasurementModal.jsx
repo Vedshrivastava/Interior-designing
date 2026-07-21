@@ -135,6 +135,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
 
     const submit = async (e) => {
         e.preventDefault();
+        e.stopPropagation();
         const isContractor = form.measurementType === 'contractor';
         if (!form.projectId) return toast.error('Project is required');
         if (!form.workId) return toast.error('Work is required');

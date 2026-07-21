@@ -46,6 +46,7 @@ const PhotosTab = ({ url, projectId }) => {
 
     const submitUpload = async (e) => {
         e.preventDefault();
+        e.stopPropagation();
         if (!files.length) return toast.error('Select at least one photo');
         setUploading(true);
         try {

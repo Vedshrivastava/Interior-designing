@@ -6,6 +6,7 @@ import ContractorOrLabourPicker from './ContractorOrLabourPicker';
 import LabourMultiSelect from './LabourMultiSelect';
 import QuickAddPicker from './QuickAddPicker';
 import StyledSelect from './StyledSelect';
+import StyledDatePicker from './StyledDatePicker';
 import { useSupervisorConflictCheck } from './useSupervisorConflictCheck';
 
 const emptyForm = { workType: '', workOrderNumber: '', startDate: '', estimatedAreaSqft: '', status: 'active', notes: '' };
@@ -50,6 +51,7 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
 
     const submit = async (e) => {
         e.preventDefault();
+        e.stopPropagation();
         if (!form.workType.trim()) return toast.error('Work type is required');
         if (!form.estimatedAreaSqft || Number(form.estimatedAreaSqft) <= 0) return toast.error('Estimated area is required');
         if (!editingId) {
@@ -148,7 +150,7 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Start Date</p>
-                                    <input type="date" value={form.startDate} onChange={e => setField('startDate', e.target.value)} />
+                                    <StyledDatePicker value={form.startDate} onChange={v => setField('startDate', v)} />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Estimated Area (sqft) *</p>

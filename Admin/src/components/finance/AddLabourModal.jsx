@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FINANCE_MASTERS } from '../../config/financeMasters';
+import { emptyFormFromFields, renderMasterField, groupFieldsBySection } from './masterFieldRenderer';
 import DocumentUploadList from './DocumentUploadList';
 import '../../styles/wizard.css';
 
@@ -9,27 +11,39 @@ import '../../styles/wizard.css';
  * Quick-add a labourer (financeLabourer — a plain, company-wide name, not
  * owned by any supervisor) from wherever a labour picker's "+ Add New" is
  * clicked. Single-purpose — see AddContractorModal for the contractor
- * equivalent. Which supervisor runs this person's crew is decided later,
- * when they're actually put on a Work's team, not here.
+ * equivalent, and the reason this now shares its field config with
+ * Masters > Labourers instead of its own hand-picked list: an earlier
+ * version only collected Name + Notes, silently missing the bank details
+ * financeLabourer has actually required since — every submit failed with
+ * "Bank account holder name, bank name, account number, and IFSC code are
+ * all required" and no way to see why from this modal. Driving off the
+ * same FINANCE_MASTERS.labourers.fields MasterCrudTable itself uses means
+ * this can't go stale like that again.
  */
 const AddLabourModal = ({ url, onClose, onLabourerCreated }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const labourerResource = FINANCE_MASTERS.labourers;
 
-    const [name, setName] = useState('');
-    const [notes, setNotes] = useState('');
+    const [form, setForm] = useState(emptyFormFromFields(labourerResource.fields));
     const [documentLines, setDocumentLines] = useState([]);
     const [saving, setSaving] = useState(false);
 
+    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
     const submit = async (e) => {
         e.preventDefault();
-        if (!name.trim()) return toast.error('Name is required');
+        e.stopPropagation();
+        const requiredField = labourerResource.fields.find(f => f.required && !String(form[f.key] || '').trim());
+        if (requiredField) return toast.error(`${requiredField.label} is required`);
+        const mismatchField = labourerResource.fields.find(f => f.type === 'confirmText' && form[f.key] !== form[f.matchKey]);
+        if (mismatchField) return toast.error(`${mismatchField.label} doesn't match`);
+
         setSaving(true);
         try {
             const validDocs = documentLines.filter(l => l.file);
             const data = new FormData();
-            data.append('name', name.trim());
-            data.append('notes', notes);
+            Object.entries(form).forEach(([key, value]) => data.append(key, value ?? ''));
             data.append('documentNotes', JSON.stringify(validDocs.map(l => l.note)));
             validDocs.forEach(l => data.append('documents', l.file));
 
@@ -53,16 +67,19 @@ const AddLabourModal = ({ url, onClose, onLabourerCreated }) => {
                     Hired directly by the company, paid per sqft. Not owned by any supervisor; pick who runs their crew when you add them to a Work's team, and that can change project to project.
                 </p>
                 <form onSubmit={submit}>
-                    <div className="wizard-field-grid">
-                        <div className="add-product-name flex-col">
-                            <p>Name *</p>
-                            <input type="text" value={name} onChange={e => setName(e.target.value)} />
-                        </div>
-                        <div className="add-product-name flex-col wizard-field-full">
-                            <p>Notes</p>
-                            <input type="text" value={notes} onChange={e => setNotes(e.target.value)} />
-                        </div>
-                    </div>
+                    {groupFieldsBySection(labourerResource.fields).map((group, gi) => (
+                        <React.Fragment key={gi}>
+                            {group.section && <p className="wizard-section-label">{group.section}</p>}
+                            <div className="wizard-field-grid">
+                                {group.fields.map(f => (
+                                    <div key={f.key} className={`add-product-name flex-col${f.type === 'textarea' ? ' wizard-field-full' : ''}`}>
+                                        <p>{f.label}{f.required ? ' *' : ''}</p>
+                                        {renderMasterField(f, form, setField, { url })}
+                                    </div>
+                                ))}
+                            </div>
+                        </React.Fragment>
+                    ))}
                     <DocumentUploadList lines={documentLines} onChange={setDocumentLines} />
                     <div className="edit-modal-actions" style={{ marginTop: '16px' }}>
                         <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>

@@ -32,6 +32,7 @@ const AddContractorModal = ({ url, onClose, onContractorCreated }) => {
 
     const submit = async (e) => {
         e.preventDefault();
+        e.stopPropagation();
         if (!String(vendorForm.name || '').trim()) return toast.error('Name is required');
         setSaving(true);
         try {

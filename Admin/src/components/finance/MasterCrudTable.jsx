@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
 import { registerSettingIfNew } from './SettingSelectField';
 import { emptyFormFromFields, renderMasterField, groupFieldsBySection } from './masterFieldRenderer';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/add.css';
 import '../../styles/wizard.css';
@@ -25,8 +26,16 @@ import '../../styles/wizard.css';
    used when a page wants that action hoisted somewhere more prominent
    (e.g. Clients' page header) instead of sitting right above this table.
    The add flow itself still lives here; the caller opens it via the
-   forwarded ref's `openAdd()`. */
-const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, hideAddButton }, ref) => {
+   forwarded ref's `openAdd()`.
+
+   `presetValues` (optional): fields silently set and hidden on the ADD
+   form only — e.g. { vendorType: 'material_supplier' } from Procurement,
+   so a vendor created from a page that's already scoped to one type can't
+   accidentally be given a different one. Deliberately never applied on
+   Edit — an existing row keeps showing (and can still change) its real
+   stored value there, same "list filter and creation default are two
+   different things" reasoning QuickAddPicker's own presetValues uses. */
+const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, hideAddButton, presetValues = {} }, ref) => {
     const navigate = useNavigate();
     const resource = FINANCE_MASTERS[resourceKey];
     const token = localStorage.getItem('token');
@@ -66,6 +75,13 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
     };
 
     useEffect(() => { fetchList(); }, [resourceKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    // e.g. resourceKey 'bankAccounts' -> 'financeBankAccountsChanged' — every
+    // FINANCE_MASTERS entry's broadcast event follows this exact shape.
+    // Without this, a delete/add/edit made anywhere else (or even this same
+    // table a moment ago, from a second browser tab) never showed up here
+    // until a full page reload — including an already-deleted row still
+    // being offered as a selectable option in pickers reading this same list.
+    useFinanceWsRefresh([`finance${resourceKey[0].toUpperCase()}${resourceKey.slice(1)}Changed`], fetchList);
 
     useEffect(() => {
         if (!needsVendors) return;
@@ -86,7 +102,7 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
 
     const openAdd = () => {
         setEditingId(null);
-        setForm(emptyFormFromFields(resource.fields));
+        setForm({ ...emptyFormFromFields(resource.fields), ...presetValues });
         setModalOpen(true);
     };
 
@@ -111,6 +127,7 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
 
     const submit = async (e) => {
         e.preventDefault();
+        e.stopPropagation();
         const requiredField = resource.fields.find(f => f.required && !String(form[f.key] || '').trim());
         if (requiredField) { toast.error(`${requiredField.label} is required`); return; }
         const mismatchField = resource.fields.find(f => f.type === 'confirmText' && form[f.key] !== form[f.matchKey]);
@@ -220,7 +237,9 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
                     <div className="loader-modal-box edit-modal">
                         <h2>{editingId ? `Edit ${resource.label}` : `Add ${resource.label}`}</h2>
                         <form onSubmit={submit}>
-                            {groupFieldsBySection(resource.fields.filter(f => !f.showIf || f.showIf(form))).map((group, gi) => (
+                            {groupFieldsBySection(resource.fields.filter(f =>
+                                (!f.showIf || f.showIf(form)) && (editingId || !(f.key in presetValues))
+                            )).map((group, gi) => (
                                 <React.Fragment key={gi}>
                                     {group.section && <p className="wizard-section-label">{group.section}</p>}
                                     <div className="wizard-field-grid">

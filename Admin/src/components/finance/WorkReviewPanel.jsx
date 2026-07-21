@@ -122,6 +122,7 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
 
     const submitReview = async (e) => {
         e.preventDefault();
+        e.stopPropagation();
         if (approvedInput === '' || Number(approvedInput) < 0) return toast.error('Approved sqft is required');
         if (Number(approvedInput) > reviewTarget.loggedSqft) return toast.error(`Cannot approve more than the ${reviewTarget.loggedSqft} sqft logged`);
         if (!reviewDate) return toast.error('Date is required');

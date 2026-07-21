@@ -79,6 +79,7 @@ const SiteDiaryManager = ({ url, projectId: fixedProjectId }) => {
 
     const submit = async (e) => {
         e.preventDefault();
+        e.stopPropagation();
         const projectId = fixedProjectId || form.projectId;
         if (!projectId) return toast.error('Project is required');
         if (!form.date) return toast.error('Date is required');

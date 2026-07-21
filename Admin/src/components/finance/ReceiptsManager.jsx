@@ -78,6 +78,7 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
 
     const submit = async (e) => {
         e.preventDefault();
+        e.stopPropagation();
         if (!selectedProjectId || !projectDetail?.clientId) return toast.error('Select a project');
         if (!form.amount || Number(form.amount) <= 0) return toast.error('Amount must be greater than zero');
         if (!form.receiptDate) return toast.error('Receipt date is required');

@@ -145,6 +145,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
 
     const submit = async (e) => {
         e.preventDefault();
+        e.stopPropagation();
         if (!form.amount || Number(form.amount) <= 0) return toast.error('Amount must be greater than zero');
         if (!form.date) return toast.error('Date is required');
         setSaving(true);
@@ -191,6 +192,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
 
     const submitSettle = async (e) => {
         e.preventDefault();
+        e.stopPropagation();
         if (!settleForm.amount || Number(settleForm.amount) <= 0) return toast.error('Amount must be greater than zero');
         if (!settleForm.date) return toast.error('Date is required');
         setSettling(true);

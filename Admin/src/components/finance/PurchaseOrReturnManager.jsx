@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 
 const emptyForm = { vendorId: '', projectId: '', materialId: '', quantity: '', ratePerUnit: '', date: '', referenceNumber: '', notes: '', gstRate: '' };
@@ -37,10 +38,14 @@ const PurchaseOrReturnManager = ({ url, transactionType }) => {
     };
 
     useEffect(() => { fetchItems(); }, [transactionType]); // eslint-disable-line react-hooks/exhaustive-deps
-    useEffect(() => {
+
+    const fetchPickerData = () => {
         axios.get(`${url}/api/finance/vendors/list`, authHeader).then(res => { if (res.data.success) setVendors(res.data.data.filter(v => v.vendorType !== 'labour_contractor')); }).catch(() => {});
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/materials/list`, authHeader).then(res => { if (res.data.success) setMaterials(res.data.data); }).catch(() => {});
+    };
+    useEffect(() => {
+        fetchPickerData();
         // Prefill (not lock) gstRate from Settings > GST — only if the form
         // hasn't already been touched by the time this resolves.
         axios.get(`${url}/api/finance/settings/company`, authHeader).then(res => {
@@ -48,6 +53,11 @@ const PurchaseOrReturnManager = ({ url, transactionType }) => {
             if (rate !== null && rate !== undefined) setForm(prev => (prev.gstRate === '' ? { ...prev, gstRate: rate } : prev));
         }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Without this, a project/vendor/material deleted (or added) elsewhere
+    // kept showing (or missing) here as a pickable option until a full page
+    // reload — including letting a new purchase get recorded against an
+    // already-deleted project.
+    useFinanceWsRefresh(['financeProjectsChanged', 'financeVendorsChanged', 'financeMaterialsChanged'], fetchPickerData);
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
     const totalPreview = (Number(form.quantity) || 0) * (Number(form.ratePerUnit) || 0);

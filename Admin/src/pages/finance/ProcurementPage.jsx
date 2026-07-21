@@ -135,7 +135,7 @@ const ProcurementVendorsOverviewTab = ({ url }) => {
                     </div>
                 </>
             )}
-            <MasterCrudTable url={url} resourceKey="vendors" filter={NON_CONTRACTOR} />
+            <MasterCrudTable url={url} resourceKey="vendors" filter={NON_CONTRACTOR} presetValues={{ vendorType: 'material_supplier' }} />
         </div>
     );
 };
@@ -143,7 +143,13 @@ const ProcurementVendorsOverviewTab = ({ url }) => {
 /* Vendors here is the same financeVendor data as everywhere else, just
    client-side filtered to exclude labour_contractor vendors — those show
    up under Contractors instead. No backend change; same MasterCrudTable
-   used by Masters and Contractors.
+   used by Contractors. New vendors added from this tab are preset to
+   vendorType 'material_supplier' (this page's own stated purpose, per
+   its subtitle) rather than offering Referral/Other as if they belonged
+   here — an existing referral/other vendor that shows up in this same
+   list (nothing else currently offers a page to edit one) still shows
+   and can still change its real type when edited, presetValues only
+   ever applies to a fresh Add.
 
    Purchases/Returns auto-generate the matching Site Inventory stock
    movement server-side (dump for a purchase, return for a return) —

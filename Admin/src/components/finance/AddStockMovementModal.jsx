@@ -48,6 +48,7 @@ const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
 
     const submit = async (e) => {
         e.preventDefault();
+        e.stopPropagation();
         if (!form.materialId) return toast.error('Material is required');
         if (!form.quantity || Number(form.quantity) <= 0) return toast.error('Quantity must be greater than zero');
         if (!form.date) return toast.error('Date is required');

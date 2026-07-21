@@ -43,6 +43,7 @@ const DocumentsTab = ({ url, apiBase, scopeParam, scopeId, title = 'Documents', 
 
     const submit = async (e) => {
         e.preventDefault();
+        e.stopPropagation();
         if (!file) return toast.error('Choose a file first');
         setSaving(true);
         try {

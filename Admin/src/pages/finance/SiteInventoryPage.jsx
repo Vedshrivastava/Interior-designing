@@ -5,6 +5,7 @@ import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Cart
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import StockMovementsManager from '../../components/finance/StockMovementsManager';
 import { ChartCard, ChartGrid, EmptyChart, CHART_COLORS } from '../../components/finance/DashboardWidgets';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/dashboard.css';
 
 /*
@@ -34,14 +35,20 @@ const SiteInventoryPage = ({ url }) => {
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => {
+    const fetchSummary = () => {
         setLoading(true);
         const params = selectedProjectId ? { projectId: selectedProjectId } : {};
         axios.get(`${url}/api/finance/reports/inventory-summary`, { ...authHeader, params })
             .then(res => { if (res.data.success) setSummary(res.data.data); })
             .catch(() => {})
             .finally(() => setLoading(false));
-    }, [url, selectedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchSummary, [url, selectedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Without this, the stock/consumption/wastage figures above stayed
+    // frozen at whatever they were on page load — a Dump recorded just
+    // below (or a measurement's auto-consume elsewhere) changed the real
+    // number immediately, but this summary never knew until a full reload.
+    useFinanceWsRefresh(['financeStockChanged'], fetchSummary);
 
     const stockTable = (summary?.stockTable || []).filter(r => !lowStockOnly || r.belowMinimum);
     const consumptionTrend = summary?.consumptionTrend || [];
@@ -57,7 +64,7 @@ const SiteInventoryPage = ({ url }) => {
     const wastageData = (summary?.wastageRateSorted || []).map(r => ({ ...r, wastagePercent: Math.round(r.wastageRate * 1000) / 10 }));
 
     return (
-        <FinanceTabShell label="Site Inventory" subtitle="Current stock, consumption trend, and wastage rate. Manual dump/return/waste entry per project below.">
+        <FinanceTabShell label="Site Inventory" subtitle="Current stock, consumption trend, and wastage rate. Manual waste entry per project below; Dump/Return happen through Procurement's Purchase/Returns instead.">
             {!loading && stockTable.length > 0 && (
                 <>
                     <ChartGrid>
@@ -95,11 +102,11 @@ const SiteInventoryPage = ({ url }) => {
                     </ChartGrid>
 
                     <div className="list-table" style={{ marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr' }}>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '280px 1fr 1fr 1fr 1fr' }}>
                             <b>Material</b><b>Current Stock</b><b>Minimum</b><b>Consumed</b><b>Wastage %</b>
                         </div>
                         {stockTable.map(r => (
-                            <div key={r.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr' }}>
+                            <div key={r.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '280px 1fr 1fr 1fr 1fr' }}>
                                 <p>{r.materialName}</p>
                                 <p style={{ color: r.belowMinimum ? '#c0392b' : 'inherit', fontWeight: r.belowMinimum ? 600 : 400 }}>
                                     {r.belowMinimum && '⚠ '}{r.currentStock} {r.unit}
@@ -131,8 +138,8 @@ const SiteInventoryPage = ({ url }) => {
                 </select>
             </div>
             {selectedProjectId
-                ? <StockMovementsManager url={url} projectId={selectedProjectId} autoOpenAddForMaterialId={searchParams.get('material') || undefined} />
-                : <div className="admin-empty-state"><p>Select a project to view its movement history or record a dump/return/waste entry.</p></div>}
+                ? <StockMovementsManager url={url} projectId={selectedProjectId} />
+                : <div className="admin-empty-state"><p>Select a project to view its movement history or record waste.</p></div>}
         </FinanceTabShell>
     );
 };

@@ -7,38 +7,32 @@ import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 
-const MOVEMENT_LABEL = { dump: 'Dump', return: 'Return', waste: 'Waste' };
-const MANUAL_TYPES = ['dump', 'return', 'waste'];
-const MOVEMENT_TYPE_OPTIONS = MANUAL_TYPES.map(t => ({ value: t, label: MOVEMENT_LABEL[t] }));
-
-const emptyForm = { materialId: '', movementType: 'dump', quantity: '', date: '', notes: '', workId: '', vendorId: '' };
-const IS_MATERIAL_SUPPLIER = (v) => v.vendorType === 'material_supplier';
+const emptyForm = { materialId: '', quantity: '', date: '', notes: '', workId: '' };
 
 /*
- * Record a Dump/Return/Waste stock movement without leaving the Materials
- * tab — same "+ Add" button → dialog pattern as Add Measurement. `consume`
- * movements aren't offered here; they're only ever created automatically
- * by the measurement-save automation, never entered manually.
- *
- * Dump/Return require a Vendor (material_supplier only, same scoping
- * Procurement's own Add Vendor now uses) — material can't be recorded as
- * coming in or going back without saying who it's coming from/going to.
- * Waste has no vendor field: nothing to attribute a spoilage/loss to.
- * Quantity-only here on purpose — cost/rate lives entirely in Purchase
- * (Procurement), entered fresh every time there, never inferred from this
- * screen or from vendor payment history.
+ * Record Waste (spoilage/loss of material already paid for) without
+ * leaving the Materials tab — same "+ Add" button → dialog pattern as Add
+ * Measurement. This is the ONLY manually-enterable movement type:
+ * - `consume` is only ever created by the measurement-save automation.
+ * - Dump and Return always mean material moving to/from a specific vendor
+ *   at some cost, so they're recorded entirely through Procurement's
+ *   Purchase/Returns tabs instead (financePurchase.js), which capture the
+ *   rate and vendor payable and auto-create the matching stock movement
+ *   themselves. A vendor-attached, costless manual Dump/Return used to
+ *   live here too — removed because it let material get recorded as
+ *   received from a vendor without ever billing that vendor for it.
+ * Waste has no vendor (nothing to attribute a spoilage/loss to) and is
+ * quantity-only, optionally tied to one Work.
  */
-const AddStockMovementModal = ({ url, projectId, defaultMaterialId, onClose, onSaved }) => {
+const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-    const [form, setForm] = useState({ ...emptyForm, materialId: defaultMaterialId || '' });
+    const [form, setForm] = useState(emptyForm);
     const [works, setWorks] = useState([]);
+    const [materials, setMaterials] = useState([]);
     const [saving, setSaving] = useState(false);
 
-    // Only waste is attributable to one specific Work (dump/return stay
-    // project-level, per the model) — this is what makes the material
-    // picker filterable by work type below.
     const fetchWorks = () => {
         axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } })
             .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => {});
@@ -46,16 +40,26 @@ const AddStockMovementModal = ({ url, projectId, defaultMaterialId, onClose, onS
     useEffect(fetchWorks, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
     useFinanceWsRefresh(['financeWorksChanged'], fetchWorks);
 
+    // Fetched here (not just left inside the Material QuickAddPicker) so
+    // Quantity can show the selected material's own unit next to it —
+    // same reason AddMeasurementModal's material lines do the same.
+    const fetchMaterials = () => {
+        axios.get(`${url}/api/finance/materials/list`, authHeader)
+            .then(res => { if (res.data.success) setMaterials(res.data.data); }).catch(() => {});
+    };
+    useEffect(fetchMaterials, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeMaterialsChanged'], fetchMaterials);
+
+    const selectedMaterial = materials.find(m => m._id === form.materialId);
+
     const setField = (key, value) => setForm(prev => {
         const next = { ...prev, [key]: value };
-        if (key === 'movementType' && value !== 'waste') { next.workId = ''; next.materialId = ''; }
-        if (key === 'movementType' && value === 'waste') next.vendorId = '';
         if (key === 'workId') next.materialId = '';
         return next;
     });
 
     const selectedWorkType = works.find(w => w._id === form.workId)?.workType;
-    const materialFilter = form.movementType === 'waste' && form.workId
+    const materialFilter = form.workId
         ? (m => !m.workTypes?.length || m.workTypes.includes(selectedWorkType))
         : undefined;
 
@@ -63,59 +67,49 @@ const AddStockMovementModal = ({ url, projectId, defaultMaterialId, onClose, onS
         e.preventDefault();
         e.stopPropagation();
         if (!form.materialId) return toast.error('Material is required');
-        if (form.movementType !== 'waste' && !form.vendorId) return toast.error('Vendor is required for a dump or return');
         if (!form.quantity || Number(form.quantity) <= 0) return toast.error('Quantity must be greater than zero');
         if (!form.date) return toast.error('Date is required');
 
         setSaving(true);
         try {
-            const res = await axios.post(`${url}/api/finance/stock-movements/add`, { ...form, projectId }, authHeader);
+            const res = await axios.post(`${url}/api/finance/stock-movements/add`, { ...form, movementType: 'waste', projectId }, authHeader);
             if (res.data.success) {
-                toast.success(res.data.message || 'Movement recorded');
+                toast.success(res.data.message || 'Waste recorded');
                 onSaved?.();
                 onClose();
             } else toast.error(res.data.message);
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Error recording movement');
+            toast.error(err.response?.data?.message || 'Error recording waste');
         } finally { setSaving(false); }
     };
 
     return ReactDOM.createPortal(
         <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
             <div className="loader-modal-box edit-modal">
-                <h2>Add Movement</h2>
+                <h2>Record Waste</h2>
+                <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
+                    Spoilage or loss of material already accounted for elsewhere — receiving material from a vendor is recorded as a Purchase in Procurement instead, which handles cost and vendor payment.
+                </p>
                 <form onSubmit={submit}>
                     <div className="wizard-field-grid">
                         <div className="add-product-name flex-col">
-                            <p>Movement Type *</p>
-                            <StyledSelect value={form.movementType} onChange={v => setField('movementType', v)} options={MOVEMENT_TYPE_OPTIONS} />
+                            <p>Work (optional)</p>
+                            <StyledSelect
+                                value={form.workId} onChange={v => setField('workId', v)}
+                                placeholder="Not tied to one Work…"
+                                options={works.map(w => ({ value: w._id, label: `${w.workType}${w.workOrderNumber ? ` (${w.workOrderNumber})` : ''}` }))}
+                            />
                         </div>
-                        {form.movementType === 'waste' ? (
-                            <div className="add-product-name flex-col">
-                                <p>Work (optional)</p>
-                                <StyledSelect
-                                    value={form.workId} onChange={v => setField('workId', v)}
-                                    placeholder="Not tied to one Work…"
-                                    options={works.map(w => ({ value: w._id, label: `${w.workType}${w.workOrderNumber ? ` (${w.workOrderNumber})` : ''}` }))}
-                                />
-                            </div>
-                        ) : (
-                            <div className="add-product-name flex-col">
-                                <p>Vendor *</p>
-                                <QuickAddPicker
-                                    url={url} resourceKey="vendors" value={form.vendorId} onChange={v => setField('vendorId', v)}
-                                    filter={IS_MATERIAL_SUPPLIER} presetValues={{ vendorType: 'material_supplier' }}
-                                    placeholder={form.movementType === 'return' ? 'Returning to…' : 'Supplied by…'}
-                                />
-                            </div>
-                        )}
-                        <div className="add-product-name flex-col wizard-field-full">
+                        <div className="add-product-name flex-col">
                             <p>Material *</p>
                             <QuickAddPicker url={url} resourceKey="materials" value={form.materialId} onChange={v => setField('materialId', v)} filter={materialFilter} />
                         </div>
                         <div className="add-product-name flex-col">
                             <p>Quantity *</p>
-                            <input type="number" onWheel={e => e.target.blur()} min="0" value={form.quantity} onChange={e => setField('quantity', e.target.value)} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <input type="number" onWheel={e => e.target.blur()} min="0" value={form.quantity} onChange={e => setField('quantity', e.target.value)} style={{ flex: 1 }} />
+                                {selectedMaterial?.unit && <span className="admin-subtitle" style={{ whiteSpace: 'nowrap' }}>{selectedMaterial.unit}</span>}
+                            </div>
                         </div>
                         <div className="add-product-name flex-col wizard-field-full">
                             <p>Date *</p>
@@ -128,7 +122,7 @@ const AddStockMovementModal = ({ url, projectId, defaultMaterialId, onClose, onS
                     </div>
                     <div className="edit-modal-actions">
                         <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
-                        <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save Movement'}</button>
+                        <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
                     </div>
                 </form>
             </div>

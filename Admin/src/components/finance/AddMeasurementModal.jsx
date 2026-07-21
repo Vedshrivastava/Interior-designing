@@ -165,12 +165,16 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                 toast.error(
                     <div>
                         <p style={{ margin: '0 0 8px' }}>{data.message}</p>
+                        {/* Every material dump is a vendor purchase at some
+                            rate — one path only, straight to Procurement,
+                            which captures cost/GST and the vendor payable
+                            and auto-creates the matching stock movement. */}
                         <a
-                            href={`/finance/site-inventory?projectId=${data.projectId}&material=${data.materialId}`}
+                            href={`/finance/procurement?projectId=${data.projectId}&material=${data.materialId}`}
                             target="_blank" rel="noreferrer"
                             style={{ fontWeight: 700, color: 'var(--gold, #c9a87c)', textDecoration: 'underline' }}
                         >
-                            Open Site Inventory to record a Dump →
+                            Record a Purchase →
                         </a>
                     </div>,
                     { autoClose: 12000 }

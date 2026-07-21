@@ -2,11 +2,19 @@ import mongoose from 'mongoose';
 import FinanceStockMovement from '../models/financeStockMovement.js';
 import FinanceMaterial from '../models/financeMaterial.js';
 import FinanceProject from '../models/financeProject.js';
-import FinanceVendor from '../models/financeVendor.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 
-const MANUAL_TYPES = ['dump', 'return', 'waste'];
+// Dump and Return always mean material moving to/from a specific vendor
+// at some cost — that belongs entirely to Procurement's Purchase/Returns
+// (financePurchase.js), which captures the rate and vendor payable and
+// auto-creates the matching stock movement itself. This endpoint used to
+// also accept a costless, vendor-optional manual dump/return, which let
+// someone record "received from Vendor X" without ever billing Vendor X
+// for it — waste is the only movement that's genuinely vendor-free
+// (spoilage/loss of stock already paid for elsewhere), so it's the only
+// type left manually enterable here.
+const MANUAL_TYPES = ['waste'];
 const EVENT_TYPE_BY_MOVEMENT = { dump: 'stock_dumped', return: 'stock_returned', waste: 'stock_wasted' };
 const VERB_BY_MOVEMENT = { dump: 'dumped', return: 'returned', waste: 'recorded as waste' };
 
@@ -34,29 +42,20 @@ const listStockMovements = async (req, res) => {
 // stock ledger can't drift out of sync with what was actually measured.
 const addStockMovement = async (req, res) => {
     try {
-        const { projectId, materialId, movementType, quantity, date, notes, workId, vendorId } = req.body;
+        const { projectId, materialId, movementType, quantity, date, notes, workId } = req.body;
         if (!projectId || !materialId || !movementType || !date) {
             return res.status(400).json({ success: false, message: 'Project, material, movement type, and date are required' });
         }
         if (!MANUAL_TYPES.includes(movementType)) {
-            return res.status(400).json({ success: false, message: 'movementType must be dump, return, or waste — consume movements are created automatically from measurements' });
+            return res.status(400).json({ success: false, message: 'Dump and Return are recorded through Procurement (Purchase/Returns) — they need a rate and vendor payable. Only Waste can be entered manually here; consume movements are created automatically from measurements.' });
         }
         if (!quantity || Number(quantity) <= 0) {
             return res.status(400).json({ success: false, message: 'Quantity must be greater than zero' });
         }
-        // Dump/return always mean material moving to/from a specific
-        // vendor — waste doesn't (nothing to attribute a spoilage/loss to).
-        if (movementType !== 'waste') {
-            if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required for a dump or return' });
-            const vendorExists = await FinanceVendor.exists({ _id: vendorId, deleted: { $ne: true } });
-            if (!vendorExists) return res.status(400).json({ success: false, message: 'Vendor not found' });
-        }
         const item = new FinanceStockMovement({
             projectId, materialId, movementType, quantity: Number(quantity), date, notes: notes || '',
-            vendorId: movementType !== 'waste' ? vendorId : null,
-            // Only waste is attributable to one specific work — dump/return
-            // stay project-level only, per the Site Inventory model.
-            workId: movementType === 'waste' && workId ? workId : null,
+            vendorId: null,
+            workId: workId || null,
         });
         await item.save();
         broadcast({ type: 'financeStockChanged', projectId });

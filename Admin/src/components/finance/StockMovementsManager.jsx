@@ -11,15 +11,17 @@ import '../../styles/add.css';
 const MOVEMENT_LABEL = { dump: 'Dump', consume: 'Consume', return: 'Return', waste: 'Waste' };
 
 /* Site Inventory ledger for one project — current stock (computed on the
-   fly server-side, never stored), a "+ Add Movement" dialog for manual
-   Dump/Return/Waste entries, and the full movement history including the
-   `consume` rows the measurement-save automation creates (read-only
-   here). From/To date filters keep the history from just growing
-   forever unscoped — "From Project Start" jumps straight to the
-   project's own startDate instead of hunting for it on the calendar.
-   Consume rows link through to the Work they belong to, same "Details"
+   fly server-side, never stored), a "+ Record Waste" dialog (the only
+   manually-enterable movement type — Dump/Return happen through
+   Procurement's Purchase/Returns instead, see AddStockMovementModal), and
+   the full movement history including the `consume` rows the
+   measurement-save automation and `dump`/`return` rows Procurement
+   creates (read-only here). From/To date filters keep the history from
+   just growing forever unscoped — "From Project Start" jumps straight to
+   the project's own startDate instead of hunting for it on the calendar.
+   Consume/waste rows tied to a Work link through to it, same "Details"
    pattern as Works/Measurements. */
-const StockMovementsManager = ({ url, projectId, autoOpenAddForMaterialId }) => {
+const StockMovementsManager = ({ url, projectId }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -31,11 +33,7 @@ const StockMovementsManager = ({ url, projectId, autoOpenAddForMaterialId }) => 
     const [projectStartDate, setProjectStartDate] = useState('');
     const [fromDate, setFromDate] = useState('');
     const [toDate, setToDate] = useState('');
-    // Opens straight into "Record a Dump" pre-filled with the material a
-    // measurement's insufficient-stock error just named — e.g. arriving
-    // via that toast's "Open Site Inventory" link — instead of landing on
-    // a blank page the user then has to search the material back out on.
-    const [addModalOpen, setAddModalOpen] = useState(!!autoOpenAddForMaterialId);
+    const [addModalOpen, setAddModalOpen] = useState(false);
 
     const fetchStock = async () => {
         setLoadingStock(true);
@@ -84,8 +82,8 @@ const StockMovementsManager = ({ url, projectId, autoOpenAddForMaterialId }) => 
             <h3 style={{ marginBottom: '4px' }}>Current Stock</h3>
             <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>Always current: SUM(dump) − SUM(consume) − SUM(return) − SUM(waste), computed fresh, never stored.</p>
             <div className="list-table" style={{ marginBottom: '32px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1fr 1fr' }}>
-                    <b>Material</b><b>Unit</b><b>Current Stock</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '280px 1fr 1fr' }}>
+                    <b>Material</b><b>Current Stock</b><b>Unit</b>
                 </div>
                 {loadingStock ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
@@ -93,10 +91,10 @@ const StockMovementsManager = ({ url, projectId, autoOpenAddForMaterialId }) => 
                     <div className="admin-empty-state"><p>No stock movements recorded yet.</p></div>
                 ) : (
                     stock.map(row => (
-                        <div key={row.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1fr 1fr' }}>
+                        <div key={row.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '280px 1fr 1fr' }}>
                             <p>{row.materialName || '-'}</p>
-                            <p>{row.unit || '-'}</p>
                             <p style={{ color: row.currentStock < 0 ? '#c0392b' : undefined }}>{row.currentStock}</p>
+                            <p>{row.unit || '-'}</p>
                         </div>
                     ))
                 )}
@@ -116,7 +114,7 @@ const StockMovementsManager = ({ url, projectId, autoOpenAddForMaterialId }) => 
                 <div className="add-product-name flex-col">
                     <p aria-hidden="true" style={{ visibility: 'hidden' }}>Add</p>
                     <button type="button" className="add-btn" style={{ width: '100%', boxSizing: 'border-box', border: '1px solid transparent', margin: 0 }} onClick={() => setAddModalOpen(true)}>
-                        + Add Movement
+                        + Record Waste
                     </button>
                 </div>
             </div>
@@ -135,7 +133,7 @@ const StockMovementsManager = ({ url, projectId, autoOpenAddForMaterialId }) => 
 
             {addModalOpen && (
                 <AddStockMovementModal
-                    url={url} projectId={projectId} defaultMaterialId={autoOpenAddForMaterialId}
+                    url={url} projectId={projectId}
                     onClose={() => setAddModalOpen(false)}
                     onSaved={() => { fetchStock(); fetchHistory(); }}
                 />

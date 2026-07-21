@@ -13,7 +13,7 @@ const emptyForm = { vendorId: '', projectId: '', materialId: '', quantity: '', r
  * auto-creates the matching stock movement (dump for a purchase, return
  * for a return) server-side; nothing to trigger separately here.
  */
-const PurchaseOrReturnManager = ({ url, transactionType }) => {
+const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defaultMaterialId }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const isReturn = transactionType === 'return';
@@ -24,7 +24,7 @@ const PurchaseOrReturnManager = ({ url, transactionType }) => {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const [form, setForm] = useState(emptyForm);
+    const [form, setForm] = useState({ ...emptyForm, projectId: defaultProjectId || '', materialId: defaultMaterialId || '' });
     const [saving, setSaving] = useState(false);
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);

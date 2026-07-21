@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
@@ -162,7 +163,14 @@ const ProcurementVendorsOverviewTab = ({ url }) => {
    tab only ever shows referral-type vendors in its picker (there's no
    separate routed vendor detail page to conditionally show/hide it on). */
 const ProcurementPage = ({ url }) => {
-    const [activeTab, setActiveTab] = useState(TABS[0].key);
+    const [searchParams] = useSearchParams();
+    // Arriving via `?projectId=&material=` — e.g. a measurement's
+    // insufficient-stock toast's "Record a Purchase" link — lands
+    // straight on Purchases with both prefilled, instead of the default
+    // Vendors tab the user then has to navigate away from.
+    const deepLinkProjectId = searchParams.get('projectId') || '';
+    const deepLinkMaterialId = searchParams.get('material') || '';
+    const [activeTab, setActiveTab] = useState(deepLinkMaterialId ? 'purchases' : TABS[0].key);
     const [selectedVendorId, setSelectedVendorId] = useState('');
     const [selectedCommissionVendorId, setSelectedCommissionVendorId] = useState('');
 
@@ -175,7 +183,9 @@ const ProcurementPage = ({ url }) => {
             onTabChange={setActiveTab}
         >
             {activeTab === 'vendors' && <ProcurementVendorsOverviewTab url={url} />}
-            {activeTab === 'purchases' && <PurchaseOrReturnManager url={url} transactionType="purchase" />}
+            {activeTab === 'purchases' && (
+                <PurchaseOrReturnManager url={url} transactionType="purchase" defaultProjectId={deepLinkProjectId} defaultMaterialId={deepLinkMaterialId} />
+            )}
             {activeTab === 'materialDump' && <MaterialDumpView url={url} />}
             {activeTab === 'returns' && <PurchaseOrReturnManager url={url} transactionType="return" />}
             {activeTab === 'ledger' && (

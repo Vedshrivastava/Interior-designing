@@ -19,7 +19,7 @@ const MOVEMENT_LABEL = { dump: 'Dump', consume: 'Consume', return: 'Return', was
    project's own startDate instead of hunting for it on the calendar.
    Consume rows link through to the Work they belong to, same "Details"
    pattern as Works/Measurements. */
-const StockMovementsManager = ({ url, projectId }) => {
+const StockMovementsManager = ({ url, projectId, autoOpenAddForMaterialId }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -31,7 +31,11 @@ const StockMovementsManager = ({ url, projectId }) => {
     const [projectStartDate, setProjectStartDate] = useState('');
     const [fromDate, setFromDate] = useState('');
     const [toDate, setToDate] = useState('');
-    const [addModalOpen, setAddModalOpen] = useState(false);
+    // Opens straight into "Record a Dump" pre-filled with the material a
+    // measurement's insufficient-stock error just named — e.g. arriving
+    // via that toast's "Open Site Inventory" link — instead of landing on
+    // a blank page the user then has to search the material back out on.
+    const [addModalOpen, setAddModalOpen] = useState(!!autoOpenAddForMaterialId);
 
     const fetchStock = async () => {
         setLoadingStock(true);
@@ -131,7 +135,7 @@ const StockMovementsManager = ({ url, projectId }) => {
 
             {addModalOpen && (
                 <AddStockMovementModal
-                    url={url} projectId={projectId}
+                    url={url} projectId={projectId} defaultMaterialId={autoOpenAddForMaterialId}
                     onClose={() => setAddModalOpen(false)}
                     onSaved={() => { fetchStock(); fetchHistory(); }}
                 />

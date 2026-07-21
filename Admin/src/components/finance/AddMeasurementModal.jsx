@@ -160,7 +160,24 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                 onClose();
             } else toast.error(res.data.message);
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Error saving measurement');
+            const data = err.response?.data;
+            if (data?.code === 'INSUFFICIENT_STOCK') {
+                toast.error(
+                    <div>
+                        <p style={{ margin: '0 0 8px' }}>{data.message}</p>
+                        <a
+                            href={`/finance/site-inventory?projectId=${data.projectId}&material=${data.materialId}`}
+                            target="_blank" rel="noreferrer"
+                            style={{ fontWeight: 700, color: 'var(--gold, #c9a87c)', textDecoration: 'underline' }}
+                        >
+                            Open Site Inventory to record a Dump →
+                        </a>
+                    </div>,
+                    { autoClose: 12000 }
+                );
+            } else {
+                toast.error(data?.message || 'Error saving measurement');
+            }
         } finally { setSaving(false); }
     };
 

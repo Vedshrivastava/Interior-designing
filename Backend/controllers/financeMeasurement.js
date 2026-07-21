@@ -102,6 +102,9 @@ const addMeasurement = async (req, res) => {
                     return res.status(400).json({
                         success: false,
                         message: `Only ${available}${unit} of ${material?.name || 'this material'} is currently in stock at this project — can't use ${requested}. Record a Dump (Purchase or Site Inventory) first.`,
+                        code: 'INSUFFICIENT_STOCK',
+                        projectId,
+                        materialId,
                     });
                 }
             }

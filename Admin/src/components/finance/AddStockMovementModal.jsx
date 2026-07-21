@@ -28,11 +28,11 @@ const IS_MATERIAL_SUPPLIER = (v) => v.vendorType === 'material_supplier';
  * (Procurement), entered fresh every time there, never inferred from this
  * screen or from vendor payment history.
  */
-const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
+const AddStockMovementModal = ({ url, projectId, defaultMaterialId, onClose, onSaved }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-    const [form, setForm] = useState(emptyForm);
+    const [form, setForm] = useState({ ...emptyForm, materialId: defaultMaterialId || '' });
     const [works, setWorks] = useState([]);
     const [saving, setSaving] = useState(false);
 

@@ -22,7 +22,11 @@ const SiteInventoryPage = ({ url }) => {
     const lowStockOnly = searchParams.get('filter') === 'low-stock';
 
     const [projects, setProjects] = useState([]);
-    const [selectedProjectId, setSelectedProjectId] = useState('');
+    // Pre-selects the project when arriving via `?projectId=` — e.g. the
+    // "Open Site Inventory" link on a measurement's insufficient-stock
+    // toast, so recording the Dump lands directly on the right project
+    // instead of an empty picker.
+    const [selectedProjectId, setSelectedProjectId] = useState(searchParams.get('projectId') || '');
     const [summary, setSummary] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -127,7 +131,7 @@ const SiteInventoryPage = ({ url }) => {
                 </select>
             </div>
             {selectedProjectId
-                ? <StockMovementsManager url={url} projectId={selectedProjectId} />
+                ? <StockMovementsManager url={url} projectId={selectedProjectId} autoOpenAddForMaterialId={searchParams.get('material') || undefined} />
                 : <div className="admin-empty-state"><p>Select a project to view its movement history or record a dump/return/waste entry.</p></div>}
         </FinanceTabShell>
     );

@@ -19,3 +19,13 @@ export const assertReferralVendor = async (vendorId) => {
     if (vendor.vendorType !== 'referral') throw new Error('This vendor is not a referral vendor');
     return vendor;
 };
+
+// Same idea, for a labourer's supply-side middleman — labour provider
+// payments and the labour provider ledger only ever apply to a
+// financeVendor with vendorType 'labour_provider'.
+export const assertLabourProviderVendor = async (vendorId) => {
+    const vendor = await FinanceVendor.findById(vendorId);
+    if (!vendor) throw new Error('Vendor not found');
+    if (vendor.vendorType !== 'labour_provider') throw new Error('This vendor is not a labour provider');
+    return vendor;
+};

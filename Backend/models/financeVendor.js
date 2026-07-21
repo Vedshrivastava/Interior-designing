@@ -4,7 +4,7 @@ const financeVendorSchema = new mongoose.Schema({
     name:       { type: String, required: true },
     vendorType: {
         type: String,
-        enum: ['material_supplier', 'labour_contractor', 'referral', 'other'],
+        enum: ['material_supplier', 'labour_contractor', 'referral', 'labour_provider', 'other'],
         default: 'other',
     },
     phone:      { type: String, default: '' },

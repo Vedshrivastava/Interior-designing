@@ -6,6 +6,13 @@ import StyledDatePicker from './StyledDatePicker';
 
 /* Shared by MasterCrudTable and QuickAddPicker so the field-rendering logic
    for a FINANCE_MASTERS config only exists in one place. */
+
+// A field's optional `note` — was only ever shown for settingSelect fields;
+// pulled out here so any field type can carry one (e.g. a number field
+// explaining what a rate actually gets used for).
+export const FieldNote = ({ note }) =>
+    note ? <p style={{ fontSize: '0.78rem', color: 'var(--text-lt)', marginTop: '4px' }}>{note}</p> : null;
+
 export const emptyFormFromFields = (fields) =>
     fields.reduce((acc, f) => {
         acc[f.key] = (f.type === 'stringArray' || f.type === 'workTypeMultiSelect') ? [] : (f.default ?? '');
@@ -46,28 +53,31 @@ export const renderMasterField = (f, form, setField, { url, settingOptions = {} 
                     options={f.options}
                 />
             );
-        case 'vendorSelect':
+        case 'vendorSelect': {
+            // Defaults to labour_contractor (Team's own contractor picker,
+            // the original and still most common use) — pass
+            // f.vendorType to scope to a different type instead, e.g.
+            // 'labour_provider' for a Labourer's optional provider.
+            const vt = f.vendorType || 'labour_contractor';
             return (
                 <QuickAddPicker
                     url={url} resourceKey="vendors" value={value} onChange={v => setField(f.key, v)}
-                    filter={v => v.vendorType === 'labour_contractor'} presetValues={{ vendorType: 'labour_contractor' }}
+                    filter={v => v.vendorType === vt} presetValues={{ vendorType: vt }}
                     placeholder="None"
                 />
             );
+        }
         case 'employeeSelect':
             return <QuickAddPicker url={url} resourceKey="employees" value={value} onChange={v => setField(f.key, v)} placeholder="None" />;
         case 'settingSelect':
             return (
-                <>
-                    <SettingSelectField
-                        settingType={f.settingType}
-                        options={settingOptions[f.settingType] || []}
-                        value={value}
-                        onChange={v => setField(f.key, v)}
-                        placeholder={f.placeholder}
-                    />
-                    {f.note && <p style={{ fontSize: '0.78rem', color: 'var(--text-lt)', marginTop: '4px' }}>{f.note}</p>}
-                </>
+                <SettingSelectField
+                    settingType={f.settingType}
+                    options={settingOptions[f.settingType] || []}
+                    value={value}
+                    onChange={v => setField(f.key, v)}
+                    placeholder={f.placeholder}
+                />
             );
         case 'workTypeMultiSelect': {
             const options = settingOptions[f.settingType] || [];

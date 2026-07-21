@@ -20,12 +20,14 @@ let vendorPayablesCache = null;
 let contractorPayablesCache = null;
 let salaryPayablesCache = null;
 let commissionPayablesCache = null;
+let labourProviderPayablesCache = null;
 
 const TABS = [
     { key: 'vendor',           label: 'Vendor' },
     { key: 'contractor',       label: 'Contractor' },
     { key: 'salary',           label: 'Salary' },
     { key: 'commission',       label: 'Commission' },
+    { key: 'labourProvider',   label: 'Labour Provider' },
     { key: 'deductions',       label: 'Deductions' },
     { key: 'expenses',         label: 'Expenses' },
     { key: 'expense-analysis', label: 'Expense Analysis' },
@@ -285,6 +287,64 @@ const PayablesCommissionTab = ({ url }) => {
     );
 };
 
+/* Balance payable per labour provider, pulled from the labour provider
+   ledger endpoint — same N+1 pattern as the tabs above. "Payable" here is
+   totals.balancePayable (approvedPay − paymentsTotal), the same figure
+   surfaced as "Total Pay Left" in LabourProviderLedgerView. */
+const PayablesLabourProviderTab = ({ url }) => {
+    const navigate = useNavigate();
+    const token = localStorage.getItem('token');
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const [rows, setRows] = useState(labourProviderPayablesCache || []);
+    const [loading, setLoading] = useState(!labourProviderPayablesCache);
+    const aliveRef = useRef(true);
+    useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false; }; }, []);
+
+    const fetchRows = async () => {
+        try {
+            const vendorsRes = await axios.get(`${url}/api/finance/vendors/list`, authHeader);
+            const providers = vendorsRes.data.success ? vendorsRes.data.data.filter(v => v.vendorType === 'labour_provider') : [];
+            const ledgers = await Promise.all(providers.map(v =>
+                axios.get(`${url}/api/finance/vendors/${v._id}/labour-provider-ledger`, authHeader)
+                    .then(res => (res.data.success ? { vendorId: v._id, vendorName: v.name, ...res.data.data.totals } : null))
+                    .catch(() => null)
+            ));
+            if (aliveRef.current) {
+                const next = ledgers.filter(Boolean).sort((a, b) => b.balancePayable - a.balancePayable);
+                setRows(next);
+                labourProviderPayablesCache = next;
+            }
+        } catch {
+            if (aliveRef.current) toast.error('Error fetching labour provider payables');
+        } finally {
+            if (aliveRef.current) setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchRows(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useFinanceWsRefresh(['financeVendorsChanged', 'financeLabourersChanged', 'financeWorksChanged', 'financeWorkReviewChanged', 'financeLabourProviderPaymentsChanged'], fetchRows);
+
+    if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
+    if (rows.length === 0) return <div className="admin-empty-state"><p>No labour provider vendors yet.</p></div>;
+
+    return (
+        <div className="list-table">
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
+                <b>Labour Provider</b><b>Approved Pay</b><b>Payments</b><b>Balance Payable</b>
+            </div>
+            {rows.map(r => (
+                <div key={r.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
+                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/daily-labour')}>{r.vendorName}</p>
+                    <p>₹{r.approvedPay.toLocaleString('en-IN')}</p>
+                    <p>₹{r.paymentsTotal.toLocaleString('en-IN')}</p>
+                    <p style={{ fontWeight: 600, color: r.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{r.balancePayable.toLocaleString('en-IN')}</p>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 const PayablesPage = ({ url }) => {
     const [searchParams] = useSearchParams();
     // Supports deep-linking in from a project's own Expenses tab's
@@ -313,6 +373,7 @@ const PayablesPage = ({ url }) => {
             {activeTab === 'contractor' && <PayablesContractorTab url={url} />}
             {activeTab === 'salary' && <PayablesSalaryTab url={url} />}
             {activeTab === 'commission' && <PayablesCommissionTab url={url} />}
+            {activeTab === 'labourProvider' && <PayablesLabourProviderTab url={url} />}
             {activeTab === 'deductions' && <WorkDeductionAllocationPanel url={url} />}
             {activeTab === 'expenses' && <ExpensesManager url={url} highlightId={searchParams.get('expenseId')} />}
             {activeTab === 'expense-analysis' && <ExpenseAnalysisView url={url} />}

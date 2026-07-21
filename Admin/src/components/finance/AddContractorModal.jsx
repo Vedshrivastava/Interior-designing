@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
-import { emptyFormFromFields, renderMasterField } from './masterFieldRenderer';
+import { emptyFormFromFields, renderMasterField, FieldNote } from './masterFieldRenderer';
 import DocumentUploadList from './DocumentUploadList';
 import '../../styles/wizard.css';
 
@@ -67,6 +67,7 @@ const AddContractorModal = ({ url, onClose, onContractorCreated }) => {
                             <div key={f.key} className={`add-product-name flex-col${f.type === 'textarea' ? ' wizard-field-full' : ''}`}>
                                 <p>{f.label}{f.required ? ' *' : ''}</p>
                                 {renderMasterField(f, vendorForm, setVendorField, { url })}
+                                <FieldNote note={f.note} />
                             </div>
                         ))}
                     </div>

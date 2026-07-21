@@ -3,6 +3,7 @@ import FinanceLabourer from '../models/financeLabourer.js';
 import FinanceLabourMeasurement from '../models/financeLabourMeasurement.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { uploadDocumentsWithNotes, addDocumentToRecord, removeDocumentFromRecord } from '../utils/uploadDocuments.js';
+import { assertLabourProviderVendor } from '../utils/contractorVendor.js';
 
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,
@@ -22,10 +23,22 @@ const listLabourers = async (req, res) => {
 
 const addLabourer = async (req, res) => {
     try {
-        const { name, accountName, bankName, accountNumber, ifscCode, notes } = req.body;
+        const { name, accountName, bankName, accountNumber, ifscCode, notes, labourProviderVendorId, labourProviderRatePerSqft } = req.body;
         if (!name || !name.trim()) return res.status(400).json({ success: false, message: 'Name is required' });
         if (!accountName || !bankName || !accountNumber || !ifscCode) {
             return res.status(400).json({ success: false, message: 'Bank account holder name, bank name, account number, and IFSC code are all required' });
+        }
+        // Optional, but a real pairing — a provider with no rate (or a rate
+        // with no provider) can't compute anything, so both or neither.
+        if (labourProviderVendorId) {
+            if (!labourProviderRatePerSqft || Number(labourProviderRatePerSqft) <= 0) {
+                return res.status(400).json({ success: false, message: 'Labour provider rate (₹/sqft) is required when a labour provider is set' });
+            }
+            try {
+                await assertLabourProviderVendor(labourProviderVendorId);
+            } catch (err) {
+                return res.status(400).json({ success: false, message: err.message });
+            }
         }
 
         let documentNotes = [];
@@ -36,6 +49,8 @@ const addLabourer = async (req, res) => {
 
         const item = new FinanceLabourer({
             name: name.trim(), accountName, bankName, accountNumber, ifscCode, notes: notes || '', documents,
+            labourProviderVendorId: labourProviderVendorId || null,
+            labourProviderRatePerSqft: labourProviderVendorId ? Number(labourProviderRatePerSqft) : null,
         });
         await item.save();
         broadcast({ type: 'financeLabourersChanged' });
@@ -48,15 +63,27 @@ const addLabourer = async (req, res) => {
 
 const updateLabourer = async (req, res) => {
     try {
-        const { _id, name, accountName, bankName, accountNumber, ifscCode, notes } = req.body;
+        const { _id, name, accountName, bankName, accountNumber, ifscCode, notes, labourProviderVendorId, labourProviderRatePerSqft } = req.body;
         const existing = await FinanceLabourer.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Labourer not found' });
         if (!name || !name.trim()) return res.status(400).json({ success: false, message: 'Name is required' });
         if (!accountName || !bankName || !accountNumber || !ifscCode) {
             return res.status(400).json({ success: false, message: 'Bank account holder name, bank name, account number, and IFSC code are all required' });
         }
+        if (labourProviderVendorId) {
+            if (!labourProviderRatePerSqft || Number(labourProviderRatePerSqft) <= 0) {
+                return res.status(400).json({ success: false, message: 'Labour provider rate (₹/sqft) is required when a labour provider is set' });
+            }
+            try {
+                await assertLabourProviderVendor(labourProviderVendorId);
+            } catch (err) {
+                return res.status(400).json({ success: false, message: err.message });
+            }
+        }
         await FinanceLabourer.findByIdAndUpdate(_id, {
             name: name.trim(), accountName, bankName, accountNumber, ifscCode, notes: notes || '',
+            labourProviderVendorId: labourProviderVendorId || null,
+            labourProviderRatePerSqft: labourProviderVendorId ? Number(labourProviderRatePerSqft) : null,
         });
         broadcast({ type: 'financeLabourersChanged' });
         res.json({ success: true, message: 'Labourer updated' });

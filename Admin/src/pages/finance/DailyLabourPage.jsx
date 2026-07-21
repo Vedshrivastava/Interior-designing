@@ -9,6 +9,7 @@ import LabourMeasurementsManager from '../../components/finance/LabourMeasuremen
 import LabourWorksView from '../../components/finance/LabourWorksView';
 import LabourWorkerMeasurementsView from '../../components/finance/LabourWorkerMeasurementsView';
 import LabourLedgerView from '../../components/finance/LabourLedgerView';
+import LabourProviderLedgerView from '../../components/finance/LabourProviderLedgerView';
 import PersonDocumentsView from '../../components/finance/PersonDocumentsView';
 import '../../styles/list.css';
 
@@ -19,6 +20,7 @@ const TABS = [
     { key: 'works',        label: 'Works' },
     { key: 'measurements', label: 'Measurements' },
     { key: 'ledger',       label: 'Ledger' },
+    { key: 'providerLedger', label: 'Labour Provider Ledger' },
     { key: 'documents',    label: 'Documents' },
 ];
 
@@ -29,6 +31,18 @@ const LabourerPicker = ({ url, selectedLabourerId, onChange }) => (
     <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>
         <p>Labourer</p>
         <QuickAddPicker url={url} resourceKey="labourers" value={selectedLabourerId} onChange={onChange} placeholder="Select labourer…" />
+    </div>
+);
+
+/* Provider Ledger is scoped by the provider VENDOR, not by labourer — a
+   provider's cut aggregates across every labourer connected to them — so
+   it gets its own vendor picker instead of reusing LabourerPicker/
+   selectedLabourerId. */
+const LabourProviderPicker = ({ url, selectedVendorId, onChange }) => (
+    <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>
+        <p>Labour Provider</p>
+        <QuickAddPicker url={url} resourceKey="vendors" value={selectedVendorId} onChange={onChange}
+            filter={v => v.vendorType === 'labour_provider'} presetValues={{ vendorType: 'labour_provider' }} placeholder="Select labour provider…" />
     </div>
 );
 
@@ -90,6 +104,7 @@ const LabourerProjectsTab = ({ url, labourerId }) => {
 const DailyLabourPage = ({ url }) => {
     const [activeTab, setActiveTab] = useState(TABS[0].key);
     const [selectedLabourerId, setSelectedLabourerId] = useState('');
+    const [selectedProviderVendorId, setSelectedProviderVendorId] = useState('');
 
     return (
         <FinanceTabShell
@@ -114,6 +129,14 @@ const DailyLabourPage = ({ url }) => {
             )}
             {activeTab === 'ledger' && (
                 selectedLabourerId ? <LabourLedgerView url={url} labourerId={selectedLabourerId} /> : <div className="admin-empty-state"><p>Select a labourer to view their ledger.</p></div>
+            )}
+            {activeTab === 'providerLedger' && (
+                <>
+                    <LabourProviderPicker url={url} selectedVendorId={selectedProviderVendorId} onChange={setSelectedProviderVendorId} />
+                    {selectedProviderVendorId
+                        ? <LabourProviderLedgerView url={url} vendorId={selectedProviderVendorId} />
+                        : <div className="admin-empty-state"><p>Select a labour provider to view their ledger.</p></div>}
+                </>
             )}
             {activeTab === 'documents' && <PersonDocumentsView url={url} resourceKey="labourers" entityId={selectedLabourerId} entityLabel="labourer" />}
         </FinanceTabShell>

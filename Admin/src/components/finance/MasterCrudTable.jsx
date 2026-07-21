@@ -5,7 +5,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
 import { registerSettingIfNew } from './SettingSelectField';
-import { emptyFormFromFields, renderMasterField, groupFieldsBySection } from './masterFieldRenderer';
+import { emptyFormFromFields, renderMasterField, groupFieldsBySection, FieldNote } from './masterFieldRenderer';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/add.css';
@@ -247,6 +247,7 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
                                             <div key={f.key} className={`add-product-name flex-col${f.type === 'textarea' ? ' wizard-field-full' : ''}`}>
                                                 <p>{f.label}{f.required ? ' *' : ''}</p>
                                                 {renderMasterField(f, form, setField, { url, settingOptions })}
+                                                <FieldNote note={f.note} />
                                             </div>
                                         ))}
                                     </div>

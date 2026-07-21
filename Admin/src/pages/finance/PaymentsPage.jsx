@@ -4,6 +4,7 @@ import ContractorPaymentsManager from '../../components/finance/ContractorPaymen
 import VendorPaymentsManager from '../../components/finance/VendorPaymentsManager';
 import SalaryPaymentsManager from '../../components/finance/SalaryPaymentsManager';
 import CommissionPaymentsManager from '../../components/finance/CommissionPaymentsManager';
+import LabourProviderPaymentsManager from '../../components/finance/LabourProviderPaymentsManager';
 import ExpensesManager from '../../components/finance/ExpensesManager';
 
 const TABS = [
@@ -11,6 +12,7 @@ const TABS = [
     { key: 'contractor', label: 'Contractor Payment' },
     { key: 'salary',     label: 'Salary' },
     { key: 'commission', label: 'Commission' },
+    { key: 'labourProvider', label: 'Labour Provider' },
     { key: 'misc',       label: 'Miscellaneous' },
 ];
 
@@ -29,6 +31,7 @@ const PaymentsPage = ({ url }) => {
             {activeTab === 'contractor' && <ContractorPaymentsManager url={url} />}
             {activeTab === 'salary' && <SalaryPaymentsManager url={url} />}
             {activeTab === 'commission' && <CommissionPaymentsManager url={url} />}
+            {activeTab === 'labourProvider' && <LabourProviderPaymentsManager url={url} />}
             {activeTab === 'misc' && <ExpensesManager url={url} />}
         </FinanceTabShell>
     );

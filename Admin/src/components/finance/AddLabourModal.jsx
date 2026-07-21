@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
-import { emptyFormFromFields, renderMasterField, groupFieldsBySection } from './masterFieldRenderer';
+import { emptyFormFromFields, renderMasterField, groupFieldsBySection, FieldNote } from './masterFieldRenderer';
 import DocumentUploadList from './DocumentUploadList';
 import '../../styles/wizard.css';
 
@@ -67,7 +67,7 @@ const AddLabourModal = ({ url, onClose, onLabourerCreated }) => {
                     Hired directly by the company, paid per sqft. Not owned by any supervisor; pick who runs their crew when you add them to a Work's team, and that can change project to project.
                 </p>
                 <form onSubmit={submit}>
-                    {groupFieldsBySection(labourerResource.fields).map((group, gi) => (
+                    {groupFieldsBySection(labourerResource.fields.filter(f => !f.showIf || f.showIf(form))).map((group, gi) => (
                         <React.Fragment key={gi}>
                             {group.section && <p className="wizard-section-label">{group.section}</p>}
                             <div className="wizard-field-grid">
@@ -75,6 +75,7 @@ const AddLabourModal = ({ url, onClose, onLabourerCreated }) => {
                                     <div key={f.key} className={`add-product-name flex-col${f.type === 'textarea' ? ' wizard-field-full' : ''}`}>
                                         <p>{f.label}{f.required ? ' *' : ''}</p>
                                         {renderMasterField(f, form, setField, { url })}
+                                        <FieldNote note={f.note} />
                                     </div>
                                 ))}
                             </div>

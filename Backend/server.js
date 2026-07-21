@@ -61,6 +61,8 @@ import financeSalaryPaymentRouter   from "./routes/financeSalaryPayment.js";
 import financeSalaryLedgerRouter    from "./routes/financeSalaryLedger.js";
 import financeCommissionPaymentRouter from "./routes/financeCommissionPayment.js";
 import financeCommissionLedgerRouter  from "./routes/financeCommissionLedger.js";
+import financeLabourProviderPaymentRouter from "./routes/financeLabourProviderPayment.js";
+import financeLabourProviderLedgerRouter  from "./routes/financeLabourProviderLedger.js";
 import financeExpenseRouter         from "./routes/financeExpense.js";
 import financeExpensePaymentRouter  from "./routes/financeExpensePayment.js";
 import financeLabourerRouter        from "./routes/financeLabourer.js";
@@ -140,6 +142,7 @@ app.use('/api/finance/client-contacts',   financeClientContactRouter);
 app.use('/api/finance/vendors',   financeVendorRouter);
 app.use('/api/finance/vendors',   financeVendorLedgerRouter); // same prefix, separate ledger concern — see routes/financeVendorLedger.js
 app.use('/api/finance/vendors',   financeCommissionLedgerRouter); // same prefix, separate ledger concern — see routes/financeCommissionLedger.js
+app.use('/api/finance/vendors',   financeLabourProviderLedgerRouter); // same prefix, separate ledger concern — see routes/financeLabourProviderLedger.js
 app.use('/api/finance/employees', financeEmployeeRouter);
 app.use('/api/finance/employees', financeSalaryLedgerRouter); // same prefix, separate ledger concern — see routes/financeSalaryLedger.js
 app.use('/api/finance/materials', financeMaterialRouter);
@@ -172,6 +175,7 @@ app.use('/api/finance/cash-entries',    financeCashEntryRouter);
 app.use('/api/finance/cash-book',       financeCashBookRouter);
 app.use('/api/finance/salary-payments',     financeSalaryPaymentRouter);
 app.use('/api/finance/commission-payments', financeCommissionPaymentRouter);
+app.use('/api/finance/labour-provider-payments', financeLabourProviderPaymentRouter);
 app.use('/api/finance/expenses',            financeExpenseRouter);
 app.use('/api/finance/expense-payments',    financeExpensePaymentRouter);
 app.use('/api/finance/labourers',           financeLabourerRouter);

@@ -35,6 +35,7 @@ export const FINANCE_MASTERS = {
                     { value: 'material_supplier', label: 'Material Supplier' },
                     { value: 'labour_contractor', label: 'Labour Contractor' },
                     { value: 'referral', label: 'Referral' },
+                    { value: 'labour_provider', label: 'Labour Provider' },
                     { value: 'other', label: 'Other' },
                 ],
             },
@@ -118,6 +119,15 @@ export const FINANCE_MASTERS = {
         label: 'Labourer', labelPlural: 'Labourers', apiBase: '/api/finance/labourers',
         fields: [
             { key: 'name', label: 'Name', type: 'text', required: true, section: 'Details' },
+            {
+                key: 'labourProviderVendorId', label: 'Labour Provider (optional)', type: 'vendorSelect', vendorType: 'labour_provider',
+                section: 'Labour Provider',
+            },
+            {
+                key: 'labourProviderRatePerSqft', label: 'Labour Provider Rate (₹/sqft) *', type: 'number', section: 'Labour Provider',
+                showIf: (form) => !!form.labourProviderVendorId,
+                note: "Required once a provider is picked (enforced on save) — a separate cost the company pays the provider, based on this labourer's own reviewed sqft, never deducted from this labourer's own pay.",
+            },
             { key: 'accountName', label: 'Bank Account Holder Name', type: 'text', required: true, section: 'Bank Details' },
             { key: 'bankName', label: 'Bank Name', type: 'text', required: true, section: 'Bank Details' },
             { key: 'accountNumber', label: 'Account Number', type: 'text', required: true, section: 'Bank Details' },
@@ -127,6 +137,7 @@ export const FINANCE_MASTERS = {
         ],
         columns: [
             { key: 'name', label: 'Name' },
+            { key: 'labourProviderVendorId', label: 'Labour Provider', vendorRef: true },
         ],
     },
     // Not surfaced under Masters' own page — reused from the Bank page's

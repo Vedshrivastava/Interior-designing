@@ -18,6 +18,23 @@ const financeLabourerSchema = new mongoose.Schema({
     accountNumber: { type: String, required: true },
     ifscCode:      { type: String, required: true },
 
+    // Optional — a middleman who supplied/connected this labourer, distinct
+    // from the supervisor who runs their day-to-day crew. Both fields are
+    // set together, once, when the provider is connected (or left null for
+    // a labourer hired directly with no provider involved). The rate here
+    // is fixed to this one labourer regardless of which project/work they
+    // end up on — unlike financeLabourRate (per project + work type),
+    // there's deliberately no per-project variation for this.
+    //
+    // The provider's cut is a separate, additional cost the company pays
+    // OUT to them (financeLabourProviderPayment) — it is never subtracted
+    // from this labourer's own earnings/rate. Computed purely as
+    // (this labourer's own reviewed sqft on a Work) × labourProviderRatePerSqft,
+    // same "Approved = reviewed" gate as the labourer's own pay
+    // (see controllers/financeLabourProviderLedger.js).
+    labourProviderVendorId:  { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', default: null },
+    labourProviderRatePerSqft: { type: Number, default: null },
+
     notes: { type: String, default: '' },
 
     // ID proof, agreement, etc. — attached when the labourer is added,

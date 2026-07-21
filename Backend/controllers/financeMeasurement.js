@@ -3,6 +3,8 @@ import FinanceWork from '../models/financeWork.js';
 import FinanceProject from '../models/financeProject.js';
 import FinanceStockMovement from '../models/financeStockMovement.js';
 import FinanceWorkContractorAssignment from '../models/financeWorkContractorAssignment.js';
+import FinanceMaterial from '../models/financeMaterial.js';
+import { computeCurrentStock } from './financeStockMovement.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 
@@ -73,6 +75,37 @@ const addMeasurement = async (req, res) => {
             ? req.body.materialUsed.filter(m => m && m.materialId && Number(m.quantity) > 0).map(m => ({ materialId: m.materialId, quantity: Number(m.quantity) }))
             : [];
         if (!project.materialTrackingEnabled) materialUsed = [];
+
+        // A material can only be consumed if it's actually been dumped
+        // (via Purchase or a manual Dump entry) minus whatever's already
+        // been consumed/returned/wasted — never lets logged usage push
+        // stock negative. Summed per material first in case the same
+        // material appears twice in one submission. Checked before saving
+        // anything, so a rejection here never leaves a half-written
+        // measurement or stock movement behind.
+        if (materialUsed.length > 0) {
+            const requestedByMaterial = new Map();
+            for (const m of materialUsed) {
+                requestedByMaterial.set(m.materialId, (requestedByMaterial.get(m.materialId) || 0) + m.quantity);
+            }
+            const [stockRows, materials] = await Promise.all([
+                computeCurrentStock(projectId),
+                FinanceMaterial.find({ _id: { $in: [...requestedByMaterial.keys()] } }, 'name unit'),
+            ]);
+            const stockByMaterial = new Map(stockRows.map(r => [r.materialId.toString(), r]));
+            const materialById = new Map(materials.map(m => [m._id.toString(), m]));
+            for (const [materialId, requested] of requestedByMaterial) {
+                const available = stockByMaterial.get(materialId)?.currentStock || 0;
+                if (requested > available) {
+                    const material = materialById.get(materialId);
+                    const unit = material?.unit ? ` ${material.unit}` : '';
+                    return res.status(400).json({
+                        success: false,
+                        message: `Only ${available}${unit} of ${material?.name || 'this material'} is currently in stock at this project — can't use ${requested}. Record a Dump (Purchase or Site Inventory) first.`,
+                    });
+                }
+            }
+        }
 
         const measurement = new FinanceMeasurement({
             projectId, workId, date, contractorVendorId, areaCoveredSqft,

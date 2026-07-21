@@ -36,7 +36,7 @@ const GstSettingsForm = ({ url }) => {
             <div className="wizard-field-grid">
                 <div className="add-product-name flex-col">
                     <p>Default GST Rate %</p>
-                    <input type="number" value={defaultGstRate} onChange={e => setDefaultGstRate(e.target.value)} placeholder="e.g. 18" />
+                    <input type="number" onWheel={e => e.target.blur()} min="0" value={defaultGstRate} onChange={e => setDefaultGstRate(e.target.value)} placeholder="e.g. 18" />
                     <p className="admin-subtitle" style={{ margin: '4px 0 0' }}>
                         Prefills (doesn't lock) the GST rate field on Running Bill generation and Purchase entry; still editable per document.
                     </p>

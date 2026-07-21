@@ -115,7 +115,7 @@ const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
                         </div>
                         <div className="add-product-name flex-col">
                             <p>Quantity *</p>
-                            <input type="number" value={form.quantity} onChange={e => setField('quantity', e.target.value)} />
+                            <input type="number" onWheel={e => e.target.blur()} min="0" value={form.quantity} onChange={e => setField('quantity', e.target.value)} />
                         </div>
                         <div className="add-product-name flex-col wizard-field-full">
                             <p>Date *</p>

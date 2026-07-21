@@ -95,7 +95,7 @@ const ContractorPaymentsManager = ({ url }) => {
                         <div className="wizard-field-grid">
                             <div className="add-product-name flex-col">
                                 <p>Amount (₹) *</p>
-                                <input type="number" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                                <input type="number" onWheel={e => e.target.blur()} min="0" value={form.amount} onChange={e => setField('amount', e.target.value)} />
                             </div>
                             <div className="add-product-name flex-col">
                                 <p>Date *</p>
@@ -121,7 +121,7 @@ const ContractorPaymentsManager = ({ url }) => {
                             </div>
                             <div className="add-product-name flex-col">
                                 <p>TDS Amount (optional)</p>
-                                <input type="number" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} />
+                                <input type="number" onWheel={e => e.target.blur()} min="0" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} />
                             </div>
                             <div className="add-product-name flex-col">
                                 <p>Attachment</p>

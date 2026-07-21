@@ -139,11 +139,11 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                                     ) : (
                                         <>
                                             <input
-                                                type="number" className="rate-entry-input" placeholder="₹/sqft" value={entry.clientRate} style={{ width: '100%' }}
+                                                type="number" onWheel={e => e.target.blur()} min="0" className="rate-entry-input" placeholder="₹/sqft" value={entry.clientRate} style={{ width: '100%' }}
                                                 onChange={e => setPendingField(workType, 'clientRate', e.target.value)}
                                             />
                                             <input
-                                                type="number" className="rate-entry-input" placeholder="₹/sqft" value={entry.referralRate} style={{ width: '100%' }}
+                                                type="number" onWheel={e => e.target.blur()} min="0" className="rate-entry-input" placeholder="₹/sqft" value={entry.referralRate} style={{ width: '100%' }}
                                                 onChange={e => setPendingField(workType, 'referralRate', e.target.value)}
                                             />
                                             <div className="action-buttons">

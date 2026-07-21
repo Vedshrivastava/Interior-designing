@@ -111,7 +111,7 @@ const NotificationsSettingsForm = ({ url }) => {
                 </div>
                 <div className="add-product-name flex-col">
                     <p>Overdue Threshold (days since oldest unpaid bill)</p>
-                    <input type="number" value={overdueReceivableDays} onChange={e => setOverdueReceivableDays(e.target.value)} />
+                    <input type="number" onWheel={e => e.target.blur()} min="0" value={overdueReceivableDays} onChange={e => setOverdueReceivableDays(e.target.value)} />
                 </div>
             </div>
 

@@ -125,7 +125,7 @@ const WorkersManager = ({ url, projectId, worksVersion }) => {
                                             <span className="rate-entry-saved">₹{existing.ratePerSqft} / sqft</span>
                                         ) : (
                                             <input
-                                                type="number" className="rate-entry-input" placeholder="Rate ₹/sqft" value={rate}
+                                                type="number" onWheel={e => e.target.blur()} min="0" className="rate-entry-input" placeholder="Rate ₹/sqft" value={rate}
                                                 onChange={e => setPendingField(key, e.target.value)}
                                             />
                                         )}

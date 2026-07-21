@@ -142,6 +142,12 @@ export const renderMasterField = (f, form, setField, { url, settingOptions = {} 
             );
         case 'date':
             return <StyledDatePicker value={value} onChange={v => setField(f.key, v)} />;
+        case 'number':
+            // A scrolled mouse wheel over a focused number input silently
+            // steps its value (and can drive it negative) in Chrome —
+            // blur on wheel so scrolling the page never mutates a rate/
+            // amount/quantity field you're not actively typing into.
+            return <input type="number" min="0" value={value} placeholder={f.placeholder} onChange={e => setField(f.key, e.target.value)} onWheel={e => e.target.blur()} />;
         default:
             return <input type={f.type} value={value} placeholder={f.placeholder} onChange={e => setField(f.key, e.target.value)} />;
     }

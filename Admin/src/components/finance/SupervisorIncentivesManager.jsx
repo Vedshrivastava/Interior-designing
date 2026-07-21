@@ -78,7 +78,7 @@ const SupervisorIncentivesManager = ({ url, employeeId }) => {
                 <div className="wizard-field-grid">
                     <div className="add-product-name flex-col">
                         <p>Amount (₹) *</p>
-                        <input type="number" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                        <input type="number" onWheel={e => e.target.blur()} min="0" value={form.amount} onChange={e => setField('amount', e.target.value)} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Reason *</p>

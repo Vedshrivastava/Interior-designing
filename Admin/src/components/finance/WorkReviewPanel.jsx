@@ -65,11 +65,13 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
     const [reviewDate, setReviewDate] = useState('');
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
+    const fetchProjects = () => {
         if (!crossProject) return;
         axios.get(`${url}/api/finance/projects/list`, authHeader)
             .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
-    }, [url, crossProject]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchProjects, [url, crossProject]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
 
     const fetchRows = async () => {
         if (!projectId) { setRows([]); setLoading(false); return; }

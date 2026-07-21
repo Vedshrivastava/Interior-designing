@@ -45,9 +45,11 @@ const WorkDeductionAllocationPanel = ({ url }) => {
     const [date, setDate] = useState('');
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
+    const fetchProjects = () => {
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchProjects, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
 
     const fetchRows = async () => {
         if (!projectId) { setRows([]); return; }

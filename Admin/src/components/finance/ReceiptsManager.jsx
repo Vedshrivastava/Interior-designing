@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -41,10 +42,12 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
+    const fetchProjects = () => {
         if (fixedProjectId) return;
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
-    }, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchProjects, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
 
     useEffect(() => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })

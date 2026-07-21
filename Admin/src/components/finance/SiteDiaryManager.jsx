@@ -47,11 +47,13 @@ const SiteDiaryManager = ({ url, projectId: fixedProjectId }) => {
     const [saving, setSaving] = useState(false);
     const [resolvingId, setResolvingId] = useState(null);
 
-    useEffect(() => {
+    const fetchProjects = () => {
         if (!crossProject) return;
         axios.get(`${url}/api/finance/projects/list`, authHeader)
             .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
-    }, [url, crossProject]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchProjects, [url, crossProject]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
 
     const fetchEntries = useCallback(async () => {
         setLoading(true);

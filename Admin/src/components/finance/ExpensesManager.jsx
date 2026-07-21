@@ -8,6 +8,7 @@ import StyledDatePicker from './StyledDatePicker';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import QuickAddPicker from './QuickAddPicker';
 import { RELATED_TO_UI_OPTIONS, relatedToUiConfig } from '../../config/relatedToTypes';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -106,23 +107,29 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     };
 
     useEffect(() => { fetchExpenses(); }, [fixedProjectId, fixedCategory, fixedRelatedTo?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-    useEffect(() => {
+    const fetchProjects = () => {
         if (!fixedProjectId) {
             axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
         }
+    };
+    useEffect(() => {
+        fetchProjects();
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'expense_category' } })
             .then(res => { if (res.data.success) setCategories(res.data.data.map(s => s.name)); }).catch(() => {});
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
     }, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
 
     // Work options are scoped to whichever project is currently relevant —
     // the fixed one, or whatever's picked in the unscoped form right now.
     const effectiveProjectId = fixedProjectId || form.projectId;
-    useEffect(() => {
+    const fetchWorksForProject = () => {
         if (!effectiveProjectId) { setWorksForProject([]); return; }
         axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: effectiveProjectId } })
             .then(res => { if (res.data.success) setWorksForProject(res.data.data); }).catch(() => {});
-    }, [url, effectiveProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchWorksForProject, [url, effectiveProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeWorksChanged'], fetchWorksForProject);
 
     // Scroll to + briefly flash the row a "Details" link arrived for.
     useEffect(() => {

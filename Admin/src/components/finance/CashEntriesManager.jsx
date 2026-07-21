@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import StyledDatePicker from './StyledDatePicker';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -36,9 +38,11 @@ const CashEntriesManager = ({ url, type }) => {
     };
 
     useEffect(() => { fetchEntries(); }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
-    useEffect(() => {
+    const fetchProjects = () => {
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchProjects, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -77,7 +81,7 @@ const CashEntriesManager = ({ url, type }) => {
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Date *</p>
-                        <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} />
+                        <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Project</p>

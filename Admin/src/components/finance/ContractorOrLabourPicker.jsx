@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AddContractorModal from './AddContractorModal';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 
 /*
  * Drop-in picker wherever a Work's contractor assignment or a Contractor
@@ -22,6 +23,7 @@ const ContractorOrLabourPicker = ({ url, value, onChange, placeholder }) => {
     };
 
     useEffect(() => { fetchContractors(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeVendorsChanged'], fetchContractors);
 
     return (
         <>

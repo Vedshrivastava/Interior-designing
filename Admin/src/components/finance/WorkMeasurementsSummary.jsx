@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useWebSocket } from '../../hooks/useWebSocket';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import AddMeasurementModal from './AddMeasurementModal';
@@ -44,11 +45,13 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
     const [date, setDate] = useState('');
     const [addModalOpen, setAddModalOpen] = useState(false);
 
-    useEffect(() => {
+    const fetchProjects = () => {
         if (!crossProject) return;
         axios.get(`${url}/api/finance/projects/list`, authHeader)
             .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
-    }, [url, crossProject]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchProjects, [url, crossProject]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
 
     // Works power the Work Type dropdown and row grouping/labels — needed
     // regardless of which date is selected, so fetched independently of

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import StyledDatePicker from './StyledDatePicker';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -59,7 +60,7 @@ const SupervisorAttendanceManager = ({ url, employeeId }) => {
                 <div className="wizard-field-grid">
                     <div className="add-product-name flex-col">
                         <p>Date *</p>
-                        <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} />
+                        <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Status *</p>

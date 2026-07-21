@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { ChartCard, EmptyChart, CHART_COLORS, formatINR } from './DashboardWidgets';
+import StyledDatePicker from './StyledDatePicker';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -176,7 +177,7 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Date *</p>
-                        <input type="date" value={paymentForm.date} onChange={e => setPaymentForm(p => ({ ...p, date: e.target.value }))} />
+                        <StyledDatePicker value={paymentForm.date} onChange={v => setPaymentForm(p => ({ ...p, date: v }))} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Payment Mode</p>

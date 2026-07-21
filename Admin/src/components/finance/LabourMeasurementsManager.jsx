@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import StyledDatePicker from './StyledDatePicker';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 
 const emptyForm = { workId: '', labourerId: '', date: '', areaCoveredSqft: '', remarks: '' };
@@ -29,10 +31,12 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
+    const fetchProjects = () => {
         if (fixedProjectId) return;
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
-    }, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchProjects, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
 
     const fetchMeasurements = async (pid) => {
         setLoading(true);
@@ -43,12 +47,17 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
         finally { setLoading(false); }
     };
 
-    useEffect(() => {
-        if (!selectedProjectId) { setWorks([]); setMeasurements([]); return; }
+    const fetchWorksForSelectedProject = () => {
+        if (!selectedProjectId) { setWorks([]); return; }
         axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: selectedProjectId } })
             .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => {});
+    };
+    useEffect(() => {
+        if (!selectedProjectId) { setMeasurements([]); return; }
+        fetchWorksForSelectedProject();
         fetchMeasurements(selectedProjectId);
     }, [url, selectedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeWorksChanged'], fetchWorksForSelectedProject);
 
     // Scoped to only the labourers currently assigned to the selected Work
     // — not every labourer system-wide.
@@ -140,7 +149,7 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                             </div>
                             <div className="add-product-name flex-col">
                                 <p>Date *</p>
-                                <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} />
+                                <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
                             </div>
                             <div className="add-product-name flex-col">
                                 <p>Area Covered (sqft) *</p>

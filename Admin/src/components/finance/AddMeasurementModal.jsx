@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import { useSupervisorConflictCheck } from './useSupervisorConflictCheck';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 
 const emptyState = {
     measurementType: 'contractor',
@@ -43,26 +44,32 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
     const [saving, setSaving] = useState(false);
     const { checkSupervisor, modal: supervisorConflictModal } = useSupervisorConflictCheck(url);
 
-    useEffect(() => {
+    const fetchProjects = () => {
         if (fixedProjectId) return;
         axios.get(`${url}/api/finance/projects/list`, authHeader)
             .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
-    }, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchProjects, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
 
-    useEffect(() => {
+    const fetchMaterialsAndEmployees = () => {
         axios.get(`${url}/api/finance/materials/list`, authHeader)
             .then(res => { if (res.data.success) setMaterials(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/employees/list`, authHeader)
             .then(res => { if (res.data.success) setEmployees(res.data.data); }).catch(() => {});
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchMaterialsAndEmployees, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeMaterialsChanged', 'financeEmployeesChanged'], fetchMaterialsAndEmployees);
 
-    useEffect(() => {
+    const fetchWorksAndTracking = () => {
         if (!form.projectId) { setWorks([]); setMaterialTrackingEnabled(false); return; }
         axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: form.projectId } })
             .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => setWorks([]));
         axios.get(`${url}/api/finance/projects/${form.projectId}`, authHeader)
             .then(res => { if (res.data.success) setMaterialTrackingEnabled(!!res.data.data.project?.materialTrackingEnabled); }).catch(() => {});
-    }, [url, form.projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchWorksAndTracking, [url, form.projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeWorksChanged'], fetchWorksAndTracking);
 
     useEffect(() => {
         if (!form.workId) { setWorkContractors([]); setWorkLabourers([]); return; }

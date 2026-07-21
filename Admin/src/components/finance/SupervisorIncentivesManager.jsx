@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import StyledDatePicker from './StyledDatePicker';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 
 const emptyForm = { amount: '', reason: '', date: '', projectId: '', workId: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', notes: '' };
@@ -30,17 +32,21 @@ const SupervisorIncentivesManager = ({ url, employeeId }) => {
     };
 
     useEffect(() => { if (employeeId) fetchEntries(); }, [employeeId]); // eslint-disable-line react-hooks/exhaustive-deps
-    useEffect(() => {
+    const fetchProjects = () => {
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchProjects, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
 
     // Work picker is scoped to whichever project is picked above.
-    useEffect(() => {
+    const fetchWorksForProject = () => {
         if (!form.projectId) { setWorks([]); return; }
         axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: form.projectId } })
             .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => {});
-    }, [url, form.projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchWorksForProject, [url, form.projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeWorksChanged'], fetchWorksForProject);
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value, ...(key === 'projectId' ? { workId: '' } : {}) }));
 
@@ -80,7 +86,7 @@ const SupervisorIncentivesManager = ({ url, employeeId }) => {
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Date *</p>
-                        <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} />
+                        <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Project (optional)</p>

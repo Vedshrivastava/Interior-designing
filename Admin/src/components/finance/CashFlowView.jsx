@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import StyledDatePicker from './StyledDatePicker';
 import '../../styles/list.css';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -36,11 +37,11 @@ const CashFlowView = ({ url }) => {
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '20px' }}>
                 <div className="add-product-name flex-col">
                     <p>From</p>
-                    <input type="date" value={from} onChange={e => setFrom(e.target.value)} />
+                    <StyledDatePicker value={from} onChange={setFrom} />
                 </div>
                 <div className="add-product-name flex-col">
                     <p>To</p>
-                    <input type="date" value={to} onChange={e => setTo(e.target.value)} />
+                    <StyledDatePicker value={to} onChange={setTo} />
                 </div>
                 <div className="add-product-name flex-col">
                     <p>Group by</p>

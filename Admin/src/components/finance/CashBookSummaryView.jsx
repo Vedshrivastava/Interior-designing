@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import StyledDatePicker from './StyledDatePicker';
 import '../../styles/list.css';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -33,11 +34,11 @@ const CashBookSummaryView = ({ url }) => {
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '20px' }}>
                 <div className="add-product-name flex-col">
                     <p>From</p>
-                    <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+                    <StyledDatePicker value={dateFrom} onChange={setDateFrom} />
                 </div>
                 <div className="add-product-name flex-col">
                     <p>To</p>
-                    <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+                    <StyledDatePicker value={dateTo} onChange={setDateTo} />
                 </div>
                 <button type="button" className="add-point-btn" disabled={loading} onClick={fetchSummary}>{loading ? 'Loading…' : 'Get Summary'}</button>
             </div>

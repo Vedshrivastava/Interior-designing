@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AddLabourModal from './AddLabourModal';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 
 /*
  * Multi-select chip picker of company-wide labourers — the building
@@ -24,6 +25,7 @@ const LabourMultiSelect = ({ url, selectedIds, onChange, excludeIds = [] }) => {
     };
 
     useEffect(() => { fetchLabourers(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeLabourersChanged'], fetchLabourers);
 
     const excludeSet = new Set(excludeIds);
     const visible = labourers.filter(l => !excludeSet.has(l._id));

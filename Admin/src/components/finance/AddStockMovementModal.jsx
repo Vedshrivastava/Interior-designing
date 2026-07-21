@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import QuickAddPicker from './QuickAddPicker';
 import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 
 const MOVEMENT_LABEL = { dump: 'Dump', return: 'Return', waste: 'Waste' };
 const MANUAL_TYPES = ['dump', 'return', 'waste'];
@@ -38,10 +39,12 @@ const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
     // Only waste is attributable to one specific Work (dump/return stay
     // project-level, per the model) — this is what makes the material
     // picker filterable by work type below.
-    useEffect(() => {
+    const fetchWorks = () => {
         axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } })
             .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => {});
-    }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchWorks, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeWorksChanged'], fetchWorks);
 
     const setField = (key, value) => setForm(prev => {
         const next = { ...prev, [key]: value };

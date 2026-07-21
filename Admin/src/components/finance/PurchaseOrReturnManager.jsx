@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import StyledDatePicker from './StyledDatePicker';
 import '../../styles/list.css';
 
 const emptyForm = { vendorId: '', projectId: '', materialId: '', quantity: '', ratePerUnit: '', date: '', referenceNumber: '', notes: '', gstRate: '' };
@@ -124,7 +125,7 @@ const PurchaseOrReturnManager = ({ url, transactionType }) => {
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Date *</p>
-                        <input type="date" value={form.date} onChange={e => setField('date', e.target.value)} />
+                        <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>{isReturn ? 'Return Reference' : 'PO Number'}</p>

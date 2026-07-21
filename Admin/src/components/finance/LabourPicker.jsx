@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AddLabourModal from './AddLabourModal';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 
 /*
  * Single-select labourer picker — mirrors ContractorOrLabourPicker. Lists
@@ -20,6 +21,7 @@ const LabourPicker = ({ url, value, onChange, placeholder }) => {
     };
 
     useEffect(() => { fetchLabourers(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeLabourersChanged'], fetchLabourers);
 
     return (
         <>

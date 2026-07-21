@@ -6,6 +6,7 @@ import { ChartCard, EmptyChart, CHART_COLORS, formatINR } from './DashboardWidge
 import StyledSelect from './StyledSelect';
 import DownloadButton from './DownloadButton';
 import { useFileDownload } from '../../hooks/useFileDownload';
+import StyledDatePicker from './StyledDatePicker';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -250,7 +251,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Date *</p>
-                        <input type="date" value={advanceForm.date} onChange={e => setAdvanceForm(p => ({ ...p, date: e.target.value }))} />
+                        <StyledDatePicker value={advanceForm.date} onChange={v => setAdvanceForm(p => ({ ...p, date: v }))} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Payment Mode</p>
@@ -309,7 +310,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                         </div>
                         <div className="add-product-name flex-col">
                             <p>Date *</p>
-                            <input type="date" value={deductionForm.date} onChange={e => setDeductionForm(p => ({ ...p, date: e.target.value }))} />
+                            <StyledDatePicker value={deductionForm.date} onChange={v => setDeductionForm(p => ({ ...p, date: v }))} />
                         </div>
                     </div>
                     {deductionForm.workId && deductionForm.areaSqft > 0 && (() => {
@@ -351,7 +352,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Date *</p>
-                        <input type="date" value={paymentForm.date} onChange={e => setPaymentForm(p => ({ ...p, date: e.target.value }))} />
+                        <StyledDatePicker value={paymentForm.date} onChange={v => setPaymentForm(p => ({ ...p, date: v }))} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Payment Mode</p>

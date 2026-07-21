@@ -31,8 +31,10 @@ const financeLabourerSchema = new mongoose.Schema({
     // from this labourer's own earnings/rate. Computed purely as
     // (this labourer's own reviewed sqft on a Work) × labourProviderRatePerSqft,
     // same "Approved = reviewed" gate as the labourer's own pay
-    // (see controllers/financeLabourProviderLedger.js).
-    labourProviderVendorId:  { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', default: null },
+    // (see controllers/financeLabourProviderLedger.js). References
+    // financeLabourProvider, not financeVendor — a labour provider isn't
+    // someone the studio purchases anything from.
+    labourProviderId:          { type: mongoose.Schema.Types.ObjectId, ref: 'financeLabourProvider', default: null },
     labourProviderRatePerSqft: { type: Number, default: null },
 
     notes: { type: String, default: '' },

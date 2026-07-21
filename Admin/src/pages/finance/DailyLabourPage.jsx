@@ -20,6 +20,7 @@ const TABS = [
     { key: 'works',        label: 'Works' },
     { key: 'measurements', label: 'Measurements' },
     { key: 'ledger',       label: 'Ledger' },
+    { key: 'labourProviders', label: 'Labour Providers' },
     { key: 'providerLedger', label: 'Labour Provider Ledger' },
     { key: 'documents',    label: 'Documents' },
 ];
@@ -34,15 +35,15 @@ const LabourerPicker = ({ url, selectedLabourerId, onChange }) => (
     </div>
 );
 
-/* Provider Ledger is scoped by the provider VENDOR, not by labourer — a
+/* Provider Ledger is scoped by the provider itself, not by labourer — a
    provider's cut aggregates across every labourer connected to them — so
-   it gets its own vendor picker instead of reusing LabourerPicker/
-   selectedLabourerId. */
-const LabourProviderPicker = ({ url, selectedVendorId, onChange }) => (
+   it gets its own picker instead of reusing LabourerPicker/
+   selectedLabourerId. A labour provider is its own collection
+   (financeLabourProvider), not a vendor. */
+const LabourProviderPicker = ({ url, selectedProviderId, onChange }) => (
     <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>
         <p>Labour Provider</p>
-        <QuickAddPicker url={url} resourceKey="vendors" value={selectedVendorId} onChange={onChange}
-            filter={v => v.vendorType === 'labour_provider'} presetValues={{ vendorType: 'labour_provider' }} placeholder="Select labour provider…" />
+        <QuickAddPicker url={url} resourceKey="labourProviders" value={selectedProviderId} onChange={onChange} placeholder="Select labour provider…" />
     </div>
 );
 
@@ -104,7 +105,7 @@ const LabourerProjectsTab = ({ url, labourerId }) => {
 const DailyLabourPage = ({ url }) => {
     const [activeTab, setActiveTab] = useState(TABS[0].key);
     const [selectedLabourerId, setSelectedLabourerId] = useState('');
-    const [selectedProviderVendorId, setSelectedProviderVendorId] = useState('');
+    const [selectedProviderId, setSelectedProviderId] = useState('');
 
     return (
         <FinanceTabShell
@@ -130,11 +131,12 @@ const DailyLabourPage = ({ url }) => {
             {activeTab === 'ledger' && (
                 selectedLabourerId ? <LabourLedgerView url={url} labourerId={selectedLabourerId} /> : <div className="admin-empty-state"><p>Select a labourer to view their ledger.</p></div>
             )}
+            {activeTab === 'labourProviders' && <MasterCrudTable url={url} resourceKey="labourProviders" />}
             {activeTab === 'providerLedger' && (
                 <>
-                    <LabourProviderPicker url={url} selectedVendorId={selectedProviderVendorId} onChange={setSelectedProviderVendorId} />
-                    {selectedProviderVendorId
-                        ? <LabourProviderLedgerView url={url} vendorId={selectedProviderVendorId} />
+                    <LabourProviderPicker url={url} selectedProviderId={selectedProviderId} onChange={setSelectedProviderId} />
+                    {selectedProviderId
+                        ? <LabourProviderLedgerView url={url} labourProviderId={selectedProviderId} />
                         : <div className="admin-empty-state"><p>Select a labour provider to view their ledger.</p></div>}
                 </>
             )}

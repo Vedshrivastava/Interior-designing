@@ -251,7 +251,7 @@ const computeProjectLabourCost = async (projectId) => {
 };
 
 const computeProjectCommissionCost = async (project) => {
-    if (!project.referralVendorId) return 0;
+    if (!project.referralId) return 0;
     // Advance projects have no per-sqft referral math at all — commission is
     // a flat, manually-typed amount (financeProject.referralCommissionAmount,
     // editable any time), read fresh here so Profit/Client Profit move
@@ -1786,7 +1786,7 @@ const computeCompanyWideCommissionCostInRange = async (start, end, projectIds = 
     if (!relevant.length) return 0;
 
     const candidateProjectIds = [...new Set(relevant.map(m => m.workId.projectId.toString()))];
-    const referralProjects = await FinanceProject.find({ _id: { $in: candidateProjectIds }, referralVendorId: { $ne: null } }, '_id');
+    const referralProjects = await FinanceProject.find({ _id: { $in: candidateProjectIds }, referralId: { $ne: null } }, '_id');
     const referralProjectIds = new Set(referralProjects.map(p => p._id.toString()));
     if (!referralProjectIds.size) return 0;
 

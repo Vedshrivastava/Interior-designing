@@ -9,13 +9,13 @@ import '../../styles/add.css';
 const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '' };
 
 /*
- * Commission Ledger for one referral vendor — earnings breakdown (from
+ * Commission Ledger for one referral — earnings breakdown (from
  * financeWork × referralRatePerSqft across the projects they referred),
  * payment form/history, and the computed Commission Payable. Mirrors
- * ContractorLedgerView/VendorLedgerView's shape. Only meaningful for
- * vendorType 'referral' — the picker calling this filters to that type.
+ * ContractorLedgerView/VendorLedgerView's shape. A referral is its own
+ * collection (financeReferral), not a vendor.
  */
-const CommissionLedgerView = ({ url, vendorId }) => {
+const CommissionLedgerView = ({ url, referralId }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -29,14 +29,14 @@ const CommissionLedgerView = ({ url, vendorId }) => {
     const fetchLedger = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${url}/api/finance/vendors/${vendorId}/commission-ledger`, authHeader);
+            const res = await axios.get(`${url}/api/finance/referrals/${referralId}/commission-ledger`, authHeader);
             if (res.data.success) setLedger(res.data.data);
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error fetching commission ledger'); }
         finally { setLoading(false); }
     };
 
-    useEffect(() => { if (vendorId) fetchLedger(); }, [vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { if (referralId) fetchLedger(); }, [referralId]); // eslint-disable-line react-hooks/exhaustive-deps
     useEffect(() => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
@@ -52,7 +52,7 @@ const CommissionLedgerView = ({ url, vendorId }) => {
         if (!form.date) return toast.error('Date is required');
         setSaving(true);
         try {
-            const res = await axios.post(`${url}/api/finance/commission-payments/add`, { ...form, vendorId }, authHeader);
+            const res = await axios.post(`${url}/api/finance/commission-payments/add`, { ...form, referralId }, authHeader);
             if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); await fetchLedger(); }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording commission payment'); }

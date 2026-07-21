@@ -232,8 +232,9 @@ const PayablesSalaryTab = ({ url }) => {
     );
 };
 
-/* Commission payable per referral vendor, pulled from the commission
-   ledger endpoint — same N+1 pattern as the tabs above. */
+/* Commission payable per referral, pulled from the commission ledger
+   endpoint — same N+1 pattern as the tabs above. A referral is its own
+   collection (financeReferral), not a vendor. */
 const PayablesCommissionTab = ({ url }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
@@ -245,11 +246,11 @@ const PayablesCommissionTab = ({ url }) => {
 
     const fetchRows = async () => {
         try {
-            const vendorsRes = await axios.get(`${url}/api/finance/vendors/list`, authHeader);
-            const referrals = vendorsRes.data.success ? vendorsRes.data.data.filter(v => v.vendorType === 'referral') : [];
-            const ledgers = await Promise.all(referrals.map(v =>
-                axios.get(`${url}/api/finance/vendors/${v._id}/commission-ledger`, authHeader)
-                    .then(res => (res.data.success ? { vendorId: v._id, vendorName: v.name, ...res.data.data.totals } : null))
+            const referralsRes = await axios.get(`${url}/api/finance/referrals/list`, authHeader);
+            const referrals = referralsRes.data.success ? referralsRes.data.data : [];
+            const ledgers = await Promise.all(referrals.map(r =>
+                axios.get(`${url}/api/finance/referrals/${r._id}/commission-ledger`, authHeader)
+                    .then(res => (res.data.success ? { referralId: r._id, referralName: r.name, ...res.data.data.totals } : null))
                     .catch(() => null)
             ));
             if (aliveRef.current) {
@@ -266,19 +267,19 @@ const PayablesCommissionTab = ({ url }) => {
 
     useEffect(() => { fetchRows(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useFinanceWsRefresh(['financeVendorsChanged', 'financeProjectsChanged', 'financeWorksChanged', 'financeWorkTypeRatesChanged', 'financeCommissionPaymentsChanged'], fetchRows);
+    useFinanceWsRefresh(['financeReferralsChanged', 'financeProjectsChanged', 'financeWorksChanged', 'financeWorkTypeRatesChanged', 'financeCommissionPaymentsChanged'], fetchRows);
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
-    if (rows.length === 0) return <div className="admin-empty-state"><p>No referral vendors yet.</p></div>;
+    if (rows.length === 0) return <div className="admin-empty-state"><p>No referrals yet.</p></div>;
 
     return (
         <div className="list-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.9fr 0.9fr 0.9fr 1fr' }}>
-                <b>Referral Vendor</b><b>Approved</b><b>Unapproved</b><b>Payments</b><b>Commission Payable</b>
+                <b>Referral</b><b>Approved</b><b>Unapproved</b><b>Payments</b><b>Commission Payable</b>
             </div>
             {rows.map(r => (
-                <div key={r.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 0.9fr 0.9fr 0.9fr 1fr' }}>
-                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/procurement')}>{r.vendorName}</p>
+                <div key={r.referralId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 0.9fr 0.9fr 0.9fr 1fr' }}>
+                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/procurement')}>{r.referralName}</p>
                     <p style={{ color: r.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{r.earnings > 0 ? `₹${r.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
                     <p style={{ color: r.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>₹{r.unapprovedAmount.toLocaleString('en-IN')}</p>
                     <p>₹{r.payments.toLocaleString('en-IN')}</p>
@@ -292,7 +293,8 @@ const PayablesCommissionTab = ({ url }) => {
 /* Balance payable per labour provider, pulled from the labour provider
    ledger endpoint — same N+1 pattern as the tabs above. "Payable" here is
    totals.balancePayable (approvedPay − paymentsTotal), the same figure
-   surfaced as "Total Pay Left" in LabourProviderLedgerView. */
+   surfaced as "Total Pay Left" in LabourProviderLedgerView. A labour
+   provider is its own collection (financeLabourProvider), not a vendor. */
 const PayablesLabourProviderTab = ({ url }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
@@ -304,11 +306,11 @@ const PayablesLabourProviderTab = ({ url }) => {
 
     const fetchRows = async () => {
         try {
-            const vendorsRes = await axios.get(`${url}/api/finance/vendors/list`, authHeader);
-            const providers = vendorsRes.data.success ? vendorsRes.data.data.filter(v => v.vendorType === 'labour_provider') : [];
+            const providersRes = await axios.get(`${url}/api/finance/labour-providers/list`, authHeader);
+            const providers = providersRes.data.success ? providersRes.data.data : [];
             const ledgers = await Promise.all(providers.map(v =>
-                axios.get(`${url}/api/finance/vendors/${v._id}/labour-provider-ledger`, authHeader)
-                    .then(res => (res.data.success ? { vendorId: v._id, vendorName: v.name, ...res.data.data.totals } : null))
+                axios.get(`${url}/api/finance/labour-providers/${v._id}/labour-provider-ledger`, authHeader)
+                    .then(res => (res.data.success ? { labourProviderId: v._id, labourProviderName: v.name, ...res.data.data.totals } : null))
                     .catch(() => null)
             ));
             if (aliveRef.current) {
@@ -325,10 +327,10 @@ const PayablesLabourProviderTab = ({ url }) => {
 
     useEffect(() => { fetchRows(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useFinanceWsRefresh(['financeVendorsChanged', 'financeLabourersChanged', 'financeWorksChanged', 'financeWorkReviewChanged', 'financeLabourProviderPaymentsChanged'], fetchRows);
+    useFinanceWsRefresh(['financeLabourProvidersChanged', 'financeLabourersChanged', 'financeWorksChanged', 'financeWorkReviewChanged', 'financeLabourProviderPaymentsChanged'], fetchRows);
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
-    if (rows.length === 0) return <div className="admin-empty-state"><p>No labour provider vendors yet.</p></div>;
+    if (rows.length === 0) return <div className="admin-empty-state"><p>No labour providers yet.</p></div>;
 
     return (
         <div className="list-table">
@@ -336,8 +338,8 @@ const PayablesLabourProviderTab = ({ url }) => {
                 <b>Labour Provider</b><b>Approved Pay</b><b>Pay Left to Approve</b><b>Payments</b><b>Balance Payable</b>
             </div>
             {rows.map(r => (
-                <div key={r.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 0.9fr 0.9fr 0.9fr 1fr' }}>
-                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/daily-labour')}>{r.vendorName}</p>
+                <div key={r.labourProviderId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 0.9fr 0.9fr 0.9fr 1fr' }}>
+                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/daily-labour')}>{r.labourProviderName}</p>
                     <p>₹{r.approvedPay.toLocaleString('en-IN')}</p>
                     <p style={{ color: r.pendingApprovalPay > 0 ? '#c0392b' : 'var(--text-lt)' }}>₹{r.pendingApprovalPay.toLocaleString('en-IN')}</p>
                     <p>₹{r.paymentsTotal.toLocaleString('en-IN')}</p>

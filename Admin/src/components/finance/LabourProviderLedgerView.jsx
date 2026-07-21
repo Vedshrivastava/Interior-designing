@@ -9,11 +9,11 @@ import '../../styles/add.css';
 const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '' };
 
 /*
- * Labour Provider Ledger for one provider vendor — mirrors
- * CommissionLedgerView's shape (earnings breakdown + payment form/history
- * + computed payable), but a provider's "earnings" are split across every
- * labourer connected to them (financeLabourer.labourProviderVendorId),
- * per work, using each labourer's OWN reviewed/approved sqft on that work
+ * Labour Provider Ledger for one provider — mirrors CommissionLedgerView's
+ * shape (earnings breakdown + payment form/history + computed payable),
+ * but a provider's "earnings" are split across every labourer connected
+ * to them (financeLabourer.labourProviderId), per work, using each
+ * labourer's OWN reviewed/approved sqft on that work
  * × the provider's fixed rate for that labourer — never derived from or
  * deducted against the labourer's own pay (see
  * controllers/financeLabourProviderLedger.js). Approved Pay and Pay Left
@@ -21,7 +21,7 @@ const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', 
  * cut is earned: only reviewed sqft is actually payable, but unreviewed
  * sqft's prospective pay still needs to be visible.
  */
-const LabourProviderLedgerView = ({ url, vendorId }) => {
+const LabourProviderLedgerView = ({ url, labourProviderId }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -35,14 +35,14 @@ const LabourProviderLedgerView = ({ url, vendorId }) => {
     const fetchLedger = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${url}/api/finance/vendors/${vendorId}/labour-provider-ledger`, authHeader);
+            const res = await axios.get(`${url}/api/finance/labour-providers/${labourProviderId}/labour-provider-ledger`, authHeader);
             if (res.data.success) setLedger(res.data.data);
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error fetching labour provider ledger'); }
         finally { setLoading(false); }
     };
 
-    useEffect(() => { if (vendorId) fetchLedger(); }, [vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { if (labourProviderId) fetchLedger(); }, [labourProviderId]); // eslint-disable-line react-hooks/exhaustive-deps
     useEffect(() => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
@@ -58,7 +58,7 @@ const LabourProviderLedgerView = ({ url, vendorId }) => {
         if (!form.date) return toast.error('Date is required');
         setSaving(true);
         try {
-            const res = await axios.post(`${url}/api/finance/labour-provider-payments/add`, { ...form, vendorId }, authHeader);
+            const res = await axios.post(`${url}/api/finance/labour-provider-payments/add`, { ...form, labourProviderId }, authHeader);
             if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); await fetchLedger(); }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording labour provider payment'); }

@@ -10,6 +10,9 @@ import FinanceRunningBill from '../models/financeRunningBill.js';
 import FinanceReceipt from '../models/financeReceipt.js';
 import FinanceClient from '../models/financeClient.js';
 import FinanceVendor from '../models/financeVendor.js';
+import FinanceReferral from '../models/financeReferral.js';
+import FinanceLabourProvider from '../models/financeLabourProvider.js';
+import FinanceLabourProviderPayment from '../models/financeLabourProviderPayment.js';
 import FinanceWork from '../models/financeWork.js';
 import FinanceMeasurement from '../models/financeMeasurement.js';
 import FinancePurchase from '../models/financePurchase.js';
@@ -286,6 +289,8 @@ const checkAlerts = async (req, res) => {
 const BACKUP_COLLECTIONS = [
     { name: 'financeClients', model: FinanceClient },
     { name: 'financeVendors', model: FinanceVendor },
+    { name: 'financeReferrals', model: FinanceReferral },
+    { name: 'financeLabourProviders', model: FinanceLabourProvider },
     { name: 'financeProjects', model: FinanceProject },
     { name: 'financeWorks', model: FinanceWork },
     { name: 'financeMeasurements', model: FinanceMeasurement },
@@ -302,6 +307,7 @@ const BACKUP_COLLECTIONS = [
     { name: 'financeCashEntries', model: FinanceCashEntry },
     { name: 'financeSalaryPayments', model: FinanceSalaryPayment },
     { name: 'financeCommissionPayments', model: FinanceCommissionPayment },
+    { name: 'financeLabourProviderPayments', model: FinanceLabourProviderPayment },
     { name: 'financeExpenses', model: FinanceExpense },
     { name: 'financeLabourers', model: FinanceLabourer },
     { name: 'financeLabourRates', model: FinanceLabourRate },

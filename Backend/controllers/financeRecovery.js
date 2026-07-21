@@ -2,6 +2,8 @@ import { v2 as cloudinary } from 'cloudinary';
 import dotenv from 'dotenv';
 import FinanceClient from '../models/financeClient.js';
 import FinanceVendor from '../models/financeVendor.js';
+import FinanceReferral from '../models/financeReferral.js';
+import FinanceLabourProvider from '../models/financeLabourProvider.js';
 import FinanceEmployee from '../models/financeEmployee.js';
 import FinanceMaterial from '../models/financeMaterial.js';
 import FinanceLabourer from '../models/financeLabourer.js';
@@ -38,6 +40,8 @@ cloudinary.config({
 const RECOVERY_TYPES = {
     client:         { model: FinanceClient,         label: 'Client',          changed: 'financeClientsChanged',         name: d => d.name },
     vendor:         { model: FinanceVendor,          label: 'Vendor',          changed: 'financeVendorsChanged',         name: d => d.name },
+    referral:       { model: FinanceReferral,        label: 'Referral',        changed: 'financeReferralsChanged',       name: d => d.name },
+    labourProvider: { model: FinanceLabourProvider,  label: 'Labour Provider', changed: 'financeLabourProvidersChanged', name: d => d.name },
     employee:       { model: FinanceEmployee,        label: 'Employee',        changed: 'financeEmployeesChanged',       name: d => d.name },
     material:       { model: FinanceMaterial,        label: 'Material',        changed: 'financeMaterialsChanged',       name: d => d.name },
     labourer:       { model: FinanceLabourer,        label: 'Labourer',        changed: 'financeLabourersChanged',       name: d => d.name },

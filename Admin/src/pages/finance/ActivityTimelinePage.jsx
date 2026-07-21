@@ -15,7 +15,7 @@ const EVENT_TYPES = [
     'measurement_logged', 'stock_dumped', 'stock_returned', 'stock_wasted',
     'running_bill_generated', 'receipt_received', 'contractor_advance_given',
     'contractor_deduction_applied', 'contractor_paid', 'material_purchased',
-    'vendor_paid', 'bank_transfer', 'salary_paid', 'commission_paid',
+    'vendor_paid', 'bank_transfer', 'salary_paid', 'commission_paid', 'labour_provider_paid',
     'expense_recorded', 'daily_labour_logged', 'supervisor_incentive_given',
     'work_created', 'work_completed', 'project_created', 'project_activated',
     'client_quotation_issued', 'client_quotation_status_changed',

@@ -349,7 +349,7 @@ export const FINANCE_NAV_SECTIONS = [
         // `siteLocation` field (both stay plain Strings, never validated
         // against the master — old free-text values keep working), and
         // Commission Types back an optional, purely descriptive
-        // `commissionTypeLabel` on referral vendors that has zero effect
+        // `commissionTypeLabel` on a referral that has zero effect
         // on the actual commission math (still always
         // completedAreaSqft × referralRatePerSqft). The Banks placeholder
         // tab was removed in that same build — Bank Accounts already

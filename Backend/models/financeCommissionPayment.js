@@ -1,9 +1,10 @@
 import mongoose from 'mongoose';
 
-// A commission payout to a referral vendor (financeVendor with vendorType
-// 'referral'), settling part of the balance the commission ledger computes.
+// A commission payout to a referral (its own financeReferral collection,
+// not a financeVendor), settling part of the balance the commission
+// ledger computes.
 const financeCommissionPaymentSchema = new mongoose.Schema({
-    vendorId:  { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', required: true },
+    referralId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeReferral', required: true },
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', default: null },
 
     amount: { type: Number, required: true },

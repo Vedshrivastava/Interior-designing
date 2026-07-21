@@ -1,11 +1,11 @@
 import mongoose from 'mongoose';
 
-// A payout to a labourer's labour provider (financeVendor with vendorType
-// 'labour_provider'), settling part of the balance the labour provider
-// ledger computes. Mirrors financeCommissionPayment exactly — same shape,
-// different vendor type on the other end.
+// A payout to a labourer's labour provider (its own financeLabourProvider
+// collection, not a financeVendor), settling part of the balance the
+// labour provider ledger computes. Mirrors financeCommissionPayment
+// exactly — same shape, different collection on the other end.
 const financeLabourProviderPaymentSchema = new mongoose.Schema({
-    vendorId:  { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', required: true },
+    labourProviderId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeLabourProvider', required: true },
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', default: null },
 
     amount: { type: Number, required: true },

@@ -25,6 +25,8 @@ import finishRouter   from "./routes/finish.js";
 import cityRouter     from "./routes/city.js";
 import financeClientRouter   from "./routes/financeClient.js";
 import financeVendorRouter   from "./routes/financeVendor.js";
+import financeReferralRouter from "./routes/financeReferral.js";
+import financeLabourProviderRouter from "./routes/financeLabourProvider.js";
 import financeEmployeeRouter from "./routes/financeEmployee.js";
 import financeMaterialRouter from "./routes/financeMaterial.js";
 import financeSettingRouter  from "./routes/financeSetting.js";
@@ -141,8 +143,14 @@ app.use('/api/finance/client-documents',  financeClientDocumentRouter);
 app.use('/api/finance/client-contacts',   financeClientContactRouter);
 app.use('/api/finance/vendors',   financeVendorRouter);
 app.use('/api/finance/vendors',   financeVendorLedgerRouter); // same prefix, separate ledger concern — see routes/financeVendorLedger.js
-app.use('/api/finance/vendors',   financeCommissionLedgerRouter); // same prefix, separate ledger concern — see routes/financeCommissionLedger.js
-app.use('/api/finance/vendors',   financeLabourProviderLedgerRouter); // same prefix, separate ledger concern — see routes/financeLabourProviderLedger.js
+// Referral and Labour Provider are their own collections (financeReferral/
+// financeLabourProvider), not financeVendor — each gets its own CRUD
+// prefix, and its ledger router mounted on that same prefix (same pattern
+// financeVendorLedgerRouter uses above).
+app.use('/api/finance/referrals', financeReferralRouter);
+app.use('/api/finance/referrals', financeCommissionLedgerRouter); // same prefix, separate ledger concern — see routes/financeCommissionLedger.js
+app.use('/api/finance/labour-providers', financeLabourProviderRouter);
+app.use('/api/finance/labour-providers', financeLabourProviderLedgerRouter); // same prefix, separate ledger concern — see routes/financeLabourProviderLedger.js
 app.use('/api/finance/employees', financeEmployeeRouter);
 app.use('/api/finance/employees', financeSalaryLedgerRouter); // same prefix, separate ledger concern — see routes/financeSalaryLedger.js
 app.use('/api/finance/materials', financeMaterialRouter);

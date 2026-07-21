@@ -13,13 +13,13 @@ const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', 
  * Standalone commission-payment entry + history — the same
  * financeCommissionPayment data as Procurement's Commission Ledger tab,
  * reachable from the Payments page directly without pulling in the
- * earnings breakdown. Scoped to referral-type vendors only.
+ * earnings breakdown.
  */
 const CommissionPaymentsManager = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-    const [vendorId, setVendorId] = useState('');
+    const [referralId, setReferralId] = useState('');
     const [bankAccounts, setBankAccounts] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
     const [payments, setPayments] = useState([]);
@@ -38,24 +38,24 @@ const CommissionPaymentsManager = ({ url }) => {
     const fetchPayments = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${url}/api/finance/commission-payments/list`, { ...authHeader, params: { vendorId } });
+            const res = await axios.get(`${url}/api/finance/commission-payments/list`, { ...authHeader, params: { referralId } });
             if (res.data.success) setPayments(res.data.data);
         } catch { toast.error('Error fetching commission payments'); }
         finally { setLoading(false); }
     };
 
-    useEffect(() => { if (vendorId) fetchPayments(); else setPayments([]); }, [vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { if (referralId) fetchPayments(); else setPayments([]); }, [referralId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
     const submit = async (e) => {
         e.preventDefault();
-        if (!vendorId) return toast.error('Select a referral vendor');
+        if (!referralId) return toast.error('Select a referral');
         if (!form.amount || Number(form.amount) <= 0) return toast.error('Amount must be greater than zero');
         if (!form.date) return toast.error('Date is required');
         setSaving(true);
         try {
-            const res = await axios.post(`${url}/api/finance/commission-payments/add`, { ...form, vendorId }, authHeader);
+            const res = await axios.post(`${url}/api/finance/commission-payments/add`, { ...form, referralId }, authHeader);
             if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); await fetchPayments(); }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording commission payment'); }
@@ -73,13 +73,13 @@ const CommissionPaymentsManager = ({ url }) => {
     return (
         <div>
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>
-                <p>Referral Vendor</p>
-                <QuickAddPicker url={url} resourceKey="vendors" value={vendorId} onChange={setVendorId}
-                    filter={v => v.vendorType === 'referral'} presetValues={{ vendorType: 'referral' }} placeholder="Select referral vendor…" />
+                <p>Referral</p>
+                <QuickAddPicker url={url} resourceKey="referrals" value={referralId} onChange={setReferralId}
+                    placeholder="Select referral…" />
             </div>
 
-            {!vendorId ? (
-                <div className="admin-empty-state"><p>Select a referral vendor to record or view commission payments.</p></div>
+            {!referralId ? (
+                <div className="admin-empty-state"><p>Select a referral to record or view commission payments.</p></div>
             ) : (
                 <>
                     <form onSubmit={submit}>

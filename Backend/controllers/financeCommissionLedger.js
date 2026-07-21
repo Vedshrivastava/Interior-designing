@@ -10,13 +10,10 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 /*
  * Computed fresh on every call — nothing stored, same shape as the
  * Contractor/Labour ledgers, including the same Approved/Unapproved
- * split: a referral vendor's commission is only actually payable once
- * the work it's earned on has been reviewed (financeWorkReview), same
- * "one review gates both sides" rule that already governs client
- * billing and contractor/labour pay — this used to compute Commission
- * Payable straight off completedAreaSqft (everything ever logged,
- * reviewed or not), the only ledger in the app that wasn't gated by
- * review. A referral vendor is 1-per-project (not a per-work
+ * split: a referral's commission is only actually payable once the work
+ * it's earned on has been reviewed (financeWorkReview), same "one review
+ * gates both sides" rule that already governs client billing and
+ * contractor/labour pay. A referral is 1-per-project (not a per-work
  * assignment like a contractor), so no proportional split across
  * multiple claimants is needed — splitApprovedAreaByShare is still
  * reused (with partyArea === totalAreaAllParties) purely so the "never
@@ -24,18 +21,18 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
  * reimplemented a second time.
  *
  * Commission Earned (Approved) = SUM over financeWork (for projects
- * where referralVendorId = this vendor) of approvedAreaSqft ×
+ * where referralId = this referral) of approvedAreaSqft ×
  * referralRatePerSqft. Commission Payable = Approved Earned −
  * SUM(commissionPayment.amount).
  */
 const getCommissionLedger = async (req, res) => {
     try {
-        const { vendorId } = req.params;
+        const { referralId } = req.params;
         const { projectId } = req.query;
 
-        const vendor = await assertReferralVendor(vendorId);
+        const referral = await assertReferralVendor(referralId);
 
-        const projectFilter = { referralVendorId: vendorId, deleted: { $ne: true } };
+        const projectFilter = { referralId, deleted: { $ne: true } };
         if (projectId) projectFilter._id = projectId;
         const projects = await FinanceProject.find(projectFilter);
         const projectIds = projects.map(p => p._id);
@@ -78,7 +75,7 @@ const getCommissionLedger = async (req, res) => {
             };
         });
 
-        const paymentFilter = { vendorId, deleted: { $ne: true } };
+        const paymentFilter = { referralId, deleted: { $ne: true } };
         if (projectId) paymentFilter.projectId = projectId;
         const payments = await FinanceCommissionPayment.find(paymentFilter).populate('bankAccountId', 'accountName').sort({ date: -1 });
         const paymentsTotal = round2(payments.reduce((sum, p) => sum + p.amount, 0));
@@ -89,7 +86,7 @@ const getCommissionLedger = async (req, res) => {
         res.json({
             success: true,
             data: {
-                vendorId: vendor._id, vendorName: vendor.name,
+                referralId: referral._id, referralName: referral.name,
                 works: worksOut, payments,
                 totals: {
                     totalAmount: round2(totalAmountTotal), earnings: earningsTotal, unapprovedAmount: round2(unapprovedAmountTotal),

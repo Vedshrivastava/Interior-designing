@@ -67,6 +67,17 @@ export const renderMasterField = (f, form, setField, { url, settingOptions = {} 
                 />
             );
         }
+        // A plain resource-scoped picker — same nested-QuickAddPicker
+        // shape as vendorSelect, but for any FINANCE_MASTERS resource that
+        // isn't a vendor at all (e.g. 'labourProviders', 'referrals').
+        // Pass f.resourceKey to say which one.
+        case 'resourceSelect':
+            return (
+                <QuickAddPicker
+                    url={url} resourceKey={f.resourceKey} value={value} onChange={v => setField(f.key, v)}
+                    placeholder="None"
+                />
+            );
         case 'employeeSelect':
             return <QuickAddPicker url={url} resourceKey="employees" value={value} onChange={v => setField(f.key, v)} placeholder="None" />;
         case 'settingSelect':

@@ -27,10 +27,10 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
  * transparency already established for Contractor/Labour ledgers'
  * unapprovedAmount.
  */
-const computeLabourProviderLedger = async (vendorId, projectId) => {
-    const vendor = await assertLabourProviderVendor(vendorId);
+const computeLabourProviderLedger = async (labourProviderId, projectId) => {
+    const provider = await assertLabourProviderVendor(labourProviderId);
 
-    const labourers = await FinanceLabourer.find({ labourProviderVendorId: vendorId, deleted: { $ne: true } });
+    const labourers = await FinanceLabourer.find({ labourProviderId, deleted: { $ne: true } });
     const labourerIds = labourers.map(l => l._id);
     const labourerById = new Map(labourers.map(l => [l._id.toString(), l]));
 
@@ -97,7 +97,7 @@ const computeLabourProviderLedger = async (vendorId, projectId) => {
         }
     }
 
-    const paymentFilter = { vendorId, deleted: { $ne: true } };
+    const paymentFilter = { labourProviderId, deleted: { $ne: true } };
     if (projectId) paymentFilter.projectId = projectId;
     const payments = await FinanceLabourProviderPayment.find(paymentFilter).populate('bankAccountId', 'accountName').sort({ date: -1 });
     const paymentsTotal = round2(payments.reduce((sum, p) => sum + p.amount, 0));
@@ -106,7 +106,7 @@ const computeLabourProviderLedger = async (vendorId, projectId) => {
     const balancePayable = round2(approvedPay - paymentsTotal);
 
     return {
-        vendor, vendorId: vendor._id, vendorName: vendor.name,
+        provider, labourProviderId: provider._id, labourProviderName: provider.name,
         rows,
         labourers: labourers.map(l => ({ _id: l._id, name: l.name, rate: l.labourProviderRatePerSqft })),
         payments,
@@ -120,9 +120,9 @@ const computeLabourProviderLedger = async (vendorId, projectId) => {
 
 const getLabourProviderLedger = async (req, res) => {
     try {
-        const { vendorId } = req.params;
+        const { labourProviderId } = req.params;
         const { projectId } = req.query;
-        const { vendor, ...data } = await computeLabourProviderLedger(vendorId, projectId);
+        const { provider, ...data } = await computeLabourProviderLedger(labourProviderId, projectId);
         res.json({ success: true, data });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message || 'Error computing labour provider ledger' });

@@ -29,7 +29,9 @@ const financeProjectSchema = new mongoose.Schema({
     // Material, commission is computedAreaSqft × financeWorkTypeRate.
     // referralRatePerSqft (see computeProjectCommissionCost); for Advance,
     // there's no per-sqft commission math at all — see referralCommissionAmount.
-    referralVendorId:         { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', default: null },
+    // References financeReferral, not financeVendor — a referral isn't
+    // someone the studio purchases anything from.
+    referralId:               { type: mongoose.Schema.Types.ObjectId, ref: 'financeReferral', default: null },
 
     // Material Received/Issue logs available for this project — always true
     // for with_material, always false for without_material, owner's choice
@@ -40,7 +42,7 @@ const financeProjectSchema = new mongoose.Schema({
     totalEstimatedCost:  { type: Number, default: 0 }, // optional context, doesn't drive anything
     advanceAmount:       { type: Number, default: 0 }, // manually entered, not computed from a percentage
 
-    // Advance-only, and only meaningful when referralVendorId is set — a
+    // Advance-only, and only meaningful when referralId is set — a
     // single manually-typed lump sum instead of the sqft × rate computation
     // With/Without Material projects use (an Advance deal's referral fee is
     // negotiated as a flat amount, not per square foot). Editable any time

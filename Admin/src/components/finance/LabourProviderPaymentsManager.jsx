@@ -13,14 +13,13 @@ const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', 
  * Standalone labour-provider payment entry + history — the same
  * financeLabourProviderPayment data as Labourers' Labour Provider Ledger
  * tab, reachable from the Payments page directly without pulling in the
- * earnings breakdown. Mirrors CommissionPaymentsManager exactly, scoped
- * to labour_provider-type vendors instead of referral ones.
+ * earnings breakdown. Mirrors CommissionPaymentsManager exactly.
  */
 const LabourProviderPaymentsManager = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-    const [vendorId, setVendorId] = useState('');
+    const [labourProviderId, setLabourProviderId] = useState('');
     const [bankAccounts, setBankAccounts] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
     const [payments, setPayments] = useState([]);
@@ -39,24 +38,24 @@ const LabourProviderPaymentsManager = ({ url }) => {
     const fetchPayments = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${url}/api/finance/labour-provider-payments/list`, { ...authHeader, params: { vendorId } });
+            const res = await axios.get(`${url}/api/finance/labour-provider-payments/list`, { ...authHeader, params: { labourProviderId } });
             if (res.data.success) setPayments(res.data.data);
         } catch { toast.error('Error fetching labour provider payments'); }
         finally { setLoading(false); }
     };
 
-    useEffect(() => { if (vendorId) fetchPayments(); else setPayments([]); }, [vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { if (labourProviderId) fetchPayments(); else setPayments([]); }, [labourProviderId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
     const submit = async (e) => {
         e.preventDefault();
-        if (!vendorId) return toast.error('Select a labour provider vendor');
+        if (!labourProviderId) return toast.error('Select a labour provider');
         if (!form.amount || Number(form.amount) <= 0) return toast.error('Amount must be greater than zero');
         if (!form.date) return toast.error('Date is required');
         setSaving(true);
         try {
-            const res = await axios.post(`${url}/api/finance/labour-provider-payments/add`, { ...form, vendorId }, authHeader);
+            const res = await axios.post(`${url}/api/finance/labour-provider-payments/add`, { ...form, labourProviderId }, authHeader);
             if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); await fetchPayments(); }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording labour provider payment'); }
@@ -75,11 +74,11 @@ const LabourProviderPaymentsManager = ({ url }) => {
         <div>
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>
                 <p>Labour Provider</p>
-                <QuickAddPicker url={url} resourceKey="vendors" value={vendorId} onChange={setVendorId}
-                    filter={v => v.vendorType === 'labour_provider'} presetValues={{ vendorType: 'labour_provider' }} placeholder="Select labour provider…" />
+                <QuickAddPicker url={url} resourceKey="labourProviders" value={labourProviderId} onChange={setLabourProviderId}
+                    placeholder="Select labour provider…" />
             </div>
 
-            {!vendorId ? (
+            {!labourProviderId ? (
                 <div className="admin-empty-state"><p>Select a labour provider to record or view payments.</p></div>
             ) : (
                 <>

@@ -6,10 +6,10 @@ import { logActivity } from '../utils/financeActivityLog.js';
 
 const listLabourProviderPayments = async (req, res) => {
     try {
-        const { vendorId, projectId } = req.query;
-        if (!vendorId && !projectId) return res.status(400).json({ success: false, message: 'vendorId or projectId is required' });
+        const { labourProviderId, projectId } = req.query;
+        if (!labourProviderId && !projectId) return res.status(400).json({ success: false, message: 'labourProviderId or projectId is required' });
         const filter = { deleted: { $ne: true } };
-        if (vendorId) filter.vendorId = vendorId;
+        if (labourProviderId) filter.labourProviderId = labourProviderId;
         if (projectId) filter.projectId = projectId;
         const items = await FinanceLabourProviderPayment.find(filter).populate('bankAccountId', 'accountName').populate('tdsSectionId', 'name code').sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
@@ -23,14 +23,14 @@ const listLabourProviderPayments = async (req, res) => {
 // bankAccountId means cash — a financeCashEntry is auto-created below.
 const addLabourProviderPayment = async (req, res) => {
     try {
-        const { vendorId, projectId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
-        if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
-        const vendor = await assertLabourProviderVendor(vendorId);
+        const { labourProviderId, projectId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
+        if (!labourProviderId) return res.status(400).json({ success: false, message: 'Labour provider is required' });
+        const provider = await assertLabourProviderVendor(labourProviderId);
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
         const item = new FinanceLabourProviderPayment({
-            vendorId, projectId: projectId || null, amount: Number(amount), date,
+            labourProviderId, projectId: projectId || null, amount: Number(amount), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null, utrNumber: utrNumber || '',
             notes: notes || '',
             tdsSectionId: tdsSectionId || null, tdsAmount: (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null,
@@ -45,14 +45,14 @@ const addLabourProviderPayment = async (req, res) => {
             broadcast({ type: 'financeCashBookChanged' });
         }
 
-        broadcast({ type: 'financeLabourProviderPaymentsChanged', vendorId });
+        broadcast({ type: 'financeLabourProviderPaymentsChanged', labourProviderId });
 
         await logActivity({
             eventType: 'labour_provider_paid',
             entityType: 'financeLabourProviderPayment',
             entityId: item._id,
             projectId: projectId || null,
-            summary: `Labour provider payment of ₹${Number(amount)} paid to ${vendor.name}`,
+            summary: `Labour provider payment of ₹${Number(amount)} paid to ${provider.name}`,
             amount: Number(amount),
             req,
         });
@@ -76,7 +76,7 @@ const updateLabourProviderPayment = async (req, res) => {
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', utrNumber: utrNumber || '', notes: notes || '',
             tdsSectionId: tdsSectionId || null, tdsAmount: (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null,
         });
-        broadcast({ type: 'financeLabourProviderPaymentsChanged', vendorId: existing.vendorId });
+        broadcast({ type: 'financeLabourProviderPaymentsChanged', labourProviderId: existing.labourProviderId });
         res.json({ success: true, message: 'Labour provider payment updated' });
     } catch (err) {
         console.error(err);
@@ -95,7 +95,7 @@ const removeLabourProviderPayment = async (req, res) => {
             { relatedLabourProviderPaymentId: item._id },
             { deleted: true, deletedAt: new Date(), deletedBy: req.userName || 'Admin' }
         );
-        broadcast({ type: 'financeLabourProviderPaymentsChanged', vendorId: item.vendorId });
+        broadcast({ type: 'financeLabourProviderPaymentsChanged', labourProviderId: item.labourProviderId });
         broadcast({ type: 'financeCashBookChanged' });
         res.json({ success: true, message: 'Labour provider payment removed' });
     } catch (err) {

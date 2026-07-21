@@ -6,10 +6,10 @@ import { logActivity } from '../utils/financeActivityLog.js';
 
 const listCommissionPayments = async (req, res) => {
     try {
-        const { vendorId, projectId } = req.query;
-        if (!vendorId && !projectId) return res.status(400).json({ success: false, message: 'vendorId or projectId is required' });
+        const { referralId, projectId } = req.query;
+        if (!referralId && !projectId) return res.status(400).json({ success: false, message: 'referralId or projectId is required' });
         const filter = { deleted: { $ne: true } };
-        if (vendorId) filter.vendorId = vendorId;
+        if (referralId) filter.referralId = referralId;
         if (projectId) filter.projectId = projectId;
         const items = await FinanceCommissionPayment.find(filter).populate('bankAccountId', 'accountName').populate('tdsSectionId', 'name code').sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
@@ -23,14 +23,14 @@ const listCommissionPayments = async (req, res) => {
 // bankAccountId means cash — a financeCashEntry is auto-created below.
 const addCommissionPayment = async (req, res) => {
     try {
-        const { vendorId, projectId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
-        if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
-        const vendor = await assertReferralVendor(vendorId);
+        const { referralId, projectId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
+        if (!referralId) return res.status(400).json({ success: false, message: 'Referral is required' });
+        const referral = await assertReferralVendor(referralId);
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
         const item = new FinanceCommissionPayment({
-            vendorId, projectId: projectId || null, amount: Number(amount), date,
+            referralId, projectId: projectId || null, amount: Number(amount), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null, utrNumber: utrNumber || '',
             notes: notes || '',
             tdsSectionId: tdsSectionId || null, tdsAmount: (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null,
@@ -45,14 +45,14 @@ const addCommissionPayment = async (req, res) => {
             broadcast({ type: 'financeCashBookChanged' });
         }
 
-        broadcast({ type: 'financeCommissionPaymentsChanged', vendorId });
+        broadcast({ type: 'financeCommissionPaymentsChanged', referralId });
 
         await logActivity({
             eventType: 'commission_paid',
             entityType: 'financeCommissionPayment',
             entityId: item._id,
             projectId: projectId || null,
-            summary: `Commission of ₹${Number(amount)} paid to ${vendor.name}`,
+            summary: `Commission of ₹${Number(amount)} paid to ${referral.name}`,
             amount: Number(amount),
             req,
         });
@@ -76,7 +76,7 @@ const updateCommissionPayment = async (req, res) => {
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', utrNumber: utrNumber || '', notes: notes || '',
             tdsSectionId: tdsSectionId || null, tdsAmount: (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null,
         });
-        broadcast({ type: 'financeCommissionPaymentsChanged', vendorId: existing.vendorId });
+        broadcast({ type: 'financeCommissionPaymentsChanged', referralId: existing.referralId });
         res.json({ success: true, message: 'Commission payment updated' });
     } catch (err) {
         console.error(err);
@@ -95,7 +95,7 @@ const removeCommissionPayment = async (req, res) => {
             { relatedCommissionPaymentId: item._id },
             { deleted: true, deletedAt: new Date(), deletedBy: req.userName || 'Admin' }
         );
-        broadcast({ type: 'financeCommissionPaymentsChanged', vendorId: item.vendorId });
+        broadcast({ type: 'financeCommissionPaymentsChanged', referralId: item.referralId });
         broadcast({ type: 'financeCashBookChanged' });
         res.json({ success: true, message: 'Commission payment removed' });
     } catch (err) {

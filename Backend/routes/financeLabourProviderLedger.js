@@ -4,9 +4,8 @@ import { getLabourProviderLedger } from '../controllers/financeLabourProviderLed
 
 const router = express.Router();
 
-// Mounted at the same '/api/finance/vendors' prefix as routes/financeVendor.js,
-// financeVendorLedger.js, and financeCommissionLedger.js — one more router
-// on that prefix, one per ledger concern.
-router.get('/:vendorId/labour-provider-ledger', adminAuthMiddleware, getLabourProviderLedger);
+// Mounted at '/api/finance/labour-providers' (routes/financeLabourProvider.js's
+// own prefix) — a second router on that prefix, for this one ledger concern.
+router.get('/:labourProviderId/labour-provider-ledger', adminAuthMiddleware, getLabourProviderLedger);
 
 export default router;

@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 // by `settingType` instead of one near-empty collection each. unit/city
 // back a UI-level dropdown-with-escape-hatch on financeMaterial.unit /
 // financeProject.siteLocation (both stay plain Strings — see those
-// controllers); commission_type backs financeVendor.commissionTypeLabel,
+// controllers); commission_type backs financeReferral.commissionTypeLabel,
 // which is descriptive/reporting only and never affects commission math.
 const financeSettingSchema = new mongoose.Schema({
     settingType: {

@@ -19,11 +19,11 @@ const TABS = [
     { key: 'materialDump',  label: 'Material Dump' },
     { key: 'returns',       label: 'Returns' },
     { key: 'ledger',        label: 'Ledger' },
+    { key: 'referrals',        label: 'Referrals' },
     { key: 'commissionLedger', label: 'Commission Ledger' },
 ];
 
 const NON_CONTRACTOR = (v) => v.vendorType !== 'labour_contractor';
-const IS_REFERRAL = (v) => v.vendorType === 'referral';
 
 // Same dashboardCache pattern as FinanceHome.jsx — the Vendors overview
 // tab always shows the same company-wide aggregate (no picker scoping it),
@@ -34,8 +34,7 @@ let vendorsOverviewCache = null;
    (mirrors how Contractors' Ledger tab works: a picker on this same page,
    not a new :vendorId route), so picking a vendor happens right here.
    `filter` narrows which vendors show up in the dropdown — Ledger uses
-   every non-contractor vendor, Commission Ledger only referral ones,
-   since that's the only vendorType a commission ledger means anything for. */
+   every non-contractor vendor. */
 const VendorPicker = ({ url, selectedVendorId, onChange, filter, presetValues }) => (
     <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>
         <p>Vendor</p>
@@ -44,12 +43,21 @@ const VendorPicker = ({ url, selectedVendorId, onChange, filter, presetValues })
     </div>
 );
 
+/* Referral is its own collection (financeReferral), not a vendor — its
+   own plain picker, no vendorType filter needed. */
+const ReferralPicker = ({ url, selectedReferralId, onChange }) => (
+    <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>
+        <p>Referral</p>
+        <QuickAddPicker url={url} resourceKey="referrals" value={selectedReferralId} onChange={onChange} placeholder="Select referral…" />
+    </div>
+);
+
 /* Tier-1 mini-dashboard for the Vendors tab — top vendors by purchase
    volume (₹) and a monthly average-purchase-rate trend per material (so
    rate creep is visible), on top of the existing vendor-filtered CRUD
    table. Scoped to material_supplier vendors only, same as Vendor
-   Analysis in Reports — referral vendors have their own Commission
-   Ledger tab instead. */
+   Analysis in Reports — referrals have their own Commission Ledger tab
+   instead. */
 const ProcurementVendorsOverviewTab = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -146,9 +154,8 @@ const ProcurementVendorsOverviewTab = ({ url }) => {
    up under Contractors instead. No backend change; same MasterCrudTable
    used by Contractors. New vendors added from this tab are preset to
    vendorType 'material_supplier' (this page's own stated purpose, per
-   its subtitle) rather than offering Referral/Other as if they belonged
-   here — an existing referral/other vendor that shows up in this same
-   list (nothing else currently offers a page to edit one) still shows
+   its subtitle) rather than offering Other as if it belonged here — an
+   existing "other" vendor that shows up in this same list still shows
    and can still change its real type when edited, presetValues only
    ever applies to a fresh Add.
 
@@ -156,12 +163,11 @@ const ProcurementVendorsOverviewTab = ({ url }) => {
    movement server-side (dump for a purchase, return for a return) —
    Material Dump here is the inventory-side read of exactly those
    purchase-generated movements, distinct from Site Inventory's own
-   manual dump entry. Ledger = purchases − returns − payments, same
+   manual waste entry. Ledger = purchases − returns − payments, same
    computed-on-read shape as the Contractor Ledger. Commission Ledger is
-   its referral-vendor equivalent — earnings come from financeWork ×
-   referralRatePerSqft across the projects this vendor referred, and the
-   tab only ever shows referral-type vendors in its picker (there's no
-   separate routed vendor detail page to conditionally show/hide it on). */
+   a referral's equivalent — earnings come from financeWork ×
+   referralRatePerSqft across the projects they referred; a referral is
+   its own collection (financeReferral), not a vendor. */
 const ProcurementPage = ({ url }) => {
     const [searchParams] = useSearchParams();
     // Arriving via `?projectId=&material=` — e.g. a measurement's
@@ -172,7 +178,7 @@ const ProcurementPage = ({ url }) => {
     const deepLinkMaterialId = searchParams.get('material') || '';
     const [activeTab, setActiveTab] = useState(deepLinkMaterialId ? 'purchases' : TABS[0].key);
     const [selectedVendorId, setSelectedVendorId] = useState('');
-    const [selectedCommissionVendorId, setSelectedCommissionVendorId] = useState('');
+    const [selectedReferralId, setSelectedReferralId] = useState('');
 
     return (
         <FinanceTabShell
@@ -196,12 +202,13 @@ const ProcurementPage = ({ url }) => {
                         : <div className="admin-empty-state"><p>Select a vendor to view their ledger.</p></div>}
                 </>
             )}
+            {activeTab === 'referrals' && <MasterCrudTable url={url} resourceKey="referrals" />}
             {activeTab === 'commissionLedger' && (
                 <>
-                    <VendorPicker url={url} selectedVendorId={selectedCommissionVendorId} onChange={setSelectedCommissionVendorId} filter={IS_REFERRAL} presetValues={{ vendorType: 'referral' }} />
-                    {selectedCommissionVendorId
-                        ? <CommissionLedgerView url={url} vendorId={selectedCommissionVendorId} />
-                        : <div className="admin-empty-state"><p>Select a referral vendor to view their commission ledger.</p></div>}
+                    <ReferralPicker url={url} selectedReferralId={selectedReferralId} onChange={setSelectedReferralId} />
+                    {selectedReferralId
+                        ? <CommissionLedgerView url={url} referralId={selectedReferralId} />
+                        : <div className="admin-empty-state"><p>Select a referral to view their commission ledger.</p></div>}
                 </>
             )}
         </FinanceTabShell>

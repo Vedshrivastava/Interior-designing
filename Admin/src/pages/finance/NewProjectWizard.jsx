@@ -36,7 +36,7 @@ const NewProjectWizard = ({ url }) => {
     const [project, setProject] = useState(null); // full record once created, for status/flags
     const [basic, setBasic] = useState(emptyBasic);
     const [contractType, setContractType] = useState('');
-    const [referralVendorId, setReferralVendorId] = useState('');
+    const [referralId, setReferralId] = useState('');
     const [materialTrackingEnabled, setMaterialTrackingEnabled] = useState(true);
     const [totalEstimatedCost, setTotalEstimatedCost] = useState('');
     const [advanceAmount, setAdvanceAmount] = useState('');
@@ -128,14 +128,14 @@ const NewProjectWizard = ({ url }) => {
                 _id: projectId,
                 ...basic,
                 contractType,
-                referralVendorId: referralVendorId || null,
+                referralId: referralId || null,
                 materialTrackingEnabled,
                 totalEstimatedCost: contractType === 'advance' ? totalEstimatedCost : 0,
                 advanceAmount: contractType === 'advance' ? advanceAmount : 0,
             }, authHeader);
             if (!res.data.success) { toast.error(res.data.message); return; }
             // /update only returns {success, message}, not the saved record —
-            // Team & Rates needs referralVendorId populated with a name (same
+            // Team & Rates needs referralId populated with a name (same
             // "Referral Person: X" line Project Detail's own Works & Rates tab
             // shows), so re-fetch the real, populated project here.
             const projectRes = await axios.get(`${url}/api/finance/projects/${projectId}`, authHeader);
@@ -319,13 +319,11 @@ const NewProjectWizard = ({ url }) => {
 
                             <p className="wizard-section-label">Referral</p>
                             <div className="add-product-name flex-col" style={{ maxWidth: '420px' }}>
-                                <p>Referral Vendor (middleman, optional)</p>
-                                <QuickAddPicker url={url} resourceKey="vendors" value={referralVendorId}
-                                    onChange={setReferralVendorId}
-                                    filter={v => v.vendorType === 'referral' || v.vendorType === 'other'}
-                                    presetValues={{ vendorType: 'referral' }} placeholder="None" />
+                                <p>Referral (middleman, optional)</p>
+                                <QuickAddPicker url={url} resourceKey="referrals" value={referralId}
+                                    onChange={setReferralId} placeholder="None" />
                             </div>
-                            {contractType === 'advance' && referralVendorId && (
+                            {contractType === 'advance' && referralId && (
                                 <p className="wizard-hidden-note" style={{ marginTop: '10px' }}>Commission for an Advance project's referral is a flat amount, entered manually when this project is marked Completed, not computed from sqft.</p>
                             )}
 
@@ -377,7 +375,7 @@ const NewProjectWizard = ({ url }) => {
                             <h2>Team &amp; Rates</h2>
                             <WorksManager url={url} projectId={projectId} worksVersion={worksVersion} onWorksChanged={() => setWorksVersion(v => v + 1)} />
                             <div style={{ marginTop: '32px' }}>
-                                <WorkTypeRatesManager url={url} projectId={projectId} worksVersion={worksVersion} referralVendorName={project?.referralVendorId?.name} />
+                                <WorkTypeRatesManager url={url} projectId={projectId} worksVersion={worksVersion} referralVendorName={project?.referralId?.name} />
                             </div>
                             <h3 style={{ margin: '28px 0 8px' }}>Contractor Rates</h3>
                             <ContractorRatesManager url={url} projectId={projectId} worksVersion={worksVersion} />

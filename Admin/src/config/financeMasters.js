@@ -25,6 +25,11 @@ export const FINANCE_MASTERS = {
             { key: 'email', label: 'Email' },
         ],
     },
+    // "Vendor" only ever means someone the studio purchases material from,
+    // or a labour contractor company — Referral and Labour Provider used
+    // to be vendorType values here too, but neither is someone the studio
+    // buys anything from, so they're their own resources entirely now
+    // (see `referrals` and `labourProviders` below).
     vendors: {
         label: 'Vendor', labelPlural: 'Vendors', apiBase: '/api/finance/vendors',
         fields: [
@@ -34,8 +39,6 @@ export const FINANCE_MASTERS = {
                 options: [
                     { value: 'material_supplier', label: 'Material Supplier' },
                     { value: 'labour_contractor', label: 'Labour Contractor' },
-                    { value: 'referral', label: 'Referral' },
-                    { value: 'labour_provider', label: 'Labour Provider' },
                     { value: 'other', label: 'Other' },
                 ],
             },
@@ -48,17 +51,64 @@ export const FINANCE_MASTERS = {
             { key: 'accountNumber', label: 'Account Number', type: 'text', required: true, section: 'Bank Details' },
             { key: 'confirmAccountNumber', label: 'Re-enter Account Number', type: 'confirmText', matchKey: 'accountNumber', required: true, placeholder: 'Retype to confirm', section: 'Bank Details' },
             { key: 'ifscCode', label: 'IFSC Code', type: 'text', required: true, section: 'Bank Details' },
+            { key: 'notes', label: 'Notes', type: 'textarea', section: 'Other' },
+        ],
+        columns: [
+            { key: 'name', label: 'Name' },
+            { key: 'vendorType', label: 'Type', badge: true },
+            { key: 'phone', label: 'Phone' },
+        ],
+    },
+    // A referral person/entity that earns a commission (area × a work
+    // type's referral rate) for projects they bring in — its own
+    // collection (financeReferral), not a vendor: not someone the studio
+    // purchases anything from.
+    referrals: {
+        label: 'Referral', labelPlural: 'Referrals', apiBase: '/api/finance/referrals',
+        fields: [
+            { key: 'name', label: 'Name', type: 'text', required: true, section: 'Contact' },
+            { key: 'phone', label: 'Phone', type: 'tel', section: 'Contact' },
+            { key: 'email', label: 'Email', type: 'email', section: 'Contact' },
+            { key: 'address', label: 'Address', type: 'textarea', section: 'Contact' },
+            { key: 'gstNumber', label: 'GSTIN (if GST-registered)', type: 'text', section: 'Contact' },
+            { key: 'accountName', label: 'Bank Account Holder Name', type: 'text', required: true, section: 'Bank Details' },
+            { key: 'bankName', label: 'Bank Name', type: 'text', required: true, section: 'Bank Details' },
+            { key: 'accountNumber', label: 'Account Number', type: 'text', required: true, section: 'Bank Details' },
+            { key: 'confirmAccountNumber', label: 'Re-enter Account Number', type: 'confirmText', matchKey: 'accountNumber', required: true, placeholder: 'Retype to confirm', section: 'Bank Details' },
+            { key: 'ifscCode', label: 'IFSC Code', type: 'text', required: true, section: 'Bank Details' },
             {
                 key: 'commissionTypeLabel', label: 'Commission Type', type: 'settingSelect', settingType: 'commission_type',
-                placeholder: 'e.g. Flat, Tiered, Project-based…', section: 'Referral',
-                showIf: (form) => form.vendorType === 'referral',
+                placeholder: 'e.g. Flat, Tiered, Project-based…', section: 'Commission',
                 note: 'Descriptive only: does not change how commission is calculated. Commission is always area × the work type\'s referral rate per sqft.',
             },
             { key: 'notes', label: 'Notes', type: 'textarea', section: 'Other' },
         ],
         columns: [
             { key: 'name', label: 'Name' },
-            { key: 'vendorType', label: 'Type', badge: true },
+            { key: 'phone', label: 'Phone' },
+        ],
+    },
+    // A middleman who supplies/connects labourers, earning a fixed ₹/sqft
+    // cut on each connected labourer's own reviewed sqft — its own
+    // collection (financeLabourProvider), not a vendor. Surfaced both as
+    // its own Masters tab and via the Labourer form's "+ Add New".
+    labourProviders: {
+        label: 'Labour Provider', labelPlural: 'Labour Providers', apiBase: '/api/finance/labour-providers',
+        fields: [
+            { key: 'name', label: 'Name', type: 'text', required: true, section: 'Contact' },
+            { key: 'phone', label: 'Phone', type: 'tel', section: 'Contact' },
+            { key: 'email', label: 'Email', type: 'email', section: 'Contact' },
+            { key: 'address', label: 'Address', type: 'textarea', section: 'Contact' },
+            { key: 'gstNumber', label: 'GSTIN (if GST-registered)', type: 'text', section: 'Contact' },
+            { key: 'accountName', label: 'Bank Account Holder Name', type: 'text', required: true, section: 'Bank Details' },
+            { key: 'bankName', label: 'Bank Name', type: 'text', required: true, section: 'Bank Details' },
+            { key: 'accountNumber', label: 'Account Number', type: 'text', required: true, section: 'Bank Details' },
+            { key: 'confirmAccountNumber', label: 'Re-enter Account Number', type: 'confirmText', matchKey: 'accountNumber', required: true, placeholder: 'Retype to confirm', section: 'Bank Details' },
+            { key: 'ifscCode', label: 'IFSC Code', type: 'text', required: true, section: 'Bank Details' },
+            { key: 'notes', label: 'Notes', type: 'textarea', section: 'Other' },
+        ],
+        columns: [
+            { key: 'name', label: 'Name' },
             { key: 'phone', label: 'Phone' },
         ],
     },
@@ -120,12 +170,12 @@ export const FINANCE_MASTERS = {
         fields: [
             { key: 'name', label: 'Name', type: 'text', required: true, section: 'Details' },
             {
-                key: 'labourProviderVendorId', label: 'Labour Provider (optional)', type: 'vendorSelect', vendorType: 'labour_provider',
+                key: 'labourProviderId', label: 'Labour Provider (optional)', type: 'resourceSelect', resourceKey: 'labourProviders',
                 section: 'Labour Provider',
             },
             {
                 key: 'labourProviderRatePerSqft', label: 'Labour Provider Rate (₹/sqft) *', type: 'number', section: 'Labour Provider',
-                showIf: (form) => !!form.labourProviderVendorId,
+                showIf: (form) => !!form.labourProviderId,
                 note: "Required once a provider is picked (enforced on save) — a separate cost the company pays the provider, based on this labourer's own reviewed sqft, never deducted from this labourer's own pay.",
             },
             { key: 'accountName', label: 'Bank Account Holder Name', type: 'text', required: true, section: 'Bank Details' },
@@ -137,7 +187,7 @@ export const FINANCE_MASTERS = {
         ],
         columns: [
             { key: 'name', label: 'Name' },
-            { key: 'labourProviderVendorId', label: 'Labour Provider', vendorRef: true },
+            { key: 'labourProviderId', label: 'Labour Provider', refResource: 'labourProviders' },
         ],
     },
     // Not surfaced under Masters' own page — reused from the Bank page's

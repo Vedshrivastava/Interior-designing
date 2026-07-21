@@ -59,7 +59,7 @@ const applyContractTypeRules = (data) => {
     } else if (out.contractType === 'advance') {
         if (out.materialTrackingEnabled === undefined) out.materialTrackingEnabled = true;
     }
-    out.referralVendorId = out.referralVendorId || null; // optional for every contract type
+    out.referralId = out.referralId || null; // optional for every contract type
 
     if (out.contractType === 'advance') {
         out.totalEstimatedCost = Number(out.totalEstimatedCost) || 0;
@@ -76,7 +76,7 @@ const listFinanceProjects = async (req, res) => {
         const projects = await FinanceProject.find({ deleted: { $ne: true } })
             .populate('clientId', 'name')
             .populate('labourContractorVendorId', 'name')
-            .populate('referralVendorId', 'name')
+            .populate('referralId', 'name')
             .populate('assignedSupervisorId', 'name')
             .sort({ createdAt: -1 });
 
@@ -104,7 +104,7 @@ const getFinanceProject = async (req, res) => {
         const project = await FinanceProject.findOne({ _id: req.params.id, deleted: { $ne: true } })
             .populate('clientId', 'name phone email')
             .populate('labourContractorVendorId', 'name')
-            .populate('referralVendorId', 'name')
+            .populate('referralId', 'name')
             .populate('assignedSupervisorId', 'name');
         if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
@@ -146,7 +146,7 @@ const addFinanceProject = async (req, res) => {
             // labourContractorVendorId intentionally not settable here — contractor
             // assignment is per-Work (see computeProjectContractors above), not a
             // single project-level field. The schema field stays for old records.
-            referralVendorId: data.referralVendorId || null,
+            referralId: data.referralId || null,
             materialTrackingEnabled: data.materialTrackingEnabled,
             totalEstimatedCost: data.totalEstimatedCost,
             advanceAmount: data.advanceAmount,
@@ -192,7 +192,7 @@ const updateFinanceProject = async (req, res) => {
             assignedSupervisorId: merged.assignedSupervisorId || null,
             // labourContractorVendorId intentionally not settable here — see
             // addFinanceProject's comment above.
-            referralVendorId: merged.referralVendorId,
+            referralId: merged.referralId,
             materialTrackingEnabled: merged.materialTrackingEnabled,
             totalEstimatedCost: merged.totalEstimatedCost,
             advanceAmount: merged.advanceAmount,
@@ -340,7 +340,7 @@ const downloadAdvanceReceipt = async (req, res) => {
     }
 };
 
-// Advance-only, and only meaningful with a referralVendorId set — the flat
+// Advance-only, and only meaningful with a referralId set — the flat
 // manually-typed commission amount (see the model's own comment for why
 // this isn't sqft × rate the way With/Without Material's referral
 // commission is). Standalone endpoint rather than folding into the general

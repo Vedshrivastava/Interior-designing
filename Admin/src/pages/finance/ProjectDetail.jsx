@@ -389,7 +389,7 @@ const ProjectDetail = ({ url }) => {
     // commission amount right here, even if it was already entered/edited
     // earlier from Overview — this is the last real chance to get it right.
     const handleMarkCompletedClick = () => {
-        if (project.contractType === 'advance' && project.referralVendorId) {
+        if (project.contractType === 'advance' && project.referralId) {
             setCompletionCommissionConfirm({ amount: String(project.referralCommissionAmount || 0) });
         } else {
             completeProject(false);
@@ -494,7 +494,7 @@ const ProjectDetail = ({ url }) => {
                                 <>
                                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Total Estimated Cost</b></p><p>₹{project.totalEstimatedCost?.toLocaleString('en-IN')}</p></div>
                                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Advance Amount</b></p><p>₹{project.advanceAmount?.toLocaleString('en-IN')}</p></div>
-                                    {project.referralVendorId && (
+                                    {project.referralId && (
                                         <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
                                             <p><b>Referral Commission</b></p>
                                             <div className="add-product-name" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px', margin: 0 }}>
@@ -591,7 +591,7 @@ const ProjectDetail = ({ url }) => {
                     <div>
                         <WorksManager url={url} projectId={id} worksVersion={worksVersion} onWorksChanged={() => setWorksVersion(v => v + 1)} />
                         <div style={{ marginTop: '32px' }}>
-                            <WorkTypeRatesManager url={url} projectId={id} worksVersion={worksVersion} referralVendorName={project.referralVendorId?.name} />
+                            <WorkTypeRatesManager url={url} projectId={id} worksVersion={worksVersion} referralVendorName={project.referralId?.name} />
                         </div>
                         <h3 style={{ margin: '28px 0 8px' }}>Contractor Rates</h3>
                         <ContractorRatesManager url={url} projectId={id} worksVersion={worksVersion} />
@@ -682,7 +682,7 @@ const ProjectDetail = ({ url }) => {
                     <div className="loader-modal-box edit-modal">
                         <h2>Confirm Referral Commission</h2>
                         <p className="admin-subtitle" style={{ margin: '4px 0 16px' }}>
-                            Referral Person: {project.referralVendorId?.name || 'None'}. Confirm the flat commission amount before completing "{project.name}".
+                            Referral Person: {project.referralId?.name || 'None'}. Confirm the flat commission amount before completing "{project.name}".
                         </p>
                         <div className="add-product-name flex-col">
                             <p>Referral Commission (₹)</p>

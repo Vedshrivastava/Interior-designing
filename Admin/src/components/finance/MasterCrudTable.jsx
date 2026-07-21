@@ -43,7 +43,7 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
 
     const [list, setList] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [vendors, setVendors] = useState([]);
+    const [refLists, setRefLists] = useState({}); // { [resourceKey]: [{_id, name}] } — for column refResource display
     const [settingOptions, setSettingOptions] = useState({}); // { [settingType]: [{_id, name}] }
     const [modalOpen, setModalOpen] = useState(false);
     const [form, setForm] = useState(emptyFormFromFields(resource.fields));
@@ -53,10 +53,11 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
     const [deleting, setDeleting] = useState(false);
     const [query, setQuery] = useState('');
 
-    // Only needed for the read-only column display (e.g. Team's Contractor
-    // column) — the form itself no longer needs a pre-fetched vendor list,
-    // since vendorSelect fields render as a self-fetching QuickAddPicker.
-    const needsVendors = resource.columns.some(c => c.vendorRef);
+    // Only needed for the read-only column display (e.g. Labourers'
+    // Labour Provider column) — the form itself never needs a pre-fetched
+    // list, since resourceSelect/vendorSelect fields render as a
+    // self-fetching QuickAddPicker.
+    const refResourceKeys = [...new Set(resource.columns.filter(c => c.refResource).map(c => c.refResource))];
     const settingSelectFields = resource.fields.filter(f => f.type === 'settingSelect');
     // Also covers workTypeMultiSelect — same options-fetch, just no
     // register-if-new on submit (that stays scoped to settingSelectFields).
@@ -84,11 +85,13 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
     useFinanceWsRefresh([`finance${resourceKey[0].toUpperCase()}${resourceKey.slice(1)}Changed`], fetchList);
 
     useEffect(() => {
-        if (!needsVendors) return;
-        axios.get(`${url}/api/finance/vendors/list`, authHeader)
-            .then(res => { if (res.data.success) setVendors(res.data.data); })
-            .catch(() => {});
-    }, [needsVendors]); // eslint-disable-line react-hooks/exhaustive-deps
+        refResourceKeys.forEach(key => {
+            const refResource = FINANCE_MASTERS[key];
+            axios.get(`${url}${refResource.apiBase}/list`, authHeader)
+                .then(res => { if (res.data.success) setRefLists(prev => ({ ...prev, [key]: res.data.data })); })
+                .catch(() => {});
+        });
+    }, [refResourceKeys.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         settingFetchFields.forEach(f => {
@@ -98,7 +101,7 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
         });
     }, [resourceKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const vendorName = (id) => vendors.find(v => v._id === (id?._id || id))?.name || '-';
+    const refName = (resourceKey, id) => (refLists[resourceKey] || []).find(v => v._id === (id?._id || id))?.name || '-';
 
     const openAdd = () => {
         setEditingId(null);
@@ -113,7 +116,7 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
         const next = emptyFormFromFields(resource.fields);
         resource.fields.forEach(f => {
             let v = item[f.key];
-            if (f.type === 'vendorSelect') v = v?._id || v || '';
+            if (f.type === 'vendorSelect' || f.type === 'resourceSelect') v = v?._id || v || '';
             if (f.type === 'date' && v) v = new Date(v).toISOString().slice(0, 10);
             next[f.key] = v ?? next[f.key];
         });
@@ -177,7 +180,7 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
     const renderCell = (item, col, isFirst) => {
         const value = item[col.key];
         let content;
-        if (col.vendorRef) content = vendorName(value);
+        if (col.refResource) content = refName(col.refResource, value);
         else if (col.joinArray) content = Array.isArray(value) && value.length > 0 ? value.join(', ') : (col.emptyLabel || '-');
         else if (col.badge) {
             const opt = resource.fields.find(f => f.key === col.key)?.options?.find(o => o.value === value);

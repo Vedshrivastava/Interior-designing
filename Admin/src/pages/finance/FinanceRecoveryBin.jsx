@@ -11,6 +11,8 @@ import '../../styles/add.css';
 const TABS = [
     { key: 'client',          label: 'Clients' },
     { key: 'vendor',          label: 'Vendors' },
+    { key: 'referral',        label: 'Referrals' },
+    { key: 'labourProvider',  label: 'Labour Providers' },
     { key: 'employee',        label: 'Employees' },
     { key: 'labourer',        label: 'Labourers' },
     { key: 'material',        label: 'Materials' },
@@ -43,10 +45,11 @@ const contextOf = (item) => {
  * dashboard's (/recovery-bin, pages/RecoveryBin.jsx), which only ever
  * covers public-site content (designs/products/projects/categories/etc.)
  * and never touches any financeXxx model. This one is the mirror image:
- * only the 12 Finance entities whose own list pages actually promise
- * "Moved to Recovery Bin" on delete (Clients, Vendors, Employees,
- * Labourers, Materials, Bank Accounts, Projects, Works, Running Bills,
- * Purchases, Client/Project Documents) — nothing from the public site.
+ * only the 14 Finance entities whose own list pages actually promise
+ * "Moved to Recovery Bin" on delete (Clients, Vendors, Referrals, Labour
+ * Providers, Employees, Labourers, Materials, Bank Accounts, Projects,
+ * Works, Running Bills, Purchases, Client/Project Documents) — nothing
+ * from the public site.
  */
 const FinanceRecoveryBin = ({ url }) => {
     const token = localStorage.getItem('token');

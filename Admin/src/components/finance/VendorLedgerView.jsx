@@ -144,7 +144,7 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                         <p>{new Date(p.date).toLocaleDateString()}</p>
                         <p>{p.projectId?.name || '-'}</p>
                         <p>{p.materialId?.name || '-'}</p>
-                        <p>{p.quantity}</p>
+                        <p>{p.quantity} {p.materialId?.unit || ''}</p>
                         <p>₹{p.totalAmount.toLocaleString('en-IN')}</p>
                     </div>
                 ))}
@@ -162,7 +162,7 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                         <p>{new Date(r.date).toLocaleDateString()}</p>
                         <p>{r.projectId?.name || '-'}</p>
                         <p>{r.materialId?.name || '-'}</p>
-                        <p>{r.quantity}</p>
+                        <p>{r.quantity} {r.materialId?.unit || ''}</p>
                         <p>₹{r.totalAmount.toLocaleString('en-IN')}</p>
                     </div>
                 ))}

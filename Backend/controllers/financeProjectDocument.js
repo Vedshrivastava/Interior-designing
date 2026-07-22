@@ -30,11 +30,13 @@ const addProjectDocument = async (req, res) => {
 
         let result;
         try {
-            // resource_type 'auto' lets Cloudinary handle PDFs/docs alongside
-            // images without a separate upload path for each.
+            // resource_type 'raw' — Cloudinary blocks public delivery of
+            // PDF/ZIP files uploaded as image/video by default (account-level
+            // security policy); raw delivery serves the file as-is and isn't
+            // subject to that ACL block.
             result = await cloudinary.uploader.upload(req.file.path, {
                 folder: 'project_documents',
-                resource_type: 'auto',
+                resource_type: 'raw',
             });
         } finally {
             fs.unlinkSync(req.file.path);

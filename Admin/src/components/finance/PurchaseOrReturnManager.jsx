@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import StyledDatePicker from './StyledDatePicker';
+import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 
 const emptyForm = { vendorId: '', projectId: '', materialId: '', quantity: '', ratePerUnit: '', date: '', referenceNumber: '', notes: '', gstRate: '' };
@@ -62,6 +63,8 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
     const totalPreview = (Number(form.quantity) || 0) * (Number(form.ratePerUnit) || 0);
+    const selectedMaterial = materials.find(m => m._id === form.materialId);
+    const rateLabel = selectedMaterial?.unit ? `Rate per ${selectedMaterial.unit} (₹) *` : 'Rate per Unit (₹) *';
 
     const submit = async (e) => {
         e.preventDefault();
@@ -96,31 +99,25 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
                 <div className="wizard-field-grid">
                     <div className="add-product-name flex-col">
                         <p>Vendor *</p>
-                        <select value={form.vendorId} onChange={e => setField('vendorId', e.target.value)}>
-                            <option value="">Select vendor…</option>
-                            {vendors.map(v => <option key={v._id} value={v._id}>{v.name}</option>)}
-                        </select>
+                        <StyledSelect value={form.vendorId} onChange={v => setField('vendorId', v)} placeholder="Select vendor…"
+                            options={vendors.map(v => ({ value: v._id, label: v.name }))} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Project *</p>
-                        <select value={form.projectId} onChange={e => setField('projectId', e.target.value)}>
-                            <option value="">Select project…</option>
-                            {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                        </select>
+                        <StyledSelect value={form.projectId} onChange={v => setField('projectId', v)} placeholder="Select project…"
+                            options={projects.map(p => ({ value: p._id, label: p.name }))} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Material *</p>
-                        <select value={form.materialId} onChange={e => setField('materialId', e.target.value)}>
-                            <option value="">Select material…</option>
-                            {materials.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}
-                        </select>
+                        <StyledSelect value={form.materialId} onChange={v => setField('materialId', v)} placeholder="Select material…"
+                            options={materials.map(m => ({ value: m._id, label: m.unit ? `${m.name} (${m.unit})` : m.name }))} />
                     </div>
                     <div className="add-product-name flex-col">
-                        <p>Quantity *</p>
+                        <p>Quantity{selectedMaterial?.unit ? ` (${selectedMaterial.unit})` : ''} *</p>
                         <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.quantity} onChange={e => setField('quantity', e.target.value)} />
                     </div>
                     <div className="add-product-name flex-col">
-                        <p>Rate per Unit (₹) *</p>
+                        <p>{rateLabel}</p>
                         <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.ratePerUnit} onChange={e => setField('ratePerUnit', e.target.value)} />
                     </div>
                     <div className="add-product-name flex-col">
@@ -164,8 +161,8 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
                             <p>{new Date(item.date).toLocaleDateString()}</p>
                             <p>{item.vendorId?.name || '-'}</p>
                             <p>{item.materialId?.name || '-'} {item.materialId?.unit ? `(${item.materialId.unit})` : ''}</p>
-                            <p>{item.quantity}</p>
-                            <p>₹{item.ratePerUnit}</p>
+                            <p>{item.quantity} {item.materialId?.unit || ''}</p>
+                            <p>₹{item.ratePerUnit}{item.materialId?.unit ? `/${item.materialId.unit}` : ''}</p>
                             <p>₹{item.totalAmount.toLocaleString('en-IN')}</p>
                             <p>{item.gstAmount ? `₹${item.gstAmount.toLocaleString('en-IN')} (${item.gstRate}%)` : '-'}</p>
                             <div className="action-buttons">

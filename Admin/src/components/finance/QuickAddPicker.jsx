@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
-import { emptyFormFromFields, renderMasterField, groupFieldsBySection, FieldNote } from './masterFieldRenderer';
+import { emptyFormFromFields, renderMasterField, groupFieldsBySection, FieldNote, isFullWidthField } from './masterFieldRenderer';
 import { registerSettingIfNew } from './SettingSelectField';
 import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
@@ -114,7 +114,7 @@ const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValue
                                     {group.section && <p className="wizard-section-label">{group.section}</p>}
                                     <div className="wizard-field-grid">
                                         {group.fields.map(f => (
-                                            <div key={f.key} className={`add-product-name flex-col${(f.type === 'textarea' || group.fields.length === 1) ? ' wizard-field-full' : ''}`}>
+                                            <div key={f.key} className={`add-product-name flex-col${isFullWidthField(f, group) ? ' wizard-field-full' : ''}`}>
                                                 <p>{f.label}{f.required ? ' *' : ''}</p>
                                                 {renderMasterField(f, form, setField, { url, settingOptions })}
                                                 <FieldNote note={f.note} />

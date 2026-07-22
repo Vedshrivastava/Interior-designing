@@ -40,6 +40,16 @@ export const groupFieldsBySection = (fields) => {
     return groups;
 };
 
+// Field types that render as a bulky standalone widget (chip grid, dynamic
+// row list) rather than a single input — these look cramped at half-grid
+// width the way AddWorkModal's Contractor(s)/Labour Team blocks would if
+// they'd been forced into its wizard-field-grid instead of sitting as
+// their own full-bleed sections. `f.fullWidth: true` lets any individual
+// field config opt into the same treatment (e.g. a long-text `select`).
+const WIDE_FIELD_TYPES = new Set(['textarea', 'workTypeMultiSelect', 'stringArray']);
+export const isFullWidthField = (f, group) =>
+    f.fullWidth === true || WIDE_FIELD_TYPES.has(f.type) || group.fields.length === 1;
+
 // `vendorSelect` renders as a nested QuickAddPicker (not a plain select) so
 // a Team can be created without a side trip to add its contractor Vendor
 // first — same behavior whether the Team form is opened from Masters

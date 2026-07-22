@@ -5,7 +5,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
 import { registerSettingIfNew } from './SettingSelectField';
-import { emptyFormFromFields, renderMasterField, groupFieldsBySection, FieldNote } from './masterFieldRenderer';
+import { emptyFormFromFields, renderMasterField, groupFieldsBySection, FieldNote, isFullWidthField } from './masterFieldRenderer';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/add.css';
@@ -34,7 +34,14 @@ import '../../styles/wizard.css';
    accidentally be given a different one. Deliberately never applied on
    Edit — an existing row keeps showing (and can still change) its real
    stored value there, same "list filter and creation default are two
-   different things" reasoning QuickAddPicker's own presetValues uses. */
+   different things" reasoning QuickAddPicker's own presetValues uses.
+
+   Per-field `onlyOnAdd` (optional, set on a field in FINANCE_MASTERS
+   config): hides that field once editingId is set — for a field that only
+   makes sense as a one-time initial assignment (e.g. a Labour Team's
+   starting Contractor/Supervisor), the same way AddWorkModal only shows
+   its Contractor(s)/Labour Team sections when !editingId, rather than
+   letting an edit silently reassign something that should stay put. */
 const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, hideAddButton, presetValues = {} }, ref) => {
     const navigate = useNavigate();
     const resource = FINANCE_MASTERS[resourceKey];
@@ -241,13 +248,15 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
                         <h2>{editingId ? `Edit ${resource.label}` : `Add ${resource.label}`}</h2>
                         <form onSubmit={submit}>
                             {groupFieldsBySection(resource.fields.filter(f =>
-                                (!f.showIf || f.showIf(form)) && (editingId || !(f.key in presetValues))
+                                (!f.showIf || f.showIf(form))
+                                && (editingId || !(f.key in presetValues))
+                                && (!f.onlyOnAdd || !editingId)
                             )).map((group, gi) => (
                                 <React.Fragment key={gi}>
                                     {group.section && <p className="wizard-section-label">{group.section}</p>}
                                     <div className="wizard-field-grid">
                                         {group.fields.map(f => (
-                                            <div key={f.key} className={`add-product-name flex-col${(f.type === 'textarea' || group.fields.length === 1) ? ' wizard-field-full' : ''}`}>
+                                            <div key={f.key} className={`add-product-name flex-col${isFullWidthField(f, group) ? ' wizard-field-full' : ''}`}>
                                                 <p>{f.label}{f.required ? ' *' : ''}</p>
                                                 {renderMasterField(f, form, setField, { url, settingOptions })}
                                                 <FieldNote note={f.note} />

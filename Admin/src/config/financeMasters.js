@@ -168,7 +168,7 @@ export const FINANCE_MASTERS = {
     labourers: {
         label: 'Labourer', labelPlural: 'Labourers', apiBase: '/api/finance/labourers',
         fields: [
-            { key: 'name', label: 'Name', type: 'text', required: true, section: 'Details' },
+            { key: 'name', label: 'Name', type: 'text', required: true },
             {
                 key: 'labourProviderId', label: 'Labour Provider (optional)', type: 'resourceSelect', resourceKey: 'labourProviders',
                 section: 'Labour Provider',
@@ -183,7 +183,7 @@ export const FINANCE_MASTERS = {
             { key: 'accountNumber', label: 'Account Number', type: 'text', required: true, section: 'Bank Details' },
             { key: 'confirmAccountNumber', label: 'Re-enter Account Number', type: 'confirmText', matchKey: 'accountNumber', required: true, placeholder: 'Retype to confirm', section: 'Bank Details' },
             { key: 'ifscCode', label: 'IFSC Code', type: 'text', required: true, section: 'Bank Details' },
-            { key: 'notes', label: 'Notes', type: 'textarea', section: 'Other' },
+            { key: 'notes', label: 'Notes', type: 'textarea' },
         ],
         columns: [
             { key: 'name', label: 'Name' },

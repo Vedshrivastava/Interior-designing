@@ -153,10 +153,10 @@ const computeProjectContractorCost = async (projectId) => {
     const works = await FinanceWork.find({ projectId, deleted: { $ne: true } });
     if (!works.length) return { approvedAmount: 0, totalAmount: 0 };
 
-    const [contractorMeasurements, contractorAssignments, bills] = await Promise.all([
+    const [contractorMeasurements, contractorAssignments, approvedBillingByWorkId] = await Promise.all([
         FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId contractorVendorId areaCoveredSqft'),
         FinanceWorkContractorAssignment.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId contractorVendorId'),
-        FinanceRunningBill.find({ projectId, status: 'issued', deleted: { $ne: true } }, 'lineItems'),
+        getApprovedBillingByWorkId(works.map(w => w._id)),
     ]);
     const vendorIdsByWork = new Map(); // workId -> Set(vendorId)
     const totalAreaByWorkVendor = new Map(); // `${workId}_${vendorId}` -> area
@@ -174,14 +174,6 @@ const computeProjectContractorCost = async (projectId) => {
     const contractorWorks = works.filter(w => vendorIdsByWork.has(w._id.toString()));
     if (!contractorWorks.length) return { approvedAmount: 0, totalAmount: 0 };
 
-    const approvedAreaByWork = new Map();
-    for (const bill of bills) {
-        for (const li of bill.lineItems) {
-            const key = li.workId.toString();
-            approvedAreaByWork.set(key, (approvedAreaByWork.get(key) || 0) + li.areaBilledSqft);
-        }
-    }
-
     const allVendorIds = [...new Set(contractorWorks.flatMap(w => [...(vendorIdsByWork.get(w._id.toString()) || [])]))];
     const rates = await FinanceContractorRate.find({ projectId, contractorVendorId: { $in: allVendorIds }, deleted: { $ne: true } });
     const rateByKey = new Map(rates.map(r => [`${r.contractorVendorId}_${r.workType}`, r.ratePerSqft]));
@@ -189,7 +181,11 @@ const computeProjectContractorCost = async (projectId) => {
     let approvedAmount = 0;
     let totalAmount = 0;
     for (const work of contractorWorks) {
-        const workApprovedArea = approvedAreaByWork.get(work._id.toString()) || 0;
+        // "Approved" = reviewed (financeWorkReview), same definition Work
+        // Profit and the Contractor Ledger use — not whether it's made it
+        // into an issued bill yet (see getApprovedBillingByWorkId's own
+        // header comment for why those two stopped being the same thing).
+        const workApprovedArea = approvedBillingByWorkId.get(work._id.toString())?.areaSqft || 0;
         const vendorIds = [...vendorIdsByWork.get(work._id.toString())];
         const workTotalArea = vendorIds.reduce((s, id) => s + (totalAreaByWorkVendor.get(`${work._id}_${id}`) || 0), 0);
         for (const vendorId of vendorIds) {
@@ -197,9 +193,9 @@ const computeProjectContractorCost = async (projectId) => {
             if (!rate) continue;
             const totalArea = totalAreaByWorkVendor.get(`${work._id}_${vendorId}`) || 0;
             totalAmount += totalArea * rate;
-            // Split this work's approved (billed) area proportionally to
-            // each vendor's own share of the logged area — same reasoning
-            // as splitApprovedAreaByShare, inlined here since rates are
+            // Split this work's reviewed area proportionally to each
+            // vendor's own share of the logged area — same reasoning as
+            // splitApprovedAreaByShare, inlined here since rates are
             // looked up per (vendor, workType) not per work.
             const approvedArea = workTotalArea > 0 ? workApprovedArea * (totalArea / workTotalArea) : 0;
             approvedAmount += approvedArea * rate;
@@ -211,15 +207,16 @@ const computeProjectContractorCost = async (projectId) => {
 // Mirrors computeProjectContractorCost, at individual-labourer granularity.
 // Labour never had an engineerApproved gate (every logged sqft counted
 // immediately) — this is the one genuine behavior change: labour cost now
-// also only counts reviewed sqft (WorkReviewPanel), same as contractor.
+// also only counts reviewed sqft (financeWorkReview, via WorkReviewPanel),
+// same as contractor — not whether it's made it into an issued bill yet.
 const computeProjectLabourCost = async (projectId) => {
     const works = await FinanceWork.find({ projectId, deleted: { $ne: true } });
     if (!works.length) return { approvedAmount: 0, totalAmount: 0 };
 
-    const [labourMeasurements, labourAssignments, bills] = await Promise.all([
+    const [labourMeasurements, labourAssignments, approvedBillingByWorkId] = await Promise.all([
         FinanceLabourMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId labourerId areaCoveredSqft'),
         FinanceWorkLabourAssignment.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId labourerId'),
-        FinanceRunningBill.find({ projectId, status: 'issued', deleted: { $ne: true } }, 'lineItems'),
+        getApprovedBillingByWorkId(works.map(w => w._id)),
     ]);
     const labourerIdsByWork = new Map();
     const totalAreaByWorkLabourer = new Map(); // `${workId}_${labourerId}` -> area
@@ -235,14 +232,6 @@ const computeProjectLabourCost = async (projectId) => {
     const labourWorks = works.filter(w => labourerIdsByWork.has(w._id.toString()));
     if (!labourWorks.length) return { approvedAmount: 0, totalAmount: 0 };
 
-    const approvedAreaByWork = new Map();
-    for (const bill of bills) {
-        for (const li of bill.lineItems) {
-            const key = li.workId.toString();
-            approvedAreaByWork.set(key, (approvedAreaByWork.get(key) || 0) + li.areaBilledSqft);
-        }
-    }
-
     const allLabourerIds = [...new Set(labourWorks.flatMap(w => [...(labourerIdsByWork.get(w._id.toString()) || [])]))];
     const rates = await FinanceLabourRate.find({ projectId, labourerId: { $in: allLabourerIds }, deleted: { $ne: true } });
     const rateByKey = new Map(rates.map(r => [`${r.labourerId}_${r.workType}`, r.ratePerSqft]));
@@ -250,7 +239,7 @@ const computeProjectLabourCost = async (projectId) => {
     let approvedAmount = 0;
     let totalAmount = 0;
     for (const work of labourWorks) {
-        const workApprovedArea = approvedAreaByWork.get(work._id.toString()) || 0;
+        const workApprovedArea = approvedBillingByWorkId.get(work._id.toString())?.areaSqft || 0;
         const labourerIds = [...labourerIdsByWork.get(work._id.toString())];
         const workTotalArea = labourerIds.reduce((s, id) => s + (totalAreaByWorkLabourer.get(`${work._id}_${id}`) || 0), 0);
         for (const labourerId of labourerIds) {

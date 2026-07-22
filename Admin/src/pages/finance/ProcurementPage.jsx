@@ -9,7 +9,6 @@ import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import PurchaseOrReturnManager from '../../components/finance/PurchaseOrReturnManager';
 import MaterialDumpView from '../../components/finance/MaterialDumpView';
 import VendorLedgerView from '../../components/finance/VendorLedgerView';
-import CommissionLedgerView from '../../components/finance/CommissionLedgerView';
 import { ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/dashboard.css';
 
@@ -19,8 +18,6 @@ const TABS = [
     { key: 'materialDump',  label: 'Material Dump' },
     { key: 'returns',       label: 'Returns' },
     { key: 'ledger',        label: 'Ledger' },
-    { key: 'referrals',        label: 'Referrals' },
-    { key: 'commissionLedger', label: 'Commission Ledger' },
 ];
 
 const NON_CONTRACTOR = (v) => v.vendorType !== 'labour_contractor';
@@ -43,21 +40,11 @@ const VendorPicker = ({ url, selectedVendorId, onChange, filter, presetValues })
     </div>
 );
 
-/* Referral is its own collection (financeReferral), not a vendor — its
-   own plain picker, no vendorType filter needed. */
-const ReferralPicker = ({ url, selectedReferralId, onChange }) => (
-    <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>
-        <p>Referral</p>
-        <QuickAddPicker url={url} resourceKey="referrals" value={selectedReferralId} onChange={onChange} placeholder="Select referral…" />
-    </div>
-);
-
 /* Tier-1 mini-dashboard for the Vendors tab — top vendors by purchase
    volume (₹) and a monthly average-purchase-rate trend per material (so
    rate creep is visible), on top of the existing vendor-filtered CRUD
    table. Scoped to material_supplier vendors only, same as Vendor
-   Analysis in Reports — referrals have their own Commission Ledger tab
-   instead. */
+   Analysis in Reports — referrals live under People → Referrals instead. */
 const ProcurementVendorsOverviewTab = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -164,10 +151,11 @@ const ProcurementVendorsOverviewTab = ({ url }) => {
    Material Dump here is the inventory-side read of exactly those
    purchase-generated movements, distinct from Site Inventory's own
    manual waste entry. Ledger = purchases − returns − payments, same
-   computed-on-read shape as the Contractor Ledger. Commission Ledger is
-   a referral's equivalent — earnings come from financeWork ×
-   referralRatePerSqft across the projects they referred; a referral is
-   its own collection (financeReferral), not a vendor. */
+   computed-on-read shape as the Contractor Ledger. Referrals/Commission
+   Ledger moved out to their own page (People → Referrals) — a referral
+   earns a commission cut for referring clients/projects, it isn't a
+   vendor and doesn't fit under "material vendors and purchasing" any
+   more than Labour Contractors do (those live under Contractors). */
 const ProcurementPage = ({ url }) => {
     const [searchParams] = useSearchParams();
     // Arriving via `?projectId=&material=` — e.g. a measurement's
@@ -178,7 +166,6 @@ const ProcurementPage = ({ url }) => {
     const deepLinkMaterialId = searchParams.get('material') || '';
     const [activeTab, setActiveTab] = useState(deepLinkMaterialId ? 'purchases' : TABS[0].key);
     const [selectedVendorId, setSelectedVendorId] = useState('');
-    const [selectedReferralId, setSelectedReferralId] = useState('');
 
     return (
         <FinanceTabShell
@@ -200,15 +187,6 @@ const ProcurementPage = ({ url }) => {
                     {selectedVendorId
                         ? <VendorLedgerView url={url} vendorId={selectedVendorId} />
                         : <div className="admin-empty-state"><p>Select a vendor to view their ledger.</p></div>}
-                </>
-            )}
-            {activeTab === 'referrals' && <MasterCrudTable url={url} resourceKey="referrals" />}
-            {activeTab === 'commissionLedger' && (
-                <>
-                    <ReferralPicker url={url} selectedReferralId={selectedReferralId} onChange={setSelectedReferralId} />
-                    {selectedReferralId
-                        ? <CommissionLedgerView url={url} referralId={selectedReferralId} />
-                        : <div className="admin-empty-state"><p>Select a referral to view their commission ledger.</p></div>}
                 </>
             )}
         </FinanceTabShell>

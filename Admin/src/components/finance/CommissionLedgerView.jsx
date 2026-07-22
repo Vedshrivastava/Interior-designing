@@ -127,6 +127,10 @@ const CommissionLedgerView = ({ url, referralId }) => {
                         <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
                     </div>
                     <div className="add-product-name flex-col">
+                        <p>Payment Mode</p>
+                        <input type="text" value={form.paymentMode} onChange={e => setField('paymentMode', e.target.value)} />
+                    </div>
+                    <div className="add-product-name flex-col">
                         <p>Bank Account</p>
                         <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)}>
                             <option value="">Cash</option>
@@ -151,15 +155,16 @@ const CommissionLedgerView = ({ url, referralId }) => {
                 </div>
             </form>
             <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
-                    <b>Date</b><b>Amount</b><b>Account</b><b>TDS</b><b>Action</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
+                    <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>TDS</b><b>Action</b>
                 </div>
                 {ledger.payments.length === 0 ? (
                     <div className="admin-empty-state"><p>No payments yet.</p></div>
                 ) : ledger.payments.map(p => (
-                    <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
+                    <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
                         <p>{new Date(p.date).toLocaleDateString()}</p>
                         <p>₹{p.amount.toLocaleString('en-IN')}</p>
+                        <p>{p.paymentMode || '-'}</p>
                         <p>{p.bankAccountId?.accountName || 'Cash'}</p>
                         <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
                         <div className="action-buttons"><p onClick={() => remove(p._id)} className="cursor delete-action">X</p></div>

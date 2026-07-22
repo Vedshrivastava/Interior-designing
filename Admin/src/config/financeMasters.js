@@ -78,10 +78,10 @@ export const FINANCE_MASTERS = {
             { key: 'ifscCode', label: 'IFSC Code', type: 'text', required: true, section: 'Bank Details' },
             {
                 key: 'commissionTypeLabel', label: 'Commission Type', type: 'settingSelect', settingType: 'commission_type',
-                placeholder: 'e.g. Flat, Tiered, Project-based…', section: 'Commission',
-                note: 'Descriptive only: does not change how commission is calculated. Commission is always area × the work type\'s referral rate per sqft.',
+                placeholder: 'e.g. Flat, Tiered, Project-based…',
+                note: 'Descriptive only. Commission is always area × the work type\'s referral rate per sqft.',
             },
-            { key: 'notes', label: 'Notes', type: 'textarea', section: 'Other' },
+            { key: 'notes', label: 'Notes', type: 'textarea' },
         ],
         columns: [
             { key: 'name', label: 'Name' },

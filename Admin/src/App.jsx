@@ -49,6 +49,7 @@ import SupervisorsPage from './pages/finance/SupervisorsPage';
 import SettingsPage from './pages/finance/SettingsPage';
 import FinanceRecoveryBin from './pages/finance/FinanceRecoveryBin';
 import DailyLabourPage from './pages/finance/DailyLabourPage';
+import ReferralsPage from './pages/finance/ReferralsPage';
 import ActivityTimelinePage from './pages/finance/ActivityTimelinePage';
 import { FINANCE_ROUTES } from './config/financeNav';
 import Guest from './pages/guest';
@@ -365,6 +366,14 @@ const App = () => {
               }
             />
             <Route
+              path='/finance/referrals'
+              element={
+                <ProtectedRoute setShowLogin={setShowLogin}>
+                  <ReferralsPage url={url} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path='/finance/activity'
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
@@ -395,7 +404,7 @@ const App = () => {
               '/finance/receivables', '/finance/receipts',
               '/finance/payables', '/finance/payments',
               '/finance/bank', '/finance/cash-book', '/finance/reports',
-              '/finance/supervisors', '/finance/daily-labour', '/finance/settings',
+              '/finance/supervisors', '/finance/daily-labour', '/finance/referrals', '/finance/settings',
               '/finance/activity', '/finance/recovery-bin',
             ].includes(r.to)).map(({ to, label, phase, tabs }) => (
               <Route

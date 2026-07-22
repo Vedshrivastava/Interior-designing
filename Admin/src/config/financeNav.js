@@ -1,7 +1,7 @@
 import {
   faGaugeHigh, faClockRotateLeft, faUserTie, faBuilding, faCirclePlus,
   faClipboardList, faCartShopping, faWarehouse, faHardHat, faUserShield,
-  faPersonDigging, faFileInvoiceDollar, faReceipt, faMoneyBillWave,
+  faPersonDigging, faHandshake, faFileInvoiceDollar, faReceipt, faMoneyBillWave,
   faMoneyBillTransfer, faBuildingColumns, faBook, faFileExport, faUsersGear,
   faGear, faTrashCan,
 } from '@fortawesome/free-solid-svg-icons';
@@ -159,6 +159,21 @@ export const FINANCE_NAV_SECTIONS = [
         // same LabourMeasurementsManager component a project's own Labour
         // tab reuses.
         tabs: [{ key: 'entries', label: 'All Entries', description: 'Every labour measurement across every project: entry form + filterable list, plus a per-labourer Overview/Projects/Works/Measurements/Ledger/Documents view.' }],
+      },
+      {
+        to: '/finance/referrals', icon: faHandshake, label: 'Referrals',
+        // Bespoke component. Relocated out of Procurement (a referral isn't
+        // a vendor, doesn't fit under "material vendors and purchasing" any
+        // more than Labour Contractors did before they got their own
+        // Contractors page) — own top-level People page instead, same
+        // picker + ledger shape as Contractors/Labourers. Commission Ledger
+        // tab unchanged: financeWork completedAreaSqft × financeWorkTypeRate's
+        // referralRatePerSqft across the projects this referral brought in,
+        // minus financeCommissionPayment payments.
+        tabs: [
+          { key: 'overview',         label: 'Overview',          description: 'Referral master: name, contact, bank details, commission type (descriptive only).' },
+          { key: 'commissionLedger', label: 'Commission Ledger', description: "Pick a referral to view their earnings, payments, and commission payable." },
+        ],
       },
     ],
   },

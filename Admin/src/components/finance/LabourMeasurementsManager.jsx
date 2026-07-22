@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
@@ -30,6 +31,7 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
 
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
+    const [modalOpen, setModalOpen] = useState(false);
 
     const fetchProjects = () => {
         if (fixedProjectId) return;
@@ -93,6 +95,7 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
             if (res.data.success) {
                 toast.success(res.data.message);
                 resetForm();
+                setModalOpen(false);
                 await Promise.all([
                     fetchMeasurements(selectedProjectId),
                     axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: selectedProjectId } }).then(r => { if (r.data.success) setWorks(r.data.data); }),
@@ -127,56 +130,20 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                 <div className="admin-empty-state"><p>Select a project to log a measurement.</p></div>
             ) : (
                 <>
-                    <form onSubmit={submit} style={{ marginBottom: '28px' }}>
-                        <div className="wizard-field-grid">
-                            <div className="add-product-name flex-col">
-                                <p>Work *</p>
-                                <select value={form.workId} onChange={e => setField('workId', e.target.value)}>
-                                    <option value="">Select work…</option>
-                                    {works.map(w => <option key={w._id} value={w._id}>{w.workType}{w.workOrderNumber ? ` (${w.workOrderNumber})` : ''}</option>)}
-                                </select>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <h3 style={{ margin: 0 }}>Measurements</h3>
+                        <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>+ Add Measurement</button>
+                    </div>
+                    {loading ? (
+                        <div className="admin-empty-state"><p>Loading…</p></div>
+                    ) : measurements.length === 0 ? (
+                        <div className="admin-empty-state"><p>No measurements logged yet.</p></div>
+                    ) : (
+                        <div className="list-table finance-table">
+                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 100px' }}>
+                                <b>Date</b><b>Work</b><b>Labourer</b><b>Area Covered</b><b>Action</b>
                             </div>
-                            <div className="add-product-name flex-col">
-                                <p>Labourer *</p>
-                                <select value={form.labourerId} onChange={e => setField('labourerId', e.target.value)} disabled={!form.workId}>
-                                    <option value="">{form.workId ? 'Select labourer…' : 'Select a work first'}</option>
-                                    {workLabourers.map(a => (
-                                        <option key={a._id || a.labourerId?._id} value={a.labourerId?._id || a.labourerId}>
-                                            {a.labourerId?.name}{a.supervisorId?.name ? ` · ${a.supervisorId.name}'s team` : ''}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="add-product-name flex-col">
-                                <p>Date *</p>
-                                <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
-                            </div>
-                            <div className="add-product-name flex-col">
-                                <p>Area Covered (sqft) *</p>
-                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.areaCoveredSqft} onChange={e => setField('areaCoveredSqft', e.target.value)} />
-                            </div>
-                            <div className="add-product-name flex-col wizard-field-full">
-                                <p>Remarks</p>
-                                <textarea rows="2" value={form.remarks} onChange={e => setField('remarks', e.target.value)} />
-                            </div>
-                        </div>
-
-                        <div className="wizard-actions" style={{ marginTop: '20px' }}>
-                            <span />
-                            <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save Measurement'}</button>
-                        </div>
-                    </form>
-
-                    <div className="list-table finance-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 100px' }}>
-                            <b>Date</b><b>Work</b><b>Labourer</b><b>Area Covered</b><b>Action</b>
-                        </div>
-                        {loading ? (
-                            <div className="admin-empty-state"><p>Loading…</p></div>
-                        ) : measurements.length === 0 ? (
-                            <div className="admin-empty-state"><p>No measurements logged yet.</p></div>
-                        ) : (
-                            measurements.map(m => (
+                            {measurements.map(m => (
                                 <div key={m._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 100px' }}>
                                     <p>{new Date(m.date).toLocaleDateString()}</p>
                                     <p>{m.workId?.workType || '-'}</p>
@@ -186,9 +153,56 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                                         <p onClick={() => removeMeasurement(m)} className="cursor delete-action">X</p>
                                     </div>
                                 </div>
-                            ))
-                        )}
-                    </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {modalOpen && ReactDOM.createPortal(
+                        <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+                            <div className="loader-modal-box edit-modal">
+                                <h2>Add Measurement</h2>
+                                <form onSubmit={submit}>
+                                    <div className="wizard-field-grid">
+                                        <div className="add-product-name flex-col">
+                                            <p>Work *</p>
+                                            <select value={form.workId} onChange={e => setField('workId', e.target.value)}>
+                                                <option value="">Select work…</option>
+                                                {works.map(w => <option key={w._id} value={w._id}>{w.workType}{w.workOrderNumber ? ` (${w.workOrderNumber})` : ''}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="add-product-name flex-col">
+                                            <p>Labourer *</p>
+                                            <select value={form.labourerId} onChange={e => setField('labourerId', e.target.value)} disabled={!form.workId}>
+                                                <option value="">{form.workId ? 'Select labourer…' : 'Select a work first'}</option>
+                                                {workLabourers.map(a => (
+                                                    <option key={a._id || a.labourerId?._id} value={a.labourerId?._id || a.labourerId}>
+                                                        {a.labourerId?.name}{a.supervisorId?.name ? ` · ${a.supervisorId.name}'s team` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="add-product-name flex-col">
+                                            <p>Date *</p>
+                                            <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
+                                        </div>
+                                        <div className="add-product-name flex-col">
+                                            <p>Area Covered (sqft) *</p>
+                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.areaCoveredSqft} onChange={e => setField('areaCoveredSqft', e.target.value)} />
+                                        </div>
+                                        <div className="add-product-name flex-col wizard-field-full">
+                                            <p>Remarks</p>
+                                            <textarea rows="2" value={form.remarks} onChange={e => setField('remarks', e.target.value)} />
+                                        </div>
+                                    </div>
+                                    <div className="edit-modal-actions">
+                                        <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+                                        <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>,
+                        document.body
+                    )}
                 </>
             )}
         </div>

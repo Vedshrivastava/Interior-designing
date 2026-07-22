@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
@@ -54,6 +55,9 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
     const [deductionForm, setDeductionForm] = useState(emptyDeductionForm);
     const [paymentForm, setPaymentForm] = useState(emptyPaymentForm);
     const [saving, setSaving] = useState('');
+    const [advanceModalOpen, setAdvanceModalOpen] = useState(false);
+    const [deductionModalOpen, setDeductionModalOpen] = useState(false);
+    const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
     const fetchLedger = async () => {
         setLoading(true);
@@ -80,7 +84,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
         setSaving('advance');
         try {
             const res = await axios.post(`${url}/api/finance/labour-advances/add`, { ...advanceForm, labourerId, projectId: projectId || null }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); setAdvanceForm(emptyAdvanceForm); await fetchLedger(); }
+            if (res.data.success) { toast.success(res.data.message); setAdvanceForm(emptyAdvanceForm); setAdvanceModalOpen(false); await fetchLedger(); }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording advance'); }
         finally { setSaving(''); }
@@ -98,7 +102,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
             const res = await axios.post(`${url}/api/finance/labour-deductions/add`, { ...deductionForm, labourerId }, authHeader);
             if (res.data.success) {
                 toast.success(deductionForm.source === 'supervisor_catch' ? 'Deduction recorded, supervisor credited' : res.data.message);
-                setDeductionForm(emptyDeductionForm); await fetchLedger();
+                setDeductionForm(emptyDeductionForm); setDeductionModalOpen(false); await fetchLedger();
             } else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording deduction'); }
         finally { setSaving(''); }
@@ -111,7 +115,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
         setSaving('payment');
         try {
             const res = await axios.post(`${url}/api/finance/labour-payments/add`, { ...paymentForm, labourerId, projectId: projectId || null }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); setPaymentForm(emptyPaymentForm); await fetchLedger(); }
+            if (res.data.success) { toast.success(res.data.message); setPaymentForm(emptyPaymentForm); setPaymentModalOpen(false); await fetchLedger(); }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording payment'); }
         finally { setSaving(''); }
@@ -233,174 +237,217 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                 </>
             )}
 
-            <h3 style={{ marginBottom: '8px' }}>Advances</h3>
-            <form onSubmit={submitAdvance}>
-                <div className="wizard-field-grid">
-                    <div className="add-product-name flex-col">
-                        <p>Amount (₹) *</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={advanceForm.amount} onChange={e => setAdvanceForm(p => ({ ...p, amount: e.target.value }))} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Date *</p>
-                        <StyledDatePicker value={advanceForm.date} onChange={v => setAdvanceForm(p => ({ ...p, date: v }))} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Payment Mode</p>
-                        <input type="text" value={advanceForm.paymentMode} onChange={e => setAdvanceForm(p => ({ ...p, paymentMode: e.target.value }))} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Notes</p>
-                        <input type="text" value={advanceForm.notes} onChange={e => setAdvanceForm(p => ({ ...p, notes: e.target.value }))} />
-                    </div>
-                </div>
-                <div className="wizard-actions" style={{ marginTop: '16px', marginBottom: '12px' }}>
-                    <span />
-                    <button type="submit" className="add-btn" disabled={saving === 'advance'}>{saving === 'advance' ? 'Saving…' : '+ Add Advance'}</button>
-                </div>
-            </form>
-            <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
-                    <b>Date</b><b>Amount</b><b>Mode</b><b>Notes</b><b>Action</b>
-                </div>
-                {ledger.advances.length === 0 ? (
-                    <div className="admin-empty-state"><p>No advances yet.</p></div>
-                ) : ledger.advances.map(a => (
-                    <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
-                        <p>{new Date(a.date).toLocaleDateString()}</p>
-                        <p>₹{a.amount.toLocaleString('en-IN')}</p>
-                        <p>{a.paymentMode || '-'}</p>
-                        <p>{a.notes || '-'}</p>
-                        <div className="action-buttons"><p onClick={() => remove('advance', a._id)} className="cursor delete-action">X</p></div>
-                    </div>
-                ))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h3 style={{ margin: 0 }}>Advances</h3>
+                <button type="button" className="add-btn" onClick={() => setAdvanceModalOpen(true)}>+ Add Advance</button>
             </div>
+            {ledger.advances.length === 0 ? (
+                <div className="admin-empty-state"><p>No advances yet.</p></div>
+            ) : (
+                <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
+                        <b>Date</b><b>Amount</b><b>Mode</b><b>Notes</b><b>Action</b>
+                    </div>
+                    {ledger.advances.map(a => (
+                        <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
+                            <p>{new Date(a.date).toLocaleDateString()}</p>
+                            <p>₹{a.amount.toLocaleString('en-IN')}</p>
+                            <p>{a.paymentMode || '-'}</p>
+                            <p>{a.notes || '-'}</p>
+                            <div className="action-buttons"><p onClick={() => remove('advance', a._id)} className="cursor delete-action">X</p></div>
+                        </div>
+                    ))}
+                </div>
+            )}
 
-            <h3 style={{ marginBottom: '8px' }}>Deductions</h3>
+            {advanceModalOpen && ReactDOM.createPortal(
+                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal">
+                        <h2>Add Advance</h2>
+                        <form onSubmit={submitAdvance}>
+                            <div className="wizard-field-grid">
+                                <div className="add-product-name flex-col">
+                                    <p>Amount (₹) *</p>
+                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={advanceForm.amount} onChange={e => setAdvanceForm(p => ({ ...p, amount: e.target.value }))} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Date *</p>
+                                    <StyledDatePicker value={advanceForm.date} onChange={v => setAdvanceForm(p => ({ ...p, date: v }))} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Payment Mode</p>
+                                    <input type="text" value={advanceForm.paymentMode} onChange={e => setAdvanceForm(p => ({ ...p, paymentMode: e.target.value }))} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Notes</p>
+                                    <input type="text" value={advanceForm.notes} onChange={e => setAdvanceForm(p => ({ ...p, notes: e.target.value }))} />
+                                </div>
+                            </div>
+                            <div className="edit-modal-actions">
+                                <button type="button" className="add-btn cancel-btn" onClick={() => setAdvanceModalOpen(false)}>Cancel</button>
+                                <button type="submit" className="add-btn" disabled={saving === 'advance'}>{saving === 'advance' ? 'Saving…' : 'Save'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h3 style={{ margin: 0 }}>Deductions</h3>
+                {!(showWorks && ledger.works.length === 0) && (
+                    <button type="button" className="add-btn" onClick={() => setDeductionModalOpen(true)}>+ Add Deduction</button>
+                )}
+            </div>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>
                 Sqft in, ₹ out: the amount is always derived from the picked work's rate, never typed directly.
                 "Supervisor caught it" also credits that supervisor an incentive for the same amount. "Engineer review" is just a cut here, periodic, not tied to a specific day's entry.
             </p>
-            {showWorks && ledger.works.length === 0 ? (
+            {showWorks && ledger.works.length === 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '20px' }}>No works for this labourer yet; a deduction needs a work to derive its rate from.</p>
-            ) : (
-                <form onSubmit={submitDeduction}>
-                    <div className="wizard-field-grid">
-                        <div className="add-product-name flex-col">
-                            <p>Work *</p>
-                            <select value={deductionForm.workId} onChange={e => setDeductionForm(p => ({ ...p, workId: e.target.value }))}>
-                                <option value="">Select work…</option>
-                                {ledger.works.map(w => <option key={w._id} value={w._id}>{w.projectName} · {w.workType}</option>)}
-                            </select>
-                        </div>
-                        <div className="add-product-name flex-col">
-                            <p>Sqft to Deduct *</p>
-                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={deductionForm.areaSqft} onChange={e => setDeductionForm(p => ({ ...p, areaSqft: e.target.value }))} />
-                        </div>
-                        <div className="add-product-name flex-col">
-                            <p>Date *</p>
-                            <StyledDatePicker value={deductionForm.date} onChange={v => setDeductionForm(p => ({ ...p, date: v }))} />
-                        </div>
-                        <div className="add-product-name flex-col">
-                            <p>Caught By *</p>
-                            <select value={deductionForm.source} onChange={e => setDeductionForm(p => ({ ...p, source: e.target.value, supervisorId: '' }))}>
-                                <option value="engineer_review">Engineer (periodic review)</option>
-                                <option value="supervisor_catch">Supervisor (caught &amp; fixed on the spot)</option>
-                            </select>
-                        </div>
-                        {deductionForm.source === 'supervisor_catch' && (
-                            <div className="add-product-name flex-col">
-                                <p>Supervisor *</p>
-                                <select value={deductionForm.supervisorId} onChange={e => setDeductionForm(p => ({ ...p, supervisorId: e.target.value }))}>
-                                    <option value="">Select supervisor…</option>
-                                    {supervisors.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
-                                </select>
-                            </div>
-                        )}
-                        <div className="add-product-name flex-col wizard-field-full">
-                            <p>Reason *</p>
-                            <input type="text" value={deductionForm.reason} onChange={e => setDeductionForm(p => ({ ...p, reason: e.target.value }))} placeholder="What went wrong, who's responsible" />
-                        </div>
-                    </div>
-                    {deductionForm.workId && deductionForm.areaSqft > 0 && (() => {
-                        const rate = ledger.works.find(w => w._id === deductionForm.workId)?.rate;
-                        return rate
-                            ? <p className="admin-subtitle" style={{ marginTop: '8px' }}>≈ ₹{(rate * Number(deductionForm.areaSqft)).toLocaleString('en-IN')} at ₹{rate}/sqft</p>
-                            : <p className="admin-subtitle" style={{ marginTop: '8px', color: '#c0392b' }}>No rate configured for this work; deduction will be rejected.</p>;
-                    })()}
-                    <div className="wizard-actions" style={{ marginTop: '16px', marginBottom: '12px' }}>
-                        <span />
-                        <button type="submit" className="add-btn" disabled={saving === 'deduction'}>{saving === 'deduction' ? 'Saving…' : '+ Add Deduction'}</button>
-                    </div>
-                </form>
             )}
-            <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.8fr 1fr 1.2fr 1fr 1fr 100px' }}>
-                    <b>Date</b><b>Sqft</b><b>Amount</b><b>Reason</b><b>Caught By</b><b>Work</b><b>Action</b>
-                </div>
-                {ledger.deductions.length === 0 ? (
-                    <div className="admin-empty-state"><p>No deductions yet.</p></div>
-                ) : ledger.deductions.map(d => (
-                    <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 1fr 1.2fr 1fr 1fr 100px' }}>
-                        <p>{new Date(d.date).toLocaleDateString()}</p>
-                        <p>{d.areaSqft ?? '-'}</p>
-                        <p>₹{d.amount.toLocaleString('en-IN')}</p>
-                        <p>{d.reason}</p>
-                        <p>{d.source === 'supervisor_catch' ? `Supervisor${d.supervisorId?.name ? ` (${d.supervisorId.name})` : ''}` : 'Engineer'}</p>
-                        <p>{ledger.works.find(w => w._id === (d.workId?._id || d.workId))?.workType || '-'}</p>
-                        <div className="action-buttons"><p onClick={() => remove('deduction', d._id)} className="cursor delete-action">X</p></div>
+            {ledger.deductions.length === 0 ? (
+                <div className="admin-empty-state"><p>No deductions yet.</p></div>
+            ) : (
+                <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.8fr 1fr 1.2fr 1fr 1fr 100px' }}>
+                        <b>Date</b><b>Sqft</b><b>Amount</b><b>Reason</b><b>Caught By</b><b>Work</b><b>Action</b>
                     </div>
-                ))}
-            </div>
+                    {ledger.deductions.map(d => (
+                        <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 1fr 1.2fr 1fr 1fr 100px' }}>
+                            <p>{new Date(d.date).toLocaleDateString()}</p>
+                            <p>{d.areaSqft ?? '-'}</p>
+                            <p>₹{d.amount.toLocaleString('en-IN')}</p>
+                            <p>{d.reason}</p>
+                            <p>{d.source === 'supervisor_catch' ? `Supervisor${d.supervisorId?.name ? ` (${d.supervisorId.name})` : ''}` : 'Engineer'}</p>
+                            <p>{ledger.works.find(w => w._id === (d.workId?._id || d.workId))?.workType || '-'}</p>
+                            <div className="action-buttons"><p onClick={() => remove('deduction', d._id)} className="cursor delete-action">X</p></div>
+                        </div>
+                    ))}
+                </div>
+            )}
 
-            <h3 style={{ marginBottom: '8px' }}>Payments</h3>
-            <form onSubmit={submitPayment}>
-                <div className="wizard-field-grid">
-                    <div className="add-product-name flex-col">
-                        <p>Amount (₹) *</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} />
+            {deductionModalOpen && ReactDOM.createPortal(
+                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal">
+                        <h2>Add Deduction</h2>
+                        <form onSubmit={submitDeduction}>
+                            <div className="wizard-field-grid">
+                                <div className="add-product-name flex-col">
+                                    <p>Work *</p>
+                                    <select value={deductionForm.workId} onChange={e => setDeductionForm(p => ({ ...p, workId: e.target.value }))}>
+                                        <option value="">Select work…</option>
+                                        {ledger.works.map(w => <option key={w._id} value={w._id}>{w.projectName} · {w.workType}</option>)}
+                                    </select>
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Sqft to Deduct *</p>
+                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={deductionForm.areaSqft} onChange={e => setDeductionForm(p => ({ ...p, areaSqft: e.target.value }))} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Date *</p>
+                                    <StyledDatePicker value={deductionForm.date} onChange={v => setDeductionForm(p => ({ ...p, date: v }))} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Caught By *</p>
+                                    <select value={deductionForm.source} onChange={e => setDeductionForm(p => ({ ...p, source: e.target.value, supervisorId: '' }))}>
+                                        <option value="engineer_review">Engineer (periodic review)</option>
+                                        <option value="supervisor_catch">Supervisor (caught &amp; fixed on the spot)</option>
+                                    </select>
+                                </div>
+                                {deductionForm.source === 'supervisor_catch' && (
+                                    <div className="add-product-name flex-col">
+                                        <p>Supervisor *</p>
+                                        <select value={deductionForm.supervisorId} onChange={e => setDeductionForm(p => ({ ...p, supervisorId: e.target.value }))}>
+                                            <option value="">Select supervisor…</option>
+                                            {supervisors.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                                        </select>
+                                    </div>
+                                )}
+                                <div className="add-product-name flex-col wizard-field-full">
+                                    <p>Reason *</p>
+                                    <input type="text" value={deductionForm.reason} onChange={e => setDeductionForm(p => ({ ...p, reason: e.target.value }))} placeholder="What went wrong, who's responsible" />
+                                </div>
+                            </div>
+                            {deductionForm.workId && deductionForm.areaSqft > 0 && (() => {
+                                const rate = ledger.works.find(w => w._id === deductionForm.workId)?.rate;
+                                return rate
+                                    ? <p className="admin-subtitle" style={{ marginTop: '8px' }}>≈ ₹{(rate * Number(deductionForm.areaSqft)).toLocaleString('en-IN')} at ₹{rate}/sqft</p>
+                                    : <p className="admin-subtitle" style={{ marginTop: '8px', color: '#c0392b' }}>No rate configured for this work; deduction will be rejected.</p>;
+                            })()}
+                            <div className="edit-modal-actions">
+                                <button type="button" className="add-btn cancel-btn" onClick={() => setDeductionModalOpen(false)}>Cancel</button>
+                                <button type="submit" className="add-btn" disabled={saving === 'deduction'}>{saving === 'deduction' ? 'Saving…' : 'Save'}</button>
+                            </div>
+                        </form>
                     </div>
-                    <div className="add-product-name flex-col">
-                        <p>Date *</p>
-                        <StyledDatePicker value={paymentForm.date} onChange={v => setPaymentForm(p => ({ ...p, date: v }))} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Payment Mode</p>
-                        <input type="text" value={paymentForm.paymentMode} onChange={e => setPaymentForm(p => ({ ...p, paymentMode: e.target.value }))} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Bank Account</p>
-                        <select value={paymentForm.bankAccountId} onChange={e => setPaymentForm(p => ({ ...p, bankAccountId: e.target.value }))}>
-                            <option value="">Cash</option>
-                            {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} · {a.bankName}</option>)}
-                        </select>
-                    </div>
-                    <div className="add-product-name flex-col wizard-field-full">
-                        <p>Notes</p>
-                        <input type="text" value={paymentForm.notes} onChange={e => setPaymentForm(p => ({ ...p, notes: e.target.value }))} />
-                    </div>
-                </div>
-                <div className="wizard-actions" style={{ marginTop: '16px', marginBottom: '12px' }}>
-                    <span />
-                    <button type="submit" className="add-btn" disabled={saving === 'payment'}>{saving === 'payment' ? 'Saving…' : '+ Add Payment'}</button>
-                </div>
-            </form>
-            <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
-                    <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>Notes</b><b>Action</b>
-                </div>
-                {ledger.payments.length === 0 ? (
-                    <div className="admin-empty-state"><p>No payments yet.</p></div>
-                ) : ledger.payments.map(p => (
-                    <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
-                        <p>{new Date(p.date).toLocaleDateString()}</p>
-                        <p>₹{p.amount.toLocaleString('en-IN')}</p>
-                        <p>{p.paymentMode || '-'}</p>
-                        <p>{p.bankAccountId?.accountName || 'Cash'}</p>
-                        <p>{p.notes || '-'}</p>
-                        <div className="action-buttons"><p onClick={() => remove('payment', p._id)} className="cursor delete-action">X</p></div>
-                    </div>
-                ))}
+                </div>,
+                document.body
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h3 style={{ margin: 0 }}>Payments</h3>
+                <button type="button" className="add-btn" onClick={() => setPaymentModalOpen(true)}>+ Add Payment</button>
             </div>
+            {ledger.payments.length === 0 ? (
+                <div className="admin-empty-state"><p>No payments yet.</p></div>
+            ) : (
+                <div className="list-table finance-table">
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
+                        <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>Notes</b><b>Action</b>
+                    </div>
+                    {ledger.payments.map(p => (
+                        <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
+                            <p>{new Date(p.date).toLocaleDateString()}</p>
+                            <p>₹{p.amount.toLocaleString('en-IN')}</p>
+                            <p>{p.paymentMode || '-'}</p>
+                            <p>{p.bankAccountId?.accountName || 'Cash'}</p>
+                            <p>{p.notes || '-'}</p>
+                            <div className="action-buttons"><p onClick={() => remove('payment', p._id)} className="cursor delete-action">X</p></div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {paymentModalOpen && ReactDOM.createPortal(
+                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal">
+                        <h2>Add Payment</h2>
+                        <form onSubmit={submitPayment}>
+                            <div className="wizard-field-grid">
+                                <div className="add-product-name flex-col">
+                                    <p>Amount (₹) *</p>
+                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Date *</p>
+                                    <StyledDatePicker value={paymentForm.date} onChange={v => setPaymentForm(p => ({ ...p, date: v }))} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Payment Mode</p>
+                                    <input type="text" value={paymentForm.paymentMode} onChange={e => setPaymentForm(p => ({ ...p, paymentMode: e.target.value }))} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Bank Account</p>
+                                    <select value={paymentForm.bankAccountId} onChange={e => setPaymentForm(p => ({ ...p, bankAccountId: e.target.value }))}>
+                                        <option value="">Cash</option>
+                                        {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} · {a.bankName}</option>)}
+                                    </select>
+                                </div>
+                                <div className="add-product-name flex-col wizard-field-full">
+                                    <p>Notes</p>
+                                    <input type="text" value={paymentForm.notes} onChange={e => setPaymentForm(p => ({ ...p, notes: e.target.value }))} />
+                                </div>
+                            </div>
+                            <div className="edit-modal-actions">
+                                <button type="button" className="add-btn cancel-btn" onClick={() => setPaymentModalOpen(false)}>Cancel</button>
+                                <button type="submit" className="add-btn" disabled={saving === 'payment'}>{saving === 'payment' ? 'Saving…' : 'Save'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };

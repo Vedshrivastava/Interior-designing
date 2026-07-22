@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
@@ -27,6 +28,7 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
 
     const [form, setForm] = useState({ ...emptyForm, projectId: defaultProjectId || '', materialId: defaultMaterialId || '' });
     const [saving, setSaving] = useState(false);
+    const [modalOpen, setModalOpen] = useState(!!(defaultProjectId || defaultMaterialId));
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
@@ -76,7 +78,7 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
         setSaving(true);
         try {
             const res = await axios.post(`${url}/api/finance/purchases/add`, { ...form, transactionType }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); await fetchItems(); }
+            if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); setModalOpen(false); await fetchItems(); }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || `Error recording ${isReturn ? 'return' : 'purchase'}`); }
         finally { setSaving(false); }
@@ -95,68 +97,20 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
 
     return (
         <div>
-            <form onSubmit={submit} style={{ marginBottom: '24px' }}>
-                <div className="wizard-field-grid">
-                    <div className="add-product-name flex-col">
-                        <p>Vendor *</p>
-                        <StyledSelect value={form.vendorId} onChange={v => setField('vendorId', v)} placeholder="Select vendor…"
-                            options={vendors.map(v => ({ value: v._id, label: v.name }))} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h3 style={{ margin: 0 }}>{isReturn ? 'Returns' : 'Purchases'}</h3>
+                <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>{`+ Record ${isReturn ? 'Return' : 'Purchase'}`}</button>
+            </div>
+            {loading ? (
+                <div className="admin-empty-state"><p>Loading…</p></div>
+            ) : items.length === 0 ? (
+                <div className="admin-empty-state"><p>No {isReturn ? 'returns' : 'purchases'} recorded yet.</p></div>
+            ) : (
+                <div className="list-table finance-table">
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 100px' }}>
+                        <b>Date</b><b>Vendor</b><b>Material</b><b>Qty</b><b>Rate</b><b>Total</b><b>GST</b><b>Action</b>
                     </div>
-                    <div className="add-product-name flex-col">
-                        <p>Project *</p>
-                        <StyledSelect value={form.projectId} onChange={v => setField('projectId', v)} placeholder="Select project…"
-                            options={projects.map(p => ({ value: p._id, label: p.name }))} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Material *</p>
-                        <StyledSelect value={form.materialId} onChange={v => setField('materialId', v)} placeholder="Select material…"
-                            options={materials.map(m => ({ value: m._id, label: m.unit ? `${m.name} (${m.unit})` : m.name }))} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Quantity{selectedMaterial?.unit ? ` (${selectedMaterial.unit})` : ''} *</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.quantity} onChange={e => setField('quantity', e.target.value)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>{rateLabel}</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.ratePerUnit} onChange={e => setField('ratePerUnit', e.target.value)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Date *</p>
-                        <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>{isReturn ? 'Return Reference' : 'PO Number'}</p>
-                        <input type="text" value={form.referenceNumber} onChange={e => setField('referenceNumber', e.target.value)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Total (auto)</p>
-                        <input type="text" value={`₹${totalPreview.toLocaleString('en-IN')}`} disabled />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>GST Rate % (optional)</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.gstRate} onChange={e => setField('gstRate', e.target.value)} />
-                    </div>
-                    <div className="add-product-name flex-col wizard-field-full">
-                        <p>Notes</p>
-                        <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
-                    </div>
-                </div>
-                <div className="wizard-actions" style={{ marginTop: '16px' }}>
-                    <span />
-                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : `Record ${isReturn ? 'Return' : 'Purchase'}`}</button>
-                </div>
-            </form>
-
-            <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 100px' }}>
-                    <b>Date</b><b>Vendor</b><b>Material</b><b>Qty</b><b>Rate</b><b>Total</b><b>GST</b><b>Action</b>
-                </div>
-                {loading ? (
-                    <div className="admin-empty-state"><p>Loading…</p></div>
-                ) : items.length === 0 ? (
-                    <div className="admin-empty-state"><p>No {isReturn ? 'returns' : 'purchases'} recorded yet.</p></div>
-                ) : (
-                    items.map(item => (
+                    {items.map(item => (
                         <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 100px' }}>
                             <p>{new Date(item.date).toLocaleDateString()}</p>
                             <p>{item.vendorId?.name || '-'}</p>
@@ -169,9 +123,69 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
                                 <p onClick={() => setConfirmItem(item)} className="cursor delete-action">X</p>
                             </div>
                         </div>
-                    ))
-                )}
-            </div>
+                    ))}
+                </div>
+            )}
+
+            {modalOpen && ReactDOM.createPortal(
+                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal">
+                        <h2>{`Record ${isReturn ? 'Return' : 'Purchase'}`}</h2>
+                        <form onSubmit={submit}>
+                            <div className="wizard-field-grid">
+                                <div className="add-product-name flex-col">
+                                    <p>Vendor *</p>
+                                    <StyledSelect value={form.vendorId} onChange={v => setField('vendorId', v)} placeholder="Select vendor…"
+                                        options={vendors.map(v => ({ value: v._id, label: v.name }))} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Project *</p>
+                                    <StyledSelect value={form.projectId} onChange={v => setField('projectId', v)} placeholder="Select project…"
+                                        options={projects.map(p => ({ value: p._id, label: p.name }))} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Material *</p>
+                                    <StyledSelect value={form.materialId} onChange={v => setField('materialId', v)} placeholder="Select material…"
+                                        options={materials.map(m => ({ value: m._id, label: m.unit ? `${m.name} (${m.unit})` : m.name }))} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Quantity{selectedMaterial?.unit ? ` (${selectedMaterial.unit})` : ''} *</p>
+                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.quantity} onChange={e => setField('quantity', e.target.value)} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>{rateLabel}</p>
+                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.ratePerUnit} onChange={e => setField('ratePerUnit', e.target.value)} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Date *</p>
+                                    <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>{isReturn ? 'Return Reference' : 'PO Number'}</p>
+                                    <input type="text" value={form.referenceNumber} onChange={e => setField('referenceNumber', e.target.value)} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Total (auto)</p>
+                                    <input type="text" value={`₹${totalPreview.toLocaleString('en-IN')}`} disabled />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>GST Rate % (optional)</p>
+                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.gstRate} onChange={e => setField('gstRate', e.target.value)} />
+                                </div>
+                                <div className="add-product-name flex-col wizard-field-full">
+                                    <p>Notes</p>
+                                    <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
+                                </div>
+                            </div>
+                            <div className="edit-modal-actions">
+                                <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
+            )}
 
             {confirmItem && (
                 <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmItem(null)}>

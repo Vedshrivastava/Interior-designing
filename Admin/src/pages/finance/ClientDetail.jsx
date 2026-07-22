@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -409,6 +410,7 @@ const ClientContactsTab = ({ url, clientId }) => {
     const [form, setForm] = useState(emptyContactForm);
     const [editingId, setEditingId] = useState(null);
     const [saving, setSaving] = useState(false);
+    const [modalOpen, setModalOpen] = useState(false);
 
     const fetchList = () => {
         setLoading(true);
@@ -422,12 +424,15 @@ const ClientContactsTab = ({ url, clientId }) => {
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
+    const openAdd = () => { setEditingId(null); setForm(emptyContactForm); setModalOpen(true); };
+
     const openEdit = (c) => {
         setEditingId(c._id);
         setForm({ name: c.name, designation: c.designation || '', phone: c.phone || '', email: c.email || '', notes: c.notes || '' });
+        setModalOpen(true);
     };
 
-    const cancelEdit = () => { setEditingId(null); setForm(emptyContactForm); };
+    const closeModal = () => { setModalOpen(false); setEditingId(null); setForm(emptyContactForm); };
 
     const submit = async (e) => {
         e.preventDefault();
@@ -439,7 +444,7 @@ const ClientContactsTab = ({ url, clientId }) => {
             const res = await axios.post(`${url}/api/finance/client-contacts/${endpoint}`, payload, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message || 'Saved');
-                cancelEdit();
+                closeModal();
                 fetchList();
             } else toast.error(res.data.message);
         } catch (err) {
@@ -457,34 +462,10 @@ const ClientContactsTab = ({ url, clientId }) => {
 
     return (
         <div>
-            <form onSubmit={submit}>
-                <div className="wizard-field-grid">
-                    <div className="add-product-name flex-col">
-                        <p>Name *</p>
-                        <input type="text" value={form.name} onChange={e => setField('name', e.target.value)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Designation</p>
-                        <input type="text" value={form.designation} onChange={e => setField('designation', e.target.value)} placeholder="e.g. Site Engineer" />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Phone</p>
-                        <input type="text" value={form.phone} onChange={e => setField('phone', e.target.value)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Email</p>
-                        <input type="text" value={form.email} onChange={e => setField('email', e.target.value)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Notes</p>
-                        <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
-                    </div>
-                </div>
-                <div className="wizard-actions" style={{ marginTop: '16px' }}>
-                    {editingId ? <button type="button" className="add-btn cancel-btn" onClick={cancelEdit}>Cancel</button> : <span />}
-                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : editingId ? 'Update Contact' : '+ Add Contact'}</button>
-                </div>
-            </form>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h3 style={{ margin: 0 }}>Contacts</h3>
+                <button type="button" className="add-btn" onClick={openAdd}>+ Add Contact</button>
+            </div>
 
             {loading ? (
                 <div className="admin-empty-state"><p>Loading…</p></div>
@@ -508,6 +489,43 @@ const ClientContactsTab = ({ url, clientId }) => {
                         </div>
                     ))}
                 </div>
+            )}
+
+            {modalOpen && ReactDOM.createPortal(
+                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal">
+                        <h2>{editingId ? 'Edit Contact' : 'Add Contact'}</h2>
+                        <form onSubmit={submit}>
+                            <div className="wizard-field-grid">
+                                <div className="add-product-name flex-col">
+                                    <p>Name *</p>
+                                    <input type="text" value={form.name} onChange={e => setField('name', e.target.value)} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Designation</p>
+                                    <input type="text" value={form.designation} onChange={e => setField('designation', e.target.value)} placeholder="e.g. Site Engineer" />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Phone</p>
+                                    <input type="text" value={form.phone} onChange={e => setField('phone', e.target.value)} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Email</p>
+                                    <input type="text" value={form.email} onChange={e => setField('email', e.target.value)} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Notes</p>
+                                    <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
+                                </div>
+                            </div>
+                            <div className="edit-modal-actions">
+                                <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
+                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );

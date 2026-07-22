@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
@@ -20,6 +21,7 @@ const SupervisorAttendanceManager = ({ url, employeeId }) => {
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
+    const [modalOpen, setModalOpen] = useState(false);
 
     const fetchEntries = async () => {
         setLoading(true);
@@ -40,7 +42,7 @@ const SupervisorAttendanceManager = ({ url, employeeId }) => {
         setSaving(true);
         try {
             const res = await axios.post(`${url}/api/finance/supervisor-attendance/add`, { ...form, employeeId }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); await fetchEntries(); }
+            if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); setModalOpen(false); await fetchEntries(); }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording attendance'); }
         finally { setSaving(false); }
@@ -56,46 +58,60 @@ const SupervisorAttendanceManager = ({ url, employeeId }) => {
 
     return (
         <div>
-            <form onSubmit={submit}>
-                <div className="wizard-field-grid">
-                    <div className="add-product-name flex-col">
-                        <p>Date *</p>
-                        <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Status *</p>
-                        <select value={form.status} onChange={e => setField('status', e.target.value)}>
-                            {Object.entries(STATUS_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-                        </select>
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Notes (optional)</p>
-                        <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
-                    </div>
-                </div>
-                <div className="wizard-actions" style={{ marginTop: '16px' }}>
-                    <span />
-                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : '+ Mark Attendance'}</button>
-                </div>
-            </form>
-
-            <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 100px' }}>
-                    <b>Date</b><b>Status</b><b>Notes</b><b>Action</b>
-                </div>
-                {loading ? (
-                    <div className="admin-empty-state"><p>Loading…</p></div>
-                ) : entries.length === 0 ? (
-                    <div className="admin-empty-state"><p>No attendance recorded yet.</p></div>
-                ) : entries.map(e => (
-                    <div key={e._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 100px' }}>
-                        <p>{new Date(e.date).toLocaleDateString()}</p>
-                        <p><span className="item-category">{STATUS_LABEL[e.status]}</span></p>
-                        <p>{e.notes || '-'}</p>
-                        <div className="action-buttons"><p onClick={() => remove(e._id)} className="cursor delete-action">X</p></div>
-                    </div>
-                ))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h3 style={{ margin: 0 }}>Attendance</h3>
+                <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>+ Mark Attendance</button>
             </div>
+            {loading ? (
+                <div className="admin-empty-state"><p>Loading…</p></div>
+            ) : entries.length === 0 ? (
+                <div className="admin-empty-state"><p>No attendance recorded yet.</p></div>
+            ) : (
+                <div className="list-table finance-table">
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 100px' }}>
+                        <b>Date</b><b>Status</b><b>Notes</b><b>Action</b>
+                    </div>
+                    {entries.map(e => (
+                        <div key={e._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 100px' }}>
+                            <p>{new Date(e.date).toLocaleDateString()}</p>
+                            <p><span className="item-category">{STATUS_LABEL[e.status]}</span></p>
+                            <p>{e.notes || '-'}</p>
+                            <div className="action-buttons"><p onClick={() => remove(e._id)} className="cursor delete-action">X</p></div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {modalOpen && ReactDOM.createPortal(
+                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal">
+                        <h2>Mark Attendance</h2>
+                        <form onSubmit={submit}>
+                            <div className="wizard-field-grid">
+                                <div className="add-product-name flex-col">
+                                    <p>Date *</p>
+                                    <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Status *</p>
+                                    <select value={form.status} onChange={e => setField('status', e.target.value)}>
+                                        {Object.entries(STATUS_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                                    </select>
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Notes (optional)</p>
+                                    <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
+                                </div>
+                            </div>
+                            <div className="edit-modal-actions">
+                                <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };

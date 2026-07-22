@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
@@ -27,6 +28,7 @@ const CashEntriesManager = ({ url, type }) => {
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
+    const [modalOpen, setModalOpen] = useState(false);
 
     const fetchEntries = async () => {
         setLoading(true);
@@ -55,7 +57,7 @@ const CashEntriesManager = ({ url, type }) => {
         setSaving(true);
         try {
             const res = await axios.post(`${url}/api/finance/cash-entries/add`, { ...form, type }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); await fetchEntries(); }
+            if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); setModalOpen(false); await fetchEntries(); }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording entry'); }
         finally { setSaving(false); }
@@ -73,44 +75,20 @@ const CashEntriesManager = ({ url, type }) => {
 
     return (
         <div>
-            <form onSubmit={submit}>
-                <div className="wizard-field-grid">
-                    <div className="add-product-name flex-col">
-                        <p>Amount (₹) *</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h3 style={{ margin: 0 }}>Cash {isIn ? 'In' : 'Out'}</h3>
+                <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>{`+ Add Cash ${isIn ? 'In' : 'Out'}`}</button>
+            </div>
+            {loading ? (
+                <div className="admin-empty-state"><p>Loading…</p></div>
+            ) : entries.length === 0 ? (
+                <div className="admin-empty-state"><p>No cash {isIn ? 'in' : 'out'} entries yet.</p></div>
+            ) : (
+                <div className="list-table finance-table">
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 1fr 100px' }}>
+                        <b>Date</b><b>Amount</b><b>Reason</b><b>Source</b><b>Action</b>
                     </div>
-                    <div className="add-product-name flex-col">
-                        <p>Date *</p>
-                        <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>Project</p>
-                        <select value={form.projectId} onChange={e => setField('projectId', e.target.value)}>
-                            <option value="">No project (general)</option>
-                            {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                        </select>
-                    </div>
-                    <div className="add-product-name flex-col wizard-field-full">
-                        <p>Reason *</p>
-                        <input type="text" placeholder={isIn ? 'e.g. petty cash return' : 'e.g. petty cash, owner draw'} value={form.reason} onChange={e => setField('reason', e.target.value)} />
-                    </div>
-                </div>
-                <div className="wizard-actions" style={{ marginTop: '16px' }}>
-                    <span />
-                    <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : `+ Add Cash ${isIn ? 'In' : 'Out'}`}</button>
-                </div>
-            </form>
-
-            <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 1fr 100px' }}>
-                    <b>Date</b><b>Amount</b><b>Reason</b><b>Source</b><b>Action</b>
-                </div>
-                {loading ? (
-                    <div className="admin-empty-state"><p>Loading…</p></div>
-                ) : entries.length === 0 ? (
-                    <div className="admin-empty-state"><p>No cash {isIn ? 'in' : 'out'} entries yet.</p></div>
-                ) : (
-                    entries.map(e => (
+                    {entries.map(e => (
                         <div key={e._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 1fr 100px' }}>
                             <p>{new Date(e.date).toLocaleDateString()}</p>
                             <p>₹{e.amount.toLocaleString('en-IN')}</p>
@@ -120,9 +98,45 @@ const CashEntriesManager = ({ url, type }) => {
                                 {isManual(e) && <p onClick={() => remove(e._id)} className="cursor delete-action">X</p>}
                             </div>
                         </div>
-                    ))
-                )}
-            </div>
+                    ))}
+                </div>
+            )}
+
+            {modalOpen && ReactDOM.createPortal(
+                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal">
+                        <h2>{`Add Cash ${isIn ? 'In' : 'Out'}`}</h2>
+                        <form onSubmit={submit}>
+                            <div className="wizard-field-grid">
+                                <div className="add-product-name flex-col">
+                                    <p>Amount (₹) *</p>
+                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Date *</p>
+                                    <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Project</p>
+                                    <select value={form.projectId} onChange={e => setField('projectId', e.target.value)}>
+                                        <option value="">No project (general)</option>
+                                        {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="add-product-name flex-col wizard-field-full">
+                                    <p>Reason *</p>
+                                    <input type="text" placeholder={isIn ? 'e.g. petty cash return' : 'e.g. petty cash, owner draw'} value={form.reason} onChange={e => setField('reason', e.target.value)} />
+                                </div>
+                            </div>
+                            <div className="edit-modal-actions">
+                                <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };

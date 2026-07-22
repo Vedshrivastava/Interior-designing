@@ -28,6 +28,9 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
     const [workLabourers, setWorkLabourers] = useState([]);
     const [measurements, setMeasurements] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [materialTrackingEnabled, setMaterialTrackingEnabled] = useState(false);
+    const [materials, setMaterials] = useState([]);
+    const [materialLines, setMaterialLines] = useState([]);
 
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
@@ -50,9 +53,11 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
     };
 
     const fetchWorksForSelectedProject = () => {
-        if (!selectedProjectId) { setWorks([]); return; }
+        if (!selectedProjectId) { setWorks([]); setMaterialTrackingEnabled(false); return; }
         axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: selectedProjectId } })
             .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/projects/${selectedProjectId}`, authHeader)
+            .then(res => { if (res.data.success) setMaterialTrackingEnabled(!!res.data.data.project?.materialTrackingEnabled); }).catch(() => {});
     };
     useEffect(() => {
         if (!selectedProjectId) { setMeasurements([]); return; }
@@ -60,6 +65,13 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
         fetchMeasurements(selectedProjectId);
     }, [url, selectedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
     useFinanceWsRefresh(['financeWorksChanged'], fetchWorksForSelectedProject);
+
+    const fetchMaterials = () => {
+        axios.get(`${url}/api/finance/materials/list`, authHeader)
+            .then(res => { if (res.data.success) setMaterials(res.data.data); }).catch(() => {});
+    };
+    useEffect(fetchMaterials, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeMaterialsChanged'], fetchMaterials);
 
     // Scoped to only the labourers currently assigned to the selected Work
     // — not every labourer system-wide.
@@ -70,11 +82,23 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
             .catch(() => setWorkLabourers([]));
     }, [url, form.workId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Same fixed-checklist-per-work-type derivation as AddMeasurementModal —
+    // a labourer's work consumes material exactly like a contractor's does,
+    // gated the same way on the project's own materialTrackingEnabled flag.
+    useEffect(() => {
+        if (!form.workId) { setMaterialLines([]); return; }
+        const workType = works.find(w => w._id === form.workId)?.workType;
+        const applicable = materials.filter(m => !m.workTypes?.length || m.workTypes.includes(workType));
+        setMaterialLines(applicable.map(m => ({ materialId: m._id, quantity: '' })));
+    }, [form.workId, materials, works]); // eslint-disable-line react-hooks/exhaustive-deps
+
     const setField = (key, value) => setForm(prev => {
         const next = { ...prev, [key]: value };
         if (key === 'workId') next.labourerId = ''; // scoped labourer list changes with the work
         return next;
     });
+
+    const setMaterialLine = (idx, key, value) => setMaterialLines(prev => prev.map((l, i) => i === idx ? { ...l, [key]: value } : l));
 
     const resetForm = () => setForm(emptyForm);
 
@@ -91,6 +115,7 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
             const res = await axios.post(`${url}/api/finance/labour-measurements/add`, {
                 projectId: selectedProjectId, workId: form.workId, labourerId: form.labourerId,
                 date: form.date, areaCoveredSqft: form.areaCoveredSqft, remarks: form.remarks,
+                materialUsed: materialLines.filter(l => l.materialId && Number(l.quantity) > 0),
             }, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message);
@@ -102,7 +127,24 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                 ]);
             } else toast.error(res.data.message);
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Error saving measurement');
+            const data = err.response?.data;
+            if (data?.code === 'INSUFFICIENT_STOCK') {
+                toast.error(
+                    <div>
+                        <p style={{ margin: '0 0 8px' }}>{data.message}</p>
+                        <a
+                            href={`/finance/procurement?projectId=${data.projectId}&material=${data.materialId}`}
+                            target="_blank" rel="noreferrer"
+                            style={{ fontWeight: 700, color: 'var(--gold, #c9a87c)', textDecoration: 'underline' }}
+                        >
+                            Record a Purchase →
+                        </a>
+                    </div>,
+                    { autoClose: 12000 }
+                );
+            } else {
+                toast.error(data?.message || 'Error saving measurement');
+            }
         } finally { setSaving(false); }
     };
 
@@ -194,6 +236,33 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                                             <textarea rows="2" value={form.remarks} onChange={e => setField('remarks', e.target.value)} />
                                         </div>
                                     </div>
+
+                                    {materialTrackingEnabled && (
+                                        <div style={{ margin: '4px 0 20px' }}>
+                                            <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
+                                                Material Used {materialLines.length > 0 && `(for ${form.areaCoveredSqft || '?'} sqft covered above, not per material)`}
+                                            </p>
+                                            {!form.workId ? (
+                                                <p className="admin-subtitle">Select a work first.</p>
+                                            ) : materialLines.length === 0 ? (
+                                                <p className="admin-subtitle">
+                                                    No materials are tagged to this work type yet; add them from Masters → Material Master.
+                                                </p>
+                                            ) : materialLines.map((line, idx) => {
+                                                const material = materials.find(m => m._id === line.materialId);
+                                                return (
+                                                    <div key={line.materialId} style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'center' }}>
+                                                        <p style={{ flex: 2, margin: 0 }}>{material?.name || '-'}</p>
+                                                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" placeholder="Quantity" value={line.quantity} onChange={e => setMaterialLine(idx, 'quantity', e.target.value)} style={{ width: '100%' }} />
+                                                            {material?.unit && <span className="admin-subtitle" style={{ whiteSpace: 'nowrap' }}>{material.unit}</span>}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
                                     <div className="edit-modal-actions">
                                         <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
                                         <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>

@@ -20,8 +20,11 @@ const financeStockMovementSchema = new mongoose.Schema({
     date:         { type: Date, required: true },
 
     // Set automatically by the measurement-save automation on `consume`
-    // movements it creates — never set by the manual entry form.
+    // movements it creates — never set by the manual entry form. A `consume`
+    // movement is attributed to exactly one of these two (contractor vs.
+    // labour measurement), never both.
     relatedMeasurementId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeMeasurement', default: null },
+    relatedLabourMeasurementId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeLabourMeasurement', default: null },
 
     // Auto-set on `consume` movements (from the measurement's own workId).
     // Manually pickable on `waste` entries going forward so waste can be

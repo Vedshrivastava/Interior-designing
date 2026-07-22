@@ -102,14 +102,29 @@ const computeProjectMaterialCost = async (projectId) => {
 
 // Work-level material cost scopes the same per-project average rate down
 // to only this work's consumed quantity — consume movements don't carry
-// workId directly, so this traces through relatedMeasurementId → the
-// measurement's own workId (see financeStockMovement.js's schema comment).
+// workId directly, so this traces through relatedMeasurementId/
+// relatedLabourMeasurementId → the measurement's own workId (see
+// financeStockMovement.js's schema comment). Material used by a labourer's
+// own measurements counts here too — consumption doesn't care whether a
+// contractor or an individual labourer is who did the work.
 const computeWorkMaterialCost = async (projectId, workId) => {
     const avgRate = await computeMaterialAvgRates(projectId);
-    const measurementIds = (await FinanceMeasurement.find({ workId, deleted: { $ne: true } }, '_id')).map(m => m._id);
-    if (!measurementIds.length) return 0;
+    const [measurementIds, labourMeasurementIds] = await Promise.all([
+        FinanceMeasurement.find({ workId, deleted: { $ne: true } }, '_id').then(rows => rows.map(m => m._id)),
+        FinanceLabourMeasurement.find({ workId, deleted: { $ne: true } }, '_id').then(rows => rows.map(m => m._id)),
+    ]);
+    if (!measurementIds.length && !labourMeasurementIds.length) return 0;
     const consumed = await FinanceStockMovement.aggregate([
-        { $match: { relatedMeasurementId: { $in: measurementIds }, movementType: 'consume', deleted: { $ne: true } } },
+        {
+            $match: {
+                movementType: 'consume',
+                deleted: { $ne: true },
+                $or: [
+                    { relatedMeasurementId: { $in: measurementIds } },
+                    { relatedLabourMeasurementId: { $in: labourMeasurementIds } },
+                ],
+            },
+        },
         { $group: { _id: '$materialId', qty: { $sum: '$quantity' } } },
     ]);
     let total = 0;
@@ -802,9 +817,12 @@ const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) =>
 
     // Material Used — traced via each measurement's own materialUsed[],
     // not re-derived from stock movements (measurements already store it).
+    // Labour measurements carry the exact same materialUsed[] shape, and
+    // count here too — material consumed doesn't care whether a contractor
+    // or an individual labourer logged the work that used it.
     const materialIds = new Set();
     const usedByMaterial = new Map();
-    for (const m of measurements) {
+    for (const m of [...measurements, ...labourMeasurements]) {
         for (const u of m.materialUsed) {
             const key = u.materialId.toString();
             materialIds.add(key);
@@ -825,7 +843,7 @@ const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) =>
     // ratio within the scope, NOT totalMaterialCost / totalArea — days with
     // zero material cost recorded are skipped, not counted as a zero ratio.
     const byDate = new Map();
-    for (const m of measurements) {
+    for (const m of [...measurements, ...labourMeasurements]) {
         const dateKey = new Date(m.date).toISOString().slice(0, 10);
         if (!byDate.has(dateKey)) byDate.set(dateKey, { areaCoveredSqft: 0, materialCost: 0 });
         const entry = byDate.get(dateKey);

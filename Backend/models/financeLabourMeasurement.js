@@ -21,6 +21,16 @@ const financeLabourMeasurementSchema = new mongoose.Schema({
     date:            { type: Date, required: true },
     areaCoveredSqft: { type: Number, required: true },
     supervisorId:    { type: mongoose.Schema.Types.ObjectId, ref: 'financeEmployee', default: null }, // who recorded this
+
+    // Same shape and same materialTrackingEnabled gate as financeMeasurement's
+    // own materialUsed — a labourer's work consumes material exactly like a
+    // contractor's does, and needs to flow into the same stock/cost pipeline
+    // (see controllers/financeLabourMeasurement.js).
+    materialUsed: [{
+        materialId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeMaterial', required: true },
+        quantity:   { type: Number, required: true },
+    }],
+
     remarks:         { type: String, default: '' },
 
     deleted:   { type: Boolean, default: false },

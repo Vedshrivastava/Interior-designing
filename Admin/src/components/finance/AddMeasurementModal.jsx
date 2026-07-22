@@ -138,6 +138,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
     const submitLabour = () => axios.post(`${url}/api/finance/labour-measurements/add`, {
         projectId: form.projectId, workId: form.workId, labourerId: form.labourerId, supervisorId: form.supervisorId || undefined,
         date: form.date, areaCoveredSqft: form.areaCoveredSqft, remarks: form.remarks,
+        materialUsed: materialLines.filter(l => l.materialId && Number(l.quantity) > 0),
     }, authHeader);
 
     const submit = async (e) => {
@@ -270,7 +271,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                         </div>
                     </div>
 
-                    {isContractor && materialTrackingEnabled && (
+                    {materialTrackingEnabled && (
                         <div style={{ margin: '4px 0 20px' }}>
                             <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
                                 Material Used {materialLines.length > 0 && `(for ${form.areaCoveredSqft || '?'} sqft covered above, not per material)`}

@@ -9,7 +9,7 @@ import {
 import {
     faMoneyBillTransfer, faArrowTrendUp, faBuildingColumns, faWallet, faFileInvoiceDollar,
     faCartShopping, faHardHat, faReceipt, faBuilding, faClipboardList, faPersonDigging,
-    faRulerCombined, faTriangleExclamation,
+    faRulerCombined, faTriangleExclamation, faMoneyBillWave,
 } from '@fortawesome/free-solid-svg-icons';
 import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ActivityCard, ChartTooltip, CHART_COLORS, formatINR } from '../components/finance/DashboardWidgets';
 import '../styles/welcome.css';
@@ -207,6 +207,7 @@ const FinanceHome = ({ url }) => {
                 <KpiGrid hero>
                     <KpiCard hero loading={phase1Loading} icon={faMoneyBillTransfer} label="This Month Revenue" value={formatINR(summary?.thisMonthRevenue)} onClick={() => navigate('/finance/receivables')} />
                     <KpiCard hero loading={phase1Loading} icon={faArrowTrendUp} label="This Month Profit" value={formatINR(summary?.thisMonthProfit)} onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.thisMonthProfit >= 0 ? 'good' : 'danger'} />
+                    <KpiCard hero loading={phase1Loading} icon={faMoneyBillWave} label="This Month Expense" value={formatINR(summary?.thisMonthExpense)} onClick={() => navigate('/finance/payables?tab=expenses')} />
                 </KpiGrid>
 
                 <KpiSectionLabel>Cash &amp; Receivables</KpiSectionLabel>

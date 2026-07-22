@@ -254,21 +254,41 @@ const computeProjectLabourCost = async (projectId) => {
     return { approvedAmount: round2(approvedAmount), totalAmount: round2(totalAmount) };
 };
 
+// Same approved-vs-total split as computeProjectContractorCost/
+// computeProjectLabourCost, now that commission counts as a real cost only
+// once the work it's earned on has actually been reviewed — a referral
+// shouldn't be recognized as "owed" for sqft that's still pending review
+// any more than a contractor or labourer is. Only one referral per
+// project, so no proportional multi-party split is needed here (unlike
+// contractor/labour, where more than one vendor/labourer can share a Work).
 const computeProjectCommissionCost = async (project) => {
-    if (!project.referralId) return 0;
+    if (!project.referralId) return { approvedAmount: 0, totalAmount: 0 };
     // Advance projects have no per-sqft referral math at all — commission is
     // a flat, manually-typed amount (financeProject.referralCommissionAmount,
     // editable any time), read fresh here so Profit/Client Profit move
-    // immediately whenever it's changed. With/Without Material keep the
-    // usual completedAreaSqft × referralRatePerSqft computation.
-    if (project.contractType === 'advance') return project.referralCommissionAmount || 0;
+    // immediately whenever it's changed. Not sqft-based, so there's no
+    // "reviewed vs pending" distinction to make — it's owed in full as soon
+    // as it's entered, same as it always was.
+    if (project.contractType === 'advance') {
+        const flat = project.referralCommissionAmount || 0;
+        return { approvedAmount: flat, totalAmount: flat };
+    }
     const works = await FinanceWork.find({ projectId: project._id, deleted: { $ne: true } });
-    if (!works.length) return 0;
-    const rates = await FinanceWorkTypeRate.find({ projectId: project._id, deleted: { $ne: true } });
+    if (!works.length) return { approvedAmount: 0, totalAmount: 0 };
+    const [rates, approvedBillingByWorkId] = await Promise.all([
+        FinanceWorkTypeRate.find({ projectId: project._id, deleted: { $ne: true } }),
+        getApprovedBillingByWorkId(works.map(w => w._id)),
+    ]);
     const rateByWorkType = new Map(rates.map(r => [r.workType, r.referralRatePerSqft]));
-    let total = 0;
-    for (const w of works) total += w.completedAreaSqft * (rateByWorkType.get(w.workType) || 0);
-    return total;
+    let approvedAmount = 0;
+    let totalAmount = 0;
+    for (const w of works) {
+        const rate = rateByWorkType.get(w.workType) || 0;
+        totalAmount += w.completedAreaSqft * rate;
+        const approvedArea = approvedBillingByWorkId.get(w._id.toString())?.areaSqft || 0;
+        approvedAmount += approvedArea * rate;
+    }
+    return { approvedAmount, totalAmount };
 };
 
 // Shared by getProjectProfit and getClientProfit/getClientDetail (which sum
@@ -277,7 +297,7 @@ const computeProjectProfit = async (projectId) => {
     const project = await FinanceProject.findOne({ _id: projectId, deleted: { $ne: true } });
     if (!project) return null;
 
-    const [revenueAgg, materialCost, contractorCostInfo, commissionCost, expenseAgg, labourCostInfo] = await Promise.all([
+    const [revenueAgg, materialCost, contractorCostInfo, commissionCostInfo, expenseAgg, labourCostInfo] = await Promise.all([
         FinanceRunningBill.aggregate([
             { $match: { projectId: project._id, status: 'issued', deleted: { $ne: true } } },
             { $group: { _id: null, total: { $sum: '$totalAmount' } } },
@@ -294,17 +314,25 @@ const computeProjectProfit = async (projectId) => {
 
     const revenue = revenueAgg[0]?.total || 0;
     const otherExpenses = expenseAgg[0]?.total || 0;
-    // Profit is built off Approved cost (what's actually billed to the
-    // client so far) — Total cost (every logged sqft, unconditional) is
-    // exposed alongside for context but never subtracted here.
+    // Profit is built off Approved (reviewed) cost — Total cost (every
+    // logged sqft, unconditional) is exposed alongside for context, split
+    // out as its own unapproved figure below, but never subtracted here.
     const contractorCost = contractorCostInfo.approvedAmount;
     const labourCost = labourCostInfo.approvedAmount;
+    const commissionCost = commissionCostInfo.approvedAmount;
     const profit = revenue - materialCost - contractorCost - commissionCost - otherExpenses - labourCost;
 
     return {
         projectId: project._id, projectName: project.name, clientId: project.clientId,
         revenue, materialCost, contractorCost, commissionCost, otherExpenses, labourCost, profit,
         totalContractorCost: contractorCostInfo.totalAmount, totalLabourCost: labourCostInfo.totalAmount,
+        totalCommissionCost: commissionCostInfo.totalAmount,
+        // "Pending review" — logged work whose cost isn't counted in Profit
+        // yet because it hasn't been reviewed. Never negative: review can
+        // only ever approve up to what's logged, not more.
+        unapprovedContractorCost: round2(Math.max(0, contractorCostInfo.totalAmount - contractorCost)),
+        unapprovedLabourCost: round2(Math.max(0, labourCostInfo.totalAmount - labourCost)),
+        unapprovedCommissionCost: round2(Math.max(0, commissionCostInfo.totalAmount - commissionCost)),
         marginPercent: revenue > 0 ? (profit / revenue) * 100 : 0,
     };
 };
@@ -371,8 +399,16 @@ const getClientProfit = async (req, res) => {
             labourCost: acc.labourCost + p.labourCost,
             totalContractorCost: acc.totalContractorCost + p.totalContractorCost,
             totalLabourCost: acc.totalLabourCost + p.totalLabourCost,
+            totalCommissionCost: acc.totalCommissionCost + p.totalCommissionCost,
+            unapprovedContractorCost: acc.unapprovedContractorCost + p.unapprovedContractorCost,
+            unapprovedLabourCost: acc.unapprovedLabourCost + p.unapprovedLabourCost,
+            unapprovedCommissionCost: acc.unapprovedCommissionCost + p.unapprovedCommissionCost,
             profit: acc.profit + p.profit,
-        }), { revenue: 0, materialCost: 0, contractorCost: 0, commissionCost: 0, otherExpenses: 0, labourCost: 0, totalContractorCost: 0, totalLabourCost: 0, profit: 0 });
+        }), {
+            revenue: 0, materialCost: 0, contractorCost: 0, commissionCost: 0, otherExpenses: 0, labourCost: 0,
+            totalContractorCost: 0, totalLabourCost: 0, totalCommissionCost: 0,
+            unapprovedContractorCost: 0, unapprovedLabourCost: 0, unapprovedCommissionCost: 0, profit: 0,
+        });
         totals.marginPercent = totals.revenue > 0 ? (totals.profit / totals.revenue) * 100 : 0;
 
         res.json({ success: true, data: { clientId: client._id, clientName: client.name, projects: perProject, totals } });
@@ -1378,20 +1414,55 @@ const getMaterialAnalysis = async (req, res) => {
             else { m.returnedQty += p.quantity; m.returnedAmt += p.totalAmount; }
         }
 
+        // Cost/sqft per material — only meaningful scoped to one project
+        // (mixing sqft across different projects/rates would be
+        // meaningless). "Area covered using this material" sums every
+        // measurement's own areaCoveredSqft where this material appears in
+        // that measurement's materialUsed[] — a day where a material was
+        // used across less area than the project's total progress correctly
+        // gets a narrower denominator, not the whole project's area.
+        const areaByMaterial = new Map();
+        if (projectId) {
+            const [contractorMeasurements, labourMeasurements] = await Promise.all([
+                FinanceMeasurement.find({ projectId, deleted: { $ne: true } }, 'areaCoveredSqft materialUsed'),
+                FinanceLabourMeasurement.find({ projectId, deleted: { $ne: true } }, 'areaCoveredSqft materialUsed'),
+            ]);
+            for (const m of [...contractorMeasurements, ...labourMeasurements]) {
+                for (const u of (m.materialUsed || [])) {
+                    const key = u.materialId.toString();
+                    areaByMaterial.set(key, (areaByMaterial.get(key) || 0) + m.areaCoveredSqft);
+                }
+            }
+        }
+
         const rows = materials.map(mat => {
             const key = mat._id.toString();
             const p = purchaseByMaterial.get(key) || { purchasedQty: 0, purchasedAmt: 0, returnedQty: 0, returnedAmt: 0 };
             const s = stockByMaterial.get(key) || { dump: 0, consume: 0, returned: 0, waste: 0 };
             const netQty = p.purchasedQty - p.returnedQty;
             const netAmt = p.purchasedAmt - p.returnedAmt;
+            const weightedAverageCost = netQty > 0 ? netAmt / netQty : 0;
+            const areaCoveredSqft = areaByMaterial.get(key) || 0;
+            const consumedCost = s.consume * weightedAverageCost;
             return {
                 materialId: mat._id, materialName: mat.name, unit: mat.unit,
+                // totalDumped (raw stock-movement total) is the true source
+                // currentStock is itself built from — every Purchase auto-
+                // creates a matching dump today, but older dump rows from
+                // before dump/return became Procurement-only (see
+                // financeStockMovement.js's MANUAL_TYPES) can still exist
+                // with no purchase behind them, so this can exceed
+                // totalPurchased on projects with that older data.
+                totalDumped: s.dump,
                 totalPurchased: p.purchasedQty, totalReturned: p.returnedQty,
                 totalConsumed: s.consume, totalWasted: s.waste,
                 currentStock: s.dump - s.consume - s.returned - s.waste,
-                weightedAverageCost: netQty > 0 ? netAmt / netQty : 0,
+                weightedAverageCost,
+                // Only populated when scoped to one project (projectId set).
+                areaCoveredSqft,
+                costPerSqft: areaCoveredSqft > 0 ? consumedCost / areaCoveredSqft : 0,
             };
-        }).filter(r => r.totalPurchased || r.totalReturned || r.totalConsumed || r.totalWasted || r.currentStock);
+        }).filter(r => r.totalDumped || r.totalPurchased || r.totalReturned || r.totalConsumed || r.totalWasted || r.currentStock);
 
         res.json({ success: true, data: rows.sort((a, b) => a.materialName.localeCompare(b.materialName)) });
     } catch (err) {
@@ -2332,8 +2403,9 @@ const getDashboardSummary = async (req, res) => {
             computeDashboardApprovedBreakdown(),
         ]);
         const thisMonthRevenue = monthRevenueAgg[0]?.total || 0;
+        const thisMonthExpense = monthExpenseAgg[0]?.total || 0;
         const thisMonthProfit = thisMonthRevenue - monthMaterialCost - monthContractorCost - monthCommissionCost
-            - (monthExpenseAgg[0]?.total || 0) - monthLabourCost;
+            - thisMonthExpense - monthLabourCost;
 
         res.json({
             success: true,
@@ -2352,7 +2424,7 @@ const getDashboardSummary = async (req, res) => {
                 approvedContractorTotal: approvedBreakdown.contractorTotal, approvedLabourTotal: approvedBreakdown.labourTotal,
                 unapprovedByWorkType: approvedBreakdown.unapprovedByWorkType,
                 unapprovedContractorTotal: approvedBreakdown.unapprovedContractorTotal, unapprovedLabourTotal: approvedBreakdown.unapprovedLabourTotal,
-                thisMonthRevenue, thisMonthProfit,
+                thisMonthRevenue, thisMonthProfit, thisMonthExpense,
                 recentActivities,
             },
         });

@@ -110,6 +110,20 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
                 <KpiCard label="Margin %" value={`${Math.round(profit.marginPercent * 10) / 10}%`} tone={profit.marginPercent >= 0 ? 'good' : 'danger'} />
             </KpiGrid>
 
+            {(profit.unapprovedContractorCost > 0 || profit.unapprovedLabourCost > 0 || profit.unapprovedCommissionCost > 0) && (
+                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
+                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                        <p>Contractor: {formatINR(profit.unapprovedContractorCost)}</p>
+                        <p>Labour: {formatINR(profit.unapprovedLabourCost)}</p>
+                        <p>Commission: {formatINR(profit.unapprovedCommissionCost)}</p>
+                    </div>
+                    <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
+                        Logged work whose cost isn't counted in Profit yet — review it in Payables/Receivables → Deductions to move it in.
+                    </p>
+                </div>
+            )}
+
             <ChartGrid>
                 <ChartCard title="Progress Over Time">
                     {profit.progressOverTime?.length > 0 ? (
@@ -153,17 +167,18 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
 
             {materials.length > 0 && (
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr 1fr' }}>
-                        <b>Material</b><b>Purchased</b><b>Consumed</b><b>Wasted</b><b>Current Stock</b><b>Avg Cost</b>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr 1fr' }}>
+                        <b>Material</b><b>Dumped</b><b>Consumed</b><b>Wasted</b><b>Current Stock</b><b>Avg Cost</b><b>Cost/Sqft</b>
                     </div>
                     {materials.map(m => (
-                        <div key={m.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr 1fr' }}>
+                        <div key={m.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.1fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr 1fr' }}>
                             <p>{m.materialName}</p>
-                            <p>{m.totalPurchased} {m.unit}</p>
+                            <p>{m.totalDumped} {m.unit}</p>
                             <p>{m.totalConsumed} {m.unit}</p>
                             <p>{m.totalWasted} {m.unit}</p>
                             <p>{m.currentStock} {m.unit}</p>
-                            <p>{formatINR(m.weightedAverageCost)}</p>
+                            <p>{formatINR(m.weightedAverageCost)}{m.unit ? `/${m.unit}` : ''}</p>
+                            <p>{m.areaCoveredSqft > 0 ? `₹${m.costPerSqft.toFixed(2)}/sqft` : '—'}</p>
                         </div>
                     ))}
                 </div>

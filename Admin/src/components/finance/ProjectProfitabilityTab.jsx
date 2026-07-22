@@ -74,7 +74,12 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                     tone={profit.labourCost > 0 ? 'good' : (profit.totalLabourCost > 0 ? 'danger' : undefined)}
                     sub={profit.totalLabourCost > profit.labourCost ? `Total logged: ${formatINR(profit.totalLabourCost)}` : 'All-time'}
                 />
-                <KpiCard label="Commission Cost" value={formatINR(profit.commissionCost)} />
+                <KpiCard
+                    label="Commission Cost (Approved)"
+                    value={profit.commissionCost > 0 ? formatINR(profit.commissionCost) : (profit.totalCommissionCost > 0 ? 'Unapproved' : formatINR(0))}
+                    tone={profit.commissionCost > 0 ? 'good' : (profit.totalCommissionCost > 0 ? 'danger' : undefined)}
+                    sub={profit.totalCommissionCost > profit.commissionCost ? `Total logged: ${formatINR(profit.totalCommissionCost)}` : 'All-time'}
+                />
                 <KpiCard label="Other Expenses" value={formatINR(profit.otherExpenses)} />
             </KpiGrid>
 

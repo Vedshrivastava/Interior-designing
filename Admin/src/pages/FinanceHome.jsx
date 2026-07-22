@@ -9,7 +9,7 @@ import {
 import {
     faMoneyBillTransfer, faArrowTrendUp, faBuildingColumns, faWallet, faFileInvoiceDollar,
     faCartShopping, faHardHat, faReceipt, faBuilding, faClipboardList, faPersonDigging,
-    faRulerCombined, faTriangleExclamation, faMoneyBillWave,
+    faRulerCombined, faTriangleExclamation, faMoneyBillWave, faHandHoldingDollar, faUsers,
 } from '@fortawesome/free-solid-svg-icons';
 import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ActivityCard, ChartTooltip, CHART_COLORS, formatINR } from '../components/finance/DashboardWidgets';
 import '../styles/welcome.css';
@@ -200,7 +200,7 @@ const FinanceHome = ({ url }) => {
                 <div className="admin-header-split">
                     <div>
                         <h1>Finance Dashboard</h1>
-                        <p className="admin-subtitle">How the business is doing right now — click any card or chart to go deeper.</p>
+                        <p className="admin-subtitle">How the business is doing right now - click any card or chart to go deeper.</p>
                     </div>
                 </div>
 
@@ -210,13 +210,16 @@ const FinanceHome = ({ url }) => {
                     <KpiCard hero loading={phase1Loading} icon={faMoneyBillWave} label="This Month Expense" value={formatINR(summary?.thisMonthExpense)} onClick={() => navigate('/finance/payables?tab=expenses')} />
                 </KpiGrid>
 
-                <KpiSectionLabel>Cash &amp; Receivables</KpiSectionLabel>
+                <KpiSectionLabel>Cash, Receivables &amp; Payables</KpiSectionLabel>
                 <KpiGrid>
                     <KpiCard loading={phase1Loading} icon={faBuildingColumns} label="Cash in Bank" value={formatINR(summary?.cashInBank)} onClick={() => navigate('/finance/bank')} />
                     <KpiCard loading={phase1Loading} icon={faWallet} label="Cash in Hand" value={formatINR(summary?.cashInHand)} onClick={() => navigate('/finance/cash-book')} />
                     <KpiCard loading={phase1Loading} icon={faFileInvoiceDollar} label="Client Receivables" value={formatINR(summary?.clientReceivables)} onClick={() => navigate('/finance/clients')} tone={summary?.clientReceivables > 0 ? 'danger' : 'good'} />
-                    <KpiCard loading={phase1Loading} icon={faCartShopping} label="Vendor Payables" value={formatINR(summary?.vendorPayables)} onClick={() => navigate('/finance/procurement')} />
-                    <KpiCard loading={phase1Loading} icon={faHardHat} label="Contractor Payables" value={formatINR(summary?.contractorPayables)} onClick={() => navigate('/finance/contractors')} />
+                    <KpiCard loading={phase1Loading} icon={faCartShopping} label="Vendor Payables" value={formatINR(summary?.vendorPayables)} onClick={() => navigate('/finance/procurement')} tone={summary?.vendorPayables > 0 ? 'danger' : 'good'} />
+                    <KpiCard loading={phase1Loading} icon={faHardHat} label="Contractor Payables" value={formatINR(summary?.contractorPayables)} onClick={() => navigate('/finance/contractors')} tone={summary?.contractorPayables > 0 ? 'danger' : 'good'} />
+                    <KpiCard loading={phase1Loading} icon={faPersonDigging} label="Labour Payables" value={formatINR(summary?.labourPayables)} onClick={() => navigate('/finance/daily-labour')} tone={summary?.labourPayables > 0 ? 'danger' : 'good'} />
+                    <KpiCard loading={phase1Loading} icon={faHandHoldingDollar} label="Commission Payables" value={formatINR(summary?.commissionPayables)} onClick={() => navigate('/finance/referrals')} tone={summary?.commissionPayables > 0 ? 'danger' : 'good'} />
+                    <KpiCard loading={phase1Loading} icon={faUsers} label="Salaries Payable" value={formatINR(summary?.salaryPayables)} onClick={() => navigate('/finance/payables?tab=salary')} tone={summary?.salaryPayables > 0 ? 'danger' : 'good'} />
                     <KpiCard loading={phase1Loading} icon={faReceipt} label="Running Bills Ready" value={summary?.runningBillsReady ?? 0} onClick={() => navigate('/finance/receivables')} />
                 </KpiGrid>
 
@@ -225,8 +228,8 @@ const FinanceHome = ({ url }) => {
                     <KpiCard loading={phase1Loading} icon={faBuilding} label="Active Projects" value={summary?.activeProjects ?? 0} onClick={() => navigate('/finance/projects')} />
                     <KpiCard loading={phase1Loading} icon={faClipboardList} label="Active Works" value={summary?.activeWorks ?? 0} onClick={() => navigate('/finance/projects')} />
                     <KpiCard loading={phase1Loading} icon={faPersonDigging} label="Personal Labour Working Today" value={summary?.labourWorkingToday ?? 0} onClick={() => navigate('/finance/daily-labour')} />
-                    <KpiCard loading={phase1Loading} icon={faHardHat} label="Contractor Teams — Today" value={`${(summary?.todaysContractorMeasurementSqft || 0).toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/contractors')} />
-                    <KpiCard loading={phase1Loading} icon={faPersonDigging} label="Labour Teams — Today" value={`${(summary?.todaysLabourMeasurementSqft || 0).toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/daily-labour')} />
+                    <KpiCard loading={phase1Loading} icon={faHardHat} label="Contractor Teams - Today" value={`${(summary?.todaysContractorMeasurementSqft || 0).toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/contractors')} />
+                    <KpiCard loading={phase1Loading} icon={faPersonDigging} label="Labour Teams - Today" value={`${(summary?.todaysLabourMeasurementSqft || 0).toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/daily-labour')} />
                     <KpiCard loading={phase1Loading} icon={faTriangleExclamation} label="Material Low Alerts" value={summary?.materialLowAlerts ?? 0} onClick={() => navigate('/finance/site-inventory?filter=low-stock')} tone={summary?.materialLowAlerts > 0 ? 'danger' : 'good'} />
                 </KpiGrid>
 
@@ -239,7 +242,7 @@ const FinanceHome = ({ url }) => {
                         {phase1Loading ? (
                             <KpiCard loading icon={faRulerCombined} label="Today's Measurements by Type" value="" />
                         ) : measurementTypeEntries.map(([workType, sqft]) => (
-                            <KpiCard key={workType} icon={faRulerCombined} label={`${workType} — Today`} value={`${sqft.toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/site-operations')} />
+                            <KpiCard key={workType} icon={faRulerCombined} label={`${workType} - Today`} value={`${sqft.toLocaleString('en-IN')} sqft`} onClick={() => navigate('/finance/site-operations')} />
                         ))}
                     </KpiGrid>
                 )}
@@ -255,16 +258,16 @@ const FinanceHome = ({ url }) => {
                     until someone opens a specific contractor's ledger. */}
                 {(phase1Loading || (summary?.approvedByWorkType?.length > 0)) && (
                     <>
-                        <KpiSectionLabel>Approved — Reviewed</KpiSectionLabel>
+                        <KpiSectionLabel>Approved - Reviewed</KpiSectionLabel>
                         <KpiGrid>
                             {phase1Loading ? (
                                 <KpiCard loading icon={faReceipt} label="Approved" value="" />
                             ) : (
                                 <>
-                                    <KpiCard icon={faHardHat} label="Contractor Teams — Approved" value={formatINR(summary.approvedContractorTotal)} onClick={() => navigate('/finance/contractors')} tone="good" />
-                                    <KpiCard icon={faPersonDigging} label="Labour Teams — Approved" value={formatINR(summary.approvedLabourTotal)} onClick={() => navigate('/finance/daily-labour')} tone="good" />
+                                    <KpiCard icon={faHardHat} label="Contractor Teams - Approved" value={formatINR(summary.approvedContractorTotal)} onClick={() => navigate('/finance/contractors')} tone="good" />
+                                    <KpiCard icon={faPersonDigging} label="Labour Teams - Approved" value={formatINR(summary.approvedLabourTotal)} onClick={() => navigate('/finance/daily-labour')} tone="good" />
                                     {summary.approvedByWorkType.map(({ workType, sqft, amount }) => (
-                                        <KpiCard key={workType} icon={faReceipt} label={`${workType} — Approved`} value={`${sqft.toLocaleString('en-IN')} sqft`} sub={formatINR(amount)} onClick={() => navigate('/finance/receivables')} />
+                                        <KpiCard key={workType} icon={faReceipt} label={`${workType} - Approved`} value={`${sqft.toLocaleString('en-IN')} sqft`} sub={formatINR(amount)} onClick={() => navigate('/finance/receivables')} />
                                     ))}
                                 </>
                             )}
@@ -272,18 +275,20 @@ const FinanceHome = ({ url }) => {
                     </>
                 )}
 
-                {(phase1Loading || (summary?.unapprovedByWorkType?.length > 0)) && (
+                {(phase1Loading || (summary?.unapprovedByWorkType?.length > 0) || summary?.unapprovedCommissionTotal > 0) && (
                     <>
-                        <KpiSectionLabel>Unapproved — Pending Review</KpiSectionLabel>
+                        <KpiSectionLabel>Unapproved - Pending Review</KpiSectionLabel>
                         <KpiGrid>
                             {phase1Loading ? (
                                 <KpiCard loading icon={faTriangleExclamation} label="Unapproved" value="" />
                             ) : (
                                 <>
-                                    <KpiCard icon={faHardHat} label="Contractor Teams — Unapproved" value={formatINR(summary.unapprovedContractorTotal)} onClick={() => navigate('/finance/contractors')} tone={summary.unapprovedContractorTotal > 0 ? 'danger' : undefined} />
-                                    <KpiCard icon={faPersonDigging} label="Labour Teams — Unapproved" value={formatINR(summary.unapprovedLabourTotal)} onClick={() => navigate('/finance/daily-labour')} tone={summary.unapprovedLabourTotal > 0 ? 'danger' : undefined} />
+                                    <KpiCard icon={faHardHat} label="Contractor Teams - Unapproved" value={formatINR(summary.unapprovedContractorTotal)} onClick={() => navigate('/finance/contractors')} tone={summary.unapprovedContractorTotal > 0 ? 'danger' : undefined} />
+                                    <KpiCard icon={faPersonDigging} label="Labour Teams - Unapproved" value={formatINR(summary.unapprovedLabourTotal)} onClick={() => navigate('/finance/daily-labour')} tone={summary.unapprovedLabourTotal > 0 ? 'danger' : undefined} />
+                                    <KpiCard icon={faHandHoldingDollar} label="Commission - Unapproved" value={formatINR(summary.unapprovedCommissionTotal)} onClick={() => navigate('/finance/referrals')} tone={summary.unapprovedCommissionTotal > 0 ? 'danger' : undefined} />
+                                    <KpiCard icon={faArrowTrendUp} label="Profit - Unapproved" value={formatINR(summary.unapprovedProfitTotal)} sub={`Revenue once approved: ${formatINR(summary.unapprovedRevenueTotal)}`} onClick={() => navigate('/finance/receivables')} tone={summary.unapprovedProfitTotal >= 0 ? 'good' : 'danger'} />
                                     {summary.unapprovedByWorkType.map(({ workType, sqft, amount }) => (
-                                        <KpiCard key={workType} icon={faTriangleExclamation} label={`${workType} — Unapproved`} value={`${sqft.toLocaleString('en-IN')} sqft`} sub={formatINR(amount)} onClick={() => navigate('/finance/receivables')} tone={amount > 0 ? 'danger' : undefined} />
+                                        <KpiCard key={workType} icon={faTriangleExclamation} label={`${workType} - Unapproved`} value={`${sqft.toLocaleString('en-IN')} sqft`} sub={`Revenue once approved: ${formatINR(amount)}`} onClick={() => navigate('/finance/receivables')} tone={amount > 0 ? 'danger' : undefined} />
                                     ))}
                                 </>
                             )}
@@ -292,7 +297,7 @@ const FinanceHome = ({ url }) => {
                 )}
 
                 <ChartGrid>
-                    <ChartCard title="Revenue vs Cost — last 6 months">
+                    <ChartCard title="Revenue vs Cost - last 6 months">
                         {phase1Loading ? <ChartSkeleton /> : trends?.revenueVsCost?.length > 0 ? (
                             <ResponsiveContainer width="100%" height={260}>
                                 <ComposedChart data={trends.revenueVsCost}>
@@ -308,7 +313,7 @@ const FinanceHome = ({ url }) => {
                         ) : <EmptyChart />}
                     </ChartCard>
 
-                    <ChartCard title="Cash Flow — last 30 days">
+                    <ChartCard title="Cash Flow - last 30 days">
                         {phase1Loading ? <ChartSkeleton /> : trends?.cashFlowSeries?.length > 0 ? (
                             <ResponsiveContainer width="100%" height={260}>
                                 <AreaChart data={trends.cashFlowSeries}>

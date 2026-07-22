@@ -73,4 +73,4 @@ const getSalaryLedger = async (req, res) => {
     }
 };
 
-export { getSalaryLedger };
+export { getSalaryLedger, expectedSalaryForMonth };

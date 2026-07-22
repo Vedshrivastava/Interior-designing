@@ -165,22 +165,29 @@
     margin: 8px 0 0;
 }
 
-/* ── Hero cards — the two this-month headline figures stay physically
+/* ── Hero cards — the this-month headline figures stay physically
    bigger (more padding, bigger value/icon) than the plain count/alert
    cards below, but use the exact same white-card/gold-strip look —
-   no separate color treatment of their own. */
+   no separate color treatment of their own. Value/label sized down a
+   notch from a plain 2-up scale — now three sit per row instead of two,
+   and the longer rupee figures (7 digits + commas) need the extra
+   headroom to stay on one line instead of wrapping or overflowing. */
 .dash-kpi-card.hero {
-    padding: 24px 26px;
+    padding: 22px 24px;
 }
 
 .dash-kpi-card.hero .dash-kpi-icon {
-    width: 50px;
-    height: 50px;
-    font-size: 1.2rem;
+    width: 46px;
+    height: 46px;
+    font-size: 1.1rem;
+}
+
+.dash-kpi-card.hero .dash-kpi-label {
+    font-size: 0.62rem;
 }
 
 .dash-kpi-card.hero .dash-kpi-value {
-    font-size: 2.15rem;
+    font-size: 1.7rem;
 }
 
 .dash-chart-grid {

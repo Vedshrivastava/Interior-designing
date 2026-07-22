@@ -50,7 +50,7 @@ const MaterialConsumptionList = ({ url }) => {
             {!selectedProjectId ? (
                 <div className="admin-empty-state"><p>Select a project to view its material consumption.</p></div>
             ) : (
-                <div className="list-table">
+                <div className="list-table finance-table">
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.3fr 1fr' }}>
                         <b>Date</b><b>Material</b><b>Quantity</b>
                     </div>

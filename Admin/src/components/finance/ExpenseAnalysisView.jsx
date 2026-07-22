@@ -102,7 +102,7 @@ const ExpenseAnalysisView = ({ url }) => {
                     <p className="admin-subtitle" style={{ marginBottom: '16px' }}>Total: ₹{data.total.toLocaleString('en-IN')}</p>
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By category</p>
-                    <div className="list-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
                             <b>Category</b><b>Amount</b>
                         </div>
@@ -114,7 +114,7 @@ const ExpenseAnalysisView = ({ url }) => {
                     </div>
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By project</p>
-                    <div className="list-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
                             <b>Project</b><b>Amount</b>
                         </div>
@@ -128,7 +128,7 @@ const ExpenseAnalysisView = ({ url }) => {
                     {data.byWork.length > 0 && (
                         <>
                             <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By work</p>
-                            <div className="list-table" style={{ marginBottom: '24px' }}>
+                            <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                                 <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
                                     <b>Work</b><b>Amount</b>
                                 </div>
@@ -144,7 +144,7 @@ const ExpenseAnalysisView = ({ url }) => {
                     {data.byRelatedTo.length > 0 && (
                         <>
                             <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By person / entity</p>
-                            <div className="list-table">
+                            <div className="list-table finance-table">
                                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr' }}>
                                     <b>Name</b><b>Type</b><b>Amount</b>
                                 </div>

@@ -167,7 +167,7 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                         </div>
                     </form>
 
-                    <div className="list-table">
+                    <div className="list-table finance-table">
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 100px' }}>
                             <b>Date</b><b>Work</b><b>Labourer</b><b>Area Covered</b><b>Action</b>
                         </div>

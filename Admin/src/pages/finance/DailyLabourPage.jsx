@@ -79,7 +79,7 @@ const LabourerProjectsTab = ({ url, labourerId }) => {
     if (projects.length === 0) return <div className="admin-empty-state"><p>No projects for this labourer yet.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 2fr' }}>
                 <b>Project</b><b>Work Types</b>
             </div>

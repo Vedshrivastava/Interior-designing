@@ -28,7 +28,7 @@ const LabourWorksView = ({ url, labourerId }) => {
     if (works.length === 0) return <div className="admin-empty-state"><p>No works for this labourer yet.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1.3fr 1fr' }}>
                 <b>Project</b><b>Work Type</b><b>Completed / Estimated</b><b>Status</b>
             </div>

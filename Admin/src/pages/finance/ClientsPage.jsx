@@ -105,7 +105,7 @@ const ClientsPage = ({ url }) => {
                         </ChartCard>
                     </ChartGrid>
 
-                    <div className="list-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr' }}>
                             <b>Client</b>
                             {sortableHeader('totalBilled', 'Billed')}

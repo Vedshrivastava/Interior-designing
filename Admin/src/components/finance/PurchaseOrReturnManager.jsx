@@ -150,7 +150,7 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
                 </div>
             </form>
 
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 100px' }}>
                     <b>Date</b><b>Vendor</b><b>Material</b><b>Qty</b><b>Rate</b><b>Total</b><b>GST</b><b>Action</b>
                 </div>

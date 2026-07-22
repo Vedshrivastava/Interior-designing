@@ -55,7 +55,7 @@ const ClientProfitView = ({ url, clientId, onSelectClient, onViewProjectProfit }
 
             {!loading && data && (
                 <>
-                    <div className="list-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                             <b>Revenue</b><b>Total Costs</b><b>Profit</b>
                         </div>
@@ -74,7 +74,7 @@ const ClientProfitView = ({ url, clientId, onSelectClient, onViewProjectProfit }
                     )}
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By project</p>
-                    <div className="list-table">
+                    <div className="list-table finance-table">
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 140px' }}>
                             <b>Project</b><b>Revenue</b><b>Profit</b><b>Margin</b><b>Action</b>
                         </div>

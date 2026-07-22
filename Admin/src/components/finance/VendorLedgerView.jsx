@@ -101,7 +101,7 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
 
     return (
         <div>
-            <div className="list-table" style={{ marginBottom: '28px' }}>
+            <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                     <b>Purchases</b><b>Returns</b><b>Payments</b><b>Amount Owed</b>
                 </div>
@@ -133,7 +133,7 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
             </div>
 
             <h3 style={{ marginBottom: '8px' }}>Purchases</h3>
-            <div className="list-table" style={{ marginBottom: '24px' }}>
+            <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr' }}>
                     <b>Date</b><b>Project</b><b>Material</b><b>Qty</b><b>Total</b>
                 </div>
@@ -151,7 +151,7 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
             </div>
 
             <h3 style={{ marginBottom: '8px' }}>Returns</h3>
-            <div className="list-table" style={{ marginBottom: '24px' }}>
+            <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr' }}>
                     <b>Date</b><b>Project</b><b>Material</b><b>Qty</b><b>Total</b>
                 </div>
@@ -211,7 +211,7 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                     <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Payment'}</button>
                 </div>
             </form>
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
                     <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>TDS</b><b>Attachment</b><b>Action</b>
                 </div>

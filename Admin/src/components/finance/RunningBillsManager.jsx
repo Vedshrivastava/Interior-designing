@@ -222,7 +222,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                 </div>
             )}
 
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1fr 110px 260px' }}>
                     <b>Bill #</b><b>Date</b><b>Period</b><b>Total</b><b>Status</b><b>Action</b>
                 </div>
@@ -316,7 +316,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                         ) : !available || available.length === 0 ? (
                             <div className="admin-empty-state" style={{ margin: '16px 0' }}><p>Nothing logged and unapproved for this project right now.</p></div>
                         ) : (
-                            <div className="list-table" style={{ margin: '16px 0' }}>
+                            <div className="list-table finance-table" style={{ margin: '16px 0' }}>
                                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1fr' }}>
                                     <b>Work Type</b><b>Approved Sqft</b><b>Rate</b><b>Amount</b>
                                 </div>

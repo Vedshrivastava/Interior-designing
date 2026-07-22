@@ -101,7 +101,7 @@ const SiteInventoryPage = ({ url }) => {
                         </ChartCard>
                     </ChartGrid>
 
-                    <div className="list-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '280px 1fr 1fr 1fr 1fr' }}>
                             <b>Material</b><b>Current Stock</b><b>Minimum</b><b>Consumed</b><b>Wastage %</b>
                         </div>

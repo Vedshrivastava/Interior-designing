@@ -74,7 +74,7 @@ const CommissionLedgerView = ({ url, referralId }) => {
 
     return (
         <div>
-            <div className="list-table" style={{ marginBottom: '8px' }}>
+            <div className="list-table finance-table" style={{ marginBottom: '8px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
                     <b>Total (All Logged)</b><b>Approved (Reviewed)</b><b>Unapproved</b><b>Payments</b><b>Commission Payable</b>
                 </div>
@@ -93,7 +93,7 @@ const CommissionLedgerView = ({ url, referralId }) => {
             )}
 
             <h3 style={{ marginBottom: '8px' }}>Earnings by Work</h3>
-            <div className="list-table" style={{ marginBottom: '28px' }}>
+            <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.9fr 1fr 0.9fr 1fr 0.9fr' }}>
                     <b>Project</b><b>Work Type</b><b>Completed Area</b><b>Referral Cut</b><b>Approved</b><b>Unapproved</b>
                 </div>
@@ -150,7 +150,7 @@ const CommissionLedgerView = ({ url, referralId }) => {
                     <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Payment'}</button>
                 </div>
             </form>
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
                     <b>Date</b><b>Amount</b><b>Account</b><b>TDS</b><b>Action</b>
                 </div>

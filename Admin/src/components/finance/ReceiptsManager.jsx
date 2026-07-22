@@ -196,7 +196,7 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                         document.body
                     )}
 
-                    <div className="list-table">
+                    <div className="list-table finance-table">
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1.2fr 1fr 90px' }}>
                             <b>Date</b><b>Amount</b><b>Bill</b><b>Mode</b><b>Account</b><b>Reference</b><b>Action</b>
                         </div>

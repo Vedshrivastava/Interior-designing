@@ -48,7 +48,7 @@ const WorkProfitView = ({ url, workId }) => {
             <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
                 {data.workType} · {data.completedAreaSqft} / {data.estimatedAreaSqft} sqft completed, {data.areaBilledSqft} sqft billed
             </p>
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                     <b>Revenue</b><b>Contractor Cost</b><b>Material Cost <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>(weighted avg)</span></b><b>Profit</b>
                 </div>

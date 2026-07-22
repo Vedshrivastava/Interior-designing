@@ -210,7 +210,7 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
                 )}
             </div>
 
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title"
                     style={{ gridTemplateColumns: `repeat(${resource.columns.length}, 1fr) 140px` }}>
                     {resource.columns.map(c => <b key={c.key}>{c.label}</b>)}

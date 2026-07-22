@@ -165,7 +165,7 @@ const WorkDetail = ({ url }) => {
                 </KpiGrid>
 
                 {data.contractorBreakdown.length > 0 && (
-                    <div className="list-table" style={{ marginTop: '24px', marginBottom: '24px' }}>
+                    <div className="list-table finance-table" style={{ marginTop: '24px', marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
                             <b>Contractor</b><b>Area (sqft)</b><b>Rate</b><b>Earnings</b>
                         </div>
@@ -181,7 +181,7 @@ const WorkDetail = ({ url }) => {
                 )}
 
                 {data.labourBreakdown.length > 0 && (
-                    <div className="list-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
                             <b>Labourer</b><b>Area (sqft)</b><b>Rate</b><b>Earnings</b>
                         </div>
@@ -212,7 +212,7 @@ const WorkDetail = ({ url }) => {
                     </ChartCard>
                 </ChartGrid>
 
-                <div className="list-table" style={{ marginBottom: '24px' }}>
+                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: "1fr" }}><b>Material Used</b></div>
                     {data.materialUsed.length === 0 ? (
                         <div className="admin-empty-state"><p>No material used {scope === 'alltime' ? 'yet' : `for ${data.scopeLabel.toLowerCase()}`}.</p></div>
@@ -224,7 +224,7 @@ const WorkDetail = ({ url }) => {
                     ))}
                 </div>
 
-                <div className="list-table" style={{ marginBottom: '24px' }}>
+                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: "1fr" }}><b>Material Wasted (attributed to this work)</b></div>
                     {data.materialWasted.length === 0 ? (
                         <div className="admin-empty-state"><p>No waste attributed to this work {scope === 'alltime' ? 'yet' : `for ${data.scopeLabel.toLowerCase()}`}.</p></div>
@@ -237,7 +237,7 @@ const WorkDetail = ({ url }) => {
                 </div>
 
                 {data.projectLevelWaste.length > 0 && (
-                    <div className="list-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: "1fr" }}><b>Project-Level Waste (not attributed to any specific work)</b></div>
                         <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
                             Recorded before per-work waste tracking existed, or entered without picking a work; shown here separately rather than silently folded into or excluded from this work&apos;s numbers.
@@ -251,7 +251,7 @@ const WorkDetail = ({ url }) => {
                     </div>
                 )}
 
-                <div className="list-table" style={{ marginBottom: '24px' }}>
+                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
                         <b>Project Material Stock</b><b>Dumped/Purchased</b><b>Consumed</b><b>Current Stock</b>
                     </div>

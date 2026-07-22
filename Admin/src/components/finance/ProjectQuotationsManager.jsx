@@ -117,7 +117,7 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
             ) : quotations.length === 0 ? (
                 <div className="admin-empty-state"><p>No quotations issued for this project yet.</p></div>
             ) : (
-                <div className="list-table">
+                <div className="list-table finance-table">
                     <div className="list-table-format title" style={{ gridTemplateColumns: '60px 1fr 1fr 100px 170px 230px' }}>
                         <b>#</b><b>Date</b><b>Amount</b><b>Status</b><b>File</b><b>Status Action</b>
                     </div>

@@ -141,7 +141,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
             </ChartGrid>
 
             {receivable && (
-                <div className="list-table" style={{ marginBottom: '24px' }}>
+                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: "1fr" }}><b>Receivable Status</b></div>
                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
                         <p>Billed: {formatINR(receivable.issuedTotal)}</p>
@@ -152,7 +152,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
             )}
 
             {materials.length > 0 && (
-                <div className="list-table" style={{ marginBottom: '24px' }}>
+                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr 1fr' }}>
                         <b>Material</b><b>Purchased</b><b>Consumed</b><b>Wasted</b><b>Current Stock</b><b>Avg Cost</b>
                     </div>
@@ -170,7 +170,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
             )}
 
             {vendors.length > 0 && (
-                <div className="list-table" style={{ marginBottom: '24px' }}>
+                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}><b>Vendors Supplying This Project</b><b>Total Purchased</b></div>
                     {vendors.map(v => (
                         <div key={v.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
@@ -485,7 +485,7 @@ const ProjectDetail = ({ url }) => {
 
                 {activeTab === 'overview' && (
                     <div>
-                        <div className="list-table" style={{ marginBottom: '24px' }}>
+                        <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                             <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Site Location</b></p><p>{project.siteLocation || '-'}</p></div>
                             <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Start Date</b></p><p>{project.startDate ? new Date(project.startDate).toLocaleDateString() : '-'}</p></div>
                             <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Estimated Area</b></p><p>{project.estimatedAreaSqft || 0} sqft</p></div>

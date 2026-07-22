@@ -25,7 +25,7 @@ const ContractorMeasurementsView = ({ url, vendorId }) => {
     if (measurements.length === 0) return <div className="admin-empty-state"><p>No measurements logged against this contractor's works yet.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table finance-table">
             {/* No "Approved" column — that's decided per work type at bill
                 generation now (RunningBillsManager.jsx), not per daily
                 entry. This stays a pure log of what was done. */}

@@ -186,7 +186,7 @@ const SiteDiaryManager = ({ url, projectId: fixedProjectId }) => {
             ) : entries.length === 0 ? (
                 <div className="admin-empty-state"><p>No diary entries yet.</p></div>
             ) : (
-                <div className="list-table">
+                <div className="list-table finance-table">
                     <div className="list-table-format title" style={{ gridTemplateColumns: columns }}>
                         <b>Date</b>
                         {crossProject && <b>Project</b>}

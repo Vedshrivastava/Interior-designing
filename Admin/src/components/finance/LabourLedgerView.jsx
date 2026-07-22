@@ -161,7 +161,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                 />
             </div>
 
-            <div className="list-table" style={{ marginBottom: '8px' }}>
+            <div className="list-table finance-table" style={{ marginBottom: '8px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
                     <b>Total (All Logged)</b><b>Approved (Reviewed)</b><b>Unapproved</b><b>Advances</b><b>Deductions</b><b>{totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}</b>
                 </div>
@@ -207,7 +207,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
             {showWorks && (
                 <>
                     <h3 style={{ marginBottom: '8px' }}>Works & Earnings</h3>
-                    <div className="list-table" style={{ marginBottom: '28px' }}>
+                    <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.9fr 1fr 0.9fr 1.1fr 0.9fr' }}>
                             <b>Project</b><b>Work Type</b><b>Done / Estimated</b><b>Total</b><b>Approved (as of)</b><b>Unapproved</b>
                         </div>
@@ -258,7 +258,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                     <button type="submit" className="add-btn" disabled={saving === 'advance'}>{saving === 'advance' ? 'Saving…' : '+ Add Advance'}</button>
                 </div>
             </form>
-            <div className="list-table" style={{ marginBottom: '28px' }}>
+            <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
                     <b>Date</b><b>Amount</b><b>Mode</b><b>Notes</b><b>Action</b>
                 </div>
@@ -333,7 +333,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                     </div>
                 </form>
             )}
-            <div className="list-table" style={{ marginBottom: '28px' }}>
+            <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.8fr 1fr 1.2fr 1fr 1fr 100px' }}>
                     <b>Date</b><b>Sqft</b><b>Amount</b><b>Reason</b><b>Caught By</b><b>Work</b><b>Action</b>
                 </div>
@@ -384,7 +384,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                     <button type="submit" className="add-btn" disabled={saving === 'payment'}>{saving === 'payment' ? 'Saving…' : '+ Add Payment'}</button>
                 </div>
             </form>
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
                     <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>Notes</b><b>Action</b>
                 </div>

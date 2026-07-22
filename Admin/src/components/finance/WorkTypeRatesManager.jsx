@@ -115,7 +115,7 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                     <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
                         One row per work type this project actually has; fill in a rate to confirm it.
                     </p>
-                    <div className="list-table">
+                    <div className="list-table finance-table">
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1.2fr 1.2fr 1fr' }}>
                             <b>Work Type</b><b>Client Rate</b><b>Referral Cut</b><b>Action</b>
                         </div>

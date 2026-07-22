@@ -215,7 +215,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
             ) : works.length === 0 ? (
                 <div className="admin-empty-state"><p>No works yet for this project.</p></div>
             ) : (
-                <div className="list-table">
+                <div className="list-table finance-table">
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.7fr 110px 440px' }}>
                         <b>Work Type</b><b>Completed / Estimated</b><b>Status</b><b>Action</b>
                     </div>
@@ -261,7 +261,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                         {contractorsLoading ? (
                             <div className="admin-empty-state"><p>Loading…</p></div>
                         ) : (
-                            <div className="list-table" style={{ marginBottom: '16px' }}>
+                            <div className="list-table finance-table" style={{ marginBottom: '16px' }}>
                                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1.5fr 100px' }}>
                                     <b>Contractor</b><b>Notes</b><b>Action</b>
                                 </div>
@@ -311,7 +311,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                         {labourLoading ? (
                             <div className="admin-empty-state"><p>Loading…</p></div>
                         ) : (
-                            <div className="list-table" style={{ marginBottom: '16px' }}>
+                            <div className="list-table finance-table" style={{ marginBottom: '16px' }}>
                                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1.3fr 1.3fr 100px' }}>
                                     <b>Labourer</b><b>Supervisor</b><b>Notes</b><b>Action</b>
                                 </div>

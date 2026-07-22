@@ -74,7 +74,7 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                         <button type="button" className="add-point-btn" onClick={() => onViewClientProfit(data.clientId)}>View Client Profit →</button>
                     </div>
 
-                    <div className="list-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                             <b>Revenue</b><b>Material Cost <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>(weighted avg)</span></b><b>Contractor Cost</b><b>Commission Cost</b>
                         </div>
@@ -107,7 +107,7 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                     </div>
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Works: drill into a work's own profit</p>
-                    <div className="list-table">
+                    <div className="list-table finance-table">
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 140px' }}>
                             <b>Work Type</b><b>Completed / Estimated</b><b>Status</b><b>Action</b>
                         </div>

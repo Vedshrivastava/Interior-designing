@@ -101,7 +101,7 @@ const SalaryLedgerView = ({ url, employeeId }) => {
             </div>
 
             <h3 style={{ margin: '20px 0 8px' }}>By Month</h3>
-            <div className="list-table" style={{ marginBottom: '24px' }}>
+            <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                     <b>Month</b><b>Expected</b><b>Paid</b><b>Balance Due</b>
                 </div>
@@ -118,7 +118,7 @@ const SalaryLedgerView = ({ url, employeeId }) => {
             </div>
 
             <h3 style={{ marginBottom: '8px' }}>Payment History</h3>
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
                     <b>Month</b><b>Date</b><b>Amount</b><b>Account</b><b>Action</b>
                 </div>

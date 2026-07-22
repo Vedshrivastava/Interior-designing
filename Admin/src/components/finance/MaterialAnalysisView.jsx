@@ -49,7 +49,7 @@ const MaterialAnalysisView = ({ url }) => {
                 </select>
             </div>
 
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr 1fr 1fr 1.2fr' }}>
                     <b>Material</b><b>Purchased</b><b>Returned</b><b>Consumed</b><b>Wasted</b><b>Current Stock</b><b>Avg Cost <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>(weighted)</span></b>
                 </div>

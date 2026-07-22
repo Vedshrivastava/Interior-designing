@@ -81,7 +81,7 @@ const StockMovementsManager = ({ url, projectId }) => {
         <div>
             <h3 style={{ marginBottom: '4px' }}>Current Stock</h3>
             <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>Always current: SUM(dump) − SUM(consume) − SUM(return) − SUM(waste), computed fresh, never stored.</p>
-            <div className="list-table" style={{ marginBottom: '32px' }}>
+            <div className="list-table finance-table" style={{ marginBottom: '32px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: '280px 1fr 1fr' }}>
                     <b>Material</b><b>Current Stock</b><b>Unit</b>
                 </div>
@@ -139,7 +139,7 @@ const StockMovementsManager = ({ url, projectId }) => {
                 />
             )}
 
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr 1fr 130px' }}>
                     <b>Date</b><b>Material</b><b>Type</b><b>Vendor / Work</b><b>Quantity</b><b>Notes</b><b>Action</b>
                 </div>

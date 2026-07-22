@@ -120,7 +120,7 @@ const DocumentsTab = ({ url, apiBase, scopeParam, scopeId, title = 'Documents', 
             ) : documents.length === 0 ? (
                 <div className="admin-empty-state"><p>{emptyText}</p></div>
             ) : (
-                <div className="list-table">
+                <div className="list-table finance-table">
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1fr 1.5fr 150px' }}>
                         <b>Name</b><b>Uploaded</b><b>Notes</b><b>Action</b>
                     </div>

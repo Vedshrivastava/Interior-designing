@@ -56,7 +56,7 @@ const CashFlowView = ({ url }) => {
 
             {data && (
                 <>
-                    <div className="list-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                             <b>Total In</b><b>Total Out</b><b>Net</b>
                         </div>
@@ -68,7 +68,7 @@ const CashFlowView = ({ url }) => {
                     </div>
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By category</p>
-                    <div className="list-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1fr 1fr' }}>
                             <b>Category</b><b>Direction</b><b>Amount</b>
                         </div>
@@ -82,7 +82,7 @@ const CashFlowView = ({ url }) => {
                     </div>
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By {groupBy}</p>
-                    <div className="list-table">
+                    <div className="list-table finance-table">
                         <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                             <b>Period</b><b>In</b><b>Out</b><b>Net</b>
                         </div>

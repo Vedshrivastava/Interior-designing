@@ -50,7 +50,7 @@ const VendorAnalysisTable = ({ url }) => {
                 </select>
             </div>
 
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr' }}>
                     <b>Vendor</b><b>Purchases</b><b>Returns</b><b>Payments</b><b>Amount Owed</b>
                 </div>

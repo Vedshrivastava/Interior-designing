@@ -44,7 +44,7 @@ const CashBookSummaryView = ({ url }) => {
             </div>
 
             {summary && (
-                <div className="list-table">
+                <div className="list-table finance-table">
                     <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                         <b>Opening Balance</b><b>Cash In</b><b>Cash Out</b><b>Closing Balance</b>
                     </div>

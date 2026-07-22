@@ -310,15 +310,23 @@
     padding-right: 28px;
 }
 
-/* Payables (PayablesPage.jsx) — opt-in, doesn't touch any other
-   list-table in the app. Every column's header and its data below it
-   center-align together except the first (the row's identifying name),
-   which stays left — a short bold header centering visually while its
-   value sat flush left underneath was exactly the mismatch this fixes.
-   Overrides the :last-child right-align above (this selector is more
-   specific) since Payables' last column is a real data value here, not
-   an Action button. */
-.payables-table .list-table-format > *:not(:first-child) {
+/* Finance module (every page under /finance/*) — opt-in via
+   `finance-table`, doesn't touch the older Designs/Products/Projects
+   admin list-tables. Every column's header and its data below it
+   center-align together except the first (the row's identifying name,
+   stays left) — a short bold header centering visually while its value
+   sat flush left underneath was exactly the mismatch this fixes.
+   Middle columns always center. The last column only centers when the
+   table has no Edit/Delete action group anywhere in it: `.title` and
+   `.row-item` are separate grid rows, so a per-cell :has() check can't
+   see the row's buttons from the header's cell — checking at the
+   `.finance-table` level instead keeps the header's "Actions" label and
+   its flex-end-aligned buttons paired exactly as they were (right-
+   aligned) on any table that still has real actions. */
+.finance-table .list-table-format > *:not(:first-child):not(:last-child) {
+    text-align: center;
+}
+.finance-table:not(:has(.action-buttons)) .list-table-format > *:last-child {
     text-align: center;
 }
 

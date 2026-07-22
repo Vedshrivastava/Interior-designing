@@ -250,7 +250,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
                     <p className="admin-subtitle" style={{ marginBottom: '12px' }}>
                         {totalRows} {totalRows === 1 ? 'entry' : 'entries'} for {workType} on {new Date(date).toLocaleDateString()}
                     </p>
-                    <div className="list-table">
+                    <div className="list-table finance-table">
                         {[...groups.entries()].filter(([, g]) => g.rows.length > 0).map(([key, g]) => (
                             <div key={key}>
                                 <div className="rate-group-header">

@@ -128,7 +128,7 @@ const ProcurementVendorsOverviewTab = ({ url }) => {
                         </ChartCard>
                     </ChartGrid>
 
-                    <div className="list-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr' }}>
                             <b>Vendor</b><b>Purchases</b><b>Returns</b><b>Payments</b><b>Amount Owed</b>
                         </div>

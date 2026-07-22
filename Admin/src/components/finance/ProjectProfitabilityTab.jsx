@@ -102,7 +102,7 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
             {contractors.length === 0 ? (
                 <div className="admin-empty-state"><p>No contractor has logged work on this project yet.</p></div>
             ) : (
-                <div className="list-table" style={{ marginBottom: '24px' }}>
+                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
                         <b>Contractor</b><b>Total Logged</b><b>Approved Earnings</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>Balance Payable</b>
                     </div>
@@ -123,7 +123,7 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
             {labourers.length === 0 ? (
                 <div className="admin-empty-state"><p>No labourer has logged work on this project yet.</p></div>
             ) : (
-                <div className="list-table" style={{ marginBottom: '24px' }}>
+                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
                         <b>Labourer</b><b>Total Logged</b><b>Approved Earnings</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>Balance Payable</b>
                     </div>

@@ -56,7 +56,7 @@ const CaMonthlyPackageView = ({ url }) => {
                     </p>
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>GST Summary</p>
-                    <div className="list-table" style={{ marginBottom: '20px' }}>
+                    <div className="list-table finance-table" style={{ marginBottom: '20px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                             <b>Output GST</b><b>Input GST</b><b>Net Payable</b>
                         </div>
@@ -68,7 +68,7 @@ const CaMonthlyPackageView = ({ url }) => {
                     </div>
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>TDS Summary</p>
-                    <div className="list-table" style={{ marginBottom: '20px' }}>
+                    <div className="list-table finance-table" style={{ marginBottom: '20px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
                             <b>Section</b><b>Amount</b>
                         </div>
@@ -83,7 +83,7 @@ const CaMonthlyPackageView = ({ url }) => {
                     </div>
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Sales / Purchase / Expense Summary</p>
-                    <div className="list-table" style={{ marginBottom: '20px' }}>
+                    <div className="list-table finance-table" style={{ marginBottom: '20px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                             <b>Sales (Issued Bills)</b><b>Net Purchases</b><b>Expenses</b>
                         </div>
@@ -95,7 +95,7 @@ const CaMonthlyPackageView = ({ url }) => {
                     </div>
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Bank & Cash Position (as of month end)</p>
-                    <div className="list-table">
+                    <div className="list-table finance-table">
                         <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
                             <b>Account</b><b>Closing Balance</b>
                         </div>

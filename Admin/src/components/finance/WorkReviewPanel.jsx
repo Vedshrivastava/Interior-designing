@@ -212,7 +212,7 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
                     ) : visibleRows.length === 0 ? (
                         <div className="admin-empty-state"><p>{rows.length === 0 ? 'No works on this project yet.' : 'Nothing matches this filter.'}</p></div>
                     ) : (
-                        <div className="list-table">
+                        <div className="list-table finance-table">
                             <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 0.9fr 0.9fr 0.9fr 1fr 150px' }}>
                                 <b>Work Type</b><b>Logged</b><b>Approved</b><b>Rejected</b><b>Pending Review</b><b>Action</b>
                             </div>

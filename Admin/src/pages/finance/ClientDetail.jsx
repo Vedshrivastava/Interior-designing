@@ -142,7 +142,7 @@ const ClientProjectsTab = ({ url, clientId }) => {
     return (
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>{projects.length} project{projects.length === 1 ? '' : 's'} given to us.</p>
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 2fr' }}>
                     <b>Name</b><b>Contract Type</b><b>Status</b><b>Work Types</b>
                 </div>
@@ -247,7 +247,7 @@ const ClientBillsTab = ({ url, clientId }) => {
     if (bills.length === 0) return <div className="admin-empty-state"><p>No bills raised for this client yet.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.6fr 1fr 1fr 1fr 160px' }}>
                 <b>Project</b><b>Bill #</b><b>Date</b><b>Total</b><b>Status</b><b>Action</b>
             </div>
@@ -281,7 +281,7 @@ const ClientReceiptsTab = ({ url, clientId }) => {
     if (receipts.length === 0) return <div className="admin-empty-state"><p>No receipts recorded for this client yet.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
                 <b>Date</b><b>Amount</b><b>Mode</b><b>Reference</b>
             </div>
@@ -317,7 +317,7 @@ const ClientPaymentHistoryTab = ({ url, clientId }) => {
     if (sorted.length === 0) return <div className="admin-empty-state"><p>No billing activity for this client yet.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 2fr 1fr' }}>
                 <b>Date</b><b>Event</b><b>Amount</b>
             </div>
@@ -345,7 +345,7 @@ const ClientLedgerTab = ({ url, clientId }) => {
     if (withBalance.length === 0) return <div className="admin-empty-state"><p>No billing activity for this client yet.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 2fr 1fr 1fr' }}>
                 <b>Date</b><b>Event</b><b>Amount</b><b>Balance</b>
             </div>
@@ -377,7 +377,7 @@ const ClientQuotationsTab = ({ url, clientId }) => {
     if (sorted.length === 0) return <div className="admin-empty-state"><p>No quotations issued to this client yet.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 70px 1fr 1fr 110px 90px' }}>
                 <b>Project</b><b>#</b><b>Date</b><b>Amount</b><b>Status</b><b>File</b>
             </div>
@@ -491,7 +491,7 @@ const ClientContactsTab = ({ url, clientId }) => {
             ) : contacts.length === 0 ? (
                 <div className="admin-empty-state"><p>No additional contact persons for this client yet.</p></div>
             ) : (
-                <div className="list-table">
+                <div className="list-table finance-table">
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1.3fr 120px' }}>
                         <b>Name</b><b>Designation</b><b>Phone</b><b>Email</b><b>Action</b>
                     </div>
@@ -558,7 +558,7 @@ const ClientDetail = ({ url }) => {
             {activeTab === 'details' && (
                 <div>
                 <ClientDashboardSummary url={url} clientId={client._id} />
-                <div className="list-table">
+                <div className="list-table finance-table">
                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Name</b></p><p>{client.name}</p></div>
                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Phone</b></p><p>{client.phone || '-'}</p></div>
                     <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Email</b></p><p>{client.email || '-'}</p></div>

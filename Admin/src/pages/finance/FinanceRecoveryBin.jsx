@@ -125,7 +125,7 @@ const FinanceRecoveryBin = ({ url }) => {
                 </div>
             }
         >
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1.2fr 1fr 1fr 190px' }}>
                     <b>Name</b><b>Context</b><b>Deleted By</b><b>When</b><b>Actions</b>
                 </div>

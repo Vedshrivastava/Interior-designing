@@ -47,7 +47,7 @@ const SupervisorTeamTab = ({ url, supervisorId }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>Not currently running a team on any Work.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1.3fr' }}>
                 <b>Labourer</b><b>Project</b><b>Work Type</b><b>Notes</b>
             </div>
@@ -146,7 +146,7 @@ const AssignedProjectsTab = ({ url, employeeId, employeeName }) => {
     if (projects.length === 0) return <div className="admin-empty-state"><p>No projects assigned to this supervisor.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1fr 1fr' }}>
                 <b>Project</b><b>Status</b><b>Contract Type</b>
             </div>

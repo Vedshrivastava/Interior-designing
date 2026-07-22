@@ -76,7 +76,7 @@ const NotificationsSettingsForm = ({ url }) => {
             {emails.length === 0 ? (
                 <div className="admin-empty-state" style={{ marginBottom: '20px' }}><p>No notification emails yet.</p></div>
             ) : (
-                <div className="list-table" style={{ marginBottom: '20px' }}>
+                <div className="list-table finance-table" style={{ marginBottom: '20px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 100px' }}>
                         <b>Email</b><b>Action</b>
                     </div>

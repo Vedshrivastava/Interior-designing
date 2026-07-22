@@ -99,7 +99,7 @@ const PayablesContractorTab = ({ url }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>No labour contractors yet.</p></div>;
 
     return (
-        <div className="list-table payables-table">
+        <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.9fr' }}>
                 <b>Contractor</b><b>Total</b><b>Approved</b><b>Unapproved</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>Balance Payable</b>
             </div>
@@ -161,7 +161,7 @@ const PayablesVendorTab = ({ url }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>No vendors yet.</p></div>;
 
     return (
-        <div className="list-table payables-table">
+        <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr' }}>
                 <b>Vendor</b><b>Purchases</b><b>Returns</b><b>Payments</b><b>Amount Owed</b>
             </div>
@@ -227,7 +227,7 @@ const PayablesSalaryTab = ({ url }) => {
     return (
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>For {month}</p>
-            <div className="list-table payables-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
                     <b>Employee</b><b>Expected</b><b>Paid</b><b>Balance Due</b>
                 </div>
@@ -285,7 +285,7 @@ const PayablesCommissionTab = ({ url }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>No referrals yet.</p></div>;
 
     return (
-        <div className="list-table payables-table">
+        <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.9fr 0.9fr 0.9fr 1fr' }}>
                 <b>Referral</b><b>Approved</b><b>Unapproved</b><b>Payments</b><b>Commission Payable</b>
             </div>
@@ -345,7 +345,7 @@ const PayablesLabourProviderTab = ({ url }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>No labour providers yet.</p></div>;
 
     return (
-        <div className="list-table payables-table">
+        <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.9fr 0.9fr 0.9fr 1fr' }}>
                 <b>Labour Provider</b><b>Approved Pay</b><b>Pay Left to Approve</b><b>Payments</b><b>Balance Payable</b>
             </div>

@@ -101,7 +101,7 @@ const CashEntriesManager = ({ url, type }) => {
                 </div>
             </form>
 
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 1fr 100px' }}>
                     <b>Date</b><b>Amount</b><b>Reason</b><b>Source</b><b>Action</b>
                 </div>

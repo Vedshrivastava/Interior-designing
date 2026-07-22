@@ -172,7 +172,7 @@ const ProjectsList = ({ url }) => {
                     </ChartCard>
                 </ChartGrid>
 
-                <div className="list-table">
+                <div className="list-table finance-table">
                     <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1.3fr 1fr 1fr 1fr 100px' }}>
                         <b>Name</b><b>Client</b><b>Contract Type</b><b>Status</b><b>Readiness</b><b>Action</b>
                     </div>

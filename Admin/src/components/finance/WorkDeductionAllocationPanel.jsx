@@ -141,7 +141,7 @@ const WorkDeductionAllocationPanel = ({ url }) => {
             ) : rows.length === 0 ? (
                 <div className="admin-empty-state"><p>Nothing outstanding — every rejected sqft on this project has been attributed.</p></div>
             ) : (
-                <div className="list-table">
+                <div className="list-table finance-table">
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 130px' }}>
                         <b>Work Type</b><b>Rejected</b><b>Unattributed</b><b>Action</b>
                     </div>
@@ -170,7 +170,7 @@ const WorkDeductionAllocationPanel = ({ url }) => {
                             <div className="admin-empty-state"><p>Loading…</p></div>
                         ) : (
                             <>
-                                <div className="list-table" style={{ marginBottom: '16px' }}>
+                                <div className="list-table finance-table" style={{ marginBottom: '16px' }}>
                                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.8fr 140px' }}>
                                         <b>Name</b><b>Type</b><b>Sqft to Deduct</b>
                                     </div>
@@ -200,7 +200,7 @@ const WorkDeductionAllocationPanel = ({ url }) => {
                                 </div>
 
                                 {supervisors.length > 0 && (
-                                    <div className="list-table" style={{ marginBottom: '16px' }}>
+                                    <div className="list-table finance-table" style={{ marginBottom: '16px' }}>
                                         <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.8fr 140px' }}>
                                             <b>Name</b><b>Type</b><b>₹ to Deduct</b>
                                         </div>

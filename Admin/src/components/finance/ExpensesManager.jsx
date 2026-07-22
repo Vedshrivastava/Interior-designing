@@ -357,7 +357,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
             ) : expenses.length === 0 ? (
                 <div className="admin-empty-state"><p>No expenses recorded yet.</p></div>
             ) : (
-                <div className="list-table">
+                <div className="list-table finance-table">
                     <div className="list-table-format title" style={{ gridTemplateColumns: columns }}>
                         <b>Date</b>
                         {!hideCategoryField && <b>Category</b>}
@@ -406,7 +406,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                         {paymentsLoading ? (
                             <div className="admin-empty-state"><p>Loading…</p></div>
                         ) : payments.length > 0 && (
-                            <div className="list-table" style={{ marginBottom: '16px' }}>
+                            <div className="list-table finance-table" style={{ marginBottom: '16px' }}>
                                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
                                     <b>Date</b><b>Amount</b><b>Mode</b>
                                 </div>
@@ -452,7 +452,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }} onClick={() => setViewTarget(null)}>
                     <div className="loader-modal-box edit-modal" onClick={e => e.stopPropagation()}>
                         <h2>{viewTarget.expenseCategory || 'General'} · ₹{viewTarget.amount.toLocaleString('en-IN')}</h2>
-                        <div className="list-table" style={{ marginTop: '12px' }}>
+                        <div className="list-table finance-table" style={{ marginTop: '12px' }}>
                             {[
                                 ['Category', viewTarget.expenseCategory || '-'],
                                 ['Amount', `₹${viewTarget.amount.toLocaleString('en-IN')}`],

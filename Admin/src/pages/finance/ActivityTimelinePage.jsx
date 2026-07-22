@@ -128,7 +128,7 @@ const ActivityTimelinePage = ({ url }) => {
                 Object.entries(grouped).map(([day, items]) => (
                     <div key={day} style={{ marginBottom: '28px' }}>
                         <p className="activity-date-heading">{day}</p>
-                        <div className="list-table">
+                        <div className="list-table finance-table">
                             <div className="list-table-format title" style={{ gridTemplateColumns: '80px 1fr 140px' }}>
                                 <b>Time</b><b>Activity</b><b>Amount</b>
                             </div>

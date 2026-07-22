@@ -109,7 +109,7 @@ const SalaryPaymentsManager = ({ url }) => {
                         </div>
                     </form>
 
-                    <div className="list-table">
+                    <div className="list-table finance-table">
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
                             <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>Action</b>
                         </div>

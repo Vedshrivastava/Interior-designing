@@ -84,7 +84,7 @@ const PersonDocumentsView = ({ url, resourceKey, entityId, entityLabel = 'person
             {person.documents.length === 0 ? (
                 <div className="admin-empty-state" style={{ marginBottom: '20px' }}><p>No documents on file yet.</p></div>
             ) : (
-                <div className="list-table" style={{ marginBottom: '20px' }}>
+                <div className="list-table finance-table" style={{ marginBottom: '20px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 100px' }}>
                         <b>Document</b><b>Action</b>
                     </div>

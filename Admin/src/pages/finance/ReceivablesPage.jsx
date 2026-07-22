@@ -67,7 +67,7 @@ const PendingReceiptsTab = ({ url }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>Nothing outstanding: every issued bill is fully received.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1fr 1fr' }}>
                 <b>Project</b><b>Client</b><b>Issued</b><b>Received</b><b>Outstanding</b>
             </div>

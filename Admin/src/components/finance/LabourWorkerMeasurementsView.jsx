@@ -27,7 +27,7 @@ const LabourWorkerMeasurementsView = ({ url, labourerId }) => {
     if (measurements.length === 0) return <div className="admin-empty-state"><p>No measurements logged against this labourer's works yet.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1fr' }}>
                 <b>Date</b><b>Work</b><b>Area Covered</b>
             </div>

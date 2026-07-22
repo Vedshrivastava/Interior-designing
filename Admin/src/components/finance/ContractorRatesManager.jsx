@@ -112,7 +112,7 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
             {contractorsByWorkType.size === 0 ? (
                 <div className="admin-empty-state"><p>No contractors assigned to any Work yet; add one from a Work's "Contractors" action under the Works tab.</p></div>
             ) : (
-                <div className="list-table">
+                <div className="list-table finance-table">
                     {[...contractorsByWorkType.entries()].map(([workType, contractors]) => (
                         <div key={workType}>
                             <div className="rate-group-header"><span className="rate-group-bar" /><b>{workType}</b></div>

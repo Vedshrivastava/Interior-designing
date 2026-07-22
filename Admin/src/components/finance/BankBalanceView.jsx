@@ -28,7 +28,7 @@ const BankBalanceView = ({ url }) => {
     return (
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>Total across all accounts: ₹{totalBalance.toLocaleString('en-IN')}</p>
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
                     <b>Account</b><b>Bank</b><b>Opening Balance</b><b>Current Balance</b>
                 </div>

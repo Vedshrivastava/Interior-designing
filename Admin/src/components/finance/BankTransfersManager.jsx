@@ -94,7 +94,7 @@ const BankTransfersManager = ({ url }) => {
                 </div>
             </form>
 
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 100px' }}>
                     <b>Date</b><b>From</b><b>To</b><b>Amount</b><b>Action</b>
                 </div>

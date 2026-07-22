@@ -51,7 +51,7 @@ const BankStatementView = ({ url }) => {
                     <p className="admin-subtitle" style={{ marginBottom: '12px' }}>
                         Opening ₹{statement.openingBalance.toLocaleString('en-IN')} (as of {new Date(statement.openingBalanceDate).toLocaleDateString()}) · Current ₹{statement.currentBalance.toLocaleString('en-IN')}
                     </p>
-                    <div className="list-table">
+                    <div className="list-table finance-table">
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr' }}>
                             <b>Date</b><b>Description</b><b>Credit</b><b>Debit</b><b>Balance</b>
                         </div>

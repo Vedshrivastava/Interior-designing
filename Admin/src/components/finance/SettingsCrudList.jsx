@@ -124,7 +124,7 @@ const SettingsCrudList = ({ url, lockedType }) => {
                 {query && <button className="admin-search-clear" onClick={() => setQuery('')}>×</button>}
             </div>
 
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr 1fr 140px' }}>
                     <b>Name</b><b>Code</b><b>Rate</b><b>Action</b>
                 </div>

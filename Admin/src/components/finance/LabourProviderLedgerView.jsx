@@ -80,7 +80,7 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
 
     return (
         <div>
-            <div className="list-table" style={{ marginBottom: '28px' }}>
+            <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                     <b>Approved Pay</b><b>Pay Left to Approve</b><b>Total Pay Done</b><b>Total Pay Left</b>
                 </div>
@@ -93,7 +93,7 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
             </div>
 
             <h3 style={{ marginBottom: '8px' }}>Earnings by Labourer &amp; Work</h3>
-            <div className="list-table" style={{ marginBottom: '28px' }}>
+            <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 1.1fr 0.9fr 0.8fr 0.8fr 0.8fr 0.7fr 0.9fr 0.9fr' }}>
                     <b>Labourer</b><b>Project</b><b>Work Type</b><b>Total Area</b><b>Approved</b><b>Pending</b><b>Rate</b><b>Approved Pay</b><b>Pending Pay</b>
                 </div>
@@ -149,7 +149,7 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
                     <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : '+ Add Payment'}</button>
                 </div>
             </form>
-            <div className="list-table">
+            <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
                     <b>Date</b><b>Amount</b><b>Account</b><b>TDS</b><b>Action</b>
                 </div>

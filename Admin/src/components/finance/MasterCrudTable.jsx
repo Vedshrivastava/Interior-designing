@@ -247,7 +247,7 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
                                     {group.section && <p className="wizard-section-label">{group.section}</p>}
                                     <div className="wizard-field-grid">
                                         {group.fields.map(f => (
-                                            <div key={f.key} className={`add-product-name flex-col${f.type === 'textarea' ? ' wizard-field-full' : ''}`}>
+                                            <div key={f.key} className={`add-product-name flex-col${(f.type === 'textarea' || group.fields.length === 1) ? ' wizard-field-full' : ''}`}>
                                                 <p>{f.label}{f.required ? ' *' : ''}</p>
                                                 {renderMasterField(f, form, setField, { url, settingOptions })}
                                                 <FieldNote note={f.note} />

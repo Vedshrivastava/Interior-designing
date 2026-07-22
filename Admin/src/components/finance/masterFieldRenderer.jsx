@@ -9,9 +9,13 @@ import StyledDatePicker from './StyledDatePicker';
 
 // A field's optional `note` — was only ever shown for settingSelect fields;
 // pulled out here so any field type can carry one (e.g. a number field
-// explaining what a rate actually gets used for).
+// explaining what a rate actually gets used for). Uses admin-subtitle (same
+// class AddWorkModal's own hint text uses) rather than a bare <p> — a bare
+// one inherits .edit-modal p's uppercase/letter-spaced label treatment,
+// which reads fine for a 2-word label but turns a full sentence into
+// cramped, hard-to-read micro-text.
 export const FieldNote = ({ note }) =>
-    note ? <p style={{ fontSize: '0.78rem', color: 'var(--text-lt)', marginTop: '4px' }}>{note}</p> : null;
+    note ? <p className="admin-subtitle" style={{ margin: '4px 0 0' }}>{note}</p> : null;
 
 export const emptyFormFromFields = (fields) =>
     fields.reduce((acc, f) => {

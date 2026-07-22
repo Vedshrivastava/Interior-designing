@@ -837,6 +837,24 @@
     margin: 0 0 8px 0;
 }
 
+/* A field's explanatory sentence (FieldNote, and AddWorkModal's own inline
+   hints) uses .admin-subtitle to read as a normal sentence — but the bare
+   `.edit-modal p` rule above still wins on every overlapping property
+   (higher specificity: 2 classes there vs. 1 here didn't apply since that
+   rule is class+type), squashing it into the same tiny uppercase
+   letter-spaced treatment meant for a 2-word field label. Barely
+   noticeable on a short hint, but unreadable once the sentence gets long
+   (e.g. Labourer's "Labour Provider Rate" note). This selector's extra
+   .admin-subtitle class outweighs `.edit-modal p`'s single type selector,
+   so it wins regardless of source order. */
+.edit-modal p.admin-subtitle {
+    font-size: 0.8rem;
+    font-weight: 300;
+    color: var(--text-mid);
+    text-transform: none;
+    letter-spacing: 0.2px;
+}
+
 .edit-modal form {
     display: flex !important;
     flex-direction: column !important;

@@ -176,7 +176,7 @@ export const FINANCE_MASTERS = {
             {
                 key: 'labourProviderRatePerSqft', label: 'Labour Provider Rate (₹/sqft) *', type: 'number', section: 'Labour Provider',
                 showIf: (form) => !!form.labourProviderId,
-                note: "Required once a provider is picked (enforced on save) — a separate cost the company pays the provider, based on this labourer's own reviewed sqft, never deducted from this labourer's own pay.",
+                note: "A separate cost paid to the provider, based on this labourer's reviewed sqft. Never deducted from their own pay.",
             },
             { key: 'accountName', label: 'Bank Account Holder Name', type: 'text', required: true, section: 'Bank Details' },
             { key: 'bankName', label: 'Bank Name', type: 'text', required: true, section: 'Bank Details' },

@@ -1,12 +1,34 @@
 import FinanceEmployee from '../models/financeEmployee.js';
 import FinanceSalaryPayment from '../models/financeSalaryPayment.js';
 
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+// A flat employee.salary is only the right "expected" figure for a month
+// the employee was actually on payroll for in full. Joining mid-month
+// prorates that one month by days actually employed; joining after the
+// month hasn't started yet at all means nothing is expected for it —
+// without this, a brand-new hire (or anyone checked partway through their
+// joining month) showed a full month's salary as immediately due.
+const expectedSalaryForMonth = (employee, month) => {
+    if (!employee.joiningDate) return employee.salary;
+    const joined = new Date(employee.joiningDate);
+    const joinedMonth = joined.toISOString().slice(0, 7);
+    if (joinedMonth > month) return 0;
+    if (joinedMonth < month) return employee.salary;
+    const [y, m] = month.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const daysWorked = daysInMonth - joined.getDate() + 1;
+    return round2(employee.salary * daysWorked / daysInMonth);
+};
+
 /*
  * Computed fresh on every call — nothing stored. For a given month:
- * Balance Due = employee.salary − SUM(salaryPayment.amount for that
- * employee + month). Without a month, returns the same breakdown per
- * month across every month this employee has a payment in, so the UI can
- * show a running history without needing N separate calls.
+ * Balance Due = expectedSalaryForMonth(employee, month) − SUM(salaryPayment.amount
+ * for that employee + month) — see expectedSalaryForMonth for why this
+ * isn't always the flat employee.salary. Without a month, returns the
+ * same breakdown per month across every month this employee has a
+ * payment in, so the UI can show a running history without needing N
+ * separate calls.
  */
 const getSalaryLedger = async (req, res) => {
     try {
@@ -19,11 +41,12 @@ const getSalaryLedger = async (req, res) => {
         if (month) {
             const payments = await FinanceSalaryPayment.find({ employeeId, month, deleted: { $ne: true } }).sort({ date: -1 });
             const paidTotal = payments.reduce((sum, p) => sum + p.amount, 0);
+            const expectedSalary = expectedSalaryForMonth(employee, month);
             return res.json({
                 success: true,
                 data: {
                     employeeId: employee._id, employeeName: employee.name, month,
-                    expectedSalary: employee.salary, paid: paidTotal, balanceDue: employee.salary - paidTotal,
+                    expectedSalary, paid: paidTotal, balanceDue: round2(expectedSalary - paidTotal),
                     payments,
                 },
             });
@@ -36,7 +59,8 @@ const getSalaryLedger = async (req, res) => {
         const months = [...new Set(allPayments.map(p => p.month))];
         const byMonth = months.map(m => {
             const paidTotal = allPayments.filter(p => p.month === m).reduce((sum, p) => sum + p.amount, 0);
-            return { month: m, expectedSalary: employee.salary, paid: paidTotal, balanceDue: employee.salary - paidTotal };
+            const expectedSalary = expectedSalaryForMonth(employee, m);
+            return { month: m, expectedSalary, paid: paidTotal, balanceDue: round2(expectedSalary - paidTotal) };
         });
 
         res.json({

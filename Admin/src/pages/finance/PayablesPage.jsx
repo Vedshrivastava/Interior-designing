@@ -7,8 +7,19 @@ import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import ExpensesManager from '../../components/finance/ExpensesManager';
 import ExpenseAnalysisView from '../../components/finance/ExpenseAnalysisView';
 import WorkDeductionAllocationPanel from '../../components/finance/WorkDeductionAllocationPanel';
+import '../../styles/list.css';
 
-const thisMonth = () => new Date().toISOString().slice(0, 7);
+// Salary for the CURRENT, still-in-progress month isn't owed yet — it's
+// only actually payable once that month has fully ended, so Payables
+// (what's owed right now) looks at the last completed month instead of
+// the current one. Without this, a month's full salary showed as due
+// from day one of that month, before any of it had even been worked.
+const lastCompletedMonth = () => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().slice(0, 7);
+};
 const OTHER_CATEGORY = 'Others';
 
 // Kept outside their components so each survives a route remount, same
@@ -88,7 +99,7 @@ const PayablesContractorTab = ({ url }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>No labour contractors yet.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table payables-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.9fr' }}>
                 <b>Contractor</b><b>Total</b><b>Approved</b><b>Unapproved</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>Balance Payable</b>
             </div>
@@ -150,7 +161,7 @@ const PayablesVendorTab = ({ url }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>No vendors yet.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table payables-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr' }}>
                 <b>Vendor</b><b>Purchases</b><b>Returns</b><b>Payments</b><b>Amount Owed</b>
             </div>
@@ -167,14 +178,15 @@ const PayablesVendorTab = ({ url }) => {
     );
 };
 
-/* Balance due per employee for the current month, pulled from the salary
-   ledger endpoint — same N+1 pattern as the tabs above. Always shows the
-   running month; switch employees' own Salary Ledger (under Masters)
-   for history across other months. */
+/* Balance due per employee for the last fully completed month, pulled
+   from the salary ledger endpoint — same N+1 pattern as the tabs above.
+   Never the current, still-in-progress month (see lastCompletedMonth);
+   switch employees' own Salary Ledger (under Masters) for history across
+   other months. */
 const PayablesSalaryTab = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-    const month = thisMonth();
+    const month = lastCompletedMonth();
     // Cached per month, not just once — "For June" and "For July" are
     // genuinely different data, so a cache hit only counts if it's for
     // the same month this render is asking about.
@@ -215,7 +227,7 @@ const PayablesSalaryTab = ({ url }) => {
     return (
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>For {month}</p>
-            <div className="list-table">
+            <div className="list-table payables-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
                     <b>Employee</b><b>Expected</b><b>Paid</b><b>Balance Due</b>
                 </div>
@@ -273,7 +285,7 @@ const PayablesCommissionTab = ({ url }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>No referrals yet.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table payables-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.9fr 0.9fr 0.9fr 1fr' }}>
                 <b>Referral</b><b>Approved</b><b>Unapproved</b><b>Payments</b><b>Commission Payable</b>
             </div>
@@ -333,7 +345,7 @@ const PayablesLabourProviderTab = ({ url }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>No labour providers yet.</p></div>;
 
     return (
-        <div className="list-table">
+        <div className="list-table payables-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.9fr 0.9fr 0.9fr 1fr' }}>
                 <b>Labour Provider</b><b>Approved Pay</b><b>Pay Left to Approve</b><b>Payments</b><b>Balance Payable</b>
             </div>

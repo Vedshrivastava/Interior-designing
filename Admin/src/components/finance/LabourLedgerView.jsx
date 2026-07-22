@@ -238,7 +238,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                 <div className="wizard-field-grid">
                     <div className="add-product-name flex-col">
                         <p>Amount (₹) *</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" value={advanceForm.amount} onChange={e => setAdvanceForm(p => ({ ...p, amount: e.target.value }))} />
+                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={advanceForm.amount} onChange={e => setAdvanceForm(p => ({ ...p, amount: e.target.value }))} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Date *</p>
@@ -294,7 +294,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                         </div>
                         <div className="add-product-name flex-col">
                             <p>Sqft to Deduct *</p>
-                            <input type="number" onWheel={e => e.target.blur()} min="0" value={deductionForm.areaSqft} onChange={e => setDeductionForm(p => ({ ...p, areaSqft: e.target.value }))} />
+                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={deductionForm.areaSqft} onChange={e => setDeductionForm(p => ({ ...p, areaSqft: e.target.value }))} />
                         </div>
                         <div className="add-product-name flex-col">
                             <p>Date *</p>
@@ -357,7 +357,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                 <div className="wizard-field-grid">
                     <div className="add-product-name flex-col">
                         <p>Amount (₹) *</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} />
+                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Date *</p>

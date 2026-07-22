@@ -173,7 +173,7 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                 <div className="wizard-field-grid">
                     <div className="add-product-name flex-col">
                         <p>Amount (₹) *</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} />
+                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Date *</p>
@@ -199,7 +199,7 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                     </div>
                     <div className="add-product-name flex-col">
                         <p>TDS Amount (optional)</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" value={paymentForm.tdsAmount} onChange={e => setPaymentForm(p => ({ ...p, tdsAmount: e.target.value }))} />
+                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={paymentForm.tdsAmount} onChange={e => setPaymentForm(p => ({ ...p, tdsAmount: e.target.value }))} />
                     </div>
                     <div className="add-product-name flex-col wizard-field-full">
                         <p>Attachment</p>

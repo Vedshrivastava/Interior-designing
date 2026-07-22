@@ -180,7 +180,7 @@ const WorkDeductionAllocationPanel = ({ url }) => {
                                             <div key={key} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 140px' }}>
                                                 <p>{a.contractorVendorId?.name || '—'}</p>
                                                 <p><span className="item-category">Contractor</span></p>
-                                                <input type="number" onWheel={e => e.target.blur()} min="0" value={sqftInputs[key] || ''} onChange={e => setSqftInputs(p => ({ ...p, [key]: e.target.value }))} />
+                                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={sqftInputs[key] || ''} onChange={e => setSqftInputs(p => ({ ...p, [key]: e.target.value }))} />
                                             </div>
                                         );
                                     })}
@@ -190,7 +190,7 @@ const WorkDeductionAllocationPanel = ({ url }) => {
                                             <div key={key} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 140px' }}>
                                                 <p>{a.labourerId?.name || '—'}</p>
                                                 <p><span className="item-category">Labour</span></p>
-                                                <input type="number" onWheel={e => e.target.blur()} min="0" value={sqftInputs[key] || ''} onChange={e => setSqftInputs(p => ({ ...p, [key]: e.target.value }))} />
+                                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={sqftInputs[key] || ''} onChange={e => setSqftInputs(p => ({ ...p, [key]: e.target.value }))} />
                                             </div>
                                         );
                                     })}
@@ -208,7 +208,7 @@ const WorkDeductionAllocationPanel = ({ url }) => {
                                             <div key={s.employeeId} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 140px' }}>
                                                 <p>{s.name}</p>
                                                 <p><span className="item-category">Supervisor</span></p>
-                                                <input type="number" onWheel={e => e.target.blur()} min="0" value={amountInputs[s.employeeId] || ''} onChange={e => setAmountInputs(p => ({ ...p, [s.employeeId]: e.target.value }))} />
+                                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={amountInputs[s.employeeId] || ''} onChange={e => setAmountInputs(p => ({ ...p, [s.employeeId]: e.target.value }))} />
                                             </div>
                                         ))}
                                     </div>

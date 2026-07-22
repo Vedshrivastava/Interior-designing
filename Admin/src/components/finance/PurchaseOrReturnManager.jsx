@@ -117,11 +117,11 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Quantity *</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" value={form.quantity} onChange={e => setField('quantity', e.target.value)} />
+                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.quantity} onChange={e => setField('quantity', e.target.value)} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Rate per Unit (₹) *</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" value={form.ratePerUnit} onChange={e => setField('ratePerUnit', e.target.value)} />
+                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.ratePerUnit} onChange={e => setField('ratePerUnit', e.target.value)} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Date *</p>
@@ -137,7 +137,7 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
                     </div>
                     <div className="add-product-name flex-col">
                         <p>GST Rate % (optional)</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" value={form.gstRate} onChange={e => setField('gstRate', e.target.value)} />
+                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.gstRate} onChange={e => setField('gstRate', e.target.value)} />
                     </div>
                     <div className="add-product-name flex-col wizard-field-full">
                         <p>Notes</p>

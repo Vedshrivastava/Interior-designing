@@ -127,7 +127,7 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
                                             <span className="rate-entry-saved">₹{existing.ratePerSqft} / sqft</span>
                                         ) : (
                                             <input
-                                                type="number" onWheel={e => e.target.blur()} min="0" className="rate-entry-input" placeholder="Rate ₹/sqft" value={entry.rate}
+                                                type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder="Rate ₹/sqft" value={entry.rate}
                                                 onChange={e => setPendingField(key, 'rate', e.target.value)}
                                             />
                                         )}

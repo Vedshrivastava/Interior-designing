@@ -307,7 +307,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                             </div>
                             <div className="add-product-name flex-col">
                                 <p>GST Rate % (optional)</p>
-                                <input type="number" onWheel={e => e.target.blur()} min="0" value={gstRate} onChange={e => setGstRate(e.target.value)} />
+                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={gstRate} onChange={e => setGstRate(e.target.value)} />
                             </div>
                         </div>
 
@@ -328,7 +328,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                                             <p>{a.workType} <span style={{ fontSize: '0.75rem', color: 'var(--text-lt)' }}>(of {a.availableSqft} available)</span></p>
                                             <p>
                                                 <input
-                                                    type="number" onWheel={e => e.target.blur()} min={0} max={a.availableSqft}
+                                                    type="number" onWheel={e => e.target.blur()} min={0} step="any" max={a.availableSqft}
                                                     value={workTypeSqft[a.workType] ?? ''}
                                                     onChange={e => setSqftFor(a.workType, e.target.value)}
                                                     style={{ width: '90px' }}
@@ -368,7 +368,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                         </p>
                         <div className="add-product-name flex-col">
                             <p>GST Rate %</p>
-                            <input type="number" onWheel={e => e.target.blur()} min="0" value={gstEditValue} onChange={e => setGstEditValue(e.target.value)} autoFocus />
+                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={gstEditValue} onChange={e => setGstEditValue(e.target.value)} autoFocus />
                         </div>
                         {gstEditValue !== '' && (
                             <p style={{ margin: '12px 0 0', fontWeight: 600 }}>

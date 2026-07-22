@@ -107,7 +107,7 @@ const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
                         <div className="add-product-name flex-col">
                             <p>Quantity *</p>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <input type="number" onWheel={e => e.target.blur()} min="0" value={form.quantity} onChange={e => setField('quantity', e.target.value)} style={{ flex: 1 }} />
+                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.quantity} onChange={e => setField('quantity', e.target.value)} style={{ flex: 1 }} />
                                 {selectedMaterial?.unit && <span className="admin-subtitle" style={{ whiteSpace: 'nowrap' }}>{selectedMaterial.unit}</span>}
                             </div>
                         </div>

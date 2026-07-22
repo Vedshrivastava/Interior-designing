@@ -283,7 +283,7 @@ const NewProjectWizard = ({ url }) => {
                                 <div className="add-product-name flex-col">
                                     <p>Estimated Area</p>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <input type="number" onWheel={e => e.target.blur()} min="0" value={basic.estimatedAreaSqft} onChange={e => setBasicField('estimatedAreaSqft', e.target.value)} placeholder="0" style={{ flex: 1 }} />
+                                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={basic.estimatedAreaSqft} onChange={e => setBasicField('estimatedAreaSqft', e.target.value)} placeholder="0" style={{ flex: 1 }} />
                                         <span className="admin-subtitle" style={{ whiteSpace: 'nowrap' }}>sqft</span>
                                     </div>
                                 </div>
@@ -349,11 +349,11 @@ const NewProjectWizard = ({ url }) => {
                                     <div className="wizard-field-grid">
                                         <div className="add-product-name flex-col">
                                             <p>Total Estimated Cost (₹, optional context)</p>
-                                            <input type="number" onWheel={e => e.target.blur()} min="0" value={totalEstimatedCost} onChange={e => setTotalEstimatedCost(e.target.value)} placeholder="0" />
+                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={totalEstimatedCost} onChange={e => setTotalEstimatedCost(e.target.value)} placeholder="0" />
                                         </div>
                                         <div className="add-product-name flex-col">
                                             <p>Advance Amount (₹) *</p>
-                                            <input type="number" onWheel={e => e.target.blur()} min="0" value={advanceAmount} onChange={e => setAdvanceAmount(e.target.value)} placeholder="0" />
+                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={advanceAmount} onChange={e => setAdvanceAmount(e.target.value)} placeholder="0" />
                                         </div>
                                     </div>
                                 </>

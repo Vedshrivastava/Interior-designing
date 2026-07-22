@@ -154,7 +154,7 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Estimated Area (sqft) *</p>
-                                    <input type="number" onWheel={e => e.target.blur()} min="0" value={form.estimatedAreaSqft} onChange={e => setField('estimatedAreaSqft', e.target.value)} />
+                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.estimatedAreaSqft} onChange={e => setField('estimatedAreaSqft', e.target.value)} />
                                 </div>
                                 {editingId && (
                                     <div className="add-product-name flex-col">

@@ -250,7 +250,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
 
                         <div className="add-product-name flex-col">
                             <p>Area Covered (sqft) *</p>
-                            <input type="number" onWheel={e => e.target.blur()} min="0" value={form.areaCoveredSqft} onChange={e => setField('areaCoveredSqft', e.target.value)} />
+                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.areaCoveredSqft} onChange={e => setField('areaCoveredSqft', e.target.value)} />
                         </div>
                         {!isContractor && (
                             <div className="add-product-name flex-col">
@@ -287,7 +287,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                                     <div key={line.materialId} style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'center' }}>
                                         <p style={{ flex: 2, margin: 0 }}>{material?.name || '-'}</p>
                                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <input type="number" onWheel={e => e.target.blur()} min="0" placeholder="Quantity" value={line.quantity} onChange={e => setMaterialLine(idx, 'quantity', e.target.value)} style={{ width: '100%' }} />
+                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" placeholder="Quantity" value={line.quantity} onChange={e => setMaterialLine(idx, 'quantity', e.target.value)} style={{ width: '100%' }} />
                                             {material?.unit && <span className="admin-subtitle" style={{ whiteSpace: 'nowrap' }}>{material.unit}</span>}
                                         </div>
                                     </div>

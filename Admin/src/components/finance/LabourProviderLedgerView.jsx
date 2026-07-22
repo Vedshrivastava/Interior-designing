@@ -119,7 +119,7 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
                 <div className="wizard-field-grid">
                     <div className="add-product-name flex-col">
                         <p>Amount (₹) *</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => setField('amount', e.target.value)} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Date *</p>
@@ -141,7 +141,7 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
                     </div>
                     <div className="add-product-name flex-col">
                         <p>TDS Amount (optional)</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} />
+                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} />
                     </div>
                 </div>
                 <div className="wizard-actions" style={{ marginTop: '16px', marginBottom: '12px' }}>

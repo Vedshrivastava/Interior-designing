@@ -15,7 +15,16 @@ import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, Ch
 import '../styles/welcome.css';
 import '../styles/list.css';
 
-const thisMonth = () => new Date().toISOString().slice(0, 7);
+// Salary for the current, still-in-progress month isn't owed yet — only
+// once that month has fully ended, so this dashboard's salary-payable
+// figure looks at the last completed month instead (see
+// PayablesPage.jsx's identical helper/reasoning).
+const lastCompletedMonth = () => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().slice(0, 7);
+};
 
 // Project names run long ("Malhotra Enterprises — HQ Advance Contract") and
 // the chart's y-axis has nowhere near that much room — Recharts renders
@@ -84,7 +93,7 @@ const FinanceHome = ({ url }) => {
             // Root requests fired together — employees/vendors/projects
             // don't depend on summary/trends (or each other), so there's
             // no reason to wait for one batch before starting the next.
-            const month = thisMonth();
+            const month = lastCompletedMonth();
             const [summaryRes, trendsRes, employeesRes, referralsRes, projectsRes] = await Promise.all([
                 axios.get(`${url}/api/finance/reports/dashboard-summary`, authHeader),
                 axios.get(`${url}/api/finance/reports/dashboard-trends`, { ...authHeader, params: { months: 6 } }),

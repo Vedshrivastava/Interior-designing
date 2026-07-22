@@ -107,7 +107,7 @@ const SettingsCrudList = ({ url, lockedType }) => {
                     {typeConfig.hasRate && (
                         <div className="add-product-name flex-col">
                             <p>Rate %</p>
-                            <input type="number" onWheel={e => e.target.blur()} min="0" value={rate} onChange={e => setRate(e.target.value)}
+                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={rate} onChange={e => setRate(e.target.value)}
                                 onKeyDown={e => { if (e.key === 'Enter') addItem(); }} />
                         </div>
                     )}

@@ -310,6 +310,18 @@
     padding-right: 28px;
 }
 
+/* Payables (PayablesPage.jsx) — opt-in, doesn't touch any other
+   list-table in the app. Every column's header and its data below it
+   center-align together except the first (the row's identifying name),
+   which stays left — a short bold header centering visually while its
+   value sat flush left underneath was exactly the mismatch this fixes.
+   Overrides the :last-child right-align above (this selector is more
+   specific) since Payables' last column is a real data value here, not
+   an Action button. */
+.payables-table .list-table-format > *:not(:first-child) {
+    text-align: center;
+}
+
 /* ── Image Thumb ── */
 .list-table-format .image-column {
     display: flex;

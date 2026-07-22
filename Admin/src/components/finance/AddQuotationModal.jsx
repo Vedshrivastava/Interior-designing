@@ -69,7 +69,7 @@ const AddQuotationModal = ({ url, projectId, onClose, onSaved }) => {
                         </div>
                         <div className="add-product-name flex-col">
                             <p>Amount (₹) *</p>
-                            <input type="number" onWheel={e => e.target.blur()} min="0" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => setField('amount', e.target.value)} />
                         </div>
                         <div className="add-product-name flex-col wizard-field-full">
                             <p>Notes</p>

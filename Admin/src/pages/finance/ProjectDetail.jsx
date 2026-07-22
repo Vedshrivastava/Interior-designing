@@ -498,7 +498,7 @@ const ProjectDetail = ({ url }) => {
                                         <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
                                             <p><b>Referral Commission</b></p>
                                             <div className="add-product-name" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px', margin: 0 }}>
-                                                <input type="number" onWheel={e => e.target.blur()} min="0" value={commissionInput} onChange={e => setCommissionInput(e.target.value)} style={{ maxWidth: '140px' }} />
+                                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={commissionInput} onChange={e => setCommissionInput(e.target.value)} style={{ maxWidth: '140px' }} />
                                                 {Number(commissionInput) !== (project.referralCommissionAmount || 0) && (
                                                     <button type="button" className="add-point-btn" disabled={savingCommission} onClick={saveCommission}>
                                                         {savingCommission ? 'Saving…' : 'Save'}
@@ -687,7 +687,7 @@ const ProjectDetail = ({ url }) => {
                         <div className="add-product-name flex-col">
                             <p>Referral Commission (₹)</p>
                             <input
-                                type="number" onWheel={e => e.target.blur()} min="0" value={completionCommissionConfirm.amount}
+                                type="number" onWheel={e => e.target.blur()} min="0" step="any" value={completionCommissionConfirm.amount}
                                 onChange={e => setCompletionCommissionConfirm({ amount: e.target.value })}
                             />
                         </div>

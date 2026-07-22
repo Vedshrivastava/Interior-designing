@@ -253,7 +253,7 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Approved Sqft * (of {reviewTarget.loggedSqft})</p>
-                                    <input type="number" onWheel={e => e.target.blur()} min="0" max={reviewTarget.loggedSqft} value={approvedInput} onChange={e => setApprovedInput(e.target.value)} />
+                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" max={reviewTarget.loggedSqft} value={approvedInput} onChange={e => setApprovedInput(e.target.value)} />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Date *</p>

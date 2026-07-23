@@ -9,6 +9,16 @@ import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 
+// Every Payments/Masters tab mounts its own QuickAddPicker for the same
+// handful of entity lists (vendors, employees, referrals…), and the host
+// pages (e.g. PaymentsPage) unmount/remount each tab's manager on every
+// switch — without this, that means a full refetch-from-empty every time,
+// which reads as "the dropdown takes a moment to open" even though the
+// list barely changes between visits. Cache the last-fetched list per
+// resource so a remount can render it immediately, then silently refresh
+// in the background so it still can't go stale.
+const listCache = new Map();
+
 /*
  * Reusable "search or create" control for entity references (Client,
  * Vendor, Team, Employee) — a plain select backed by FINANCE_MASTERS'
@@ -25,8 +35,9 @@ const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValue
     const resource = FINANCE_MASTERS[resourceKey];
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    const cacheKey = `${url}::${resourceKey}`;
 
-    const [list, setList] = useState([]);
+    const [list, setList] = useState(() => listCache.get(cacheKey) || []);
     const [modalOpen, setModalOpen] = useState(false);
     const [form, setForm] = useState({ ...emptyFormFromFields(resource.fields), ...presetValues });
     const [settingOptions, setSettingOptions] = useState({});
@@ -41,8 +52,8 @@ const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValue
     const fetchList = async () => {
         try {
             const res = await axios.get(`${url}${resource.apiBase}/list`, authHeader);
-            if (res.data.success) setList(res.data.data);
-        } catch { /* dropdown just stays empty */ }
+            if (res.data.success) { listCache.set(cacheKey, res.data.data); setList(res.data.data); }
+        } catch { /* dropdown just stays with whatever it already had */ }
     };
 
     useEffect(() => { fetchList(); }, [url, resourceKey]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -4,6 +4,8 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import QuickAddPicker from './QuickAddPicker';
 import StyledDatePicker from './StyledDatePicker';
+import StyledSelect from './StyledSelect';
+import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -24,6 +26,7 @@ const SalaryPaymentsManager = ({ url }) => {
     const [employeeId, setEmployeeId] = useState('');
     const [month, setMonth] = useState(thisMonth());
     const [bankAccounts, setBankAccounts] = useState([]);
+    const [paymentModes, setPaymentModes] = useState([]);
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -33,6 +36,8 @@ const SalaryPaymentsManager = ({ url }) => {
 
     useEffect(() => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
+            .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchPayments = async () => {
@@ -56,7 +61,10 @@ const SalaryPaymentsManager = ({ url }) => {
         setSaving(true);
         try {
             const res = await axios.post(`${url}/api/finance/salary-payments/add`, { ...form, employeeId, month }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); setModalOpen(false); await fetchPayments(); }
+            if (res.data.success) {
+                if (form.paymentMode) await registerSettingIfNew(url, authHeader, 'payment_mode', form.paymentMode, paymentModes.map(m => ({ name: m })));
+                toast.success(res.data.message); setForm(emptyForm); setModalOpen(false); await fetchPayments();
+            }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording salary payment'); }
         finally { setSaving(false); }
@@ -128,14 +136,23 @@ const SalaryPaymentsManager = ({ url }) => {
                                         </div>
                                         <div className="add-product-name flex-col">
                                             <p>Payment Mode</p>
-                                            <input type="text" value={form.paymentMode} onChange={e => setField('paymentMode', e.target.value)} />
+                                            <SettingSelectField settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
+                                                value={form.paymentMode} onChange={v => setField('paymentMode', v)} placeholder="e.g. Cash, Bank Transfer, UPI…" />
                                         </div>
                                         <div className="add-product-name flex-col">
                                             <p>Bank Account</p>
-                                            <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)}>
-                                                <option value="">Cash</option>
-                                                {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} · {a.bankName}</option>)}
-                                            </select>
+                                            <StyledSelect
+                                                value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
+                                                options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                                            />
+                                        </div>
+                                        <div className="add-product-name flex-col">
+                                            <p>UTR / Reference Number</p>
+                                            <input type="text" value={form.utrNumber} onChange={e => setField('utrNumber', e.target.value)} />
+                                        </div>
+                                        <div className="add-product-name flex-col wizard-field-full">
+                                            <p>Notes</p>
+                                            <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
                                         </div>
                                     </div>
                                     <div className="edit-modal-actions">

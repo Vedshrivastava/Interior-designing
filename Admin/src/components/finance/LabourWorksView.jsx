@@ -29,11 +29,11 @@ const LabourWorksView = ({ url, labourerId }) => {
 
     return (
         <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1.3fr 1fr' }}>
-                <b>Project</b><b>Work Type</b><b>Area Covered</b><b>Status</b>
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1.3fr 1fr 1fr' }}>
+                <b>Project</b><b>Work Type</b><b>Area Covered</b><b>Material Cost/Sqft</b><b>Status</b>
             </div>
             {works.map(w => (
-                <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1.3fr 1fr' }}>
+                <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1.3fr 1fr 1fr' }}>
                     <p>{w.projectName}</p>
                     <p>{w.workType}</p>
                     {/* This labourer's own logged area on this Work — not
@@ -41,6 +41,7 @@ const LabourWorksView = ({ url, labourerId }) => {
                         whole Work's target, not this labourer's share of
                         it (a Work can have more than one contributor). */}
                     <p>{w.completedAreaSqft} sqft</p>
+                    <p>{w.materialCostPerSqft != null ? `₹${w.materialCostPerSqft.toFixed(2)}` : '—'}</p>
                     <p><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
                 </div>
             ))}

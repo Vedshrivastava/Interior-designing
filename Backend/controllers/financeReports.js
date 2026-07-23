@@ -3087,4 +3087,8 @@ export {
     // Shared with financeProject.js's completion-readiness endpoint + the
     // "Mark Completed" action itself — same reasoning as the export above.
     getProjectCompletionReadiness,
+    // Shared with financeContractorLedger.js/financeLabourLedger.js for the
+    // per-worker Material Cost/Sqft column — same weighted-average material
+    // rate lookup used by getMaterialAnalysis/computeWorkScopedReport.
+    computeMaterialAvgRates,
 };

@@ -8,7 +8,7 @@ import FinanceContractorDeduction from '../models/financeContractorDeduction.js'
 import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
 import { assertContractorVendor } from '../utils/contractorVendor.js';
-import { getApprovedBillingByWorkId, splitApprovedAreaByShare } from './financeReports.js';
+import { getApprovedBillingByWorkId, splitApprovedAreaByShare, computeMaterialAvgRates } from './financeReports.js';
 import { getWorkerPayoutDeductionTotal } from './financeClientDirectPayment.js';
 import PDFDocument from 'pdfkit';
 import { writeLetterhead, writeSectionHeading, writeSignatureLine, writeFooter, drawInfoBox, drawTable, contentBox, formatCurrency, formatDate, BRAND_GREEN, paintPageBackground } from '../utils/pdfLetterhead.js';
@@ -79,7 +79,7 @@ const computeContractorLedger = async (vendorId, projectId) => {
     const areaByWork = new Map(); // workId -> { totalArea, allVendorsArea }
     for (const w of works) areaByWork.set(w._id.toString(), { totalArea: 0, allVendorsArea: 0 });
 
-    const [measurements, allVendorMeasurements, approvedBillingByWorkId] = await Promise.all([
+    const [measurements, allVendorMeasurements, approvedBillingByWorkId, avgRateEntries] = await Promise.all([
         works.length
             ? FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, contractorVendorId: vendorId, deleted: { $ne: true } })
                 .populate('workId', 'workType')
@@ -92,18 +92,34 @@ const computeContractorLedger = async (vendorId, projectId) => {
             ? FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId areaCoveredSqft')
             : [],
         works.length ? getApprovedBillingByWorkId(works.map(w => w._id)) : new Map(),
+        // A vendor's works can span multiple projects, unlike Work Detail's
+        // single-project scope — each project needs its own weighted-average
+        // material rate map (rates are project-scoped, not global).
+        Promise.all(projectIds.map(async (pid) => [pid, await computeMaterialAvgRates(pid)])),
     ]);
+    const avgRateByProject = new Map(avgRateEntries);
     for (const m of allVendorMeasurements) {
         const key = m.workId.toString();
         const cur = areaByWork.get(key) || { totalArea: 0, allVendorsArea: 0 };
         cur.allVendorsArea += m.areaCoveredSqft;
         areaByWork.set(key, cur);
     }
+    // Pooled total/total per work, same convention as computeWorkScopedReport's
+    // per-vendor materialCostPerSqft — this vendor's own material cost on this
+    // work divided by this vendor's own material-tagged area on it.
+    const materialCostByWork = new Map();
+    const materialAreaByWork = new Map();
     for (const m of measurements) {
         const workKey = m.workId._id.toString();
         const cur = areaByWork.get(workKey) || { totalArea: 0, allVendorsArea: 0 };
         cur.totalArea += m.areaCoveredSqft;
         areaByWork.set(workKey, cur);
+        if (m.materialUsed?.length) {
+            const avgRate = avgRateByProject.get(m.projectId?.toString()) || new Map();
+            const cost = m.materialUsed.reduce((s, u) => s + u.quantity * (avgRate.get(u.materialId.toString()) || 0), 0);
+            materialCostByWork.set(workKey, (materialCostByWork.get(workKey) || 0) + cost);
+            materialAreaByWork.set(workKey, (materialAreaByWork.get(workKey) || 0) + m.areaCoveredSqft);
+        }
     }
 
     let earningsTotal = 0;
@@ -124,6 +140,7 @@ const computeContractorLedger = async (vendorId, projectId) => {
         earningsTotal += earnings;
         totalAmountTotal += totalAmount;
         unapprovedAmountTotal += unapprovedAmount;
+        const workMaterialArea = materialAreaByWork.get(workKey) || 0;
         worksOut.push({
             _id: w._id,
             projectId: w.projectId, projectName: projectNameById.get(w.projectId.toString()) || '—',
@@ -134,6 +151,7 @@ const computeContractorLedger = async (vendorId, projectId) => {
             status: w.status,
             rate: rate ? rate.ratePerSqft : null,
             totalAmount, earnings, unapprovedAmount,
+            materialCostPerSqft: workMaterialArea > 0 ? (materialCostByWork.get(workKey) || 0) / workMaterialArea : null,
         });
     }
 
@@ -158,6 +176,12 @@ const computeContractorLedger = async (vendorId, projectId) => {
     unapprovedAmountTotal = round2(unapprovedAmountTotal);
     const balancePayable = round2(earningsTotal - advancesTotal - deductionsTotal - paymentsTotal);
 
+    // Pooled total/total across every work this vendor has touched — same
+    // convention as the per-work figure above, just not scoped to one work.
+    let materialCostTotal = 0, materialAreaTotal = 0;
+    for (const cost of materialCostByWork.values()) materialCostTotal += cost;
+    for (const area of materialAreaByWork.values()) materialAreaTotal += area;
+
     return {
         vendor,
         vendorId: vendor._id, vendorName: vendor.name,
@@ -165,6 +189,7 @@ const computeContractorLedger = async (vendorId, projectId) => {
         totals: {
             earnings: earningsTotal, totalAmount: totalAmountTotal, unapprovedAmount: unapprovedAmountTotal,
             advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal, balancePayable,
+            materialCostPerSqft: materialAreaTotal > 0 ? materialCostTotal / materialAreaTotal : null,
         },
     };
 };

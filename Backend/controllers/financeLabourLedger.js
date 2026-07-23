@@ -8,7 +8,7 @@ import FinanceLabourAdvance from '../models/financeLabourAdvance.js';
 import FinanceLabourDeduction from '../models/financeLabourDeduction.js';
 import FinanceLabourPayment from '../models/financeLabourPayment.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
-import { getApprovedBillingByWorkId, splitApprovedAreaByShare } from './financeReports.js';
+import { getApprovedBillingByWorkId, splitApprovedAreaByShare, computeMaterialAvgRates } from './financeReports.js';
 import { getWorkerPayoutDeductionTotal } from './financeClientDirectPayment.js';
 import PDFDocument from 'pdfkit';
 import { writeLetterhead, writeSectionHeading, writeSignatureLine, writeFooter, drawInfoBox, drawTable, contentBox, formatCurrency, formatDate, BRAND_GREEN, paintPageBackground } from '../utils/pdfLetterhead.js';
@@ -56,7 +56,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
     const areaByWork = new Map(); // workId -> { totalArea, allLabourersArea }
     for (const w of works) areaByWork.set(w._id.toString(), { totalArea: 0, allLabourersArea: 0 });
 
-    const [measurements, allLabourerMeasurements, approvedBillingByWorkId] = await Promise.all([
+    const [measurements, allLabourerMeasurements, approvedBillingByWorkId, avgRateEntries] = await Promise.all([
         works.length
             ? FinanceLabourMeasurement.find({ workId: { $in: works.map(w => w._id) }, labourerId, deleted: { $ne: true } })
                 .populate('workId', 'workType')
@@ -69,18 +69,33 @@ const computeLabourLedger = async (labourerId, projectId) => {
             ? FinanceLabourMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId areaCoveredSqft')
             : [],
         works.length ? getApprovedBillingByWorkId(works.map(w => w._id)) : new Map(),
+        // A labourer's works can span multiple projects — each project needs
+        // its own weighted-average material rate map (see the identical
+        // comment in financeContractorLedger.js).
+        Promise.all(projectIds.map(async (pid) => [pid, await computeMaterialAvgRates(pid)])),
     ]);
+    const avgRateByProject = new Map(avgRateEntries);
     for (const m of allLabourerMeasurements) {
         const key = m.workId.toString();
         const cur = areaByWork.get(key) || { totalArea: 0, allLabourersArea: 0 };
         cur.allLabourersArea += m.areaCoveredSqft;
         areaByWork.set(key, cur);
     }
+    // Pooled total/total per work — this labourer's own material cost on
+    // this work divided by this labourer's own material-tagged area on it.
+    const materialCostByWork = new Map();
+    const materialAreaByWork = new Map();
     for (const m of measurements) {
         const workKey = m.workId._id.toString();
         const cur = areaByWork.get(workKey) || { totalArea: 0, allLabourersArea: 0 };
         cur.totalArea += m.areaCoveredSqft;
         areaByWork.set(workKey, cur);
+        if (m.materialUsed?.length) {
+            const avgRate = avgRateByProject.get(m.projectId?.toString()) || new Map();
+            const cost = m.materialUsed.reduce((s, u) => s + u.quantity * (avgRate.get(u.materialId.toString()) || 0), 0);
+            materialCostByWork.set(workKey, (materialCostByWork.get(workKey) || 0) + cost);
+            materialAreaByWork.set(workKey, (materialAreaByWork.get(workKey) || 0) + m.areaCoveredSqft);
+        }
     }
 
     let earningsTotal = 0;
@@ -101,6 +116,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
         earningsTotal += earnings;
         totalAmountTotal += totalAmount;
         unapprovedAmountTotal += unapprovedAmount;
+        const workMaterialArea = materialAreaByWork.get(workKey) || 0;
         worksOut.push({
             _id: w._id,
             projectId: w.projectId, projectName: projectNameById.get(w.projectId.toString()) || '—',
@@ -111,6 +127,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
             status: w.status,
             rate: rate ? rate.ratePerSqft : null,
             totalAmount, earnings, unapprovedAmount,
+            materialCostPerSqft: workMaterialArea > 0 ? (materialCostByWork.get(workKey) || 0) / workMaterialArea : null,
         });
     }
 
@@ -134,6 +151,12 @@ const computeLabourLedger = async (labourerId, projectId) => {
     unapprovedAmountTotal = round2(unapprovedAmountTotal);
     const balancePayable = round2(earningsTotal - advancesTotal - deductionsTotal - paymentsTotal);
 
+    // Pooled total/total across every work this labourer has touched — same
+    // convention as the per-work figure above, just not scoped to one work.
+    let materialCostTotal = 0, materialAreaTotal = 0;
+    for (const cost of materialCostByWork.values()) materialCostTotal += cost;
+    for (const area of materialAreaByWork.values()) materialAreaTotal += area;
+
     return {
         labourer,
         labourerId: labourer._id, labourerName: labourer.name,
@@ -141,6 +164,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
         totals: {
             earnings: earningsTotal, totalAmount: totalAmountTotal, unapprovedAmount: unapprovedAmountTotal,
             advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal, balancePayable,
+            materialCostPerSqft: materialAreaTotal > 0 ? materialCostTotal / materialAreaTotal : null,
         },
     };
 };

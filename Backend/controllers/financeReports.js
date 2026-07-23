@@ -986,13 +986,16 @@ const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) =>
 
     // Per-worker Material Cost/Sqft — only this worker's own materialUsed
     // entries (within the scoped date window, same as everything else
-    // here) — same "mean of each day's own cost÷area ratio" convention
-    // the top Average Material Cost/Sqft KPI and Project Overview's
-    // material table both use (days with none of this worker's own
-    // material use are skipped, not counted as a zero), so all three
-    // figures in the app agree on what "cost/sqft" means.
-    const materialDailyByVendor = new Map(); // vendorId -> Map(dateKey -> {qty, area})
-    const materialDailyByLabourer = new Map();
+    // here) ÷ only the area covered on days THEY logged material, so it
+    // isn't diluted by a co-worker's usage or by any of their own area
+    // logged without material. Pooled total÷total, same convention as
+    // Project Overview's material table and the top Average Material
+    // Cost/Sqft KPI — a ratio like this should be weighted by how much
+    // area each day actually represents, not averaged day-by-day.
+    const materialCostByVendor = new Map();
+    const materialAreaByVendor = new Map();
+    const materialCostByLabourer = new Map();
+    const materialAreaByLabourer = new Map();
 
     const areaByVendor = new Map();
     for (const m of measurements) {
@@ -1000,21 +1003,11 @@ const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) =>
         const key = m.contractorVendorId.toString();
         areaByVendor.set(key, (areaByVendor.get(key) || 0) + m.areaCoveredSqft);
         if (m.materialUsed?.length) {
-            const dateKey = new Date(m.date).toISOString().slice(0, 10);
             const cost = m.materialUsed.reduce((s, u) => s + u.quantity * (avgRate.get(u.materialId.toString()) || 0), 0);
-            if (!materialDailyByVendor.has(key)) materialDailyByVendor.set(key, new Map());
-            const byDate = materialDailyByVendor.get(key);
-            const entry = byDate.get(dateKey) || { cost: 0, area: 0 };
-            entry.cost += cost;
-            entry.area += m.areaCoveredSqft;
-            byDate.set(dateKey, entry);
+            materialCostByVendor.set(key, (materialCostByVendor.get(key) || 0) + cost);
+            materialAreaByVendor.set(key, (materialAreaByVendor.get(key) || 0) + m.areaCoveredSqft);
         }
     }
-    const meanCostPerSqft = (byDate) => {
-        if (!byDate) return null;
-        const ratios = [...byDate.values()].filter(d => d.area > 0 && d.cost > 0).map(d => d.cost / d.area);
-        return ratios.length > 0 ? ratios.reduce((a, b) => a + b, 0) / ratios.length : null;
-    };
     let contractorCost = 0;
     const contractorBreakdown = [];
     if (areaByVendor.size) {
@@ -1029,10 +1022,11 @@ const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) =>
             const perUnit = rateByVendor.get(vendorId)?.ratePerSqft || 0;
             const earnings = round2(totalArea * perUnit);
             contractorCost += earnings;
+            const vendorMaterialArea = materialAreaByVendor.get(vendorId) || 0;
             contractorBreakdown.push({
                 vendorId, vendorName: vendorById.get(vendorId)?.name || '—',
                 areaSqft: round2(totalArea), rate: perUnit, earnings,
-                materialCostPerSqft: meanCostPerSqft(materialDailyByVendor.get(vendorId)),
+                materialCostPerSqft: vendorMaterialArea > 0 ? (materialCostByVendor.get(vendorId) || 0) / vendorMaterialArea : null,
             });
         }
     }
@@ -1043,14 +1037,9 @@ const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) =>
         const key = m.labourerId.toString();
         areaByLabourer.set(key, (areaByLabourer.get(key) || 0) + m.areaCoveredSqft);
         if (m.materialUsed?.length) {
-            const dateKey = new Date(m.date).toISOString().slice(0, 10);
             const cost = m.materialUsed.reduce((s, u) => s + u.quantity * (avgRate.get(u.materialId.toString()) || 0), 0);
-            if (!materialDailyByLabourer.has(key)) materialDailyByLabourer.set(key, new Map());
-            const byDate = materialDailyByLabourer.get(key);
-            const entry = byDate.get(dateKey) || { cost: 0, area: 0 };
-            entry.cost += cost;
-            entry.area += m.areaCoveredSqft;
-            byDate.set(dateKey, entry);
+            materialCostByLabourer.set(key, (materialCostByLabourer.get(key) || 0) + cost);
+            materialAreaByLabourer.set(key, (materialAreaByLabourer.get(key) || 0) + m.areaCoveredSqft);
         }
     }
     let labourCost = 0;
@@ -1067,10 +1056,11 @@ const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) =>
             const perUnit = rateByLabourer.get(labourerId)?.ratePerSqft || 0;
             const earnings = round2(totalArea * perUnit);
             labourCost += earnings;
+            const labourerMaterialArea = materialAreaByLabourer.get(labourerId) || 0;
             labourBreakdown.push({
                 labourerId, labourerName: labourerById.get(labourerId)?.name || '—',
                 areaSqft: round2(totalArea), rate: perUnit, earnings,
-                materialCostPerSqft: meanCostPerSqft(materialDailyByLabourer.get(labourerId)),
+                materialCostPerSqft: labourerMaterialArea > 0 ? (materialCostByLabourer.get(labourerId) || 0) / labourerMaterialArea : null,
             });
         }
     }
@@ -1105,9 +1095,12 @@ const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) =>
     const materialWasted = taggedWaste.map(r => ({ materialId: r._id, quantity: r.qty, ...nameUnit(r._id) }));
     const projectLevelWaste = projectWasteTotal.map(r => ({ materialId: r._id, quantity: r.qty, ...nameUnit(r._id) }));
 
-    // Daily breakdown + Average Cost/Sqft = mean of each day's costPerSqft
-    // ratio within the scope, NOT totalMaterialCost / totalArea — days with
-    // zero material cost recorded are skipped, not counted as a zero ratio.
+    // Daily breakdown feeds the "Daily Cost/Sqft" chart, one point per day.
+    // Average Cost/Sqft itself is pooled total material cost ÷ total area
+    // across the whole scope, NOT a mean of each day's own ratio — a ratio
+    // like this should be weighted by how much area each day actually
+    // represents, so a 10 sqft day doesn't swing the average as much as a
+    // 10,000 sqft one.
     const byDate = new Map();
     for (const m of [...measurements, ...labourMeasurements]) {
         const dateKey = new Date(m.date).toISOString().slice(0, 10);
@@ -1120,10 +1113,9 @@ const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) =>
         date, areaCoveredSqft: e.areaCoveredSqft, materialCost: e.materialCost,
         costPerSqft: e.areaCoveredSqft > 0 ? e.materialCost / e.areaCoveredSqft : 0,
     }));
-    const ratiosWithMaterialCost = dailyBreakdown.filter(d => d.materialCost > 0).map(d => d.costPerSqft);
-    const averageCostPerSqft = ratiosWithMaterialCost.length > 0
-        ? ratiosWithMaterialCost.reduce((a, b) => a + b, 0) / ratiosWithMaterialCost.length
-        : 0;
+    const totalMaterialCostInScope = dailyBreakdown.reduce((s, d) => s + d.materialCost, 0);
+    const totalAreaInScope = dailyBreakdown.reduce((s, d) => s + d.areaCoveredSqft, 0);
+    const averageCostPerSqft = totalAreaInScope > 0 ? totalMaterialCostInScope / totalAreaInScope : 0;
 
     return {
         areaCoveredSqft,
@@ -1681,40 +1673,26 @@ const getMaterialAnalysis = async (req, res) => {
 
         // Cost/sqft per material — only meaningful scoped to one project
         // (mixing sqft across different projects/rates would be
-        // meaningless). Same "mean of each day's own cost÷area ratio"
-        // convention Work Detail's Average Material Cost/Sqft already
-        // uses (days with none of this material used are skipped, not
-        // counted as a zero) — kept consistent across both views rather
-        // than a plain total-cost÷total-area figure. A day's area is every
-        // measurement logged that day project-wide (any material, matching
-        // Work Detail's own denominator), not narrowed to just this
-        // material's own entries.
+        // meaningless). Pooled total÷total (every logged sqft using this
+        // material, all-time, against its total consumed cost), not a mean
+        // of per-day ratios — a ratio like this should be weighted by how
+        // much area each day actually represents, not treat a 10 sqft day
+        // the same as a 10,000 sqft one. "Area covered using this material"
+        // sums every measurement's own areaCoveredSqft where this material
+        // appears in that measurement's materialUsed[] — a day where a
+        // material was used across less area than the project's total
+        // progress correctly gets a narrower denominator, not the whole
+        // project's area.
         const areaByMaterial = new Map();
-        const dailyByMaterial = new Map(); // materialId -> Map(dateKey -> {area, cost})
         if (projectId) {
             const [contractorMeasurements, labourMeasurements] = await Promise.all([
-                FinanceMeasurement.find({ projectId, deleted: { $ne: true } }, 'date areaCoveredSqft materialUsed'),
-                FinanceLabourMeasurement.find({ projectId, deleted: { $ne: true } }, 'date areaCoveredSqft materialUsed'),
+                FinanceMeasurement.find({ projectId, deleted: { $ne: true } }, 'areaCoveredSqft materialUsed'),
+                FinanceLabourMeasurement.find({ projectId, deleted: { $ne: true } }, 'areaCoveredSqft materialUsed'),
             ]);
-            const allMeasurements = [...contractorMeasurements, ...labourMeasurements];
-            const dayAreaTotal = new Map(); // dateKey -> total project area that day, any material
-            for (const m of allMeasurements) {
-                const dateKey = new Date(m.date).toISOString().slice(0, 10);
-                dayAreaTotal.set(dateKey, (dayAreaTotal.get(dateKey) || 0) + m.areaCoveredSqft);
+            for (const m of [...contractorMeasurements, ...labourMeasurements]) {
                 for (const u of (m.materialUsed || [])) {
                     const key = u.materialId.toString();
                     areaByMaterial.set(key, (areaByMaterial.get(key) || 0) + m.areaCoveredSqft);
-                    if (!dailyByMaterial.has(key)) dailyByMaterial.set(key, new Map());
-                    const byDate = dailyByMaterial.get(key);
-                    if (!byDate.has(dateKey)) byDate.set(dateKey, 0);
-                    byDate.set(dateKey, byDate.get(dateKey) + u.quantity);
-                }
-            }
-            // Second pass: now that dayAreaTotal is complete, resolve each
-            // material's per-day quantity into a cost÷area ratio.
-            for (const [, byDate] of dailyByMaterial) {
-                for (const [dateKey, qty] of byDate) {
-                    byDate.set(dateKey, { qty, area: dayAreaTotal.get(dateKey) || 0 });
                 }
             }
         }
@@ -1727,14 +1705,8 @@ const getMaterialAnalysis = async (req, res) => {
             const netAmt = p.purchasedAmt - p.returnedAmt;
             const weightedAverageCost = netQty > 0 ? netAmt / netQty : 0;
             const areaCoveredSqft = areaByMaterial.get(key) || 0;
-            const byDate = dailyByMaterial.get(key);
-            let costPerSqft = 0;
-            if (byDate) {
-                const ratios = [...byDate.values()]
-                    .filter(d => d.area > 0 && d.qty * weightedAverageCost > 0)
-                    .map(d => (d.qty * weightedAverageCost) / d.area);
-                costPerSqft = ratios.length > 0 ? ratios.reduce((a, b) => a + b, 0) / ratios.length : 0;
-            }
+            const consumedCost = s.consume * weightedAverageCost;
+            const costPerSqft = areaCoveredSqft > 0 ? consumedCost / areaCoveredSqft : 0;
             return {
                 materialId: mat._id, materialName: mat.name, unit: mat.unit,
                 // totalDumped (raw stock-movement total) is the true source

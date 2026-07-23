@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import StyledSelect from './StyledSelect';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 
 const DESCRIPTION_LABEL = { receipt: 'Receipt', contractorPayment: 'Contractor Payment', vendorPayment: 'Vendor Payment', transfer: 'Transfer' };
@@ -17,27 +19,32 @@ const BankStatementView = ({ url }) => {
     const [statement, setStatement] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
+    const fetchAccounts = () => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setAccounts(res.data.data); }).catch(() => {});
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchAccounts, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => {
+    const fetchStatement = () => {
         if (!selectedAccountId) { setStatement(null); return; }
         setLoading(true);
         axios.get(`${url}/api/finance/bank-accounts/${selectedAccountId}/statement`, authHeader)
             .then(res => { if (res.data.success) setStatement(res.data.data); else toast.error(res.data.message); })
             .catch(() => toast.error('Error fetching statement'))
             .finally(() => setLoading(false));
-    }, [url, selectedAccountId]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchStatement, [url, selectedAccountId]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Same event every payment/receipt/expense/transfer type broadcasts when
+    // it touches a bank account (see BankBalanceView's identical comment).
+    useFinanceWsRefresh(['financeBankAccountsChanged'], () => { fetchAccounts(); fetchStatement(); });
 
     return (
         <div>
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                 <p>Account</p>
-                <select value={selectedAccountId} onChange={e => setSelectedAccountId(e.target.value)}>
-                    <option value="">Select account…</option>
-                    {accounts.map(a => <option key={a._id} value={a._id}>{a.accountName} · {a.bankName}</option>)}
-                </select>
+                <StyledSelect
+                    value={selectedAccountId} onChange={setSelectedAccountId} placeholder="Select account…"
+                    options={accounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                />
             </div>
 
             {!selectedAccountId ? (

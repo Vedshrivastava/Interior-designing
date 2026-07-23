@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
+import StyledSelect from './StyledSelect';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -29,9 +31,14 @@ const BankTransfersManager = ({ url }) => {
     };
 
     useEffect(() => { fetchTransfers(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-    useEffect(() => {
+    const fetchAccounts = () => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setAccounts(res.data.data); }).catch(() => {});
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(fetchAccounts, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    // financeBankTransfer.js's own add/remove only ever broadcasts this one
+    // event (no separate "transfers changed" type) — same event
+    // BankBalanceView/BankStatementView listen for.
+    useFinanceWsRefresh(['financeBankAccountsChanged'], () => { fetchTransfers(); fetchAccounts(); });
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -94,17 +101,17 @@ const BankTransfersManager = ({ url }) => {
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>From Account *</p>
-                                    <select value={form.fromAccountId} onChange={e => setField('fromAccountId', e.target.value)}>
-                                        <option value="">From account…</option>
-                                        {accounts.map(a => <option key={a._id} value={a._id}>{a.accountName}</option>)}
-                                    </select>
+                                    <StyledSelect
+                                        value={form.fromAccountId} onChange={v => setField('fromAccountId', v)} placeholder="From account…"
+                                        options={accounts.map(a => ({ value: a._id, label: a.accountName }))}
+                                    />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>To Account *</p>
-                                    <select value={form.toAccountId} onChange={e => setField('toAccountId', e.target.value)}>
-                                        <option value="">To account…</option>
-                                        {accounts.map(a => <option key={a._id} value={a._id}>{a.accountName}</option>)}
-                                    </select>
+                                    <StyledSelect
+                                        value={form.toAccountId} onChange={v => setField('toAccountId', v)} placeholder="To account…"
+                                        options={accounts.map(a => ({ value: a._id, label: a.accountName }))}
+                                    />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Amount (₹) *</p>

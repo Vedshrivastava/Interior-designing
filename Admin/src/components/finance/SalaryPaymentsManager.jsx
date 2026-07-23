@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import QuickAddPicker from './QuickAddPicker';
 import StyledDatePicker from './StyledDatePicker';
+import StyledMonthPicker from './StyledMonthPicker';
 import StyledSelect from './StyledSelect';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import '../../styles/list.css';
@@ -87,7 +88,7 @@ const SalaryPaymentsManager = ({ url }) => {
                 </div>
                 <div className="add-product-name flex-col">
                     <p>Month</p>
-                    <input type="month" value={month} onChange={e => setMonth(e.target.value)} />
+                    <StyledMonthPicker value={month} onChange={v => setMonth(v || thisMonth())} />
                 </div>
             </div>
 

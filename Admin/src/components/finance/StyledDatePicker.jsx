@@ -52,7 +52,7 @@ const StyledDatePicker = ({ value, onChange, placeholder = 'dd/mm/yyyy', align =
     return (
         <div className="add-cat-dropdown" ref={ref}>
             <button type="button" className={`add-cat-trigger${open ? ' open' : ''}`} onClick={openPicker}>
-                <span>{selected ? selected.format('DD/MM/YYYY') : placeholder}</span>
+                <span className={selected ? '' : 'trigger-placeholder'}>{selected ? selected.format('DD/MM/YYYY') : placeholder}</span>
                 <i className="fa fa-calendar" />
             </button>
 

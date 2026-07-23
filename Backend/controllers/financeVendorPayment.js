@@ -72,6 +72,8 @@ const addVendorPayment = async (req, res) => {
                 reason: 'Vendor payment', relatedVendorPaymentId: item._id, notes: notes || '',
             });
             broadcast({ type: 'financeCashBookChanged' });
+        } else {
+            broadcast({ type: 'financeBankAccountsChanged' });
         }
 
         broadcast({ type: 'financeVendorLedgerChanged', vendorId });
@@ -111,6 +113,7 @@ const updateVendorPayment = async (req, res) => {
 
         await FinanceVendorPayment.findByIdAndUpdate(_id, update);
         broadcast({ type: 'financeVendorLedgerChanged', vendorId: existing.vendorId });
+        if (existing.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
         res.json({ success: true, message: 'Payment updated' });
     } catch (err) {
         console.error(err);
@@ -131,6 +134,7 @@ const removeVendorPayment = async (req, res) => {
         );
         broadcast({ type: 'financeVendorLedgerChanged', vendorId: item.vendorId });
         broadcast({ type: 'financeCashBookChanged' });
+        if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
         res.json({ success: true, message: 'Payment removed' });
     } catch (err) {
         console.error(err);

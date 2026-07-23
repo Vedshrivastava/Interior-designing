@@ -158,6 +158,7 @@ function ManagedDropdown({ label: fieldLabel, value, values, onChange, multiSele
         return obj ? getLabel(obj) : val;
     };
 
+    const triggerIsPlaceholder = multiSelect ? selected.length === 0 : !value;
     const triggerLabel = multiSelect
         ? (selected.length === 0 ? placeholder : selected.length === 1 ? selectedLabel(selected[0]) : `${selected.length} categories selected`)
         : (value ? selectedLabel(value) : placeholder);
@@ -180,7 +181,7 @@ function ManagedDropdown({ label: fieldLabel, value, values, onChange, multiSele
 
             <div className="add-cat-dropdown" ref={dropRef}>
                 <button type="button" className={`add-cat-trigger${dropdownOpen ? ' open' : ''}`} onClick={() => { setDropdownOpen(o => !o); setAdding(false); }}>
-                    <span>{triggerLabel}</span>
+                    <span className={triggerIsPlaceholder ? 'trigger-placeholder' : ''}>{triggerLabel}</span>
                     <i className="fa fa-chevron-down" />
                 </button>
                 {dropdownOpen && (

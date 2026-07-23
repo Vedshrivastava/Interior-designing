@@ -92,6 +92,8 @@ const addExpense = async (req, res) => {
                 reason: expenseCategory ? `Expense — ${expenseCategory}` : 'Expense', relatedExpenseId: item._id, notes: notes || '',
             });
             broadcast({ type: 'financeCashBookChanged' });
+        } else if (bankAccountId) {
+            broadcast({ type: 'financeBankAccountsChanged' });
         }
 
         broadcast({ type: 'financeExpensesChanged', projectId: projectId || null });
@@ -126,6 +128,7 @@ const updateExpense = async (req, res) => {
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', notes: notes || '',
         });
         broadcast({ type: 'financeExpensesChanged', projectId: projectId || null });
+        if (existing.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
         res.json({ success: true, message: 'Expense updated' });
     } catch (err) {
         console.error(err);
@@ -150,6 +153,7 @@ const removeExpense = async (req, res) => {
         );
         broadcast({ type: 'financeExpensesChanged', projectId: item.projectId });
         broadcast({ type: 'financeCashBookChanged' });
+        if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
         res.json({ success: true, message: 'Expense removed' });
     } catch (err) {
         console.error(err);

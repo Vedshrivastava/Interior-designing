@@ -173,9 +173,9 @@ const VendorPaymentsManager = ({ url }) => {
                                                 value={form.paymentMode} onChange={v => setField('paymentMode', v)} placeholder="e.g. Cash, Bank Transfer, UPI…" />
                                         </div>
                                         <div className="add-product-name flex-col">
-                                            <p>Bank Account</p>
+                                            <p>Bank Account (leave blank if cash)</p>
                                             <StyledSelect
-                                                value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
+                                                value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Choose Bank Account"
                                                 options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                             />
                                         </div>

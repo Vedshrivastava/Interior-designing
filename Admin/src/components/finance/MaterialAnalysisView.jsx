@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 
 // Same dashboardCache idea as FinanceHome.jsx, keyed by projectId ('' means
@@ -43,29 +44,37 @@ const MaterialAnalysisView = ({ url }) => {
         <div>
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                 <p>Project</p>
-                <select value={projectId} onChange={e => setProjectId(e.target.value)}>
-                    <option value="">All projects</option>
-                    {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                </select>
+                <StyledSelect
+                    value={projectId} onChange={setProjectId} placeholder="All projects"
+                    options={projects.map(p => ({ value: p._id, label: p.name }))}
+                />
             </div>
 
+            {!projectId && (
+                <p className="admin-subtitle" style={{ marginBottom: '12px' }}>
+                    Cost/Sqft is only meaningful scoped to one project — pick a project above to see it; it shows as — for "All projects".
+                </p>
+            )}
             <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr 1fr 1fr 1.2fr' }}>
-                    <b>Material</b><b>Purchased</b><b>Returned</b><b>Consumed</b><b>Wasted</b><b>Current Stock</b><b>Avg Cost <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>(weighted)</span></b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr 1fr 1.1fr 1fr' }}>
+                    <b>Material</b><b>Purchased</b><b>Returned</b><b>Consumed</b><b>Wasted</b><b>Current Stock</b>
+                    <b>Avg Cost <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>(weighted, /unit)</span></b>
+                    <b>Cost/Sqft</b>
                 </div>
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
                 ) : rows.length === 0 ? (
                     <div className="admin-empty-state"><p>No material activity yet.</p></div>
                 ) : rows.map(r => (
-                    <div key={r.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr 1fr 1fr 1.2fr' }}>
+                    <div key={r.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr 1fr 1.1fr 1fr' }}>
                         <p>{r.materialName}</p>
                         <p>{r.totalPurchased.toLocaleString('en-IN')} {r.unit}</p>
                         <p>{r.totalReturned.toLocaleString('en-IN')} {r.unit}</p>
                         <p>{r.totalConsumed.toLocaleString('en-IN')} {r.unit}</p>
                         <p>{r.totalWasted.toLocaleString('en-IN')} {r.unit}</p>
                         <p>{r.currentStock.toLocaleString('en-IN')} {r.unit}</p>
-                        <p>₹{r.weightedAverageCost.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
+                        <p>₹{r.weightedAverageCost.toFixed(2)}/{r.unit}</p>
+                        <p>{projectId && r.areaCoveredSqft > 0 ? `₹${r.costPerSqft.toFixed(2)}/sqft` : '—'}</p>
                     </div>
                 ))}
             </div>

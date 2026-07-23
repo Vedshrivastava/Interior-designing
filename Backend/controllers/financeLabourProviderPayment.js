@@ -43,6 +43,8 @@ const addLabourProviderPayment = async (req, res) => {
                 reason: 'Labour provider payment', relatedLabourProviderPaymentId: item._id, notes: notes || '',
             });
             broadcast({ type: 'financeCashBookChanged' });
+        } else {
+            broadcast({ type: 'financeBankAccountsChanged' });
         }
 
         broadcast({ type: 'financeLabourProviderPaymentsChanged', labourProviderId });
@@ -77,6 +79,7 @@ const updateLabourProviderPayment = async (req, res) => {
             tdsSectionId: tdsSectionId || null, tdsAmount: (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null,
         });
         broadcast({ type: 'financeLabourProviderPaymentsChanged', labourProviderId: existing.labourProviderId });
+        if (existing.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
         res.json({ success: true, message: 'Labour provider payment updated' });
     } catch (err) {
         console.error(err);
@@ -97,6 +100,7 @@ const removeLabourProviderPayment = async (req, res) => {
         );
         broadcast({ type: 'financeLabourProviderPaymentsChanged', labourProviderId: item.labourProviderId });
         broadcast({ type: 'financeCashBookChanged' });
+        if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
         res.json({ success: true, message: 'Labour provider payment removed' });
     } catch (err) {
         console.error(err);

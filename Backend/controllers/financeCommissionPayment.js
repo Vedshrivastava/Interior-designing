@@ -43,6 +43,8 @@ const addCommissionPayment = async (req, res) => {
                 reason: 'Commission payment', relatedCommissionPaymentId: item._id, notes: notes || '',
             });
             broadcast({ type: 'financeCashBookChanged' });
+        } else {
+            broadcast({ type: 'financeBankAccountsChanged' });
         }
 
         broadcast({ type: 'financeCommissionPaymentsChanged', referralId });
@@ -77,6 +79,7 @@ const updateCommissionPayment = async (req, res) => {
             tdsSectionId: tdsSectionId || null, tdsAmount: (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null,
         });
         broadcast({ type: 'financeCommissionPaymentsChanged', referralId: existing.referralId });
+        if (existing.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
         res.json({ success: true, message: 'Commission payment updated' });
     } catch (err) {
         console.error(err);
@@ -97,6 +100,7 @@ const removeCommissionPayment = async (req, res) => {
         );
         broadcast({ type: 'financeCommissionPaymentsChanged', referralId: item.referralId });
         broadcast({ type: 'financeCashBookChanged' });
+        if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
         res.json({ success: true, message: 'Commission payment removed' });
     } catch (err) {
         console.error(err);

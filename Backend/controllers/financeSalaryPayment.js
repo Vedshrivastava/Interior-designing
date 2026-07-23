@@ -41,6 +41,8 @@ const addSalaryPayment = async (req, res) => {
                 reason: `Salary payment — ${month}`, relatedSalaryPaymentId: item._id, notes: notes || '',
             });
             broadcast({ type: 'financeCashBookChanged' });
+        } else {
+            broadcast({ type: 'financeBankAccountsChanged' });
         }
 
         broadcast({ type: 'financeSalaryPaymentsChanged', employeeId });
@@ -75,6 +77,7 @@ const updateSalaryPayment = async (req, res) => {
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', utrNumber: utrNumber || '', notes: notes || '',
         });
         broadcast({ type: 'financeSalaryPaymentsChanged', employeeId: existing.employeeId });
+        if (existing.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
         res.json({ success: true, message: 'Salary payment updated' });
     } catch (err) {
         console.error(err);
@@ -95,6 +98,7 @@ const removeSalaryPayment = async (req, res) => {
         );
         broadcast({ type: 'financeSalaryPaymentsChanged', employeeId: item.employeeId });
         broadcast({ type: 'financeCashBookChanged' });
+        if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
         res.json({ success: true, message: 'Salary payment removed' });
     } catch (err) {
         console.error(err);

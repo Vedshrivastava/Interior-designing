@@ -25,7 +25,7 @@ const StyledSelect = ({ value, onChange, options, placeholder = 'Select…', dis
                 onClick={() => !disabled && setOpen(o => !o)}
                 disabled={disabled}
             >
-                <span>{selected ? selected.label : placeholder}</span>
+                <span className={selected ? '' : 'trigger-placeholder'}>{selected ? selected.label : placeholder}</span>
                 <i className="fa fa-chevron-down" />
             </button>
 

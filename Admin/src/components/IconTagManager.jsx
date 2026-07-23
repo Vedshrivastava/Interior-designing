@@ -239,7 +239,7 @@ export function SubcategorySection({ subManager, catManager, values, onToggle, a
             <h2>Subcategories <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#888' }}>(select all that apply)</span></h2>
             <div className="add-cat-dropdown" ref={dropRef}>
                 <button type="button" className={`add-cat-trigger${dropdownOpen ? ' open' : ''}`} onClick={() => setDropdownOpen(o => !o)}>
-                    <span>{values.length > 0 ? values.join(', ') : 'Select subcategories'}</span>
+                    <span className={values.length > 0 ? '' : 'trigger-placeholder'}>{values.length > 0 ? values.join(', ') : 'Select subcategories'}</span>
                     <i className="fa fa-chevron-down" />
                 </button>
                 {dropdownOpen && (

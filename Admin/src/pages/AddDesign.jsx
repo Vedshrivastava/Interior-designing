@@ -370,7 +370,7 @@ const AddDesign = ({ url, setIsLoading, isLoading }) => {
                             className={`add-cat-trigger${catOpen ? ' open' : ''}`}
                             onClick={() => { setCatOpen(o => !o); setAddingCat(false); }}
                         >
-                            <span>{data.category || 'Select category'}</span>
+                            <span className={data.category ? '' : 'trigger-placeholder'}>{data.category || 'Select category'}</span>
                             <i className="fa fa-chevron-down" />
                         </button>
 

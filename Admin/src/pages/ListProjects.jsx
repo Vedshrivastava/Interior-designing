@@ -390,7 +390,7 @@ const ListProjects = ({ url, setIsLoading, isLoading }) => {
                                             className={`add-cat-trigger${editCityOpen ? ' open' : ''}`}
                                             onClick={() => setEditCityOpen(o => !o)}
                                         >
-                                            <span>{editData.cityPage ? (cityObjects.find(c => c.slug === editData.cityPage)?.name || editData.cityPage) : '— Pick a city —'}</span>
+                                            <span className={editData.cityPage ? '' : 'trigger-placeholder'}>{editData.cityPage ? (cityObjects.find(c => c.slug === editData.cityPage)?.name || editData.cityPage) : '— Pick a city —'}</span>
                                             <i className="fa fa-chevron-down" />
                                         </button>
                                         {editCityOpen && (

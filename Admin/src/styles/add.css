@@ -185,6 +185,17 @@
     outline: none;
 }
 
+/* Unselected state — reads as an empty field waiting for input, not as
+   though "Cash"/"dd/mm/yyyy"/etc. were an actual chosen value. Covers both
+   StyledSelect/StyledDatePicker's own <span> (no real placeholder attribute
+   available on a <button>) and SettingSelectField's <input>, which is a
+   real input but still gets its color from .add-cat-trigger. */
+.trigger-placeholder,
+.add-cat-trigger::placeholder {
+    color: var(--text-lt);
+    font-style: italic;
+}
+
 .add-cat-trigger:hover {
     border-color: rgba(201,168,124,0.55);
     background-color: var(--white);
@@ -571,6 +582,16 @@
 /* ══════════════════════════════════════════════
    5. INPUT FIELDS
 ══════════════════════════════════════════════ */
+.add-product-name input::placeholder,
+.add-product-name textarea::placeholder,
+.add-product-description textarea::placeholder,
+.add-category-price input::placeholder,
+.point-input input::placeholder {
+    color: var(--text-lt);
+    font-style: italic;
+    opacity: 1;
+}
+
 .add-product-name input,
 .add-product-name select,
 .add-product-name textarea,

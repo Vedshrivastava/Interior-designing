@@ -421,7 +421,7 @@ const ListProducts = ({ url, setIsLoading, isLoading }) => {
                                     <p>Subcategories <span style={{ fontSize: '0.72rem', fontWeight: 400, color: '#888' }}>(select all that apply)</span></p>
                                     <div className="add-cat-dropdown" ref={editSubCatRef}>
                                         <button type="button" className={`add-cat-trigger${editSubCatOpen ? ' open' : ''}`} onClick={() => setEditSubCatOpen(o => !o)}>
-                                            <span>{editData.subcategories.length > 0 ? editData.subcategories.join(', ') : 'Select subcategories'}</span>
+                                            <span className={editData.subcategories.length > 0 ? '' : 'trigger-placeholder'}>{editData.subcategories.length > 0 ? editData.subcategories.join(', ') : 'Select subcategories'}</span>
                                             <i className="fa fa-chevron-down" />
                                         </button>
                                         {editSubCatOpen && (

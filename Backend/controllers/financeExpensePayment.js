@@ -44,6 +44,8 @@ const addExpensePayment = async (req, res) => {
                 reason: `Expense payment — ${expense.expenseCategory || 'General'}`, relatedExpensePaymentId: item._id, notes: notes || '',
             });
             broadcast({ type: 'financeCashBookChanged' });
+        } else {
+            broadcast({ type: 'financeBankAccountsChanged' });
         }
 
         broadcast({ type: 'financeExpensePaymentsChanged', expenseId });
@@ -79,6 +81,7 @@ const removeExpensePayment = async (req, res) => {
         );
         broadcast({ type: 'financeExpensePaymentsChanged', expenseId: item.expenseId });
         broadcast({ type: 'financeCashBookChanged' });
+        if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
         res.json({ success: true, message: 'Payment removed' });
     } catch (err) {
         console.error(err);

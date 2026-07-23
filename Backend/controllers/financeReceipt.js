@@ -55,6 +55,8 @@ const addReceipt = async (req, res) => {
                 reason: 'Client receipt', relatedReceiptId: item._id, notes: notes || '',
             });
             broadcast({ type: 'financeCashBookChanged' });
+        } else {
+            broadcast({ type: 'financeBankAccountsChanged' });
         }
 
         broadcast({ type: 'financeReceiptsChanged', projectId, clientId });
@@ -93,6 +95,7 @@ const removeReceipt = async (req, res) => {
         );
         broadcast({ type: 'financeReceiptsChanged', projectId: item.projectId, clientId: item.clientId });
         broadcast({ type: 'financeCashBookChanged' });
+        if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
         res.json({ success: true, message: 'Receipt removed' });
     } catch (err) {
         console.error(err);

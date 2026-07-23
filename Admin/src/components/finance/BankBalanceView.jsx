@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 
 /* Current balance per account — openingBalance + computed activity, same
@@ -13,12 +14,18 @@ const BankBalanceView = ({ url }) => {
     const [accounts, setAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    const fetchAccounts = () => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
             .then(res => { if (res.data.success) setAccounts(res.data.data); })
             .catch(() => toast.error('Error fetching bank accounts'))
             .finally(() => setLoading(false));
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+
+    useEffect(fetchAccounts, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Every payment/receipt/expense/transfer type that can touch a bank
+    // account broadcasts this — see the controllers' cash-vs-bank branch —
+    // so balances here stay live without the tab having to be reopened.
+    useFinanceWsRefresh(['financeBankAccountsChanged'], fetchAccounts);
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
     if (accounts.length === 0) return <div className="admin-empty-state"><p>No bank accounts yet; add one under All Accounts.</p></div>;

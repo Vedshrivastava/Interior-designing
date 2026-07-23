@@ -9,6 +9,7 @@ import FinanceLabourDeduction from '../models/financeLabourDeduction.js';
 import FinanceLabourPayment from '../models/financeLabourPayment.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
 import { getApprovedBillingByWorkId, splitApprovedAreaByShare } from './financeReports.js';
+import { getWorkerPayoutDeductionTotal } from './financeClientDirectPayment.js';
 import PDFDocument from 'pdfkit';
 import { writeLetterhead, writeSectionHeading, writeSignatureLine, writeFooter, drawInfoBox, drawTable, contentBox, formatCurrency, formatDate, BRAND_GREEN, paintPageBackground } from '../utils/pdfLetterhead.js';
 
@@ -115,14 +116,18 @@ const computeLabourLedger = async (labourerId, projectId) => {
 
     const moneyFilter = { labourerId, deleted: { $ne: true } };
     if (projectId) moneyFilter.projectId = projectId;
-    const [advances, deductions, payments] = await Promise.all([
+    const [advances, deductions, payments, clientDirectPaymentDeductions] = await Promise.all([
         FinanceLabourAdvance.find(moneyFilter).sort({ date: -1 }),
         FinanceLabourDeduction.find(moneyFilter).sort({ date: -1 }),
         FinanceLabourPayment.find(moneyFilter).populate('bankAccountId', 'accountName').sort({ date: -1 }),
+        getWorkerPayoutDeductionTotal('labour', labourerId, projectId),
     ]);
 
     const advancesTotal = advances.reduce((sum, a) => sum + a.amount, 0);
-    const deductionsTotal = deductions.reduce((sum, d) => sum + d.amount, 0);
+    // Includes client-direct-payment amounts tagged with a category whose
+    // deductFromWorkerPayout flag is set — see financeContractorLedger.js's
+    // identical comment.
+    const deductionsTotal = deductions.reduce((sum, d) => sum + d.amount, 0) + clientDirectPaymentDeductions;
     const paymentsTotal = payments.reduce((sum, p) => sum + p.amount, 0);
     earningsTotal = round2(earningsTotal);
     totalAmountTotal = round2(totalAmountTotal);

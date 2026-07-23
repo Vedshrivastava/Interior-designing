@@ -20,6 +20,8 @@ const SettingsCrudList = ({ url, lockedType }) => {
     const [name, setName] = useState('');
     const [code, setCode] = useState('');
     const [rate, setRate] = useState('');
+    const [deductFromClientBill, setDeductFromClientBill] = useState(true);
+    const [deductFromWorkerPayout, setDeductFromWorkerPayout] = useState(false);
     const [saving, setSaving] = useState(false);
     const [query, setQuery] = useState('');
 
@@ -45,10 +47,11 @@ const SettingsCrudList = ({ url, lockedType }) => {
         try {
             const res = await axios.post(`${url}/api/finance/settings/add`, {
                 settingType: activeType, name: name.trim(), code, rate: rate === '' ? null : Number(rate),
+                deductFromClientBill, deductFromWorkerPayout,
             }, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message);
-                setName(''); setCode(''); setRate('');
+                setName(''); setCode(''); setRate(''); setDeductFromClientBill(true); setDeductFromWorkerPayout(false);
                 await fetchList();
             } else {
                 toast.error(res.data.message);
@@ -111,6 +114,26 @@ const SettingsCrudList = ({ url, lockedType }) => {
                                 onKeyDown={e => { if (e.key === 'Enter') addItem(); }} />
                         </div>
                     )}
+                    {typeConfig.hasDeductFlags && (
+                        <>
+                            <div className="add-product-name flex-col">
+                                <p>Cut from Client Bill?</p>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
+                                    <input type="checkbox" checked={deductFromClientBill} onChange={e => setDeductFromClientBill(e.target.checked)}
+                                        style={{ width: '18px', height: '18px', flexShrink: 0 }} />
+                                    <span>{deductFromClientBill ? 'Yes' : 'No'}</span>
+                                </label>
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>Cut from Contractor/Labour Payout?</p>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
+                                    <input type="checkbox" checked={deductFromWorkerPayout} onChange={e => setDeductFromWorkerPayout(e.target.checked)}
+                                        style={{ width: '18px', height: '18px', flexShrink: 0 }} />
+                                    <span>{deductFromWorkerPayout ? 'Yes' : 'No'}</span>
+                                </label>
+                            </div>
+                        </>
+                    )}
                 </div>
                 <div className="wizard-actions" style={{ marginTop: '16px' }}>
                     <span />
@@ -125,8 +148,12 @@ const SettingsCrudList = ({ url, lockedType }) => {
             </div>
 
             <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr 1fr 140px' }}>
-                    <b>Name</b><b>Code</b><b>Rate</b><b>Action</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: typeConfig.hasDeductFlags ? '1.6fr 1fr 1fr 140px' : '2fr 1fr 1fr 140px' }}>
+                    {typeConfig.hasDeductFlags ? (
+                        <><b>Name</b><b>Cut from Client Bill</b><b>Cut from Worker Payout</b><b>Action</b></>
+                    ) : (
+                        <><b>Name</b><b>Code</b><b>Rate</b><b>Action</b></>
+                    )}
                 </div>
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
@@ -134,10 +161,19 @@ const SettingsCrudList = ({ url, lockedType }) => {
                     <div className="admin-empty-state"><p>{items.length === 0 ? `No ${typeConfig.label.toLowerCase()} yet.` : 'Nothing matches your search.'}</p></div>
                 ) : (
                     visibleItems.map(item => (
-                        <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr 1fr 140px' }}>
+                        <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: typeConfig.hasDeductFlags ? '1.6fr 1fr 1fr 140px' : '2fr 1fr 1fr 140px' }}>
                             <p>{item.name}</p>
-                            <p>{item.code || '-'}</p>
-                            <p>{item.rate != null ? `${item.rate}%` : '-'}</p>
+                            {typeConfig.hasDeductFlags ? (
+                                <>
+                                    <p>{item.deductFromClientBill ? 'Yes' : 'No'}</p>
+                                    <p>{item.deductFromWorkerPayout ? 'Yes' : 'No'}</p>
+                                </>
+                            ) : (
+                                <>
+                                    <p>{item.code || '-'}</p>
+                                    <p>{item.rate != null ? `${item.rate}%` : '-'}</p>
+                                </>
+                            )}
                             <div className="action-buttons">
                                 <p onClick={() => removeItem(item._id, item.name)} className="cursor delete-action">X</p>
                             </div>

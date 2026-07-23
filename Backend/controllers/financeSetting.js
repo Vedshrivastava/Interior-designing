@@ -1,7 +1,7 @@
 import FinanceSetting from '../models/financeSetting.js';
 import { broadcast } from '../middlewares/webSocket.js';
 
-const VALID_TYPES = ['work_type', 'expense_category', 'payment_mode', 'tds_section', 'unit', 'city', 'commission_type'];
+const VALID_TYPES = ['work_type', 'expense_category', 'payment_mode', 'tds_section', 'unit', 'city', 'commission_type', 'direct_payment_category'];
 
 // TDS section rates are fixed by law, not editable business preference —
 // seeded once so Payment Tracker/TDS calculations have real defaults.
@@ -44,7 +44,7 @@ const listFinanceSettings = async (req, res) => {
 
 const addFinanceSetting = async (req, res) => {
     try {
-        const { settingType, name, code, rate } = req.body;
+        const { settingType, name, code, rate, deductFromClientBill, deductFromWorkerPayout } = req.body;
         if (!settingType || !VALID_TYPES.includes(settingType)) {
             return res.status(400).json({ success: false, message: 'A valid settingType is required' });
         }
@@ -64,12 +64,16 @@ const addFinanceSetting = async (req, res) => {
         if (existing) {
             existing.deleted = false; existing.deletedAt = undefined; existing.deletedBy = undefined;
             existing.code = code || ''; existing.rate = rate ?? null;
+            existing.deductFromClientBill = deductFromClientBill ?? true;
+            existing.deductFromWorkerPayout = deductFromWorkerPayout ?? false;
             await existing.save();
             item = existing;
         } else {
             const count = await FinanceSetting.countDocuments({ settingType });
             item = new FinanceSetting({
                 settingType, name: name.trim(), code: code || '', rate: rate ?? null, order: count + 1,
+                deductFromClientBill: deductFromClientBill ?? true,
+                deductFromWorkerPayout: deductFromWorkerPayout ?? false,
             });
             await item.save();
         }

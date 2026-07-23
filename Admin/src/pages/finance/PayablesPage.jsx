@@ -7,6 +7,7 @@ import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import ExpensesManager from '../../components/finance/ExpensesManager';
 import ExpenseAnalysisView from '../../components/finance/ExpenseAnalysisView';
 import WorkDeductionAllocationPanel from '../../components/finance/WorkDeductionAllocationPanel';
+import ClientDirectPaymentsManager from '../../components/finance/ClientDirectPaymentsManager';
 import '../../styles/list.css';
 
 // Salary for the CURRENT, still-in-progress month isn't owed yet — it's
@@ -40,6 +41,7 @@ const TABS = [
     { key: 'commission',       label: 'Commission' },
     { key: 'labourProvider',   label: 'Labour Provider' },
     { key: 'deductions',       label: 'Deductions' },
+    { key: 'client-direct-payments', label: 'Client Direct Payments' },
     { key: 'expenses',         label: 'Expenses' },
     { key: 'expense-analysis', label: 'Expense Analysis' },
     { key: 'company',          label: 'Company Expenses' },
@@ -392,6 +394,7 @@ const PayablesPage = ({ url }) => {
             {activeTab === 'commission' && <PayablesCommissionTab url={url} />}
             {activeTab === 'labourProvider' && <PayablesLabourProviderTab url={url} />}
             {activeTab === 'deductions' && <WorkDeductionAllocationPanel url={url} />}
+            {activeTab === 'client-direct-payments' && <ClientDirectPaymentsManager url={url} />}
             {activeTab === 'expenses' && <ExpensesManager url={url} highlightId={searchParams.get('expenseId')} />}
             {activeTab === 'expense-analysis' && <ExpenseAnalysisView url={url} />}
             {activeTab === 'company' && companyId && (

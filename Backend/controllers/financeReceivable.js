@@ -1,6 +1,7 @@
 import FinanceRunningBill from '../models/financeRunningBill.js';
 import FinanceReceipt from '../models/financeReceipt.js';
 import FinanceProject from '../models/financeProject.js';
+import { getClientBillCreditTotal } from './financeClientDirectPayment.js';
 
 // Advance-contract projects bill via Running Bills too, once work starts
 // (see financeRunningBill.js) — the advance itself just shows up as a
@@ -16,14 +17,19 @@ const summarizeProject = async (project) => {
     const issuedTotal = issuedBills.reduce((sum, b) => sum + b.totalAmount, 0);
     const receipts = await FinanceReceipt.find({ projectId: project._id, deleted: { $ne: true } });
     const receivedTotal = receipts.reduce((sum, r) => sum + r.amount, 0);
+    // Client-direct-payments tagged with a deductFromClientBill category —
+    // the client already paid this much straight to a contractor/labourer
+    // on this project, so it counts against Outstanding same as a receipt,
+    // without actually being one (see financeClientDirectPayment.js).
+    const directPaymentCredits = await getClientBillCreditTotal(project._id);
 
     return {
         projectId: project._id,
         projectName: project.name,
         clientId: project.clientId?._id || project.clientId,
         clientName: project.clientId?.name,
-        issuedTotal, receivedTotal,
-        balance: issuedTotal - receivedTotal,
+        issuedTotal, receivedTotal, directPaymentCredits,
+        balance: issuedTotal - receivedTotal - directPaymentCredits,
         issuedBillCount: issuedBills.length,
         // No due-date field exists anywhere on a project, so there's no
         // real basis for a true "overdue" flag — this is the closest
@@ -51,8 +57,9 @@ const getReceivablesSummary = async (req, res) => {
             const rollup = summaries.reduce((acc, s) => ({
                 issuedTotal: acc.issuedTotal + s.issuedTotal,
                 receivedTotal: acc.receivedTotal + s.receivedTotal,
+                directPaymentCredits: acc.directPaymentCredits + s.directPaymentCredits,
                 balance: acc.balance + s.balance,
-            }), { issuedTotal: 0, receivedTotal: 0, balance: 0 });
+            }), { issuedTotal: 0, receivedTotal: 0, directPaymentCredits: 0, balance: 0 });
             return res.json({ success: true, data: { clientId, ...rollup, projects: summaries } });
         }
 

@@ -213,7 +213,8 @@ export const FINANCE_MASTERS = {
     },
 };
 
-/* Settings & Lists tab — categorized simple lists (name + optional code/rate) */
+/* Settings & Lists tab — categorized simple lists (name + optional code/rate,
+   or the two deduct-flag checkboxes for direct payment categories) */
 export const FINANCE_SETTING_TYPES = [
     { key: 'work_type', label: 'Work Types', hasCode: false, hasRate: false },
     { key: 'expense_category', label: 'Expense Categories', hasCode: false, hasRate: false },
@@ -222,4 +223,5 @@ export const FINANCE_SETTING_TYPES = [
     { key: 'unit', label: 'Units', hasCode: false, hasRate: false },
     { key: 'city', label: 'Cities', hasCode: false, hasRate: false },
     { key: 'commission_type', label: 'Commission Types', hasCode: false, hasRate: false },
+    { key: 'direct_payment_category', label: 'Direct Payment Categories', hasCode: false, hasRate: false, hasDeductFlags: true },
 ];

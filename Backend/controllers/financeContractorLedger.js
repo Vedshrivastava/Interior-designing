@@ -9,6 +9,7 @@ import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
 import { assertContractorVendor } from '../utils/contractorVendor.js';
 import { getApprovedBillingByWorkId, splitApprovedAreaByShare } from './financeReports.js';
+import { getWorkerPayoutDeductionTotal } from './financeClientDirectPayment.js';
 import PDFDocument from 'pdfkit';
 import { writeLetterhead, writeSectionHeading, writeSignatureLine, writeFooter, drawInfoBox, drawTable, contentBox, formatCurrency, formatDate, BRAND_GREEN, paintPageBackground } from '../utils/pdfLetterhead.js';
 
@@ -138,14 +139,19 @@ const computeContractorLedger = async (vendorId, projectId) => {
 
     const moneyFilter = { vendorId, deleted: { $ne: true } };
     if (projectId) moneyFilter.projectId = projectId;
-    const [advances, deductions, payments] = await Promise.all([
+    const [advances, deductions, payments, clientDirectPaymentDeductions] = await Promise.all([
         FinanceContractorAdvance.find(moneyFilter).sort({ date: -1 }),
         FinanceContractorDeduction.find(moneyFilter).sort({ date: -1 }),
         FinanceContractorPayment.find(moneyFilter).populate('bankAccountId', 'accountName').populate('tdsSectionId', 'name code').sort({ date: -1 }),
+        getWorkerPayoutDeductionTotal('contractor', vendorId, projectId),
     ]);
 
     const advancesTotal = advances.reduce((sum, a) => sum + a.amount, 0);
-    const deductionsTotal = deductions.reduce((sum, d) => sum + d.amount, 0);
+    // Includes client-direct-payment amounts tagged with a category whose
+    // deductFromWorkerPayout flag is set — a client-paid "personal expense"
+    // to this contractor reduces what the company still owes them, same
+    // effect a regular Deduction has (see financeClientDirectPayment.js).
+    const deductionsTotal = deductions.reduce((sum, d) => sum + d.amount, 0) + clientDirectPaymentDeductions;
     const paymentsTotal = payments.reduce((sum, p) => sum + p.amount, 0);
     earningsTotal = round2(earningsTotal);
     totalAmountTotal = round2(totalAmountTotal);

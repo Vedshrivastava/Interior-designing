@@ -33,6 +33,7 @@ import FinanceReferral from '../models/financeReferral.js';
 import FinanceEmployee from '../models/financeEmployee.js';
 import { summarizeProject } from './financeReceivable.js';
 import { expectedSalaryForMonth } from './financeSalaryLedger.js';
+import { getWorkerPayoutDeductionTotal, getClientBillCreditTotal } from './financeClientDirectPayment.js';
 import FinanceSetting from '../models/financeSetting.js';
 import FinanceBankAccount from '../models/financeBankAccount.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
@@ -320,33 +321,60 @@ const computeCompanyWideCommissionBreakdown = async () => {
     };
 };
 
-// Company-wide salary breakdown for the Dashboard — same accrual formula as
-// financeSalaryLedger.js's per-employee getSalaryLedger (prorated for the
-// joining month), summed across every employee for the current month only.
-// No "unapproved" counterpart — salary isn't review-gated, it's just owed
-// for days worked. Returns two different figures for two different uses:
-// `payable` (expected − already paid, a balance-sheet number, for the
-// Payables KPI card) and `monthAccrued` (expected only, regardless of
-// payment — the real P&L cost incurred this month, for This Month Profit,
-// same "unconditional real cost" principle already applied to material/
-// expense in that formula).
-const computeCompanyWideSalaryBreakdown = async (monthKey) => {
+// Company-wide salary PAYABLE for the Dashboard — a running backlog, same
+// "always a balance, not scoped to one month" convention Contractor/Labour
+// Payables already use (their own balancePayable is earnings-to-date minus
+// payments-to-date, never just "this month"). For each employee: sum
+// expectedSalaryForMonth across every month from their joining month
+// through the current one, minus every payment they've ever received
+// (any month) — not just the current/last-completed month. Employees with
+// no joiningDate have no earlier bound to sum from, so only the current
+// month is counted for them (expectedSalaryForMonth's own fallback).
+const computeCompanyWideSalaryPayable = async (currentMonthKey) => {
     const employees = await FinanceEmployee.find({ deleted: { $ne: true } });
-    if (!employees.length) return { payable: 0, monthAccrued: 0 };
-    const payments = await FinanceSalaryPayment.find({ month: monthKey, deleted: { $ne: true } });
+    if (!employees.length) return 0;
+    const payments = await FinanceSalaryPayment.find({ deleted: { $ne: true } });
     const paidByEmployee = new Map();
     for (const p of payments) {
         const key = p.employeeId.toString();
         paidByEmployee.set(key, (paidByEmployee.get(key) || 0) + p.amount);
     }
-    let payable = 0, monthAccrued = 0;
+    const [curY, curM] = currentMonthKey.split('-').map(Number);
+    let payable = 0;
     for (const e of employees) {
-        const expected = expectedSalaryForMonth(e, monthKey);
+        let expectedTotal = 0;
+        if (e.joiningDate) {
+            const joined = new Date(e.joiningDate);
+            let y = joined.getFullYear(), m = joined.getMonth() + 1;
+            while (y < curY || (y === curY && m <= curM)) {
+                expectedTotal += expectedSalaryForMonth(e, `${y}-${String(m).padStart(2, '0')}`);
+                m += 1;
+                if (m > 12) { m = 1; y += 1; }
+            }
+        } else {
+            expectedTotal = expectedSalaryForMonth(e, currentMonthKey);
+        }
         const paid = paidByEmployee.get(e._id.toString()) || 0;
-        payable += expected - paid;
-        monthAccrued += expected;
+        payable += expectedTotal - paid;
     }
-    return { payable: round2(payable), monthAccrued: round2(monthAccrued) };
+    return round2(payable);
+};
+
+// Cash-basis salary cost for This Month Profit — actual payments made this
+// calendar month (by payment date, not which pay-period they're for), not
+// accrual. Unlike material/expense (accrual — real cost incurred, whether
+// or not paid yet), salary specifically only eats into profit once it's
+// actually been paid out: explicit user decision, since unpaid salary is
+// already visible (and growing) in the Salary Payables KPI above, same
+// "unapproved/unpaid shouldn't count as profit-eaten cost yet" reasoning
+// already applied to contractor/labour/commission — just cash-keyed here
+// instead of review-keyed, since salary has no review gate of its own.
+const computeSalaryPaidInRange = async (start, end) => {
+    const agg = await FinanceSalaryPayment.aggregate([
+        { $match: { date: { $gte: start, $lte: end }, deleted: { $ne: true } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+    ]);
+    return agg[0]?.total || 0;
 };
 
 // What the project's still-unreviewed sqft would bill the client once it
@@ -1186,13 +1214,16 @@ const computeContractorAnalysisRows = async (projectId) => {
 
         const moneyFilter = { vendorId: v._id, deleted: { $ne: true } };
         if (projectId) moneyFilter.projectId = projectId;
-        const [advances, deductions, payments] = await Promise.all([
+        const [advances, deductions, payments, clientDirectPaymentDeductions] = await Promise.all([
             FinanceContractorAdvance.find(moneyFilter),
             FinanceContractorDeduction.find(moneyFilter),
             FinanceContractorPayment.find(moneyFilter),
+            getWorkerPayoutDeductionTotal('contractor', v._id, projectId),
         ]);
         const advancesTotal = advances.reduce((s, a) => s + a.amount, 0);
-        const deductionsTotal = deductions.reduce((s, d) => s + d.amount, 0);
+        // Includes client-direct-payment amounts tagged with a
+        // deductFromWorkerPayout category — see financeClientDirectPayment.js.
+        const deductionsTotal = deductions.reduce((s, d) => s + d.amount, 0) + clientDirectPaymentDeductions;
         const paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
         const balancePayable = earnings - advancesTotal - deductionsTotal - paymentsTotal;
 
@@ -1290,13 +1321,16 @@ const computeLabourAnalysisRows = async (projectId) => {
 
         const moneyFilter = { labourerId: l._id, deleted: { $ne: true } };
         if (projectId) moneyFilter.projectId = projectId;
-        const [advances, deductions, payments] = await Promise.all([
+        const [advances, deductions, payments, clientDirectPaymentDeductions] = await Promise.all([
             FinanceLabourAdvance.find(moneyFilter),
             FinanceLabourDeduction.find(moneyFilter),
             FinanceLabourPayment.find(moneyFilter),
+            getWorkerPayoutDeductionTotal('labour', l._id, projectId),
         ]);
         const advancesTotal = advances.reduce((s, a) => s + a.amount, 0);
-        const deductionsTotal = deductions.reduce((s, d) => s + d.amount, 0);
+        // Includes client-direct-payment amounts tagged with a
+        // deductFromWorkerPayout category — see financeClientDirectPayment.js.
+        const deductionsTotal = deductions.reduce((s, d) => s + d.amount, 0) + clientDirectPaymentDeductions;
         const paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
         const balancePayable = earnings - advancesTotal - deductionsTotal - paymentsTotal;
 
@@ -2428,14 +2462,6 @@ const getDashboardSummary = async (req, res) => {
         const todayEnd = endOfDay(today);
         const monthKey = today.toISOString().slice(0, 7);
         const { start: monthStart, end: monthEnd } = monthBounds(monthKey);
-        // Salary for the current, still-in-progress month isn't owed yet —
-        // only once that month has fully ended (same rule FinanceHome.jsx's
-        // own lastCompletedMonth()/PayablesPage.jsx already use for the
-        // Payables donut) — so the Salaries Payable KPI card looks at last
-        // month, not this one. This Month Profit is different: it wants
-        // this month's actual accrued cost regardless of payable timing, so
-        // it uses monthKey (below), not this.
-        const lastCompletedMonthKey = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString().slice(0, 7);
 
         const billableProjects = await FinanceProject.find({ deleted: { $ne: true }, contractType: { $in: BILLABLE_CONTRACT_TYPES } }, '_id');
         const billableProjectIds = billableProjects.map(p => p._id);
@@ -2448,7 +2474,7 @@ const getDashboardSummary = async (req, res) => {
         const completedWorkIds = await FinanceWork.distinct('_id', { status: 'completed', deleted: { $ne: true } });
 
         const [
-            bankAccounts, cashEntriesToDate, issuedAgg, receivedAgg, contractorRows, vendorRows,
+            bankAccounts, cashEntriesToDate, issuedAgg, receivedAgg, directPaymentCreditsTotal, contractorRows, vendorRows,
             readyProjectIds, activeProjectsCount, activeWorksCount, labourersWorkingTodayIds, lowStockCount,
             todayContractorMeasurements, todayLabourMeasurements, monthRevenueAgg, recentActivities,
         ] = await Promise.all([
@@ -2462,6 +2488,7 @@ const getDashboardSummary = async (req, res) => {
                 { $match: { projectId: { $in: billableProjectIds }, deleted: { $ne: true } } },
                 { $group: { _id: null, total: { $sum: '$amount' } } },
             ]),
+            getClientBillCreditTotal(billableProjectIds),
             computeContractorAnalysisRows(),
             computeVendorAnalysisRows(),
             computeReadyProjectIds(billableProjectIds),
@@ -2567,9 +2594,11 @@ const getDashboardSummary = async (req, res) => {
         // see that function's own comment), This Month Profit only counts
         // cost that's actually been reviewed, same "unapproved/unpaid
         // shouldn't count as profit-eaten cost yet" rule already applied to
-        // Project Profit. Salary/expense are unconditional either way — not
-        // review-gated concepts, real cost incurred regardless.
-        const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryAccrualBreakdown] = await Promise.all([
+        // Project Profit. Expense is unconditional (accrual — real cost
+        // incurred regardless of payment timing). Salary is cash-basis —
+        // see computeSalaryPaidInRange's own comment for why it's different
+        // from expense here.
+        const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown, labourRows, commissionBreakdown, salaryPayables, salaryPaidThisMonth] = await Promise.all([
             computeCompanyWideMaterialCostInRange(monthStart, monthEnd),
             computeCompanyWideContractorCostInRange(monthStart, monthEnd, null, true),
             computeCompanyWideCommissionCostInRange(monthStart, monthEnd, null, true),
@@ -2581,24 +2610,24 @@ const getDashboardSummary = async (req, res) => {
             computeDashboardApprovedBreakdown(),
             computeLabourAnalysisRows(),
             computeCompanyWideCommissionBreakdown(),
-            computeCompanyWideSalaryBreakdown(lastCompletedMonthKey),
-            computeCompanyWideSalaryBreakdown(monthKey),
+            computeCompanyWideSalaryPayable(monthKey),
+            computeSalaryPaidInRange(monthStart, monthEnd),
         ]);
         const thisMonthRevenue = monthRevenueAgg[0]?.total || 0;
         const thisMonthExpense = monthExpenseAgg[0]?.total || 0;
         const thisMonthProfit = thisMonthRevenue - monthMaterialCost - monthContractorCost - monthCommissionCost
-            - thisMonthExpense - monthLabourCost - salaryAccrualBreakdown.monthAccrued;
+            - thisMonthExpense - monthLabourCost - salaryPaidThisMonth;
 
         res.json({
             success: true,
             data: {
                 cashInBank, cashInHand,
-                clientReceivables: (issuedAgg[0]?.total || 0) - (receivedAgg[0]?.total || 0),
+                clientReceivables: (issuedAgg[0]?.total || 0) - (receivedAgg[0]?.total || 0) - directPaymentCreditsTotal,
                 vendorPayables: vendorRows.reduce((s, r) => s + r.amountOwed, 0),
                 contractorPayables: contractorRows.reduce((s, r) => s + r.balancePayable, 0),
                 labourPayables: round2(labourRows.reduce((s, r) => s + r.balancePayable, 0)),
                 commissionPayables: commissionBreakdown.commissionPayable,
-                salaryPayables: salaryPayableBreakdown.payable,
+                salaryPayables,
                 runningBillsReady: readyProjectIds.length,
                 activeProjects: activeProjectsCount,
                 activeWorks: activeWorksCount,

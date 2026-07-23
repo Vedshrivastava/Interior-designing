@@ -30,12 +30,13 @@ const TABS = [
     { key: 'unit',              label: 'Units' },
     { key: 'city',              label: 'Cities' },
     { key: 'commission_type',   label: 'Commission Types' },
+    { key: 'direct_payment_category', label: 'Direct Payment Categories' },
     { key: 'employees',         label: 'Employees' },
     { key: 'labourers',         label: 'Labourers' },
     { key: 'salary_ledger',     label: 'Salary Ledger' },
 ];
 
-const SETTING_TYPE_KEYS = ['work_type', 'payment_mode', 'expense_category', 'tds_section', 'unit', 'city', 'commission_type'];
+const SETTING_TYPE_KEYS = ['work_type', 'payment_mode', 'expense_category', 'tds_section', 'unit', 'city', 'commission_type', 'direct_payment_category'];
 
 const EmployeePicker = ({ url, selectedEmployeeId, onChange }) => (
     <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>

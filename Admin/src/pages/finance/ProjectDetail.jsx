@@ -159,9 +159,10 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
             {receivable && (
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: "1fr" }}><b>Receivable Status</b></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                    <div className="list-table-format row-item" style={{ gridTemplateColumns: receivable.directPaymentCredits > 0 ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr' }}>
                         <p>Billed: {formatINR(receivable.issuedTotal)}</p>
                         <p>Received: {formatINR(receivable.receivedTotal)}</p>
+                        {receivable.directPaymentCredits > 0 && <p>Client Direct Payment Credits: {formatINR(receivable.directPaymentCredits)}</p>}
                         <p style={{ color: receivable.balance > 0 ? '#c0392b' : 'var(--moss)' }}>Outstanding: {formatINR(receivable.balance)}</p>
                     </div>
                 </div>

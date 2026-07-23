@@ -205,31 +205,36 @@ const WorkDetail = ({ url }) => {
 
                 {data.contractorBreakdown.length > 0 && (
                     <div className="list-table finance-table" style={{ marginTop: '24px', marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
-                            <b>Contractor</b><b>Area (sqft)</b><b>Rate</b><b>Earnings</b>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1.1fr' }}>
+                            <b>Contractor</b><b>Area (sqft)</b><b>Rate</b><b>Earnings</b><b>Material Cost/Sqft</b>
                         </div>
                         {data.contractorBreakdown.map(b => (
-                            <div key={b.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
+                            <div key={b.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1.1fr' }}>
                                 <p>{b.vendorName}</p>
                                 <p>{b.areaSqft}</p>
                                 <p>₹{b.rate.toFixed(2)}</p>
                                 <p>{formatINR(b.earnings)}</p>
+                                <p>{b.materialCostPerSqft != null ? `₹${b.materialCostPerSqft.toFixed(2)}` : '—'}</p>
                             </div>
                         ))}
+                        <p className="admin-subtitle" style={{ padding: '8px 20px 16px' }}>
+                            Material Cost/Sqft is each contractor's own material use ÷ only the area they covered while logging it — compare across rows to see who gets the most coverage per unit of material.
+                        </p>
                     </div>
                 )}
 
                 {data.labourBreakdown.length > 0 && (
                     <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
-                            <b>Labourer</b><b>Area (sqft)</b><b>Rate</b><b>Earnings</b>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1.1fr' }}>
+                            <b>Labourer</b><b>Area (sqft)</b><b>Rate</b><b>Earnings</b><b>Material Cost/Sqft</b>
                         </div>
                         {data.labourBreakdown.map(b => (
-                            <div key={b.labourerId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
+                            <div key={b.labourerId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1.1fr' }}>
                                 <p>{b.labourerName}</p>
                                 <p>{b.areaSqft}</p>
                                 <p>₹{b.rate.toFixed(2)}</p>
                                 <p>{formatINR(b.earnings)}</p>
+                                <p>{b.materialCostPerSqft != null ? `₹${b.materialCostPerSqft.toFixed(2)}` : '—'}</p>
                             </div>
                         ))}
                     </div>

@@ -75,6 +75,12 @@ const addMeasurement = async (req, res) => {
             ? req.body.materialUsed.filter(m => m && m.materialId && Number(m.quantity) > 0).map(m => ({ materialId: m.materialId, quantity: Number(m.quantity) }))
             : [];
         if (!project.materialTrackingEnabled) materialUsed = [];
+        // Work can't happen without consuming some material — required
+        // whenever this project actually tracks material (a project with
+        // tracking off has nothing to require, hence the flag check).
+        else if (materialUsed.length === 0) {
+            return res.status(400).json({ success: false, message: 'At least one material used is required' });
+        }
 
         // A material can only be consumed if it's actually been dumped
         // (via Purchase or a manual Dump entry) minus whatever's already

@@ -151,6 +151,13 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
         if (!isContractor && !form.labourerId) return toast.error('Labourer is required');
         if (!form.date) return toast.error('Date is required');
         if (!form.areaCoveredSqft || Number(form.areaCoveredSqft) <= 0) return toast.error('Area covered must be greater than zero');
+        // Work can't happen without consuming some material — required
+        // whenever this project tracks material at all, same rule the
+        // backend now enforces (see addContractorMeasurement/
+        // addLabourMeasurement's own check).
+        if (materialTrackingEnabled && !materialLines.some(l => l.materialId && Number(l.quantity) > 0)) {
+            return toast.error('At least one material used is required');
+        }
 
         setSaving(true);
         try {

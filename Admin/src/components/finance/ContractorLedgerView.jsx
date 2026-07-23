@@ -222,7 +222,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                     <h3 style={{ marginBottom: '8px' }}>Works & Earnings</h3>
                     <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.9fr 1fr 0.9fr 1.1fr 0.9fr' }}>
-                            <b>Project</b><b>Work Type</b><b>Done / Estimated</b><b>Total</b><b>Approved (as of)</b><b>Unapproved</b>
+                            <b>Project</b><b>Work Type</b><b>Area Done</b><b>Total</b><b>Approved (as of)</b><b>Unapproved</b>
                         </div>
                         {ledger.works.length === 0 ? (
                             <div className="admin-empty-state"><p>No works for this contractor yet.</p></div>
@@ -231,7 +231,10 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                 <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.1fr 0.9fr 1fr 0.9fr 1.1fr 0.9fr' }}>
                                     <p>{w.projectName}</p>
                                     <p>{w.workType}</p>
-                                    <p>{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft</p>
+                                    {/* This contractor's own logged area on this Work — not
+                                        w.estimatedAreaSqft, which is the whole Work's target,
+                                        not this contractor's share of it. */}
+                                    <p>{w.completedAreaSqft} sqft</p>
                                     <p>{w.rate ? `₹${w.totalAmount.toLocaleString('en-IN')}` : <span title="No matching contractor rate configured">(no rate)</span>}</p>
                                     <p style={{ color: w.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>
                                         {w.earnings > 0

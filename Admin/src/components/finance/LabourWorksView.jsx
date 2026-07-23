@@ -30,13 +30,17 @@ const LabourWorksView = ({ url, labourerId }) => {
     return (
         <div className="list-table finance-table">
             <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1.3fr 1fr' }}>
-                <b>Project</b><b>Work Type</b><b>Completed / Estimated</b><b>Status</b>
+                <b>Project</b><b>Work Type</b><b>Area Covered</b><b>Status</b>
             </div>
             {works.map(w => (
                 <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1.3fr 1fr' }}>
                     <p>{w.projectName}</p>
                     <p>{w.workType}</p>
-                    <p>{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft</p>
+                    {/* This labourer's own logged area on this Work — not
+                        compared against estimatedAreaSqft, which is the
+                        whole Work's target, not this labourer's share of
+                        it (a Work can have more than one contributor). */}
+                    <p>{w.completedAreaSqft} sqft</p>
                     <p><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
                 </div>
             ))}

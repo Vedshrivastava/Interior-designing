@@ -22,13 +22,12 @@ const TABS = [
     { key: 'works',        label: 'Works' },
     { key: 'measurements', label: 'Measurements' },
     { key: 'ledger',       label: 'Ledger' },
-    { key: 'settlements',  label: 'Settlements' },
     { key: 'bills',        label: 'Bills' },
     { key: 'documents',    label: 'Documents' },
 ];
 
 const IS_CONTRACTOR = (v) => v.vendorType === 'labour_contractor';
-const VENDOR_SCOPED_TABS = ['projects', 'works', 'measurements', 'ledger', 'settlements', 'documents'];
+const VENDOR_SCOPED_TABS = ['projects', 'works', 'measurements', 'ledger', 'documents'];
 
 // Same dashboardCache pattern as FinanceHome.jsx — the Overview tab always
 // shows the same company-wide aggregate (no picker scoping it), so a
@@ -164,7 +163,11 @@ const ContractorsOverviewTab = ({ url, onSelectContractor }) => {
                                         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                         <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                                         <YAxis tick={{ fontSize: 11 }} />
-                                        <Tooltip formatter={(v) => formatINR(v)} />
+                                        {/* formatINR rounds to whole rupees — fine for real
+                                            money totals, but this is a per-sqft rate (e.g.
+                                            ₹5.20), where that rounding silently drops the
+                                            decimal. */}
+                                        <Tooltip formatter={(v) => `₹${(v || 0).toFixed(2)}/sqft`} />
                                         <Legend wrapperStyle={{ fontSize: 11 }} />
                                         {workTypes.map((wt, i) => <Bar key={wt} dataKey={wt} name={wt} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                                     </BarChart>
@@ -228,7 +231,7 @@ const ContractorsPage = ({ url }) => {
             {activeTab === 'measurements' && (
                 selectedVendorId ? <ContractorMeasurementsView url={url} vendorId={selectedVendorId} /> : <div className="admin-empty-state"><p>Select a contractor to view their measurements.</p></div>
             )}
-            {(activeTab === 'ledger' || activeTab === 'settlements') && (
+            {activeTab === 'ledger' && (
                 selectedVendorId ? <ContractorLedgerView url={url} vendorId={selectedVendorId} /> : <div className="admin-empty-state"><p>Select a contractor to view their ledger.</p></div>
             )}
 

@@ -35,10 +35,10 @@ const emptyPaymentForm = { amount: '', date: '', paymentMode: '', bankOrCashLabe
 /*
  * The full contractor ledger — earnings breakdown, and add/list/remove for
  * advances, deductions, and payments, ending in the computed Balance
- * Payable. This is what both the Contractors page's "Ledger" and
- * "Settlements" tabs render (identical view, per spec — Settlements was
- * reserved for exactly this) and what Payables' Contractor tab and
- * Payments' Contractor Payment tab pull their numbers/forms from.
+ * Payable. This is what the Contractors page's "Ledger" tab renders (a
+ * separate "Settlements" tab used to render this same view — removed as a
+ * duplicate) and what Payables' Contractor tab and Payments' Contractor
+ * Payment tab pull their numbers/forms from.
  *
  * Everything here comes from one GET /api/finance/contractors/:vendorId/ledger
  * call — nothing is stored client-side beyond form state.

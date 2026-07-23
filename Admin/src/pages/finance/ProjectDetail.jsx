@@ -113,12 +113,16 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
             {(profit.unapprovedContractorCost > 0 || profit.unapprovedLabourCost > 0 || profit.unapprovedCommissionCost > 0) && (
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr' }}>
-                        <p>Contractor: {formatINR(profit.unapprovedContractorCost)}</p>
-                        <p>Labour: {formatINR(profit.unapprovedLabourCost)}</p>
-                        <p>Commission: {formatINR(profit.unapprovedCommissionCost)}</p>
-                        <p>Revenue: {formatINR(profit.unapprovedRevenue)}</p>
-                        <p style={{ color: profit.unapprovedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>Profit: {formatINR(profit.unapprovedProfit)}</p>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                        <b>Area</b><b>Contractor</b><b>Labour</b><b>Commission</b><b>Revenue</b><b>Profit</b>
+                    </div>
+                    <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                        <p>{profit.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
+                        <p>{formatINR(profit.unapprovedContractorCost)}</p>
+                        <p>{formatINR(profit.unapprovedLabourCost)}</p>
+                        <p>{formatINR(profit.unapprovedCommissionCost)}</p>
+                        <p>{formatINR(profit.unapprovedRevenue)}</p>
+                        <p style={{ color: profit.unapprovedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>{formatINR(profit.unapprovedProfit)}</p>
                     </div>
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
                         Logged work whose cost isn't counted in Profit yet — review it in Payables/Receivables → Deductions to move it in. Revenue/Profit here are what this same unapproved work would add once reviewed and billed.

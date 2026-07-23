@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { ChartCard, EmptyChart, CHART_COLORS, formatINR } from './DashboardWidgets';
 import StyledDatePicker from './StyledDatePicker';
+import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -43,6 +44,7 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
     const [loading, setLoading] = useState(true);
     const [bankAccounts, setBankAccounts] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
+    const [paymentModes, setPaymentModes] = useState([]);
     const [paymentForm, setPaymentForm] = useState(emptyPaymentForm);
     const [paymentFile, setPaymentFile] = useState(null);
     const [saving, setSaving] = useState(false);
@@ -53,6 +55,8 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
             .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
+            .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchLedger = async () => {
@@ -81,7 +85,10 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
             const res = await axios.post(`${url}/api/finance/vendor-payments/add`, data, {
                 headers: { ...authHeader.headers, 'Content-Type': 'multipart/form-data' },
             });
-            if (res.data.success) { toast.success(res.data.message); setPaymentForm(emptyPaymentForm); setPaymentFile(null); setPaymentModalOpen(false); await fetchLedger(); }
+            if (res.data.success) {
+                if (paymentForm.paymentMode) await registerSettingIfNew(url, authHeader, 'payment_mode', paymentForm.paymentMode, paymentModes.map(m => ({ name: m })));
+                toast.success(res.data.message); setPaymentForm(emptyPaymentForm); setPaymentFile(null); setPaymentModalOpen(false); await fetchLedger();
+            }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording payment'); }
         finally { setSaving(false); }
@@ -211,7 +218,8 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Payment Mode</p>
-                                    <input type="text" value={paymentForm.paymentMode} onChange={e => setPaymentForm(p => ({ ...p, paymentMode: e.target.value }))} />
+                                    <SettingSelectField settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
+                                        value={paymentForm.paymentMode} onChange={v => setPaymentForm(p => ({ ...p, paymentMode: v }))} placeholder="e.g. Cash, Bank Transfer, UPI…" />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Bank Account</p>

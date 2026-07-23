@@ -33,7 +33,12 @@ const listContractorPayments = async (req, res) => {
 const uploadAttachment = async (file) => {
     if (!file) return '';
     try {
-        const result = await cloudinary.uploader.upload(file.path, { folder: 'contractor_payment_attachments' });
+        // resource_type 'raw' — Cloudinary blocks public delivery of PDF/ZIP
+        // files uploaded as image/video by default; raw delivery serves the
+        // file as-is and isn't subject to that ACL block (same fix already
+        // applied to every other document-attachment upload in this app —
+        // see uploadDocuments.js's header comment).
+        const result = await cloudinary.uploader.upload(file.path, { folder: 'contractor_payment_attachments', resource_type: 'raw' });
         fs.unlinkSync(file.path);
         return result.secure_url;
     } catch (uploadError) {

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import QuickAddPicker from './QuickAddPicker';
 import StyledDatePicker from './StyledDatePicker';
+import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -24,7 +25,9 @@ const VendorPaymentsManager = ({ url }) => {
     const [vendorId, setVendorId] = useState('');
     const [bankAccounts, setBankAccounts] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
+    const [paymentModes, setPaymentModes] = useState([]);
     const [payments, setPayments] = useState([]);
+    const [amountOwed, setAmountOwed] = useState(null);
     const [loading, setLoading] = useState(false);
 
     const [form, setForm] = useState(emptyForm);
@@ -37,6 +40,8 @@ const VendorPaymentsManager = ({ url }) => {
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
             .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
+            .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchPayments = async () => {
@@ -48,7 +53,20 @@ const VendorPaymentsManager = ({ url }) => {
         finally { setLoading(false); }
     };
 
-    useEffect(() => { if (vendorId) fetchPayments(); else setPayments([]); }, [vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Amount Owed — same purchases − returns − payments formula
+    // VendorLedgerView.jsx already shows, surfaced here too so it's visible
+    // right where you're about to record a payment against it, not just on
+    // the separate Ledger tab.
+    const fetchAmountOwed = async () => {
+        try {
+            const res = await axios.get(`${url}/api/finance/vendors/${vendorId}/ledger`, authHeader);
+            if (res.data.success) setAmountOwed(res.data.data.totals.amountOwed);
+        } catch { setAmountOwed(null); }
+    };
+
+    useEffect(() => {
+        if (vendorId) { fetchPayments(); fetchAmountOwed(); } else { setPayments([]); setAmountOwed(null); }
+    }, [vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -67,7 +85,11 @@ const VendorPaymentsManager = ({ url }) => {
             const res = await axios.post(`${url}/api/finance/vendor-payments/add`, data, {
                 headers: { ...authHeader.headers, 'Content-Type': 'multipart/form-data' },
             });
-            if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); setFile(null); setModalOpen(false); await fetchPayments(); }
+            if (res.data.success) {
+                if (form.paymentMode) await registerSettingIfNew(url, authHeader, 'payment_mode', form.paymentMode, paymentModes.map(m => ({ name: m })));
+                toast.success(res.data.message); setForm(emptyForm); setFile(null); setModalOpen(false);
+                await fetchPayments(); await fetchAmountOwed();
+            }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording payment'); }
         finally { setSaving(false); }
@@ -76,7 +98,7 @@ const VendorPaymentsManager = ({ url }) => {
     const remove = async (id) => {
         try {
             const res = await axios.delete(`${url}/api/finance/vendor-payments/remove`, { ...authHeader, data: { _id: id } });
-            if (res.data.success) { toast.success(res.data.message); await fetchPayments(); }
+            if (res.data.success) { toast.success(res.data.message); await fetchPayments(); await fetchAmountOwed(); }
             else toast.error(res.data.message);
         } catch { toast.error('Error removing payment'); }
     };
@@ -97,6 +119,11 @@ const VendorPaymentsManager = ({ url }) => {
                         <h3 style={{ margin: 0 }}>Payments</h3>
                         <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>+ Add Payment</button>
                     </div>
+                    {amountOwed !== null && (
+                        <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
+                            Amount Owed: <span style={{ fontWeight: 700, color: amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}>₹{amountOwed.toLocaleString('en-IN')}</span>
+                        </p>
+                    )}
                     {loading ? (
                         <div className="admin-empty-state"><p>Loading…</p></div>
                     ) : payments.length === 0 ? (
@@ -124,6 +151,11 @@ const VendorPaymentsManager = ({ url }) => {
                         <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
                             <div className="loader-modal-box edit-modal">
                                 <h2>Add Payment</h2>
+                                {amountOwed !== null && (
+                                    <p className="admin-subtitle" style={{ marginTop: '-20px', marginBottom: '20px' }}>
+                                        Payment Left: <span style={{ fontWeight: 700, color: amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}>₹{amountOwed.toLocaleString('en-IN')}</span>
+                                    </p>
+                                )}
                                 <form onSubmit={submit}>
                                     <div className="wizard-field-grid">
                                         <div className="add-product-name flex-col">
@@ -136,7 +168,8 @@ const VendorPaymentsManager = ({ url }) => {
                                         </div>
                                         <div className="add-product-name flex-col">
                                             <p>Payment Mode</p>
-                                            <input type="text" value={form.paymentMode} onChange={e => setField('paymentMode', e.target.value)} />
+                                            <SettingSelectField settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
+                                                value={form.paymentMode} onChange={v => setField('paymentMode', v)} placeholder="e.g. Cash, Bank Transfer, UPI…" />
                                         </div>
                                         <div className="add-product-name flex-col">
                                             <p>Bank Account</p>

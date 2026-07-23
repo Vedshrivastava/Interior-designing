@@ -219,7 +219,9 @@ const FinanceHome = ({ url }) => {
                     <KpiCard loading={phase1Loading} icon={faHardHat} label="Contractor Payables" value={formatINR(summary?.contractorPayables)} onClick={() => navigate('/finance/contractors')} tone={summary?.contractorPayables > 0 ? 'danger' : 'good'} />
                     <KpiCard loading={phase1Loading} icon={faPersonDigging} label="Labour Payables" value={formatINR(summary?.labourPayables)} onClick={() => navigate('/finance/daily-labour')} tone={summary?.labourPayables > 0 ? 'danger' : 'good'} />
                     <KpiCard loading={phase1Loading} icon={faHandHoldingDollar} label="Commission Payables" value={formatINR(summary?.commissionPayables)} onClick={() => navigate('/finance/referrals')} tone={summary?.commissionPayables > 0 ? 'danger' : 'good'} />
-                    <KpiCard loading={phase1Loading} icon={faUsers} label="Salaries Payable" value={formatINR(summary?.salaryPayables)} onClick={() => navigate('/finance/payables?tab=salary')} tone={summary?.salaryPayables > 0 ? 'danger' : 'good'} />
+                    <KpiCard loading={phase1Loading} icon={faUsers} label="Salaries Payable This Month" value={formatINR(summary?.salaryExpectedThisMonth)}
+                        sub={`Payment left: ${formatINR(summary?.salaryPayables)}`}
+                        onClick={() => navigate('/finance/payables?tab=salary')} tone={summary?.salaryOverdue ? 'danger' : undefined} />
                     <KpiCard loading={phase1Loading} icon={faReceipt} label="Running Bills Ready" value={summary?.runningBillsReady ?? 0} onClick={() => navigate('/finance/receivables')} />
                 </KpiGrid>
 

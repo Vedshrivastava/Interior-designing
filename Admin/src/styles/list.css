@@ -292,6 +292,17 @@
     background-color: rgba(248, 244, 238, 0.7);
 }
 
+/* Project Overview's "Unapproved (Pending Review)" row — a standing
+   warning strip, not a regular clickable list row, so its tint needs to
+   read at a glance without hovering. The generic .row-item:hover
+   background above only shows on hover; this makes that tint permanent
+   (danger-red, matching the row's own red-toned figures) while leaving
+   the shared gold ::before edge-bar as the only hover-triggered effect,
+   same as every other row-item. */
+.unapproved-row {
+    background-color: rgba(192, 57, 43, 0.05) !important;
+}
+
 /* ── Table Header ── */
 .list-table-format.title {
     background: linear-gradient(to right, rgba(16,37,37,0.03), transparent);

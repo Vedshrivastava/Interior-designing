@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
+import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import StyledDatePicker from '../../components/finance/StyledDatePicker';
 import StyledMonthPicker from '../../components/finance/StyledMonthPicker';
 import ToggleSwitch from '../../components/finance/ToggleSwitch';
@@ -130,19 +130,7 @@ const WorkDetail = ({ url }) => {
                 </div>
 
                 <KpiGrid>
-                    <KpiCard label="Area Covered" value={`${data.areaCoveredSqft} sqft`} />
-                    <KpiCard
-                        label="Contractor Cost (Approved)"
-                        value={data.contractorCost > 0 ? formatINR(data.contractorCost) : (data.totalContractorAmount > 0 ? 'Unapproved' : formatINR(0))}
-                        tone={data.contractorCost > 0 ? 'good' : (data.totalContractorAmount > 0 ? 'danger' : undefined)}
-                        sub={data.totalContractorAmount > data.contractorCost ? `Total logged: ${formatINR(data.totalContractorAmount)}` : 'All-time, not scoped by the picker above'}
-                    />
-                    <KpiCard
-                        label="Labour Cost (Approved)"
-                        value={data.labourCost > 0 ? formatINR(data.labourCost) : (data.totalLabourAmount > 0 ? 'Unapproved' : formatINR(0))}
-                        tone={data.labourCost > 0 ? 'good' : (data.totalLabourAmount > 0 ? 'danger' : undefined)}
-                        sub={data.totalLabourAmount > data.labourCost ? `Total logged: ${formatINR(data.totalLabourAmount)}` : 'All-time, not scoped by the picker above'}
-                    />
+                    <KpiCard label="Area Covered" value={`${data.areaCoveredSqft} sqft`} sub={`${data.scopeLabel}, not the all-time figures below`} />
                     {scope === 'alltime' ? (
                         <>
                             <KpiCard label="Revenue" value={formatINR(data.revenue)} />
@@ -153,7 +141,7 @@ const WorkDetail = ({ url }) => {
                     )}
                     <KpiCard
                         label="Average Material Cost/Sqft"
-                        value={formatINR(data.averageCostPerSqft)}
+                        value={`₹${data.averageCostPerSqft.toFixed(2)}`}
                         sub="Mean of each day's cost/sqft ratio, not total cost ÷ total area"
                     />
                     <KpiCard
@@ -164,6 +152,57 @@ const WorkDetail = ({ url }) => {
                     />
                 </KpiGrid>
 
+                {/* Approved = reviewed (financeWorkReview), same meaning
+                    "Approved" has everywhere else in the app now — always
+                    all-time for this Work, never scoped by the Day/Month/
+                    All Time picker above (review isn't a dated concept).
+                    Area Approved/Contractor/Labour/Commission here are this
+                    Work's own reviewed-and-billable figures; the same
+                    still-unreviewed gap for each is broken out in its own
+                    Unapproved table below instead of being blended in. */}
+                <KpiSectionLabel>Approved — Reviewed (All-Time)</KpiSectionLabel>
+                <KpiGrid>
+                    <KpiCard label="Area Approved" value={`${data.approvedAreaSqft} sqft`} tone="good" sub={data.unapprovedAreaSqft > 0 ? `${data.unapprovedAreaSqft} sqft still pending review` : 'Everything logged so far is reviewed'} />
+                    <KpiCard
+                        label="Contractor Cost"
+                        value={data.contractorCost > 0 ? formatINR(data.contractorCost) : (data.totalContractorAmount > 0 ? 'Unapproved' : formatINR(0))}
+                        tone={data.contractorCost > 0 ? 'good' : (data.totalContractorAmount > 0 ? 'danger' : undefined)}
+                        sub={data.totalContractorAmount > data.contractorCost ? `Total logged: ${formatINR(data.totalContractorAmount)}` : 'All-time'}
+                    />
+                    <KpiCard
+                        label="Labour Cost"
+                        value={data.labourCost > 0 ? formatINR(data.labourCost) : (data.totalLabourAmount > 0 ? 'Unapproved' : formatINR(0))}
+                        tone={data.labourCost > 0 ? 'good' : (data.totalLabourAmount > 0 ? 'danger' : undefined)}
+                        sub={data.totalLabourAmount > data.labourCost ? `Total logged: ${formatINR(data.totalLabourAmount)}` : 'All-time'}
+                    />
+                    <KpiCard
+                        label="Commission Cost"
+                        value={data.commissionCost > 0 ? formatINR(data.commissionCost) : (data.totalCommissionAmount > 0 ? 'Unapproved' : formatINR(0))}
+                        tone={data.commissionCost > 0 ? 'good' : (data.totalCommissionAmount > 0 ? 'danger' : undefined)}
+                        sub={data.totalCommissionAmount > data.commissionCost ? `Total logged: ${formatINR(data.totalCommissionAmount)}` : 'All-time'}
+                    />
+                </KpiGrid>
+
+                {(data.totalContractorAmount > data.contractorCost || data.totalLabourAmount > data.labourCost || data.totalCommissionAmount > data.commissionCost) && (
+                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                            <b>Area</b><b>Contractor</b><b>Labour</b><b>Commission</b><b>Revenue</b><b>Profit</b>
+                        </div>
+                        <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                            <p>{data.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
+                            <p>{formatINR(Math.max(0, data.totalContractorAmount - data.contractorCost))}</p>
+                            <p>{formatINR(Math.max(0, data.totalLabourAmount - data.labourCost))}</p>
+                            <p>{formatINR(data.unapprovedCommissionAmount)}</p>
+                            <p>{formatINR(data.unapprovedRevenue)}</p>
+                            <p style={{ color: data.unapprovedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>{formatINR(data.unapprovedProfit)}</p>
+                        </div>
+                        <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
+                            Logged work on this Work whose cost isn't counted in Profit yet — review it in Payables/Receivables → Deductions to move it in. Revenue/Profit here are what this same unapproved work would add once reviewed and billed.
+                        </p>
+                    </div>
+                )}
+
                 {data.contractorBreakdown.length > 0 && (
                     <div className="list-table finance-table" style={{ marginTop: '24px', marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
@@ -173,7 +212,7 @@ const WorkDetail = ({ url }) => {
                             <div key={b.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
                                 <p>{b.vendorName}</p>
                                 <p>{b.areaSqft}</p>
-                                <p>{formatINR(b.rate)}</p>
+                                <p>₹{b.rate.toFixed(2)}</p>
                                 <p>{formatINR(b.earnings)}</p>
                             </div>
                         ))}
@@ -189,7 +228,7 @@ const WorkDetail = ({ url }) => {
                             <div key={b.labourerId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
                                 <p>{b.labourerName}</p>
                                 <p>{b.areaSqft}</p>
-                                <p>{formatINR(b.rate)}</p>
+                                <p>₹{b.rate.toFixed(2)}</p>
                                 <p>{formatINR(b.earnings)}</p>
                             </div>
                         ))}

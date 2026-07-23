@@ -330,9 +330,22 @@ const computeCompanyWideCommissionBreakdown = async () => {
 // (any month) — not just the current/last-completed month. Employees with
 // no joiningDate have no earlier bound to sum from, so only the current
 // month is counted for them (expectedSalaryForMonth's own fallback).
+//
+// Also returns `overduePayable` — unlike `payable` (which includes the
+// current, still-in-progress month's own accrual), this only counts months
+// that have already CLOSED, i.e. genuinely late pay, not merely accrued.
+// Found the same FIFO way as `oldestUnpaidMonth` below: a payment is
+// assumed to settle the longest-standing dues first, so once every closed
+// month's expected pay is netted against total-paid-to-date, whatever's
+// still positive is real overdue backlog — never counting the current
+// month, since nothing is late until its month actually ends. This is the
+// number the dashboard's "Payment left" sub-line shows, and it's what the
+// red/normal tone should key off too — they'd otherwise contradict each
+// other (a card reading "not overdue" right above a positive "amount
+// left" makes no sense).
 const computeCompanyWideSalaryPayable = async (currentMonthKey) => {
     const employees = await FinanceEmployee.find({ deleted: { $ne: true } });
-    if (!employees.length) return 0;
+    if (!employees.length) return { payable: 0, overduePayable: 0, oldestUnpaidMonth: null };
     const payments = await FinanceSalaryPayment.find({ deleted: { $ne: true } });
     const paidByEmployee = new Map();
     for (const p of payments) {
@@ -341,23 +354,45 @@ const computeCompanyWideSalaryPayable = async (currentMonthKey) => {
     }
     const [curY, curM] = currentMonthKey.split('-').map(Number);
     let payable = 0;
+    let overduePayable = 0;
+    let oldestUnpaidMonth = null;
     for (const e of employees) {
+        const paidTotal = paidByEmployee.get(e._id.toString()) || 0;
         let expectedTotal = 0;
+        let closedMonthsExpectedTotal = 0; // excludes currentMonthKey itself
+        let firstUnpaidMonth = null;
+        let remainingPool = paidTotal;
         if (e.joiningDate) {
             const joined = new Date(e.joiningDate);
             let y = joined.getFullYear(), m = joined.getMonth() + 1;
             while (y < curY || (y === curY && m <= curM)) {
-                expectedTotal += expectedSalaryForMonth(e, `${y}-${String(m).padStart(2, '0')}`);
+                const monthKey = `${y}-${String(m).padStart(2, '0')}`;
+                const expected = expectedSalaryForMonth(e, monthKey);
+                expectedTotal += expected;
+                if (monthKey < currentMonthKey) closedMonthsExpectedTotal += expected;
+                if (firstUnpaidMonth === null) {
+                    if (remainingPool >= expected) remainingPool -= expected;
+                    else firstUnpaidMonth = monthKey;
+                }
                 m += 1;
                 if (m > 12) { m = 1; y += 1; }
             }
         } else {
             expectedTotal = expectedSalaryForMonth(e, currentMonthKey);
+            if (paidTotal < expectedTotal) firstUnpaidMonth = currentMonthKey;
         }
-        const paid = paidByEmployee.get(e._id.toString()) || 0;
-        payable += expectedTotal - paid;
+        const employeePayable = expectedTotal - paidTotal;
+        payable += employeePayable;
+        // FIFO means any payment always settles closed months before the
+        // current one, so this is simply "closed-months debt minus what's
+        // been paid," floored at 0 (an employee overpaid overall shouldn't
+        // make another employee's real overdue amount look smaller).
+        overduePayable += Math.max(0, closedMonthsExpectedTotal - paidTotal);
+        if (employeePayable > 0.5 && firstUnpaidMonth && (!oldestUnpaidMonth || firstUnpaidMonth < oldestUnpaidMonth)) {
+            oldestUnpaidMonth = firstUnpaidMonth;
+        }
     }
-    return round2(payable);
+    return { payable: round2(payable), overduePayable: round2(overduePayable), oldestUnpaidMonth };
 };
 
 // Cash-basis salary cost for This Month Profit — actual payments made this
@@ -377,6 +412,16 @@ const computeSalaryPaidInRange = async (start, end) => {
     return agg[0]?.total || 0;
 };
 
+// This month's fresh salary accrual only (not the running backlog) — the
+// Salary Payables KPI card's headline figure, with the full backlog
+// (computeCompanyWideSalaryPayable) shown as its "Payment left" sub-line
+// instead, so the card reads "what's newly due this month" up top and
+// "how far behind overall" underneath.
+const computeCompanyWideSalaryExpectedThisMonth = async (monthKey) => {
+    const employees = await FinanceEmployee.find({ deleted: { $ne: true } });
+    return round2(employees.reduce((sum, e) => sum + expectedSalaryForMonth(e, monthKey), 0));
+};
+
 // What the project's still-unreviewed sqft would bill the client once it
 // clears review — client rate only (not net of referral commission; that's
 // its own already-tracked unapprovedCommissionCost line), summed per Work
@@ -385,19 +430,21 @@ const computeSalaryPaidInRange = async (start, end) => {
 // Unapproved Revenue lines up with the same "unapproved" sqft those two use.
 const computeProjectUnapprovedRevenue = async (projectId) => {
     const works = await FinanceWork.find({ projectId, deleted: { $ne: true } });
-    if (!works.length) return 0;
+    if (!works.length) return { unapprovedRevenue: 0, unapprovedAreaSqft: 0 };
     const [rates, approvedBillingByWorkId] = await Promise.all([
         FinanceWorkTypeRate.find({ projectId, deleted: { $ne: true } }),
         getApprovedBillingByWorkId(works.map(w => w._id)),
     ]);
     const rateByWorkType = new Map(rates.map(r => [r.workType, r.clientRatePerSqft]));
     let unapprovedRevenue = 0;
+    let unapprovedAreaSqft = 0;
     for (const w of works) {
         const approvedArea = approvedBillingByWorkId.get(w._id.toString())?.areaSqft || 0;
         const unapprovedArea = Math.max(0, w.completedAreaSqft - approvedArea);
+        unapprovedAreaSqft += unapprovedArea;
         unapprovedRevenue += unapprovedArea * (rateByWorkType.get(w.workType) || 0);
     }
-    return round2(unapprovedRevenue);
+    return { unapprovedRevenue: round2(unapprovedRevenue), unapprovedAreaSqft: round2(unapprovedAreaSqft) };
 };
 
 // Shared by getProjectProfit and getClientProfit/getClientDetail (which sum
@@ -406,7 +453,7 @@ const computeProjectProfit = async (projectId) => {
     const project = await FinanceProject.findOne({ _id: projectId, deleted: { $ne: true } });
     if (!project) return null;
 
-    const [revenueAgg, materialCost, contractorCostInfo, commissionCostInfo, expenseAgg, labourCostInfo, unapprovedRevenue] = await Promise.all([
+    const [revenueAgg, materialCost, contractorCostInfo, commissionCostInfo, expenseAgg, labourCostInfo, unapprovedRevenueInfo] = await Promise.all([
         FinanceRunningBill.aggregate([
             { $match: { projectId: project._id, status: 'issued', deleted: { $ne: true } } },
             { $group: { _id: null, total: { $sum: '$totalAmount' } } },
@@ -424,6 +471,7 @@ const computeProjectProfit = async (projectId) => {
 
     const revenue = revenueAgg[0]?.total || 0;
     const otherExpenses = expenseAgg[0]?.total || 0;
+    const { unapprovedRevenue, unapprovedAreaSqft } = unapprovedRevenueInfo;
     // Profit is built off Approved (reviewed) cost — Total cost (every
     // logged sqft, unconditional) is exposed alongside for context, split
     // out as its own unapproved figure below, but never subtracted here.
@@ -447,7 +495,7 @@ const computeProjectProfit = async (projectId) => {
         // once approved, minus the unapproved cost lines above — the
         // "Unapproved" section's own mini profit picture, same shape as the
         // approved figures above it.
-        unapprovedRevenue,
+        unapprovedRevenue, unapprovedAreaSqft,
         unapprovedProfit: round2(unapprovedRevenue
             - round2(Math.max(0, contractorCostInfo.totalAmount - contractorCost))
             - round2(Math.max(0, labourCostInfo.totalAmount - labourCost))
@@ -524,12 +572,13 @@ const getClientProfit = async (req, res) => {
             unapprovedCommissionCost: acc.unapprovedCommissionCost + p.unapprovedCommissionCost,
             unapprovedRevenue: acc.unapprovedRevenue + p.unapprovedRevenue,
             unapprovedProfit: acc.unapprovedProfit + p.unapprovedProfit,
+            unapprovedAreaSqft: acc.unapprovedAreaSqft + p.unapprovedAreaSqft,
             profit: acc.profit + p.profit,
         }), {
             revenue: 0, materialCost: 0, contractorCost: 0, commissionCost: 0, otherExpenses: 0, labourCost: 0,
             totalContractorCost: 0, totalLabourCost: 0, totalCommissionCost: 0,
             unapprovedContractorCost: 0, unapprovedLabourCost: 0, unapprovedCommissionCost: 0,
-            unapprovedRevenue: 0, unapprovedProfit: 0, profit: 0,
+            unapprovedRevenue: 0, unapprovedProfit: 0, unapprovedAreaSqft: 0, profit: 0,
         });
         totals.marginPercent = totals.revenue > 0 ? (totals.profit / totals.revenue) * 100 : 0;
 
@@ -856,15 +905,48 @@ const computeWorkProfit = async (work) => {
     }
     labourCost = round2(labourCost);
 
+    // Commission — same (project, workType) referralRatePerSqft rate
+    // computeProjectCommissionCost uses, just attributed to this one Work's
+    // own logged/reviewed area instead of summed across a project's whole
+    // portfolio of works. Not attempted for 'advance' contract-type
+    // projects — their commission is one flat, manually-entered figure for
+    // the whole project (financeProject.referralCommissionAmount), with no
+    // per-sqft rate to attribute to an individual work at all.
+    const project = await FinanceProject.findById(work.projectId, 'referralId contractType');
+    let commissionCost = 0, totalCommissionAmount = 0, unapprovedCommissionAmount = 0, clientRatePerSqft = 0;
+    if (project?.referralId && project.contractType !== 'advance') {
+        const workTypeRate = await FinanceWorkTypeRate.findOne({ projectId: work.projectId, workType: work.workType, deleted: { $ne: true } });
+        if (workTypeRate) {
+            clientRatePerSqft = workTypeRate.clientRatePerSqft || 0;
+            const referralRate = workTypeRate.referralRatePerSqft || 0;
+            totalCommissionAmount = round2(work.completedAreaSqft * referralRate);
+            commissionCost = round2(workApprovedAreaSqft * referralRate);
+            unapprovedCommissionAmount = round2(totalCommissionAmount - commissionCost);
+        }
+    } else if (project?.contractType !== 'advance') {
+        // No referral at all — still need the client rate for
+        // unapprovedRevenue below, commission stays 0.
+        const workTypeRate = await FinanceWorkTypeRate.findOne({ projectId: work.projectId, workType: work.workType, deleted: { $ne: true } });
+        clientRatePerSqft = workTypeRate?.clientRatePerSqft || 0;
+    }
+
     const materialCost = await computeWorkMaterialCost(work.projectId, work._id);
-    const profit = revenue - contractorCost - labourCost - materialCost;
+    const profit = revenue - contractorCost - labourCost - materialCost - commissionCost;
     const {
         expectedPay, deductedTotal, expectedPayNetOfDeductions,
         totalAreaSqft, totalAmount, approvedAreaSqft, approvedAmount, approvedDate, unapprovedAreaSqft, unapprovedAmount,
     } = await computeWorkExpectedPay(work);
 
+    // What this Work's still-unreviewed sqft would bill the client once
+    // it's approved — same "Unapproved" mini-profit picture ProjectDetail's
+    // Unapproved section shows, just for one Work instead of a whole
+    // project. Uses computeWorkExpectedPay's unapprovedAreaSqft (total
+    // logged minus reviewed), not a separately-derived figure.
+    const unapprovedRevenue = round2(unapprovedAreaSqft * clientRatePerSqft);
+
     return {
         revenue, contractorCost, contractorBreakdown, labourCost, labourBreakdown, materialCost, profit, areaBilledSqft,
+        commissionCost, totalCommissionAmount, unapprovedCommissionAmount, unapprovedRevenue,
         expectedPay, deductedTotal, expectedPayNetOfDeductions,
         totalAreaSqft, totalAmount, approvedAreaSqft, approvedAmount, approvedDate, unapprovedAreaSqft, unapprovedAmount,
     };
@@ -1086,6 +1168,8 @@ const getWorkDetail = async (req, res) => {
             computeCurrentStock(work.projectId),
         ]);
         const report = await computeWorkScopedReport(work, { dateStart, dateEnd, avgRate });
+        const totalContractorAmount = round2(workProfit.contractorBreakdown.reduce((s, b) => s + b.totalAmount, 0));
+        const totalLabourAmount = round2(workProfit.labourBreakdown.reduce((s, b) => s + b.totalAmount, 0));
 
         res.json({
             success: true,
@@ -1110,12 +1194,28 @@ const getWorkDetail = async (req, res) => {
                 // can each show their own "Total logged" figure next to
                 // their Approved one, distinct from computeWorkExpectedPay's
                 // blended totalAmount below).
-                totalContractorAmount: round2(workProfit.contractorBreakdown.reduce((s, b) => s + b.totalAmount, 0)),
-                totalLabourAmount: round2(workProfit.labourBreakdown.reduce((s, b) => s + b.totalAmount, 0)),
+                totalContractorAmount, totalLabourAmount,
                 totalAreaSqft: workProfit.totalAreaSqft, totalAmount: workProfit.totalAmount,
                 approvedAreaSqft: workProfit.approvedAreaSqft, approvedAmount: workProfit.approvedAmount, approvedDate: workProfit.approvedDate,
                 unapprovedAreaSqft: workProfit.unapprovedAreaSqft, unapprovedAmount: workProfit.unapprovedAmount,
                 revenue: workProfit.revenue, profit: workProfit.profit,
+                // Commission (Approved) — same review-gated shape as
+                // Contractor/Labour Cost above, attributed to just this
+                // Work's own workType rate. Zero for projects with no
+                // referral, or 'advance' contract-type projects (their
+                // commission is one flat project-level figure, not
+                // per-work). See computeWorkProfit's own comment.
+                commissionCost: workProfit.commissionCost, totalCommissionAmount: workProfit.totalCommissionAmount,
+                unapprovedCommissionAmount: workProfit.unapprovedCommissionAmount,
+                // The Unapproved section's own mini profit picture — what
+                // this Work's still-unreviewed sqft would add to Revenue/
+                // Profit once reviewed and billed, mirroring
+                // ProjectDetail.jsx's Unapproved table exactly.
+                unapprovedRevenue: workProfit.unapprovedRevenue,
+                unapprovedProfit: round2(workProfit.unapprovedRevenue
+                    - round2(Math.max(0, totalContractorAmount - workProfit.contractorCost))
+                    - round2(Math.max(0, totalLabourAmount - workProfit.labourCost))
+                    - workProfit.unapprovedCommissionAmount),
                 // Forward-looking, all-time only like revenue/profit above —
                 // there's one estimatedAreaSqft per Work, not one per
                 // Day/Month, so "expected pay for just this month" isn't a
@@ -2598,7 +2698,7 @@ const getDashboardSummary = async (req, res) => {
         // incurred regardless of payment timing). Salary is cash-basis —
         // see computeSalaryPaidInRange's own comment for why it's different
         // from expense here.
-        const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown, labourRows, commissionBreakdown, salaryPayables, salaryPaidThisMonth] = await Promise.all([
+        const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth] = await Promise.all([
             computeCompanyWideMaterialCostInRange(monthStart, monthEnd),
             computeCompanyWideContractorCostInRange(monthStart, monthEnd, null, true),
             computeCompanyWideCommissionCostInRange(monthStart, monthEnd, null, true),
@@ -2612,6 +2712,7 @@ const getDashboardSummary = async (req, res) => {
             computeCompanyWideCommissionBreakdown(),
             computeCompanyWideSalaryPayable(monthKey),
             computeSalaryPaidInRange(monthStart, monthEnd),
+            computeCompanyWideSalaryExpectedThisMonth(monthKey),
         ]);
         const thisMonthRevenue = monthRevenueAgg[0]?.total || 0;
         const thisMonthExpense = monthExpenseAgg[0]?.total || 0;
@@ -2627,7 +2728,14 @@ const getDashboardSummary = async (req, res) => {
                 contractorPayables: contractorRows.reduce((s, r) => s + r.balancePayable, 0),
                 labourPayables: round2(labourRows.reduce((s, r) => s + r.balancePayable, 0)),
                 commissionPayables: commissionBreakdown.commissionPayable,
-                salaryPayables,
+                // "Payment left" — overdue-only (closed months, unpaid),
+                // NOT the full payable-including-this-month total, so this
+                // is 0 whenever salaryOverdue is false. They're the same
+                // underlying number by construction, so they can never
+                // contradict each other.
+                salaryPayables: salaryPayableBreakdown.overduePayable,
+                salaryExpectedThisMonth,
+                salaryOverdue: salaryPayableBreakdown.overduePayable > 0.5,
                 runningBillsReady: readyProjectIds.length,
                 activeProjects: activeProjectsCount,
                 activeWorks: activeWorksCount,

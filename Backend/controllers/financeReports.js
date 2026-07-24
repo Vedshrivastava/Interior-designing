@@ -1413,9 +1413,12 @@ const computeContractorAnalysisRows = async (projectId) => {
         const assignments = await FinanceWorkContractorAssignment.find({ contractorVendorId: v._id, deleted: { $ne: true } });
         const workIds = assignments.map(a => a.workId);
 
-        const workFilter = { _id: { $in: workIds }, deleted: { $ne: true } };
-        if (projectId) workFilter.projectId = projectId;
-        const works = workIds.length ? await FinanceWork.find(workFilter) : [];
+        // Always every work this vendor is assigned to, company-wide, even
+        // when scoped to one project — computing that project's fair share
+        // of this vendor's general (untagged) advances/deductions/payments
+        // below needs their earnings across every project, not just this
+        // one (see the allocate() comment further down).
+        const works = workIds.length ? await FinanceWork.find({ _id: { $in: workIds }, deleted: { $ne: true } }) : [];
         const workById = new Map(works.map(w => [w._id.toString(), w]));
 
         const projectIds = [...new Set(works.map(w => w.projectId.toString()))];
@@ -1460,16 +1463,26 @@ const computeContractorAnalysisRows = async (projectId) => {
         let unapprovedAmountTotal = 0;
         let directPaymentUnapprovedTotal = 0;
         let directPaymentApprovedTotal = 0;
+        // Gross earnings across every project this vendor works on — the
+        // allocation basis for general advances/deductions/payments below,
+        // so it has to keep accumulating even for works outside the current
+        // project scope (unlike every other accumulator here, which stays
+        // scoped to just this project).
+        let totalEarningsAllProjects = 0;
         for (const work of works) {
             const workKey = work._id.toString();
             const vendorArea = vendorAreaByWork.get(workKey) || 0;
             if (!vendorArea) continue;
             const rate = rateByKey.get(`${work.projectId}_${work.workType}`);
             if (!rate) continue;
+            const workEarningsGross = vendorArea * rate.ratePerSqft;
+            totalEarningsAllProjects += workEarningsGross;
+            if (projectId && work.projectId.toString() !== projectId) continue;
+
             const workApprovedArea = approvedBillingByWorkId.get(workKey)?.areaSqft || 0;
             const vendorApprovedArea = splitApprovedAreaByShare(workApprovedArea, vendorArea, totalAreaByWork.get(workKey) || 0);
             const vendorUnapprovedArea = vendorArea - vendorApprovedArea;
-            totalEarnings += vendorArea * rate.ratePerSqft;
+            totalEarnings += workEarningsGross;
             earnings += vendorApprovedArea * rate.ratePerSqft;
             const workUnapprovedAmount = vendorUnapprovedArea * rate.ratePerSqft;
 
@@ -1484,22 +1497,38 @@ const computeContractorAnalysisRows = async (projectId) => {
         unapprovedAmountTotal = round2(unapprovedAmountTotal);
         directPaymentUnapprovedTotal = round2(directPaymentUnapprovedTotal);
         directPaymentApprovedTotal = round2(directPaymentApprovedTotal);
+        totalEarningsAllProjects = round2(totalEarningsAllProjects);
 
-        const moneyFilter = { vendorId: v._id, deleted: { $ne: true } };
-        if (projectId) moneyFilter.projectId = projectId;
+        // Always company-wide — financeContractorAdvance/Deduction/Payment's
+        // projectId is optional ("not every advance is tied to one
+        // project"), so a naive projectId-filtered query silently excluded
+        // every general/untagged money movement once scoped to a project,
+        // making a vendor read as still owed the full amount right after
+        // being paid. A general row is allocated across every project this
+        // vendor works on in proportion to that project's own share of
+        // their gross earnings — deterministic, and the sum of every
+        // project's own balancePayable (if added up) always equals this
+        // vendor's true company-wide balance, same as the unscoped call.
         const [advances, deductions, payments] = await Promise.all([
-            FinanceContractorAdvance.find(moneyFilter),
-            FinanceContractorDeduction.find(moneyFilter),
-            FinanceContractorPayment.find(moneyFilter),
+            FinanceContractorAdvance.find({ vendorId: v._id, deleted: { $ne: true } }),
+            FinanceContractorDeduction.find({ vendorId: v._id, deleted: { $ne: true } }),
+            FinanceContractorPayment.find({ vendorId: v._id, deleted: { $ne: true } }),
         ]);
-        const advancesTotal = advances.reduce((s, a) => s + a.amount, 0);
+        const allocate = (rows) => {
+            if (!projectId) return rows.reduce((s, r) => s + r.amount, 0);
+            const tagged = rows.filter(r => r.projectId?.toString() === projectId).reduce((s, r) => s + r.amount, 0);
+            const general = rows.filter(r => !r.projectId).reduce((s, r) => s + r.amount, 0);
+            const share = totalEarningsAllProjects > 0 ? totalEarnings / totalEarningsAllProjects : 0;
+            return tagged + general * share;
+        };
+        const advancesTotal = round2(allocate(advances));
         // Only the spillover portion of client-direct-payments (not already
         // absorbed by this vendor's unapproved amount above) reduces
         // Approved earnings — see financeContractorLedger.js's identical
         // comment on directPaymentUnapprovedTotal.
-        const deductionsTotal = deductions.reduce((s, d) => s + d.amount, 0) + directPaymentApprovedTotal;
-        const paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
-        const balancePayable = earnings - advancesTotal - deductionsTotal - paymentsTotal;
+        const deductionsTotal = round2(allocate(deductions) + directPaymentApprovedTotal);
+        const paymentsTotal = round2(allocate(payments));
+        const balancePayable = round2(earnings - advancesTotal - deductionsTotal - paymentsTotal);
 
         return {
             // Field names match financeContractorLedger.js's getContractorLedger
@@ -1536,9 +1565,9 @@ const computeLabourAnalysisRows = async (projectId) => {
         const assignments = await FinanceWorkLabourAssignment.find({ labourerId: l._id, deleted: { $ne: true } });
         const workIds = assignments.map(a => a.workId);
 
-        const workFilter = { _id: { $in: workIds }, deleted: { $ne: true } };
-        if (projectId) workFilter.projectId = projectId;
-        const works = workIds.length ? await FinanceWork.find(workFilter) : [];
+        // Always every work this labourer is assigned to, company-wide —
+        // see computeContractorAnalysisRows' identical comment.
+        const works = workIds.length ? await FinanceWork.find({ _id: { $in: workIds }, deleted: { $ne: true } }) : [];
 
         const projectIds = [...new Set(works.map(w => w.projectId.toString()))];
         const [rates, labourerMeasurements, allMeasurementsOnTheseWorks, approvedBillingByWorkId, directPaymentByWork] = await Promise.all([
@@ -1579,16 +1608,23 @@ const computeLabourAnalysisRows = async (projectId) => {
         let unapprovedAmountTotal = 0;
         let directPaymentUnapprovedTotal = 0;
         let directPaymentApprovedTotal = 0;
+        // See computeContractorAnalysisRows' identical comment — allocation
+        // basis for general advances/deductions/payments below.
+        let totalEarningsAllProjects = 0;
         for (const work of works) {
             const workKey = work._id.toString();
             const labourerArea = labourerAreaByWork.get(workKey) || 0;
             if (!labourerArea) continue;
             const rate = rateByKey.get(`${work.projectId}_${work.workType}`);
             if (!rate) continue;
+            const workEarningsGross = labourerArea * rate.ratePerSqft;
+            totalEarningsAllProjects += workEarningsGross;
+            if (projectId && work.projectId.toString() !== projectId) continue;
+
             const workApprovedArea = approvedBillingByWorkId.get(workKey)?.areaSqft || 0;
             const labourerApprovedArea = splitApprovedAreaByShare(workApprovedArea, labourerArea, totalAreaByWork.get(workKey) || 0);
             const labourerUnapprovedArea = labourerArea - labourerApprovedArea;
-            totalEarnings += labourerArea * rate.ratePerSqft;
+            totalEarnings += workEarningsGross;
             earnings += labourerApprovedArea * rate.ratePerSqft;
             const workUnapprovedAmount = labourerUnapprovedArea * rate.ratePerSqft;
 
@@ -1603,21 +1639,30 @@ const computeLabourAnalysisRows = async (projectId) => {
         unapprovedAmountTotal = round2(unapprovedAmountTotal);
         directPaymentUnapprovedTotal = round2(directPaymentUnapprovedTotal);
         directPaymentApprovedTotal = round2(directPaymentApprovedTotal);
+        totalEarningsAllProjects = round2(totalEarningsAllProjects);
 
-        const moneyFilter = { labourerId: l._id, deleted: { $ne: true } };
-        if (projectId) moneyFilter.projectId = projectId;
+        // Always company-wide — see computeContractorAnalysisRows' identical
+        // comment (financeLabourAdvance/Deduction/Payment.projectId is just
+        // as optional).
         const [advances, deductions, payments] = await Promise.all([
-            FinanceLabourAdvance.find(moneyFilter),
-            FinanceLabourDeduction.find(moneyFilter),
-            FinanceLabourPayment.find(moneyFilter),
+            FinanceLabourAdvance.find({ labourerId: l._id, deleted: { $ne: true } }),
+            FinanceLabourDeduction.find({ labourerId: l._id, deleted: { $ne: true } }),
+            FinanceLabourPayment.find({ labourerId: l._id, deleted: { $ne: true } }),
         ]);
-        const advancesTotal = advances.reduce((s, a) => s + a.amount, 0);
+        const allocate = (rows) => {
+            if (!projectId) return rows.reduce((s, r) => s + r.amount, 0);
+            const tagged = rows.filter(r => r.projectId?.toString() === projectId).reduce((s, r) => s + r.amount, 0);
+            const general = rows.filter(r => !r.projectId).reduce((s, r) => s + r.amount, 0);
+            const share = totalEarningsAllProjects > 0 ? totalEarnings / totalEarningsAllProjects : 0;
+            return tagged + general * share;
+        };
+        const advancesTotal = round2(allocate(advances));
         // Only the spillover portion of client-direct-payments reduces
         // Approved earnings — see financeContractorLedger.js's identical
         // comment on directPaymentUnapprovedTotal.
-        const deductionsTotal = deductions.reduce((s, d) => s + d.amount, 0) + directPaymentApprovedTotal;
-        const paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
-        const balancePayable = earnings - advancesTotal - deductionsTotal - paymentsTotal;
+        const deductionsTotal = round2(allocate(deductions) + directPaymentApprovedTotal);
+        const paymentsTotal = round2(allocate(payments));
+        const balancePayable = round2(earnings - advancesTotal - deductionsTotal - paymentsTotal);
 
         return {
             // Field names match financeLabourLedger.js's getLabourLedger
@@ -1706,18 +1751,42 @@ const computeVendorAnalysisRows = async (projectId) => {
     const vendors = await FinanceVendor.find({ vendorType: 'material_supplier', deleted: { $ne: true } });
 
     return Promise.all(vendors.map(async (v) => {
-        const purchaseFilter = { vendorId: v._id, deleted: { $ne: true } };
-        if (projectId) purchaseFilter.projectId = projectId;
-        const purchases = await FinancePurchase.find(purchaseFilter);
+        // Always fetched company-wide, not projectId-filtered at the query
+        // level — financeVendorPayment.projectId is optional ("a payment
+        // settles the vendor's overall running balance, not necessarily one
+        // project's purchases specifically"), so a naive `payments.find({
+        // projectId })` silently excluded every general/untagged payment
+        // once scoped to a project, making a vendor read as still owed the
+        // full purchase amount right after being paid. Purchases stay
+        // reliable to filter directly since financePurchase.projectId is
+        // required.
+        const [purchases, payments] = await Promise.all([
+            FinancePurchase.find({ vendorId: v._id, deleted: { $ne: true } }),
+            FinanceVendorPayment.find({ vendorId: v._id, deleted: { $ne: true } }),
+        ]);
 
-        const paymentFilter = { vendorId: v._id, deleted: { $ne: true } };
-        if (projectId) paymentFilter.projectId = projectId;
-        const payments = await FinanceVendorPayment.find(paymentFilter);
+        const scopedPurchases = projectId ? purchases.filter(p => p.projectId?.toString() === projectId) : purchases;
+        const purchaseTotal = scopedPurchases.filter(p => p.transactionType === 'purchase').reduce((s, p) => s + p.totalAmount, 0);
+        const returnTotal = scopedPurchases.filter(p => p.transactionType === 'return').reduce((s, p) => s + p.totalAmount, 0);
 
-        const purchaseTotal = purchases.filter(p => p.transactionType === 'purchase').reduce((s, p) => s + p.totalAmount, 0);
-        const returnTotal = purchases.filter(p => p.transactionType === 'return').reduce((s, p) => s + p.totalAmount, 0);
-        const paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
-        const amountOwed = purchaseTotal - returnTotal - paymentsTotal;
+        let paymentsTotal;
+        if (projectId) {
+            // A general payment isn't earmarked to any one project, so it's
+            // allocated across every project this vendor supplies in
+            // proportion to that project's own share of this vendor's total
+            // purchase volume — deterministic, and by construction the sum
+            // of every project's own amountOwed (if you added them all up)
+            // always equals this vendor's true company-wide balance, same
+            // as the unscoped call below.
+            const taggedForProject = payments.filter(p => p.projectId?.toString() === projectId).reduce((s, p) => s + p.amount, 0);
+            const generalPayments = payments.filter(p => !p.projectId).reduce((s, p) => s + p.amount, 0);
+            const totalPurchaseAllProjects = purchases.filter(p => p.transactionType === 'purchase').reduce((s, p) => s + p.totalAmount, 0);
+            const share = totalPurchaseAllProjects > 0 ? purchaseTotal / totalPurchaseAllProjects : 0;
+            paymentsTotal = round2(taggedForProject + generalPayments * share);
+        } else {
+            paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
+        }
+        const amountOwed = round2(purchaseTotal - returnTotal - paymentsTotal);
 
         return { vendorId: v._id, vendorName: v.name, purchases: purchaseTotal, returns: returnTotal, payments: paymentsTotal, amountOwed };
     }));

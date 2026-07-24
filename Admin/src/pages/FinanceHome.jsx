@@ -225,7 +225,8 @@ const FinanceHome = ({ url }) => {
                 <KpiGrid>
                     <KpiCard loading={phase1Loading} icon={faBuildingColumns} label="Cash in Bank" value={formatINR(summary?.cashInBank)} onClick={() => navigate('/finance/bank')} />
                     <KpiCard loading={phase1Loading} icon={faWallet} label="Cash in Hand" value={formatINR(summary?.cashInHand)} onClick={() => navigate('/finance/cash-book')} />
-                    <KpiCard loading={phase1Loading} icon={faFileInvoiceDollar} label="Client Receivables" value={formatINR(summary?.clientReceivables)} onClick={() => navigate('/finance/clients')} tone={summary?.clientReceivables > 0 ? 'danger' : 'good'} />
+                    <KpiCard loading={phase1Loading} icon={faFileInvoiceDollar} label="Client Receivables" value={formatINR(summary?.clientReceivables)} onClick={() => navigate('/finance/clients')} tone={summary?.clientReceivables > 0 ? 'danger' : 'good'}
+                        sub={summary?.clientCreditBalanceTotal > 0 ? `Client credit balance: ${formatINR(summary.clientCreditBalanceTotal)}` : undefined} />
                     <KpiCard loading={phase1Loading} icon={faCartShopping} label="Vendor Payables" value={formatINR(summary?.vendorPayables)} onClick={() => navigate('/finance/procurement')} tone={summary?.vendorPayables > 0 ? 'danger' : 'good'} />
                     <KpiCard loading={phase1Loading} icon={faHardHat} label="Contractor Payables" value={formatINR(summary?.contractorPayables)} onClick={() => navigate('/finance/contractors')} tone={summary?.contractorPayables > 0 ? 'danger' : 'good'} />
                     <KpiCard loading={phase1Loading} icon={faPersonDigging} label="Labour Payables" value={formatINR(summary?.labourPayables)} onClick={() => navigate('/finance/daily-labour')} tone={summary?.labourPayables > 0 ? 'danger' : 'good'} />

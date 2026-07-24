@@ -42,6 +42,10 @@ const ClientDashboardSummary = ({ url, clientId }) => {
                 <KpiCard label="Total Received" value={formatINR(detail.totalReceived)} />
                 <KpiCard label="Outstanding" value={formatINR(detail.outstanding)} tone={detail.outstanding > 0 ? 'danger' : 'good'} />
                 <KpiCard label="Margin %" value={`${Math.round((detail.marginPercent || 0) * 10) / 10}%`} tone={detail.marginPercent >= 0 ? 'good' : 'danger'} />
+                {detail.clientCreditBalance > 0 && (
+                    <KpiCard label="Client Credit Balance" value={formatINR(detail.clientCreditBalance)} tone="good"
+                        sub="Direct payments ahead of what's been billed — applied automatically to future bills" />
+                )}
             </KpiGrid>
             <ChartGrid>
                 <ChartCard title="Receivables Aging">

@@ -33,7 +33,7 @@ import FinanceReferral from '../models/financeReferral.js';
 import FinanceEmployee from '../models/financeEmployee.js';
 import { summarizeProject } from './financeReceivable.js';
 import { expectedSalaryForMonth } from './financeSalaryLedger.js';
-import { getWorkerPayoutDeductionByWork, getWorkerPayoutDeductionsForWork, getWorkerPayoutDeductionsBulk, getClientBillCreditTotal } from './financeClientDirectPayment.js';
+import { getWorkerPayoutDeductionByWork, getWorkerPayoutDeductionsForWork, getWorkerPayoutDeductionsBulk } from './financeClientDirectPayment.js';
 import FinanceSetting from '../models/financeSetting.js';
 import FinanceBankAccount from '../models/financeBankAccount.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
@@ -517,10 +517,19 @@ const computeProjectProfit = async (projectId) => {
     // because it hasn't been reviewed. Never negative: review can only ever
     // approve up to what's logged, not more. Net of any client direct
     // payment (category flagged "cut from worker payout") already absorbed
-    // against it — see computeProjectContractorCost's own comment.
+    // against it — this is "Payment Left" (how much MORE the company itself
+    // still has to pay), used as-is by the Ledger/Payables/dashboard "Payment
+    // Left" figures. NOT what unapprovedProfit below should subtract — a
+    // client direct payment is a receivable-and-payable wash (it shrinks
+    // what the client owes and what the worker is owed by the exact same
+    // amount, at the same time), it doesn't change the true cost of the
+    // work, so it must have zero net effect on profit either way.
     const unapprovedContractorCost = round2(Math.max(0, contractorCostInfo.totalAmount - contractorCost - contractorCostInfo.directPaymentUnapproved));
     const unapprovedLabourCost = round2(Math.max(0, labourCostInfo.totalAmount - labourCost - labourCostInfo.directPaymentUnapproved));
     const unapprovedCommissionCost = round2(Math.max(0, commissionCostInfo.totalAmount - commissionCost));
+    // Gross — un-netted — versions, for unapprovedProfit only.
+    const grossUnapprovedContractorCost = round2(Math.max(0, contractorCostInfo.totalAmount - contractorCost));
+    const grossUnapprovedLabourCost = round2(Math.max(0, labourCostInfo.totalAmount - labourCost));
 
     return {
         projectId: project._id, projectName: project.name, clientId: project.clientId,
@@ -535,7 +544,7 @@ const computeProjectProfit = async (projectId) => {
         // "Unapproved" section's own mini profit picture, same shape as the
         // approved figures above it.
         unapprovedRevenue, unapprovedAreaSqft,
-        unapprovedProfit: round2(unapprovedRevenue - unapprovedContractorCost - unapprovedLabourCost - unapprovedCommissionCost),
+        unapprovedProfit: round2(unapprovedRevenue - grossUnapprovedContractorCost - grossUnapprovedLabourCost - unapprovedCommissionCost),
         marginPercent: revenue > 0 ? (profit / revenue) * 100 : 0,
     };
 };
@@ -2746,21 +2755,19 @@ const getDashboardSummary = async (req, res) => {
         const completedWorkIds = await FinanceWork.distinct('_id', { status: 'completed', deleted: { $ne: true } });
 
         const [
-            bankAccounts, cashEntriesToDate, issuedAgg, receivedAgg, directPaymentCreditsTotal, contractorRows, vendorRows,
+            bankAccounts, cashEntriesToDate, receivableSummaries, contractorRows, vendorRows,
             readyProjectIds, activeProjectsCount, activeWorksCount, labourersWorkingTodayIds, lowStockCount,
             todayContractorMeasurements, todayLabourMeasurements, monthRevenueAgg, recentActivities,
         ] = await Promise.all([
             FinanceBankAccount.find({ deleted: { $ne: true } }),
             FinanceCashEntry.find({ deleted: { $ne: true }, date: { $lte: todayEnd } }),
-            FinanceRunningBill.aggregate([
-                { $match: { projectId: { $in: billableProjectIds }, status: 'issued', deleted: { $ne: true } } },
-                { $group: { _id: null, total: { $sum: '$totalAmount' } } },
-            ]),
-            FinanceReceipt.aggregate([
-                { $match: { projectId: { $in: billableProjectIds }, deleted: { $ne: true } } },
-                { $group: { _id: null, total: { $sum: '$amount' } } },
-            ]),
-            getClientBillCreditTotal(billableProjectIds),
+            // Per-project (via the same summarizeProject Receivables uses),
+            // not one flat company-wide aggregate — each project's own
+            // balance/clientCreditBalance is clamped at 0 individually
+            // before being summed below, so one project's direct-payment
+            // credit can never quietly offset a different project's
+            // genuinely-owed balance in this combined total.
+            Promise.all(billableProjects.map(summarizeProject)),
             computeContractorAnalysisRows(),
             computeVendorAnalysisRows(),
             computeReadyProjectIds(billableProjectIds),
@@ -2895,7 +2902,13 @@ const getDashboardSummary = async (req, res) => {
             success: true,
             data: {
                 cashInBank, cashInHand,
-                clientReceivables: (issuedAgg[0]?.total || 0) - (receivedAgg[0]?.total || 0) - directPaymentCreditsTotal,
+                clientReceivables: round2(receivableSummaries.reduce((s, r) => s + r.balance, 0)),
+                // Running credit clients have built up via direct payments
+                // that outran what's been billed so far on their project —
+                // not part of Receivables, just surfaced so it's not a
+                // silent reason a project's Outstanding reads lower than
+                // expected. See summarizeProject's own comment.
+                clientCreditBalanceTotal: round2(receivableSummaries.reduce((s, r) => s + r.clientCreditBalance, 0)),
                 vendorPayables: vendorRows.reduce((s, r) => s + r.amountOwed, 0),
                 contractorPayables: contractorRows.reduce((s, r) => s + r.balancePayable, 0),
                 labourPayables: round2(labourRows.reduce((s, r) => s + r.balancePayable, 0)),
@@ -2927,8 +2940,16 @@ const getDashboardSummary = async (req, res) => {
                 directPaymentLabourApproved: approvedBreakdown.directPaymentLabourApproved,
                 unapprovedCommissionTotal: commissionBreakdown.unapprovedCommissionTotal,
                 unapprovedRevenueTotal: approvedBreakdown.unapprovedRevenueTotal,
+                // Gross — a client direct payment shrinks a receivable and a
+                // payable by the same amount at the same time, so it must
+                // have zero net effect on profit; adding the already-netted
+                // unapprovedContractorTotal/unapprovedLabourTotal above back
+                // up to their gross (pre-direct-payment) cost here, same fix
+                // as computeProjectProfit's unapprovedProfit.
                 unapprovedProfitTotal: round2(approvedBreakdown.unapprovedRevenueTotal
-                    - approvedBreakdown.unapprovedContractorTotal - approvedBreakdown.unapprovedLabourTotal - commissionBreakdown.unapprovedCommissionTotal),
+                    - (approvedBreakdown.unapprovedContractorTotal + approvedBreakdown.directPaymentContractorUnapproved)
+                    - (approvedBreakdown.unapprovedLabourTotal + approvedBreakdown.directPaymentLabourUnapproved)
+                    - commissionBreakdown.unapprovedCommissionTotal),
                 thisMonthRevenue, thisMonthProfit, thisMonthExpense,
                 recentActivities,
             },
@@ -2995,15 +3016,24 @@ const getClientsSummary = async (req, res) => {
         const rows = await Promise.all(clients.map(async (c) => {
             const projects = await FinanceProject.find({ clientId: c._id, deleted: { $ne: true }, contractType: { $in: BILLABLE_CONTRACT_TYPES } }, '_id');
             const projectIds = projects.map(p => p._id);
-            const [bills, receipts] = projectIds.length ? await Promise.all([
+            const [bills, receipts, summaries] = projectIds.length ? await Promise.all([
                 FinanceRunningBill.find({ projectId: { $in: projectIds }, status: 'issued', deleted: { $ne: true } }).sort({ billDate: 1 }),
                 FinanceReceipt.find({ projectId: { $in: projectIds }, deleted: { $ne: true } }),
-            ]) : [[], []];
+                Promise.all(projects.map(summarizeProject)),
+            ]) : [[], [], []];
             const totalBilled = bills.reduce((s, b) => s + b.totalAmount, 0);
             const totalReceived = receipts.reduce((s, r) => s + r.amount, 0);
+            // outstanding/clientCreditBalance come from summarizeProject
+            // (per-project, each already clamped at 0) summed here — not
+            // totalBilled - totalReceived directly, which ignores client
+            // direct payment credits entirely and can't reflect a running
+            // credit balance either. totalBilled/totalReceived themselves
+            // stay raw for the aging breakdown below, unaffected.
+            const outstanding = round2(summaries.reduce((s, r) => s + r.balance, 0));
+            const clientCreditBalance = round2(summaries.reduce((s, r) => s + r.clientCreditBalance, 0));
             return {
                 clientId: c._id, clientName: c.name, totalBilled, totalReceived,
-                outstanding: totalBilled - totalReceived, aging: computeAging(bills, receipts),
+                outstanding, clientCreditBalance, aging: computeAging(bills, receipts),
             };
         }));
 
@@ -3039,26 +3069,38 @@ const getClientDetail = async (req, res) => {
 
         const billableProjects = projects.filter(p => BILLABLE_CONTRACT_TYPES.includes(p.contractType));
         const projectIds = billableProjects.map(p => p._id);
-        const [bills, receipts] = await Promise.all([
+        const [bills, receipts, summaries] = await Promise.all([
             FinanceRunningBill.find({ projectId: { $in: projectIds }, status: 'issued', deleted: { $ne: true } }).sort({ billDate: 1 }),
             FinanceReceipt.find({ projectId: { $in: projectIds }, deleted: { $ne: true } }).sort({ receiptDate: -1 }),
+            Promise.all(billableProjects.map(summarizeProject)),
         ]);
         const totalBilled = bills.reduce((s, b) => s + b.totalAmount, 0);
         const totalReceived = receipts.reduce((s, r) => s + r.amount, 0);
+        const summaryByProjectId = new Map(summaries.map(s => [s.projectId.toString(), s]));
+        // Client-wide outstanding/credit summed from each project's own
+        // already-clamped balance/clientCreditBalance — same reasoning as
+        // getClientsSummary and the Dashboard's clientReceivables above.
+        const outstanding = round2(summaries.reduce((s, r) => s + r.balance, 0));
+        const clientCreditBalance = round2(summaries.reduce((s, r) => s + r.clientCreditBalance, 0));
 
         const projectsSummary = billableProjects.map(p => {
             const pBills = bills.filter(b => b.projectId.toString() === p._id.toString());
             const pReceipts = receipts.filter(r => r.projectId.toString() === p._id.toString());
             const billed = pBills.reduce((s, b) => s + b.totalAmount, 0);
             const received = pReceipts.reduce((s, r) => s + r.amount, 0);
-            return { projectId: p._id, projectName: p.name, billed, received, outstanding: billed - received };
+            const summary = summaryByProjectId.get(p._id.toString());
+            return {
+                projectId: p._id, projectName: p.name, billed, received,
+                outstanding: summary?.balance ?? Math.max(0, billed - received),
+                clientCreditBalance: summary?.clientCreditBalance ?? 0,
+            };
         });
 
         res.json({
             success: true,
             data: {
                 clientId: client._id, clientName: client.name,
-                totalBilled, totalReceived, outstanding: totalBilled - totalReceived, marginPercent,
+                totalBilled, totalReceived, outstanding, clientCreditBalance, marginPercent,
                 projects: projectsSummary, receipts, aging: computeAging(bills, receipts),
             },
         });

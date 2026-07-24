@@ -195,17 +195,33 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
                 </ChartCard>
             </ChartGrid>
 
-            {receivable && (
-                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: "1fr" }}><b>Receivable Status</b></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: receivable.directPaymentCredits > 0 ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr' }}>
-                        <p>Billed: {formatINR(receivable.issuedTotal)}</p>
-                        <p>Received: {formatINR(receivable.receivedTotal)}</p>
-                        {receivable.directPaymentCredits > 0 && <p>Client Direct Payment Credits: {formatINR(receivable.directPaymentCredits)}</p>}
-                        <p style={{ color: receivable.balance > 0 ? '#c0392b' : 'var(--moss)' }}>Outstanding: {formatINR(receivable.balance)}</p>
+            {receivable && (() => {
+                const hasCredits = receivable.directPaymentCredits > 0;
+                const cols = hasCredits ? '1fr 1fr 1fr 1fr 1fr' : '1fr 1fr 1fr';
+                return (
+                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Receivable Status</b></div>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: cols }}>
+                            <b>Billed</b><b>Received</b>
+                            {hasCredits && <b>Client Direct Payment Credits</b>}
+                            {hasCredits && <b>Client Credit Balance</b>}
+                            <b>Outstanding</b>
+                        </div>
+                        <div className="list-table-format row-item" style={{ gridTemplateColumns: cols }}>
+                            <p>{formatINR(receivable.issuedTotal)}</p>
+                            <p>{formatINR(receivable.receivedTotal)}</p>
+                            {hasCredits && <p>{formatINR(receivable.directPaymentCredits)}</p>}
+                            {hasCredits && <p style={{ color: receivable.clientCreditBalance > 0 ? 'var(--moss)' : undefined }}>{formatINR(receivable.clientCreditBalance)}</p>}
+                            <p style={{ color: receivable.balance > 0 ? '#c0392b' : 'var(--moss)' }}>{formatINR(receivable.balance)}</p>
+                        </div>
+                        {receivable.clientCreditBalance > 0 && (
+                            <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
+                                Client direct payments so far exceed what's been billed yet for this project — Outstanding stays at ₹0 rather than going negative, and the <strong>{formatINR(receivable.clientCreditBalance)} Client Credit Balance</strong> is applied automatically as new bills are issued.
+                            </p>
+                        )}
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {materials.length > 0 && (
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>

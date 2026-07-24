@@ -22,6 +22,16 @@ const summarizeProject = async (project) => {
     // on this project, so it counts against Outstanding same as a receipt,
     // without actually being one (see financeClientDirectPayment.js).
     const directPaymentCredits = await getClientBillCreditTotal(project._id);
+    // A direct payment credits against Outstanding the moment it's entered,
+    // even if the specific Work it's tied to hasn't been billed yet — so it
+    // can outrun issuedTotal - receivedTotal and go negative. That's not
+    // wrong (the client really has pre-paid that much), it's just not a
+    // debt the company can show as "Outstanding: -₹X" without it reading as
+    // the company owing the client cash back. Clamp the balance at 0 and
+    // surface the excess separately as a running credit instead — it gets
+    // silently absorbed as new bills raise issuedTotal on future calls,
+    // same "computed fresh every time" rule as everything else here.
+    const rawBalance = issuedTotal - receivedTotal - directPaymentCredits;
 
     return {
         projectId: project._id,
@@ -29,7 +39,8 @@ const summarizeProject = async (project) => {
         clientId: project.clientId?._id || project.clientId,
         clientName: project.clientId?.name,
         issuedTotal, receivedTotal, directPaymentCredits,
-        balance: issuedTotal - receivedTotal - directPaymentCredits,
+        balance: Math.max(0, rawBalance),
+        clientCreditBalance: Math.max(0, -rawBalance),
         issuedBillCount: issuedBills.length,
         // No due-date field exists anywhere on a project, so there's no
         // real basis for a true "overdue" flag — this is the closest
@@ -58,8 +69,12 @@ const getReceivablesSummary = async (req, res) => {
                 issuedTotal: acc.issuedTotal + s.issuedTotal,
                 receivedTotal: acc.receivedTotal + s.receivedTotal,
                 directPaymentCredits: acc.directPaymentCredits + s.directPaymentCredits,
+                // Summed from each project's already-clamped balance/credit —
+                // one project's credit must never quietly offset another
+                // project's real debt in this client's rollup total.
                 balance: acc.balance + s.balance,
-            }), { issuedTotal: 0, receivedTotal: 0, directPaymentCredits: 0, balance: 0 });
+                clientCreditBalance: acc.clientCreditBalance + s.clientCreditBalance,
+            }), { issuedTotal: 0, receivedTotal: 0, directPaymentCredits: 0, balance: 0, clientCreditBalance: 0 });
             return res.json({ success: true, data: { clientId, ...rollup, projects: summaries } });
         }
 

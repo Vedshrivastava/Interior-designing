@@ -119,7 +119,14 @@ const ClientsPage = ({ url }) => {
                                 <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/clients/${c.clientId}`)}>{c.clientName}</p>
                                 <p>{formatINR(c.totalBilled)}</p>
                                 <p>{formatINR(c.totalReceived)}</p>
-                                <p style={{ color: c.outstanding > 0 ? '#c0392b' : 'var(--moss)' }}>{formatINR(c.outstanding)}</p>
+                                <p style={{ color: c.outstanding > 0 ? '#c0392b' : 'var(--moss)' }}>
+                                    {formatINR(c.outstanding)}
+                                    {c.clientCreditBalance > 0 && (
+                                        <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--moss)', fontWeight: 400 }}>
+                                            {formatINR(c.clientCreditBalance)} credit
+                                        </span>
+                                    )}
+                                </p>
                             </div>
                         ))}
                     </div>

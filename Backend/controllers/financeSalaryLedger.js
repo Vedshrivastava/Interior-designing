@@ -10,15 +10,21 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 // without this, a brand-new hire (or anyone checked partway through their
 // joining month) showed a full month's salary as immediately due.
 const expectedSalaryForMonth = (employee, month) => {
-    if (!employee.joiningDate) return employee.salary;
+    // employee.salary is nullable in practice — leaving the Add/Edit
+    // Employee form's optional Salary field blank sends '' to a Number
+    // field, which Mongoose casts to null (not the schema's `0` default;
+    // that only applies when the field is undefined) — so this can't
+    // assume a number here.
+    const salary = employee.salary || 0;
+    if (!employee.joiningDate) return salary;
     const joined = new Date(employee.joiningDate);
     const joinedMonth = joined.toISOString().slice(0, 7);
     if (joinedMonth > month) return 0;
-    if (joinedMonth < month) return employee.salary;
+    if (joinedMonth < month) return salary;
     const [y, m] = month.split('-').map(Number);
     const daysInMonth = new Date(y, m, 0).getDate();
     const daysWorked = daysInMonth - joined.getDate() + 1;
-    return round2(employee.salary * daysWorked / daysInMonth);
+    return round2(salary * daysWorked / daysInMonth);
 };
 
 /*
@@ -65,7 +71,7 @@ const getSalaryLedger = async (req, res) => {
 
         res.json({
             success: true,
-            data: { employeeId: employee._id, employeeName: employee.name, expectedSalary: employee.salary, months: byMonth, payments: allPayments },
+            data: { employeeId: employee._id, employeeName: employee.name, expectedSalary: employee.salary || 0, months: byMonth, payments: allPayments },
         });
     } catch (err) {
         console.error(err);

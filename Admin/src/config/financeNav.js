@@ -3,7 +3,7 @@ import {
   faClipboardList, faCartShopping, faWarehouse, faHardHat, faUserShield,
   faPersonDigging, faHandshake, faFileInvoiceDollar, faReceipt, faMoneyBillWave,
   faMoneyBillTransfer, faBuildingColumns, faBook, faFileExport, faUsersGear,
-  faGear, faTrashCan,
+  faGear, faTrashCan, faUsers,
 } from '@fortawesome/free-solid-svg-icons';
 
 /*
@@ -140,6 +140,34 @@ export const FINANCE_NAV_SECTIONS = [
           { key: 'salary',      label: 'Salary',             description: 'Same salary ledger as Masters, filtered to this employee.' },
           { key: 'incentives',  label: 'Incentives',         description: 'Discretionary payouts on top of salary: includes automatic credits for catching and fixing a labourer\'s mistake on the spot.' },
           { key: 'deductions',  label: 'Deductions',         description: 'Manual cuts against salary: typically entered when an engineer\'s periodic labour review finds the supervisor jointly accountable for a flaw.' },
+        ],
+      },
+      {
+        to: '/finance/employees', icon: faUsers, label: 'Employees',
+        // New page — relocates Add Employee and Salary Ledger out of
+        // Master Data (Masters is meant for dropdown/enum lists and the
+        // material catalog, not people). Directory tab is the exact same
+        // MasterCrudTable Masters used to render for the 'employees' tab
+        // (add/edit/delete, full field set including Role); every other
+        // tab is a "pick one employee" section page, same pattern as
+        // Supervisors below — Role (Supervisor/Staff) decides which
+        // supervisor-shaped sections (Assigned Projects/Team/Labour
+        // Ledger/Performance) actually show, since those key off data
+        // (financeProject.assignedSupervisorId, work-labour-assignment's
+        // supervisorId) that only a supervisor has. Supervisors stays a
+        // separate entry for now; once this page is confirmed to cover
+        // everything it does, that entry gets removed and folded in here.
+        tabs: [
+          { key: 'directory',   label: 'Directory',         description: 'Employee master: name, role (Supervisor/Staff), designation, salary, bank details. Add/edit/delete here.' },
+          { key: 'projects',    label: 'Assigned Projects', description: 'Supervisors only — projects whose assignedSupervisorId (or legacy assignedSupervisor string) matches this employee.' },
+          { key: 'team',        label: 'Team',               description: "Supervisors only — labourers currently on this supervisor's team, across every Work." },
+          { key: 'labour',      label: 'Labour Ledger',      description: "Supervisors only — pick a labourer from this supervisor's team to view their earnings/advances/deductions/payments ledger." },
+          { key: 'attendance',  label: 'Attendance',         description: 'Present / absent / half-day / leave, per day, for this employee.' },
+          { key: 'performance', label: 'Performance',        description: 'Supervisors only — performance metrics.' },
+          { key: 'salary',      label: 'Salary',             description: 'Expected salary minus salary payments made, by month, for this employee.' },
+          { key: 'incentives',  label: 'Incentives',         description: 'Discretionary payouts on top of salary.' },
+          { key: 'deductions',  label: 'Deductions',         description: 'Manual cuts against salary.' },
+          { key: 'documents',   label: 'Documents',          description: "This employee's uploaded documents." },
         ],
       },
       {

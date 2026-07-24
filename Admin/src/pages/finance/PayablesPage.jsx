@@ -368,7 +368,9 @@ const PayablesPage = ({ url }) => {
     const [searchParams] = useSearchParams();
     // Supports deep-linking in from a project's own Expenses tab's
     // "Details" action: ?tab=expenses opens straight to the full log, and
-    // ?expenseId= scrolls to + briefly highlights that one row.
+    // ?expenseId= scrolls to + briefly highlights that one row. ?status=
+    // (from the Dashboard's Expense Payables KPI) pre-selects that status
+    // filter instead of landing on the full unfiltered list.
     const [activeTab, setActiveTab] = useState(searchParams.get('tab') || TABS[0].key);
     const [companyId, setCompanyId] = useState('');
     const [companyName, setCompanyName] = useState('Company');
@@ -395,7 +397,7 @@ const PayablesPage = ({ url }) => {
             {activeTab === 'labourProvider' && <PayablesLabourProviderTab url={url} />}
             {activeTab === 'deductions' && <WorkDeductionAllocationPanel url={url} />}
             {activeTab === 'client-direct-payments' && <ClientDirectPaymentsManager url={url} />}
-            {activeTab === 'expenses' && <ExpensesManager url={url} highlightId={searchParams.get('expenseId')} />}
+            {activeTab === 'expenses' && <ExpensesManager url={url} highlightId={searchParams.get('expenseId')} defaultStatusFilter={searchParams.get('status')} />}
             {activeTab === 'expense-analysis' && <ExpenseAnalysisView url={url} />}
             {activeTab === 'company' && companyId && (
                 <ExpensesManager url={url} fixedRelatedTo={{ type: 'financeCompanySettings', id: companyId, label: `${companyName} Expenses` }} />

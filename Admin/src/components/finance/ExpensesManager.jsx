@@ -58,7 +58,18 @@ const workLabel = (w) => `${w.workType}${w.workOrderNumber ? ` · ${w.workOrderN
  *     posting that fixed type+id (e.g. every director hotel stay tagged
  *     straight to the company, no picker step).
  */
-const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedRelatedTo, highlightId }) => {
+const STATUS_FILTERS = [
+    { key: 'all',     label: 'All' },
+    // "Payment Left" = pending + partially paid combined (balance > 0) —
+    // matches the Dashboard's Expense Payables total exactly, so that KPI
+    // card can link straight into this filter and the two numbers agree.
+    { key: 'unpaid',  label: 'Payment Left' },
+    { key: 'pending', label: 'Pending' },
+    { key: 'partial', label: 'Partially Paid' },
+    { key: 'paid',    label: 'Paid' },
+];
+
+const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedRelatedTo, highlightId, defaultStatusFilter }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -69,6 +80,12 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     const [expenses, setExpenses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [flashId, setFlashId] = useState(highlightId || null);
+    // Defaults to whatever the caller asks for — the Dashboard's Expense
+    // Payables KPI links in with defaultStatusFilter="pending" so landing
+    // here already shows just what needs chasing; every other entry point
+    // (opening this tab directly, a project's own Expenses tab) starts on
+    // All, same as before.
+    const [statusFilter, setStatusFilter] = useState(defaultStatusFilter || 'all');
 
     const [modalOpen, setModalOpen] = useState(false);
     const [form, setForm] = useState(emptyForm);
@@ -217,10 +234,15 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     };
 
     const statusFor = (e) => {
-        if (e.balance <= 0) return { label: 'Paid', color: 'var(--moss)' };
-        if (e.paidAmount > 0) return { label: 'Partially Paid', color: '#b8860b' };
-        return { label: 'Pending', color: '#c0392b' };
+        if (e.balance <= 0) return { key: 'paid', label: 'Paid', color: 'var(--moss)' };
+        if (e.paidAmount > 0) return { key: 'partial', label: 'Partially Paid', color: '#b8860b' };
+        return { key: 'pending', label: 'Pending', color: '#c0392b' };
     };
+
+    const visibleExpenses = statusFilter === 'all' ? expenses
+        : statusFilter === 'unpaid' ? expenses.filter(e => e.balance > 0)
+        : expenses.filter(e => statusFor(e).key === statusFilter);
+    const pendingOrPartialCount = expenses.filter(e => e.balance > 0).length;
 
     // Same type-label logic as the backend's Expense Analysis breakdown
     // (financeReports.js) — kept in sync by hand since this is the only
@@ -262,6 +284,16 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                 ) : <span />}
                 <button type="button" className="add-btn" onClick={openAdd}>+ Record Expense</button>
             </div>
+
+            {pendingOrPartialCount > 0 && (
+                <div className="admin-category-scroll" style={{ paddingTop: 0 }}>
+                    {STATUS_FILTERS.map(f => (
+                        <button key={f.key} className={`admin-cat-pill${statusFilter === f.key ? ' active' : ''}`} onClick={() => setStatusFilter(f.key)}>
+                            {f.label}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {modalOpen && ReactDOM.createPortal(
                 <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
@@ -356,6 +388,8 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                 <div className="admin-empty-state"><p>Loading…</p></div>
             ) : expenses.length === 0 ? (
                 <div className="admin-empty-state"><p>No expenses recorded yet.</p></div>
+            ) : visibleExpenses.length === 0 ? (
+                <div className="admin-empty-state"><p>Nothing matches this filter.</p></div>
             ) : (
                 <div className="list-table finance-table">
                     <div className="list-table-format title" style={{ gridTemplateColumns: columns }}>
@@ -366,7 +400,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                         {!hideRelatedToField && <b>Related To</b>}
                         <b>Amount</b><b>Paid</b><b>Status</b><b>Action</b>
                     </div>
-                    {expenses.map(e => {
+                    {visibleExpenses.map(e => {
                             const status = statusFor(e);
                             return (
                                 <div

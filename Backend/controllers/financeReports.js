@@ -14,6 +14,7 @@ import { computeCurrentStock } from './financeStockMovement.js';
 import FinanceMaterial from '../models/financeMaterial.js';
 import FinanceReceipt from '../models/financeReceipt.js';
 import FinanceExpense from '../models/financeExpense.js';
+import FinanceExpensePayment from '../models/financeExpensePayment.js';
 import FinanceContractorAdvance from '../models/financeContractorAdvance.js';
 import FinanceContractorDeduction from '../models/financeContractorDeduction.js';
 import FinanceLabourDeduction from '../models/financeLabourDeduction.js';
@@ -426,6 +427,40 @@ const computeCompanyWideSalaryPayable = async (currentMonthKey) => {
         }
     }
     return { payable: round2(payable), overduePayable: round2(overduePayable), oldestUnpaidMonth };
+};
+
+// Company-wide "Expense Payables" for the Dashboard — expenses recorded as
+// pending (or only partially settled) at entry, same accrual concept as
+// every other payable here, just for the one payable type that never had
+// its own rollup: ExpensesManager already computes balance per row (see
+// financeExpense.js's withBalances) across five different mount points
+// (Payables > Expenses/Company Expenses/Other Expenses, Payments > Misc,
+// and every project's own Expenses tab), but none of them roll up into one
+// "how much is still owed across every expense, company-wide" figure —
+// which made a pending expense easy to lose track of once it wasn't the
+// one you happened to be looking at. Mirrors withBalances' own
+// paid-at-entry-vs-accrual split rather than re-deriving it differently.
+const computeCompanyWideExpensePayable = async () => {
+    const expenses = await FinanceExpense.find({ deleted: { $ne: true } }, 'amount date paymentMode bankAccountId');
+    if (!expenses.length) return { payable: 0, count: 0, oldestPendingDate: null };
+    const accrualExpenses = expenses.filter(e => !e.paymentMode && !e.bankAccountId);
+    const accrualIds = accrualExpenses.map(e => e._id);
+    const paymentAgg = accrualIds.length ? await FinanceExpensePayment.aggregate([
+        { $match: { expenseId: { $in: accrualIds }, deleted: { $ne: true } } },
+        { $group: { _id: '$expenseId', total: { $sum: '$amount' } } },
+    ]) : [];
+    const paidByExpense = new Map(paymentAgg.map(r => [r._id.toString(), r.total]));
+
+    let payable = 0, count = 0, oldestPendingDate = null;
+    for (const e of accrualExpenses) {
+        const paid = paidByExpense.get(e._id.toString()) || 0;
+        const balance = e.amount - paid;
+        if (balance <= 0.5) continue;
+        payable += balance;
+        count += 1;
+        if (!oldestPendingDate || e.date < oldestPendingDate) oldestPendingDate = e.date;
+    }
+    return { payable: round2(payable), count, oldestPendingDate };
 };
 
 // Cash-basis salary cost for This Month Profit — actual payments made this
@@ -2877,7 +2912,7 @@ const getDashboardSummary = async (req, res) => {
         // incurred regardless of payment timing). Salary is cash-basis —
         // see computeSalaryPaidInRange's own comment for why it's different
         // from expense here.
-        const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth] = await Promise.all([
+        const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth, expensePayableBreakdown] = await Promise.all([
             computeCompanyWideMaterialCostInRange(monthStart, monthEnd),
             computeCompanyWideContractorCostInRange(monthStart, monthEnd, null, true),
             computeCompanyWideCommissionCostInRange(monthStart, monthEnd, null, true),
@@ -2892,6 +2927,7 @@ const getDashboardSummary = async (req, res) => {
             computeCompanyWideSalaryPayable(monthKey),
             computeSalaryPaidInRange(monthStart, monthEnd),
             computeCompanyWideSalaryExpectedThisMonth(monthKey),
+            computeCompanyWideExpensePayable(),
         ]);
         const thisMonthRevenue = monthRevenueAgg[0]?.total || 0;
         const thisMonthExpense = monthExpenseAgg[0]?.total || 0;
@@ -2921,6 +2957,12 @@ const getDashboardSummary = async (req, res) => {
                 salaryPayables: salaryPayableBreakdown.overduePayable,
                 salaryExpectedThisMonth,
                 salaryOverdue: salaryPayableBreakdown.overduePayable > 0.5,
+                // Every expense recorded pending (or only partially settled)
+                // at entry, across every project and every Payables/Payments
+                // tab that can create one — see computeCompanyWideExpensePayable.
+                expensePayables: expensePayableBreakdown.payable,
+                expensePayablesCount: expensePayableBreakdown.count,
+                oldestPendingExpenseDate: expensePayableBreakdown.oldestPendingDate,
                 runningBillsReady: readyProjectIds.length,
                 activeProjects: activeProjectsCount,
                 activeWorks: activeWorksCount,

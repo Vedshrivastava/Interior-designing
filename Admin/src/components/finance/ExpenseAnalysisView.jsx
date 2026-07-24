@@ -7,6 +7,18 @@ import { RELATED_TO_UI_OPTIONS, relatedToUiConfig } from '../../config/relatedTo
 import '../../styles/list.css';
 import '../../styles/add.css';
 
+// Which single breakdown table to show — previously all four rendered
+// stacked at once regardless of what you actually wanted to look at, which
+// only got noisier as byWork/byRelatedTo filled in. "All" keeps the old
+// stacked view for anyone who still wants the full picture in one scroll.
+const GROUP_BY_OPTIONS = [
+    { value: 'all',       label: 'All' },
+    { value: 'category',  label: 'By Category' },
+    { value: 'project',   label: 'By Project' },
+    { value: 'work',      label: 'By Work' },
+    { value: 'relatedTo', label: 'By Person / Entity' },
+];
+
 const ExpenseAnalysisView = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -19,6 +31,7 @@ const ExpenseAnalysisView = ({ url }) => {
     const [relatedToOptions, setRelatedToOptions] = useState([]);
     const [from, setFrom] = useState('');
     const [to, setTo] = useState('');
+    const [groupBy, setGroupBy] = useState('category');
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -91,6 +104,10 @@ const ExpenseAnalysisView = ({ url }) => {
                     <p>To</p>
                     <StyledDatePicker value={to} onChange={setTo} align="right" />
                 </div>
+                <div className="add-product-name flex-col" style={{ maxWidth: '200px' }}>
+                    <p>Group By</p>
+                    <StyledSelect value={groupBy} onChange={setGroupBy} options={GROUP_BY_OPTIONS} />
+                </div>
             </div>
 
             {loading ? (
@@ -101,60 +118,76 @@ const ExpenseAnalysisView = ({ url }) => {
                 <>
                     <p className="admin-subtitle" style={{ marginBottom: '16px' }}>Total: ₹{data.total.toLocaleString('en-IN')}</p>
 
-                    <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By category</p>
-                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                            <b>Category</b><b>Amount</b>
-                        </div>
-                        {data.byCategory.map(c => (
-                            <div key={c.category} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                                <p>{c.category}</p><p>₹{c.amount.toLocaleString('en-IN')}</p>
-                            </div>
-                        ))}
-                    </div>
-
-                    <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By project</p>
-                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                            <b>Project</b><b>Amount</b>
-                        </div>
-                        {data.byProject.map(p => (
-                            <div key={p.projectId || 'general'} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                                <p>{p.projectName}</p><p>₹{p.amount.toLocaleString('en-IN')}</p>
-                            </div>
-                        ))}
-                    </div>
-
-                    {data.byWork.length > 0 && (
+                    {(groupBy === 'all' || groupBy === 'category') && (
                         <>
-                            <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By work</p>
+                            <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By category</p>
                             <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                                 <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                                    <b>Work</b><b>Amount</b>
+                                    <b>Category</b><b>Amount</b>
                                 </div>
-                                {data.byWork.map(w => (
-                                    <div key={w.workId} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                                        <p>{w.workType}</p><p>₹{w.amount.toLocaleString('en-IN')}</p>
+                                {data.byCategory.map(c => (
+                                    <div key={c.category} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
+                                        <p>{c.category}</p><p>₹{c.amount.toLocaleString('en-IN')}</p>
                                     </div>
                                 ))}
                             </div>
                         </>
                     )}
 
-                    {data.byRelatedTo.length > 0 && (
+                    {(groupBy === 'all' || groupBy === 'project') && (
                         <>
-                            <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By person / entity</p>
-                            <div className="list-table finance-table">
-                                <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr' }}>
-                                    <b>Name</b><b>Type</b><b>Amount</b>
+                            <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By project</p>
+                            <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                                <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
+                                    <b>Project</b><b>Amount</b>
                                 </div>
-                                {data.byRelatedTo.map(r => (
-                                    <div key={r.relatedToId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.6fr 1fr 1fr' }}>
-                                        <p>{r.name}</p><p><span className="item-category">{r.relatedToType}</span></p><p>₹{r.amount.toLocaleString('en-IN')}</p>
+                                {data.byProject.map(p => (
+                                    <div key={p.projectId || 'general'} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
+                                        <p>{p.projectName}</p><p>₹{p.amount.toLocaleString('en-IN')}</p>
                                     </div>
                                 ))}
                             </div>
                         </>
+                    )}
+
+                    {(groupBy === 'all' || groupBy === 'work') && (
+                        data.byWork.length > 0 ? (
+                            <>
+                                <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By work</p>
+                                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                                    <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
+                                        <b>Work</b><b>Amount</b>
+                                    </div>
+                                    {data.byWork.map(w => (
+                                        <div key={w.workId} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
+                                            <p>{w.workType}</p><p>₹{w.amount.toLocaleString('en-IN')}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        ) : groupBy === 'work' && (
+                            <div className="admin-empty-state"><p>No expenses in this filter are tied to a specific Work.</p></div>
+                        )
+                    )}
+
+                    {(groupBy === 'all' || groupBy === 'relatedTo') && (
+                        data.byRelatedTo.length > 0 ? (
+                            <>
+                                <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By person / entity</p>
+                                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                                    <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr' }}>
+                                        <b>Name</b><b>Type</b><b>Amount</b>
+                                    </div>
+                                    {data.byRelatedTo.map(r => (
+                                        <div key={r.relatedToId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.6fr 1fr 1fr' }}>
+                                            <p>{r.name}</p><p><span className="item-category">{r.relatedToType}</span></p><p>₹{r.amount.toLocaleString('en-IN')}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        ) : groupBy === 'relatedTo' && (
+                            <div className="admin-empty-state"><p>No expenses in this filter are tied to a person or entity.</p></div>
+                        )
                     )}
                 </>
             )}

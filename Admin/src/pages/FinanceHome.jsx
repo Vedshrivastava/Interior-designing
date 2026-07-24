@@ -9,7 +9,7 @@ import {
 import {
     faMoneyBillTransfer, faArrowTrendUp, faBuildingColumns, faWallet, faFileInvoiceDollar,
     faCartShopping, faHardHat, faReceipt, faBuilding, faClipboardList, faPersonDigging,
-    faRulerCombined, faTriangleExclamation, faMoneyBillWave, faHandHoldingDollar, faUsers,
+    faRulerCombined, faTriangleExclamation, faMoneyBillWave, faHandHoldingDollar, faUsers, faFileInvoice,
 } from '@fortawesome/free-solid-svg-icons';
 import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ActivityCard, ChartTooltip, CHART_COLORS, formatINR } from '../components/finance/DashboardWidgets';
 import '../styles/welcome.css';
@@ -234,6 +234,9 @@ const FinanceHome = ({ url }) => {
                     <KpiCard loading={phase1Loading} icon={faUsers} label="Salaries Payable This Month" value={formatINR(summary?.salaryExpectedThisMonth)}
                         sub={`Payment left: ${formatINR(summary?.salaryPayables)}`}
                         onClick={() => navigate('/finance/payables?tab=salary')} tone={summary?.salaryOverdue ? 'danger' : undefined} />
+                    <KpiCard loading={phase1Loading} icon={faFileInvoice} label="Expense Payables" value={formatINR(summary?.expensePayables)}
+                        sub={summary?.expensePayablesCount > 0 ? `${summary.expensePayablesCount} expense${summary.expensePayablesCount === 1 ? '' : 's'} pending or partially paid` : undefined}
+                        onClick={() => navigate('/finance/payables?tab=expenses&status=unpaid')} tone={summary?.expensePayables > 0 ? 'danger' : 'good'} />
                     <KpiCard loading={phase1Loading} icon={faReceipt} label="Running Bills Ready" value={summary?.runningBillsReady ?? 0} onClick={() => navigate('/finance/receivables')} />
                 </KpiGrid>
 

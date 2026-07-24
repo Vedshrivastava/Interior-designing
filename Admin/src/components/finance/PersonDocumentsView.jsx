@@ -17,7 +17,7 @@ const RESOURCE_CONFIG = {
  * Documents on file for one person (labourer, contractor, or
  * supervisor/employee — all three models carry the same documents:
  * [{url, note}] shape). Reused across ContractorsPage, the new Labourers
- * page, and SupervisorsPage's Documents tab — only `resourceKey` and
+ * page, and EmployeesPage's Documents tab — only `resourceKey` and
  * `entityId` change per caller. Fetches the whole list and finds this
  * one record client-side (same pattern as the rest of this codebase;
  * there's no GET-by-id endpoint for these resources and rosters are

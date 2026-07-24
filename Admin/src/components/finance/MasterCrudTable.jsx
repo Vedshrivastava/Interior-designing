@@ -125,6 +125,12 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
             let v = item[f.key];
             if (f.type === 'vendorSelect' || f.type === 'resourceSelect') v = v?._id || v || '';
             if (f.type === 'date' && v) v = new Date(v).toISOString().slice(0, 10);
+            // confirmText fields (e.g. "Re-enter Account Number") never persist
+            // their own value — pre-fill from the real field they confirm so
+            // an edit that doesn't touch that field can still save; the
+            // mismatch check below still catches it the moment either one is
+            // actually changed without the other.
+            if (f.type === 'confirmText') v = item[f.matchKey];
             next[f.key] = v ?? next[f.key];
         });
         setForm(next);

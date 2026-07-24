@@ -45,7 +45,6 @@ import PaymentsPage from './pages/finance/PaymentsPage';
 import BankPage from './pages/finance/BankPage';
 import CashBookPage from './pages/finance/CashBookPage';
 import ReportsPage from './pages/finance/ReportsPage';
-import SupervisorsPage from './pages/finance/SupervisorsPage';
 import EmployeesPage from './pages/finance/EmployeesPage';
 import SettingsPage from './pages/finance/SettingsPage';
 import FinanceRecoveryBin from './pages/finance/FinanceRecoveryBin';
@@ -351,14 +350,6 @@ const App = () => {
               }
             />
             <Route
-              path='/finance/supervisors'
-              element={
-                <ProtectedRoute setShowLogin={setShowLogin}>
-                  <SupervisorsPage url={url} />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path='/finance/employees'
               element={
                 <ProtectedRoute setShowLogin={setShowLogin}>
@@ -413,7 +404,7 @@ const App = () => {
               '/finance/receivables', '/finance/receipts',
               '/finance/payables', '/finance/payments',
               '/finance/bank', '/finance/cash-book', '/finance/reports',
-              '/finance/supervisors', '/finance/employees', '/finance/daily-labour', '/finance/referrals', '/finance/settings',
+              '/finance/employees', '/finance/daily-labour', '/finance/referrals', '/finance/settings',
               '/finance/activity', '/finance/recovery-bin',
             ].includes(r.to)).map(({ to, label, phase, tabs }) => (
               <Route

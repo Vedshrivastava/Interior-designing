@@ -1,6 +1,6 @@
 import {
   faGaugeHigh, faClockRotateLeft, faUserTie, faBuilding, faCirclePlus,
-  faClipboardList, faCartShopping, faWarehouse, faHardHat, faUserShield,
+  faClipboardList, faCartShopping, faWarehouse, faHardHat,
   faPersonDigging, faHandshake, faFileInvoiceDollar, faReceipt, faMoneyBillWave,
   faMoneyBillTransfer, faBuildingColumns, faBook, faFileExport, faUsersGear,
   faGear, faTrashCan, faUsers,
@@ -122,41 +122,30 @@ export const FINANCE_NAV_SECTIONS = [
         tabs: [{ key: 'overview', label: 'Overview', description: 'Vendors with type Labour Contractor.' }],
       },
       {
-        to: '/finance/supervisors', icon: faUserShield, label: 'Supervisors',
-        // Bespoke component — a Supervisor is a financeEmployee (no
-        // separate model; financeEmployee has no "isSupervisor" flag, so
-        // the picker lists every employee, same as Masters > Employees).
+        to: '/finance/employees', icon: faUsers, label: 'Employees',
+        // Replaces the old standalone Supervisors page (removed) — a
+        // Supervisor is a financeEmployee (no separate model; role decides
+        // which sections apply, not a dedicated model/route). Directory tab
+        // is the exact same MasterCrudTable Masters used to render for the
+        // 'employees' tab (add/edit/delete, full field set including Role);
+        // every other tab is a "pick one employee" section page. Role
+        // (Supervisor/Staff) decides which supervisor-shaped sections
+        // (Assigned Projects/Team/Labour Ledger/Performance) actually show,
+        // since those key off data only a supervisor has — and a single
+        // supervisor can independently hold BOTH of two designations at
+        // once: "project supervisor" (financeProject.assignedSupervisorId,
+        // surfaced in Assigned Projects — one supervisor overseeing a whole
+        // project) and "labour supervisor" (work-labour-assignment's
+        // supervisorId, surfaced in Team/Labour Ledger — running one
+        // Work's labour team specifically). These are independent
+        // relationships, not mutually exclusive, and both are scoped by
+        // employeeId only — same employee, same tabs, whichever
+        // relationships exist for them.
         // `assignedSupervisor` on financeProject stays a plain string for
         // old projects; new/edited projects populate `assignedSupervisorId`
-        // (ref financeEmployee) instead — Assigned Projects here matches on
-        // the ref first, falling back to a name match against the legacy
+        // (ref financeEmployee) instead — Assigned Projects matches on the
+        // ref first, falling back to a name match against the legacy
         // string so old projects don't just disappear from the list.
-        tabs: [
-          { key: 'projects',    label: 'Assigned Projects', description: 'Projects whose assignedSupervisorId (or legacy assignedSupervisor string) matches this employee.' },
-          { key: 'roster',      label: 'Roster',             description: 'Labourers hired directly under this supervisor.' },
-          { key: 'labour',      label: 'Labour Ledger',      description: "Pick a labourer from this supervisor's roster to view their earnings/advances/deductions/payments ledger." },
-          { key: 'attendance',  label: 'Attendance',         description: 'Present / absent / half-day / leave, per day, for this employee.' },
-          { key: 'performance', label: 'Performance',        description: 'Supervisor performance metrics.' },
-          { key: 'salary',      label: 'Salary',             description: 'Same salary ledger as Masters, filtered to this employee.' },
-          { key: 'incentives',  label: 'Incentives',         description: 'Discretionary payouts on top of salary: includes automatic credits for catching and fixing a labourer\'s mistake on the spot.' },
-          { key: 'deductions',  label: 'Deductions',         description: 'Manual cuts against salary: typically entered when an engineer\'s periodic labour review finds the supervisor jointly accountable for a flaw.' },
-        ],
-      },
-      {
-        to: '/finance/employees', icon: faUsers, label: 'Employees',
-        // New page — relocates Add Employee and Salary Ledger out of
-        // Master Data (Masters is meant for dropdown/enum lists and the
-        // material catalog, not people). Directory tab is the exact same
-        // MasterCrudTable Masters used to render for the 'employees' tab
-        // (add/edit/delete, full field set including Role); every other
-        // tab is a "pick one employee" section page, same pattern as
-        // Supervisors below — Role (Supervisor/Staff) decides which
-        // supervisor-shaped sections (Assigned Projects/Team/Labour
-        // Ledger/Performance) actually show, since those key off data
-        // (financeProject.assignedSupervisorId, work-labour-assignment's
-        // supervisorId) that only a supervisor has. Supervisors stays a
-        // separate entry for now; once this page is confirmed to cover
-        // everything it does, that entry gets removed and folded in here.
         tabs: [
           { key: 'directory',   label: 'Directory',         description: 'Employee master: name, role (Supervisor/Staff), designation, salary, bank details. Add/edit/delete here.' },
           { key: 'projects',    label: 'Assigned Projects', description: 'Supervisors only — projects whose assignedSupervisorId (or legacy assignedSupervisor string) matches this employee.' },
@@ -457,12 +446,12 @@ export const financeModuleKeyForPath = (pathname) => {
  *   Master Data → Clients               → Clients (own top-level page)                    [bespoke: ClientsPage]
  *   Master Data → Vendors               → Procurement > Vendors (filtered, non-contractor) [bespoke: ProcurementPage]
  *                                          + Contractors > Overview (filtered, contractor)  [bespoke: ContractorsPage]
- *   Master Data → Employees             → Masters > Employees (unchanged)
+ *   Master Data → Employees             → People > Employees (moved out of Masters entirely; Supervisors' old standalone page was later folded in here too)
  *   Master Data → Materials             → Masters > Material Master
  *   Master Data → Labour Teams          → collapsed into Vendors (a contractor is a vendor, no separate Team master)
  *   Master Data → Settings & Lists      → Masters > Work Types / Payment Modes / Expense Heads / TDS Sections
  *   Daily Site Entry (Phase 1)          → Site Operations
- *   Month-End Settlements (Phase 2)     → Contractors > Settlements + Supervisors > Incentives
+ *   Month-End Settlements (Phase 2)     → Contractors > Settlements + Employees > Incentives
  *   Sales Register (Phase 3)            → Receivables
  *   Purchase Register (Phase 3)         → Procurement > Purchases
  *   Payments (Phase 3)                  → Payments (own top-level, unchanged position)

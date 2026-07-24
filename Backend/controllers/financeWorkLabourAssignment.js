@@ -7,8 +7,8 @@ import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 
 // workId (one Work's team roster), supervisorId (every assignment across
-// every Work where this employee is running a team, for the Supervisors
-// page's read-only team view), or projectId (every current assignment
+// every Work where this employee is running a team, for the Employees
+// page's read-only Team tab), or projectId (every current assignment
 // across every Work in one project, for the Workers rate panel — it needs
 // "who's on what work type right now" without caring which specific Work)
 // — at least one is required.

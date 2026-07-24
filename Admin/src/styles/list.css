@@ -777,6 +777,34 @@
     color: var(--text-dark);
 }
 
+/* A ToggleSwitch + its own explanatory sentence, grouped as one soft-
+   bordered block (e.g. Direct Payment Categories' "Cut from Client Bill" /
+   "Cut from Worker Payout" pair) — same card treatment already used for
+   .add-product-points, so a toggle+description reads as one deliberate
+   unit rather than two loose lines floating in the form. */
+.settings-deduct-rule {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 18px;
+    background: rgba(201,168,124,0.04);
+    border: 1px solid rgba(201,168,124,0.15);
+    border-radius: var(--radius);
+}
+.settings-deduct-rule + .settings-deduct-rule {
+    margin-top: 12px;
+}
+.settings-deduct-rule-note {
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.78rem;
+    font-weight: 400;
+    line-height: 1.5;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--text-lt);
+    margin: 0 !important;
+}
+
 /* ══════════════════════════════════════════════
    5. EDIT MODAL — Elevated Overlay Form
 ══════════════════════════════════════════════ */

@@ -592,6 +592,40 @@
     opacity: 1;
 }
 
+/* Checkboxes (e.g. Direct Payment Categories' "Cut from Client Bill?"/"Cut
+   from Worker Payout?" toggles) — excluded from the generic input rule
+   below, which sets width:100%/padding:14px 16px/-webkit-appearance:none
+   with no replacement look, leaving every checkbox a blank, identical-
+   looking square in both checked and unchecked states. Custom checked
+   state mirrors the gold checkmark used elsewhere (e.g. .labour-chip-mark). */
+.add-product-name input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    margin: 0;
+    flex-shrink: 0;
+    border: 1px solid rgba(201,168,124,0.45);
+    border-radius: 4px;
+    background-color: var(--white);
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+.add-product-name input[type="checkbox"]:hover {
+    border-color: var(--gold);
+}
+.add-product-name input[type="checkbox"]:checked {
+    background-color: var(--green);
+    border-color: var(--green);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10' fill='none'%3E%3Cpath d='M1 5L4.5 8.5L11 1.5' stroke='%23e8ddc9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
 .add-product-name input,
 .add-product-name select,
 .add-product-name textarea,

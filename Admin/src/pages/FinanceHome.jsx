@@ -296,10 +296,21 @@ const FinanceHome = ({ url }) => {
                                 <KpiCard loading icon={faTriangleExclamation} label="Unapproved" value="" />
                             ) : (
                                 <>
-                                    <KpiCard icon={faHardHat} label="Contractor Teams - Unapproved" value={formatINR(summary.unapprovedContractorTotal)} onClick={() => navigate('/finance/contractors')} tone={summary.unapprovedContractorTotal > 0 ? 'danger' : undefined} />
-                                    <KpiCard icon={faPersonDigging} label="Labour Teams - Unapproved" value={formatINR(summary.unapprovedLabourTotal)} onClick={() => navigate('/finance/daily-labour')} tone={summary.unapprovedLabourTotal > 0 ? 'danger' : undefined} />
+                                    <KpiCard icon={faHardHat} label="Contractor Payment Left - Unapproved" value={formatINR(summary.unapprovedContractorTotal)}
+                                        sub={summary.directPaymentContractorUnapproved > 0 ? `Net of ${formatINR(summary.directPaymentContractorUnapproved)} paid directly by client` : undefined}
+                                        onClick={() => navigate('/finance/contractors')} tone={summary.unapprovedContractorTotal > 0 ? 'danger' : undefined} />
+                                    <KpiCard icon={faPersonDigging} label="Labour Payment Left - Unapproved" value={formatINR(summary.unapprovedLabourTotal)}
+                                        sub={summary.directPaymentLabourUnapproved > 0 ? `Net of ${formatINR(summary.directPaymentLabourUnapproved)} paid directly by client` : undefined}
+                                        onClick={() => navigate('/finance/daily-labour')} tone={summary.unapprovedLabourTotal > 0 ? 'danger' : undefined} />
                                     <KpiCard icon={faHandHoldingDollar} label="Commission - Unapproved" value={formatINR(summary.unapprovedCommissionTotal)} onClick={() => navigate('/finance/referrals')} tone={summary.unapprovedCommissionTotal > 0 ? 'danger' : undefined} />
                                     <KpiCard icon={faArrowTrendUp} label="Profit - Unapproved" value={formatINR(summary.unapprovedProfitTotal)} sub={`Revenue once approved: ${formatINR(summary.unapprovedRevenueTotal)}`} onClick={() => navigate('/finance/receivables')} tone={summary.unapprovedProfitTotal >= 0 ? 'good' : 'danger'} />
+                                    {(summary.directPaymentContractorUnapproved + summary.directPaymentLabourUnapproved + summary.directPaymentContractorApproved + summary.directPaymentLabourApproved) > 0 && (
+                                        <KpiCard icon={faHandHoldingDollar} label="Direct Payments (Client → Workers)"
+                                            value={formatINR(summary.directPaymentContractorUnapproved + summary.directPaymentLabourUnapproved + summary.directPaymentContractorApproved + summary.directPaymentLabourApproved)}
+                                            sub={`Applied to Approved: ${formatINR(summary.directPaymentContractorApproved + summary.directPaymentLabourApproved)}`}
+                                            onClick={() => navigate('/finance/payables?tab=client-direct-payments')}
+                                        />
+                                    )}
                                     {summary.unapprovedByWorkType.map(({ workType, sqft, amount }) => (
                                         <KpiCard key={workType} icon={faTriangleExclamation} label={`${workType} - Unapproved`} value={`${sqft.toLocaleString('en-IN')} sqft`} sub={`Revenue once approved: ${formatINR(amount)}`} onClick={() => navigate('/finance/receivables')} tone={amount > 0 ? 'danger' : undefined} />
                                     ))}

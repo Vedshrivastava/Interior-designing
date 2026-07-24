@@ -5,6 +5,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { useWebSocket } from '../../hooks/useWebSocket';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import { useFileDownload } from '../../hooks/useFileDownload';
 import DownloadButton from '../../components/finance/DownloadButton';
 import WorkTypeRatesManager from '../../components/finance/WorkTypeRatesManager';
@@ -49,42 +50,47 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
     const [vendors, setVendors] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const fetchOverview = useCallback(async () => {
+        try {
+            const requests = [
+                axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId } }),
+                axios.get(`${url}/api/finance/reports/material-analysis`, { ...authHeader, params: { projectId } }),
+                axios.get(`${url}/api/finance/purchases/list`, { ...authHeader, params: { projectId } }),
+            ];
+            if (BILLABLE_CONTRACT_TYPES.includes(contractType)) {
+                requests.push(axios.get(`${url}/api/finance/receivables/summary`, { ...authHeader, params: { projectId } }));
+            }
+            const [profitRes, materialRes, purchasesRes, receivableRes] = await Promise.all(requests);
+            if (profitRes.data.success) setProfit(profitRes.data.data);
+            if (materialRes.data.success) setMaterials(materialRes.data.data);
+            if (purchasesRes.data.success) {
+                const byVendor = new Map();
+                for (const p of purchasesRes.data.data) {
+                    if (!p.vendorId) continue;
+                    const key = p.vendorId._id || p.vendorId;
+                    if (!byVendor.has(key)) byVendor.set(key, { vendorId: key, vendorName: p.vendorId.name || '-', totalPurchased: 0 });
+                    byVendor.get(key).totalPurchased += p.totalAmount;
+                }
+                setVendors([...byVendor.values()]);
+            }
+            if (receivableRes?.data.success) setReceivable(receivableRes.data.data);
+        } catch {
+            // Overview degrades gracefully — sections just show empty state.
+        }
+    }, [url, projectId, contractType]); // eslint-disable-line react-hooks/exhaustive-deps
+
     useEffect(() => {
         let cancelled = false;
         setLoading(true);
-        (async () => {
-            try {
-                const requests = [
-                    axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId } }),
-                    axios.get(`${url}/api/finance/reports/material-analysis`, { ...authHeader, params: { projectId } }),
-                    axios.get(`${url}/api/finance/purchases/list`, { ...authHeader, params: { projectId } }),
-                ];
-                if (BILLABLE_CONTRACT_TYPES.includes(contractType)) {
-                    requests.push(axios.get(`${url}/api/finance/receivables/summary`, { ...authHeader, params: { projectId } }));
-                }
-                const [profitRes, materialRes, purchasesRes, receivableRes] = await Promise.all(requests);
-                if (cancelled) return;
-                if (profitRes.data.success) setProfit(profitRes.data.data);
-                if (materialRes.data.success) setMaterials(materialRes.data.data);
-                if (purchasesRes.data.success) {
-                    const byVendor = new Map();
-                    for (const p of purchasesRes.data.data) {
-                        if (!p.vendorId) continue;
-                        const key = p.vendorId._id || p.vendorId;
-                        if (!byVendor.has(key)) byVendor.set(key, { vendorId: key, vendorName: p.vendorId.name || '-', totalPurchased: 0 });
-                        byVendor.get(key).totalPurchased += p.totalAmount;
-                    }
-                    setVendors([...byVendor.values()]);
-                }
-                if (receivableRes?.data.success) setReceivable(receivableRes.data.data);
-            } catch {
-                // Overview degrades gracefully — sections just show empty state.
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        })();
+        fetchOverview().finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
-    }, [url, projectId, contractType]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [fetchOverview]);
+
+    // A client direct payment recorded elsewhere (Payables → Client Direct
+    // Payments) changes Contractor/Labour Payment Left and the Direct
+    // Payments box below — refresh in the background rather than requiring
+    // a tab revisit.
+    useFinanceWsRefresh(['clientDirectPaymentsChanged'], (msg) => { if (!msg.projectId || msg.projectId === projectId) fetchOverview(); });
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
     if (!profit) return <div className="admin-empty-state"><p>Unable to load project profitability.</p></div>;
@@ -114,7 +120,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                        <b>Area</b><b>Contractor</b><b>Labour</b><b>Commission</b><b>Revenue</b><b>Profit</b>
+                        <b>Area</b><b>Contractor Payment Left</b><b>Labour Payment Left</b><b>Commission</b><b>Revenue</b><b>Profit</b>
                     </div>
                     <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
                         <p>{profit.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
@@ -126,6 +132,35 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
                     </div>
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
                         Logged work whose cost isn't counted in Profit yet — review it in Payables/Receivables → Deductions to move it in. Revenue/Profit here are what this same unapproved work would add once reviewed and billed.
+                        {(profit.directPaymentContractorUnapproved > 0 || profit.directPaymentLabourUnapproved > 0) && (
+                            ' Contractor/Labour Payment Left is already net of client direct payments — see Direct Payments below.'
+                        )}
+                    </p>
+                </div>
+            )}
+
+            {(profit.directPaymentContractorUnapproved > 0 || profit.directPaymentLabourUnapproved > 0 || profit.directPaymentContractorApproved > 0 || profit.directPaymentLabourApproved > 0) && (
+                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Direct Payments (Client → Workers)</b></div>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                        <b>Party</b><b>Applied to Unapproved</b><b>Applied to Approved</b>
+                    </div>
+                    {profit.directPaymentContractorUnapproved + profit.directPaymentContractorApproved > 0 && (
+                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                            <p>Contractor</p>
+                            <p>{formatINR(profit.directPaymentContractorUnapproved)}</p>
+                            <p>{formatINR(profit.directPaymentContractorApproved)}</p>
+                        </div>
+                    )}
+                    {profit.directPaymentLabourUnapproved + profit.directPaymentLabourApproved > 0 && (
+                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                            <p>Labour</p>
+                            <p>{formatINR(profit.directPaymentLabourUnapproved)}</p>
+                            <p>{formatINR(profit.directPaymentLabourApproved)}</p>
+                        </div>
+                    )}
+                    <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
+                        Amounts the client paid directly to a worker on this project (Payables → Client Direct Payments), applied to Unapproved first and only spilling into Approved once Unapproved is fully covered.
                     </p>
                 </div>
             )}

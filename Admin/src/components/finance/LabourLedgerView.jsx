@@ -75,7 +75,12 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
     // A payment for this labourer recorded elsewhere (another browser
     // tab/admin viewing the same labourer) wouldn't otherwise show up here
     // until reselected.
-    useFinanceWsRefresh(['financeLabourLedgerChanged'], (msg) => { if (labourerId && (!msg.labourerId || msg.labourerId === labourerId)) fetchLedger(); });
+    useFinanceWsRefresh(['financeLabourLedgerChanged', 'clientDirectPaymentsChanged'], (msg) => {
+        if (!labourerId) return;
+        if (msg.type === 'clientDirectPaymentsChanged' && (msg.partyType !== 'labour' || msg.partyId !== labourerId)) return;
+        if (msg.type === 'financeLabourLedgerChanged' && msg.labourerId && msg.labourerId !== labourerId) return;
+        fetchLedger();
+    });
     useEffect(() => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
@@ -219,7 +224,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                     <h3 style={{ marginBottom: '8px' }}>Works & Earnings</h3>
                     <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.9fr 1fr 0.9fr 1.1fr 0.9fr 1fr' }}>
-                            <b>Project</b><b>Work Type</b><b>Area Done</b><b>Total</b><b>Approved (as of)</b><b>Unapproved</b><b>Material Cost/Sqft</b>
+                            <b>Project</b><b>Work Type</b><b>Area Done</b><b>Total</b><b>Approved (as of)</b><b>Payment Left (Unapproved)</b><b>Material Cost/Sqft</b>
                         </div>
                         {ledger.works.length === 0 ? (
                             <div className="admin-empty-state"><p>No works for this labourer yet.</p></div>
@@ -238,7 +243,14 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                                             ? <>₹{w.earnings.toLocaleString('en-IN')} <span style={{ fontWeight: 400, fontSize: '0.75rem' }}>({w.approvedAreaSqft} sqft{w.approvedDate ? `, ${new Date(w.approvedDate).toLocaleDateString()}` : ''})</span></>
                                             : 'Unapproved'}
                                     </p>
-                                    <p style={{ color: w.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>{w.rate ? `₹${w.unapprovedAmount.toLocaleString('en-IN')}` : '-'}</p>
+                                    <p style={{ color: w.paymentLeftUnapproved > 0 ? '#c0392b' : 'var(--text-lt)' }}>
+                                        {w.rate ? `₹${w.paymentLeftUnapproved.toLocaleString('en-IN')}` : '-'}
+                                        {w.directPaymentTotal > 0 && (
+                                            <span style={{ fontWeight: 400, fontSize: '0.75rem', display: 'block' }} title="Client direct payment applied against this work">
+                                                (₹{w.directPaymentTotal.toLocaleString('en-IN')} paid directly)
+                                            </span>
+                                        )}
+                                    </p>
                                     <p>{w.materialCostPerSqft != null ? `₹${w.materialCostPerSqft.toFixed(2)}` : '—'}</p>
                                 </div>
                             ))

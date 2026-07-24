@@ -78,8 +78,15 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
 
     // A payment/advance/deduction recorded elsewhere for this same
     // contractor (the standalone Contractor Payment tab) wouldn't otherwise
-    // show up here until the contractor was reselected.
-    useFinanceWsRefresh(['financeContractorLedgerChanged'], (msg) => { if (vendorId && (!msg.vendorId || msg.vendorId === vendorId)) fetchLedger(); });
+    // show up here until the contractor was reselected. Also covers a
+    // client direct payment (Payables → Client Direct Payments) tagged to
+    // this contractor — it changes Payment Left/Balance Payable here too.
+    useFinanceWsRefresh(['financeContractorLedgerChanged', 'clientDirectPaymentsChanged'], (msg) => {
+        if (!vendorId) return;
+        if (msg.type === 'clientDirectPaymentsChanged' && (msg.partyType !== 'contractor' || msg.partyId !== vendorId)) return;
+        if (msg.type === 'financeContractorLedgerChanged' && msg.vendorId && msg.vendorId !== vendorId) return;
+        fetchLedger();
+    });
     useEffect(() => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
@@ -228,7 +235,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                     <h3 style={{ marginBottom: '8px' }}>Works & Earnings</h3>
                     <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.9fr 1fr 0.9fr 1.1fr 0.9fr 1fr' }}>
-                            <b>Project</b><b>Work Type</b><b>Area Done</b><b>Total</b><b>Approved (as of)</b><b>Unapproved</b><b>Material Cost/Sqft</b>
+                            <b>Project</b><b>Work Type</b><b>Area Done</b><b>Total</b><b>Approved (as of)</b><b>Payment Left (Unapproved)</b><b>Material Cost/Sqft</b>
                         </div>
                         {ledger.works.length === 0 ? (
                             <div className="admin-empty-state"><p>No works for this contractor yet.</p></div>
@@ -247,7 +254,14 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                             ? <>₹{w.earnings.toLocaleString('en-IN')} <span style={{ fontWeight: 400, fontSize: '0.75rem' }}>({w.approvedAreaSqft} sqft{w.approvedDate ? `, ${new Date(w.approvedDate).toLocaleDateString()}` : ''})</span></>
                                             : 'Unapproved'}
                                     </p>
-                                    <p style={{ color: w.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>{w.rate ? `₹${w.unapprovedAmount.toLocaleString('en-IN')}` : '-'}</p>
+                                    <p style={{ color: w.paymentLeftUnapproved > 0 ? '#c0392b' : 'var(--text-lt)' }}>
+                                        {w.rate ? `₹${w.paymentLeftUnapproved.toLocaleString('en-IN')}` : '-'}
+                                        {w.directPaymentTotal > 0 && (
+                                            <span style={{ fontWeight: 400, fontSize: '0.75rem', display: 'block' }} title="Client direct payment applied against this work">
+                                                (₹{w.directPaymentTotal.toLocaleString('en-IN')} paid directly)
+                                            </span>
+                                        )}
+                                    </p>
                                     <p>{w.materialCostPerSqft != null ? `₹${w.materialCostPerSqft.toFixed(2)}` : '—'}</p>
                                 </div>
                             ))

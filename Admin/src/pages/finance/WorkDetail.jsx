@@ -7,6 +7,7 @@ import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, CH
 import StyledDatePicker from '../../components/finance/StyledDatePicker';
 import StyledMonthPicker from '../../components/finance/StyledMonthPicker';
 import ToggleSwitch from '../../components/finance/ToggleSwitch';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 
@@ -51,8 +52,7 @@ const WorkDetail = ({ url }) => {
     const changeScope = (s) => { setScope(s); setSearchParams({}); };
     const changeDate = (v) => { setDate(v); setSearchParams({}); };
 
-    useEffect(() => {
-        setLoading(true);
+    const fetchData = () => {
         const params = { workId, scope };
         if (scope === 'day') { params.date = date; if (upto) params.upto = 'true'; }
         if (scope === 'month') params.month = month;
@@ -60,7 +60,15 @@ const WorkDetail = ({ url }) => {
             .then(res => { if (res.data.success) setData(res.data.data); else toast.error(res.data.message); })
             .catch(() => toast.error('Error fetching work detail'))
             .finally(() => setLoading(false));
-    }, [url, workId, scope, date, month, upto]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+    useEffect(() => { setLoading(true); fetchData(); }, [url, workId, scope, date, month, upto]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Measurements, reviews, and client direct payments against this Work
+    // can all be recorded from other pages (Site Operations, Payables) —
+    // silently refresh in the background rather than requiring a reload.
+    useFinanceWsRefresh([
+        'financeMeasurementsChanged', 'financeLabourMeasurementsChanged', 'financeWorksChanged',
+        'financeWorkReviewChanged', 'clientDirectPaymentsChanged',
+    ], fetchData);
 
     if (loading) {
         return <div className="list add flex-col"><div className="admin-list-container"><div className="admin-empty-state"><p>Loading…</p></div></div></div>;
@@ -187,18 +195,47 @@ const WorkDetail = ({ url }) => {
                     <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                            <b>Area</b><b>Contractor</b><b>Labour</b><b>Commission</b><b>Revenue</b><b>Profit</b>
+                            <b>Area</b><b>Contractor Payment Left</b><b>Labour Payment Left</b><b>Commission</b><b>Revenue</b><b>Profit</b>
                         </div>
                         <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
                             <p>{data.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
-                            <p>{formatINR(Math.max(0, data.totalContractorAmount - data.contractorCost))}</p>
-                            <p>{formatINR(Math.max(0, data.totalLabourAmount - data.labourCost))}</p>
+                            <p>{formatINR(data.contractorPaymentLeftUnapproved)}</p>
+                            <p>{formatINR(data.labourPaymentLeftUnapproved)}</p>
                             <p>{formatINR(data.unapprovedCommissionAmount)}</p>
                             <p>{formatINR(data.unapprovedRevenue)}</p>
                             <p style={{ color: data.unapprovedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>{formatINR(data.unapprovedProfit)}</p>
                         </div>
                         <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
                             Logged work on this Work whose cost isn't counted in Profit yet — review it in Payables/Receivables → Deductions to move it in. Revenue/Profit here are what this same unapproved work would add once reviewed and billed.
+                            {(data.contractorDirectPaymentUnapproved > 0 || data.labourDirectPaymentUnapproved > 0) && (
+                                ' Contractor/Labour Payment Left is already net of client direct payments recorded against this Work — see Direct Payments below.'
+                            )}
+                        </p>
+                    </div>
+                )}
+
+                {(data.contractorDirectPaymentUnapproved > 0 || data.labourDirectPaymentUnapproved > 0 || data.contractorDirectPaymentApproved > 0 || data.labourDirectPaymentApproved > 0) && (
+                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Direct Payments (Client → Workers)</b></div>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                            <b>Party</b><b>Applied to Unapproved</b><b>Applied to Approved</b>
+                        </div>
+                        {data.contractorDirectPaymentUnapproved + data.contractorDirectPaymentApproved > 0 && (
+                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                                <p>Contractor</p>
+                                <p>{formatINR(data.contractorDirectPaymentUnapproved)}</p>
+                                <p>{formatINR(data.contractorDirectPaymentApproved)}</p>
+                            </div>
+                        )}
+                        {data.labourDirectPaymentUnapproved + data.labourDirectPaymentApproved > 0 && (
+                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                                <p>Labour</p>
+                                <p>{formatINR(data.labourDirectPaymentUnapproved)}</p>
+                                <p>{formatINR(data.labourDirectPaymentApproved)}</p>
+                            </div>
+                        )}
+                        <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
+                            Amounts the client paid directly to a worker on this Work (recorded in Payables → Client Direct Payments), applied to Unapproved first and only spilling into Approved once Unapproved is fully covered.
                         </p>
                     </div>
                 )}

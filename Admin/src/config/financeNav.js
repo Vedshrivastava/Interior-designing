@@ -130,7 +130,7 @@ export const FINANCE_NAV_SECTIONS = [
         // 'employees' tab (add/edit/delete, full field set including Role);
         // every other tab is a "pick one employee" section page. Role
         // (Supervisor/Staff) decides which supervisor-shaped sections
-        // (Assigned Projects/Team/Labour Ledger/Performance) actually show,
+        // (Assigned Projects/Team/Labour Ledger) actually show,
         // since those key off data only a supervisor has — and a single
         // supervisor can independently hold BOTH of two designations at
         // once: "project supervisor" (financeProject.assignedSupervisorId,
@@ -152,7 +152,6 @@ export const FINANCE_NAV_SECTIONS = [
           { key: 'team',        label: 'Team',               description: "Supervisors only — labourers currently on this supervisor's team, across every Work." },
           { key: 'labour',      label: 'Labour Ledger',      description: "Supervisors only — pick a labourer from this supervisor's team to view their earnings/advances/deductions/payments ledger." },
           { key: 'attendance',  label: 'Attendance',         description: 'Present / absent / half-day / leave, per day, for this employee.' },
-          { key: 'performance', label: 'Performance',        description: 'Supervisors only — performance metrics.' },
           { key: 'salary',      label: 'Salary',             description: 'Expected salary minus salary payments made, by month, for this employee.' },
           { key: 'incentives',  label: 'Incentives',         description: 'Discretionary payouts on top of salary.' },
           { key: 'deductions',  label: 'Deductions',         description: 'Manual cuts against salary.' },

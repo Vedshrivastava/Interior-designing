@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
-import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import MasterCrudTable from '../../components/finance/MasterCrudTable';
 import LabourLedgerView from '../../components/finance/LabourLedgerView';
 import SupervisorAttendanceManager from '../../components/finance/SupervisorAttendanceManager';
@@ -16,21 +15,22 @@ import '../../styles/list.css';
 
 /* Every tab except Directory operates on one picked employee — the
    supervisor-only tabs below only make sense for a financeEmployee whose
-   role is 'supervisor' (Assigned Projects/Team/Labour Ledger/Performance
-   all key off supervisor-shaped data: financeProject.assignedSupervisorId,
+   role is 'supervisor' (Assigned Projects/Team/Labour Ledger all key off
+   supervisor-shaped data: financeProject.assignedSupervisorId,
    financeWorkLabourAssignment.supervisorId). A 'staff' employee (Data
    Entry, Social Media, etc.) never has any of that, so those tabs would
    only ever render an empty state for them — hidden instead, with the
    employee's Role (set via Directory's Add/Edit form) deciding which set
    applies. Everything else (Attendance/Salary/Incentives/Deductions/
-   Documents) is genuinely generic per employee, supervisor or not. */
+   Documents) is genuinely generic per employee, supervisor or not.
+   (Performance was removed — it never had a defined metric behind it,
+   just a permanent placeholder tab.) */
 const ALL_TABS = [
     { key: 'directory',   label: 'Directory' },
     { key: 'projects',    label: 'Assigned Projects', supervisorOnly: true },
     { key: 'team',        label: 'Team',              supervisorOnly: true },
     { key: 'labour',      label: 'Labour Ledger',     supervisorOnly: true },
     { key: 'attendance',  label: 'Attendance' },
-    { key: 'performance', label: 'Performance',       supervisorOnly: true },
     { key: 'salary',      label: 'Salary' },
     { key: 'incentives',  label: 'Incentives' },
     { key: 'deductions',  label: 'Deductions' },
@@ -234,7 +234,6 @@ const EmployeesPage = ({ url }) => {
                             {activeTab === 'team' && <SupervisorTeamTab url={url} supervisorId={selectedEmployeeId} />}
                             {activeTab === 'labour' && <SupervisorLabourLedgerTab url={url} supervisorId={selectedEmployeeId} />}
                             {activeTab === 'attendance' && <SupervisorAttendanceManager url={url} employeeId={selectedEmployeeId} />}
-                            {activeTab === 'performance' && <PlaceholderTab text="No defined performance metric to build against yet." />}
                             {activeTab === 'salary' && <SalaryLedgerView url={url} employeeId={selectedEmployeeId} />}
                             {activeTab === 'incentives' && <SupervisorIncentivesManager url={url} employeeId={selectedEmployeeId} />}
                             {activeTab === 'deductions' && <SupervisorDeductionsManager url={url} employeeId={selectedEmployeeId} />}

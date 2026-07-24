@@ -7,6 +7,7 @@ import StyledDatePicker from './StyledDatePicker';
 import StyledMonthPicker from './StyledMonthPicker';
 import StyledSelect from './StyledSelect';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -51,6 +52,11 @@ const SalaryPaymentsManager = ({ url }) => {
     };
 
     useEffect(() => { if (employeeId) fetchPayments(); else setPayments([]); }, [employeeId, month]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // A payment for this employee/month recorded elsewhere (Masters' Salary
+    // Ledger tab, or this same tab in another browser tab/admin) wouldn't
+    // otherwise show up here until reselected.
+    useFinanceWsRefresh(['financeSalaryPaymentsChanged'], () => { if (employeeId) fetchPayments(); });
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 

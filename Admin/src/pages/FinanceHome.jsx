@@ -88,7 +88,18 @@ const FinanceHome = ({ url }) => {
     const aliveRef = useRef(true);
     useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false; }; }, []);
 
+    // dashboard-summary alone routinely takes seconds (several sequential
+    // aggregation stages), so a WS-triggered refresh very often *resolves
+    // before* an earlier still-in-flight one (mount load, or a previous WS
+    // burst). Without this, whichever request happens to land last wins —
+    // usually the older, slower one — silently overwriting fresh data with
+    // stale data. requestIdRef makes "last dispatched" win instead of "last
+    // resolved": each call claims a ticket, and only the still-current
+    // ticket-holder is allowed to write state when its response arrives.
+    const requestIdRef = useRef(0);
+
     const fetchDashboard = async () => {
+        const myRequestId = ++requestIdRef.current;
         try {
             // Root requests fired together — employees/vendors/projects
             // don't depend on summary/trends (or each other), so there's
@@ -101,7 +112,7 @@ const FinanceHome = ({ url }) => {
                 axios.get(`${url}/api/finance/referrals/list`, authHeader),
                 axios.get(`${url}/api/finance/projects/list`, authHeader),
             ]);
-            if (!aliveRef.current) return;
+            if (!aliveRef.current || requestIdRef.current !== myRequestId) return;
 
             const nextSummary = summaryRes.data.success ? summaryRes.data.data : null;
             const nextTrends = trendsRes.data.success ? trendsRes.data.data : null;
@@ -126,7 +137,7 @@ const FinanceHome = ({ url }) => {
                     .then(r => (r.data.success ? { projectId: p._id, projectName: p.name, profit: r.data.data.profit } : null))
                     .catch(() => null))),
             ]);
-            if (!aliveRef.current) return;
+            if (!aliveRef.current || requestIdRef.current !== myRequestId) return;
 
             const salaryPayable = salaryLedgers.filter(Boolean).reduce((s, l) => s + (l.balanceDue || 0), 0);
             const commissionPayable = commissionLedgers.filter(Boolean).reduce((s, l) => s + (l.commissionPayable || 0), 0);
@@ -149,7 +160,7 @@ const FinanceHome = ({ url }) => {
             // Dashboard degrades gracefully — a failed fetch just leaves
             // that section's empty state showing, no toast noise on load.
         } finally {
-            if (aliveRef.current) { setPhase1Loading(false); setPhase2Loading(false); }
+            if (aliveRef.current && requestIdRef.current === myRequestId) { setPhase1Loading(false); setPhase2Loading(false); }
         }
     };
 

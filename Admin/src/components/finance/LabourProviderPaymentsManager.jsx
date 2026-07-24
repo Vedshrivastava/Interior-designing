@@ -6,6 +6,7 @@ import QuickAddPicker from './QuickAddPicker';
 import StyledDatePicker from './StyledDatePicker';
 import StyledSelect from './StyledSelect';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -52,6 +53,10 @@ const LabourProviderPaymentsManager = ({ url }) => {
     };
 
     useEffect(() => { if (labourProviderId) fetchPayments(); else setPayments([]); }, [labourProviderId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // A payment for this labour provider recorded elsewhere wouldn't
+    // otherwise show up here until reselected.
+    useFinanceWsRefresh(['financeLabourProviderPaymentsChanged'], () => { if (labourProviderId) fetchPayments(); });
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 

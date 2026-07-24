@@ -6,6 +6,7 @@ import QuickAddPicker from './QuickAddPicker';
 import StyledDatePicker from './StyledDatePicker';
 import StyledSelect from './StyledSelect';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -68,6 +69,11 @@ const VendorPaymentsManager = ({ url }) => {
     useEffect(() => {
         if (vendorId) { fetchPayments(); fetchAmountOwed(); } else { setPayments([]); setAmountOwed(null); }
     }, [vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // A payment for this vendor recorded elsewhere (VendorLedgerView, or
+    // this same tab in another browser tab/admin) wouldn't otherwise show
+    // up here until the vendor was reselected.
+    useFinanceWsRefresh(['financeVendorLedgerChanged'], () => { if (vendorId) { fetchPayments(); fetchAmountOwed(); } });
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 

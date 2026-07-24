@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -39,6 +40,10 @@ const CommissionLedgerView = ({ url, referralId }) => {
     };
 
     useEffect(() => { if (referralId) fetchLedger(); }, [referralId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // A payment for this referral recorded elsewhere (the standalone
+    // Commission Payment tab) wouldn't otherwise show up here until reselected.
+    useFinanceWsRefresh(['financeCommissionPaymentsChanged'], (msg) => { if (referralId && (!msg.referralId || msg.referralId === referralId)) fetchLedger(); });
     useEffect(() => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});

@@ -8,6 +8,7 @@ import StyledSelect from './StyledSelect';
 import DownloadButton from './DownloadButton';
 import { useFileDownload } from '../../hooks/useFileDownload';
 import StyledDatePicker from './StyledDatePicker';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -70,6 +71,11 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
     };
 
     useEffect(() => { if (labourerId) fetchLedger(); }, [labourerId, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // A payment for this labourer recorded elsewhere (another browser
+    // tab/admin viewing the same labourer) wouldn't otherwise show up here
+    // until reselected.
+    useFinanceWsRefresh(['financeLabourLedgerChanged'], (msg) => { if (labourerId && (!msg.labourerId || msg.labourerId === labourerId)) fetchLedger(); });
     useEffect(() => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});

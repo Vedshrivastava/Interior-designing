@@ -6,6 +6,7 @@ import QuickAddPicker from './QuickAddPicker';
 import StyledDatePicker from './StyledDatePicker';
 import StyledSelect from './StyledSelect';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -54,6 +55,11 @@ const ContractorPaymentsManager = ({ url }) => {
     };
 
     useEffect(() => { if (vendorId) fetchPayments(); else setPayments([]); }, [vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // A payment for this contractor recorded elsewhere (ContractorLedgerView,
+    // or this same tab in another browser tab/admin) wouldn't otherwise show
+    // up here until the contractor was reselected.
+    useFinanceWsRefresh(['financeContractorLedgerChanged'], () => { if (vendorId) fetchPayments(); });
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 

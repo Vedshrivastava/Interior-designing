@@ -6,6 +6,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { ChartCard, EmptyChart, CHART_COLORS, formatINR } from './DashboardWidgets';
 import StyledDatePicker from './StyledDatePicker';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -70,6 +71,11 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
     };
 
     useEffect(() => { if (vendorId) fetchLedger(); }, [vendorId, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // A payment/purchase/return recorded elsewhere for this same vendor
+    // (the standalone Vendor Payment tab, Procurement's Purchases tab)
+    // wouldn't otherwise show up here until the vendor was reselected.
+    useFinanceWsRefresh(['financeVendorLedgerChanged', 'financePurchasesChanged'], (msg) => { if (vendorId && (!msg.vendorId || msg.vendorId === vendorId)) fetchLedger(); });
 
     const submitPayment = async (e) => {
         e.preventDefault();

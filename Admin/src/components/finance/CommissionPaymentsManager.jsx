@@ -6,6 +6,7 @@ import QuickAddPicker from './QuickAddPicker';
 import StyledDatePicker from './StyledDatePicker';
 import StyledSelect from './StyledSelect';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -52,6 +53,10 @@ const CommissionPaymentsManager = ({ url }) => {
     };
 
     useEffect(() => { if (referralId) fetchPayments(); else setPayments([]); }, [referralId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // A payment for this referral recorded elsewhere (Procurement's
+    // Commission Ledger tab) wouldn't otherwise show up here until reselected.
+    useFinanceWsRefresh(['financeCommissionPaymentsChanged'], () => { if (referralId) fetchPayments(); });
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 

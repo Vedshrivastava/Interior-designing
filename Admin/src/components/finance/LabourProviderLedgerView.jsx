@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -45,6 +46,11 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
     };
 
     useEffect(() => { if (labourProviderId) fetchLedger(); }, [labourProviderId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // A payment for this labour provider recorded elsewhere (the standalone
+    // Labour Provider Payment tab) wouldn't otherwise show up here until
+    // reselected.
+    useFinanceWsRefresh(['financeLabourProviderPaymentsChanged'], (msg) => { if (labourProviderId && (!msg.labourProviderId || msg.labourProviderId === labourProviderId)) fetchLedger(); });
     useEffect(() => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});

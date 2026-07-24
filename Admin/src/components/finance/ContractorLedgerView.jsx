@@ -8,6 +8,7 @@ import StyledSelect from './StyledSelect';
 import DownloadButton from './DownloadButton';
 import { useFileDownload } from '../../hooks/useFileDownload';
 import StyledDatePicker from './StyledDatePicker';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -74,6 +75,11 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
     };
 
     useEffect(() => { if (vendorId) fetchLedger(); }, [vendorId, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // A payment/advance/deduction recorded elsewhere for this same
+    // contractor (the standalone Contractor Payment tab) wouldn't otherwise
+    // show up here until the contractor was reselected.
+    useFinanceWsRefresh(['financeContractorLedgerChanged'], (msg) => { if (vendorId && (!msg.vendorId || msg.vendorId === vendorId)) fetchLedger(); });
     useEffect(() => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});

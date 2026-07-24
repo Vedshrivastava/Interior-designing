@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -36,6 +37,10 @@ const SalaryLedgerView = ({ url, employeeId }) => {
     };
 
     useEffect(() => { if (employeeId) fetchLedger(); }, [employeeId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // A payment for this employee recorded elsewhere (the standalone
+    // Salary Payment tab) wouldn't otherwise show up here until reselected.
+    useFinanceWsRefresh(['financeSalaryPaymentsChanged'], (msg) => { if (employeeId && (!msg.employeeId || msg.employeeId === employeeId)) fetchLedger(); });
     useEffect(() => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});

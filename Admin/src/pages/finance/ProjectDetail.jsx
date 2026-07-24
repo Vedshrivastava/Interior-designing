@@ -41,13 +41,22 @@ const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance']
  * report endpoints Reports already computes off of — nothing recomputed
  * client-side.
  */
-const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
+const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewExpenses }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [profit, setProfit] = useState(null);
     const [materials, setMaterials] = useState([]);
     const [receivable, setReceivable] = useState(null);
     const [vendors, setVendors] = useState([]);
+    // Same shape as the Dashboard's own "Cash, Receivables & Payables" row,
+    // just scoped to this one project — Contractor/Labour here is the full
+    // balance payable (approved + unapproved, net of advances/deductions/
+    // payments), not the Unapproved table's narrower payment-left-on-
+    // still-unreviewed-work slice below. Cash/Salary/Commission stay
+    // Dashboard-only: cash isn't tracked per project, salary isn't tied to
+    // one, and commission payments settle against a referral's whole
+    // portfolio, not any single project.
+    const [payables, setPayables] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const fetchOverview = useCallback(async () => {
@@ -55,25 +64,46 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
             const requests = [
                 axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId } }),
                 axios.get(`${url}/api/finance/reports/material-analysis`, { ...authHeader, params: { projectId } }),
-                axios.get(`${url}/api/finance/purchases/list`, { ...authHeader, params: { projectId } }),
+                // Same purchases-returns-payments=amountOwed computation
+                // Vendor Payables/Vendor Analysis already use, project-scoped
+                // — replaces a raw sum of Purchases that ignored Returns
+                // entirely and had no Payment Left figure at all.
+                axios.get(`${url}/api/finance/reports/vendor-analysis`, { ...authHeader, params: { projectId } }),
+                axios.get(`${url}/api/finance/reports/contractor-analysis`, { ...authHeader, params: { projectId } }),
+                axios.get(`${url}/api/finance/reports/labour-analysis`, { ...authHeader, params: { projectId } }),
+                axios.get(`${url}/api/finance/expenses/list`, { ...authHeader, params: { projectId } }),
             ];
             if (BILLABLE_CONTRACT_TYPES.includes(contractType)) {
                 requests.push(axios.get(`${url}/api/finance/receivables/summary`, { ...authHeader, params: { projectId } }));
             }
-            const [profitRes, materialRes, purchasesRes, receivableRes] = await Promise.all(requests);
+            const [profitRes, materialRes, vendorRes, contractorRes, labourRes, expenseRes, receivableRes] = await Promise.all(requests);
             if (profitRes.data.success) setProfit(profitRes.data.data);
             if (materialRes.data.success) setMaterials(materialRes.data.data);
-            if (purchasesRes.data.success) {
-                const byVendor = new Map();
-                for (const p of purchasesRes.data.data) {
-                    if (!p.vendorId) continue;
-                    const key = p.vendorId._id || p.vendorId;
-                    if (!byVendor.has(key)) byVendor.set(key, { vendorId: key, vendorName: p.vendorId.name || '-', totalPurchased: 0 });
-                    byVendor.get(key).totalPurchased += p.totalAmount;
-                }
-                setVendors([...byVendor.values()]);
+            if (vendorRes.data.success) {
+                // computeVendorAnalysisRows returns every material_supplier
+                // vendor company-wide (zero-activity rows included, so a
+                // company-wide caller doesn't have to know in advance which
+                // vendors did anything) — only the ones with actual activity
+                // on this project belong on this project's own page.
+                setVendors(vendorRes.data.data.filter(v => v.purchases > 0 || v.returns > 0 || v.payments > 0));
             }
             if (receivableRes?.data.success) setReceivable(receivableRes.data.data);
+
+            // Each contractor-analysis/labour-analysis row is 0 for a vendor/
+            // labourer with no activity at all on this project (both the
+            // work and the money side are already projectId-filtered
+            // upstream), so summing every row is safe — but clamped at 0
+            // per row first, so one overpaid contractor can't quietly net
+            // against a different contractor's real balance due on the same
+            // project (same reasoning as the Client Credit Balance fix).
+            const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+            const sumPositive = (rows, key) => round2(rows.reduce((s, r) => s + Math.max(0, r[key]), 0));
+            setPayables({
+                vendorPaymentLeft: vendorRes.data.success ? sumPositive(vendorRes.data.data, 'amountOwed') : 0,
+                contractorBalancePayable: contractorRes.data.success ? sumPositive(contractorRes.data.data, 'balancePayable') : 0,
+                labourBalancePayable: labourRes.data.success ? sumPositive(labourRes.data.data, 'balancePayable') : 0,
+                expensePayable: expenseRes.data.success ? sumPositive(expenseRes.data.data, 'balance') : 0,
+            });
         } catch {
             // Overview degrades gracefully — sections just show empty state.
         }
@@ -91,6 +121,14 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
     // Payments box below — refresh in the background rather than requiring
     // a tab revisit.
     useFinanceWsRefresh(['clientDirectPaymentsChanged'], (msg) => { if (!msg.projectId || msg.projectId === projectId) fetchOverview(); });
+    // Same idea for the new Payables row below — a contractor/labour
+    // advance/deduction/payment, a vendor purchase/return/payment, or an
+    // expense recorded/settled anywhere else in the app should update this
+    // page without needing a revisit.
+    useFinanceWsRefresh(
+        ['financeContractorLedgerChanged', 'financeLabourLedgerChanged', 'financeVendorLedgerChanged', 'financePurchasesChanged', 'financeExpensesChanged', 'financeExpensePaymentsChanged'],
+        fetchOverview
+    );
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
     if (!profit) return <div className="admin-empty-state"><p>Unable to load project profitability.</p></div>;
@@ -195,6 +233,20 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
                 </ChartCard>
             </ChartGrid>
 
+            {payables && (payables.vendorPaymentLeft > 0 || payables.contractorBalancePayable > 0 || payables.labourBalancePayable > 0 || payables.expensePayable > 0) && (
+                <div style={{ marginBottom: '24px' }}>
+                    <p className="admin-subtitle" style={{ marginBottom: '10px' }}>
+                        Payables — everything this project itself still owes, right now (approved and unapproved combined; Vendor/Expense already shown in more detail below).
+                    </p>
+                    <KpiGrid>
+                        <KpiCard label="Vendor Payment Left" value={formatINR(payables.vendorPaymentLeft)} tone={payables.vendorPaymentLeft > 0 ? 'danger' : 'good'} />
+                        <KpiCard label="Contractor Balance Payable" value={formatINR(payables.contractorBalancePayable)} tone={payables.contractorBalancePayable > 0 ? 'danger' : 'good'} />
+                        <KpiCard label="Labour Balance Payable" value={formatINR(payables.labourBalancePayable)} tone={payables.labourBalancePayable > 0 ? 'danger' : 'good'} />
+                        <KpiCard label="Expense Payables" value={formatINR(payables.expensePayable)} tone={payables.expensePayable > 0 ? 'danger' : 'good'} onClick={onViewExpenses} />
+                    </KpiGrid>
+                </div>
+            )}
+
             {receivable && (() => {
                 const hasCredits = receivable.directPaymentCredits > 0;
                 const cols = hasCredits ? '1fr 1fr 1fr 1fr 1fr' : '1fr 1fr 1fr';
@@ -244,11 +296,15 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks }) => {
 
             {vendors.length > 0 && (
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}><b>Vendors Supplying This Project</b><b>Total Purchased</b></div>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr' }}>
+                        <b>Vendors Supplying This Project</b><b>Purchased</b><b>Returns</b><b>Payment Left</b>
+                    </div>
                     {vendors.map(v => (
-                        <div key={v.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
+                        <div key={v.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr' }}>
                             <p>{v.vendorName}</p>
-                            <p>{formatINR(v.totalPurchased)}</p>
+                            <p>{formatINR(v.purchases)}</p>
+                            <p>{formatINR(v.returns)}</p>
+                            <p style={{ color: v.amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}>{formatINR(v.amountOwed)}</p>
                         </div>
                     ))}
                 </div>
@@ -614,7 +670,7 @@ const ProjectDetail = ({ url }) => {
                             )}
                             <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Notes</b></p><p>{project.notes || '-'}</p></div>
                         </div>
-                        <ProjectOverviewTab url={url} projectId={id} contractType={project.contractType} onViewWorks={() => setActiveTab('works')} />
+                        <ProjectOverviewTab url={url} projectId={id} contractType={project.contractType} onViewWorks={() => setActiveTab('works')} onViewExpenses={() => setActiveTab('expenses')} />
                     </div>
                 )}
 

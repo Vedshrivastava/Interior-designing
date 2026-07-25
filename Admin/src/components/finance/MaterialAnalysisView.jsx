@@ -21,7 +21,15 @@ const MaterialAnalysisView = ({ url }) => {
     const [loading, setLoading] = useState(!materialAnalysisCache.has(''));
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => {
+            if (!res.data.success) return;
+            setProjects(res.data.data);
+            // Cost/Sqft only ever computes with a project picked (see below) —
+            // defaulting to "All projects" meant it always opened on the one
+            // state where that column can never show anything. Auto-pick the
+            // first project instead, same as a real visit would look for.
+            setProjectId(prev => prev || res.data.data[0]?._id || '');
+        }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchRows = () => {

@@ -12,7 +12,7 @@ import ContractorWorksView from '../../components/finance/ContractorWorksView';
 import ContractorMeasurementsView from '../../components/finance/ContractorMeasurementsView';
 import ContractorLedgerView from '../../components/finance/ContractorLedgerView';
 import PersonDocumentsView from '../../components/finance/PersonDocumentsView';
-import { ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
+import { ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ChartTooltip, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 
@@ -138,18 +138,18 @@ const ContractorsOverviewTab = ({ url, onSelectContractor }) => {
 
     return (
         <div>
-            {!loading && contractors.length > 0 && (
+            {(loading || contractors.length > 0) && (
                 <>
                     <ChartGrid>
                         <ChartCard title="Balance Payable per Contractor">
-                            {payableData.length > 0 ? (
+                            {loading ? <ChartSkeleton /> : payableData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height={240}>
                                     <BarChart data={payableData} layout="vertical" margin={{ left: 24 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                         <XAxis type="number" tick={{ fontSize: 11 }} />
                                         <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
-                                        <Tooltip formatter={(v) => formatINR(v)} />
-                                        <Bar dataKey="balancePayable" name="Balance Payable" radius={[0, 4, 4, 0]} onClick={(d) => onSelectContractor(d.vendorId)} style={{ cursor: 'pointer' }}>
+                                        <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
+                                        <Bar dataKey="balancePayable" name="Balance Payable" radius={[0, 4, 4, 0]} activeBar={false} onClick={(d) => onSelectContractor(d.vendorId)} style={{ cursor: 'pointer' }}>
                                             {payableData.map((_, i) => <Cell key={i} fill={CHART_COLORS[0]} />)}
                                         </Bar>
                                     </BarChart>
@@ -157,7 +157,7 @@ const ContractorsOverviewTab = ({ url, onSelectContractor }) => {
                             ) : <EmptyChart text="Nothing payable right now." />}
                         </ChartCard>
                         <ChartCard title="Cost/Sqft by Work Type">
-                            {costPerSqftData.length > 0 ? (
+                            {loading ? <ChartSkeleton /> : costPerSqftData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height={240}>
                                     <BarChart data={costPerSqftData}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
@@ -167,9 +167,9 @@ const ContractorsOverviewTab = ({ url, onSelectContractor }) => {
                                             money totals, but this is a per-sqft rate (e.g.
                                             ₹5.20), where that rounding silently drops the
                                             decimal. */}
-                                        <Tooltip formatter={(v) => `₹${(v || 0).toFixed(2)}/sqft`} />
+                                        <Tooltip content={<ChartTooltip valueFormatter={(v) => `₹${(v || 0).toFixed(2)}/sqft`} />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
                                         <Legend wrapperStyle={{ fontSize: 11 }} />
-                                        {workTypes.map((wt, i) => <Bar key={wt} dataKey={wt} name={wt} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                                        {workTypes.map((wt, i) => <Bar key={wt} dataKey={wt} name={wt} fill={CHART_COLORS[i % CHART_COLORS.length]} activeBar={false} />)}
                                     </BarChart>
                                 </ResponsiveContainer>
                             ) : <EmptyChart text="No completed work yet." />}

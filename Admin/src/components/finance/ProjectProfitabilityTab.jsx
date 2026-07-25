@@ -83,6 +83,55 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                 <KpiCard label="Other Expenses" value={formatINR(profit.otherExpenses)} />
             </KpiGrid>
 
+            {(profit.unapprovedAreaSqft > 0 || profit.unapprovedCommissionCost > 0) && (
+                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                        <b>Area</b><b>Contractor Payment Left</b><b>Labour Payment Left</b><b>Commission</b><b>Revenue</b><b>Profit</b>
+                    </div>
+                    <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                        <p>{profit.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
+                        <p>{formatINR(profit.unapprovedContractorCost)}</p>
+                        <p>{formatINR(profit.unapprovedLabourCost)}</p>
+                        <p>{formatINR(profit.unapprovedCommissionCost)}</p>
+                        <p>{formatINR(profit.unapprovedRevenue)}</p>
+                        <p style={{ color: profit.unapprovedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>{formatINR(profit.unapprovedProfit)}</p>
+                    </div>
+                    <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
+                        Logged work whose cost isn't counted in Profit yet — review it in Payables/Receivables → Deductions to move it in. Revenue/Profit here are what this same unapproved work would add once reviewed and billed.
+                        {(profit.directPaymentContractorUnapproved > 0 || profit.directPaymentLabourUnapproved > 0) && (
+                            ' Contractor/Labour Payment Left is already net of client direct payments — see Direct Payments below.'
+                        )}
+                    </p>
+                </div>
+            )}
+
+            {(profit.directPaymentContractorUnapproved > 0 || profit.directPaymentLabourUnapproved > 0 || profit.directPaymentContractorApproved > 0 || profit.directPaymentLabourApproved > 0) && (
+                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Direct Payments (Client → Workers)</b></div>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                        <b>Party</b><b>Applied to Unapproved</b><b>Applied to Approved</b>
+                    </div>
+                    {profit.directPaymentContractorUnapproved + profit.directPaymentContractorApproved > 0 && (
+                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                            <p>Contractor</p>
+                            <p>{formatINR(profit.directPaymentContractorUnapproved)}</p>
+                            <p>{formatINR(profit.directPaymentContractorApproved)}</p>
+                        </div>
+                    )}
+                    {profit.directPaymentLabourUnapproved + profit.directPaymentLabourApproved > 0 && (
+                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                            <p>Labour</p>
+                            <p>{formatINR(profit.directPaymentLabourUnapproved)}</p>
+                            <p>{formatINR(profit.directPaymentLabourApproved)}</p>
+                        </div>
+                    )}
+                    <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
+                        Amounts the client paid directly to a worker on this project (Payables → Client Direct Payments), applied to Unapproved first and only spilling into Approved once Unapproved is fully covered.
+                    </p>
+                </div>
+            )}
+
             {receivable && (
                 <>
                     <KpiSectionLabel>Receivables</KpiSectionLabel>

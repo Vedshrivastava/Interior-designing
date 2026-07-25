@@ -6,6 +6,7 @@ import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import RunningBillsManager from '../../components/finance/RunningBillsManager';
 import WorkReviewPanel from '../../components/finance/WorkReviewPanel';
+import StyledSelect from '../../components/finance/StyledSelect';
 
 const TABS = [
     { key: 'review',   label: 'Work Review' },
@@ -33,10 +34,12 @@ const ProjectPicker = ({ url, selectedProjectId, onChange }) => {
     return (
         <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
             <p>Project</p>
-            <select value={selectedProjectId} onChange={e => onChange(e.target.value)}>
-                <option value="">Select project…</option>
-                {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-            </select>
+            <StyledSelect
+                value={selectedProjectId}
+                onChange={onChange}
+                placeholder="Select project…"
+                options={projects.map(p => ({ value: p._id, label: p.name }))}
+            />
         </div>
     );
 };

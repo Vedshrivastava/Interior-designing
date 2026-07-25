@@ -9,7 +9,7 @@ import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import PurchaseOrReturnManager from '../../components/finance/PurchaseOrReturnManager';
 import MaterialDumpView from '../../components/finance/MaterialDumpView';
 import VendorLedgerView from '../../components/finance/VendorLedgerView';
-import { ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
+import { ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ChartTooltip, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/dashboard.css';
 
 const TABS = [
@@ -81,30 +81,30 @@ const ProcurementVendorsOverviewTab = ({ url }) => {
 
     return (
         <div>
-            {!loading && vendors.length > 0 && (
+            {(loading || vendors.length > 0) && (
                 <>
                     <ChartGrid>
                         <ChartCard title="Top Vendors by Purchase Volume">
-                            {topVendors.some(v => v.purchases > 0) ? (
+                            {loading ? <ChartSkeleton /> : topVendors.some(v => v.purchases > 0) ? (
                                 <ResponsiveContainer width="100%" height={240}>
                                     <BarChart data={topVendors} layout="vertical" margin={{ left: 24 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                         <XAxis type="number" tick={{ fontSize: 11 }} />
                                         <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
-                                        <Tooltip formatter={(v) => formatINR(v)} />
-                                        <Bar dataKey="purchases" name="Purchases" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} />
+                                        <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
+                                        <Bar dataKey="purchases" name="Purchases" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} activeBar={false} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             ) : <EmptyChart text="No purchases recorded yet." />}
                         </ChartCard>
                         <ChartCard title="Material Cost Trend (avg rate/month, top materials)">
-                            {trendData.length > 0 ? (
+                            {loading ? <ChartSkeleton /> : trendData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height={240}>
                                     <LineChart data={trendData}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                         <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                                         <YAxis tick={{ fontSize: 11 }} />
-                                        <Tooltip formatter={(v) => formatINR(v)} />
+                                        <Tooltip content={<ChartTooltip />} />
                                         <Legend wrapperStyle={{ fontSize: 10 }} />
                                         {trend.map((m, i) => (
                                             <Line key={m.materialId} type="monotone" dataKey={m.materialName} stroke={CHART_COLORS[i % CHART_COLORS.length]} dot={{ r: 2 }} />

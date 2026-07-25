@@ -4,7 +4,7 @@ import axios from 'axios';
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from 'recharts';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import StockMovementsManager from '../../components/finance/StockMovementsManager';
-import { ChartCard, ChartGrid, EmptyChart, CHART_COLORS } from '../../components/finance/DashboardWidgets';
+import { ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ChartTooltip, CHART_COLORS } from '../../components/finance/DashboardWidgets';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/dashboard.css';
 
@@ -65,17 +65,17 @@ const SiteInventoryPage = ({ url }) => {
 
     return (
         <FinanceTabShell label="Site Inventory" subtitle="Current stock, consumption trend, and wastage rate. Manual waste entry per project below; Dump/Return happen through Procurement's Purchase/Returns instead.">
-            {!loading && stockTable.length > 0 && (
+            {(loading || stockTable.length > 0) && (
                 <>
                     <ChartGrid>
                         <ChartCard title="Consumption Trend (monthly qty, top materials)">
-                            {consumptionData.length > 0 ? (
+                            {loading ? <ChartSkeleton /> : consumptionData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height={240}>
                                     <LineChart data={consumptionData}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                         <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                                         <YAxis tick={{ fontSize: 11 }} />
-                                        <Tooltip />
+                                        <Tooltip content={<ChartTooltip />} />
                                         <Legend wrapperStyle={{ fontSize: 10 }} />
                                         {consumptionTrend.map((m, i) => (
                                             <Line key={m.materialId} type="monotone" dataKey={m.materialName} stroke={CHART_COLORS[i % CHART_COLORS.length]} dot={{ r: 2 }} />
@@ -85,14 +85,14 @@ const SiteInventoryPage = ({ url }) => {
                             ) : <EmptyChart text="No consumption recorded yet." />}
                         </ChartCard>
                         <ChartCard title="Wastage Rate: highest first">
-                            {wastageData.length > 0 ? (
+                            {loading ? <ChartSkeleton /> : wastageData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height={240}>
                                     <BarChart data={wastageData.slice(0, 10)} layout="vertical" margin={{ left: 24 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                         <XAxis type="number" tick={{ fontSize: 11 }} unit="%" />
                                         <YAxis type="category" dataKey="materialName" tick={{ fontSize: 11 }} width={100} />
-                                        <Tooltip formatter={(v) => `${v}%`} />
-                                        <Bar dataKey="wastagePercent" name="Wastage %" radius={[0, 4, 4, 0]}>
+                                        <Tooltip content={<ChartTooltip valueFormatter={(v) => `${v}%`} />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
+                                        <Bar dataKey="wastagePercent" name="Wastage %" radius={[0, 4, 4, 0]} activeBar={false}>
                                             {wastageData.slice(0, 10).map((_, i) => <Cell key={i} fill={CHART_COLORS[2]} />)}
                                         </Bar>
                                     </BarChart>

@@ -22,16 +22,26 @@ const financeRunningBillSchema = new mongoose.Schema({
         areaBilledSqft:     { type: Number, required: true },
         clientRatePerSqft:  { type: Number, required: true }, // snapshotted from financeWorkTypeRate at generation
         amount:             { type: Number, required: true }, // snapshotted: areaBilledSqft * clientRatePerSqft
+        // Per work type, not per bill — a bill mixing e.g. a material-rate
+        // work type (5%) and a labour/service-rate one (18%) needs each
+        // line taxed at its own rate, not one flat number across the whole
+        // bill (see financeWorkTypeRate.gstRatePercent / generateRunningBill's
+        // resolution order). Snapshotted here just like clientRatePerSqft.
+        gstRatePercent:     { type: Number, default: null },
+        gstAmount:          { type: Number, default: null }, // amount * gstRatePercent / 100
     }],
 
     totalAmount: { type: Number, required: true },
 
-    // Optional — set at generation time if the owner enters a GST rate;
-    // gstAmount is snapshotted then and frozen like every other amount on
-    // this document. Unset on every bill generated before this field
-    // existed, and on any bill generated without a rate. Grand total for
-    // display purposes is totalAmount + (gstAmount || 0), computed at
-    // render time rather than stored as its own field.
+    // gstAmount here is the SUM of every line item's own gstAmount above —
+    // still the one number everything company-wide (CA Monthly Package's
+    // Output GST, etc.) sums across bills, unaffected by how many different
+    // rates contributed to it. gstRate is now a blended/effective rate for
+    // display only (gstAmount / totalAmount * 100) — meaningless as an
+    // actual rate to reapply anywhere once more than one distinct rate is
+    // present; use lineItems[].gstRatePercent for the real breakdown.
+    // Both null on every bill generated before per-work-type GST existed,
+    // and on any bill generated with nothing taxable.
     gstRate:   { type: Number, default: null },
     gstAmount: { type: Number, default: null },
 

@@ -57,11 +57,13 @@ const CaMonthlyPackageView = ({ url }) => {
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>GST Summary</p>
                     <div className="list-table finance-table" style={{ marginBottom: '20px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                            <b>Output GST</b><b>Input GST</b><b>Net Payable</b>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+                            <b>Output GST</b><b>Input GST — Purchases</b><b>Input GST — Expenses</b><b>Total Input GST</b><b>Net Payable</b>
                         </div>
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                        <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
                             <p>₹{data.gst.outputGst.toLocaleString('en-IN')}</p>
+                            <p>₹{data.gst.purchaseGst.toLocaleString('en-IN')}</p>
+                            <p>₹{data.gst.expenseGst.toLocaleString('en-IN')}</p>
                             <p>₹{data.gst.inputGst.toLocaleString('en-IN')}</p>
                             <p style={{ fontWeight: 600 }}>₹{data.gst.netGstPayable.toLocaleString('en-IN')}</p>
                         </div>

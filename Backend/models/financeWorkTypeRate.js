@@ -6,6 +6,12 @@ const financeWorkTypeRateSchema = new mongoose.Schema({
 
     clientRatePerSqft:   { type: Number, required: true },
     referralRatePerSqft: { type: Number, default: 0 },
+    // Null = fall back to financeCompanySettings.defaultGstRate at bill
+    // generation time — set only when this specific work type's claim
+    // (e.g. material vs labour/service) is legally taxed at a different
+    // rate than the company-wide default, so one bill mixing work types
+    // doesn't get a single flat rate slapped across everything.
+    gstRatePercent: { type: Number, default: null },
 
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },

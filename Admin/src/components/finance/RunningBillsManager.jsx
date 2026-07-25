@@ -38,7 +38,6 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     const periodFrom = (periodFromChoice === 'lastBill' && lastBillFromDate) ? lastBillFromDate : workStartDate;
     const [periodTo, setPeriodTo] = useState('');
     const [billDate, setBillDate] = useState('');
-    const [gstRate, setGstRate] = useState('');
     const [available, setAvailable] = useState(null);
     const [loadingAvailable, setLoadingAvailable] = useState(false);
     const [workTypeSqft, setWorkTypeSqft] = useState({});
@@ -46,7 +45,10 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
     const [gstEditItem, setGstEditItem] = useState(null);
-    const [gstEditValue, setGstEditValue] = useState('');
+    // One rate per work type present on the bill being edited, not one
+    // flat number — { [workType]: ratePercent }, mirrors workTypeSqft's
+    // own shape.
+    const [gstEditRates, setGstEditRates] = useState({});
     const [savingGst, setSavingGst] = useState(false);
     const [downloadingKey, setDownloadingKey] = useState(null); // `${billId}:${mode}`
     const { progress: downloadProgress, run: runDownload } = useFileDownload(authHeader);
@@ -85,14 +87,9 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
 
     const openGenerate = () => {
         setWorkStartDate(''); setLastBillFromDate(''); setPeriodFromChoice('lastBill');
-        setPeriodTo(''); setBillDate(new Date().toISOString().slice(0, 10)); setGstRate('');
+        setPeriodTo(''); setBillDate(new Date().toISOString().slice(0, 10));
         setAvailable(null); setWorkTypeSqft({});
         setModalOpen(true);
-        // Prefill (not lock) gstRate from Settings > GST.
-        axios.get(`${url}/api/finance/settings/company`, authHeader).then(res => {
-            const rate = res.data.success ? res.data.data.defaultGstRate : null;
-            if (rate !== null && rate !== undefined) setGstRate(rate);
-        }).catch(() => {});
         // Period From is purely descriptive on the statement (nothing
         // queries by it), so rather than a free date picker the engineer
         // just picks between the two anchors that ever actually make
@@ -137,6 +134,15 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
         const sqft = Number(workTypeSqft[a.workType]) || 0;
         return sum + sqft * (a.clientRatePerSqft || 0);
     }, 0);
+    // Per work type, not one flat number — mirrors what generateRunningBill
+    // actually computes server-side (each work type's own gstRatePercent,
+    // resolved from its Work Type Rate or the company default), so this
+    // preview can't drift from what the bill actually gets generated with.
+    const totalPreviewGst = (available || []).reduce((sum, a) => {
+        const sqft = Number(workTypeSqft[a.workType]) || 0;
+        const amount = sqft * (a.clientRatePerSqft || 0);
+        return sum + (a.gstRatePercent != null ? amount * (a.gstRatePercent / 100) : 0);
+    }, 0);
 
     const confirmGenerate = async () => {
         const payloadSqft = Object.fromEntries(
@@ -145,7 +151,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
         if (!Object.keys(payloadSqft).length) return toast.error('Enter approved sqft for at least one work type');
         setGenerating(true);
         try {
-            const res = await axios.post(`${url}/api/finance/running-bills/generate`, { projectId, periodFrom, periodTo, billDate, gstRate, workTypeSqft: payloadSqft }, authHeader);
+            const res = await axios.post(`${url}/api/finance/running-bills/generate`, { projectId, periodFrom, periodTo, billDate, workTypeSqft: payloadSqft }, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message);
                 closeModal();
@@ -165,12 +171,27 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
         } catch { toast.error('Error updating bill status'); }
     };
 
-    const openGstEdit = (bill) => { setGstEditValue(bill.gstRate ?? ''); setGstEditItem(bill); };
+    // One rate per work type present on the bill, prefilled from whatever
+    // each line item is currently carrying — a bill can have more than one
+    // line item for the same work type (split across Works), so this
+    // collapses to one entry per distinct work type.
+    const openGstEdit = (bill) => {
+        const rates = {};
+        for (const li of bill.lineItems) rates[li.workType] = li.gstRatePercent ?? '';
+        setGstEditRates(rates);
+        setGstEditItem(bill);
+    };
+    const setGstEditRate = (workType, value) => setGstEditRates(prev => ({ ...prev, [workType]: value }));
+
+    const gstEditTotal = gstEditItem ? gstEditItem.lineItems.reduce((sum, li) => {
+        const rate = gstEditRates[li.workType];
+        return sum + (rate !== '' && rate != null ? li.amount * (Number(rate) / 100) : 0);
+    }, 0) : 0;
 
     const saveGst = async () => {
         setSavingGst(true);
         try {
-            const res = await axios.post(`${url}/api/finance/running-bills/update-gst`, { _id: gstEditItem._id, gstRate: gstEditValue }, authHeader);
+            const res = await axios.post(`${url}/api/finance/running-bills/update-gst`, { _id: gstEditItem._id, lineItemGstRates: gstEditRates }, authHeader);
             if (res.data.success) { toast.success(res.data.message); setGstEditItem(null); await fetchBills(); }
             else toast.error(res.data.message);
         } catch (err) {
@@ -239,7 +260,15 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                             <p>
                                 ₹{b.totalAmount.toLocaleString('en-IN')}
                                 {b.gstAmount
-                                    ? ` + GST (${b.gstRate}%)`
+                                    ? (() => {
+                                        // More than one distinct rate across this bill's
+                                        // line items shows the blended % with a hint,
+                                        // rather than implying one flat rate applied.
+                                        const rates = [...new Set(b.lineItems.filter(li => li.gstAmount).map(li => li.gstRatePercent))];
+                                        return rates.length > 1
+                                            ? ` + GST (${rates.join('/')}% blended): ₹${b.gstAmount.toLocaleString('en-IN')}`
+                                            : ` + GST (${b.gstRate}%)`;
+                                    })()
                                     : (b.status === 'issued' && (
                                         <span title="Mark this bill Draft to add GST; it's locked once issued." style={{ color: 'var(--text-lt)', fontSize: '0.85em' }}> · no GST</span>
                                     ))}
@@ -305,10 +334,6 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                                 <p>Bill Date</p>
                                 <StyledDatePicker value={billDate} onChange={setBillDate} />
                             </div>
-                            <div className="add-product-name flex-col">
-                                <p>GST Rate % (optional)</p>
-                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={gstRate} onChange={e => setGstRate(e.target.value)} />
-                            </div>
                         </div>
 
                         {loadingAvailable ? (
@@ -317,14 +342,14 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                             <div className="admin-empty-state" style={{ margin: '16px 0' }}><p>Nothing logged and unapproved for this project right now.</p></div>
                         ) : (
                             <div className="list-table finance-table" style={{ margin: '16px 0' }}>
-                                <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1fr' }}>
-                                    <b>Work Type</b><b>Approved Sqft</b><b>Rate</b><b>Amount</b>
+                                <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.9fr 0.9fr 0.7fr 1fr' }}>
+                                    <b>Work Type</b><b>Approved Sqft</b><b>Rate</b><b>GST %</b><b>Amount</b>
                                 </div>
                                 {available.map(a => {
                                     const sqft = Number(workTypeSqft[a.workType]) || 0;
                                     const amount = sqft * (a.clientRatePerSqft || 0);
                                     return (
-                                        <div key={a.workType} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1fr' }}>
+                                        <div key={a.workType} className="list-table-format row-item" style={{ gridTemplateColumns: '1.1fr 0.9fr 0.9fr 0.7fr 1fr' }}>
                                             <p>{a.workType} <span style={{ fontSize: '0.75rem', color: 'var(--text-lt)' }}>(of {a.availableSqft} available)</span></p>
                                             <p>
                                                 <input
@@ -335,6 +360,9 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                                                 />
                                             </p>
                                             <p>{a.clientRatePerSqft != null ? `₹${a.clientRatePerSqft}/sqft` : <span title="No Work Type Rate configured">(no rate)</span>}</p>
+                                            <p title="From this work type's own Work Type Rate, or the company default from Settings → GST">
+                                                {a.gstRatePercent != null ? `${a.gstRatePercent}%` : '—'}
+                                            </p>
                                             <p>₹{amount.toLocaleString('en-IN')}</p>
                                         </div>
                                     );
@@ -342,7 +370,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                                 <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr', fontWeight: 600 }}>
                                     <p>
                                         Total: ₹{totalPreviewAmount.toLocaleString('en-IN')}
-                                        {gstRate && ` + GST (${gstRate}%): ₹${(totalPreviewAmount * (Number(gstRate) / 100)).toLocaleString('en-IN')}`}
+                                        {totalPreviewGst > 0 && ` + GST: ₹${totalPreviewGst.toLocaleString('en-IN')}`}
                                     </p>
                                 </div>
                             </div>
@@ -361,20 +389,24 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
 
             {gstEditItem && ReactDOM.createPortal(
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal" style={{ maxWidth: '380px' }}>
+                    <div className="loader-modal-box edit-modal" style={{ maxWidth: '420px' }}>
                         <h2>GST: Bill #{gstEditItem.billNumber}</h2>
                         <p style={{ margin: '4px 0 16px', color: 'var(--text-lt)', fontSize: '0.9em' }}>
-                            Applies to the subtotal of ₹{gstEditItem.totalAmount.toLocaleString('en-IN')}. Leave blank for no GST.
+                            One rate per work type — a bill mixing e.g. a material claim and a labour/service claim can be taxed differently for each. Leave a row blank for no GST on that work type.
                         </p>
-                        <div className="add-product-name flex-col">
-                            <p>GST Rate %</p>
-                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={gstEditValue} onChange={e => setGstEditValue(e.target.value)} autoFocus />
-                        </div>
-                        {gstEditValue !== '' && (
-                            <p style={{ margin: '12px 0 0', fontWeight: 600 }}>
-                                Grand Total: ₹{(gstEditItem.totalAmount * (1 + Number(gstEditValue) / 100)).toLocaleString('en-IN')}
-                            </p>
-                        )}
+                        {[...new Map(gstEditItem.lineItems.map(li => [li.workType, li])).values()].map(li => (
+                            <div key={li.workType} className="add-product-name flex-col" style={{ marginBottom: '10px' }}>
+                                <p>{li.workType} <span style={{ fontSize: '0.75rem', color: 'var(--text-lt)' }}>(subtotal ₹{gstEditItem.lineItems.filter(x => x.workType === li.workType).reduce((s, x) => s + x.amount, 0).toLocaleString('en-IN')})</span></p>
+                                <input
+                                    type="number" onWheel={e => e.target.blur()} min="0" step="any"
+                                    value={gstEditRates[li.workType] ?? ''} onChange={e => setGstEditRate(li.workType, e.target.value)}
+                                />
+                            </div>
+                        ))}
+                        <p style={{ margin: '12px 0 0', fontWeight: 600 }}>
+                            Grand Total: ₹{(gstEditItem.totalAmount + gstEditTotal).toLocaleString('en-IN')}
+                            {gstEditTotal > 0 && <span style={{ fontWeight: 400, color: 'var(--text-lt)' }}> (incl. ₹{gstEditTotal.toLocaleString('en-IN')} GST)</span>}
+                        </p>
                         <div className="edit-modal-actions">
                             <button type="button" className="add-btn cancel-btn" onClick={() => setGstEditItem(null)}>Cancel</button>
                             <button type="button" className="add-btn" disabled={savingGst} onClick={saveGst}>

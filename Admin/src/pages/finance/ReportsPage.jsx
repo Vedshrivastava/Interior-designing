@@ -14,18 +14,29 @@ import CaMonthlyPackageView from '../../components/finance/CaMonthlyPackageView'
 import SupervisorAnalysisTable from '../../components/finance/SupervisorAnalysisTable';
 import ReconciliationChecklist from '../../components/finance/ReconciliationChecklist';
 
+// Grouped by what each tab actually answers, in drill-down order within
+// each group, rather than the historical build order:
+//   Profit — Client → Project → Work, top-down, matching how these three
+//     cross-link into each other (a client rolls up projects, a project
+//     rolls up works).
+//   Who's owed — one tab per party type this business pays for labour/
+//     materials.
+//   Cost — where the money actually went, material and everything else.
+//   Money movement & compliance — cash position and the CA/tax handoff.
+//   Reconciliation last — the month-end checklist that points back into
+//     every tab above it, so it reads as the wrap-up.
 const TABS = [
-    { key: 'project-profit',      label: 'Project Profit' },
     { key: 'client-profit',       label: 'Client Profit' },
+    { key: 'project-profit',      label: 'Project Profit' },
     { key: 'work-profit',         label: 'Work Profit' },
     { key: 'contractor-analysis', label: 'Contractor Analysis' },
+    { key: 'labour-analysis',     label: 'Labour Analysis' },
+    { key: 'supervisor-analysis', label: 'Supervisor Analysis' },
     { key: 'vendor-analysis',     label: 'Vendor Analysis' },
     { key: 'material-analysis',   label: 'Material Analysis' },
-    { key: 'cash-flow',           label: 'Cash Flow' },
     { key: 'expense-analysis',    label: 'Expense Analysis' },
+    { key: 'cash-flow',           label: 'Cash Flow' },
     { key: 'ca-monthly-package',  label: 'CA Monthly Package' },
-    { key: 'supervisor-analysis', label: 'Supervisor Analysis' },
-    { key: 'labour-analysis',     label: 'Labour Analysis' },
     { key: 'reconciliation',      label: 'Reconciliation' },
 ];
 

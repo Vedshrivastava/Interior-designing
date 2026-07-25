@@ -104,6 +104,52 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                         </div>
                     </div>
 
+                    {(data.unapprovedAreaSqft > 0 || data.unapprovedCommissionCost > 0) && (
+                        <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
+                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                                <b>Area</b><b>Contractor Payment Left</b><b>Labour Payment Left</b><b>Commission</b><b>Revenue</b><b>Profit</b>
+                            </div>
+                            <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                                <p>{data.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
+                                <p>₹{data.unapprovedContractorCost.toLocaleString('en-IN')}</p>
+                                <p>₹{data.unapprovedLabourCost.toLocaleString('en-IN')}</p>
+                                <p>₹{data.unapprovedCommissionCost.toLocaleString('en-IN')}</p>
+                                <p>₹{data.unapprovedRevenue.toLocaleString('en-IN')}</p>
+                                <p style={{ color: data.unapprovedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>₹{data.unapprovedProfit.toLocaleString('en-IN')}</p>
+                            </div>
+                            <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
+                                Logged work whose cost isn't counted in Profit yet — Contractor/Labour Payment Left is already net of client direct payments.
+                            </p>
+                        </div>
+                    )}
+
+                    {(data.directPaymentContractorUnapproved > 0 || data.directPaymentLabourUnapproved > 0 || data.directPaymentContractorApproved > 0 || data.directPaymentLabourApproved > 0) && (
+                        <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Direct Payments (Client → Workers)</b></div>
+                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                                <b>Party</b><b>Applied to Unapproved</b><b>Applied to Approved</b>
+                            </div>
+                            {data.directPaymentContractorUnapproved + data.directPaymentContractorApproved > 0 && (
+                                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                                    <p>Contractor</p>
+                                    <p>₹{data.directPaymentContractorUnapproved.toLocaleString('en-IN')}</p>
+                                    <p>₹{data.directPaymentContractorApproved.toLocaleString('en-IN')}</p>
+                                </div>
+                            )}
+                            {data.directPaymentLabourUnapproved + data.directPaymentLabourApproved > 0 && (
+                                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                                    <p>Labour</p>
+                                    <p>₹{data.directPaymentLabourUnapproved.toLocaleString('en-IN')}</p>
+                                    <p>₹{data.directPaymentLabourApproved.toLocaleString('en-IN')}</p>
+                                </div>
+                            )}
+                            <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
+                                Amounts the client paid directly to a worker on this project, applied to Unapproved first and only spilling into Approved once Unapproved is fully covered.
+                            </p>
+                        </div>
+                    )}
+
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Works: drill into a work's own profit</p>
                     <div className="list-table finance-table">
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 140px' }}>

@@ -16,7 +16,7 @@ const listWorkTypeRates = async (req, res) => {
 
 const addWorkTypeRate = async (req, res) => {
     try {
-        const { projectId, workType, clientRatePerSqft, referralRatePerSqft } = req.body;
+        const { projectId, workType, clientRatePerSqft, referralRatePerSqft, gstRatePercent } = req.body;
         if (!projectId || !workType) return res.status(400).json({ success: false, message: 'Project and work type are required' });
         if (clientRatePerSqft === undefined || clientRatePerSqft === null || clientRatePerSqft === '') {
             return res.status(400).json({ success: false, message: 'Client rate is required' });
@@ -39,6 +39,7 @@ const addWorkTypeRate = async (req, res) => {
             projectId, workType,
             clientRatePerSqft: Number(clientRatePerSqft),
             referralRatePerSqft: Number(referralRatePerSqft) || 0,
+            gstRatePercent: (gstRatePercent !== undefined && gstRatePercent !== null && gstRatePercent !== '') ? Number(gstRatePercent) : null,
         });
         await item.save();
         broadcast({ type: 'financeWorkTypeRatesChanged', projectId });

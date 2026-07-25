@@ -4,7 +4,9 @@ import FinanceReceipt from '../models/financeReceipt.js';
 import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import FinanceVendorPayment from '../models/financeVendorPayment.js';
 import FinanceSalaryPayment from '../models/financeSalaryPayment.js';
+import FinanceLabourPayment from '../models/financeLabourPayment.js';
 import FinanceCommissionPayment from '../models/financeCommissionPayment.js';
+import FinanceLabourProviderPayment from '../models/financeLabourProviderPayment.js';
 import FinanceExpense from '../models/financeExpense.js';
 import FinanceExpensePayment from '../models/financeExpensePayment.js';
 import { broadcast } from '../middlewares/webSocket.js';
@@ -12,9 +14,16 @@ import { broadcast } from '../middlewares/webSocket.js';
 /*
  * Shared by the account list (for the "Balance" tab) and the statement
  * endpoint below — every receipt/contractor-payment/vendor-payment/salary-
- * payment/commission-payment/expense with this account's bankAccountId
- * set, plus bank transfers in either direction. Current balance is never
- * stored: always openingBalance + this activity, computed fresh every call.
+ * payment/labour-payment/commission-payment/labour-provider-payment/expense
+ * with this account's bankAccountId set, plus bank transfers in either
+ * direction. Current balance is never stored: always openingBalance + this
+ * activity, computed fresh every call.
+ *
+ * Labour and Labour Provider payments used to be missing from this list
+ * entirely — a labourer or labour provider paid via bank transfer left no
+ * trace here, so the account's computed balance silently overstated what
+ * was actually still in the bank. Fixed by querying both, same as every
+ * other payment type already here.
  *
  * Expense is the one payable read two ways here: an old-style paid-at-entry
  * expense carries bankAccountId directly on itself (still read below), while
@@ -25,30 +34,38 @@ import { broadcast } from '../middlewares/webSocket.js';
  */
 const getAccountActivity = async (accountId) => {
     const filter = { bankAccountId: accountId, deleted: { $ne: true } };
-    const [receipts, contractorPayments, vendorPayments, salaryPayments, commissionPayments, expenses, expensePayments, transfersOut, transfersIn] = await Promise.all([
+    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, expensePayments, transfersOut, transfersIn] = await Promise.all([
         FinanceReceipt.find(filter),
         FinanceContractorPayment.find(filter),
         FinanceVendorPayment.find(filter),
         FinanceSalaryPayment.find(filter),
+        FinanceLabourPayment.find(filter),
         FinanceCommissionPayment.find(filter),
+        FinanceLabourProviderPayment.find(filter),
         FinanceExpense.find(filter),
         FinanceExpensePayment.find(filter).populate('expenseId', 'expenseCategory'),
         FinanceBankTransfer.find({ fromAccountId: accountId, deleted: { $ne: true } }),
         FinanceBankTransfer.find({ toAccountId: accountId, deleted: { $ne: true } }),
     ]);
 
+    // Every payment type here now has an identical tdsAmount/tdsSectionId
+    // pair (see each model's own comment — "mirrors financeContractorPayment's
+    // identical fields") and a working TDS input in its own Admin form, so
+    // this nets out consistently across all six instead of assuming only
+    // some of them ever carry a real TDS withholding.
+    const netOut = (p) => p.amount - (p.tdsAmount || 0);
+
     return [
         ...receipts.map(r => ({ date: r.receiptDate, amount: r.amount, direction: 'credit', description: 'Receipt', sourceType: 'receipt', sourceId: r._id })),
-        // Contractor/Salary payments net out tdsAmount here — only the
-        // post-TDS amount actually moved through the bank, the withheld
-        // portion is owed to the tax authority instead (see
+        // Only the post-TDS amount actually moved through the bank — the
+        // withheld portion is owed to the tax authority instead (see
         // controllers/financeContractorPayment.js's identical reasoning).
-        // Vendor/Commission payments stay gross — TDS on those two is still
-        // just decorative, not withheld from the recorded amount.
-        ...contractorPayments.map(p => ({ date: p.date, amount: p.amount - (p.tdsAmount || 0), direction: 'debit', description: 'Contractor payment', sourceType: 'contractorPayment', sourceId: p._id })),
-        ...vendorPayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Vendor payment', sourceType: 'vendorPayment', sourceId: p._id })),
-        ...salaryPayments.map(p => ({ date: p.date, amount: p.amount - (p.tdsAmount || 0), direction: 'debit', description: 'Salary payment', sourceType: 'salaryPayment', sourceId: p._id })),
-        ...commissionPayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Commission payment', sourceType: 'commissionPayment', sourceId: p._id })),
+        ...contractorPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: 'Contractor payment', sourceType: 'contractorPayment', sourceId: p._id })),
+        ...vendorPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: 'Vendor payment', sourceType: 'vendorPayment', sourceId: p._id })),
+        ...salaryPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: 'Salary payment', sourceType: 'salaryPayment', sourceId: p._id })),
+        ...labourPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: 'Labour payment', sourceType: 'labourPayment', sourceId: p._id })),
+        ...commissionPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: 'Commission payment', sourceType: 'commissionPayment', sourceId: p._id })),
+        ...labourProviderPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: 'Labour provider payment', sourceType: 'labourProviderPayment', sourceId: p._id })),
         ...expenses.map(e => ({ date: e.date, amount: e.amount, direction: 'debit', description: e.expenseCategory ? `Expense — ${e.expenseCategory}` : 'Expense', sourceType: 'expense', sourceId: e._id })),
         ...expensePayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Expense payment', sourceType: 'expensePayment', sourceId: p._id })),
         ...transfersOut.map(t => ({ date: t.date, amount: t.amount, direction: 'debit', description: 'Transfer out', sourceType: 'transfer', sourceId: t._id })),

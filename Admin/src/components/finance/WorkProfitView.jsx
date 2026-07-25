@@ -72,6 +72,52 @@ const WorkProfitView = ({ url, workId }) => {
                 </div>
             </div>
 
+            {(data.unapprovedAreaSqft > 0 || data.unapprovedCommissionAmount > 0) && (
+                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                        <b>Area</b><b>Contractor Payment Left</b><b>Labour Payment Left</b><b>Commission</b><b>Revenue</b><b>Profit</b>
+                    </div>
+                    <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                        <p>{data.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
+                        <p>₹{data.contractorPaymentLeftUnapproved.toLocaleString('en-IN')}</p>
+                        <p>₹{data.labourPaymentLeftUnapproved.toLocaleString('en-IN')}</p>
+                        <p>₹{data.unapprovedCommissionAmount.toLocaleString('en-IN')}</p>
+                        <p>₹{data.unapprovedRevenue.toLocaleString('en-IN')}</p>
+                        <p style={{ color: data.unapprovedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>₹{data.unapprovedProfit.toLocaleString('en-IN')}</p>
+                    </div>
+                    <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
+                        Logged work on this Work whose cost isn't counted in Profit yet — Contractor/Labour Payment Left is already net of client direct payments recorded against this Work.
+                    </p>
+                </div>
+            )}
+
+            {(data.contractorDirectPaymentUnapproved > 0 || data.labourDirectPaymentUnapproved > 0 || data.contractorDirectPaymentApproved > 0 || data.labourDirectPaymentApproved > 0) && (
+                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Direct Payments (Client → Workers)</b></div>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                        <b>Party</b><b>Applied to Unapproved</b><b>Applied to Approved</b>
+                    </div>
+                    {data.contractorDirectPaymentUnapproved + data.contractorDirectPaymentApproved > 0 && (
+                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                            <p>Contractor</p>
+                            <p>₹{data.contractorDirectPaymentUnapproved.toLocaleString('en-IN')}</p>
+                            <p>₹{data.contractorDirectPaymentApproved.toLocaleString('en-IN')}</p>
+                        </div>
+                    )}
+                    {data.labourDirectPaymentUnapproved + data.labourDirectPaymentApproved > 0 && (
+                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                            <p>Labour</p>
+                            <p>₹{data.labourDirectPaymentUnapproved.toLocaleString('en-IN')}</p>
+                            <p>₹{data.labourDirectPaymentApproved.toLocaleString('en-IN')}</p>
+                        </div>
+                    )}
+                    <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
+                        Amounts the client paid directly to a worker on this Work, applied to Unapproved first and only spilling into Approved once Unapproved is fully covered.
+                    </p>
+                </div>
+            )}
+
             {data.contractorBreakdown.length > 0 && (
                 <>
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Contractor breakdown</p>

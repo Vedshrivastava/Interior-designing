@@ -14,7 +14,15 @@ const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance']
 // of whether it's tied to a specific bill.
 const summarizeProject = async (project) => {
     const issuedBills = await FinanceRunningBill.find({ projectId: project._id, status: 'issued', deleted: { $ne: true } }).sort({ billDate: 1 });
-    const issuedTotal = issuedBills.reduce((sum, b) => sum + b.totalAmount, 0);
+    // issuedTotal is the real amount the client is billed — subtotal PLUS
+    // GST, same grandTotal a bill's own statement shows (computeBillStatement
+    // in financeRunningBill.js). A GST-inclusive bill previously understated
+    // Outstanding by exactly its GST amount, since this summed totalAmount
+    // alone; issuedSubtotal/issuedGst broken out separately below for
+    // anything that wants the pre-tax figure specifically.
+    const issuedSubtotal = issuedBills.reduce((sum, b) => sum + b.totalAmount, 0);
+    const issuedGst = issuedBills.reduce((sum, b) => sum + (b.gstAmount || 0), 0);
+    const issuedTotal = issuedSubtotal + issuedGst;
     const receipts = await FinanceReceipt.find({ projectId: project._id, deleted: { $ne: true } });
     const receivedTotal = receipts.reduce((sum, r) => sum + r.amount, 0);
     // Client-direct-payments tagged with a deductFromClientBill category —
@@ -38,7 +46,7 @@ const summarizeProject = async (project) => {
         projectName: project.name,
         clientId: project.clientId?._id || project.clientId,
         clientName: project.clientId?.name,
-        issuedTotal, receivedTotal, directPaymentCredits,
+        issuedTotal, issuedSubtotal, issuedGst, receivedTotal, directPaymentCredits,
         balance: Math.max(0, rawBalance),
         clientCreditBalance: Math.max(0, -rawBalance),
         issuedBillCount: issuedBills.length,
@@ -67,6 +75,8 @@ const getReceivablesSummary = async (req, res) => {
             const summaries = await Promise.all(projects.map(summarizeProject));
             const rollup = summaries.reduce((acc, s) => ({
                 issuedTotal: acc.issuedTotal + s.issuedTotal,
+                issuedSubtotal: acc.issuedSubtotal + s.issuedSubtotal,
+                issuedGst: acc.issuedGst + s.issuedGst,
                 receivedTotal: acc.receivedTotal + s.receivedTotal,
                 directPaymentCredits: acc.directPaymentCredits + s.directPaymentCredits,
                 // Summed from each project's already-clamped balance/credit —
@@ -74,7 +84,7 @@ const getReceivablesSummary = async (req, res) => {
                 // project's real debt in this client's rollup total.
                 balance: acc.balance + s.balance,
                 clientCreditBalance: acc.clientCreditBalance + s.clientCreditBalance,
-            }), { issuedTotal: 0, receivedTotal: 0, directPaymentCredits: 0, balance: 0, clientCreditBalance: 0 });
+            }), { issuedTotal: 0, issuedSubtotal: 0, issuedGst: 0, receivedTotal: 0, directPaymentCredits: 0, balance: 0, clientCreditBalance: 0 });
             return res.json({ success: true, data: { clientId, ...rollup, projects: summaries } });
         }
 

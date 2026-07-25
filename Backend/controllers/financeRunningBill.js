@@ -43,6 +43,17 @@ const listRunningBills = async (req, res) => {
 // first. Reused by both the "what can I approve" menu and the actual
 // generation's own validation, so they can never disagree about the
 // ceiling.
+// A work type's own gstRatePercent wins when set (a material-claim work
+// type taxed differently than a labour/service one); falls back to the
+// company-wide default otherwise. Shared by the availability preview and
+// actual line-item generation so they can never disagree about which rate
+// applies — same reasoning computeAvailableByWorkType/computeBillLineItems
+// already share for the ceiling itself.
+const resolveGstRatePercent = (rate, defaultGstRate) => {
+    if (rate?.gstRatePercent !== null && rate?.gstRatePercent !== undefined) return rate.gstRatePercent;
+    return defaultGstRate;
+};
+
 const computeAvailableByWorkType = async (projectId) => {
     const works = await FinanceWork.find({ projectId, deleted: { $ne: true } });
     const worksByType = new Map();
@@ -51,15 +62,23 @@ const computeAvailableByWorkType = async (projectId) => {
         worksByType.get(w.workType).push(w);
     }
     const workTypes = [...worksByType.keys()];
-    const rates = await FinanceWorkTypeRate.find({ projectId, workType: { $in: workTypes }, deleted: { $ne: true } });
-    const rateByType = new Map(rates.map(r => [r.workType, r.clientRatePerSqft]));
+    const [rates, company] = await Promise.all([
+        FinanceWorkTypeRate.find({ projectId, workType: { $in: workTypes }, deleted: { $ne: true } }),
+        FinanceCompanySettings.findOne({ deleted: { $ne: true } }, 'defaultGstRate').lean(),
+    ]);
+    const rateByType = new Map(rates.map(r => [r.workType, r]));
+    const defaultGstRate = (company?.defaultGstRate !== null && company?.defaultGstRate !== undefined) ? Number(company.defaultGstRate) : null;
 
     const result = [];
     for (const [workType, typeWorks] of worksByType) {
         const expectedPays = await Promise.all(typeWorks.map(w => computeWorkExpectedPay(w)));
         const availableSqft = round2(expectedPays.reduce((s, wp) => s + wp.availableToBillAreaSqft, 0));
         if (availableSqft <= 0) continue;
-        result.push({ workType, availableSqft, clientRatePerSqft: rateByType.get(workType) ?? null });
+        const rate = rateByType.get(workType);
+        result.push({
+            workType, availableSqft, clientRatePerSqft: rate?.clientRatePerSqft ?? null,
+            gstRatePercent: resolveGstRatePercent(rate, defaultGstRate),
+        });
     }
     return result;
 };
@@ -105,8 +124,12 @@ const computeBillLineItems = async (projectId, workTypeSqft) => {
     if (!entries.length) throw new Error('Enter approved sqft for at least one work type');
 
     const workTypes = entries.map(([wt]) => wt);
-    const rates = await FinanceWorkTypeRate.find({ projectId, workType: { $in: workTypes }, deleted: { $ne: true } });
+    const [rates, company] = await Promise.all([
+        FinanceWorkTypeRate.find({ projectId, workType: { $in: workTypes }, deleted: { $ne: true } }),
+        FinanceCompanySettings.findOne({ deleted: { $ne: true } }, 'defaultGstRate').lean(),
+    ]);
     const rateByType = new Map(rates.map(r => [r.workType, r]));
+    const defaultGstRate = (company?.defaultGstRate !== null && company?.defaultGstRate !== undefined) ? Number(company.defaultGstRate) : null;
     const missingRates = workTypes.filter(wt => !rateByType.has(wt));
     if (missingRates.length > 0) {
         throw new Error(`No client rate configured for: ${missingRates.join(', ')} — add a Work Type Rate first`);
@@ -122,15 +145,19 @@ const computeBillLineItems = async (projectId, workTypeSqft) => {
             throw new Error(`Cannot approve more than the ${totalAvailable} sqft available for ${workType} — review outstanding sqft first (Payables/Receivables → Deductions)`);
         }
         const rate = rateByType.get(workType);
+        // This work type's own claim-specific rate, resolved once per
+        // work type (not per Work) — see resolveGstRatePercent's comment.
+        const gstRatePercent = resolveGstRatePercent(rate, defaultGstRate);
         works.forEach((w, i) => {
             const workAvailable = expectedPays[i].availableToBillAreaSqft;
             if (workAvailable <= 0) return;
             const workSqft = splitApprovedAreaByShare(approvedSqft, workAvailable, totalAvailable);
             if (workSqft <= 0) return;
+            const amount = round2(workSqft * rate.clientRatePerSqft);
             lineItems.push({
                 workId: w._id, workType,
-                areaBilledSqft: workSqft, clientRatePerSqft: rate.clientRatePerSqft,
-                amount: round2(workSqft * rate.clientRatePerSqft),
+                areaBilledSqft: workSqft, clientRatePerSqft: rate.clientRatePerSqft, amount,
+                gstRatePercent, gstAmount: gstRatePercent != null ? round2(amount * (gstRatePercent / 100)) : null,
             });
         });
     }
@@ -174,16 +201,15 @@ const applyAdvanceCredit = async (projectId, bill) => {
     }
 };
 
-// gstRate is optional — when given, gstAmount is computed off totalAmount
-// and frozen here at generation time, same as every other amount on this
-// document. If the request omits it, this falls back to
-// financeCompanySettings.defaultGstRate (Settings > GST) rather than
-// leaving the bill GST-less — the Admin form only *prefills* that field
-// client-side, so a cleared/skipped field would otherwise silently drop
-// GST off the statement even though a business-wide default is configured.
+// GST is no longer a single rate typed at generation time — computeBillLineItems
+// already resolved each line item's own rate (per work type, falling back to
+// financeCompanySettings.defaultGstRate) and snapshotted its gstAmount, so
+// this just sums those. gstRate here is a blended/effective rate for display
+// (meaningless to reapply once more than one distinct rate contributed —
+// see the model's own comment).
 const generateRunningBill = async (req, res) => {
     try {
-        const { projectId, periodFrom, periodTo, billDate, gstRate, workTypeSqft } = req.body;
+        const { projectId, periodFrom, periodTo, billDate, workTypeSqft } = req.body;
         if (!projectId) return res.status(400).json({ success: false, message: 'projectId is required' });
 
         const { lineItems, totalAmount, project } = await computeBillLineItems(projectId, workTypeSqft);
@@ -191,15 +217,9 @@ const generateRunningBill = async (req, res) => {
         const billCount = await FinanceRunningBill.countDocuments({ projectId });
         const billNumber = String(billCount + 1);
 
-        const hasRequestGst = gstRate !== undefined && gstRate !== null && gstRate !== '';
-        let effectiveGstRate = hasRequestGst ? Number(gstRate) : null;
-        if (!hasRequestGst) {
-            const company = await FinanceCompanySettings.findOne({ deleted: { $ne: true } }, 'defaultGstRate').lean();
-            if (company?.defaultGstRate !== null && company?.defaultGstRate !== undefined) {
-                effectiveGstRate = Number(company.defaultGstRate);
-            }
-        }
-        const hasGst = effectiveGstRate !== null;
+        const gstAmount = round2(lineItems.reduce((sum, li) => sum + (li.gstAmount || 0), 0));
+        const hasGst = gstAmount > 0;
+        const gstRate = hasGst ? round2((gstAmount / totalAmount) * 100) : null;
         const resolvedBillDate = billDate || new Date();
 
         const bill = new FinanceRunningBill({
@@ -210,8 +230,7 @@ const generateRunningBill = async (req, res) => {
             // hard requirement.
             periodFrom: periodFrom || resolvedBillDate, periodTo: periodTo || resolvedBillDate,
             lineItems, totalAmount,
-            gstRate: hasGst ? effectiveGstRate : null,
-            gstAmount: hasGst ? totalAmount * (effectiveGstRate / 100) : null,
+            gstRate, gstAmount: hasGst ? gstAmount : null,
             status: 'draft',
         });
         await bill.save();
@@ -244,17 +263,32 @@ const generateRunningBill = async (req, res) => {
 // gstAmount across status: 'issued' bills), so changing it after that
 // point would silently rewrite already-reported tax figures. A bill can
 // always be moved back to draft via updateRunningBillStatus first.
+//
+// One rate per work type present on this bill (lineItemGstRates:
+// { [workType]: ratePercent }), not one flat rate for the whole document —
+// same "material claim taxed differently than labour/service" reasoning
+// computeBillLineItems already applies at generation time. This is the
+// manual-correction path for a specific bill without touching the
+// project's underlying Work Type Rate config.
 const updateRunningBillGst = async (req, res) => {
     try {
-        const { _id, gstRate } = req.body;
+        const { _id, lineItemGstRates } = req.body;
         const item = await FinanceRunningBill.findById(_id);
         if (!item) return res.status(404).json({ success: false, message: 'Not found' });
         if (item.status !== 'draft') {
             return res.status(400).json({ success: false, message: 'GST can only be edited on a draft bill — set status back to Draft first' });
         }
-        const hasGst = gstRate !== undefined && gstRate !== null && gstRate !== '';
-        item.gstRate = hasGst ? Number(gstRate) : null;
-        item.gstAmount = hasGst ? item.totalAmount * (Number(gstRate) / 100) : null;
+        const rates = lineItemGstRates || {};
+        for (const li of item.lineItems) {
+            const raw = rates[li.workType];
+            const hasRate = raw !== undefined && raw !== null && raw !== '';
+            li.gstRatePercent = hasRate ? Number(raw) : null;
+            li.gstAmount = hasRate ? round2(li.amount * (Number(raw) / 100)) : null;
+        }
+        const gstAmount = round2(item.lineItems.reduce((sum, li) => sum + (li.gstAmount || 0), 0));
+        const hasGst = gstAmount > 0;
+        item.gstAmount = hasGst ? gstAmount : null;
+        item.gstRate = hasGst ? round2((gstAmount / item.totalAmount) * 100) : null;
         await item.save();
         broadcast({ type: 'financeRunningBillsChanged', projectId: item.projectId });
         res.json({ success: true, message: 'GST updated', data: item });
@@ -340,6 +374,21 @@ const computeBillStatement = async (billId) => {
     // on this project runs lower than this one bill's own numbers suggest.
     const directPaymentCredits = await getClientBillCreditTotal(bill.projectId);
 
+    // One row per distinct rate actually present on this bill's line items
+    // — a bill mixing a 5% material-claim work type and an 18% labour/
+    // service one shows two rows here instead of one misleading blended
+    // percentage (bill.gstRate is still that blend, kept for old bills/
+    // callers that only want a single number).
+    const gstByRate = new Map();
+    for (const li of bill.lineItems) {
+        if (!li.gstAmount) continue;
+        const key = li.gstRatePercent;
+        gstByRate.set(key, (gstByRate.get(key) || 0) + li.gstAmount);
+    }
+    const gstBreakdown = [...gstByRate.entries()]
+        .map(([ratePercent, amount]) => ({ ratePercent, amount: round2(amount) }))
+        .sort((a, b) => a.ratePercent - b.ratePercent);
+
     // .lean() — spreading a hydrated Mongoose document ({ ...doc }) silently
     // drops some schema fields (companyName among them) in pdfLetterhead.js.
     const company = await FinanceCompanySettings.findOne({ deleted: { $ne: true } })
@@ -353,7 +402,7 @@ const computeBillStatement = async (billId) => {
             billId: bill._id, billNumber: bill.billNumber, billDate: bill.billDate,
             periodFrom: bill.periodFrom, periodTo: bill.periodTo, status: bill.status,
             lineItems: bill.lineItems, totalAmount: bill.totalAmount,
-            gstRate: bill.gstRate, gstAmount: bill.gstAmount, grandTotal,
+            gstRate: bill.gstRate, gstAmount: bill.gstAmount, gstBreakdown, grandTotal,
         },
         payments, paidTotal,
         outstandingBalance: grandTotal - paidTotal,
@@ -432,15 +481,17 @@ const downloadBillStatement = async (req, res) => {
         drawTable(doc, {
             theme,
             columns: [
-                { label: 'Work Type', width: 182, align: 'left' },
-                { label: 'Verified Area (sqft)', width: 120, align: 'right' },
-                { label: 'Rate/sqft', width: 100, align: 'right' },
+                { label: 'Work Type', width: 152, align: 'left' },
+                { label: 'Verified Area (sqft)', width: 100, align: 'right' },
+                { label: 'Rate/sqft', width: 90, align: 'right' },
+                { label: 'GST %', width: 60, align: 'right' },
                 { label: 'Amount', width: 110, align: 'right' },
             ],
             rows: data.bill.lineItems.map((li) => [
                 li.workType,
                 String(li.areaBilledSqft),
                 formatCurrency(li.clientRatePerSqft),
+                li.gstRatePercent != null ? `${li.gstRatePercent}%` : '—',
                 formatCurrency(li.amount),
             ]),
         });
@@ -460,8 +511,14 @@ const downloadBillStatement = async (req, res) => {
         const rowH = 20;
         const boxTopY = doc.y;
 
+        // One row per distinct rate actually charged (data.bill.gstBreakdown)
+        // instead of a single blended "GST (X%)" line — a bill mixing a
+        // material-claim work type at 5% and a labour/service one at 18%
+        // shows both, so the client can see exactly what was taxed how.
         const lightRows = [['Subtotal', formatCurrency(data.bill.totalAmount)]];
-        if (data.bill.gstAmount) lightRows.push([`GST (${data.bill.gstRate}%)`, formatCurrency(data.bill.gstAmount)]);
+        for (const row of data.bill.gstBreakdown) {
+            lightRows.push([`GST (${row.ratePercent}%)`, formatCurrency(row.amount)]);
+        }
         const sacLine = (data.bill.gstAmount && data.company?.defaultSacCode) ? `SAC: ${data.company.defaultSacCode}` : null;
 
         const boxH = totalsPad + (lightRows.length * rowH) + (sacLine ? 14 : 0) + 8 + 34 + totalsPad;

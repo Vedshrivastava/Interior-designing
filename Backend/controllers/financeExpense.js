@@ -73,15 +73,20 @@ const listExpenses = async (req, res) => {
 // went through the paid-at-entry path) read correctly with no migration.
 const addExpense = async (req, res) => {
     try {
-        const { expenseCategory, projectId, workId, relatedToType, relatedToId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, notes } = req.body;
+        const { expenseCategory, projectId, workId, relatedToType, relatedToId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, notes, gstRate } = req.body;
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
+        // gstAmount is always server-derived from amount × gstRate (never
+        // trusted from the client) — same convention financePurchase.js
+        // uses for its own identical fields.
+        const hasGst = gstRate !== undefined && gstRate !== null && gstRate !== '';
         const item = new FinanceExpense({
             expenseCategory: expenseCategory || '', projectId: projectId || null, workId: workId || null, amount: Number(amount), date,
             relatedToType: relatedToId ? (relatedToType || null) : null, relatedToId: relatedToId || null,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null,
             notes: notes || '',
+            gstRate: hasGst ? Number(gstRate) : null, gstAmount: hasGst ? Number(amount) * (Number(gstRate) / 100) : null,
         });
         await item.save();
 
@@ -117,15 +122,17 @@ const addExpense = async (req, res) => {
 
 const updateExpense = async (req, res) => {
     try {
-        const { _id, expenseCategory, projectId, amount, date, paymentMode, bankOrCashLabel, notes } = req.body;
+        const { _id, expenseCategory, projectId, amount, date, paymentMode, bankOrCashLabel, notes, gstRate } = req.body;
         const existing = await FinanceExpense.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Not found' });
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
+        const hasGst = gstRate !== undefined && gstRate !== null && gstRate !== '';
         await FinanceExpense.findByIdAndUpdate(_id, {
             expenseCategory: expenseCategory || '', projectId: projectId || null, amount: Number(amount), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', notes: notes || '',
+            gstRate: hasGst ? Number(gstRate) : null, gstAmount: hasGst ? Number(amount) * (Number(gstRate) / 100) : null,
         });
         broadcast({ type: 'financeExpensesChanged', projectId: projectId || null });
         if (existing.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });

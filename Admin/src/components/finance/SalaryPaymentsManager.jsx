@@ -12,8 +12,14 @@ import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '' };
+const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '' };
 const thisMonth = () => new Date().toISOString().slice(0, 7);
+
+// See SalaryLedgerView.jsx's identical helper — this is the other of the
+// two entry points to the same financeSalaryPayment data, so it needs the
+// exact same TDS handling or a payment recorded here silently has none.
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+const calcTds = (rate, amount) => (rate != null && amount ? round2((rate / 100) * Number(amount)) : '');
 
 /*
  * Standalone salary-payment entry + history — the same financeSalaryPayment
@@ -29,6 +35,7 @@ const SalaryPaymentsManager = ({ url }) => {
     const [month, setMonth] = useState(thisMonth());
     const [bankAccounts, setBankAccounts] = useState([]);
     const [paymentModes, setPaymentModes] = useState([]);
+    const [tdsSections, setTdsSections] = useState([]);
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -40,6 +47,8 @@ const SalaryPaymentsManager = ({ url }) => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
             .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
+            .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchPayments = async () => {
@@ -59,6 +68,18 @@ const SalaryPaymentsManager = ({ url }) => {
     useFinanceWsRefresh(['financeSalaryPaymentsChanged'], () => { if (employeeId) fetchPayments(); });
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+    const onChangeAmount = (amount) => {
+        setForm(p => {
+            const section = tdsSections.find(s => s._id === p.tdsSectionId);
+            return { ...p, amount, tdsAmount: p.tdsSectionId ? calcTds(section?.rate, amount) : p.tdsAmount };
+        });
+    };
+    const onChangeTdsSection = (tdsSectionId) => {
+        setForm(p => {
+            const section = tdsSections.find(s => s._id === tdsSectionId);
+            return { ...p, tdsSectionId, tdsAmount: tdsSectionId ? calcTds(section?.rate, p.amount) : '' };
+        });
+    };
 
     const submit = async (e) => {
         e.preventDefault();
@@ -112,13 +133,14 @@ const SalaryPaymentsManager = ({ url }) => {
                         <div className="admin-empty-state"><p>No payments for {month} yet.</p></div>
                     ) : (
                         <div className="list-table finance-table">
-                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
-                                <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>Action</b>
+                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
+                                <b>Date</b><b>Amount</b><b>TDS</b><b>Mode</b><b>Account</b><b>Action</b>
                             </div>
                             {payments.map(p => (
-                                <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
+                                <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
                                     <p>{new Date(p.date).toLocaleDateString()}</p>
                                     <p>₹{p.amount.toLocaleString('en-IN')}</p>
+                                    <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
                                     <p>{p.paymentMode || '-'}</p>
                                     <p>{p.bankAccountId?.accountName || 'Cash'}</p>
                                     <div className="action-buttons"><p onClick={() => remove(p._id)} className="cursor delete-action">X</p></div>
@@ -135,7 +157,7 @@ const SalaryPaymentsManager = ({ url }) => {
                                     <div className="wizard-field-grid">
                                         <div className="add-product-name flex-col">
                                             <p>Amount (₹) *</p>
-                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => onChangeAmount(e.target.value)} />
                                         </div>
                                         <div className="add-product-name flex-col">
                                             <p>Date *</p>
@@ -154,6 +176,17 @@ const SalaryPaymentsManager = ({ url }) => {
                                             />
                                         </div>
                                         <div className="add-product-name flex-col">
+                                            <p>TDS Section</p>
+                                            <StyledSelect
+                                                value={form.tdsSectionId} onChange={onChangeTdsSection} placeholder="No TDS"
+                                                options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.rate != null ? ` (${s.rate}%)` : ''}` }))}
+                                            />
+                                        </div>
+                                        <div className="add-product-name flex-col">
+                                            <p>TDS Amount</p>
+                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} />
+                                        </div>
+                                        <div className="add-product-name flex-col">
                                             <p>UTR / Reference Number</p>
                                             <input type="text" value={form.utrNumber} onChange={e => setField('utrNumber', e.target.value)} />
                                         </div>
@@ -162,6 +195,12 @@ const SalaryPaymentsManager = ({ url }) => {
                                             <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
                                         </div>
                                     </div>
+                                    {form.amount > 0 && (
+                                        <p className="admin-subtitle" style={{ margin: '8px 0 0' }}>
+                                            Gross: ₹{Number(form.amount).toLocaleString('en-IN')}
+                                            {form.tdsAmount > 0 && ` · TDS: ₹${Number(form.tdsAmount).toLocaleString('en-IN')} · Net Payable: ₹${(Number(form.amount) - Number(form.tdsAmount)).toLocaleString('en-IN')}`}
+                                        </p>
+                                    )}
                                     <div className="edit-modal-actions">
                                         <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
                                         <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>

@@ -24,6 +24,7 @@ import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import FinanceVendorPayment from '../models/financeVendorPayment.js';
 import FinanceSalaryPayment from '../models/financeSalaryPayment.js';
 import FinanceCommissionPayment from '../models/financeCommissionPayment.js';
+import FinanceLabourProviderPayment from '../models/financeLabourProviderPayment.js';
 import FinanceLabourMeasurement from '../models/financeLabourMeasurement.js';
 import FinanceLabourRate from '../models/financeLabourRate.js';
 import FinanceWorkLabourAssignment from '../models/financeWorkLabourAssignment.js';
@@ -674,11 +675,20 @@ const getClientProfit = async (req, res) => {
             unapprovedProfit: acc.unapprovedProfit + p.unapprovedProfit,
             unapprovedAreaSqft: acc.unapprovedAreaSqft + p.unapprovedAreaSqft,
             profit: acc.profit + p.profit,
+            // Client direct payments — computeProjectProfit already carries
+            // these per project, just never summed across a client's whole
+            // portfolio before now.
+            directPaymentContractorUnapproved: acc.directPaymentContractorUnapproved + p.directPaymentContractorUnapproved,
+            directPaymentLabourUnapproved: acc.directPaymentLabourUnapproved + p.directPaymentLabourUnapproved,
+            directPaymentContractorApproved: acc.directPaymentContractorApproved + p.directPaymentContractorApproved,
+            directPaymentLabourApproved: acc.directPaymentLabourApproved + p.directPaymentLabourApproved,
         }), {
             revenue: 0, materialCost: 0, contractorCost: 0, commissionCost: 0, otherExpenses: 0, labourCost: 0,
             totalContractorCost: 0, totalLabourCost: 0, totalCommissionCost: 0,
             unapprovedContractorCost: 0, unapprovedLabourCost: 0, unapprovedCommissionCost: 0,
             unapprovedRevenue: 0, unapprovedProfit: 0, unapprovedAreaSqft: 0, profit: 0,
+            directPaymentContractorUnapproved: 0, directPaymentLabourUnapproved: 0,
+            directPaymentContractorApproved: 0, directPaymentLabourApproved: 0,
         });
         totals.marginPercent = totals.revenue > 0 ? (totals.profit / totals.revenue) * 100 : 0;
 
@@ -1285,6 +1295,8 @@ const getWorkProfit = async (req, res) => {
         if (!work) return res.status(404).json({ success: false, message: 'Work not found' });
 
         const wp = await computeWorkProfit(work);
+        const totalContractorAmount = round2(wp.contractorBreakdown.reduce((s, b) => s + b.totalAmount, 0));
+        const totalLabourAmount = round2(wp.labourBreakdown.reduce((s, b) => s + b.totalAmount, 0));
         res.json({
             success: true,
             data: {
@@ -1293,12 +1305,28 @@ const getWorkProfit = async (req, res) => {
                 areaBilledSqft: wp.areaBilledSqft, revenue: wp.revenue, contractorCost: wp.contractorCost,
                 contractorBreakdown: wp.contractorBreakdown,
                 labourCost: wp.labourCost, labourBreakdown: wp.labourBreakdown,
-                commissionCost: wp.commissionCost,
+                commissionCost: wp.commissionCost, totalCommissionAmount: wp.totalCommissionAmount,
+                unapprovedCommissionAmount: wp.unapprovedCommissionAmount,
                 materialCost: wp.materialCost, profit: wp.profit,
                 totalAreaSqft: wp.totalAreaSqft, totalAmount: wp.totalAmount,
                 approvedAreaSqft: wp.approvedAreaSqft, approvedAmount: wp.approvedAmount, approvedDate: wp.approvedDate,
                 unapprovedAreaSqft: wp.unapprovedAreaSqft, unapprovedAmount: wp.unapprovedAmount,
                 expectedPay: wp.expectedPay, deductedTotal: wp.deductedTotal, expectedPayNetOfDeductions: wp.expectedPayNetOfDeductions,
+                // The Unapproved section's own mini profit picture, same shape
+                // as ProjectDetail's / getWorkDetail's — this endpoint had
+                // never exposed it, so Reports' Work Profit tab could only
+                // ever show Approved figures.
+                unapprovedRevenue: wp.unapprovedRevenue,
+                unapprovedProfit: round2(wp.unapprovedRevenue
+                    - round2(Math.max(0, totalContractorAmount - wp.contractorCost))
+                    - round2(Math.max(0, totalLabourAmount - wp.labourCost))
+                    - wp.unapprovedCommissionAmount),
+                contractorPaymentLeftUnapproved: wp.contractorPaymentLeftUnapproved,
+                labourPaymentLeftUnapproved: wp.labourPaymentLeftUnapproved,
+                contractorDirectPaymentUnapproved: wp.contractorDirectPaymentUnapproved,
+                labourDirectPaymentUnapproved: wp.labourDirectPaymentUnapproved,
+                contractorDirectPaymentApproved: wp.contractorDirectPaymentApproved,
+                labourDirectPaymentApproved: wp.labourDirectPaymentApproved,
             },
         });
     } catch (err) {
@@ -2170,29 +2198,33 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         if (to) { receiptFilter.receiptDate.$lte = new Date(to); otherFilter.date.$lte = new Date(to); }
     }
 
-    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, expenses] = await Promise.all([
+    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses] = await Promise.all([
         FinanceReceipt.find(receiptFilter),
         FinanceContractorPayment.find(otherFilter),
         FinanceVendorPayment.find(otherFilter),
         FinanceSalaryPayment.find(otherFilter),
         FinanceLabourPayment.find(otherFilter),
         FinanceCommissionPayment.find(otherFilter),
+        FinanceLabourProviderPayment.find(otherFilter),
         FinanceExpense.find(otherFilter),
     ]);
 
-    // Cash actually leaving the company for a Contractor/Salary/Labour
-    // payment is net of any TDS withheld (see financeBankAccount.js's
-    // getAccountActivity, same reasoning) — Vendor/Commission stay gross,
-    // TDS was never wired up for those two.
+    // Cash actually leaving the company for any of these six payment types
+    // is net of any TDS withheld (see financeBankAccount.js's
+    // getAccountActivity, same reasoning/same six types — Vendor and
+    // Commission payments now have a working TDS input too, so treating
+    // them as always-gross was undercounting cash out whenever either
+    // actually carried a withholding).
     const netOut = (p) => p.amount - (p.tdsAmount || 0);
 
     const totalIn = receipts.reduce((s, r) => s + r.amount, 0);
     const outByCategory = {
         contractor: contractorPayments.reduce((s, p) => s + netOut(p), 0),
-        vendor: vendorPayments.reduce((s, p) => s + p.amount, 0),
+        vendor: vendorPayments.reduce((s, p) => s + netOut(p), 0),
         salary: salaryPayments.reduce((s, p) => s + netOut(p), 0),
         labour: labourPayments.reduce((s, p) => s + netOut(p), 0),
-        commission: commissionPayments.reduce((s, p) => s + p.amount, 0),
+        commission: commissionPayments.reduce((s, p) => s + netOut(p), 0),
+        labourProvider: labourProviderPayments.reduce((s, p) => s + netOut(p), 0),
         expense: expenses.reduce((s, e) => s + e.amount, 0),
     };
     const totalOut = Object.values(outByCategory).reduce((a, b) => a + b, 0);
@@ -2204,8 +2236,8 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         series.get(key)[field] += amount;
     };
     receipts.forEach(r => bump(r.receiptDate, 'in', r.amount));
-    [...contractorPayments, ...salaryPayments, ...labourPayments].forEach(p => bump(p.date, 'out', netOut(p)));
-    [...vendorPayments, ...commissionPayments, ...expenses].forEach(p => bump(p.date, 'out', p.amount));
+    [...contractorPayments, ...vendorPayments, ...salaryPayments, ...labourPayments, ...commissionPayments, ...labourProviderPayments].forEach(p => bump(p.date, 'out', netOut(p)));
+    expenses.forEach(p => bump(p.date, 'out', p.amount));
 
     const seriesArr = [...series.values()]
         .sort((a, b) => a.bucket.localeCompare(b.bucket))
@@ -3342,16 +3374,23 @@ const computeCaMonthlyPackage = async (month) => {
     const purchases = await FinancePurchase.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } });
     const purchaseRows = purchases.filter(p => p.transactionType === 'purchase');
     const returnRows = purchases.filter(p => p.transactionType === 'return');
-    const inputGst = purchaseRows.reduce((sum, p) => sum + (p.gstAmount || 0), 0);
+    const purchaseGst = purchaseRows.reduce((sum, p) => sum + (p.gstAmount || 0), 0);
     const totalPurchased = purchaseRows.reduce((sum, p) => sum + p.totalAmount, 0);
     const totalReturned = returnRows.reduce((sum, p) => sum + p.totalAmount, 0);
 
-    const [contractorPayments, vendorPayments, commissionPayments] = await Promise.all([
+    // All six payment types that carry a tdsAmount/tdsSectionId pair — this
+    // used to only include Contractor/Vendor/Commission, silently missing
+    // any TDS withheld on Labour/Salary/LabourProvider payments from this
+    // package's Total TDS (the figure meant for actual CA/tax filing).
+    const [contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments] = await Promise.all([
         FinanceContractorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }),
         FinanceVendorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }),
+        FinanceSalaryPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }),
+        FinanceLabourPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }),
         FinanceCommissionPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }),
+        FinanceLabourProviderPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }),
     ]);
-    const allPayments = [...contractorPayments, ...vendorPayments, ...commissionPayments];
+    const allPayments = [...contractorPayments, ...vendorPayments, ...salaryPayments, ...labourPayments, ...commissionPayments, ...labourProviderPayments];
     const tdsSectionIds = [...new Set(allPayments.filter(p => p.tdsSectionId).map(p => p.tdsSectionId.toString()))];
     const tdsSections = tdsSectionIds.length ? await FinanceSetting.find({ _id: { $in: tdsSectionIds } }) : [];
     const sectionById = new Map(tdsSections.map(s => [s._id.toString(), s]));
@@ -3370,6 +3409,10 @@ const computeCaMonthlyPackage = async (month) => {
 
     const expenses = await FinanceExpense.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } });
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    // Claimable Input GST on GST-invoiced expenses (office rent, equipment,
+    // professional fees, etc.) — same claim as a material purchase's own
+    // gstAmount, just on the Expenses side instead of Purchases.
+    const expenseGst = expenses.reduce((sum, e) => sum + (e.gstAmount || 0), 0);
 
     const bankAccounts = await FinanceBankAccount.find({ deleted: { $ne: true } });
     const bankPositions = await Promise.all(bankAccounts.map(async (a) => {
@@ -3382,13 +3425,19 @@ const computeCaMonthlyPackage = async (month) => {
     const cashEntries = await FinanceCashEntry.find({ deleted: { $ne: true }, date: { $lte: end } });
     const cashClosingBalance = cashEntries.reduce((sum, e) => sum + (e.type === 'in' ? e.amount : -e.amount), 0);
 
+    // Input GST is claimable from both Purchases (material) and Expenses
+    // (GST-invoiced overhead) — purchaseGst/expenseGst broken out
+    // separately below so the CA package shows exactly where each rupee of
+    // the claim came from, not just one blended figure.
+    const inputGst = purchaseGst + expenseGst;
+
     return {
         month,
-        gst: { outputGst, inputGst, netGstPayable: outputGst - inputGst },
+        gst: { outputGst, inputGst, purchaseGst, expenseGst, netGstPayable: outputGst - inputGst },
         tds: { totalTds, bySection: [...tdsBySection.values()].sort((a, b) => b.totalTds - a.totalTds) },
         sales: { totalBilled: salesTotal, billCount: issuedBills.length },
         purchases: { totalPurchased, totalReturned, netPurchases: totalPurchased - totalReturned, purchaseCount: purchaseRows.length },
-        expenses: { totalExpenses, expenseCount: expenses.length },
+        expenses: { totalExpenses, expenseCount: expenses.length, expenseGst },
         bankAndCash: { bankAccounts: bankPositions, totalBankBalance, cashClosingBalance, totalPosition: totalBankBalance + cashClosingBalance },
     };
 };
@@ -3427,7 +3476,9 @@ const downloadCaMonthlyPackage = async (req, res) => {
 
         writeSectionHeading(doc, 'GST Summary');
         doc.text(`Output GST (from issued bills): ${formatCurrency(data.gst.outputGst)}`);
-        doc.text(`Input GST (from purchases): ${formatCurrency(data.gst.inputGst)}`);
+        doc.text(`Input GST — Purchases (material): ${formatCurrency(data.gst.purchaseGst)}`);
+        doc.text(`Input GST — Expenses: ${formatCurrency(data.gst.expenseGst)}`);
+        doc.text(`Total Input GST: ${formatCurrency(data.gst.inputGst)}`);
         doc.font('Helvetica-Bold').text(`Net GST Payable: ${formatCurrency(data.gst.netGstPayable)}`).font('Helvetica');
 
         writeSectionHeading(doc, 'TDS Summary');

@@ -65,14 +65,17 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
     };
 
     const setPendingField = (workType, field, value) =>
-        setPending(prev => ({ ...prev, [workType]: { ...(prev[workType] || { clientRate: '', referralRate: '' }), [field]: value } }));
+        setPending(prev => ({ ...prev, [workType]: { ...(prev[workType] || { clientRate: '', referralRate: '', gstRate: '' }), [field]: value } }));
 
     const saveGridRate = async (workType) => {
-        const entry = pending[workType] || { clientRate: '', referralRate: '' };
+        const entry = pending[workType] || { clientRate: '', referralRate: '', gstRate: '' };
         if (entry.clientRate === '') { toast.error('Client rate is required'); return; }
         setSavingKey(workType);
         try {
-            const payload = { projectId, workType, clientRatePerSqft: entry.clientRate, referralRatePerSqft: entry.referralRate || 0 };
+            const payload = {
+                projectId, workType, clientRatePerSqft: entry.clientRate, referralRatePerSqft: entry.referralRate || 0,
+                gstRatePercent: entry.gstRate === '' ? null : entry.gstRate,
+            };
             const res = await axios.post(`${url}/api/finance/work-type-rates/add`, payload, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message || 'Rate saved');
@@ -116,22 +119,25 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                         One row per work type this project actually has; fill in a rate to confirm it.
                     </p>
                     <div className="list-table finance-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1.2fr 1.2fr 1fr' }}>
-                            <b>Work Type</b><b>Client Rate</b><b>Referral Cut</b><b>Action</b>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 1.1fr 1.1fr 0.9fr 1fr' }}>
+                            <b>Work Type</b><b>Client Rate</b><b>Referral Cut</b><b>GST %</b><b>Action</b>
                         </div>
                         {[...realWorkTypes].map(workType => {
                             const existing = findExisting(workType);
-                            const entry = pending[workType] || { clientRate: '', referralRate: '' };
+                            const entry = pending[workType] || { clientRate: '', referralRate: '', gstRate: '' };
                             return (
                                 <div
                                     key={workType} className="list-table-format row-item"
-                                    style={{ gridTemplateColumns: '1.2fr 1.2fr 1.2fr 1fr', alignItems: 'start' }}
+                                    style={{ gridTemplateColumns: '1.1fr 1.1fr 1.1fr 0.9fr 1fr', alignItems: 'start' }}
                                 >
                                     <p>{workType}</p>
                                     {existing ? (
                                         <>
                                             <p className="rate-entry-saved">₹{existing.clientRatePerSqft}/sqft</p>
                                             <p className="rate-entry-saved">₹{existing.referralRatePerSqft}/sqft</p>
+                                            <p className="rate-entry-saved">
+                                                {existing.gstRatePercent != null ? `${existing.gstRatePercent}%` : <span style={{ color: 'var(--text-lt)' }}>Company default</span>}
+                                            </p>
                                             <div className="action-buttons">
                                                 <p onClick={() => removeRate(existing._id)} className="cursor delete-action">Remove</p>
                                             </div>
@@ -145,6 +151,10 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                                             <input
                                                 type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder="₹/sqft" value={entry.referralRate} style={{ width: '100%' }}
                                                 onChange={e => setPendingField(workType, 'referralRate', e.target.value)}
+                                            />
+                                            <input
+                                                type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder="Default" title="Leave blank to use Settings → GST's company-wide default" style={{ width: '100%' }}
+                                                value={entry.gstRate} onChange={e => setPendingField(workType, 'gstRate', e.target.value)}
                                             />
                                             <div className="action-buttons">
                                                 <button

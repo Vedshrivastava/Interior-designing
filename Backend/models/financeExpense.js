@@ -24,6 +24,14 @@ const financeExpenseSchema = new mongoose.Schema({
     amount: { type: Number, required: true },
     date:   { type: Date, required: true },
 
+    // Input GST claimable on this expense (e.g. a GST-invoiced office rent,
+    // equipment, or professional-fee expense) — mirrors financePurchase's
+    // identical fields. Optional: most expenses (salary reimbursements,
+    // cash miscellany) have no GST component at all. Feeds
+    // computeCaMonthlyPackage's Input GST the same way purchases already do.
+    gstRate:   { type: Number, default: null },
+    gstAmount: { type: Number, default: null },
+
     paymentMode:     { type: String, default: '' },
     bankAccountId:   { type: mongoose.Schema.Types.ObjectId, ref: 'financeBankAccount', default: null }, // no bankAccountId means cash — see controllers/financeExpense.js's cash-entry automation
     bankOrCashLabel: { type: String, default: '' },

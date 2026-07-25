@@ -48,11 +48,11 @@ const WorkProfitView = ({ url, workId }) => {
             <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
                 {data.workType} · {data.completedAreaSqft} / {data.estimatedAreaSqft} sqft completed, {data.areaBilledSqft} sqft billed
             </p>
-            <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                    <b>Revenue</b><b>Contractor Cost</b><b>Material Cost <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>(weighted avg)</span></b><b>Profit</b>
+            <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                    <b>Revenue</b><b>Contractor Cost</b><b>Labour Cost</b>
                 </div>
-                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                     <p>₹{data.revenue.toLocaleString('en-IN')}</p>
                     <p>
                         {data.contractorCost > 0 ? `₹${data.contractorCost.toLocaleString('en-IN')}` : (data.totalAmount > 0 ? <span style={{ color: '#c0392b' }}>Unapproved</span> : '₹0')}
@@ -60,10 +60,55 @@ const WorkProfitView = ({ url, workId }) => {
                             <span style={{ display: 'block', fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>Total logged: ₹{data.totalAmount.toLocaleString('en-IN')}</span>
                         )}
                     </p>
+                    <p>₹{data.labourCost.toLocaleString('en-IN')}</p>
+                </div>
+                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                    <b>Material Cost <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>(weighted avg)</span></b><b>Commission Cost</b><b>Profit</b>
+                </div>
+                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                     <p>₹{data.materialCost.toLocaleString('en-IN')}</p>
+                    <p>₹{data.commissionCost.toLocaleString('en-IN')}</p>
                     <p style={{ fontWeight: 700, color: data.profit >= 0 ? 'var(--moss)' : '#c0392b' }}>₹{data.profit.toLocaleString('en-IN')}</p>
                 </div>
             </div>
+
+            {data.contractorBreakdown.length > 0 && (
+                <>
+                    <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Contractor breakdown</p>
+                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
+                            <b>Contractor</b><b>Area</b><b>Rate</b><b>Amount</b>
+                        </div>
+                        {data.contractorBreakdown.map(r => (
+                            <div key={r.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
+                                <p>{r.vendorName}</p>
+                                <p>{r.areaSqft.toLocaleString('en-IN')} sqft</p>
+                                <p>₹{r.rate}/sqft</p>
+                                <p>₹{r.approvedAmount.toLocaleString('en-IN')}</p>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
+
+            {data.labourBreakdown.length > 0 && (
+                <>
+                    <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Labour breakdown</p>
+                    <div className="list-table finance-table">
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
+                            <b>Labourer</b><b>Area</b><b>Rate</b><b>Amount</b>
+                        </div>
+                        {data.labourBreakdown.map(r => (
+                            <div key={r.labourerId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
+                                <p>{r.labourerName}</p>
+                                <p>{r.areaSqft.toLocaleString('en-IN')} sqft</p>
+                                <p>₹{r.rate}/sqft</p>
+                                <p>₹{r.approvedAmount.toLocaleString('en-IN')}</p>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
     );
 };

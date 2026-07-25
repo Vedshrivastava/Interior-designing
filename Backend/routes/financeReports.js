@@ -2,11 +2,12 @@ import express from 'express';
 import { adminAuthMiddleware } from '../middlewares/auth.js';
 import {
     getProjectProfit, getClientProfit, getWorkProfit, getWorkDetail,
-    getContractorAnalysis, getContractorsSummary, getLabourAnalysis,
+    getContractorAnalysis, getContractorsSummary, getLabourAnalysis, getSupervisorAnalysis,
     getVendorAnalysis, getVendorsSummary,
     getMaterialAnalysis, getInventorySummary,
     getCashFlow, getExpenseAnalysis,
     getCaMonthlyPackage, downloadCaMonthlyPackage,
+    getReconciliation,
     getDashboardSummary, getDashboardTrends,
     getClientsSummary, getClientDetail,
 } from '../controllers/financeReports.js';
@@ -23,12 +24,14 @@ router.get('/work-profit',         adminAuthMiddleware, getWorkProfit);
 router.get('/work-detail',         adminAuthMiddleware, getWorkDetail);
 router.get('/contractor-analysis', adminAuthMiddleware, getContractorAnalysis);
 router.get('/labour-analysis',     adminAuthMiddleware, getLabourAnalysis);
+router.get('/supervisor-analysis', adminAuthMiddleware, getSupervisorAnalysis);
 router.get('/vendor-analysis',     adminAuthMiddleware, getVendorAnalysis);
 router.get('/material-analysis',   adminAuthMiddleware, getMaterialAnalysis);
 router.get('/cash-flow',           adminAuthMiddleware, getCashFlow);
 router.get('/expense-analysis',    adminAuthMiddleware, getExpenseAnalysis);
 router.get('/ca-monthly-package',          adminAuthMiddleware, getCaMonthlyPackage);
 router.get('/ca-monthly-package/download', adminAuthMiddleware, downloadCaMonthlyPackage);
+router.get('/reconciliation',      adminAuthMiddleware, getReconciliation);
 
 // Finance Dashboard — three-tier architecture
 router.get('/dashboard-summary', adminAuthMiddleware, getDashboardSummary);

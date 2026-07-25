@@ -19,6 +19,7 @@ import FinanceContractorAdvance from '../models/financeContractorAdvance.js';
 import FinanceContractorDeduction from '../models/financeContractorDeduction.js';
 import FinanceLabourDeduction from '../models/financeLabourDeduction.js';
 import FinanceSupervisorDeduction from '../models/financeSupervisorDeduction.js';
+import FinanceSupervisorIncentive from '../models/financeSupervisorIncentive.js';
 import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import FinanceVendorPayment from '../models/financeVendorPayment.js';
 import FinanceSalaryPayment from '../models/financeSalaryPayment.js';
@@ -1292,6 +1293,7 @@ const getWorkProfit = async (req, res) => {
                 areaBilledSqft: wp.areaBilledSqft, revenue: wp.revenue, contractorCost: wp.contractorCost,
                 contractorBreakdown: wp.contractorBreakdown,
                 labourCost: wp.labourCost, labourBreakdown: wp.labourBreakdown,
+                commissionCost: wp.commissionCost,
                 materialCost: wp.materialCost, profit: wp.profit,
                 totalAreaSqft: wp.totalAreaSqft, totalAmount: wp.totalAmount,
                 approvedAreaSqft: wp.approvedAreaSqft, approvedAmount: wp.approvedAmount, approvedDate: wp.approvedDate,
@@ -1713,6 +1715,47 @@ const getLabourAnalysis = async (req, res) => {
     }
 };
 
+// Supervisors are financeEmployee rows with role: 'supervisor' — no
+// per-sqft earnings concept like Contractor/Labour Analysis (a supervisor
+// is paid salary, not an area rate), so there's no "Balance Payable" here,
+// just what's actually been paid out: salary + discretionary incentives,
+// less deductions. Optionally scoped to one project — an incentive/
+// deduction record optionally carries a projectId (financeSalaryPayment
+// never does, so salary itself always stays company-wide even when a
+// project is picked, same "can't split a monthly salary across projects"
+// reasoning used everywhere else salary shows up).
+const computeSupervisorAnalysisRows = async (projectId) => {
+    const supervisors = await FinanceEmployee.find({ role: 'supervisor', deleted: { $ne: true } });
+
+    const incentiveFilter = { deleted: { $ne: true } };
+    const deductionFilter = { deleted: { $ne: true } };
+    if (projectId) { incentiveFilter.projectId = projectId; deductionFilter.projectId = projectId; }
+
+    return Promise.all(supervisors.map(async (e) => {
+        const [salaryPayments, incentives, deductions] = await Promise.all([
+            FinanceSalaryPayment.find({ employeeId: e._id, deleted: { $ne: true } }),
+            FinanceSupervisorIncentive.find({ ...incentiveFilter, employeeId: e._id }),
+            FinanceSupervisorDeduction.find({ ...deductionFilter, employeeId: e._id }),
+        ]);
+        const salaryPaid = round2(salaryPayments.reduce((s, p) => s + p.amount, 0));
+        const incentiveTotal = round2(incentives.reduce((s, i) => s + i.amount, 0));
+        const deductionTotal = round2(deductions.reduce((s, d) => s + d.amount, 0));
+        const netPaid = round2(salaryPaid + incentiveTotal - deductionTotal);
+        return { employeeId: e._id, employeeName: e.name, salaryPaid, incentiveTotal, deductionTotal, netPaid };
+    }));
+};
+
+const getSupervisorAnalysis = async (req, res) => {
+    try {
+        const { projectId } = req.query;
+        const rows = await computeSupervisorAnalysisRows(projectId);
+        res.json({ success: true, data: rows.sort((a, b) => b.netPaid - a.netPaid) });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing supervisor analysis' });
+    }
+};
+
 // New Tier-1 endpoint for Contractors — wraps computeContractorAnalysisRows
 // for the table, plus cost-per-sqft grouped by work type (never blended
 // across types — a Putty rate isn't comparable to a Paint rate).
@@ -2127,20 +2170,28 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         if (to) { receiptFilter.receiptDate.$lte = new Date(to); otherFilter.date.$lte = new Date(to); }
     }
 
-    const [receipts, contractorPayments, vendorPayments, salaryPayments, commissionPayments, expenses] = await Promise.all([
+    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, expenses] = await Promise.all([
         FinanceReceipt.find(receiptFilter),
         FinanceContractorPayment.find(otherFilter),
         FinanceVendorPayment.find(otherFilter),
         FinanceSalaryPayment.find(otherFilter),
+        FinanceLabourPayment.find(otherFilter),
         FinanceCommissionPayment.find(otherFilter),
         FinanceExpense.find(otherFilter),
     ]);
 
+    // Cash actually leaving the company for a Contractor/Salary/Labour
+    // payment is net of any TDS withheld (see financeBankAccount.js's
+    // getAccountActivity, same reasoning) — Vendor/Commission stay gross,
+    // TDS was never wired up for those two.
+    const netOut = (p) => p.amount - (p.tdsAmount || 0);
+
     const totalIn = receipts.reduce((s, r) => s + r.amount, 0);
     const outByCategory = {
-        contractor: contractorPayments.reduce((s, p) => s + p.amount, 0),
+        contractor: contractorPayments.reduce((s, p) => s + netOut(p), 0),
         vendor: vendorPayments.reduce((s, p) => s + p.amount, 0),
-        salary: salaryPayments.reduce((s, p) => s + p.amount, 0),
+        salary: salaryPayments.reduce((s, p) => s + netOut(p), 0),
+        labour: labourPayments.reduce((s, p) => s + netOut(p), 0),
         commission: commissionPayments.reduce((s, p) => s + p.amount, 0),
         expense: expenses.reduce((s, e) => s + e.amount, 0),
     };
@@ -2153,8 +2204,8 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         series.get(key)[field] += amount;
     };
     receipts.forEach(r => bump(r.receiptDate, 'in', r.amount));
-    [...contractorPayments, ...vendorPayments, ...salaryPayments, ...commissionPayments, ...expenses]
-        .forEach(p => bump(p.date, 'out', p.amount));
+    [...contractorPayments, ...salaryPayments, ...labourPayments].forEach(p => bump(p.date, 'out', netOut(p)));
+    [...vendorPayments, ...commissionPayments, ...expenses].forEach(p => bump(p.date, 'out', p.amount));
 
     const seriesArr = [...series.values()]
         .sort((a, b) => a.bucket.localeCompare(b.bucket))
@@ -3156,46 +3207,54 @@ const getDashboardTrends = async (req, res) => {
     }
 };
 
+// Shared by getClientsSummary and Reconciliation's "chase receivables"
+// checklist row — per-client billed/received/outstanding (grouped version
+// of financeReceivable's logic) plus receivables aging, company-wide.
+const computeClientsSummaryRows = async () => {
+    const clients = await FinanceClient.find({ deleted: { $ne: true } });
+    // Every client shows up here, zeros and all — a client with no
+    // billable projects yet has legitimately zero billed/received, same
+    // as how getContractorsSummary/getVendorAnalysis/getInventorySummary
+    // show every record regardless of activity rather than hiding it.
+    const rows = await Promise.all(clients.map(async (c) => {
+        const projects = await FinanceProject.find({ clientId: c._id, deleted: { $ne: true }, contractType: { $in: BILLABLE_CONTRACT_TYPES } }, '_id');
+        const projectIds = projects.map(p => p._id);
+        const [bills, receipts, summaries] = projectIds.length ? await Promise.all([
+            FinanceRunningBill.find({ projectId: { $in: projectIds }, status: 'issued', deleted: { $ne: true } }).sort({ billDate: 1 }),
+            FinanceReceipt.find({ projectId: { $in: projectIds }, deleted: { $ne: true } }),
+            Promise.all(projects.map(summarizeProject)),
+        ]) : [[], [], []];
+        const totalBilled = bills.reduce((s, b) => s + b.totalAmount, 0);
+        const totalReceived = receipts.reduce((s, r) => s + r.amount, 0);
+        // outstanding/clientCreditBalance come from summarizeProject
+        // (per-project, each already clamped at 0) summed here — not
+        // totalBilled - totalReceived directly, which ignores client
+        // direct payment credits entirely and can't reflect a running
+        // credit balance either. totalBilled/totalReceived themselves
+        // stay raw for the aging breakdown below, unaffected.
+        const outstanding = round2(summaries.reduce((s, r) => s + r.balance, 0));
+        const clientCreditBalance = round2(summaries.reduce((s, r) => s + r.clientCreditBalance, 0));
+        return {
+            clientId: c._id, clientName: c.name, totalBilled, totalReceived,
+            outstanding, clientCreditBalance, aging: computeAging(bills, receipts),
+        };
+    }));
+
+    const data = rows.sort((a, b) => b.totalBilled - a.totalBilled);
+    const aging = data.reduce((acc, r) => {
+        for (const k of AGE_BUCKET_KEYS) acc[k] += r.aging[k];
+        return acc;
+    }, { '0-30': 0, '30-60': 0, '60-90': 0, '90+': 0 });
+
+    return { clients: data, aging };
+};
+
 // New Tier-1 endpoint for Clients — per-client billed/received/outstanding
-// (grouped version of financeReceivable's logic) plus receivables aging.
+// plus receivables aging.
 const getClientsSummary = async (req, res) => {
     try {
-        const clients = await FinanceClient.find({ deleted: { $ne: true } });
-        // Every client shows up here, zeros and all — a client with no
-        // billable projects yet has legitimately zero billed/received, same
-        // as how getContractorsSummary/getVendorAnalysis/getInventorySummary
-        // show every record regardless of activity rather than hiding it.
-        const rows = await Promise.all(clients.map(async (c) => {
-            const projects = await FinanceProject.find({ clientId: c._id, deleted: { $ne: true }, contractType: { $in: BILLABLE_CONTRACT_TYPES } }, '_id');
-            const projectIds = projects.map(p => p._id);
-            const [bills, receipts, summaries] = projectIds.length ? await Promise.all([
-                FinanceRunningBill.find({ projectId: { $in: projectIds }, status: 'issued', deleted: { $ne: true } }).sort({ billDate: 1 }),
-                FinanceReceipt.find({ projectId: { $in: projectIds }, deleted: { $ne: true } }),
-                Promise.all(projects.map(summarizeProject)),
-            ]) : [[], [], []];
-            const totalBilled = bills.reduce((s, b) => s + b.totalAmount, 0);
-            const totalReceived = receipts.reduce((s, r) => s + r.amount, 0);
-            // outstanding/clientCreditBalance come from summarizeProject
-            // (per-project, each already clamped at 0) summed here — not
-            // totalBilled - totalReceived directly, which ignores client
-            // direct payment credits entirely and can't reflect a running
-            // credit balance either. totalBilled/totalReceived themselves
-            // stay raw for the aging breakdown below, unaffected.
-            const outstanding = round2(summaries.reduce((s, r) => s + r.balance, 0));
-            const clientCreditBalance = round2(summaries.reduce((s, r) => s + r.clientCreditBalance, 0));
-            return {
-                clientId: c._id, clientName: c.name, totalBilled, totalReceived,
-                outstanding, clientCreditBalance, aging: computeAging(bills, receipts),
-            };
-        }));
-
-        const data = rows.sort((a, b) => b.totalBilled - a.totalBilled);
-        const aging = data.reduce((acc, r) => {
-            for (const k of AGE_BUCKET_KEYS) acc[k] += r.aging[k];
-            return acc;
-        }, { '0-30': 0, '30-60': 0, '60-90': 0, '90+': 0 });
-
-        res.json({ success: true, data: { clients: data, aging } });
+        const data = await computeClientsSummaryRows();
+        res.json({ success: true, data });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error computing clients summary' });
@@ -3406,13 +3465,138 @@ const downloadCaMonthlyPackage = async (req, res) => {
     }
 };
 
+// Reconciliation — a guided month-end checklist, not a data-entry tool.
+// Every row reuses a compute function that already exists elsewhere in
+// this file (company-wide, not project-scoped — same "always company-
+// wide" reasoning Contractor/Labour/Vendor Analysis already use) rather
+// than inventing new business logic; "Approve entries" is the one
+// genuinely new query, since no company-wide "pending review" count
+// existed before (financeWorkReview.js's listReviewsForProject is always
+// scoped to one project).
+const computeReconciliationChecklist = async (month) => {
+    const { start, end } = monthBounds(month);
+
+    // Approve entries — every active Work's logged sqft (contractor +
+    // labour measurements) minus whatever a FinanceWorkReview record
+    // already marked approved/rejected; same formula as
+    // financeWorkReview.js's computeWorkLoggedSqft, done once here across
+    // every Work instead of one at a time.
+    const works = await FinanceWork.find({ deleted: { $ne: true } }, '_id');
+    const workIds = works.map(w => w._id);
+    const [contractorMeasurementAgg, labourMeasurementAgg, reviews] = await Promise.all([
+        FinanceMeasurement.aggregate([
+            { $match: { workId: { $in: workIds }, deleted: { $ne: true } } },
+            { $group: { _id: '$workId', total: { $sum: '$areaCoveredSqft' } } },
+        ]),
+        FinanceLabourMeasurement.aggregate([
+            { $match: { workId: { $in: workIds }, deleted: { $ne: true } } },
+            { $group: { _id: '$workId', total: { $sum: '$areaCoveredSqft' } } },
+        ]),
+        FinanceWorkReview.find({ workId: { $in: workIds } }),
+    ]);
+    const loggedByWork = new Map();
+    for (const r of [...contractorMeasurementAgg, ...labourMeasurementAgg]) {
+        const key = r._id.toString();
+        loggedByWork.set(key, (loggedByWork.get(key) || 0) + r.total);
+    }
+    const reviewByWork = new Map(reviews.map(r => [r.workId.toString(), r]));
+    let pendingReviewCount = 0;
+    for (const workId of workIds) {
+        const key = workId.toString();
+        const logged = loggedByWork.get(key) || 0;
+        const review = reviewByWork.get(key);
+        const pending = round2(logged - (review?.approvedAreaSqft || 0) - (review?.rejectedAreaSqft || 0));
+        if (pending > 0) pendingReviewCount++;
+    }
+
+    // Settle labour / Pay vendors — reuse the same company-wide Analysis
+    // rows Reports' own Labour/Vendor Analysis tabs show.
+    const [labourRows, vendorRows] = await Promise.all([
+        computeLabourAnalysisRows(''),
+        computeVendorAnalysisRows(''),
+    ]);
+    const labourOutstandingCount = labourRows.filter(r => r.balancePayable > 0).length;
+    const labourOutstandingAmount = round2(labourRows.reduce((s, r) => s + Math.max(0, r.balancePayable), 0));
+    const vendorOutstandingCount = vendorRows.filter(r => r.amountOwed > 0).length;
+    const vendorOutstandingAmount = round2(vendorRows.reduce((s, r) => s + Math.max(0, r.amountOwed), 0));
+
+    // Verify stock — company-wide current stock per material vs. its own
+    // minimumStockLevel, same threshold getInventorySummary already uses.
+    const materials = await FinanceMaterial.find({ deleted: { $ne: true } });
+    const stockRows = await FinanceStockMovement.aggregate([
+        { $match: { deleted: { $ne: true } } },
+        {
+            $group: {
+                _id: '$materialId',
+                dump:     { $sum: { $cond: [{ $eq: ['$movementType', 'dump'] }, '$quantity', 0] } },
+                consume:  { $sum: { $cond: [{ $eq: ['$movementType', 'consume'] }, '$quantity', 0] } },
+                returned: { $sum: { $cond: [{ $eq: ['$movementType', 'return'] }, '$quantity', 0] } },
+                waste:    { $sum: { $cond: [{ $eq: ['$movementType', 'waste'] }, '$quantity', 0] } },
+            },
+        },
+    ]);
+    const stockByMaterial = new Map(stockRows.map(r => [r._id.toString(), r]));
+    const belowMinimumCount = materials.filter((mat) => {
+        const s = stockByMaterial.get(mat._id.toString()) || { dump: 0, consume: 0, returned: 0, waste: 0 };
+        const currentStock = s.dump - s.consume - s.returned - s.waste;
+        return currentStock < mat.minimumStockLevel;
+    }).length;
+
+    // Invoice — draft Running Bills dated in this month.
+    const draftBillsCount = await FinanceRunningBill.countDocuments({
+        status: 'draft', deleted: { $ne: true }, billDate: { $gte: start, $lte: end },
+    });
+
+    // Chase receivables — reuse the same company-wide aging Reports'
+    // Clients tab already computes.
+    const { aging } = await computeClientsSummaryRows();
+    const receivablesOverdue = round2(aging['60-90'] + aging['90+']);
+
+    // GST / TDS — reuse the exact CA Monthly Package figures for this
+    // same month, not a separate computation (see this session's earlier
+    // Reports/Reconciliation investigation: this checklist row is the
+    // right home for that number, not a standalone GST page).
+    const { gst, tds } = await computeCaMonthlyPackage(month);
+
+    // linkTab is null for the two items whose real workspace lives outside
+    // Reports (Work Review and Running Bills both live under Receivables)
+    // — the frontend shows a plain hint for those instead of a jump button,
+    // since Reports' own tab switcher can't cross-navigate to another page.
+    const items = [
+        { key: 'approve-entries', label: 'Approve entries', count: pendingReviewCount, amount: null, clear: pendingReviewCount === 0, linkTab: null, hint: 'Receivables → Work Review' },
+        { key: 'settle-labour', label: 'Settle labour', count: labourOutstandingCount, amount: labourOutstandingAmount, clear: labourOutstandingCount === 0, linkTab: 'labour-analysis' },
+        { key: 'verify-stock', label: 'Verify stock', count: belowMinimumCount, amount: null, clear: belowMinimumCount === 0, linkTab: 'material-analysis' },
+        { key: 'invoice', label: 'Invoice', count: draftBillsCount, amount: null, clear: draftBillsCount === 0, linkTab: null, hint: 'Receivables → Bills' },
+        { key: 'chase-receivables', label: 'Chase receivables', count: null, amount: receivablesOverdue, clear: receivablesOverdue === 0, linkTab: 'client-profit' },
+        { key: 'pay-vendors', label: 'Pay vendors', count: vendorOutstandingCount, amount: vendorOutstandingAmount, clear: vendorOutstandingCount === 0, linkTab: 'vendor-analysis' },
+        { key: 'gst', label: 'GST', count: null, amount: gst.netGstPayable, clear: gst.netGstPayable === 0, linkTab: 'ca-monthly-package' },
+        { key: 'tds', label: 'TDS', count: null, amount: tds.totalTds, clear: tds.totalTds === 0, linkTab: 'ca-monthly-package' },
+    ];
+    const outstandingCount = items.filter(i => !i.clear).length;
+
+    return { month, items, outstandingCount, allClear: outstandingCount === 0 };
+};
+
+const getReconciliation = async (req, res) => {
+    try {
+        const { month } = req.query;
+        if (!month || !/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ success: false, message: 'month is required in YYYY-MM format' });
+        const data = await computeReconciliationChecklist(month);
+        res.json({ success: true, data });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing reconciliation checklist' });
+    }
+};
+
 export {
     getProjectProfit, getClientProfit, getWorkProfit, getWorkDetail,
-    getContractorAnalysis, getContractorsSummary, getLabourAnalysis,
+    getContractorAnalysis, getContractorsSummary, getLabourAnalysis, getSupervisorAnalysis,
     getVendorAnalysis, getVendorsSummary,
     getMaterialAnalysis, getInventorySummary,
     getCashFlow, getExpenseAnalysis,
     getCaMonthlyPackage, downloadCaMonthlyPackage,
+    getReconciliation,
     getDashboardSummary, getDashboardTrends,
     getClientsSummary, getClientDetail,
     // Shared with financeContractorLedger.js/financeLabourLedger.js so the

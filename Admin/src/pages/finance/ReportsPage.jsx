@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
-import PlaceholderTab from '../../components/finance/PlaceholderTab';
 import ProjectProfitView from '../../components/finance/ProjectProfitView';
 import ClientProfitView from '../../components/finance/ClientProfitView';
 import WorkProfitView from '../../components/finance/WorkProfitView';
 import ContractorAnalysisTable from '../../components/finance/ContractorAnalysisTable';
+import LabourAnalysisTable from '../../components/finance/LabourAnalysisTable';
 import VendorAnalysisTable from '../../components/finance/VendorAnalysisTable';
 import MaterialAnalysisView from '../../components/finance/MaterialAnalysisView';
 import CashFlowView from '../../components/finance/CashFlowView';
 import ExpenseAnalysisView from '../../components/finance/ExpenseAnalysisView';
 import CaMonthlyPackageView from '../../components/finance/CaMonthlyPackageView';
+import SupervisorAnalysisTable from '../../components/finance/SupervisorAnalysisTable';
+import ReconciliationChecklist from '../../components/finance/ReconciliationChecklist';
 
 const TABS = [
     { key: 'project-profit',      label: 'Project Profit' },
@@ -73,9 +75,9 @@ const ReportsPage = ({ url }) => {
             {activeTab === 'cash-flow' && <CashFlowView url={url} />}
             {activeTab === 'expense-analysis' && <ExpenseAnalysisView url={url} />}
             {activeTab === 'ca-monthly-package' && <CaMonthlyPackageView url={url} />}
-            {activeTab === 'supervisor-analysis' && <PlaceholderTab text="No aggregated report built yet; see a supervisor's own Incentives/Deductions tabs for their individual numbers." />}
-            {activeTab === 'labour-analysis' && <PlaceholderTab text="No aggregated report built yet; see a labourer's own ledger (via their supervisor's Roster tab) for individual numbers." />}
-            {activeTab === 'reconciliation' && <PlaceholderTab text="Guided month-end checklist: approve entries, settle labour, verify stock, invoice, chase receivables, pay vendors, GST, TDS, review." phase="Phase 6" />}
+            {activeTab === 'supervisor-analysis' && <SupervisorAnalysisTable url={url} />}
+            {activeTab === 'labour-analysis' && <LabourAnalysisTable url={url} />}
+            {activeTab === 'reconciliation' && <ReconciliationChecklist url={url} onNavigate={setActiveTab} />}
         </FinanceTabShell>
     );
 };

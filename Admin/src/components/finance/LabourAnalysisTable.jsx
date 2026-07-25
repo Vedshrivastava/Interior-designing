@@ -9,40 +9,41 @@ import '../../styles/list.css';
 // "all projects", itself a valid cacheable key) since this table's data
 // changes with the picker — a bare singleton would show project A's rows
 // after switching to project B.
-const contractorAnalysisCache = new Map();
+const labourAnalysisCache = new Map();
 
-/* Same balancePayable formula as the individual Contractor Ledger
-   (Contractors > Ledger tab) — every labour contractor in one comparable
-   table instead of picking one at a time. Optional project filter. */
-const ContractorAnalysisTable = ({ url }) => {
+/* Labour-side mirror of ContractorAnalysisTable — same balancePayable
+   formula as the individual Labour Ledger, every labourer in one
+   comparable table instead of picking one at a time. Optional project
+   filter. */
+const LabourAnalysisTable = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [projects, setProjects] = useState([]);
     const [projectId, setProjectId] = useState('');
-    const [rows, setRows] = useState(contractorAnalysisCache.get('') || []);
-    const [loading, setLoading] = useState(!contractorAnalysisCache.has(''));
+    const [rows, setRows] = useState(labourAnalysisCache.get('') || []);
+    const [loading, setLoading] = useState(!labourAnalysisCache.has(''));
 
     useEffect(() => {
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchRows = () => {
-        axios.get(`${url}/api/finance/reports/contractor-analysis`, { ...authHeader, params: projectId ? { projectId } : {} })
-            .then(res => { if (res.data.success) { setRows(res.data.data); contractorAnalysisCache.set(projectId, res.data.data); } })
-            .catch(() => toast.error('Error fetching contractor analysis'))
+        axios.get(`${url}/api/finance/reports/labour-analysis`, { ...authHeader, params: projectId ? { projectId } : {} })
+            .then(res => { if (res.data.success) { setRows(res.data.data); labourAnalysisCache.set(projectId, res.data.data); } })
+            .catch(() => toast.error('Error fetching labour analysis'))
             .finally(() => setLoading(false));
     };
 
     useEffect(() => {
-        const cached = contractorAnalysisCache.get(projectId);
+        const cached = labourAnalysisCache.get(projectId);
         if (cached) { setRows(cached); setLoading(false); }
         else setLoading(true);
         fetchRows();
     }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useFinanceWsRefresh([
-        'financeVendorsChanged', 'financeWorkContractorAssignmentsChanged', 'financeWorksChanged',
-        'financeContractorRatesChanged', 'financeMeasurementsChanged', 'financeContractorLedgerChanged',
+        'financeLabourersChanged', 'financeWorkLabourAssignmentsChanged', 'financeWorksChanged',
+        'financeLabourRatesChanged', 'financeMeasurementsChanged', 'financeLabourLedgerChanged',
     ], fetchRows);
 
     return (
@@ -54,15 +55,15 @@ const ContractorAnalysisTable = ({ url }) => {
 
             <div className="list-table finance-table">
                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr' }}>
-                    <b>Contractor</b><b>Total</b><b>Approved</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>TDS</b><b>Balance Payable</b>
+                    <b>Labourer</b><b>Total</b><b>Approved</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>TDS</b><b>Balance Payable</b>
                 </div>
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
                 ) : rows.length === 0 ? (
-                    <div className="admin-empty-state"><p>No labour contractors yet.</p></div>
+                    <div className="admin-empty-state"><p>No labourers yet.</p></div>
                 ) : rows.map(r => (
-                    <div key={r.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr' }}>
-                        <p>{r.vendorName}</p>
+                    <div key={r.labourerId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr' }}>
+                        <p>{r.labourerName}</p>
                         <p>₹{r.totalAmount.toLocaleString('en-IN')}</p>
                         <p style={{ color: r.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{r.earnings > 0 ? `₹${r.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
                         <p>₹{r.advances.toLocaleString('en-IN')}</p>
@@ -77,4 +78,4 @@ const ContractorAnalysisTable = ({ url }) => {
     );
 };
 
-export default ContractorAnalysisTable;
+export default LabourAnalysisTable;

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 
 // Same dashboardCache idea as FinanceHome.jsx, keyed by projectId — this
@@ -58,10 +59,7 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
         <div>
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                 <p>Project</p>
-                <select value={projectId} onChange={e => onSelectProject(e.target.value)}>
-                    <option value="">Select project…</option>
-                    {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                </select>
+                <StyledSelect value={projectId} onChange={onSelectProject} placeholder="Select project…" options={projects.map(p => ({ value: p._id, label: p.name }))} />
             </div>
 
             {loading && <div className="admin-empty-state"><p>Loading…</p></div>}

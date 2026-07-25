@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 
 // Same dashboardCache idea as FinanceHome.jsx, keyed by projectId ('' means
@@ -44,10 +45,7 @@ const VendorAnalysisTable = ({ url }) => {
         <div>
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                 <p>Project (optional)</p>
-                <select value={projectId} onChange={e => setProjectId(e.target.value)}>
-                    <option value="">All projects</option>
-                    {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                </select>
+                <StyledSelect value={projectId} onChange={setProjectId} placeholder="All projects" options={projects.map(p => ({ value: p._id, label: p.name }))} />
             </div>
 
             <div className="list-table finance-table">

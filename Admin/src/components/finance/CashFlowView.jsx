@@ -2,12 +2,19 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
+import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const firstOfMonth = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10); };
 
-const CATEGORY_LABEL = { receipt: 'Receipts', contractor: 'Contractor Payments', vendor: 'Vendor Payments', salary: 'Salary Payments', commission: 'Commission Payments', expense: 'Expenses' };
+const CATEGORY_LABEL = { receipt: 'Receipts', contractor: 'Contractor Payments', vendor: 'Vendor Payments', salary: 'Salary Payments', labour: 'Labour Payments', commission: 'Commission Payments', expense: 'Expenses' };
+
+const GROUP_BY_OPTIONS = [
+    { value: 'day',   label: 'Day' },
+    { value: 'week',  label: 'Week' },
+    { value: 'month', label: 'Month' },
+];
 
 /* No charting library is used anywhere else in this codebase (see
    CashBookSummaryView for the same plain-table convention) — a table per
@@ -45,11 +52,7 @@ const CashFlowView = ({ url }) => {
                 </div>
                 <div className="add-product-name flex-col">
                     <p>Group by</p>
-                    <select value={groupBy} onChange={e => setGroupBy(e.target.value)}>
-                        <option value="day">Day</option>
-                        <option value="week">Week</option>
-                        <option value="month">Month</option>
-                    </select>
+                    <StyledSelect value={groupBy} onChange={setGroupBy} options={GROUP_BY_OPTIONS} />
                 </div>
                 <button type="button" className="add-point-btn" disabled={loading} onClick={fetchFlow}>{loading ? 'Loading…' : 'Get Cash Flow'}</button>
             </div>

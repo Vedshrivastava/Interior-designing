@@ -154,7 +154,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                 <KpiCard label="Margin %" value={`${Math.round(profit.marginPercent * 10) / 10}%`} tone={profit.marginPercent >= 0 ? 'good' : 'danger'} />
             </KpiGrid>
 
-            {(profit.unapprovedContractorCost > 0 || profit.unapprovedLabourCost > 0 || profit.unapprovedCommissionCost > 0) && (
+            {(profit.unapprovedAreaSqft > 0 || profit.unapprovedCommissionCost > 0) && (
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>

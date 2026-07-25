@@ -463,6 +463,25 @@ const computeCompanyWideExpensePayable = async () => {
     return { payable: round2(payable), count, oldestPendingDate };
 };
 
+// All-time expense total for the Dashboard's "Total Expense" KPI — same
+// FinanceExpense rows as thisMonthExpense/computeCompanyWideExpensePayable,
+// just unbounded by date. Scoped to ongoing projects only (project.status
+// !== 'completed') plus every expense not tied to any project at all
+// (general/company overhead, projectId: null — see financeExpense.js's own
+// comment on that field) — a completed project's historical spend is
+// already reflected in its own Project Overview page and in This Month
+// Expense when it was actually incurred; this KPI is meant to answer "how
+// much is currently going out the door on work still in progress," not a
+// permanent company-wide lifetime total.
+const computeCompanyWideExpenseToDate = async () => {
+    const completedProjectIds = await FinanceProject.distinct('_id', { status: 'completed', deleted: { $ne: true } });
+    const agg = await FinanceExpense.aggregate([
+        { $match: { deleted: { $ne: true }, projectId: { $nin: completedProjectIds } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+    ]);
+    return round2(agg[0]?.total || 0);
+};
+
 // Cash-basis salary cost for This Month Profit — actual payments made this
 // calendar month (by payment date, not which pay-period they're for), not
 // accrual. Unlike material/expense (accrual — real cost incurred, whether
@@ -1514,10 +1533,13 @@ const computeContractorAnalysisRows = async (projectId) => {
             FinanceContractorDeduction.find({ vendorId: v._id, deleted: { $ne: true } }),
             FinanceContractorPayment.find({ vendorId: v._id, deleted: { $ne: true } }),
         ]);
-        const allocate = (rows) => {
-            if (!projectId) return rows.reduce((s, r) => s + r.amount, 0);
-            const tagged = rows.filter(r => r.projectId?.toString() === projectId).reduce((s, r) => s + r.amount, 0);
-            const general = rows.filter(r => !r.projectId).reduce((s, r) => s + r.amount, 0);
+        // `field` defaults to 'amount'; also reused for 'tdsAmount' below —
+        // an untagged payment's TDS gets the same proportional share as the
+        // payment amount itself, for the same reasoning.
+        const allocate = (rows, field = 'amount') => {
+            if (!projectId) return rows.reduce((s, r) => s + (r[field] || 0), 0);
+            const tagged = rows.filter(r => r.projectId?.toString() === projectId).reduce((s, r) => s + (r[field] || 0), 0);
+            const general = rows.filter(r => !r.projectId).reduce((s, r) => s + (r[field] || 0), 0);
             const share = totalEarningsAllProjects > 0 ? totalEarnings / totalEarningsAllProjects : 0;
             return tagged + general * share;
         };
@@ -1528,6 +1550,10 @@ const computeContractorAnalysisRows = async (projectId) => {
         // comment on directPaymentUnapprovedTotal.
         const deductionsTotal = round2(allocate(deductions) + directPaymentApprovedTotal);
         const paymentsTotal = round2(allocate(payments));
+        // Informational only — already inside paymentsTotal (the gross
+        // figure balancePayable nets against); surfaces how much of it was
+        // withheld as TDS. See financeContractorLedger.js's identical comment.
+        const tdsTotal = round2(allocate(payments, 'tdsAmount'));
         const balancePayable = round2(earnings - advancesTotal - deductionsTotal - paymentsTotal);
 
         return {
@@ -1535,7 +1561,7 @@ const computeContractorAnalysisRows = async (projectId) => {
             // totals shape (totalAmount/earnings/unapprovedAmount) so both
             // feeds render identically on the frontend.
             vendorId: v._id, vendorName: v.name, earnings, totalAmount: totalEarnings, unapprovedAmount: unapprovedAmountTotal,
-            advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal, balancePayable,
+            advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal, tdsTotal, balancePayable,
             directPaymentUnapproved: directPaymentUnapprovedTotal, directPaymentApproved: directPaymentApprovedTotal,
         };
     }));
@@ -1649,10 +1675,11 @@ const computeLabourAnalysisRows = async (projectId) => {
             FinanceLabourDeduction.find({ labourerId: l._id, deleted: { $ne: true } }),
             FinanceLabourPayment.find({ labourerId: l._id, deleted: { $ne: true } }),
         ]);
-        const allocate = (rows) => {
-            if (!projectId) return rows.reduce((s, r) => s + r.amount, 0);
-            const tagged = rows.filter(r => r.projectId?.toString() === projectId).reduce((s, r) => s + r.amount, 0);
-            const general = rows.filter(r => !r.projectId).reduce((s, r) => s + r.amount, 0);
+        // See computeContractorAnalysisRows' identical comment.
+        const allocate = (rows, field = 'amount') => {
+            if (!projectId) return rows.reduce((s, r) => s + (r[field] || 0), 0);
+            const tagged = rows.filter(r => r.projectId?.toString() === projectId).reduce((s, r) => s + (r[field] || 0), 0);
+            const general = rows.filter(r => !r.projectId).reduce((s, r) => s + (r[field] || 0), 0);
             const share = totalEarningsAllProjects > 0 ? totalEarnings / totalEarningsAllProjects : 0;
             return tagged + general * share;
         };
@@ -1662,13 +1689,14 @@ const computeLabourAnalysisRows = async (projectId) => {
         // comment on directPaymentUnapprovedTotal.
         const deductionsTotal = round2(allocate(deductions) + directPaymentApprovedTotal);
         const paymentsTotal = round2(allocate(payments));
+        const tdsTotal = round2(allocate(payments, 'tdsAmount'));
         const balancePayable = round2(earnings - advancesTotal - deductionsTotal - paymentsTotal);
 
         return {
             // Field names match financeLabourLedger.js's getLabourLedger
             // totals shape so both feeds render identically on the frontend.
             labourerId: l._id, labourerName: l.name, earnings, totalAmount: totalEarnings, unapprovedAmount: unapprovedAmountTotal,
-            advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal, balancePayable,
+            advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal, tdsTotal, balancePayable,
             directPaymentUnapproved: directPaymentUnapprovedTotal, directPaymentApproved: directPaymentApprovedTotal,
         };
     }));
@@ -2514,11 +2542,19 @@ const computeAging = (bills, receipts) => {
 // silently drifting out of step with every other Approved figure in the
 // app once review was introduced as its own confirmation step.
 const computeDashboardApprovedBreakdown = async () => {
-    // status: {$ne:'completed'} — this is a live operational pipeline
-    // widget ("what's currently moving through review/billing"), not a
-    // financial rollup, so a finished project's work drops out of it once
-    // complete (it still counts toward Total Revenue/Profit elsewhere).
-    const works = await FinanceWork.find({ status: { $ne: 'completed' }, deleted: { $ne: true } }, 'workType projectId completedAreaSqft');
+    // No status filter — a Work can be marked 'completed' (financeWork.js's
+    // updateWork, or the completeFinanceProject cascade) with zero check
+    // against FinanceWorkReview, so real unreviewed sqft can sit on a
+    // "completed" Work indefinitely. Excluding status:'completed' here used
+    // to silently drop that cost/revenue from both Approved and Unapproved
+    // company-wide totals forever (it never becomes reviewed just because
+    // the Work was marked done) — contradicting this section's own
+    // "cumulative, a review doesn't expire" intent below, and drifting out
+    // of step with computeProjectProfit (project-scoped, always unfiltered
+    // by status). "What's happening today" widgets (Site Activity,
+    // computeReadyProjectIds) still exclude completed Works on purpose —
+    // only this cumulative rollup needed the fix.
+    const works = await FinanceWork.find({ deleted: { $ne: true } }, 'workType projectId completedAreaSqft');
     if (!works.length) return { byWorkType: [], contractorTotal: 0, labourTotal: 0, unapprovedByWorkType: [], unapprovedContractorTotal: 0, unapprovedLabourTotal: 0, unapprovedRevenueTotal: 0 };
     const workIds = works.map(w => w._id);
     const workById = new Map(works.map(w => [w._id.toString(), w]));
@@ -2981,7 +3017,7 @@ const getDashboardSummary = async (req, res) => {
         // incurred regardless of payment timing). Salary is cash-basis —
         // see computeSalaryPaidInRange's own comment for why it's different
         // from expense here.
-        const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth, expensePayableBreakdown] = await Promise.all([
+        const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth, expensePayableBreakdown, totalExpenseToDate] = await Promise.all([
             computeCompanyWideMaterialCostInRange(monthStart, monthEnd),
             computeCompanyWideContractorCostInRange(monthStart, monthEnd, null, true),
             computeCompanyWideCommissionCostInRange(monthStart, monthEnd, null, true),
@@ -2997,6 +3033,7 @@ const getDashboardSummary = async (req, res) => {
             computeSalaryPaidInRange(monthStart, monthEnd),
             computeCompanyWideSalaryExpectedThisMonth(monthKey),
             computeCompanyWideExpensePayable(),
+            computeCompanyWideExpenseToDate(),
         ]);
         const thisMonthRevenue = monthRevenueAgg[0]?.total || 0;
         const thisMonthExpense = monthExpenseAgg[0]?.total || 0;
@@ -3032,6 +3069,10 @@ const getDashboardSummary = async (req, res) => {
                 expensePayables: expensePayableBreakdown.payable,
                 expensePayablesCount: expensePayableBreakdown.count,
                 oldestPendingExpenseDate: expensePayableBreakdown.oldestPendingDate,
+                // All-time FinanceExpense total, ongoing projects + general
+                // overhead only (completed projects excluded) — see
+                // computeCompanyWideExpenseToDate's own comment.
+                totalExpenseToDate,
                 runningBillsReady: readyProjectIds.length,
                 activeProjects: activeProjectsCount,
                 activeWorks: activeWorksCount,

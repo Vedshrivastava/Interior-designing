@@ -219,6 +219,7 @@ const FinanceHome = ({ url }) => {
                     <KpiCard hero loading={phase1Loading} icon={faMoneyBillTransfer} label="This Month Revenue" value={formatINR(summary?.thisMonthRevenue)} onClick={() => navigate('/finance/receivables')} />
                     <KpiCard hero loading={phase1Loading} icon={faArrowTrendUp} label="This Month Profit" value={formatINR(summary?.thisMonthProfit)} onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.thisMonthProfit >= 0 ? 'good' : 'danger'} />
                     <KpiCard hero loading={phase1Loading} icon={faMoneyBillWave} label="This Month Expense" value={formatINR(summary?.thisMonthExpense)} onClick={() => navigate('/finance/payables?tab=expenses')} />
+                    <KpiCard hero loading={phase1Loading} icon={faReceipt} label="Total Expense - Ongoing Projects" value={formatINR(summary?.totalExpenseToDate)} sub="All-time, excludes completed projects" onClick={() => navigate('/finance/payables?tab=expenses')} />
                 </KpiGrid>
 
                 <KpiSectionLabel>Cash, Receivables &amp; Payables</KpiSectionLabel>

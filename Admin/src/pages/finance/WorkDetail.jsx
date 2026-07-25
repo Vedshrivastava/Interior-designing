@@ -48,6 +48,13 @@ const WorkDetail = ({ url }) => {
     const [upto, setUpto] = useState(false);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+    // Project-wide, not Work-scoped — advances/deductions/payments aren't
+    // tracked per individual Work (only Client Direct Payments are, already
+    // shown above), so "what's still payable" only has a coherent meaning
+    // at the project level, same figures Project Overview's own Payables
+    // row shows, surfaced here too so this page doesn't require a trip back
+    // to the project just to see them.
+    const [payables, setPayables] = useState(null);
 
     const changeScope = (s) => { setScope(s); setSearchParams({}); };
     const changeDate = (v) => { setDate(v); setSearchParams({}); };
@@ -69,6 +76,31 @@ const WorkDetail = ({ url }) => {
         'financeMeasurementsChanged', 'financeLabourMeasurementsChanged', 'financeWorksChanged',
         'financeWorkReviewChanged', 'clientDirectPaymentsChanged',
     ], fetchData);
+
+    // Same sumPositive-per-row pattern ProjectDetail.jsx's own Payables row
+    // uses — clamped at 0 per row first so one overpaid contractor can't
+    // net against a different contractor's real balance due.
+    const fetchPayables = () => {
+        Promise.all([
+            axios.get(`${url}/api/finance/reports/vendor-analysis`, { ...authHeader, params: { projectId } }),
+            axios.get(`${url}/api/finance/reports/contractor-analysis`, { ...authHeader, params: { projectId } }),
+            axios.get(`${url}/api/finance/reports/labour-analysis`, { ...authHeader, params: { projectId } }),
+            axios.get(`${url}/api/finance/expenses/list`, { ...authHeader, params: { projectId } }),
+        ]).then(([vendorRes, contractorRes, labourRes, expenseRes]) => {
+            const sumPositive = (rows, key) => Math.round(rows.reduce((s, r) => s + Math.max(0, r[key]), 0) * 100) / 100;
+            setPayables({
+                vendorPaymentLeft: vendorRes.data.success ? sumPositive(vendorRes.data.data, 'amountOwed') : 0,
+                contractorBalancePayable: contractorRes.data.success ? sumPositive(contractorRes.data.data, 'balancePayable') : 0,
+                labourBalancePayable: labourRes.data.success ? sumPositive(labourRes.data.data, 'balancePayable') : 0,
+                expensePayable: expenseRes.data.success ? sumPositive(expenseRes.data.data, 'balance') : 0,
+            });
+        }).catch(() => {});
+    };
+    useEffect(() => { if (projectId) fetchPayables(); }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(
+        ['financeContractorLedgerChanged', 'financeLabourLedgerChanged', 'financeVendorLedgerChanged', 'financePurchasesChanged', 'financeExpensesChanged', 'financeExpensePaymentsChanged'],
+        fetchPayables
+    );
 
     if (loading) {
         return <div className="list add flex-col"><div className="admin-list-container"><div className="admin-empty-state"><p>Loading…</p></div></div></div>;
@@ -237,6 +269,20 @@ const WorkDetail = ({ url }) => {
                         <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
                             Amounts the client paid directly to a worker on this Work (recorded in Payables → Client Direct Payments), applied to Unapproved first and only spilling into Approved once Unapproved is fully covered.
                         </p>
+                    </div>
+                )}
+
+                {payables && (payables.vendorPaymentLeft > 0 || payables.contractorBalancePayable > 0 || payables.labourBalancePayable > 0 || payables.expensePayable > 0) && (
+                    <div style={{ marginBottom: '24px' }}>
+                        <p className="admin-subtitle" style={{ marginBottom: '10px' }}>
+                            Payables — everything {data.projectName} still owes, right now (project-wide, not just this Work; approved and unapproved combined).
+                        </p>
+                        <KpiGrid>
+                            <KpiCard label="Vendor Payment Left" value={formatINR(payables.vendorPaymentLeft)} tone={payables.vendorPaymentLeft > 0 ? 'danger' : 'good'} />
+                            <KpiCard label="Contractor Balance Payable" value={formatINR(payables.contractorBalancePayable)} tone={payables.contractorBalancePayable > 0 ? 'danger' : 'good'} />
+                            <KpiCard label="Labour Balance Payable" value={formatINR(payables.labourBalancePayable)} tone={payables.labourBalancePayable > 0 ? 'danger' : 'good'} />
+                            <KpiCard label="Expense Payables" value={formatINR(payables.expensePayable)} tone={payables.expensePayable > 0 ? 'danger' : 'good'} />
+                        </KpiGrid>
                     </div>
                 )}
 

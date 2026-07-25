@@ -7,6 +7,7 @@ import FinanceCompanySettings from '../models/financeCompanySettings.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
 import { computeWorkExpectedPay, splitApprovedAreaByShare } from './financeReports.js';
+import { getClientBillCreditTotal } from './financeClientDirectPayment.js';
 import PDFDocument from 'pdfkit';
 import { writeLetterhead, writeSectionHeading, writePaymentDetails, writeSignatureLine, writeFooter, drawInfoBox, measureInfoBoxHeight, drawTable, contentBox, formatCurrency, formatDate, getTheme, paintPageBackground } from '../utils/pdfLetterhead.js';
 
@@ -328,6 +329,17 @@ const computeBillStatement = async (billId) => {
     const paidTotal = payments.reduce((sum, p) => sum + p.amount, 0);
     const grandTotal = bill.totalAmount + (bill.gstAmount || 0);
 
+    // Project-wide, not this-bill-specific — same reasoning as the
+    // INTERPRETATION FLAG above for receipts: a client direct payment is
+    // tied to a Work, not to any one bill, and one Work's sqft can span
+    // several bills over time, so there's no honest way to attribute a
+    // direct payment to this bill's own outstandingBalance the way a
+    // receipt's runningBillId does. Surfaced as its own informational
+    // figure instead (see the PDF's "Direct Payments" note below) so a
+    // client isn't left wondering why their true balance across every bill
+    // on this project runs lower than this one bill's own numbers suggest.
+    const directPaymentCredits = await getClientBillCreditTotal(bill.projectId);
+
     // .lean() — spreading a hydrated Mongoose document ({ ...doc }) silently
     // drops some schema fields (companyName among them) in pdfLetterhead.js.
     const company = await FinanceCompanySettings.findOne({ deleted: { $ne: true } })
@@ -345,6 +357,7 @@ const computeBillStatement = async (billId) => {
         },
         payments, paidTotal,
         outstandingBalance: grandTotal - paidTotal,
+        directPaymentCredits,
     };
 };
 
@@ -512,6 +525,23 @@ const downloadBillStatement = async (req, res) => {
             .text(formatCurrency(Math.abs(data.outstandingBalance)), left + 18, bannerY + (bannerH / 2) - 7, { width: width - 32, align: 'right' });
         doc.fillColor('#000000').font('Helvetica').fontSize(10);
         doc.y = bannerY + bannerH + 10;
+
+        // Informational only — deliberately not folded into the Payment
+        // Due/Fully Settled banner above (that banner is this bill's own
+        // balance; a direct payment is tied to a Work, not to any one
+        // bill, so it can't honestly be attributed to just this one — see
+        // computeBillStatement's own comment). Still worth telling the
+        // client about here, so they're not left wondering why their real
+        // running balance across every bill on this project is lower than
+        // this bill's numbers alone would suggest.
+        if (data.directPaymentCredits > 0) {
+            doc.fontSize(9).fillColor('#555555').text(
+                `Note: In addition to the payments above, ${formatCurrency(data.directPaymentCredits)} has been paid directly by you to contractors/labourers on this project and is already credited toward your total outstanding balance across all bills for this project.`,
+                left, doc.y, { width }
+            );
+            doc.fillColor('#000000').fontSize(10);
+            doc.moveDown(0.6);
+        }
 
         writePaymentDetails(doc, data.company, theme);
         writeSignatureLine(doc, data.company);

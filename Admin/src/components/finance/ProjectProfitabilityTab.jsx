@@ -27,6 +27,11 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
     const [receivable, setReceivable] = useState(null);
     const [contractors, setContractors] = useState([]);
     const [labourers, setLabourers] = useState([]);
+    // Same shape as ProjectOverviewTab's own Payables row — Vendor/
+    // Contractor/Labour balances (approved + unapproved combined, clamped
+    // at 0 per row before summing) plus Expense Payables, so this tab
+    // doesn't leave "what's still owed" entirely to the Overview tab.
+    const [payables, setPayables] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const fetchAll = useCallback(async () => {
@@ -36,15 +41,25 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                 axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId } }),
                 axios.get(`${url}/api/finance/reports/contractor-analysis`, { ...authHeader, params: { projectId } }),
                 axios.get(`${url}/api/finance/reports/labour-analysis`, { ...authHeader, params: { projectId } }),
+                axios.get(`${url}/api/finance/reports/vendor-analysis`, { ...authHeader, params: { projectId } }),
+                axios.get(`${url}/api/finance/expenses/list`, { ...authHeader, params: { projectId } }),
             ];
             if (BILLABLE_CONTRACT_TYPES.includes(contractType)) {
                 requests.push(axios.get(`${url}/api/finance/receivables/summary`, { ...authHeader, params: { projectId } }));
             }
-            const [profitRes, contractorRes, labourRes, receivableRes] = await Promise.all(requests);
+            const [profitRes, contractorRes, labourRes, vendorRes, expenseRes, receivableRes] = await Promise.all(requests);
             if (profitRes.data.success) setProfit(profitRes.data.data);
             if (contractorRes.data.success) setContractors(contractorRes.data.data.filter(r => r.totalAmount > 0));
             if (labourRes.data.success) setLabourers(labourRes.data.data.filter(r => r.totalAmount > 0));
             if (receivableRes?.data.success) setReceivable(receivableRes.data.data);
+
+            const sumPositive = (rows, key) => Math.round(rows.reduce((s, r) => s + Math.max(0, r[key]), 0) * 100) / 100;
+            setPayables({
+                vendorPaymentLeft: vendorRes.data.success ? sumPositive(vendorRes.data.data, 'amountOwed') : 0,
+                contractorBalancePayable: contractorRes.data.success ? sumPositive(contractorRes.data.data, 'balancePayable') : 0,
+                labourBalancePayable: labourRes.data.success ? sumPositive(labourRes.data.data, 'balancePayable') : 0,
+                expensePayable: expenseRes.data.success ? sumPositive(expenseRes.data.data, 'balance') : 0,
+            });
         } catch { toast.error('Error fetching profitability data'); }
         finally { setLoading(false); }
     }, [url, projectId, contractType]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -82,6 +97,18 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                 />
                 <KpiCard label="Other Expenses" value={formatINR(profit.otherExpenses)} />
             </KpiGrid>
+
+            {payables && (payables.vendorPaymentLeft > 0 || payables.contractorBalancePayable > 0 || payables.labourBalancePayable > 0 || payables.expensePayable > 0) && (
+                <>
+                    <KpiSectionLabel>Payables — Everything This Project Still Owes, Right Now</KpiSectionLabel>
+                    <KpiGrid>
+                        <KpiCard label="Vendor Payment Left" value={formatINR(payables.vendorPaymentLeft)} tone={payables.vendorPaymentLeft > 0 ? 'danger' : 'good'} />
+                        <KpiCard label="Contractor Balance Payable" value={formatINR(payables.contractorBalancePayable)} tone={payables.contractorBalancePayable > 0 ? 'danger' : 'good'} />
+                        <KpiCard label="Labour Balance Payable" value={formatINR(payables.labourBalancePayable)} tone={payables.labourBalancePayable > 0 ? 'danger' : 'good'} />
+                        <KpiCard label="Expense Payables" value={formatINR(payables.expensePayable)} tone={payables.expensePayable > 0 ? 'danger' : 'good'} />
+                    </KpiGrid>
+                </>
+            )}
 
             {(profit.unapprovedAreaSqft > 0 || profit.unapprovedCommissionCost > 0) && (
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>

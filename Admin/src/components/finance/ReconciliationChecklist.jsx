@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import StyledMonthPicker from './StyledMonthPicker';
+import '../../styles/list.css';
+import '../../styles/add.css';
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -33,7 +36,7 @@ const ReconciliationChecklist = ({ url, onNavigate }) => {
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '20px' }}>
                 <div className="add-product-name flex-col">
                     <p>Month</p>
-                    <input type="month" value={month} onChange={e => setMonth(e.target.value)} />
+                    <StyledMonthPicker value={month} onChange={v => setMonth(v || thisMonth())} />
                 </div>
                 <button type="button" className="add-point-btn" disabled={loading} onClick={fetchChecklist}>{loading ? 'Loading…' : 'Check Month'}</button>
             </div>

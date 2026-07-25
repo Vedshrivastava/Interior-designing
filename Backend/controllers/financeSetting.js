@@ -20,7 +20,7 @@ const listFinanceSettings = async (req, res) => {
             return res.status(400).json({ success: false, message: 'A valid settingType is required' });
         }
 
-        let items = await FinanceSetting.find({ settingType, deleted: { $ne: true } }).sort({ order: 1, createdAt: 1 });
+        let items = await FinanceSetting.find({ settingType, deleted: { $ne: true } }).populate('tdsSectionId', 'name code rate').sort({ order: 1, createdAt: 1 });
         // Seed defaults only the very first time this type is ever fetched —
         // checked against ALL docs (deleted or not), not just the active
         // count, so an admin who deliberately removed every TDS section
@@ -44,7 +44,7 @@ const listFinanceSettings = async (req, res) => {
 
 const addFinanceSetting = async (req, res) => {
     try {
-        const { settingType, name, code, rate, deductFromClientBill, deductFromWorkerPayout } = req.body;
+        const { settingType, name, code, rate, deductFromClientBill, deductFromWorkerPayout, tdsSectionId } = req.body;
         if (!settingType || !VALID_TYPES.includes(settingType)) {
             return res.status(400).json({ success: false, message: 'A valid settingType is required' });
         }
@@ -66,6 +66,7 @@ const addFinanceSetting = async (req, res) => {
             existing.code = code || ''; existing.rate = rate ?? null;
             existing.deductFromClientBill = deductFromClientBill ?? true;
             existing.deductFromWorkerPayout = deductFromWorkerPayout ?? false;
+            existing.tdsSectionId = tdsSectionId || null;
             await existing.save();
             item = existing;
         } else {
@@ -74,6 +75,7 @@ const addFinanceSetting = async (req, res) => {
                 settingType, name: name.trim(), code: code || '', rate: rate ?? null, order: count + 1,
                 deductFromClientBill: deductFromClientBill ?? true,
                 deductFromWorkerPayout: deductFromWorkerPayout ?? false,
+                tdsSectionId: tdsSectionId || null,
             });
             await item.save();
         }
@@ -82,6 +84,39 @@ const addFinanceSetting = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error adding setting' });
+    }
+};
+
+// New — previously a setting row could only be added or soft-deleted, never
+// edited in place (a typo in a Payment Mode name, or toggling a Work Type's
+// TDS Section, meant delete + re-add, losing `order`/`createdAt`). Name
+// stays unique per settingType, same as add — reject a rename that would
+// collide with a different active row.
+const updateFinanceSetting = async (req, res) => {
+    try {
+        const { _id, name, code, rate, deductFromClientBill, deductFromWorkerPayout, tdsSectionId } = req.body;
+        const item = await FinanceSetting.findById(_id);
+        if (!item) return res.status(404).json({ success: false, message: 'Not found' });
+        if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
+
+        if (name.trim() !== item.name) {
+            const collision = await FinanceSetting.findOne({ settingType: item.settingType, name: name.trim(), deleted: { $ne: true }, _id: { $ne: _id } });
+            if (collision) return res.status(400).json({ success: false, message: 'Already exists' });
+        }
+
+        item.name = name.trim();
+        item.code = code || '';
+        item.rate = rate ?? null;
+        item.deductFromClientBill = deductFromClientBill ?? true;
+        item.deductFromWorkerPayout = deductFromWorkerPayout ?? false;
+        item.tdsSectionId = tdsSectionId || null;
+        await item.save();
+
+        broadcast({ type: 'financeSettingsChanged', settingType: item.settingType });
+        res.json({ success: true, message: 'Updated', data: item });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error updating setting' });
     }
 };
 
@@ -100,4 +135,4 @@ const removeFinanceSetting = async (req, res) => {
     }
 };
 
-export { listFinanceSettings, addFinanceSetting, removeFinanceSetting };
+export { listFinanceSettings, addFinanceSetting, updateFinanceSetting, removeFinanceSetting };

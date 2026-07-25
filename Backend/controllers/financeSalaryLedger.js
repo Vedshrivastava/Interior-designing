@@ -45,7 +45,7 @@ const getSalaryLedger = async (req, res) => {
         if (!employee) return res.status(404).json({ success: false, message: 'Employee not found' });
 
         if (month) {
-            const payments = await FinanceSalaryPayment.find({ employeeId, month, deleted: { $ne: true } }).sort({ date: -1 });
+            const payments = await FinanceSalaryPayment.find({ employeeId, month, deleted: { $ne: true } }).populate('tdsSectionId', 'name code').sort({ date: -1 });
             const paidTotal = payments.reduce((sum, p) => sum + p.amount, 0);
             const expectedSalary = expectedSalaryForMonth(employee, month);
             return res.json({
@@ -61,17 +61,21 @@ const getSalaryLedger = async (req, res) => {
         // No month given — one row per month this employee has any payment in,
         // each with its own expected/paid/balance, so the UI can show history
         // without a month picker round-trip per row.
-        const allPayments = await FinanceSalaryPayment.find({ employeeId, deleted: { $ne: true } }).sort({ month: -1 });
+        const allPayments = await FinanceSalaryPayment.find({ employeeId, deleted: { $ne: true } }).populate('tdsSectionId', 'name code').sort({ month: -1 });
         const months = [...new Set(allPayments.map(p => p.month))];
         const byMonth = months.map(m => {
             const paidTotal = allPayments.filter(p => p.month === m).reduce((sum, p) => sum + p.amount, 0);
             const expectedSalary = expectedSalaryForMonth(employee, m);
             return { month: m, expectedSalary, paid: paidTotal, balanceDue: round2(expectedSalary - paidTotal) };
         });
+        // Informational only — already inside each month's `paid` above
+        // (the gross figure Balance Due nets against); surfaces how much
+        // was withheld as TDS rather than actually reaching the employee.
+        const tdsTotal = round2(allPayments.reduce((sum, p) => sum + (p.tdsAmount || 0), 0));
 
         res.json({
             success: true,
-            data: { employeeId: employee._id, employeeName: employee.name, expectedSalary: employee.salary || 0, months: byMonth, payments: allPayments },
+            data: { employeeId: employee._id, employeeName: employee.name, expectedSalary: employee.salary || 0, months: byMonth, payments: allPayments, tdsTotal },
         });
     } catch (err) {
         console.error(err);

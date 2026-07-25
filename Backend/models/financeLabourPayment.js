@@ -7,6 +7,7 @@ import mongoose from 'mongoose';
 const financeLabourPaymentSchema = new mongoose.Schema({
     labourerId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeLabourer', required: true },
     projectId:  { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', default: null },
+    workId:     { type: mongoose.Schema.Types.ObjectId, ref: 'financeWork', default: null }, // optional — which Work this payment is for, used to auto-resolve a TDS Section from that Work's type
 
     amount: { type: Number, required: true },
     date:   { type: Date, required: true },
@@ -15,6 +16,13 @@ const financeLabourPaymentSchema = new mongoose.Schema({
     bankOrCashLabel: { type: String, default: '' }, // no bankAccountId means cash — see controller's cash-entry automation
     bankAccountId:   { type: mongoose.Schema.Types.ObjectId, ref: 'financeBankAccount', default: null },
     notes:           { type: String, default: '' },
+
+    // Mirrors financeContractorPayment's identical fields — see that
+    // model's comment. amount stays the gross figure (what reduces the
+    // labourer's Balance Payable); tdsAmount is withheld from the actual
+    // cash/bank outflow, not from amount itself.
+    tdsSectionId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeSetting', default: null },
+    tdsAmount:    { type: Number, default: null },
 
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },

@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 const financeContractorPaymentSchema = new mongoose.Schema({
     vendorId:  { type: mongoose.Schema.Types.ObjectId, ref: 'financeVendor', required: true },
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', default: null },
+    workId:    { type: mongoose.Schema.Types.ObjectId, ref: 'financeWork', default: null }, // optional — which Work this payment is for, used to auto-resolve a TDS Section from that Work's type
 
     amount: { type: Number, required: true },
     date:   { type: Date, required: true },

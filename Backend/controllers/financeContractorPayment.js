@@ -51,25 +51,33 @@ const uploadAttachment = async (file) => {
 // bankAccountId means cash — a financeCashEntry is auto-created below.
 const addContractorPayment = async (req, res) => {
     try {
-        const { vendorId, projectId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
+        const { vendorId, projectId, workId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
         if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
         const vendor = await assertContractorVendor(vendorId);
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
         const attachmentUrl = await uploadAttachment(req.file);
+        const resolvedTdsAmount = (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null;
 
         const item = new FinanceContractorPayment({
-            vendorId, projectId: projectId || null, amount: Number(amount), date,
+            vendorId, projectId: projectId || null, workId: workId || null, amount: Number(amount), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null, utrNumber: utrNumber || '',
             attachmentUrl, notes: notes || '',
-            tdsSectionId: tdsSectionId || null, tdsAmount: (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null,
+            tdsSectionId: tdsSectionId || null, tdsAmount: resolvedTdsAmount,
         });
         await item.save();
 
+        // Only the net (post-TDS) amount actually leaves the company's
+        // bank/cash — the withheld portion is owed to the tax authority
+        // instead, not spent yet. The vendor's own Balance Payable stays
+        // gross (see financeContractorLedger.js/financeReports.js — those
+        // still sum the full `amount`), since TDS is still money the
+        // vendor was "paid," just paid on their behalf.
+        const netAmount = Number(amount) - (resolvedTdsAmount || 0);
         if (!bankAccountId) {
             await FinanceCashEntry.create({
-                date, type: 'out', amount: Number(amount), projectId: projectId || null,
+                date, type: 'out', amount: netAmount, projectId: projectId || null,
                 reason: 'Contractor payment', relatedContractorPaymentId: item._id, notes: notes || '',
             });
             broadcast({ type: 'financeCashBookChanged' });
@@ -102,14 +110,14 @@ const addContractorPayment = async (req, res) => {
 // financeMeasurement's update not touching areaCoveredSqft/materialUsed.
 const updateContractorPayment = async (req, res) => {
     try {
-        const { _id, projectId, amount, date, paymentMode, bankOrCashLabel, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
+        const { _id, projectId, workId, amount, date, paymentMode, bankOrCashLabel, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
         const existing = await FinanceContractorPayment.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Not found' });
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
         const update = {
-            projectId: projectId || null, amount: Number(amount), date,
+            projectId: projectId || null, workId: workId || null, amount: Number(amount), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', utrNumber: utrNumber || '', notes: notes || '',
             tdsSectionId: tdsSectionId || null, tdsAmount: (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null,
         };

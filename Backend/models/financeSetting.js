@@ -18,6 +18,14 @@ const financeSettingSchema = new mongoose.Schema({
     name:      { type: String, required: true },
     code:      { type: String, default: '' },  // e.g. TDS section code "194C-IND"
     rate:      { type: Number, default: null }, // e.g. TDS rate percent
+    // work_type only — which TDS Section (a sibling financeSetting row,
+    // settingType: 'tds_section') applies to payments for work of this
+    // type. null means this work type doesn't attract TDS. Resolved by
+    // matching financeWork.workType (a plain string) against this row's
+    // own `name` — same string-match convention financeContractorRate/
+    // financeLabourRate/financeWorkTypeRate already use for work types,
+    // not a new fragility.
+    tdsSectionId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeSetting', default: null },
     // direct_payment_category only — whether a financeClientDirectPayment
     // tagged with this category reduces the client's outstanding balance
     // (getClientBillCreditTotal) and/or the contractor/labourer's own

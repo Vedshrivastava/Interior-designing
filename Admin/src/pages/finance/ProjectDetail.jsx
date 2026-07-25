@@ -26,7 +26,7 @@ import ProjectTimelineTab from '../../components/finance/ProjectTimelineTab';
 import ProjectProfitabilityTab from '../../components/finance/ProjectProfitabilityTab';
 import StyledSelect from '../../components/finance/StyledSelect';
 import SettingPicker from '../../components/finance/SettingPicker';
-import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
+import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, ChartTooltip, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -98,11 +98,18 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
             // project (same reasoning as the Client Credit Balance fix).
             const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
             const sumPositive = (rows, key) => round2(rows.reduce((s, r) => s + Math.max(0, r[key]), 0));
+            const sumPlain = (rows, key) => round2(rows.reduce((s, r) => s + (r[key] || 0), 0));
             setPayables({
                 vendorPaymentLeft: vendorRes.data.success ? sumPositive(vendorRes.data.data, 'amountOwed') : 0,
                 contractorBalancePayable: contractorRes.data.success ? sumPositive(contractorRes.data.data, 'balancePayable') : 0,
                 labourBalancePayable: labourRes.data.success ? sumPositive(labourRes.data.data, 'balancePayable') : 0,
                 expensePayable: expenseRes.data.success ? sumPositive(expenseRes.data.data, 'balance') : 0,
+                // Informational only — already inside Balance Payable above
+                // (the gross figure); surfaces how much of what's already
+                // been paid was withheld as TDS rather than reaching the
+                // contractor/labourer's hand.
+                contractorTdsTotal: contractorRes.data.success ? sumPlain(contractorRes.data.data, 'tdsTotal') : 0,
+                labourTdsTotal: labourRes.data.success ? sumPlain(labourRes.data.data, 'tdsTotal') : 0,
             });
         } catch {
             // Overview degrades gracefully — sections just show empty state.
@@ -211,7 +218,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                                 <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                 <XAxis dataKey="weekStart" tick={{ fontSize: 10 }} />
                                 <YAxis tick={{ fontSize: 11 }} />
-                                <Tooltip />
+                                <Tooltip content={<ChartTooltip />} />
                                 <Line type="monotone" dataKey="completedAreaSqft" name="Completed Sqft" stroke={CHART_COLORS[0]} strokeWidth={2} dot={{ r: 2 }} />
                             </LineChart>
                         </ResponsiveContainer>
@@ -225,7 +232,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                                 <Pie data={costBreakdown} dataKey="value" nameKey="name" innerRadius={50} outerRadius={85} paddingAngle={2}>
                                     {costBreakdown.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                                 </Pie>
-                                <Tooltip formatter={(v) => formatINR(v)} />
+                                <Tooltip content={<ChartTooltip />} />
                                 <Legend wrapperStyle={{ fontSize: 12 }} />
                             </PieChart>
                         </ResponsiveContainer>
@@ -240,8 +247,10 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                     </p>
                     <KpiGrid>
                         <KpiCard label="Vendor Payment Left" value={formatINR(payables.vendorPaymentLeft)} tone={payables.vendorPaymentLeft > 0 ? 'danger' : 'good'} />
-                        <KpiCard label="Contractor Balance Payable" value={formatINR(payables.contractorBalancePayable)} tone={payables.contractorBalancePayable > 0 ? 'danger' : 'good'} />
-                        <KpiCard label="Labour Balance Payable" value={formatINR(payables.labourBalancePayable)} tone={payables.labourBalancePayable > 0 ? 'danger' : 'good'} />
+                        <KpiCard label="Contractor Balance Payable" value={formatINR(payables.contractorBalancePayable)} tone={payables.contractorBalancePayable > 0 ? 'danger' : 'good'}
+                            sub={payables.contractorTdsTotal > 0 ? `Of which ${formatINR(payables.contractorTdsTotal)} was TDS` : undefined} />
+                        <KpiCard label="Labour Balance Payable" value={formatINR(payables.labourBalancePayable)} tone={payables.labourBalancePayable > 0 ? 'danger' : 'good'}
+                            sub={payables.labourTdsTotal > 0 ? `Of which ${formatINR(payables.labourTdsTotal)} was TDS` : undefined} />
                         <KpiCard label="Expense Payables" value={formatINR(payables.expensePayable)} tone={payables.expensePayable > 0 ? 'danger' : 'good'} onClick={onViewExpenses} />
                     </KpiGrid>
                 </div>

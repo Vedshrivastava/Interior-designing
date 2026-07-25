@@ -11,7 +11,11 @@ import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '' };
+const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', workId: '', projectId: '', tdsSectionId: '', tdsAmount: '' };
+
+// See ContractorLedgerView.jsx's identical helper.
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+const calcTds = (rate, amount) => (rate != null && amount ? round2((rate / 100) * Number(amount)) : '');
 
 /*
  * Standalone contractor-payment entry + history — the same
@@ -27,6 +31,8 @@ const ContractorPaymentsManager = ({ url }) => {
     const [vendorId, setVendorId] = useState('');
     const [bankAccounts, setBankAccounts] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
+    const [workTypeSettings, setWorkTypeSettings] = useState([]);
+    const [works, setWorks] = useState([]);
     const [paymentModes, setPaymentModes] = useState([]);
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -43,7 +49,18 @@ const ContractorPaymentsManager = ({ url }) => {
             .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
             .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } })
+            .then(res => { if (res.data.success) setWorkTypeSettings(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // This picker has no ledger loaded (unlike ContractorLedgerView), so the
+    // Work picker's options come from this contractor's own assignments
+    // directly — same endpoint, now filterable by contractorVendorId.
+    useEffect(() => {
+        if (!vendorId) { setWorks([]); return; }
+        axios.get(`${url}/api/finance/work-contractor-assignments/list`, { ...authHeader, params: { contractorVendorId: vendorId } })
+            .then(res => { if (res.data.success) setWorks(res.data.data.filter(a => a.workId)); }).catch(() => {});
+    }, [url, vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchPayments = async () => {
         setLoading(true);
@@ -62,6 +79,31 @@ const ContractorPaymentsManager = ({ url }) => {
     useFinanceWsRefresh(['financeContractorLedgerChanged'], () => { if (vendorId) fetchPayments(); });
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
+    // See ContractorLedgerView.jsx's identical handlers.
+    const onSelectWork = (workId) => {
+        const assignment = works.find(a => a.workId?._id === workId);
+        const workType = workTypeSettings.find(t => t.name === assignment?.workId?.workType);
+        const section = workType?.tdsSectionId || null;
+        // Tag the payment with the Work's own project too — see
+        // ContractorLedgerView.jsx's identical comment.
+        setForm(p => ({
+            ...p, workId, projectId: assignment?.workId?.projectId?._id || '',
+            tdsSectionId: section?._id || '', tdsAmount: calcTds(section?.rate, p.amount),
+        }));
+    };
+    const onChangeAmount = (amount) => {
+        setForm(p => {
+            const section = tdsSections.find(s => s._id === p.tdsSectionId);
+            return { ...p, amount, tdsAmount: p.tdsSectionId ? calcTds(section?.rate, amount) : p.tdsAmount };
+        });
+    };
+    const onChangeTdsSection = (tdsSectionId) => {
+        setForm(p => {
+            const section = tdsSections.find(s => s._id === tdsSectionId);
+            return { ...p, tdsSectionId, tdsAmount: tdsSectionId ? calcTds(section?.rate, p.amount) : '' };
+        });
+    };
 
     const submit = async (e) => {
         e.preventDefault();
@@ -142,11 +184,18 @@ const ContractorPaymentsManager = ({ url }) => {
                                     <div className="wizard-field-grid">
                                         <div className="add-product-name flex-col">
                                             <p>Amount (₹) *</p>
-                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => onChangeAmount(e.target.value)} />
                                         </div>
                                         <div className="add-product-name flex-col">
                                             <p>Date *</p>
                                             <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
+                                        </div>
+                                        <div className="add-product-name flex-col">
+                                            <p>Work (optional — resolves TDS from its type)</p>
+                                            <StyledSelect
+                                                value={form.workId} onChange={onSelectWork} placeholder="Not tied to a Work"
+                                                options={works.map(a => ({ value: a.workId._id, label: `${a.workId.workType} — ${a.workId.projectId?.name || '—'}` }))}
+                                            />
                                         </div>
                                         <div className="add-product-name flex-col">
                                             <p>Payment Mode</p>
@@ -163,12 +212,12 @@ const ContractorPaymentsManager = ({ url }) => {
                                         <div className="add-product-name flex-col">
                                             <p>TDS Section</p>
                                             <StyledSelect
-                                                value={form.tdsSectionId} onChange={v => setField('tdsSectionId', v)} placeholder="No TDS"
-                                                options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.code ? ` (${s.code})` : ''}` }))}
+                                                value={form.tdsSectionId} onChange={onChangeTdsSection} placeholder="No TDS"
+                                                options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.rate != null ? ` (${s.rate}%)` : ''}` }))}
                                             />
                                         </div>
                                         <div className="add-product-name flex-col">
-                                            <p>TDS Amount (optional)</p>
+                                            <p>TDS Amount</p>
                                             <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} />
                                         </div>
                                         <div className="add-product-name flex-col">
@@ -188,6 +237,12 @@ const ContractorPaymentsManager = ({ url }) => {
                                             <input type="text" value={form.bankOrCashLabel} onChange={e => setField('bankOrCashLabel', e.target.value)} />
                                         </div>
                                     </div>
+                                    {form.amount > 0 && (
+                                        <p className="admin-subtitle" style={{ margin: '-8px 0 12px' }}>
+                                            Gross: ₹{Number(form.amount).toLocaleString('en-IN')}
+                                            {form.tdsAmount > 0 && ` · TDS: ₹${Number(form.tdsAmount).toLocaleString('en-IN')} · Net Payable: ₹${(Number(form.amount) - Number(form.tdsAmount)).toLocaleString('en-IN')}`}
+                                        </p>
+                                    )}
                                     <div className="edit-modal-actions">
                                         <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
                                         <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>

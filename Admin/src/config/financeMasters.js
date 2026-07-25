@@ -216,7 +216,7 @@ export const FINANCE_MASTERS = {
 /* Settings & Lists tab — categorized simple lists (name + optional code/rate,
    or the two deduct-flag checkboxes for direct payment categories) */
 export const FINANCE_SETTING_TYPES = [
-    { key: 'work_type', label: 'Work Types', hasCode: false, hasRate: false },
+    { key: 'work_type', label: 'Work Types', hasCode: false, hasRate: false, hasTdsSection: true },
     { key: 'expense_category', label: 'Expense Categories', hasCode: false, hasRate: false },
     { key: 'payment_mode', label: 'Payment Modes', hasCode: false, hasRate: false },
     { key: 'tds_section', label: 'TDS Sections', hasCode: true, hasRate: true },

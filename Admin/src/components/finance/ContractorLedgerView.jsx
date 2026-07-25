@@ -31,7 +31,14 @@ const buildMonthlyMoneyFlow = (advances, deductions, payments) => {
 
 const emptyAdvanceForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', utrNumber: '', notes: '' };
 const emptyDeductionForm = { areaSqft: '', reason: '', date: '', notes: '', workId: '' };
-const emptyPaymentForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '' };
+const emptyPaymentForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', workId: '', projectId: '', tdsSectionId: '', tdsAmount: '' };
+
+// Section's `rate` (%) × amount, rounded — a Work Type's own tdsSectionId
+// comes pre-populated with its rate (see financeSetting.js's populate), so
+// no extra lookup is needed once a Work Type resolves one; the TDS Sections
+// list itself covers a manual override to a different section.
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+const calcTds = (rate, amount) => (rate != null && amount ? round2((rate / 100) * Number(amount)) : '');
 
 /*
  * The full contractor ledger — earnings breakdown, and add/list/remove for
@@ -52,6 +59,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
     const [loading, setLoading] = useState(true);
     const [bankAccounts, setBankAccounts] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
+    const [workTypeSettings, setWorkTypeSettings] = useState([]);
     const [billProjectId, setBillProjectId] = useState('');
     const { downloading: downloadingBill, progress: billProgress, run: runBillDownload } = useFileDownload(authHeader);
 
@@ -92,6 +100,12 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
             .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
+        // Work Types carry their own tdsSectionId (populated with rate) —
+        // resolved by matching a picked Work's `workType` string against
+        // this list's `name`, same string-match convention every other
+        // work-type lookup in this codebase already uses.
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } })
+            .then(res => { if (res.data.success) setWorkTypeSettings(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const submitAdvance = async (e) => {
@@ -122,6 +136,40 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
         finally { setSaving(''); }
     };
 
+    // Selecting a Work resolves its workType against Work Type settings —
+    // if that type has a tdsSectionId set, auto-suggest it and compute the
+    // amount from its rate. Still fully overridable afterward (changing the
+    // TDS Section or typing over the Amount just recalculates from there).
+    const onSelectPaymentWork = (workId) => {
+        const work = ledger.works.find(w => w._id === workId);
+        const workType = workTypeSettings.find(t => t.name === work?.workType);
+        const section = workType?.tdsSectionId || null;
+        setPaymentForm(p => ({
+            ...p, workId,
+            // A Work always belongs to exactly one project — tag the
+            // payment with it too (not just workId), so it isn't invisible
+            // to every project-scoped view/statement that filters by
+            // projectId (Payment Statement PDF, Project Overview) the same
+            // way an untagged advance/deduction/payment already was before
+            // last session's proportional-allocation fix.
+            projectId: work?.projectId || '',
+            tdsSectionId: section?._id || '',
+            tdsAmount: calcTds(section?.rate, p.amount),
+        }));
+    };
+    const onChangePaymentAmount = (amount) => {
+        setPaymentForm(p => {
+            const section = tdsSections.find(s => s._id === p.tdsSectionId);
+            return { ...p, amount, tdsAmount: p.tdsSectionId ? calcTds(section?.rate, amount) : p.tdsAmount };
+        });
+    };
+    const onChangePaymentTdsSection = (tdsSectionId) => {
+        setPaymentForm(p => {
+            const section = tdsSections.find(s => s._id === tdsSectionId);
+            return { ...p, tdsSectionId, tdsAmount: tdsSectionId ? calcTds(section?.rate, p.amount) : '' };
+        });
+    };
+
     const submitPayment = async (e) => {
         e.preventDefault();
         if (!paymentForm.amount || Number(paymentForm.amount) <= 0) return toast.error('Amount must be greater than zero');
@@ -129,9 +177,11 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
         setSaving('payment');
         try {
             const data = new FormData();
-            Object.entries(paymentForm).forEach(([k, v]) => data.append(k, v));
+            // This view's own `projectId` prop (set when embedded somewhere
+            // already project-scoped) wins if present; otherwise fall back
+            // to whatever the Work picker resolved above.
+            Object.entries({ ...paymentForm, projectId: projectId || paymentForm.projectId || '' }).forEach(([k, v]) => data.append(k, v));
             data.append('vendorId', vendorId);
-            data.append('projectId', projectId || '');
             if (paymentFile) data.append('attachment', paymentFile);
             const res = await axios.post(`${url}/api/finance/contractor-payments/add`, data, {
                 headers: { ...authHeader.headers, 'Content-Type': 'multipart/form-data' },
@@ -209,6 +259,11 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
             {totals.balancePayable < 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
                     Paid more than currently-approved work earns — some already-paid work is still pending review, not a balance owed back.
+                </p>
+            )}
+            {totals.tdsTotal > 0 && (
+                <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
+                    Total Paid: ₹{totals.payments.toLocaleString('en-IN')} (of which ₹{totals.tdsTotal.toLocaleString('en-IN')} was TDS withheld, not cash in hand).
                 </p>
             )}
 
@@ -434,11 +489,18 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Amount (₹) *</p>
-                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} />
+                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={paymentForm.amount} onChange={e => onChangePaymentAmount(e.target.value)} />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Date *</p>
                                     <StyledDatePicker value={paymentForm.date} onChange={v => setPaymentForm(p => ({ ...p, date: v }))} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Work (optional — resolves TDS from its type)</p>
+                                    <StyledSelect
+                                        value={paymentForm.workId} onChange={onSelectPaymentWork} placeholder="Not tied to a Work"
+                                        options={ledger.works.map(w => ({ value: w._id, label: `${w.workType} — ${w.projectName}` }))}
+                                    />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Payment Mode</p>
@@ -446,20 +508,20 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Bank Account</p>
-                                    <select value={paymentForm.bankAccountId} onChange={e => setPaymentForm(p => ({ ...p, bankAccountId: e.target.value }))}>
-                                        <option value="">Cash</option>
-                                        {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} · {a.bankName}</option>)}
-                                    </select>
+                                    <StyledSelect
+                                        value={paymentForm.bankAccountId} onChange={v => setPaymentForm(p => ({ ...p, bankAccountId: v }))} placeholder="Cash"
+                                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                                    />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>TDS Section</p>
-                                    <select value={paymentForm.tdsSectionId} onChange={e => setPaymentForm(p => ({ ...p, tdsSectionId: e.target.value }))}>
-                                        <option value="">No TDS</option>
-                                        {tdsSections.map(s => <option key={s._id} value={s._id}>{s.name}{s.code ? ` (${s.code})` : ''}</option>)}
-                                    </select>
+                                    <StyledSelect
+                                        value={paymentForm.tdsSectionId} onChange={onChangePaymentTdsSection} placeholder="No TDS"
+                                        options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.rate != null ? ` (${s.rate}%)` : ''}` }))}
+                                    />
                                 </div>
                                 <div className="add-product-name flex-col">
-                                    <p>TDS Amount (optional)</p>
+                                    <p>TDS Amount</p>
                                     <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={paymentForm.tdsAmount} onChange={e => setPaymentForm(p => ({ ...p, tdsAmount: e.target.value }))} />
                                 </div>
                                 <div className="add-product-name flex-col wizard-field-full">
@@ -467,6 +529,12 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                     <input type="file" onChange={e => setPaymentFile(e.target.files[0] || null)} />
                                 </div>
                             </div>
+                            {paymentForm.amount > 0 && (
+                                <p className="admin-subtitle" style={{ margin: '-8px 0 12px' }}>
+                                    Gross: ₹{Number(paymentForm.amount).toLocaleString('en-IN')}
+                                    {paymentForm.tdsAmount > 0 && ` · TDS: ₹${Number(paymentForm.tdsAmount).toLocaleString('en-IN')} · Net Payable: ₹${(Number(paymentForm.amount) - Number(paymentForm.tdsAmount)).toLocaleString('en-IN')}`}
+                                </p>
+                            )}
                             <div className="edit-modal-actions">
                                 <button type="button" className="add-btn cancel-btn" onClick={() => setPaymentModalOpen(false)}>Cancel</button>
                                 <button type="submit" className="add-btn" disabled={saving === 'payment'}>{saving === 'payment' ? 'Saving…' : 'Save'}</button>

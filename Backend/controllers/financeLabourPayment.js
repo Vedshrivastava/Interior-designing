@@ -11,7 +11,7 @@ const listLabourPayments = async (req, res) => {
         const filter = { deleted: { $ne: true } };
         if (labourerId) filter.labourerId = labourerId;
         if (projectId) filter.projectId = projectId;
-        const items = await FinanceLabourPayment.find(filter).populate('bankAccountId', 'accountName').sort({ date: -1, createdAt: -1 });
+        const items = await FinanceLabourPayment.find(filter).populate('bankAccountId', 'accountName').populate('tdsSectionId', 'name code').sort({ date: -1, createdAt: -1 });
         res.json({ success: true, data: items });
     } catch (err) {
         console.error(err);
@@ -24,23 +24,27 @@ const listLabourPayments = async (req, res) => {
 // payment controller in this codebase.
 const addLabourPayment = async (req, res) => {
     try {
-        const { labourerId, projectId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, notes } = req.body;
+        const { labourerId, projectId, workId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, notes, tdsSectionId, tdsAmount } = req.body;
         if (!labourerId) return res.status(400).json({ success: false, message: 'Labourer is required' });
         const labourer = await FinanceLabourer.findOne({ _id: labourerId, deleted: { $ne: true } });
         if (!labourer) return res.status(404).json({ success: false, message: 'Labourer not found' });
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
+        const resolvedTdsAmount = (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null;
         const item = new FinanceLabourPayment({
-            labourerId, projectId: projectId || null, amount: Number(amount), date,
+            labourerId, projectId: projectId || null, workId: workId || null, amount: Number(amount), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null,
-            notes: notes || '',
+            notes: notes || '', tdsSectionId: tdsSectionId || null, tdsAmount: resolvedTdsAmount,
         });
         await item.save();
 
+        // See financeContractorPayment.js's identical comment — only the
+        // net (post-TDS) amount actually leaves cash; Balance Payable
+        // (financeLabourLedger.js/financeReports.js) stays gross.
         if (!bankAccountId) {
             await FinanceCashEntry.create({
-                date, type: 'out', amount: Number(amount), projectId: projectId || null,
+                date, type: 'out', amount: Number(amount) - (resolvedTdsAmount || 0), projectId: projectId || null,
                 reason: 'Labour payment', relatedLabourPaymentId: item._id, notes: notes || '',
             });
             broadcast({ type: 'financeCashBookChanged' });

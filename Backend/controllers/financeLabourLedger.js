@@ -155,7 +155,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
     const [advances, deductions, payments] = await Promise.all([
         FinanceLabourAdvance.find(moneyFilter).sort({ date: -1 }),
         FinanceLabourDeduction.find(moneyFilter).sort({ date: -1 }),
-        FinanceLabourPayment.find(moneyFilter).populate('bankAccountId', 'accountName').sort({ date: -1 }),
+        FinanceLabourPayment.find(moneyFilter).populate('bankAccountId', 'accountName').populate('tdsSectionId', 'name code').sort({ date: -1 }),
     ]);
 
     const advancesTotal = advances.reduce((sum, a) => sum + a.amount, 0);
@@ -164,6 +164,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
     // the comment on directPaymentUnapprovedTotal above.
     const deductionsTotal = deductions.reduce((sum, d) => sum + d.amount, 0) + directPaymentApprovedTotal;
     const paymentsTotal = payments.reduce((sum, p) => sum + p.amount, 0);
+    const tdsTotal = round2(payments.reduce((sum, p) => sum + (p.tdsAmount || 0), 0));
     earningsTotal = round2(earningsTotal);
     totalAmountTotal = round2(totalAmountTotal);
     unapprovedAmountTotal = round2(unapprovedAmountTotal);
@@ -189,6 +190,8 @@ const computeLabourLedger = async (labourerId, projectId) => {
             directPaymentUnapproved: directPaymentUnapprovedTotal,
             directPaymentApproved: directPaymentApprovedTotal,
             paymentLeftUnapproved: paymentLeftUnapprovedTotal,
+            // See financeContractorLedger.js's identical comment.
+            tdsTotal,
         },
     };
 };
@@ -204,9 +207,11 @@ const getLabourLedger = async (req, res) => {
     }
 };
 
-// Per-project payment statement — mirrors downloadContractorBillStatement.
-// No GSTIN line (individual labourers aren't GST entities) and no UTR/TDS
-// payment columns (financeLabourPayment has neither field).
+// Per-project payment statement — mirrors downloadContractorBillStatement,
+// including the TDS column/breakdown now that financeLabourPayment carries
+// tdsSectionId/tdsAmount too. No GSTIN line still applies (individual
+// labourers aren't GST entities), and no UTR column (financeLabourPayment
+// has no utrNumber field, unlike Contractor Payment).
 const downloadLabourBillStatement = async (req, res) => {
     try {
         const { labourerId } = req.params;
@@ -310,12 +315,16 @@ const downloadLabourBillStatement = async (req, res) => {
             drawTable(doc, {
                 company,
                 columns: [
-                    { label: 'Date', width: 100, align: 'left' },
-                    { label: 'Amount', width: 125, align: 'right' },
-                    { label: 'Mode', width: 151, align: 'left' },
-                    { label: 'Account', width: 136, align: 'left' },
+                    { label: 'Date', width: 81, align: 'left' },
+                    { label: 'Amount', width: 99, align: 'right' },
+                    { label: 'Mode', width: 99, align: 'left' },
+                    { label: 'Account', width: 117, align: 'left' },
+                    { label: 'TDS', width: 116, align: 'left' },
                 ],
-                rows: data.payments.map(p => [formatDate(p.date), formatCurrency(p.amount), p.paymentMode || '—', p.bankAccountId?.accountName || 'Cash']),
+                rows: data.payments.map(p => [
+                    formatDate(p.date), formatCurrency(p.amount), p.paymentMode || '—', p.bankAccountId?.accountName || 'Cash',
+                    p.tdsAmount ? `${formatCurrency(p.tdsAmount)}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '—',
+                ]),
             });
             doc.moveDown(0.4);
         }
@@ -339,6 +348,32 @@ const downloadLabourBillStatement = async (req, res) => {
         doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(BRAND_GREEN).lineWidth(1).stroke();
         ty += 6;
         doc.y = ty + 10;
+
+        // TDS Breakdown — see downloadContractorBillStatement's identical block.
+        if (data.totals.tdsTotal > 0) {
+            const tdsBySection = new Map();
+            for (const p of data.payments) {
+                if (!p.tdsAmount) continue;
+                const key = p.tdsSectionId?._id?.toString() || 'unspecified';
+                const label = p.tdsSectionId?.name || 'Unspecified section';
+                const cur = tdsBySection.get(key) || { label, total: 0 };
+                cur.total += p.tdsAmount;
+                tdsBySection.set(key, cur);
+            }
+            writeSectionHeading(doc, 'TDS Breakdown');
+            drawTable(doc, {
+                company,
+                columns: [
+                    { label: 'Section', width: 320, align: 'left' },
+                    { label: 'TDS Withheld', width: 100, align: 'right' },
+                ],
+                rows: [...tdsBySection.values()].map(s => [s.label, formatCurrency(s.total)]),
+            });
+            doc.font('Helvetica-Bold').fontSize(10)
+                .text(`Total TDS Withheld: ${formatCurrency(data.totals.tdsTotal)}`, left, doc.y + 4);
+            doc.font('Helvetica').fontSize(10);
+            doc.moveDown(0.8);
+        }
 
         // Same convention as LabourLedgerView.jsx's own totals row: color
         // keys off > 0 (red = owed), but the "Extra Paid" label specifically

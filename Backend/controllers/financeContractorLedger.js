@@ -195,6 +195,7 @@ const computeContractorLedger = async (vendorId, projectId) => {
     // — see the comment on directPaymentUnapprovedTotal above for why.
     const deductionsTotal = deductions.reduce((sum, d) => sum + d.amount, 0) + directPaymentApprovedTotal;
     const paymentsTotal = payments.reduce((sum, p) => sum + p.amount, 0);
+    const tdsTotal = round2(payments.reduce((sum, p) => sum + (p.tdsAmount || 0), 0));
     earningsTotal = round2(earningsTotal);
     totalAmountTotal = round2(totalAmountTotal);
     unapprovedAmountTotal = round2(unapprovedAmountTotal);
@@ -224,6 +225,11 @@ const computeContractorLedger = async (vendorId, projectId) => {
             directPaymentUnapproved: directPaymentUnapprovedTotal,
             directPaymentApproved: directPaymentApprovedTotal,
             paymentLeftUnapproved: paymentLeftUnapprovedTotal,
+            // Informational only — already included inside `payments`
+            // (paymentsTotal is the gross figure Balance Payable nets
+            // against); this just surfaces how much of that was withheld
+            // as TDS rather than actually reaching the vendor's hand.
+            tdsTotal,
         },
     };
 };
@@ -387,6 +393,36 @@ const downloadContractorBillStatement = async (req, res) => {
         doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(BRAND_GREEN).lineWidth(1).stroke();
         ty += 6;
         doc.y = ty + 10;
+
+        // TDS Breakdown — informational, already inside Payments above (the
+        // gross figure Balance Payable nets against); this just states how
+        // much of it was withheld rather than paid directly. Grouped by
+        // section the same shape computeCaMonthlyPackage already uses for
+        // its own TDS Summary.
+        if (data.totals.tdsTotal > 0) {
+            const tdsBySection = new Map();
+            for (const p of data.payments) {
+                if (!p.tdsAmount) continue;
+                const key = p.tdsSectionId?._id?.toString() || 'unspecified';
+                const label = p.tdsSectionId?.name || 'Unspecified section';
+                const cur = tdsBySection.get(key) || { label, total: 0 };
+                cur.total += p.tdsAmount;
+                tdsBySection.set(key, cur);
+            }
+            writeSectionHeading(doc, 'TDS Breakdown');
+            drawTable(doc, {
+                company,
+                columns: [
+                    { label: 'Section', width: 320, align: 'left' },
+                    { label: 'TDS Withheld', width: 100, align: 'right' },
+                ],
+                rows: [...tdsBySection.values()].map(s => [s.label, formatCurrency(s.total)]),
+            });
+            doc.font('Helvetica-Bold').fontSize(10)
+                .text(`Total TDS Withheld: ${formatCurrency(data.totals.tdsTotal)}`, left, doc.y + 4);
+            doc.font('Helvetica').fontSize(10);
+            doc.moveDown(0.8);
+        }
 
         // Balance banner — same convention as ContractorLedgerView.jsx's own
         // totals row: color keys off > 0 (red = owed, a liability), but the

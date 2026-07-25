@@ -7,10 +7,14 @@ import { logActivity } from '../utils/financeActivityLog.js';
 
 const listWorkContractorAssignments = async (req, res) => {
     try {
-        const { workId } = req.query;
-        if (!workId) return res.status(400).json({ success: false, message: 'workId is required' });
-        const rows = await FinanceWorkContractorAssignment.find({ workId, deleted: { $ne: true } })
+        const { workId, contractorVendorId } = req.query;
+        if (!workId && !contractorVendorId) return res.status(400).json({ success: false, message: 'workId or contractorVendorId is required' });
+        const filter = { deleted: { $ne: true } };
+        if (workId) filter.workId = workId;
+        if (contractorVendorId) filter.contractorVendorId = contractorVendorId;
+        const rows = await FinanceWorkContractorAssignment.find(filter)
             .populate('contractorVendorId', 'name')
+            .populate({ path: 'workId', select: 'workType projectId', populate: { path: 'projectId', select: 'name' } })
             .sort({ createdAt: 1 });
         res.json({ success: true, data: rows });
     } catch (err) {

@@ -39,9 +39,15 @@ const getAccountActivity = async (accountId) => {
 
     return [
         ...receipts.map(r => ({ date: r.receiptDate, amount: r.amount, direction: 'credit', description: 'Receipt', sourceType: 'receipt', sourceId: r._id })),
-        ...contractorPayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Contractor payment', sourceType: 'contractorPayment', sourceId: p._id })),
+        // Contractor/Salary payments net out tdsAmount here — only the
+        // post-TDS amount actually moved through the bank, the withheld
+        // portion is owed to the tax authority instead (see
+        // controllers/financeContractorPayment.js's identical reasoning).
+        // Vendor/Commission payments stay gross — TDS on those two is still
+        // just decorative, not withheld from the recorded amount.
+        ...contractorPayments.map(p => ({ date: p.date, amount: p.amount - (p.tdsAmount || 0), direction: 'debit', description: 'Contractor payment', sourceType: 'contractorPayment', sourceId: p._id })),
         ...vendorPayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Vendor payment', sourceType: 'vendorPayment', sourceId: p._id })),
-        ...salaryPayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Salary payment', sourceType: 'salaryPayment', sourceId: p._id })),
+        ...salaryPayments.map(p => ({ date: p.date, amount: p.amount - (p.tdsAmount || 0), direction: 'debit', description: 'Salary payment', sourceType: 'salaryPayment', sourceId: p._id })),
         ...commissionPayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Commission payment', sourceType: 'commissionPayment', sourceId: p._id })),
         ...expenses.map(e => ({ date: e.date, amount: e.amount, direction: 'debit', description: e.expenseCategory ? `Expense — ${e.expenseCategory}` : 'Expense', sourceType: 'expense', sourceId: e._id })),
         ...expensePayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Expense payment', sourceType: 'expensePayment', sourceId: p._id })),

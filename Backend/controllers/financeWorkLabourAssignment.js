@@ -8,19 +8,22 @@ import { logActivity } from '../utils/financeActivityLog.js';
 
 // workId (one Work's team roster), supervisorId (every assignment across
 // every Work where this employee is running a team, for the Employees
-// page's read-only Team tab), or projectId (every current assignment
-// across every Work in one project, for the Workers rate panel — it needs
-// "who's on what work type right now" without caring which specific Work)
-// — at least one is required.
+// page's read-only Team tab), labourerId (every Work a specific labourer is
+// currently on, for the Labour Payment form's Work picker — TDS auto-
+// resolves off whichever Work is picked), or projectId (every current
+// assignment across every Work in one project, for the Workers rate panel
+// — it needs "who's on what work type right now" without caring which
+// specific Work) — at least one is required.
 const listWorkLabourAssignments = async (req, res) => {
     try {
-        const { workId, supervisorId, projectId } = req.query;
-        if (!workId && !supervisorId && !projectId) {
-            return res.status(400).json({ success: false, message: 'workId, supervisorId, or projectId is required' });
+        const { workId, supervisorId, labourerId, projectId } = req.query;
+        if (!workId && !supervisorId && !labourerId && !projectId) {
+            return res.status(400).json({ success: false, message: 'workId, supervisorId, labourerId, or projectId is required' });
         }
         let filter = { deleted: { $ne: true } };
         if (workId) filter.workId = workId;
         if (supervisorId) filter.supervisorId = supervisorId;
+        if (labourerId) filter.labourerId = labourerId;
         if (projectId) {
             const works = await FinanceWork.find({ projectId, deleted: { $ne: true } }, '_id');
             filter.workId = { $in: works.map(w => w._id) };

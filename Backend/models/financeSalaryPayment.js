@@ -13,6 +13,11 @@ const financeSalaryPaymentSchema = new mongoose.Schema({
     utrNumber:       { type: String, default: '' },
     notes:           { type: String, default: '' },
 
+    // Manual pick, no work-type auto-derivation (an employee has no work
+    // type) — same shape as financeContractorPayment's identical fields.
+    tdsSectionId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeSetting', default: null },
+    tdsAmount:    { type: Number, default: null },
+
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },
     deletedBy: { type: String },

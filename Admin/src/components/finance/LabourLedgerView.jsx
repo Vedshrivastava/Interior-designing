@@ -8,6 +8,7 @@ import StyledSelect from './StyledSelect';
 import DownloadButton from './DownloadButton';
 import { useFileDownload } from '../../hooks/useFileDownload';
 import StyledDatePicker from './StyledDatePicker';
+import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
@@ -29,7 +30,11 @@ const buildMonthlyMoneyFlow = (advances, deductions, payments) => {
 
 const emptyAdvanceForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', notes: '' };
 const emptyDeductionForm = { areaSqft: '', reason: '', date: '', source: 'engineer_review', supervisorId: '', notes: '', workId: '' };
-const emptyPaymentForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', notes: '' };
+const emptyPaymentForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', notes: '', workId: '', projectId: '', tdsSectionId: '', tdsAmount: '' };
+
+// See ContractorLedgerView.jsx's identical helper.
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+const calcTds = (rate, amount) => (rate != null && amount ? round2((rate / 100) * Number(amount)) : '');
 
 /*
  * The full labour ledger — earnings, and add/list/remove for advances,
@@ -49,6 +54,9 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
     const [loading, setLoading] = useState(true);
     const [bankAccounts, setBankAccounts] = useState([]);
     const [supervisors, setSupervisors] = useState([]);
+    const [tdsSections, setTdsSections] = useState([]);
+    const [workTypeSettings, setWorkTypeSettings] = useState([]);
+    const [paymentModes, setPaymentModes] = useState([]);
     const [billProjectId, setBillProjectId] = useState('');
     const { downloading: downloadingBill, progress: billProgress, run: runBillDownload } = useFileDownload(authHeader);
 
@@ -86,6 +94,12 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/employees/list`, authHeader)
             .then(res => { if (res.data.success) setSupervisors(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
+            .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } })
+            .then(res => { if (res.data.success) setWorkTypeSettings(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
+            .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const submitAdvance = async (e) => {
@@ -125,11 +139,42 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
         if (!paymentForm.date) return toast.error('Date is required');
         setSaving('payment');
         try {
-            const res = await axios.post(`${url}/api/finance/labour-payments/add`, { ...paymentForm, labourerId, projectId: projectId || null }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); setPaymentForm(emptyPaymentForm); setPaymentModalOpen(false); await fetchLedger(); }
+            // This view's own `projectId` prop (set when embedded somewhere
+            // already project-scoped) wins if present; otherwise fall back
+            // to whatever the Work picker resolved.
+            const res = await axios.post(`${url}/api/finance/labour-payments/add`, { ...paymentForm, labourerId, projectId: projectId || paymentForm.projectId || null }, authHeader);
+            if (res.data.success) {
+                if (paymentForm.paymentMode) await registerSettingIfNew(url, authHeader, 'payment_mode', paymentForm.paymentMode, paymentModes.map(m => ({ name: m })));
+                toast.success(res.data.message); setPaymentForm(emptyPaymentForm); setPaymentModalOpen(false); await fetchLedger();
+            }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording payment'); }
         finally { setSaving(''); }
+    };
+
+    // See ContractorLedgerView.jsx's identical handlers.
+    const onSelectPaymentWork = (workId) => {
+        const work = ledger.works.find(w => w._id === workId);
+        const workType = workTypeSettings.find(t => t.name === work?.workType);
+        const section = workType?.tdsSectionId || null;
+        setPaymentForm(p => ({
+            ...p, workId,
+            projectId: work?.projectId || '',
+            tdsSectionId: section?._id || '',
+            tdsAmount: calcTds(section?.rate, p.amount),
+        }));
+    };
+    const onChangePaymentAmount = (amount) => {
+        setPaymentForm(p => {
+            const section = tdsSections.find(s => s._id === p.tdsSectionId);
+            return { ...p, amount, tdsAmount: p.tdsSectionId ? calcTds(section?.rate, amount) : p.tdsAmount };
+        });
+    };
+    const onChangePaymentTdsSection = (tdsSectionId) => {
+        setPaymentForm(p => {
+            const section = tdsSections.find(s => s._id === tdsSectionId);
+            return { ...p, tdsSectionId, tdsAmount: tdsSectionId ? calcTds(section?.rate, p.amount) : '' };
+        });
     };
 
     const billProjectOptions = useMemo(() => {
@@ -198,6 +243,11 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
             {totals.balancePayable < 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
                     Paid more than currently-approved work earns — some already-paid work is still pending review, not a balance owed back.
+                </p>
+            )}
+            {totals.tdsTotal > 0 && (
+                <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
+                    Total Paid: ₹{totals.payments.toLocaleString('en-IN')} (of which ₹{totals.tdsTotal.toLocaleString('en-IN')} was TDS withheld, not cash in hand).
                 </p>
             )}
 
@@ -416,15 +466,16 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                 <div className="admin-empty-state"><p>No payments yet.</p></div>
             ) : (
                 <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
-                        <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>Notes</b><b>Action</b>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
+                        <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>TDS</b><b>Notes</b><b>Action</b>
                     </div>
                     {ledger.payments.map(p => (
-                        <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
+                        <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
                             <p>{new Date(p.date).toLocaleDateString()}</p>
                             <p>₹{p.amount.toLocaleString('en-IN')}</p>
                             <p>{p.paymentMode || '-'}</p>
                             <p>{p.bankAccountId?.accountName || 'Cash'}</p>
+                            <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
                             <p>{p.notes || '-'}</p>
                             <div className="action-buttons"><p onClick={() => remove('payment', p._id)} className="cursor delete-action">X</p></div>
                         </div>
@@ -440,28 +491,53 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Amount (₹) *</p>
-                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} />
+                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={paymentForm.amount} onChange={e => onChangePaymentAmount(e.target.value)} />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Date *</p>
                                     <StyledDatePicker value={paymentForm.date} onChange={v => setPaymentForm(p => ({ ...p, date: v }))} />
                                 </div>
                                 <div className="add-product-name flex-col">
+                                    <p>Work (optional — resolves TDS from its type)</p>
+                                    <StyledSelect
+                                        value={paymentForm.workId} onChange={onSelectPaymentWork} placeholder="Not tied to a Work"
+                                        options={ledger.works.map(w => ({ value: w._id, label: `${w.workType} — ${w.projectName}` }))}
+                                    />
+                                </div>
+                                <div className="add-product-name flex-col">
                                     <p>Payment Mode</p>
-                                    <input type="text" value={paymentForm.paymentMode} onChange={e => setPaymentForm(p => ({ ...p, paymentMode: e.target.value }))} />
+                                    <SettingSelectField settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
+                                        value={paymentForm.paymentMode} onChange={v => setPaymentForm(p => ({ ...p, paymentMode: v }))} placeholder="e.g. Cash, Bank Transfer, UPI…" />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Bank Account</p>
-                                    <select value={paymentForm.bankAccountId} onChange={e => setPaymentForm(p => ({ ...p, bankAccountId: e.target.value }))}>
-                                        <option value="">Cash</option>
-                                        {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} · {a.bankName}</option>)}
-                                    </select>
+                                    <StyledSelect
+                                        value={paymentForm.bankAccountId} onChange={v => setPaymentForm(p => ({ ...p, bankAccountId: v }))} placeholder="Cash"
+                                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                                    />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>TDS Section</p>
+                                    <StyledSelect
+                                        value={paymentForm.tdsSectionId} onChange={onChangePaymentTdsSection} placeholder="No TDS"
+                                        options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.rate != null ? ` (${s.rate}%)` : ''}` }))}
+                                    />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>TDS Amount</p>
+                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={paymentForm.tdsAmount} onChange={e => setPaymentForm(p => ({ ...p, tdsAmount: e.target.value }))} />
                                 </div>
                                 <div className="add-product-name flex-col wizard-field-full">
                                     <p>Notes</p>
                                     <input type="text" value={paymentForm.notes} onChange={e => setPaymentForm(p => ({ ...p, notes: e.target.value }))} />
                                 </div>
                             </div>
+                            {paymentForm.amount > 0 && (
+                                <p className="admin-subtitle" style={{ margin: '-8px 0 12px' }}>
+                                    Gross: ₹{Number(paymentForm.amount).toLocaleString('en-IN')}
+                                    {paymentForm.tdsAmount > 0 && ` · TDS: ₹${Number(paymentForm.tdsAmount).toLocaleString('en-IN')} · Net Payable: ₹${(Number(paymentForm.amount) - Number(paymentForm.tdsAmount)).toLocaleString('en-IN')}`}
+                                </p>
+                            )}
                             <div className="edit-modal-actions">
                                 <button type="button" className="add-btn cancel-btn" onClick={() => setPaymentModalOpen(false)}>Cancel</button>
                                 <button type="submit" className="add-btn" disabled={saving === 'payment'}>{saving === 'payment' ? 'Saving…' : 'Save'}</button>

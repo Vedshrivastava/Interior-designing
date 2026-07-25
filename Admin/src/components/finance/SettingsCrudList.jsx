@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_SETTING_TYPES } from '../../config/financeMasters';
 import ToggleSwitch from './ToggleSwitch';
+import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -12,7 +13,7 @@ import '../../styles/add.css';
 // mangled anything ending "-ies" into "-ie" (e.g. "Citie", "Categorie").
 const singularize = (s) => (s.endsWith('ies') ? `${s.slice(0, -3)}y` : s.replace(/s$/, ''));
 
-const emptyForm = { name: '', code: '', rate: '', deductFromClientBill: true, deductFromWorkerPayout: false };
+const emptyForm = { name: '', code: '', rate: '', deductFromClientBill: true, deductFromWorkerPayout: false, tdsSectionId: '' };
 
 /* `lockedType` (optional): when set, this renders as a single-type list with
    no internal switcher pills — used now that each setting type (Work Types,
@@ -35,8 +36,11 @@ const SettingsCrudList = ({ url, lockedType }) => {
     const [saving, setSaving] = useState(false);
     const [query, setQuery] = useState('');
     const [modalOpen, setModalOpen] = useState(false);
+    const [editingId, setEditingId] = useState(null);
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    // work_type only — the TDS Section picker's own options list.
+    const [tdsSections, setTdsSections] = useState([]);
 
     const typeConfig = FINANCE_SETTING_TYPES.find(t => t.key === activeType);
     const typeLabelSingular = singularize(typeConfig.label);
@@ -55,9 +59,24 @@ const SettingsCrudList = ({ url, lockedType }) => {
 
     useEffect(() => { fetchList(); }, [activeType]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    useEffect(() => {
+        if (!typeConfig.hasTdsSection) return;
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
+            .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
+    }, [url, activeType]); // eslint-disable-line react-hooks/exhaustive-deps
+
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
-    const openAdd = () => { setForm(emptyForm); setModalOpen(true); };
-    const closeModal = () => setModalOpen(false);
+    const openAdd = () => { setForm(emptyForm); setEditingId(null); setModalOpen(true); };
+    const openEdit = (item) => {
+        setForm({
+            name: item.name, code: item.code || '', rate: item.rate ?? '',
+            deductFromClientBill: item.deductFromClientBill ?? true, deductFromWorkerPayout: item.deductFromWorkerPayout ?? false,
+            tdsSectionId: item.tdsSectionId?._id || item.tdsSectionId || '',
+        });
+        setEditingId(item._id);
+        setModalOpen(true);
+    };
+    const closeModal = () => { setModalOpen(false); setEditingId(null); };
 
     const submit = async (e) => {
         e.preventDefault();
@@ -65,10 +84,14 @@ const SettingsCrudList = ({ url, lockedType }) => {
         if (!form.name.trim()) { toast.error('Name is required'); return; }
         setSaving(true);
         try {
-            const res = await axios.post(`${url}/api/finance/settings/add`, {
+            const payload = {
                 settingType: activeType, name: form.name.trim(), code: form.code, rate: form.rate === '' ? null : Number(form.rate),
                 deductFromClientBill: form.deductFromClientBill, deductFromWorkerPayout: form.deductFromWorkerPayout,
-            }, authHeader);
+                tdsSectionId: form.tdsSectionId || null,
+            };
+            const res = editingId
+                ? await axios.post(`${url}/api/finance/settings/update`, { _id: editingId, ...payload }, authHeader)
+                : await axios.post(`${url}/api/finance/settings/add`, payload, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message);
                 closeModal();
@@ -77,7 +100,7 @@ const SettingsCrudList = ({ url, lockedType }) => {
                 toast.error(res.data.message);
             }
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Error adding setting');
+            toast.error(err.response?.data?.message || `Error ${editingId ? 'updating' : 'adding'} setting`);
         } finally {
             setSaving(false);
         }
@@ -116,6 +139,7 @@ const SettingsCrudList = ({ url, lockedType }) => {
         : [
             ...(typeConfig.hasCode ? [{ key: 'code', label: 'Code', render: item => item.code || '-' }] : []),
             ...(typeConfig.hasRate ? [{ key: 'rate', label: 'Rate', render: item => (item.rate != null ? `${item.rate}%` : '-') }] : []),
+            ...(typeConfig.hasTdsSection ? [{ key: 'tdsSection', label: 'TDS Section', render: item => item.tdsSectionId?.name || 'No TDS' }] : []),
         ];
     const gridCols = `${extraCols.length > 0 ? '1.6fr' : '1fr'} ${extraCols.map(() => '1fr').join(' ')} 140px`.trim().replace(/\s+/g, ' ');
 
@@ -156,6 +180,7 @@ const SettingsCrudList = ({ url, lockedType }) => {
                             <p>{item.name}</p>
                             {extraCols.map(c => <p key={c.key}>{c.render(item)}</p>)}
                             <div className="action-buttons">
+                                <p onClick={() => openEdit(item)} className="cursor edit-action">Edit</p>
                                 <p onClick={() => setConfirmItem(item)} className="cursor delete-action">X</p>
                             </div>
                         </div>
@@ -166,7 +191,7 @@ const SettingsCrudList = ({ url, lockedType }) => {
             {modalOpen && ReactDOM.createPortal(
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
                     <div className="loader-modal-box edit-modal">
-                        <h2>Add {typeLabelSingular}</h2>
+                        <h2>{editingId ? 'Edit' : 'Add'} {typeLabelSingular}</h2>
                         <form onSubmit={submit}>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col wizard-field-full">
@@ -186,7 +211,21 @@ const SettingsCrudList = ({ url, lockedType }) => {
                                         <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.rate} onChange={e => setField('rate', e.target.value)} />
                                     </div>
                                 )}
+                                {typeConfig.hasTdsSection && (
+                                    <div className="add-product-name flex-col wizard-field-full">
+                                        <p>TDS Section</p>
+                                        <StyledSelect
+                                            value={form.tdsSectionId} onChange={v => setField('tdsSectionId', v)} placeholder="No TDS"
+                                            options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.rate != null ? ` (${s.rate}%)` : ''}` }))}
+                                        />
+                                    </div>
+                                )}
                             </div>
+                            {typeConfig.hasTdsSection && (
+                                <p className="admin-subtitle" style={{ margin: '-8px 0 12px' }}>
+                                    When set, a Contractor/Labour payment for a Work of this type auto-suggests this section and calculates TDS from its rate. Leave as "No TDS" if this work type doesn't attract any.
+                                </p>
+                            )}
 
                             {typeConfig.hasDeductFlags && (
                                 <>

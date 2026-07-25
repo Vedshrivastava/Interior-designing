@@ -2,13 +2,19 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
+import StyledSelect from './StyledSelect';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const emptyForm = { month: '', amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '' };
+const emptyForm = { month: '', amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '' };
 const thisMonth = () => new Date().toISOString().slice(0, 7);
+
+// See ContractorLedgerView.jsx's identical helper. Manual pick here — no
+// work-type derivation, an employee doesn't have one.
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+const calcTds = (rate, amount) => (rate != null && amount ? round2((rate / 100) * Number(amount)) : '');
 
 /*
  * Salary Ledger for one employee — expected salary vs. paid, per month,
@@ -23,6 +29,7 @@ const SalaryLedgerView = ({ url, employeeId }) => {
     const [ledger, setLedger] = useState(null);
     const [loading, setLoading] = useState(true);
     const [bankAccounts, setBankAccounts] = useState([]);
+    const [tdsSections, setTdsSections] = useState([]);
     const [form, setForm] = useState({ ...emptyForm, month: thisMonth() });
     const [saving, setSaving] = useState(false);
 
@@ -44,9 +51,23 @@ const SalaryLedgerView = ({ url, employeeId }) => {
     useEffect(() => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
             .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
+            .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+    const onChangeAmount = (amount) => {
+        setForm(p => {
+            const section = tdsSections.find(s => s._id === p.tdsSectionId);
+            return { ...p, amount, tdsAmount: p.tdsSectionId ? calcTds(section?.rate, amount) : p.tdsAmount };
+        });
+    };
+    const onChangeTdsSection = (tdsSectionId) => {
+        setForm(p => {
+            const section = tdsSections.find(s => s._id === tdsSectionId);
+            return { ...p, tdsSectionId, tdsAmount: tdsSectionId ? calcTds(section?.rate, p.amount) : '' };
+        });
+    };
 
     const submit = async () => {
         if (!/^\d{4}-\d{2}$/.test(form.month)) return toast.error('A valid month is required');
@@ -74,7 +95,10 @@ const SalaryLedgerView = ({ url, employeeId }) => {
 
     return (
         <div>
-            <p className="admin-subtitle" style={{ marginBottom: '12px' }}>Expected salary: ₹{ledger.expectedSalary.toLocaleString('en-IN')}/month</p>
+            <p className="admin-subtitle" style={{ marginBottom: '12px' }}>
+                Expected salary: ₹{ledger.expectedSalary.toLocaleString('en-IN')}/month
+                {ledger.tdsTotal > 0 && ` · Total TDS withheld to date: ₹${ledger.tdsTotal.toLocaleString('en-IN')} (already included in Paid below, not cash in hand).`}
+            </p>
 
             <div className="wizard-step-body">
                 <p className="wizard-section-label">Add Payment</p>
@@ -85,7 +109,7 @@ const SalaryLedgerView = ({ url, employeeId }) => {
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Amount (₹) *</p>
-                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => onChangeAmount(e.target.value)} />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Date *</p>
@@ -93,12 +117,29 @@ const SalaryLedgerView = ({ url, employeeId }) => {
                     </div>
                     <div className="add-product-name flex-col">
                         <p>Bank Account</p>
-                        <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)}>
-                            <option value="">Cash</option>
-                            {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} · {a.bankName}</option>)}
-                        </select>
+                        <StyledSelect
+                            value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
+                            options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                        />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>TDS Section</p>
+                        <StyledSelect
+                            value={form.tdsSectionId} onChange={onChangeTdsSection} placeholder="No TDS"
+                            options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.rate != null ? ` (${s.rate}%)` : ''}` }))}
+                        />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>TDS Amount</p>
+                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} />
                     </div>
                 </div>
+                {form.amount > 0 && (
+                    <p className="admin-subtitle" style={{ margin: '8px 0 0' }}>
+                        Gross: ₹{Number(form.amount).toLocaleString('en-IN')}
+                        {form.tdsAmount > 0 && ` · TDS: ₹${Number(form.tdsAmount).toLocaleString('en-IN')} · Net Payable: ₹${(Number(form.amount) - Number(form.tdsAmount)).toLocaleString('en-IN')}`}
+                    </p>
+                )}
                 <div className="wizard-actions" style={{ marginTop: '16px', marginBottom: '12px' }}>
                     <span />
                     <button type="button" className="add-btn" disabled={saving} onClick={submit}>{saving ? 'Saving…' : '+ Add Payment'}</button>
@@ -124,17 +165,18 @@ const SalaryLedgerView = ({ url, employeeId }) => {
 
             <h3 style={{ marginBottom: '8px' }}>Payment History</h3>
             <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
-                    <b>Month</b><b>Date</b><b>Amount</b><b>Account</b><b>Action</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
+                    <b>Month</b><b>Date</b><b>Amount</b><b>Account</b><b>TDS</b><b>Action</b>
                 </div>
                 {ledger.payments.length === 0 ? (
                     <div className="admin-empty-state"><p>No payments recorded yet.</p></div>
                 ) : ledger.payments.map(p => (
-                    <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
+                    <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
                         <p>{p.month}</p>
                         <p>{new Date(p.date).toLocaleDateString()}</p>
                         <p>₹{p.amount.toLocaleString('en-IN')}</p>
                         <p>{p.bankAccountId?.accountName || 'Cash'}</p>
+                        <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
                         <div className="action-buttons"><p onClick={() => remove(p._id)} className="cursor delete-action">X</p></div>
                     </div>
                 ))}

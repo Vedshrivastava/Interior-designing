@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { ChartCard, EmptyChart, CHART_COLORS, formatINR } from './DashboardWidgets';
+import { ChartCard, EmptyChart, ChartTooltip, CHART_COLORS, formatINR } from './DashboardWidgets';
 import StyledSelect from './StyledSelect';
 import DownloadButton from './DownloadButton';
 import { useFileDownload } from '../../hooks/useFileDownload';
@@ -275,11 +275,11 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                                 <YAxis tick={{ fontSize: 11 }} />
-                                <Tooltip formatter={(v) => formatINR(v)} />
+                                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
                                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                                <Bar dataKey="advances" name="Advances" fill={CHART_COLORS[1]} />
-                                <Bar dataKey="deductions" name="Deductions" fill={CHART_COLORS[2]} />
-                                <Bar dataKey="payments" name="Payments" fill={CHART_COLORS[0]} />
+                                <Bar dataKey="advances" name="Advances" fill={CHART_COLORS[1]} activeBar={false} />
+                                <Bar dataKey="deductions" name="Deductions" fill={CHART_COLORS[2]} activeBar={false} />
+                                <Bar dataKey="payments" name="Payments" fill={CHART_COLORS[0]} activeBar={false} />
                             </BarChart>
                         </ResponsiveContainer>
                     ) : <EmptyChart text="No advances, deductions, or payments yet." />}

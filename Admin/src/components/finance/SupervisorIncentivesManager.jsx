@@ -5,6 +5,8 @@ import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const emptyForm = { amount: '', reason: '', date: '', projectId: '', workId: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', notes: '' };
 

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from 'recharts';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import StockMovementsManager from '../../components/finance/StockMovementsManager';
+import StyledSelect from '../../components/finance/StyledSelect';
 import { ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ChartTooltip, CHART_COLORS } from '../../components/finance/DashboardWidgets';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/dashboard.css';
@@ -132,10 +133,10 @@ const SiteInventoryPage = ({ url }) => {
 
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                 <p>Project (for manual entry / movement history)</p>
-                <select value={selectedProjectId} onChange={e => setSelectedProjectId(e.target.value)}>
-                    <option value="">Select project…</option>
-                    {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                </select>
+                <StyledSelect
+                    value={selectedProjectId} onChange={setSelectedProjectId} placeholder="Select project…"
+                    options={projects.map(p => ({ value: p._id, label: p.name }))}
+                />
             </div>
             {selectedProjectId
                 ? <StockMovementsManager url={url} projectId={selectedProjectId} />

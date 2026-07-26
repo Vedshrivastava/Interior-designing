@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AddLabourModal from './AddLabourModal';
+import StyledSelect from './StyledSelect';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 /*
  * Single-select labourer picker — mirrors ContractorOrLabourPicker. Lists
@@ -26,10 +30,12 @@ const LabourPicker = ({ url, value, onChange, placeholder }) => {
     return (
         <>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <select value={value} onChange={e => onChange(e.target.value)} style={{ flex: 1 }}>
-                    <option value="">{placeholder || 'Select labourer…'}</option>
-                    {labourers.map(l => <option key={l._id} value={l._id}>{l.name}</option>)}
-                </select>
+                <div style={{ flex: 1 }}>
+                    <StyledSelect
+                        value={value} onChange={onChange} placeholder={placeholder || 'Select labourer…'}
+                        options={labourers.map(l => ({ value: l._id, label: l.name }))}
+                    />
+                </div>
                 <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={() => setModalOpen(true)}>+ Add New</button>
             </div>
 

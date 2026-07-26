@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { ChartCard, EmptyChart, CHART_COLORS, formatINR } from './DashboardWidgets';
+import { ChartCard, EmptyChart, ChartTooltip, CHART_COLORS, formatINR } from './DashboardWidgets';
 import StyledDatePicker from './StyledDatePicker';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
@@ -136,11 +136,11 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                                 <YAxis tick={{ fontSize: 11 }} />
-                                <Tooltip formatter={(v) => formatINR(v)} />
+                                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
                                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                                <Bar dataKey="purchases" name="Purchases" fill={CHART_COLORS[1]} />
-                                <Bar dataKey="returns" name="Returns" fill={CHART_COLORS[2]} />
-                                <Bar dataKey="payments" name="Payments" fill={CHART_COLORS[0]} />
+                                <Bar dataKey="purchases" name="Purchases" fill={CHART_COLORS[1]} activeBar={false} />
+                                <Bar dataKey="returns" name="Returns" fill={CHART_COLORS[2]} activeBar={false} />
+                                <Bar dataKey="payments" name="Payments" fill={CHART_COLORS[0]} activeBar={false} />
                             </BarChart>
                         </ResponsiveContainer>
                     ) : <EmptyChart text="No purchases, returns, or payments yet." />}

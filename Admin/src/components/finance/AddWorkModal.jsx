@@ -8,6 +8,9 @@ import QuickAddPicker from './QuickAddPicker';
 import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import { useSupervisorConflictCheck } from './useSupervisorConflictCheck';
+import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const emptyForm = { workType: '', workOrderNumber: '', startDate: '', estimatedAreaSqft: '', status: 'active', notes: '' };
 const emptyAssignmentRow = () => ({ contractorVendorId: '', notes: '' });

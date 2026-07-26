@@ -8,7 +8,7 @@ import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import DocumentsTab from '../../components/finance/DocumentsTab';
 import { useFileDownload } from '../../hooks/useFileDownload';
 import DownloadButton from '../../components/finance/DownloadButton';
-import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
+import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, ChartTooltip, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -55,8 +55,8 @@ const ClientDashboardSummary = ({ url, clientId }) => {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                 <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
                                 <YAxis tick={{ fontSize: 11 }} />
-                                <Tooltip formatter={(v) => formatINR(v)} />
-                                <Bar dataKey="amount" name="Outstanding" radius={[4, 4, 0, 0]}>
+                                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
+                                <Bar dataKey="amount" name="Outstanding" radius={[4, 4, 0, 0]} activeBar={false}>
                                     {agingData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                                 </Bar>
                             </BarChart>

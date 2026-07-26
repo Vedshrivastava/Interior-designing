@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
+import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ChartTooltip, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
 import StyledDatePicker from '../../components/finance/StyledDatePicker';
 import StyledMonthPicker from '../../components/finance/StyledMonthPicker';
 import ToggleSwitch from '../../components/finance/ToggleSwitch';
@@ -72,9 +72,12 @@ const WorkDetail = ({ url }) => {
     // Measurements, reviews, and client direct payments against this Work
     // can all be recorded from other pages (Site Operations, Payables) —
     // silently refresh in the background rather than requiring a reload.
+    // Purchases/stock also belong here: material cost, the Daily Cost/Sqft
+    // chart, and Project Material Stock all key off the weighted-average
+    // rate a new purchase/return/dump immediately changes.
     useFinanceWsRefresh([
         'financeMeasurementsChanged', 'financeLabourMeasurementsChanged', 'financeWorksChanged',
-        'financeWorkReviewChanged', 'clientDirectPaymentsChanged',
+        'financeWorkReviewChanged', 'clientDirectPaymentsChanged', 'financePurchasesChanged', 'financeStockChanged',
     ], fetchData);
 
     // Same sumPositive-per-row pattern ProjectDetail.jsx's own Payables row
@@ -350,7 +353,7 @@ const WorkDetail = ({ url }) => {
                                     <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                     <XAxis dataKey="date" tick={{ fontSize: 9 }} />
                                     <YAxis tick={{ fontSize: 11 }} />
-                                    <Tooltip formatter={(v) => formatINR(v)} />
+                                    <Tooltip content={<ChartTooltip />} />
                                     <Line type="monotone" dataKey="costPerSqft" name="Cost/Sqft" stroke={CHART_COLORS[0]} strokeWidth={2} dot={{ r: 3 }} />
                                 </LineChart>
                             </ResponsiveContainer>

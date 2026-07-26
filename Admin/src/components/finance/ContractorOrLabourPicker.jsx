@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AddContractorModal from './AddContractorModal';
+import StyledSelect from './StyledSelect';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 /*
  * Drop-in picker wherever a Work's contractor assignment or a Contractor
@@ -28,10 +32,12 @@ const ContractorOrLabourPicker = ({ url, value, onChange, placeholder }) => {
     return (
         <>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <select value={value} onChange={e => onChange(e.target.value)} style={{ flex: 1 }}>
-                    <option value="">{placeholder || 'Select contractor…'}</option>
-                    {contractors.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </select>
+                <div style={{ flex: 1 }}>
+                    <StyledSelect
+                        value={value} onChange={onChange} placeholder={placeholder || 'Select contractor…'}
+                        options={contractors.map(c => ({ value: c._id, label: c.name }))}
+                    />
+                </div>
                 <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={() => setModalOpen(true)}>+ Add New</button>
             </div>
 

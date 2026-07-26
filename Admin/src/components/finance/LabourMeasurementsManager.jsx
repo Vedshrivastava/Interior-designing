@@ -6,6 +6,8 @@ import StyledDatePicker from './StyledDatePicker';
 import StyledSelect from './StyledSelect';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const emptyForm = { workId: '', labourerId: '', date: '', areaCoveredSqft: '', remarks: '' };
 

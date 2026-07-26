@@ -12,6 +12,8 @@ import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import PersonDocumentsView from '../../components/finance/PersonDocumentsView';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
+import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 /* Every tab except Directory operates on one picked employee — the
    supervisor-only tabs below only make sense for a financeEmployee whose

@@ -339,7 +339,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                         {loadingAvailable ? (
                             <div className="admin-empty-state" style={{ margin: '16px 0' }}><p>Loading available work…</p></div>
                         ) : !available || available.length === 0 ? (
-                            <div className="admin-empty-state" style={{ margin: '16px 0' }}><p>Nothing logged and unapproved for this project right now.</p></div>
+                            <div className="admin-empty-state" style={{ margin: '16px 0' }}><p>Nothing reviewed and ready to bill for this project right now — review logged work first (Payables/Receivables → Work Review).</p></div>
                         ) : (
                             <div className="list-table finance-table" style={{ margin: '16px 0' }}>
                                 <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.9fr 0.9fr 0.7fr 1fr' }}>

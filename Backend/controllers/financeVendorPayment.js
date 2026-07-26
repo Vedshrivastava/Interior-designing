@@ -51,25 +51,26 @@ const uploadAttachment = async (file) => {
 // bankAccountId means cash — a financeCashEntry is auto-created below.
 const addVendorPayment = async (req, res) => {
     try {
-        const { vendorId, projectId, purchaseId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
+        const { vendorId, projectId, purchaseId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes, tdsSectionId, tdsAmount, isRefund } = req.body;
         if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
         const attachmentUrl = await uploadAttachment(req.file);
+        const refund = isRefund === true || isRefund === 'true';
 
         const item = new FinanceVendorPayment({
             vendorId, projectId: projectId || null, purchaseId: purchaseId || null, amount: Number(amount), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null, utrNumber: utrNumber || '',
-            attachmentUrl, notes: notes || '',
+            attachmentUrl, notes: notes || '', isRefund: refund,
             tdsSectionId: tdsSectionId || null, tdsAmount: (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null,
         });
         await item.save();
 
         if (!bankAccountId) {
             await FinanceCashEntry.create({
-                date, type: 'out', amount: Number(amount), projectId: projectId || null,
-                reason: 'Vendor payment', relatedVendorPaymentId: item._id, notes: notes || '',
+                date, type: refund ? 'in' : 'out', amount: Number(amount), projectId: projectId || null,
+                reason: refund ? 'Vendor refund received' : 'Vendor payment', relatedVendorPaymentId: item._id, notes: notes || '',
             });
             broadcast({ type: 'financeCashBookChanged' });
         } else {
@@ -80,16 +81,18 @@ const addVendorPayment = async (req, res) => {
 
         const vendor = await FinanceVendor.findById(vendorId).select('name');
         await logActivity({
-            eventType: 'vendor_paid',
+            eventType: refund ? 'vendor_refund_received' : 'vendor_paid',
             entityType: 'financeVendorPayment',
             entityId: item._id,
             projectId: projectId || null,
-            summary: `₹${Number(amount)} paid to vendor ${vendor?.name || 'vendor'}`,
+            summary: refund
+                ? `₹${Number(amount)} refund received from vendor ${vendor?.name || 'vendor'}`
+                : `₹${Number(amount)} paid to vendor ${vendor?.name || 'vendor'}`,
             amount: Number(amount),
             req,
         });
 
-        res.json({ success: true, message: 'Payment recorded', data: item });
+        res.json({ success: true, message: refund ? 'Refund recorded' : 'Payment recorded', data: item });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error recording payment' });

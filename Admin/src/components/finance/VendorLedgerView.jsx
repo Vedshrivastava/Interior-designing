@@ -12,7 +12,7 @@ import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const emptyPaymentForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '' };
+const emptyPaymentForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '', isRefund: false };
 
 // Monthly purchases/returns/payments — derived from the ledger response
 // already fetched here, no separate endpoint needed.
@@ -117,14 +117,17 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
     return (
         <div>
             <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                    <b>Purchases</b><b>Returns</b><b>Payments</b><b>Amount Owed</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: totals.refunds > 0 ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)' }}>
+                    <b>Purchases</b><b>Returns</b><b>Payments</b>{totals.refunds > 0 && <b>Refunds Received</b>}<b>Amount Owed</b>
                 </div>
-                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                <div className="list-table-format row-item" style={{ gridTemplateColumns: totals.refunds > 0 ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)' }}>
                     <p>₹{totals.purchases.toLocaleString('en-IN')}</p>
                     <p>₹{totals.returns.toLocaleString('en-IN')}</p>
                     <p>₹{totals.payments.toLocaleString('en-IN')}</p>
-                    <p style={{ fontWeight: 700, color: totals.amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}>₹{totals.amountOwed.toLocaleString('en-IN')}</p>
+                    {totals.refunds > 0 && <p style={{ color: 'var(--moss)' }}>₹{totals.refunds.toLocaleString('en-IN')}</p>}
+                    <p style={{ fontWeight: 700, color: totals.amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}>
+                        {totals.amountOwed < 0 ? `Vendor owes us ₹${Math.abs(totals.amountOwed).toLocaleString('en-IN')}` : `₹${totals.amountOwed.toLocaleString('en-IN')}`}
+                    </p>
                 </div>
             </div>
 
@@ -191,12 +194,13 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                 <div className="admin-empty-state"><p>No payments yet.</p></div>
             ) : (
                 <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
-                        <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>TDS</b><b>Attachment</b><b>Action</b>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.9fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
+                        <b>Date</b><b>Type</b><b>Amount</b><b>Mode</b><b>Account</b><b>TDS</b><b>Attachment</b><b>Action</b>
                     </div>
                     {ledger.payments.map(p => (
-                        <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
+                        <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.9fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
                             <p>{new Date(p.date).toLocaleDateString()}</p>
+                            <p style={{ color: p.isRefund ? 'var(--moss)' : 'inherit', fontWeight: p.isRefund ? 600 : 400 }}>{p.isRefund ? 'Refund' : 'Payment'}</p>
                             <p>₹{p.amount.toLocaleString('en-IN')}</p>
                             <p>{p.paymentMode || '-'}</p>
                             <p>{p.bankAccountId?.accountName || 'Cash'}</p>
@@ -211,7 +215,11 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
             {paymentModalOpen && ReactDOM.createPortal(
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
                     <div className="loader-modal-box edit-modal">
-                        <h2>Add Payment</h2>
+                        <h2>{paymentForm.isRefund ? 'Add Refund' : 'Add Payment'}</h2>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0 16px', cursor: 'pointer' }}>
+                            <input type="checkbox" checked={paymentForm.isRefund} onChange={e => setPaymentForm(p => ({ ...p, isRefund: e.target.checked }))} />
+                            This is a refund — the vendor paid us back (not the company paying the vendor)
+                        </label>
                         <form onSubmit={submitPayment}>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
@@ -252,7 +260,7 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                             </div>
                             <div className="edit-modal-actions">
                                 <button type="button" className="add-btn cancel-btn" onClick={() => setPaymentModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : (paymentForm.isRefund ? 'Save Refund' : 'Save Payment')}</button>
                             </div>
                         </form>
                     </div>

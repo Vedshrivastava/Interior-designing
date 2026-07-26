@@ -254,29 +254,38 @@ const FinanceHome = ({ url }) => {
                     <KpiCard loading={phase1Loading} icon={faFileInvoiceDollar} label="Client Receivables" value={formatINR(summary?.clientReceivables)} onClick={() => navigate('/finance/clients')} tone={summary?.clientReceivables > 0 ? 'danger' : 'good'}
                         sub={summary?.clientCreditBalanceTotal > 0 ? `Client credit balance: ${formatINR(summary.clientCreditBalanceTotal)}` : undefined} />
                     <KpiCard loading={phase1Loading} icon={faCartShopping} label="Vendor Payables" value={formatINR(summary?.vendorPayables)}
-                        sub={summary?.vendorPayablesBreakdown && buildBreakdownSub([
-                            ['Purchased', summary.vendorPayablesBreakdown.purchases],
-                            ['Returned', summary.vendorPayablesBreakdown.returns, true],
-                            ['Paid', summary.vendorPayablesBreakdown.payments, true],
-                        ])}
+                        sub={[
+                            summary?.vendorPayablesBreakdown && buildBreakdownSub([
+                                ['Purchased', summary.vendorPayablesBreakdown.purchases],
+                                ['Returned', summary.vendorPayablesBreakdown.returns, true],
+                                ['Paid', summary.vendorPayablesBreakdown.payments, true],
+                            ]),
+                            summary?.vendorCreditTotal > 0 ? `Vendor(s) owe us: ${formatINR(summary.vendorCreditTotal)}` : null,
+                        ].filter(Boolean).join('  ') || undefined}
                         onClick={() => navigate('/finance/procurement')} tone={summary?.vendorPayables > 0 ? 'danger' : 'good'} />
                     <KpiCard loading={phase1Loading} icon={faHardHat} label="Contractor Payables" value={formatINR(summary?.contractorPayables)}
-                        sub={summary?.contractorPayablesBreakdown && buildBreakdownSub([
-                            ['Earned', summary.contractorPayablesBreakdown.earnings],
-                            ['Advances', summary.contractorPayablesBreakdown.advances, true],
-                            ['Deductions', summary.contractorPayablesBreakdown.deductions, true],
-                            ['Direct Pay', summary.contractorPayablesBreakdown.directPaymentTotal, true],
-                            ['Paid', summary.contractorPayablesBreakdown.payments, true],
-                        ])}
+                        sub={[
+                            summary?.contractorPayablesBreakdown && buildBreakdownSub([
+                                ['Earned', summary.contractorPayablesBreakdown.earnings],
+                                ['Advances', summary.contractorPayablesBreakdown.advances, true],
+                                ['Deductions', summary.contractorPayablesBreakdown.deductions, true],
+                                ['Direct Pay', summary.contractorPayablesBreakdown.directPaymentTotal, true],
+                                ['Paid', summary.contractorPayablesBreakdown.payments, true],
+                            ]),
+                            summary?.contractorCreditTotal > 0 ? `Contractor(s) owe us: ${formatINR(summary.contractorCreditTotal)}` : null,
+                        ].filter(Boolean).join('  ') || undefined}
                         onClick={() => navigate('/finance/contractors')} tone={summary?.contractorPayables > 0 ? 'danger' : 'good'} />
                     <KpiCard loading={phase1Loading} icon={faPersonDigging} label="Labour Payables" value={formatINR(summary?.labourPayables)}
-                        sub={summary?.labourPayablesBreakdown && buildBreakdownSub([
-                            ['Earned', summary.labourPayablesBreakdown.earnings],
-                            ['Advances', summary.labourPayablesBreakdown.advances, true],
-                            ['Deductions', summary.labourPayablesBreakdown.deductions, true],
-                            ['Direct Pay', summary.labourPayablesBreakdown.directPaymentTotal, true],
-                            ['Paid', summary.labourPayablesBreakdown.payments, true],
-                        ])}
+                        sub={[
+                            summary?.labourPayablesBreakdown && buildBreakdownSub([
+                                ['Earned', summary.labourPayablesBreakdown.earnings],
+                                ['Advances', summary.labourPayablesBreakdown.advances, true],
+                                ['Deductions', summary.labourPayablesBreakdown.deductions, true],
+                                ['Direct Pay', summary.labourPayablesBreakdown.directPaymentTotal, true],
+                                ['Paid', summary.labourPayablesBreakdown.payments, true],
+                            ]),
+                            summary?.labourCreditTotal > 0 ? `Labourer(s) owe us: ${formatINR(summary.labourCreditTotal)}` : null,
+                        ].filter(Boolean).join('  ') || undefined}
                         onClick={() => navigate('/finance/daily-labour')} tone={summary?.labourPayables > 0 ? 'danger' : 'good'} />
                     <KpiCard loading={phase1Loading} icon={faHandHoldingDollar} label="Commission Payables" value={formatINR(summary?.commissionPayables)}
                         sub={summary?.commissionPayablesBreakdown && buildBreakdownSub([

@@ -61,7 +61,10 @@ const getAccountActivity = async (accountId) => {
         // withheld portion is owed to the tax authority instead (see
         // controllers/financeContractorPayment.js's identical reasoning).
         ...contractorPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: 'Contractor payment', sourceType: 'contractorPayment', sourceId: p._id })),
-        ...vendorPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: 'Vendor payment', sourceType: 'vendorPayment', sourceId: p._id })),
+        // A refund (isRefund: true) is the vendor paying money INTO this
+        // account, not the company paying out — same record shape, just
+        // the opposite direction.
+        ...vendorPayments.map(p => ({ date: p.date, amount: netOut(p), direction: p.isRefund ? 'credit' : 'debit', description: p.isRefund ? 'Vendor refund' : 'Vendor payment', sourceType: 'vendorPayment', sourceId: p._id })),
         ...salaryPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: 'Salary payment', sourceType: 'salaryPayment', sourceId: p._id })),
         ...labourPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: 'Labour payment', sourceType: 'labourPayment', sourceId: p._id })),
         ...commissionPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: 'Commission payment', sourceType: 'commissionPayment', sourceId: p._id })),

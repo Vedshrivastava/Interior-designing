@@ -34,8 +34,13 @@ const getVendorLedger = async (req, res) => {
 
         const purchaseTotal = purchases.filter(p => p.transactionType === 'purchase').reduce((sum, p) => sum + p.totalAmount, 0);
         const returnTotal = purchases.filter(p => p.transactionType === 'return').reduce((sum, p) => sum + p.totalAmount, 0);
-        const paymentsTotal = payments.reduce((sum, p) => sum + p.amount, 0);
-        const amountOwed = purchaseTotal - returnTotal - paymentsTotal;
+        // A refund (isRefund: true) is the vendor paying the company back,
+        // not the other way round — nets against paymentsTotal instead of
+        // piling onto it, so Amount Owed correctly moves back toward 0 (or
+        // positive) as a credit gets settled instead of going more negative.
+        const paymentsTotal = payments.filter(p => !p.isRefund).reduce((sum, p) => sum + p.amount, 0);
+        const refundsTotal = payments.filter(p => p.isRefund).reduce((sum, p) => sum + p.amount, 0);
+        const amountOwed = purchaseTotal - returnTotal - paymentsTotal + refundsTotal;
 
         res.json({
             success: true,
@@ -44,7 +49,7 @@ const getVendorLedger = async (req, res) => {
                 purchases: purchases.filter(p => p.transactionType === 'purchase'),
                 returns: purchases.filter(p => p.transactionType === 'return'),
                 payments,
-                totals: { purchases: purchaseTotal, returns: returnTotal, payments: paymentsTotal, amountOwed },
+                totals: { purchases: purchaseTotal, returns: returnTotal, payments: paymentsTotal, refunds: refundsTotal, amountOwed },
             },
         });
     } catch (err) {

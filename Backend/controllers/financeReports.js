@@ -2227,26 +2227,25 @@ const computeVendorAnalysisRows = async (projectId) => {
         const purchaseTotal = scopedPurchases.filter(p => p.transactionType === 'purchase').reduce((s, p) => s + p.totalAmount, 0);
         const returnTotal = scopedPurchases.filter(p => p.transactionType === 'return').reduce((s, p) => s + p.totalAmount, 0);
 
-        let paymentsTotal;
-        if (projectId) {
-            // A general payment isn't earmarked to any one project, so it's
-            // allocated across every project this vendor supplies in
-            // proportion to that project's own share of this vendor's total
-            // purchase volume — deterministic, and by construction the sum
-            // of every project's own amountOwed (if you added them all up)
-            // always equals this vendor's true company-wide balance, same
-            // as the unscoped call below.
-            const taggedForProject = payments.filter(p => p.projectId?.toString() === projectId).reduce((s, p) => s + p.amount, 0);
-            const generalPayments = payments.filter(p => !p.projectId).reduce((s, p) => s + p.amount, 0);
+        // A refund (isRefund: true) is the vendor paying the company back,
+        // not the other way round — allocated across projects the same way
+        // a normal payment is, then netted against it below instead of
+        // piling onto it, so Amount Owed correctly moves back toward 0 as a
+        // credit gets settled instead of going more negative.
+        const allocateMoney = (rows) => {
+            if (!rows.length) return 0;
+            if (!projectId) return rows.reduce((s, p) => s + p.amount, 0);
+            const taggedForProject = rows.filter(p => p.projectId?.toString() === projectId).reduce((s, p) => s + p.amount, 0);
+            const generalRows = rows.filter(p => !p.projectId).reduce((s, p) => s + p.amount, 0);
             const totalPurchaseAllProjects = purchases.filter(p => p.transactionType === 'purchase').reduce((s, p) => s + p.totalAmount, 0);
             const share = totalPurchaseAllProjects > 0 ? purchaseTotal / totalPurchaseAllProjects : 0;
-            paymentsTotal = round2(taggedForProject + generalPayments * share);
-        } else {
-            paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
-        }
-        const amountOwed = round2(purchaseTotal - returnTotal - paymentsTotal);
+            return round2(taggedForProject + generalRows * share);
+        };
+        const paymentsTotal = allocateMoney(payments.filter(p => !p.isRefund));
+        const refundsTotal = allocateMoney(payments.filter(p => p.isRefund));
+        const amountOwed = round2(purchaseTotal - returnTotal - paymentsTotal + refundsTotal);
 
-        return { vendorId: v._id, vendorName: v.name, purchases: purchaseTotal, returns: returnTotal, payments: paymentsTotal, amountOwed };
+        return { vendorId: v._id, vendorName: v.name, purchases: purchaseTotal, returns: returnTotal, payments: paymentsTotal, refunds: refundsTotal, amountOwed };
     }));
 };
 
@@ -2582,10 +2581,18 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
     // actually carried a withholding).
     const netOut = (p) => p.amount - (p.tdsAmount || 0);
 
-    const totalIn = receipts.reduce((s, r) => s + r.amount, 0);
+    // A vendor payment with isRefund: true is cash coming IN (the vendor
+    // paying the company back), not out — split out before it's treated
+    // as an outflow like every other vendor payment. See
+    // financeBankAccount.js's getAccountActivity, same distinction.
+    const vendorRefunds = vendorPayments.filter(p => p.isRefund);
+    const vendorOutPayments = vendorPayments.filter(p => !p.isRefund);
+    const vendorRefundsTotal = vendorRefunds.reduce((s, p) => s + netOut(p), 0);
+
+    const totalIn = receipts.reduce((s, r) => s + r.amount, 0) + vendorRefundsTotal;
     const outByCategory = {
         contractor: contractorPayments.reduce((s, p) => s + netOut(p), 0),
-        vendor: vendorPayments.reduce((s, p) => s + netOut(p), 0),
+        vendor: vendorOutPayments.reduce((s, p) => s + netOut(p), 0),
         salary: salaryPayments.reduce((s, p) => s + netOut(p), 0),
         labour: labourPayments.reduce((s, p) => s + netOut(p), 0),
         commission: commissionPayments.reduce((s, p) => s + netOut(p), 0),
@@ -2601,7 +2608,8 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         series.get(key)[field] += amount;
     };
     receipts.forEach(r => bump(r.receiptDate, 'in', r.amount));
-    [...contractorPayments, ...vendorPayments, ...salaryPayments, ...labourPayments, ...commissionPayments, ...labourProviderPayments].forEach(p => bump(p.date, 'out', netOut(p)));
+    vendorRefunds.forEach(p => bump(p.date, 'in', netOut(p)));
+    [...contractorPayments, ...vendorOutPayments, ...salaryPayments, ...labourPayments, ...commissionPayments, ...labourProviderPayments].forEach(p => bump(p.date, 'out', netOut(p)));
     expenses.forEach(p => bump(p.date, 'out', p.amount));
 
     const seriesArr = [...series.values()]
@@ -2611,7 +2619,8 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
     return {
         totals: { in: totalIn, out: totalOut, net: totalIn - totalOut },
         byCategory: [
-            { category: 'receipt', direction: 'in', amount: totalIn },
+            { category: 'receipt', direction: 'in', amount: receipts.reduce((s, r) => s + r.amount, 0) },
+            ...(vendorRefundsTotal > 0 ? [{ category: 'vendorRefund', direction: 'in', amount: vendorRefundsTotal }] : []),
             ...Object.entries(outByCategory).map(([category, amount]) => ({ category, direction: 'out', amount })),
         ],
         series: seriesArr,
@@ -3591,6 +3600,19 @@ const getDashboardSummary = async (req, res) => {
             - approvedBreakdown.unapprovedLabourTotal
             - commissionBreakdown.unapprovedCommissionTotal);
 
+        // BUG FIX: vendorPayables/contractorPayables/labourPayables used to
+        // be a naive sum of every row's own balance/amountOwed — a vendor
+        // (or contractor/labourer) who's been overpaid or over-returned-on
+        // goes negative (they owe the company back, not the other way
+        // round), and a naive sum lets that credit silently cancel out a
+        // DIFFERENT party's real, separate debt in the same company-wide
+        // total. Same reasoning already applied to Client Credit Balance,
+        // ProjectDetail.jsx's own Payables row, and computeClientsSummaryRows
+        // — clamp each row at 0 before summing the payable side, and surface
+        // the credit side as its own total instead of netting it away.
+        const sumPositive = (rows, key) => round2(rows.reduce((s, r) => s + Math.max(0, r[key]), 0));
+        const sumNegative = (rows, key) => round2(rows.reduce((s, r) => s + Math.max(0, -r[key]), 0));
+
         res.json({
             success: true,
             data: {
@@ -3603,7 +3625,11 @@ const getDashboardSummary = async (req, res) => {
                 // silent reason a project's Outstanding reads lower than
                 // expected. See summarizeProject's own comment.
                 clientCreditBalanceTotal: round2(receivableSummaries.reduce((s, r) => s + r.clientCreditBalance, 0)),
-                vendorPayables: vendorRows.reduce((s, r) => s + r.amountOwed, 0),
+                vendorPayables: sumPositive(vendorRows, 'amountOwed'),
+                // A vendor who's been overpaid or over-returned-on owes the
+                // company back — never blended into vendorPayables above
+                // (see this function's own comment on why).
+                vendorCreditTotal: sumNegative(vendorRows, 'amountOwed'),
                 // Every Payables KPI below pairs its headline balance with
                 // the actual terms that produce it — a bare total gives no
                 // sense of whether it's driven by fresh purchases/earnings or
@@ -3613,7 +3639,8 @@ const getDashboardSummary = async (req, res) => {
                     returns: round2(vendorRows.reduce((s, r) => s + r.returns, 0)),
                     payments: round2(vendorRows.reduce((s, r) => s + r.payments, 0)),
                 },
-                contractorPayables: contractorRows.reduce((s, r) => s + r.balancePayable, 0),
+                contractorPayables: sumPositive(contractorRows, 'balancePayable'),
+                contractorCreditTotal: sumNegative(contractorRows, 'balancePayable'),
                 contractorPayablesBreakdown: {
                     earnings: round2(contractorRows.reduce((s, r) => s + r.earnings, 0)),
                     advances: round2(contractorRows.reduce((s, r) => s + r.advances, 0)),
@@ -3621,7 +3648,8 @@ const getDashboardSummary = async (req, res) => {
                     directPaymentTotal: round2(contractorRows.reduce((s, r) => s + (r.directPaymentTotal || 0), 0)),
                     payments: round2(contractorRows.reduce((s, r) => s + r.payments, 0)),
                 },
-                labourPayables: round2(labourRows.reduce((s, r) => s + r.balancePayable, 0)),
+                labourPayables: sumPositive(labourRows, 'balancePayable'),
+                labourCreditTotal: sumNegative(labourRows, 'balancePayable'),
                 labourPayablesBreakdown: {
                     earnings: round2(labourRows.reduce((s, r) => s + r.earnings, 0)),
                     advances: round2(labourRows.reduce((s, r) => s + r.advances, 0)),

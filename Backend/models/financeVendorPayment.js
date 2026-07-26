@@ -10,6 +10,14 @@ const financeVendorPaymentSchema = new mongoose.Schema({
     amount: { type: Number, required: true },
     date:   { type: Date, required: true },
 
+    // True means cash flowed the OTHER way — the vendor paid the company
+    // back (e.g. they'd been overpaid, or owe more in returns than they've
+    // been purchased against), not the company paying the vendor. Same
+    // record shape either way; every reader of this model (ledger balance,
+    // bank account activity, cash flow) nets a refund against payments
+    // instead of piling it on top.
+    isRefund: { type: Boolean, default: false },
+
     paymentMode:     { type: String, default: '' },
     // bankOrCashLabel is kept for backward compatibility with records
     // created before Bank existed — new records set bankAccountId instead

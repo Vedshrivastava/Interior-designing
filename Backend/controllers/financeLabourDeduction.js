@@ -123,4 +123,4 @@ const removeLabourDeduction = async (req, res) => {
     }
 };
 
-export { listLabourDeductions, addLabourDeduction, removeLabourDeduction };
+export { listLabourDeductions, addLabourDeduction, removeLabourDeduction, resolveLabourDeductionAmount };

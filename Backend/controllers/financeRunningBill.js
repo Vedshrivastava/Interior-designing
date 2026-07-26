@@ -583,17 +583,31 @@ const downloadBillStatement = async (req, res) => {
         doc.fillColor('#000000').font('Helvetica').fontSize(10);
         doc.y = bannerY + bannerH + 10;
 
-        // Informational only — deliberately not folded into the Payment
-        // Due/Fully Settled banner above (that banner is this bill's own
-        // balance; a direct payment is tied to a Work, not to any one
-        // bill, so it can't honestly be attributed to just this one — see
-        // computeBillStatement's own comment). Still worth telling the
-        // client about here, so they're not left wondering why their real
-        // running balance across every bill on this project is lower than
-        // this bill's numbers alone would suggest.
+        // The Payment Due banner above is deliberately this bill's own gross
+        // balance, unnetted — a direct payment is tied to a Work, not to
+        // any one bill, so it can't be permanently baked into that number
+        // (see computeBillStatement's own comment: one Work's sqft can span
+        // several bills over time). But a client reading a PDF shouldn't
+        // have to do that subtraction themselves from a footnote — this
+        // second banner shows what they'd actually transfer today, capped
+        // at 0 (a credit bigger than this bill's own balance never implies
+        // *we* owe *them* on this specific document).
         if (data.directPaymentCredits > 0) {
+            const netPayable = Math.max(0, data.outstandingBalance - data.directPaymentCredits);
+            if (positiveBalance) {
+                const netBannerY = doc.y;
+                const netBannerH = 38;
+                doc.rect(left, netBannerY, width, netBannerH).fill(theme.bannerBg);
+                doc.rect(left, netBannerY, 4, netBannerH).fill(theme.accent);
+                doc.fillColor(theme.bannerLabel).font('Helvetica').fontSize(11.5)
+                    .text(`Net Payable (after deducting ${formatCurrency(data.directPaymentCredits)} of indirect payment paid to workers)`, left + 18, netBannerY + (netBannerH / 2) - 6, { width: width - 32 });
+                doc.font('Helvetica-Bold').fontSize(14).fillColor(theme.primary)
+                    .text(formatCurrency(netPayable), left + 18, netBannerY + (netBannerH / 2) - 7, { width: width - 32, align: 'right' });
+                doc.fillColor('#000000').font('Helvetica').fontSize(10);
+                doc.y = netBannerY + netBannerH + 10;
+            }
             doc.fontSize(9).fillColor('#555555').text(
-                `Note: In addition to the payments above, ${formatCurrency(data.directPaymentCredits)} has been paid directly by you to contractors/labourers on this project and is already credited toward your total outstanding balance across all bills for this project.`,
+                `Note: You've already paid ${formatCurrency(data.directPaymentCredits)} directly to contractors/labourers working on this project — that amount is treated as already settled toward what you owe us, so it's already reflected in the Net Payable above.`,
                 left, doc.y, { width }
             );
             doc.fillColor('#000000').fontSize(10);

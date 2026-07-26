@@ -6,7 +6,6 @@ import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import ExpensesManager from '../../components/finance/ExpensesManager';
 import ExpenseAnalysisView from '../../components/finance/ExpenseAnalysisView';
-import WorkDeductionAllocationPanel from '../../components/finance/WorkDeductionAllocationPanel';
 import ClientDirectPaymentsManager from '../../components/finance/ClientDirectPaymentsManager';
 import '../../styles/list.css';
 
@@ -40,7 +39,6 @@ const TABS = [
     { key: 'salary',           label: 'Salary' },
     { key: 'commission',       label: 'Commission' },
     { key: 'labourProvider',   label: 'Labour Provider' },
-    { key: 'deductions',       label: 'Deductions' },
     { key: 'client-direct-payments', label: 'Client Direct Payments' },
     { key: 'expenses',         label: 'Expenses' },
     { key: 'expense-analysis', label: 'Expense Analysis' },
@@ -102,17 +100,22 @@ const PayablesContractorTab = ({ url }) => {
 
     return (
         <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.9fr' }}>
-                <b>Contractor</b><b>Total</b><b>Approved</b><b>Unapproved</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>Balance Payable</b>
+            <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.8fr 0.7fr 0.9fr' }}>
+                <b>Contractor</b><b>Total</b><b>Approved</b><b>Unapproved</b><b>Advances</b><b>Deductions</b><b>Direct Pay</b><b>Payments</b><b>Balance Payable</b>
             </div>
             {rows.map(r => (
-                <div key={r.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.9fr' }}>
+                <div key={r.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.1fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.8fr 0.7fr 0.9fr' }}>
                     <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/contractors')}>{r.vendorName}</p>
                     <p>₹{r.totalAmount.toLocaleString('en-IN')}</p>
                     <p style={{ color: r.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{r.earnings > 0 ? `₹${r.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
                     <p style={{ color: r.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>₹{r.unapprovedAmount.toLocaleString('en-IN')}</p>
                     <p>₹{r.advances.toLocaleString('en-IN')}</p>
                     <p>₹{r.deductions.toLocaleString('en-IN')}</p>
+                    {/* Client-paid-directly amounts (Payables → Client Direct
+                        Payments) — an advance against this contractor's own
+                        Balance Payable, not netted against Unapproved/Approved.
+                        See financeClientDirectPayment.js's getWorkerPayoutTotal. */}
+                    <p>₹{(r.directPaymentTotal || 0).toLocaleString('en-IN')}</p>
                     <p>₹{r.payments.toLocaleString('en-IN')}</p>
                     <p style={{ fontWeight: 600, color: r.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{r.balancePayable.toLocaleString('en-IN')}</p>
                 </div>
@@ -395,7 +398,6 @@ const PayablesPage = ({ url }) => {
             {activeTab === 'salary' && <PayablesSalaryTab url={url} />}
             {activeTab === 'commission' && <PayablesCommissionTab url={url} />}
             {activeTab === 'labourProvider' && <PayablesLabourProviderTab url={url} />}
-            {activeTab === 'deductions' && <WorkDeductionAllocationPanel url={url} />}
             {activeTab === 'client-direct-payments' && <ClientDirectPaymentsManager url={url} />}
             {activeTab === 'expenses' && <ExpensesManager url={url} highlightId={searchParams.get('expenseId')} defaultStatusFilter={searchParams.get('status')} />}
             {activeTab === 'expense-analysis' && <ExpenseAnalysisView url={url} />}

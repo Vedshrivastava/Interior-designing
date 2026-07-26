@@ -4,7 +4,7 @@ import FinanceProject from '../models/financeProject.js';
 import FinanceLabourMeasurement from '../models/financeLabourMeasurement.js';
 import FinanceWorkLabourAssignment from '../models/financeWorkLabourAssignment.js';
 import FinanceLabourProviderPayment from '../models/financeLabourProviderPayment.js';
-import { getApprovedBillingByWorkId, splitApprovedAreaByShare } from './financeReports.js';
+import { getCategoryApprovedAreaByWorkId, splitApprovedAreaByShare } from './financeReports.js';
 import { assertLabourProviderVendor } from '../utils/contractorVendor.js';
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -48,12 +48,17 @@ const computeLabourProviderLedger = async (labourProviderId, projectId) => {
     const projects = projectIds.length ? await FinanceProject.find({ _id: { $in: projectIds } }) : [];
     const projectNameById = new Map(projects.map(p => [p._id.toString(), p.name]));
 
-    const [allMeasurements, approvedBillingByWorkId] = await Promise.all([
+    const [allMeasurements, categoryApprovedByWorkId] = await Promise.all([
         // Every labourer's measurements on these works (not just ours) —
         // needed as the proportional-split denominator, same reason
         // computeLabourLedger fetches allLabourerMeasurements.
         workIds.length ? FinanceLabourMeasurement.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId labourerId areaCoveredSqft') : [],
-        workIds.length ? getApprovedBillingByWorkId(workIds) : new Map(),
+        // Labour's own share of each work's combined approved ceiling — see
+        // getCategoryApprovedAreaByWorkId's comment (a work's review
+        // approves contractor + labour sqft together, so the labour side
+        // can't just be handed the raw combined figure without
+        // double-counting against contractor's own share).
+        workIds.length ? getCategoryApprovedAreaByWorkId(workIds) : new Map(),
     ]);
 
     const totalAreaByWork = new Map(); // workId -> every labourer's combined area
@@ -72,12 +77,16 @@ const computeLabourProviderLedger = async (labourProviderId, projectId) => {
     for (const w of works) {
         const wKey = w._id.toString();
         const allLabourersArea = totalAreaByWork.get(wKey) || 0;
-        const workApproved = approvedBillingByWorkId.get(wKey) || { areaSqft: 0, date: null };
+        const workApproved = categoryApprovedByWorkId.get(wKey) || { labourApprovedAreaSqft: 0, labourRejectedAreaSqft: 0, date: null };
         for (const labourer of labourers) {
             const area = areaByWorkAndLabourer.get(`${wKey}_${labourer._id}`);
             if (!area) continue;
-            const approvedArea = splitApprovedAreaByShare(workApproved.areaSqft, area, allLabourersArea);
-            const unapprovedArea = round2(area - approvedArea);
+            const approvedArea = splitApprovedAreaByShare(workApproved.labourApprovedAreaSqft, area, allLabourersArea);
+            // A rejection is final, already-reviewed — this labourer's own
+            // share of it must not sit in Unapproved forever. See
+            // getCategoryApprovedAreaByWorkId's header comment.
+            const rejectedArea = splitApprovedAreaByShare(workApproved.labourRejectedAreaSqft || 0, area, allLabourersArea);
+            const unapprovedArea = round2(Math.max(0, area - approvedArea - rejectedArea));
             const rate = labourer.labourProviderRatePerSqft || 0;
             const rowApprovedPay = round2(approvedArea * rate);
             const rowPendingPay = round2(unapprovedArea * rate);

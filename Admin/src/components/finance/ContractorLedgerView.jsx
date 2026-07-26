@@ -237,23 +237,28 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
             </div>
 
             <div className="list-table finance-table" style={{ marginBottom: '8px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
-                    <b>Total (All Logged)</b><b>Approved (Reviewed)</b><b>Payment Left (Unapproved)</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>{totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(8, 1fr)' }}>
+                    <b>Total (All Logged)</b><b>Approved (Reviewed)</b><b>Unapproved</b><b>Advances</b><b>Deductions</b><b>Direct Payments</b><b>Payments</b><b>{totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}</b>
                 </div>
-                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
+                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(8, 1fr)' }}>
                     <p>₹{totals.totalAmount.toLocaleString('en-IN')}</p>
                     <p style={{ color: totals.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{totals.earnings > 0 ? `₹${totals.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
-                    <p style={{ color: totals.paymentLeftUnapproved > 0 ? '#c0392b' : 'var(--text-lt)' }}>₹{totals.paymentLeftUnapproved.toLocaleString('en-IN')}</p>
+                    <p style={{ color: totals.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>₹{totals.unapprovedAmount.toLocaleString('en-IN')}</p>
                     <p>₹{totals.advances.toLocaleString('en-IN')}</p>
                     <p>₹{totals.deductions.toLocaleString('en-IN')}</p>
+                    <p>₹{totals.directPaymentTotal.toLocaleString('en-IN')}</p>
                     <p>₹{totals.payments.toLocaleString('en-IN')}</p>
                     <p style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</p>
                 </div>
             </div>
-            {totals.paymentLeftUnapproved > 0 && (
+            {totals.unapprovedAmount > 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
-                    ₹{totals.paymentLeftUnapproved.toLocaleString('en-IN')} worth of measured work hasn't been reviewed yet; it isn't counted as Approved earnings until it's reviewed (Payables/Receivables → Deductions).
-                    {totals.directPaymentUnapproved > 0 && ` Already net of ₹${totals.directPaymentUnapproved.toLocaleString('en-IN')} paid directly by the client.`}
+                    ₹{totals.unapprovedAmount.toLocaleString('en-IN')} worth of measured work hasn't been reviewed yet (or is still awaiting rejected-sqft attribution); it isn't counted as Approved earnings until that's resolved (Payables/Receivables → Deductions).
+                </p>
+            )}
+            {totals.directPaymentTotal > 0 && (
+                <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
+                    ₹{totals.directPaymentTotal.toLocaleString('en-IN')} paid directly by the client to this contractor (an advance, not tied to specific sqft) — already subtracted from Balance Payable above.
                 </p>
             )}
             {totals.balancePayable < 0 && (
@@ -291,7 +296,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                     <h3 style={{ marginBottom: '8px' }}>Works & Earnings</h3>
                     <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.9fr 1fr 0.9fr 1.1fr 0.9fr 1fr' }}>
-                            <b>Project</b><b>Work Type</b><b>Area Done</b><b>Total</b><b>Approved (as of)</b><b>Payment Left (Unapproved)</b><b>Material Cost/Sqft</b>
+                            <b>Project</b><b>Work Type</b><b>Area Done</b><b>Total</b><b>Approved (as of)</b><b>Unapproved</b><b>Material Cost/Sqft</b>
                         </div>
                         {ledger.works.length === 0 ? (
                             <div className="admin-empty-state"><p>No works for this contractor yet.</p></div>
@@ -310,13 +315,8 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                             ? <>₹{w.earnings.toLocaleString('en-IN')} <span style={{ fontWeight: 400, fontSize: '0.75rem' }}>({w.approvedAreaSqft} sqft{w.approvedDate ? `, ${new Date(w.approvedDate).toLocaleDateString()}` : ''})</span></>
                                             : 'Unapproved'}
                                     </p>
-                                    <p style={{ color: w.paymentLeftUnapproved > 0 ? '#c0392b' : 'var(--text-lt)' }}>
-                                        {w.rate ? `₹${w.paymentLeftUnapproved.toLocaleString('en-IN')}` : '-'}
-                                        {w.directPaymentTotal > 0 && (
-                                            <span style={{ fontWeight: 400, fontSize: '0.75rem', display: 'block' }} title="Client direct payment applied against this work">
-                                                (₹{w.directPaymentTotal.toLocaleString('en-IN')} paid directly)
-                                            </span>
-                                        )}
+                                    <p style={{ color: w.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>
+                                        {w.rate ? `₹${w.unapprovedAmount.toLocaleString('en-IN')}` : '-'}
                                     </p>
                                     <p>{w.materialCostPerSqft != null ? `₹${w.materialCostPerSqft.toFixed(2)}` : '—'}</p>
                                 </div>

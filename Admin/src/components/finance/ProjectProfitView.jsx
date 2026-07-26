@@ -109,7 +109,7 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                         <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                             <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
                             <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                                <b>Area</b><b>Contractor Payment Left</b><b>Labour Payment Left</b><b>Commission</b><b>Revenue</b><b>Profit</b>
+                                <b>Area</b><b>Contractor Unapproved</b><b>Labour Unapproved</b><b>Commission</b><b>Revenue</b><b>Profit</b>
                             </div>
                             <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
                                 <p>{data.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
@@ -120,7 +120,7 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                                 <p style={{ color: data.unapprovedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>₹{data.unapprovedProfit.toLocaleString('en-IN')}</p>
                             </div>
                             <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
-                                Logged work whose cost isn't counted in Profit yet — Contractor/Labour Payment Left is already net of client direct payments.
+                                Logged work whose cost isn't counted in Profit yet.
                             </p>
                             <p className="admin-subtitle" style={{ padding: '0 20px 16px', fontWeight: 600, color: data.totalProjectedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>
                                 Total Projected Profit (Approved + Unapproved): ₹{data.totalProjectedProfit.toLocaleString('en-IN')}
@@ -128,28 +128,26 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                         </div>
                     )}
 
-                    {(data.directPaymentContractorUnapproved > 0 || data.directPaymentLabourUnapproved > 0 || data.directPaymentContractorApproved > 0 || data.directPaymentLabourApproved > 0) && (
+                    {(data.directPaymentContractorTotal > 0 || data.directPaymentLabourTotal > 0) && (
                         <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                             <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Direct Payments (Client → Workers)</b></div>
-                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
-                                <b>Party</b><b>Applied to Unapproved</b><b>Applied to Approved</b>
+                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                                <b>Party</b><b>Total</b>
                             </div>
-                            {data.directPaymentContractorUnapproved + data.directPaymentContractorApproved > 0 && (
-                                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                            {data.directPaymentContractorTotal > 0 && (
+                                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
                                     <p>Contractor</p>
-                                    <p>₹{data.directPaymentContractorUnapproved.toLocaleString('en-IN')}</p>
-                                    <p>₹{data.directPaymentContractorApproved.toLocaleString('en-IN')}</p>
+                                    <p>₹{data.directPaymentContractorTotal.toLocaleString('en-IN')}</p>
                                 </div>
                             )}
-                            {data.directPaymentLabourUnapproved + data.directPaymentLabourApproved > 0 && (
-                                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                            {data.directPaymentLabourTotal > 0 && (
+                                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
                                     <p>Labour</p>
-                                    <p>₹{data.directPaymentLabourUnapproved.toLocaleString('en-IN')}</p>
-                                    <p>₹{data.directPaymentLabourApproved.toLocaleString('en-IN')}</p>
+                                    <p>₹{data.directPaymentLabourTotal.toLocaleString('en-IN')}</p>
                                 </div>
                             )}
                             <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
-                                Amounts the client paid directly to a worker on this project, applied to Unapproved first and only spilling into Approved once Unapproved is fully covered.
+                                Amounts the client paid directly to a worker on this project — an advance, not tied to specific sqft, so it's a flat reduction against that worker's overall Balance Payable, not netted against Unapproved/Approved above.
                             </p>
                         </div>
                     )}

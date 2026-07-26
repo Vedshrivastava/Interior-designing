@@ -38,10 +38,13 @@ const ClientDashboardSummary = ({ url, clientId }) => {
     return (
         <div style={{ marginBottom: '24px' }}>
             <KpiGrid>
-                <KpiCard label="Total Billed" value={formatINR(detail.totalBilled)} />
-                <KpiCard label="Total Received" value={formatINR(detail.totalReceived)} />
+                <KpiCard label="Total Billed" value={formatINR(detail.totalBilled)}
+                    sub={detail.billCount > 0 ? `From ${detail.billCount} bill${detail.billCount === 1 ? '' : 's'} issued` : undefined} />
+                <KpiCard label="Total Received" value={formatINR(detail.totalReceived)}
+                    sub={detail.totalBilled > detail.totalReceived ? `${formatINR(detail.totalBilled - detail.totalReceived)} still outstanding` : undefined} />
                 <KpiCard label="Outstanding" value={formatINR(detail.outstanding)} tone={detail.outstanding > 0 ? 'danger' : 'good'} />
-                <KpiCard label="Margin %" value={`${Math.round((detail.marginPercent || 0) * 10) / 10}%`} tone={detail.marginPercent >= 0 ? 'good' : 'danger'} />
+                <KpiCard label="Margin %" value={`${Math.round((detail.marginPercent || 0) * 10) / 10}%`} tone={detail.marginPercent >= 0 ? 'good' : 'danger'}
+                    sub={`Profit ${formatINR(detail.totalProfit)} on Revenue ${formatINR(detail.totalBilled)}`} />
                 {detail.clientCreditBalance > 0 && (
                     <KpiCard label="Client Credit Balance" value={formatINR(detail.clientCreditBalance)} tone="good"
                         sub="Direct payments ahead of what's been billed — applied automatically to future bills" />

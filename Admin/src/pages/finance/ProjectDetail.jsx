@@ -34,6 +34,16 @@ import '../../styles/add.css';
 
 const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance'];
 
+// Builds a KpiCard `sub` line out of a headline's own contributing terms —
+// same helper as FinanceHome.jsx's Dashboard Payables cards, just
+// project-scoped here. Each part is [label, amount, subtract?]; zero-value
+// terms are dropped so a simple case doesn't drag along a string of
+// "· Advances ₹0 · Deductions ₹0".
+const buildBreakdownSub = (parts) => {
+    const shown = parts.filter(([, v]) => v);
+    return shown.length ? shown.map(([label, v, subtract]) => `${subtract ? '− ' : ''}${label} ${formatINR(Math.abs(v))}`).join('  ') : undefined;
+};
+
 /*
  * Tier-2 dashboard for one project — KPI cards (revenue through
  * margin%), a progress-over-time chart, a cost-breakdown donut, the
@@ -120,12 +130,28 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                 vendorCredit: vendorRes.data.success ? sumNegative(vendorRes.data.data, 'amountOwed') : 0,
                 contractorCredit: contractorRes.data.success ? sumNegative(contractorRes.data.data, 'balancePayable') : 0,
                 labourCredit: labourRes.data.success ? sumNegative(labourRes.data.data, 'balancePayable') : 0,
-                // Informational only — already inside Balance Payable above
-                // (the gross figure); surfaces how much of what's already
-                // been paid was withheld as TDS rather than reaching the
-                // contractor/labourer's hand.
-                contractorTdsTotal: contractorRes.data.success ? sumPlain(contractorRes.data.data, 'tdsTotal') : 0,
-                labourTdsTotal: labourRes.data.success ? sumPlain(labourRes.data.data, 'tdsTotal') : 0,
+                // The "why" behind each Payables box below — same breakdown
+                // sub-line pattern as the Dashboard's own Vendor/Contractor/
+                // Labour Payables cards, just project-scoped here.
+                vendorBreakdown: vendorRes.data.success ? {
+                    purchases: sumPlain(vendorRes.data.data, 'purchases'),
+                    returns: sumPlain(vendorRes.data.data, 'returns'),
+                    payments: sumPlain(vendorRes.data.data, 'payments'),
+                } : null,
+                contractorBreakdown: contractorRes.data.success ? {
+                    earnings: sumPlain(contractorRes.data.data, 'earnings'),
+                    advances: sumPlain(contractorRes.data.data, 'advances'),
+                    deductions: sumPlain(contractorRes.data.data, 'deductions'),
+                    directPaymentTotal: sumPlain(contractorRes.data.data, 'directPaymentTotal'),
+                    payments: sumPlain(contractorRes.data.data, 'payments'),
+                } : null,
+                labourBreakdown: labourRes.data.success ? {
+                    earnings: sumPlain(labourRes.data.data, 'earnings'),
+                    advances: sumPlain(labourRes.data.data, 'advances'),
+                    deductions: sumPlain(labourRes.data.data, 'deductions'),
+                    directPaymentTotal: sumPlain(labourRes.data.data, 'directPaymentTotal'),
+                    payments: sumPlain(labourRes.data.data, 'payments'),
+                } : null,
             });
         } catch {
             // Overview degrades gracefully — sections just show empty state.
@@ -172,11 +198,14 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                 <KpiCard label="Material Cost" value={formatINR(profit.materialCost)} />
                 <KpiCard label="Material Waste Cost" value={formatINR(profit.materialWasteCost)} tone={profit.materialWasteCost > 0 ? 'danger' : undefined}
                     sub="Wasted material at the same rate it was bought — a real loss, already counted in Profit" />
-                <KpiCard label="Contractor Cost" value={formatINR(profit.contractorCost)} />
+                <KpiCard label="Contractor Cost" value={formatINR(profit.contractorCost)}
+                    sub={profit.approvedContractorAreaSqft > 0 ? `${profit.approvedContractorAreaSqft.toLocaleString('en-IN')} sqft approved` : undefined} />
                 <KpiCard label="Commission Cost" value={formatINR(profit.commissionCost)} />
-                <KpiCard label="Labour Cost" value={formatINR(profit.labourCost)} />
+                <KpiCard label="Labour Cost" value={formatINR(profit.labourCost)}
+                    sub={profit.approvedLabourAreaSqft > 0 ? `${profit.approvedLabourAreaSqft.toLocaleString('en-IN')} sqft approved` : undefined} />
                 <KpiCard label="Other Expenses" value={formatINR(profit.otherExpenses)} />
-                <KpiCard label="Profit" value={formatINR(profit.profit)} tone={profit.profit >= 0 ? 'good' : 'danger'} />
+                <KpiCard label="Profit" value={formatINR(profit.profit)} tone={profit.profit >= 0 ? 'good' : 'danger'}
+                    sub={`Revenue ${formatINR(profit.revenue)} − Costs ${formatINR(profit.materialCost + profit.materialWasteCost + profit.contractorCost + profit.commissionCost + profit.labourCost + profit.otherExpenses)}`} />
                 <KpiCard label="Margin %" value={`${Math.round(profit.marginPercent * 10) / 10}%`} tone={profit.marginPercent >= 0 ? 'good' : 'danger'} />
             </KpiGrid>
 
@@ -184,7 +213,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                        <b>Area</b><b>Contractor Payment Left</b><b>Labour Payment Left</b><b>Commission</b><b>Revenue</b><b>Profit</b>
+                        <b>Area</b><b>Contractor Unapproved</b><b>Labour Unapproved</b><b>Commission</b><b>Revenue</b><b>Profit</b>
                     </div>
                     <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
                         <p>{profit.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
@@ -196,9 +225,6 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                     </div>
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
                         Logged work whose cost isn't counted in Profit yet — review it in Payables/Receivables → Deductions to move it in. Revenue/Profit here are what this same unapproved work would add once reviewed and billed.
-                        {(profit.directPaymentContractorUnapproved > 0 || profit.directPaymentLabourUnapproved > 0) && (
-                            ' Contractor/Labour Payment Left is already net of client direct payments — see Direct Payments below.'
-                        )}
                     </p>
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px', fontWeight: 600, color: profit.totalProjectedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>
                         Total Projected Profit (Approved + Unapproved): {formatINR(profit.totalProjectedProfit)}
@@ -206,28 +232,26 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                 </div>
             )}
 
-            {(profit.directPaymentContractorUnapproved > 0 || profit.directPaymentLabourUnapproved > 0 || profit.directPaymentContractorApproved > 0 || profit.directPaymentLabourApproved > 0) && (
+            {(profit.directPaymentContractorTotal > 0 || profit.directPaymentLabourTotal > 0) && (
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Direct Payments (Client → Workers)</b></div>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
-                        <b>Party</b><b>Applied to Unapproved</b><b>Applied to Approved</b>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                        <b>Party</b><b>Total</b>
                     </div>
-                    {profit.directPaymentContractorUnapproved + profit.directPaymentContractorApproved > 0 && (
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                    {profit.directPaymentContractorTotal > 0 && (
+                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
                             <p>Contractor</p>
-                            <p>{formatINR(profit.directPaymentContractorUnapproved)}</p>
-                            <p>{formatINR(profit.directPaymentContractorApproved)}</p>
+                            <p>{formatINR(profit.directPaymentContractorTotal)}</p>
                         </div>
                     )}
-                    {profit.directPaymentLabourUnapproved + profit.directPaymentLabourApproved > 0 && (
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                    {profit.directPaymentLabourTotal > 0 && (
+                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
                             <p>Labour</p>
-                            <p>{formatINR(profit.directPaymentLabourUnapproved)}</p>
-                            <p>{formatINR(profit.directPaymentLabourApproved)}</p>
+                            <p>{formatINR(profit.directPaymentLabourTotal)}</p>
                         </div>
                     )}
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
-                        Amounts the client paid directly to a worker on this project (Payables → Client Direct Payments), applied to Unapproved first and only spilling into Approved once Unapproved is fully covered.
+                        Amounts the client paid directly to a worker on this project (Payables → Client Direct Payments) — an advance, not tied to specific sqft, so it's a flat reduction against that worker's overall Balance Payable, not netted against Unapproved/Approved above.
                     </p>
                 </div>
             )}
@@ -268,11 +292,28 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                         Payables — everything this project itself still owes, right now (Contractor/Labour count approved earnings only, same as everywhere else; Vendor/Expense already shown in more detail below).
                     </p>
                     <KpiGrid>
-                        <KpiCard label="Vendor Payment Left" value={formatINR(payables.vendorPaymentLeft)} tone={payables.vendorPaymentLeft > 0 ? 'danger' : 'good'} />
+                        <KpiCard label="Vendor Payment Left" value={formatINR(payables.vendorPaymentLeft)} tone={payables.vendorPaymentLeft > 0 ? 'danger' : 'good'}
+                            sub={payables.vendorBreakdown && buildBreakdownSub([
+                                ['Purchased', payables.vendorBreakdown.purchases],
+                                ['Returned', payables.vendorBreakdown.returns, true],
+                                ['Paid', payables.vendorBreakdown.payments, true],
+                            ])} />
                         <KpiCard label="Contractor Balance Payable" value={formatINR(payables.contractorBalancePayable)} tone={payables.contractorBalancePayable > 0 ? 'danger' : 'good'}
-                            sub={payables.contractorTdsTotal > 0 ? `Of which ${formatINR(payables.contractorTdsTotal)} was TDS` : undefined} />
+                            sub={payables.contractorBreakdown && buildBreakdownSub([
+                                ['Earned', payables.contractorBreakdown.earnings],
+                                ['Advances', payables.contractorBreakdown.advances, true],
+                                ['Deductions', payables.contractorBreakdown.deductions, true],
+                                ['Direct Pay', payables.contractorBreakdown.directPaymentTotal, true],
+                                ['Paid', payables.contractorBreakdown.payments, true],
+                            ])} />
                         <KpiCard label="Labour Balance Payable" value={formatINR(payables.labourBalancePayable)} tone={payables.labourBalancePayable > 0 ? 'danger' : 'good'}
-                            sub={payables.labourTdsTotal > 0 ? `Of which ${formatINR(payables.labourTdsTotal)} was TDS` : undefined} />
+                            sub={payables.labourBreakdown && buildBreakdownSub([
+                                ['Earned', payables.labourBreakdown.earnings],
+                                ['Advances', payables.labourBreakdown.advances, true],
+                                ['Deductions', payables.labourBreakdown.deductions, true],
+                                ['Direct Pay', payables.labourBreakdown.directPaymentTotal, true],
+                                ['Paid', payables.labourBreakdown.payments, true],
+                            ])} />
                         <KpiCard label="Expense Payables" value={formatINR(payables.expensePayable)} tone={payables.expensePayable > 0 ? 'danger' : 'good'} onClick={onViewExpenses} />
                     </KpiGrid>
                 </div>

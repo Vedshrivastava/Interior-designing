@@ -4,8 +4,16 @@ import FinanceMeasurement from '../models/financeMeasurement.js';
 import FinanceLabourMeasurement from '../models/financeLabourMeasurement.js';
 import FinanceContractorDeduction from '../models/financeContractorDeduction.js';
 import FinanceLabourDeduction from '../models/financeLabourDeduction.js';
+import FinanceSupervisorDeduction from '../models/financeSupervisorDeduction.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
+// Shared with financeContractorDeduction.js/financeLabourDeduction.js so a
+// rejected-sqft distribution entered here (as part of the atomic review
+// flow below) is priced by the exact same rate lookup those controllers'
+// own standalone "+ Add Deduction" forms use — never a second, divergent
+// pricing rule for the same kind of record.
+import { resolveContractorDeductionAmount } from './financeContractorDeduction.js';
+import { resolveLabourDeductionAmount } from './financeLabourDeduction.js';
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
@@ -25,13 +33,17 @@ const computeWorkLoggedSqft = async (workId) => {
     );
 };
 
-// How much of a Work's rejected pool has already been allocated to
-// specific people in Payables — computed fresh from the actual deduction
-// records, never stored (see financeWorkReview.js's model comment).
-const computeAttributedAreaSqft = async (workId) => {
+// How much of a Work's CURRENT rejected pool has already been allocated to
+// specific people — computed fresh from the actual deduction records,
+// never stored (see financeWorkReview.js's model comment). Scoped to
+// reviewCycle: a deduction from an earlier, already-superseded rejection
+// on the same Work must never count toward attributing a brand new one
+// just because the sqft happens to add up — see financeWorkReview.js's
+// reviewCycle field comment for the bug this fixes.
+const computeAttributedAreaSqft = async (workId, reviewCycle) => {
     const [contractorDeductions, labourDeductions] = await Promise.all([
-        FinanceContractorDeduction.find({ workId, deleted: { $ne: true } }, 'areaSqft'),
-        FinanceLabourDeduction.find({ workId, deleted: { $ne: true } }, 'areaSqft'),
+        FinanceContractorDeduction.find({ workId, workReviewCycle: reviewCycle, deleted: { $ne: true } }, 'areaSqft'),
+        FinanceLabourDeduction.find({ workId, workReviewCycle: reviewCycle, deleted: { $ne: true } }, 'areaSqft'),
     ]);
     return round2(
         contractorDeductions.reduce((s, d) => s + (d.areaSqft || 0), 0)
@@ -63,7 +75,7 @@ const listReviewsForProject = async (req, res) => {
             const approvedAreaSqft = review?.approvedAreaSqft || 0;
             const rejectedAreaSqft = review?.rejectedAreaSqft || 0;
             const pendingReviewSqft = round2(Math.max(0, loggedSqft - approvedAreaSqft - rejectedAreaSqft));
-            const attributedAreaSqft = rejectedAreaSqft > 0 ? await computeAttributedAreaSqft(w._id) : 0;
+            const attributedAreaSqft = rejectedAreaSqft > 0 ? await computeAttributedAreaSqft(w._id, review.reviewCycle) : 0;
             return {
                 workId: w._id, workType: w.workType,
                 loggedSqft, approvedAreaSqft, rejectedAreaSqft, pendingReviewSqft,
@@ -84,9 +96,27 @@ const listReviewsForProject = async (req, res) => {
 // recalculated fresh against the current total, not cumulative across
 // reviews, so re-reviewing after new measurements come in naturally
 // starts from the new true total.
+//
+// ATOMIC WITH DISTRIBUTION: a Work with any rejected sqft must have all of
+// it distributed to specific contractors/labourers (`allocations`) in this
+// SAME request — the review is rejected outright (nothing saved at all) if
+// they don't sum to exactly the rejected amount. This used to be two
+// separate steps (review here, then a later visit to Payables' own
+// allocation screen) — in practice that gap meant a review could be saved
+// with a real rejected pool that nobody ever actually distributed, and
+// worse, a stale deduction left over from an EARLIER rejection on the same
+// Work could silently satisfy a brand new one just because the sqft
+// happened to add up (see financeWorkReview.js's reviewCycle field). Both
+// are closed by requiring full attribution up front, tagged to this
+// specific review cycle.
+//
+// Supervisor deductions (`supervisorAllocations`) stay optional — they're
+// a flat ₹ amount, not sqft, and were never part of the sqft attribution
+// gate to begin with (see financeContractorDeduction.js's identical
+// reasoning).
 const reviewWork = async (req, res) => {
     try {
-        const { workId, approvedAreaSqft, date } = req.body;
+        const { workId, approvedAreaSqft, date, reason, allocations, supervisorAllocations } = req.body;
         if (!workId) return res.status(400).json({ success: false, message: 'workId is required' });
         if (approvedAreaSqft === undefined || approvedAreaSqft === null || approvedAreaSqft === '') {
             return res.status(400).json({ success: false, message: 'Approved sqft is required' });
@@ -100,13 +130,72 @@ const reviewWork = async (req, res) => {
         const loggedSqft = await computeWorkLoggedSqft(workId);
         if (approved > loggedSqft) return res.status(400).json({ success: false, message: `Cannot approve more than the ${loggedSqft} sqft logged` });
 
+        const rejectedAreaSqft = round2(loggedSqft - approved);
+        const cleanAllocations = Array.isArray(allocations)
+            ? allocations.filter(a => a && ['contractor', 'labour'].includes(a.partyType) && a.partyId && Number(a.areaSqft) > 0)
+            : [];
+        if (rejectedAreaSqft > 0) {
+            if (!reason || !reason.trim()) {
+                return res.status(400).json({ success: false, message: 'A reason is required whenever sqft is rejected' });
+            }
+            const allocatedTotal = round2(cleanAllocations.reduce((s, a) => s + Number(a.areaSqft), 0));
+            if (Math.abs(allocatedTotal - rejectedAreaSqft) > 0.01) {
+                return res.status(400).json({
+                    success: false,
+                    message: `${rejectedAreaSqft} sqft is rejected — distribute all of it across contractors/labourers before saving (currently ${allocatedTotal} sqft allocated)`,
+                });
+            }
+        }
+
+        // Resolve every allocation's ₹ amount (and confirm a rate actually
+        // exists) BEFORE writing anything — a missing rate config fails the
+        // whole request instead of leaving a half-saved review with only
+        // some of its distribution recorded.
+        const resolvedAllocations = await Promise.all(cleanAllocations.map(async (a) => {
+            const areaSqft = round2(Number(a.areaSqft));
+            const resolved = a.partyType === 'contractor'
+                ? await resolveContractorDeductionAmount(workId, a.partyId, areaSqft)
+                : await resolveLabourDeductionAmount(workId, a.partyId, areaSqft);
+            return { partyType: a.partyType, partyId: a.partyId, areaSqft, amount: resolved.amount, projectId: resolved.projectId };
+        }));
+        const cleanSupervisorAllocations = Array.isArray(supervisorAllocations)
+            ? supervisorAllocations.filter(s => s && s.employeeId && Number(s.amount) > 0)
+            : [];
+
         let review = await FinanceWorkReview.findOne({ workId });
-        if (!review) review = new FinanceWorkReview({ workId });
+        if (!review) review = new FinanceWorkReview({ workId, reviewCycle: 0 });
         review.approvedAreaSqft = round2(approved);
-        review.rejectedAreaSqft = round2(loggedSqft - approved);
+        review.rejectedAreaSqft = rejectedAreaSqft;
         review.lastReviewedAt = date ? new Date(date) : new Date();
         review.lastReviewedBy = req.userName || 'Admin';
+        review.reviewCycle = (review.reviewCycle || 0) + 1;
         await review.save();
+
+        const trimmedReason = reason ? reason.trim() : '';
+        await Promise.all([
+            ...resolvedAllocations.map(async (a) => {
+                if (a.partyType === 'contractor') {
+                    await new FinanceContractorDeduction({
+                        vendorId: a.partyId, projectId: a.projectId, workId, areaSqft: a.areaSqft, amount: a.amount,
+                        reason: trimmedReason, date: review.lastReviewedAt, workReviewCycle: review.reviewCycle,
+                    }).save();
+                    broadcast({ type: 'financeContractorLedgerChanged', vendorId: a.partyId });
+                } else {
+                    await new FinanceLabourDeduction({
+                        labourerId: a.partyId, projectId: a.projectId, workId, areaSqft: a.areaSqft, amount: a.amount,
+                        reason: trimmedReason, date: review.lastReviewedAt, source: 'engineer_review', workReviewCycle: review.reviewCycle,
+                    }).save();
+                    broadcast({ type: 'financeLabourLedgerChanged', labourerId: a.partyId });
+                }
+            }),
+            ...cleanSupervisorAllocations.map(async (s) => {
+                await new FinanceSupervisorDeduction({
+                    employeeId: s.employeeId, projectId: work.projectId, workId, amount: round2(Number(s.amount)),
+                    reason: trimmedReason || 'Reviewed and rejected', date: review.lastReviewedAt,
+                }).save();
+                broadcast({ type: 'financeSupervisorDeductionsChanged', employeeId: s.employeeId });
+            }),
+        ]);
 
         broadcast({ type: 'financeWorkReviewChanged', projectId: work.projectId, workId });
 
@@ -115,7 +204,7 @@ const reviewWork = async (req, res) => {
             entityType: 'financeWorkReview',
             entityId: review._id,
             projectId: work.projectId,
-            summary: `${work.workType} reviewed — ${review.approvedAreaSqft} sqft approved${review.rejectedAreaSqft > 0 ? `, ${review.rejectedAreaSqft} sqft rejected` : ''}`,
+            summary: `${work.workType} reviewed — ${review.approvedAreaSqft} sqft approved${review.rejectedAreaSqft > 0 ? `, ${review.rejectedAreaSqft} sqft rejected and fully distributed` : ''}`,
             req,
         });
 

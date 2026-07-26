@@ -273,11 +273,19 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                                         <span title="Mark this bill Draft to add GST; it's locked once issued." style={{ color: 'var(--text-lt)', fontSize: '0.85em' }}> · no GST</span>
                                     ))}
                             </p>
-                            <p onClick={() => toggleStatus(b)} className="cursor" style={{ color: b.status === 'issued' ? 'var(--moss)' : 'var(--text-lt)' }}>
+                            <p style={{ color: b.status === 'issued' ? 'var(--moss)' : 'var(--text-lt)' }}>
                                 <span className="item-category">{STATUS_LABEL[b.status]}</span>
                             </p>
                             <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
                                 {b.status === 'draft' && <p onClick={() => openGstEdit(b)} className="cursor edit-action">GST</p>}
+                                {/* Was previously only reachable by clicking the plain
+                                    status badge above — indistinguishable from every
+                                    other non-interactive status pill in the app, easy to
+                                    miss entirely. An explicit action here matches every
+                                    other row action (GST/Statement/B&W/X). */}
+                                <p onClick={() => toggleStatus(b)} className={`cursor ${b.status === 'draft' ? 'edit-action' : 'delete-action'}`}>
+                                    {b.status === 'draft' ? 'Issue' : 'Mark Draft'}
+                                </p>
                                 <DownloadButton
                                     as="p" downloading={downloadingKey === `${b._id}:color`} progress={downloadingKey === `${b._id}:color` ? downloadProgress : null}
                                     idleLabel="Statement" onClick={() => downloadStatement(b, 'color')} className="cursor edit-action"

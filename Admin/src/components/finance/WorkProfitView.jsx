@@ -43,6 +43,16 @@ const WorkProfitView = ({ url, workId }) => {
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
     if (!data) return <div className="admin-empty-state"><p>Work not found.</p></div>;
 
+    // data.totalAmount (computeWorkExpectedPay's own figure) is contractor
+    // + labour combined and, when a Work has more than one contractor or
+    // labourer, sums each one's rate × the full logged area rather than a
+    // real per-party split (see that function's own KNOWN LIMITATION
+    // comment) — not the right source for a "Total logged" caption placed
+    // specifically under Contractor Cost or Labour Cost. The breakdown
+    // arrays are already correctly per-party, so sum those instead.
+    const totalContractorAmount = data.contractorBreakdown.reduce((s, b) => s + b.totalAmount, 0);
+    const totalLabourAmount = data.labourBreakdown.reduce((s, b) => s + b.totalAmount, 0);
+
     return (
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
@@ -55,12 +65,21 @@ const WorkProfitView = ({ url, workId }) => {
                 <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                     <p>₹{data.revenue.toLocaleString('en-IN')}</p>
                     <p>
-                        {data.contractorCost > 0 ? `₹${data.contractorCost.toLocaleString('en-IN')}` : (data.totalAmount > 0 ? <span style={{ color: '#c0392b' }}>Unapproved</span> : '₹0')}
-                        {data.totalAmount > data.contractorCost && (
-                            <span style={{ display: 'block', fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>Total logged: ₹{data.totalAmount.toLocaleString('en-IN')}</span>
+                        {data.contractorCost > 0 ? `₹${data.contractorCost.toLocaleString('en-IN')}` : (totalContractorAmount > 0 ? <span style={{ color: '#c0392b' }}>Unapproved</span> : '₹0')}
+                        {data.unapprovedContractorCost > 0 ? (
+                            <span style={{ display: 'block', fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>Total logged: ₹{totalContractorAmount.toLocaleString('en-IN')}</span>
+                        ) : data.rejectedContractorCost > 0 && (
+                            <span style={{ display: 'block', fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>₹{data.rejectedContractorCost.toLocaleString('en-IN')} rejected (already settled)</span>
                         )}
                     </p>
-                    <p>₹{data.labourCost.toLocaleString('en-IN')}</p>
+                    <p>
+                        ₹{data.labourCost.toLocaleString('en-IN')}
+                        {data.unapprovedLabourCost > 0 ? (
+                            <span style={{ display: 'block', fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>Total logged: ₹{totalLabourAmount.toLocaleString('en-IN')}</span>
+                        ) : data.rejectedLabourCost > 0 && (
+                            <span style={{ display: 'block', fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>₹{data.rejectedLabourCost.toLocaleString('en-IN')} rejected (already settled)</span>
+                        )}
+                    </p>
                 </div>
                 <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                     <b>Material Cost <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>(weighted avg)</span></b><b>Material Waste Cost</b><b>Commission Cost</b><b>Profit</b>
@@ -75,49 +94,56 @@ const WorkProfitView = ({ url, workId }) => {
 
             {(data.unapprovedAreaSqft > 0 || data.unapprovedCommissionAmount > 0) && (
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}>
+                        <b>{data.heldForAttribution ? 'Unapproved — Held Pending Rejection Attribution' : 'Unapproved (Pending Review)'}</b>
+                    </div>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                        <b>Area</b><b>Contractor Payment Left</b><b>Labour Payment Left</b><b>Commission</b><b>Revenue</b><b>Profit</b>
+                        <b>Area</b><b>Contractor Unapproved</b><b>Labour Unapproved</b><b>Commission</b><b>Revenue</b><b>Profit</b>
                     </div>
                     <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
                         <p>{data.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
-                        <p>₹{data.contractorPaymentLeftUnapproved.toLocaleString('en-IN')}</p>
-                        <p>₹{data.labourPaymentLeftUnapproved.toLocaleString('en-IN')}</p>
+                        <p>₹{data.unapprovedContractorCost.toLocaleString('en-IN')}</p>
+                        <p>₹{data.unapprovedLabourCost.toLocaleString('en-IN')}</p>
                         <p>₹{data.unapprovedCommissionAmount.toLocaleString('en-IN')}</p>
                         <p>₹{data.unapprovedRevenue.toLocaleString('en-IN')}</p>
                         <p style={{ color: data.unapprovedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>₹{data.unapprovedProfit.toLocaleString('en-IN')}</p>
                     </div>
-                    <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
-                        Logged work on this Work whose cost isn't counted in Profit yet — Contractor/Labour Payment Left is already net of client direct payments recorded against this Work.
-                    </p>
+                    {data.heldForAttribution ? (
+                        <p className="admin-subtitle" style={{ padding: '0 20px 16px', color: '#c0392b' }}>
+                            ⚠ This Work was reviewed — {data.rejectedAreaSqft.toLocaleString('en-IN')} sqft rejected — but that rejection isn't fully attributed to specific contractors/labourers yet (Payables/Receivables → Deductions). Until it is, ALL logged work here shows as Unapproved, not just the rejected portion.
+                        </p>
+                    ) : (
+                        <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
+                            Logged work on this Work whose cost isn't counted in Profit yet.
+                            {data.rejectedAreaSqft > 0 && ` Of this, ${data.rejectedAreaSqft.toLocaleString('en-IN')} sqft is permanently rejected (already attributed); the rest is simply pending its first review.`}
+                        </p>
+                    )}
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px', fontWeight: 600, color: data.totalProjectedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>
                         Total Projected Profit (Approved + Unapproved): ₹{data.totalProjectedProfit.toLocaleString('en-IN')}
                     </p>
                 </div>
             )}
 
-            {(data.contractorDirectPaymentUnapproved > 0 || data.labourDirectPaymentUnapproved > 0 || data.contractorDirectPaymentApproved > 0 || data.labourDirectPaymentApproved > 0) && (
+            {(data.contractorDirectPaymentTotal > 0 || data.labourDirectPaymentTotal > 0) && (
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Direct Payments (Client → Workers)</b></div>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
-                        <b>Party</b><b>Applied to Unapproved</b><b>Applied to Approved</b>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                        <b>Party</b><b>Total</b>
                     </div>
-                    {data.contractorDirectPaymentUnapproved + data.contractorDirectPaymentApproved > 0 && (
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                    {data.contractorDirectPaymentTotal > 0 && (
+                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
                             <p>Contractor</p>
-                            <p>₹{data.contractorDirectPaymentUnapproved.toLocaleString('en-IN')}</p>
-                            <p>₹{data.contractorDirectPaymentApproved.toLocaleString('en-IN')}</p>
+                            <p>₹{data.contractorDirectPaymentTotal.toLocaleString('en-IN')}</p>
                         </div>
                     )}
-                    {data.labourDirectPaymentUnapproved + data.labourDirectPaymentApproved > 0 && (
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                    {data.labourDirectPaymentTotal > 0 && (
+                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
                             <p>Labour</p>
-                            <p>₹{data.labourDirectPaymentUnapproved.toLocaleString('en-IN')}</p>
-                            <p>₹{data.labourDirectPaymentApproved.toLocaleString('en-IN')}</p>
+                            <p>₹{data.labourDirectPaymentTotal.toLocaleString('en-IN')}</p>
                         </div>
                     )}
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
-                        Amounts the client paid directly to a worker on this Work, applied to Unapproved first and only spilling into Approved once Unapproved is fully covered.
+                        Amounts the client paid directly to a worker on this Work — an advance, not tied to specific sqft, so it's a flat reduction against that worker's overall Balance Payable (see their Ledger), not netted against this Work's own Approved/Unapproved split.
                     </p>
                 </div>
             )}

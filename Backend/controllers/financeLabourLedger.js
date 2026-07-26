@@ -8,8 +8,8 @@ import FinanceLabourAdvance from '../models/financeLabourAdvance.js';
 import FinanceLabourDeduction from '../models/financeLabourDeduction.js';
 import FinanceLabourPayment from '../models/financeLabourPayment.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
-import { getApprovedBillingByWorkId, splitApprovedAreaByShare, computeMaterialAvgRates } from './financeReports.js';
-import { getWorkerPayoutDeductionByWork } from './financeClientDirectPayment.js';
+import { getCategoryApprovedAreaByWorkId, splitApprovedAreaByShare, computeMaterialAvgRates } from './financeReports.js';
+import { getWorkerPayoutTotal } from './financeClientDirectPayment.js';
 import PDFDocument from 'pdfkit';
 import { writeLetterhead, writeSectionHeading, writeSignatureLine, writeFooter, drawInfoBox, drawTable, contentBox, formatCurrency, formatDate, BRAND_GREEN, paintPageBackground } from '../utils/pdfLetterhead.js';
 
@@ -56,7 +56,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
     const areaByWork = new Map(); // workId -> { totalArea, allLabourersArea }
     for (const w of works) areaByWork.set(w._id.toString(), { totalArea: 0, allLabourersArea: 0 });
 
-    const [measurements, allLabourerMeasurements, approvedBillingByWorkId, avgRateEntries, directPaymentByWork] = await Promise.all([
+    const [measurements, allLabourerMeasurements, categoryApprovedByWorkId, avgRateEntries, directPaymentTotal] = await Promise.all([
         works.length
             ? FinanceLabourMeasurement.find({ workId: { $in: works.map(w => w._id) }, labourerId, deleted: { $ne: true } })
                 .populate('workId', 'workType')
@@ -68,12 +68,16 @@ const computeLabourLedger = async (labourerId, projectId) => {
         works.length
             ? FinanceLabourMeasurement.find({ workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } }, 'workId areaCoveredSqft')
             : [],
-        works.length ? getApprovedBillingByWorkId(works.map(w => w._id)) : new Map(),
+        // This labourer's category's own share of each work's combined
+        // approved ceiling — see getCategoryApprovedAreaByWorkId's comment.
+        works.length ? getCategoryApprovedAreaByWorkId(works.map(w => w._id)) : new Map(),
         // A labourer's works can span multiple projects — each project needs
         // its own weighted-average material rate map (see the identical
         // comment in financeContractorLedger.js).
         Promise.all(projectIds.map(async (pid) => [pid, await computeMaterialAvgRates(pid)])),
-        getWorkerPayoutDeductionByWork('labour', labourerId, works.map(w => w._id)),
+        // Flat, not sqft-based — see getWorkerPayoutTotal's comment (an
+        // advance, not payment for specific measured work).
+        getWorkerPayoutTotal('labour', labourerId, projectId || undefined),
     ]);
     const avgRateByProject = new Map(avgRateEntries);
     for (const m of allLabourerMeasurements) {
@@ -102,36 +106,28 @@ const computeLabourLedger = async (labourerId, projectId) => {
     let earningsTotal = 0;
     let totalAmountTotal = 0;
     let unapprovedAmountTotal = 0;
-    // See computeContractorLedger.js's identical comment: a direct payment
-    // is tied to one specific Work, so it nets against that Work's own
-    // unapproved amount first; only the leftover spills into reducing
-    // Approved earnings — never both pools for the same rupee.
-    let directPaymentUnapprovedTotal = 0;
-    let directPaymentApprovedTotal = 0;
-    let paymentLeftUnapprovedTotal = 0;
     const worksOut = [];
     for (const w of works) {
         const workKey = w._id.toString();
         const { totalArea, allLabourersArea } = areaByWork.get(workKey);
         const rate = rateByKey.get(`${w.projectId}_${w.workType}`);
         const rateValue = rate ? rate.ratePerSqft : 0;
-        const workApprovedBilling = approvedBillingByWorkId.get(workKey) || { areaSqft: 0, date: null };
-        const approvedArea = splitApprovedAreaByShare(workApprovedBilling.areaSqft, totalArea, allLabourersArea);
-        const unapprovedArea = round2(totalArea - approvedArea);
+        const categoryEntry = categoryApprovedByWorkId.get(workKey);
+        const labourApprovedAreaSqft = categoryEntry?.labourApprovedAreaSqft || 0;
+        const approvedArea = splitApprovedAreaByShare(labourApprovedAreaSqft, totalArea, allLabourersArea);
+        // A rejection is a FINAL, already-reviewed decision — this
+        // labourer's own share of it must not sit in Unapproved forever
+        // just because it was never re-labeled Approved. See
+        // getCategoryApprovedAreaByWorkId's header comment.
+        const labourRejectedAreaSqft = categoryEntry?.labourRejectedAreaSqft || 0;
+        const rejectedArea = splitApprovedAreaByShare(labourRejectedAreaSqft, totalArea, allLabourersArea);
+        const unapprovedArea = round2(Math.max(0, totalArea - approvedArea - rejectedArea));
         const totalAmount = round2(rate ? totalArea * rateValue : 0);
         const earnings = round2(rate ? approvedArea * rateValue : 0);
         const unapprovedAmount = round2(rate ? unapprovedArea * rateValue : 0);
         earningsTotal += earnings;
         totalAmountTotal += totalAmount;
         unapprovedAmountTotal += unapprovedAmount;
-
-        const directPaymentForWork = directPaymentByWork.get(workKey) || 0;
-        const directPaymentUnapprovedPortion = round2(Math.min(directPaymentForWork, unapprovedAmount));
-        const directPaymentApprovedPortion = round2(directPaymentForWork - directPaymentUnapprovedPortion);
-        const paymentLeftUnapproved = round2(unapprovedAmount - directPaymentUnapprovedPortion);
-        directPaymentUnapprovedTotal += directPaymentUnapprovedPortion;
-        directPaymentApprovedTotal += directPaymentApprovedPortion;
-        paymentLeftUnapprovedTotal += paymentLeftUnapproved;
 
         const workMaterialArea = materialAreaByWork.get(workKey) || 0;
         worksOut.push({
@@ -140,12 +136,10 @@ const computeLabourLedger = async (labourerId, projectId) => {
             workType: w.workType,
             estimatedAreaSqft: w.estimatedAreaSqft, completedAreaSqft: round2(totalArea),
             approvedAreaSqft: approvedArea, unapprovedAreaSqft: unapprovedArea,
-            approvedDate: approvedArea > 0 ? workApprovedBilling.date : null,
+            approvedDate: approvedArea > 0 ? (categoryEntry?.date || null) : null,
             status: w.status,
             rate: rate ? rate.ratePerSqft : null,
             totalAmount, earnings, unapprovedAmount,
-            directPaymentTotal: directPaymentForWork, directPaymentUnapprovedPortion, directPaymentApprovedPortion,
-            paymentLeftUnapproved,
             materialCostPerSqft: workMaterialArea > 0 ? (materialCostByWork.get(workKey) || 0) / workMaterialArea : null,
         });
     }
@@ -159,19 +153,16 @@ const computeLabourLedger = async (labourerId, projectId) => {
     ]);
 
     const advancesTotal = advances.reduce((sum, a) => sum + a.amount, 0);
-    // Only the spillover portion of client-direct-payments (not already
-    // absorbed by Unapproved above) reduces Approved earnings here — see
-    // the comment on directPaymentUnapprovedTotal above.
-    const deductionsTotal = deductions.reduce((sum, d) => sum + d.amount, 0) + directPaymentApprovedTotal;
+    const deductionsTotal = deductions.reduce((sum, d) => sum + d.amount, 0);
     const paymentsTotal = payments.reduce((sum, p) => sum + p.amount, 0);
     const tdsTotal = round2(payments.reduce((sum, p) => sum + (p.tdsAmount || 0), 0));
     earningsTotal = round2(earningsTotal);
     totalAmountTotal = round2(totalAmountTotal);
     unapprovedAmountTotal = round2(unapprovedAmountTotal);
-    directPaymentUnapprovedTotal = round2(directPaymentUnapprovedTotal);
-    directPaymentApprovedTotal = round2(directPaymentApprovedTotal);
-    paymentLeftUnapprovedTotal = round2(paymentLeftUnapprovedTotal);
-    const balancePayable = round2(earningsTotal - advancesTotal - deductionsTotal - paymentsTotal);
+    // Flat — see getWorkerPayoutTotal's comment; kept separate from
+    // deductionsTotal so a real rejection-deduction and an advance the
+    // client already paid this labourer directly never blend together.
+    const balancePayable = round2(earningsTotal - advancesTotal - deductionsTotal - paymentsTotal - directPaymentTotal);
 
     // Pooled total/total across every work this labourer has touched — same
     // convention as the per-work figure above, just not scoped to one work.
@@ -185,11 +176,13 @@ const computeLabourLedger = async (labourerId, projectId) => {
         works: worksOut, measurements, advances, deductions, payments,
         totals: {
             earnings: earningsTotal, totalAmount: totalAmountTotal, unapprovedAmount: unapprovedAmountTotal,
-            advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal, balancePayable,
+            advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal,
+            // Flat total of client-paid amounts (category flagged "cut from
+            // worker payout") — see getWorkerPayoutTotal's comment; its own
+            // term in balancePayable above, not blended into deductionsTotal.
+            directPaymentTotal,
+            balancePayable,
             materialCostPerSqft: materialAreaTotal > 0 ? materialCostTotal / materialAreaTotal : null,
-            directPaymentUnapproved: directPaymentUnapprovedTotal,
-            directPaymentApproved: directPaymentApprovedTotal,
-            paymentLeftUnapproved: paymentLeftUnapprovedTotal,
             // See financeContractorLedger.js's identical comment.
             tdsTotal,
         },

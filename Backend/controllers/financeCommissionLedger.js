@@ -57,9 +57,12 @@ const getCommissionLedger = async (req, res) => {
             const workKey = w._id.toString();
             const rate = rateByKey.get(`${w.projectId}_${w.workType}`);
             const rateValue = rate ? rate.referralRatePerSqft : 0;
-            const workApproved = approvedBillingByWorkId.get(workKey) || { areaSqft: 0, date: null };
+            const workApproved = approvedBillingByWorkId.get(workKey) || { areaSqft: 0, date: null, rejectedAreaSqft: 0 };
             const approvedArea = splitApprovedAreaByShare(workApproved.areaSqft, w.completedAreaSqft, w.completedAreaSqft);
-            const unapprovedArea = round2(w.completedAreaSqft - approvedArea);
+            // A rejection is final, already-reviewed — excluded from
+            // Unapproved (it's no longer "still pending review").
+            const rejectedArea = splitApprovedAreaByShare(workApproved.rejectedAreaSqft || 0, w.completedAreaSqft, w.completedAreaSqft);
+            const unapprovedArea = round2(Math.max(0, w.completedAreaSqft - approvedArea - rejectedArea));
             const totalAmount = round2(rate ? w.completedAreaSqft * rateValue : 0);
             const earnings = round2(rate ? approvedArea * rateValue : 0);
             const unapprovedAmount = round2(rate ? unapprovedArea * rateValue : 0);

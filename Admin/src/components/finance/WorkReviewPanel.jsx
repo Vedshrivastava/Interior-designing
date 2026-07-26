@@ -15,32 +15,31 @@ import '../../styles/add.css';
  * financeReports.js's computeWorkApprovedBilling). This is where that
  * review happens, one Work at a time: how much of everything logged on it
  * is genuinely done well. Whatever's left over automatically becomes the
- * Rejected pool — a single number to enter, not two separate actions.
- * Reviewing here is what unlocks both Generate Bill's ceiling for that
- * work AND every contributing worker's own Approved Earnings (split
- * proportionally to their share, same as this codebase already does for
- * multi-party Works elsewhere).
+ * Rejected pool.
  *
- * WHO specifically is responsible for a Rejected pool is a deliberately
- * separate decision, made in Payables — that flow allocates the pool
- * across specific contractors/labourers/supervisors, which is what
- * actually reduces any one person's own pay (via the existing
- * financeContractorDeduction/financeLabourDeduction/
- * financeSupervisorDeduction records) — reviewing here never touches
- * anyone's pay directly.
+ * WHO's responsible for a Rejected pool used to be a separate, later step
+ * in Payables — that gap meant a review could be saved with a real
+ * rejected pool nobody ever actually distributed, silently locking every
+ * contractor/labourer on the Work out of pay they'd already earned with no
+ * visible next step (see financeWorkReview.js's reviewCycle comment for
+ * the concrete bug this caused: a stale deduction left over from an
+ * earlier rejection could even satisfy a brand new one). Distribution is
+ * now part of THIS SAME action — whenever there's a rejected pool, saving
+ * requires it to be fully allocated across contractors/labourers first
+ * (server-enforced too, see reviewWork), right here in one atomic step.
+ * Supervisors stay optional — a flat ₹ amount, not sqft, never part of the
+ * attribution gate.
  *
  * The Period From/To picker mirrors RunningBillsManager's own Generate
  * Bill modal exactly — purely descriptive context for "what's likely new
  * since I last reviewed"; review always acts on the Work's true current
  * logged total, not a date-filtered slice.
  *
- * Mounted in two places off this same component:
- *   - Receivables' own new tab — that page already owns a shared project
- *     picker across its tabs, so `projectId` arrives as a fixed prop.
- *   - Payables → Deductions tab — no page-level picker there, so when
- *     `projectId` is omitted this shows its own internal one, same
- *     dual-mode pattern already used elsewhere in this module
- *     (WorkMeasurementsSummary, SiteDiaryManager).
+ * Mounted at Receivables' own Work Review tab — that page already owns a
+ * shared project picker across its tabs, so `projectId` arrives as a fixed
+ * prop; when omitted this shows its own internal one, same dual-mode
+ * pattern used elsewhere in this module (WorkMeasurementsSummary,
+ * SiteDiaryManager).
  */
 const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
     const token = localStorage.getItem('token');
@@ -64,6 +63,18 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
     const [approvedInput, setApprovedInput] = useState('');
     const [reviewDate, setReviewDate] = useState('');
     const [saving, setSaving] = useState(false);
+
+    // Distribution state — only relevant once approvedInput leaves some
+    // sqft rejected. Fetched as soon as the modal opens (same as
+    // WorkDeductionAllocationPanel's old openAllocate) so the fields are
+    // ready the moment a rejection actually appears, no extra round trip.
+    const [contractors, setContractors] = useState([]);
+    const [labourers, setLabourers] = useState([]);
+    const [supervisors, setSupervisors] = useState([]);
+    const [loadingParties, setLoadingParties] = useState(false);
+    const [sqftInputs, setSqftInputs] = useState({}); // `${partyType}|${partyId}` -> value
+    const [amountInputs, setAmountInputs] = useState({}); // employeeId -> value (supervisor, optional)
+    const [reason, setReason] = useState('');
 
     const fetchProjects = () => {
         if (!crossProject) return;
@@ -115,12 +126,40 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
         : statusFilter === 'reviewed' ? rows.filter(r => r.pendingReviewSqft <= 0)
         : rows;
 
-    const openReview = (row) => {
+    const openReview = async (row) => {
         setReviewTarget(row);
         setApprovedInput(String(row.loggedSqft));
         setReviewDate(new Date().toISOString().slice(0, 10));
+        setSqftInputs({}); setAmountInputs({}); setReason('');
+        setLoadingParties(true);
+        try {
+            const [cRes, lRes] = await Promise.all([
+                axios.get(`${url}/api/finance/work-contractor-assignments/list`, { ...authHeader, params: { workId: row.workId } }),
+                axios.get(`${url}/api/finance/work-labour-assignments/list`, { ...authHeader, params: { workId: row.workId } }),
+            ]);
+            setContractors(cRes.data.success ? cRes.data.data : []);
+            const labourRows = lRes.data.success ? lRes.data.data : [];
+            setLabourers(labourRows);
+            const supervisorMap = new Map();
+            for (const a of labourRows) {
+                if (a.supervisorId?._id) supervisorMap.set(a.supervisorId._id, a.supervisorId.name);
+            }
+            setSupervisors([...supervisorMap.entries()].map(([employeeId, name]) => ({ employeeId, name })));
+        } catch { toast.error('Error fetching workers for this work'); }
+        finally { setLoadingParties(false); }
     };
     const closeReview = () => setReviewTarget(null);
+
+    const rejectedPreview = reviewTarget && approvedInput !== '' && !Number.isNaN(Number(approvedInput))
+        ? Math.round(((reviewTarget.loggedSqft - Number(approvedInput)) + Number.EPSILON) * 100) / 100
+        : null;
+
+    const sqftEnteredTotal = Object.values(sqftInputs).reduce((sum, v) => sum + (Number(v) || 0), 0);
+    const remainingToDistribute = rejectedPreview !== null
+        ? Math.round(((rejectedPreview - sqftEnteredTotal) + Number.EPSILON) * 100) / 100
+        : 0;
+    const needsDistribution = rejectedPreview !== null && rejectedPreview > 0;
+    const fullyDistributed = !needsDistribution || Math.abs(remainingToDistribute) < 0.01;
 
     const submitReview = async (e) => {
         e.preventDefault();
@@ -128,10 +167,28 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
         if (approvedInput === '' || Number(approvedInput) < 0) return toast.error('Approved sqft is required');
         if (Number(approvedInput) > reviewTarget.loggedSqft) return toast.error(`Cannot approve more than the ${reviewTarget.loggedSqft} sqft logged`);
         if (!reviewDate) return toast.error('Date is required');
+        if (needsDistribution) {
+            if (!reason.trim()) return toast.error('Reason is required — this is what went wrong on the rejected sqft');
+            if (!fullyDistributed) {
+                return toast.error(remainingToDistribute > 0
+                    ? `${remainingToDistribute} sqft still left to distribute before this can save`
+                    : `${Math.abs(remainingToDistribute)} sqft over-allocated — reduce it back to ${rejectedPreview}`);
+            }
+        }
         setSaving(true);
         try {
+            const allocations = Object.entries(sqftInputs)
+                .filter(([, v]) => Number(v) > 0)
+                .map(([key, v]) => {
+                    const [partyType, partyId] = key.split('|');
+                    return { partyType, partyId, areaSqft: Number(v) };
+                });
+            const supervisorAllocations = Object.entries(amountInputs)
+                .filter(([, v]) => Number(v) > 0)
+                .map(([employeeId, v]) => ({ employeeId, amount: Number(v) }));
             const res = await axios.post(`${url}/api/finance/work-reviews/review`, {
                 workId: reviewTarget.workId, approvedAreaSqft: approvedInput, date: reviewDate,
+                reason: reason.trim(), allocations, supervisorAllocations,
             }, authHeader);
             if (res.data.success) { toast.success(res.data.message); closeReview(); await fetchRows(); }
             else toast.error(res.data.message);
@@ -139,14 +196,10 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
         finally { setSaving(false); }
     };
 
-    const rejectedPreview = reviewTarget && approvedInput !== '' && !Number.isNaN(Number(approvedInput))
-        ? Math.round(((reviewTarget.loggedSqft - Number(approvedInput)) + Number.EPSILON) * 100) / 100
-        : null;
-
     return (
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>
-                Every Work on this project, its logged sqft, and how much of it has been reviewed. Reviewing is what unlocks both Generate Bill's ceiling and every contributing worker's own Approved Earnings — nothing here is billable or payable until it's been looked at. Who's responsible for any rejected portion gets sorted out separately, in Payables.
+                Every Work on this project, its logged sqft, and how much of it has been reviewed. Reviewing is what unlocks both Generate Bill's ceiling and every contributing worker's own Approved Earnings — nothing here is billable or payable until it's been looked at. Whenever some of it is rejected, you'll distribute it to whoever's responsible right here before the review can save.
             </p>
 
             {crossProject && (
@@ -247,7 +300,7 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
                     <div className="loader-modal-box edit-modal">
                         <h2>Review — {reviewTarget.workType}</h2>
                         <p className="admin-subtitle" style={{ margin: '4px 0 16px' }}>
-                            {reviewTarget.loggedSqft} sqft logged in total. Enter how much is approved — whatever's left becomes a rejected pool that Payables will later attribute to whoever's responsible.
+                            {reviewTarget.loggedSqft} sqft logged in total. Enter how much is approved — whatever's left becomes a rejected pool you'll distribute below before this can save.
                         </p>
                         <form onSubmit={submitReview}>
                             <div className="wizard-field-grid">
@@ -262,12 +315,90 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
                             </div>
                             {rejectedPreview !== null && (
                                 <p className="admin-subtitle" style={{ marginTop: '8px', color: rejectedPreview > 0 ? '#c0392b' : 'var(--moss)' }}>
-                                    {rejectedPreview > 0 ? `${rejectedPreview} sqft will be rejected.` : 'Everything logged will be approved.'}
+                                    {rejectedPreview > 0 ? `${rejectedPreview} sqft will be rejected — distribute it below.` : 'Everything logged will be approved.'}
                                 </p>
                             )}
+
+                            {needsDistribution && !loadingParties && (
+                                <div style={{
+                                    margin: '12px 0', padding: '10px 14px', borderRadius: '8px', fontWeight: 700, fontSize: '0.95rem',
+                                    textAlign: 'center',
+                                    background: fullyDistributed ? 'rgba(46,139,87,0.12)' : 'rgba(192,57,43,0.12)',
+                                    color: fullyDistributed ? 'var(--moss)' : '#c0392b',
+                                    border: `1px solid ${fullyDistributed ? 'var(--moss)' : '#c0392b'}`,
+                                }}>
+                                    {fullyDistributed
+                                        ? '✓ Fully distributed'
+                                        : remainingToDistribute > 0
+                                            ? `${remainingToDistribute} sqft still left to distribute`
+                                            : `${Math.abs(remainingToDistribute)} sqft over-allocated — reduce it back to ${rejectedPreview}`}
+                                </div>
+                            )}
+
+                            {needsDistribution && (
+                                loadingParties ? (
+                                    <div className="admin-empty-state"><p>Loading…</p></div>
+                                ) : (
+                                    <>
+                                        <div className="list-table finance-table" style={{ margin: '12px 0' }}>
+                                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.8fr 140px' }}>
+                                                <b>Name</b><b>Type</b><b>Sqft to Deduct</b>
+                                            </div>
+                                            {contractors.map(a => {
+                                                const key = `contractor|${a.contractorVendorId._id}`;
+                                                return (
+                                                    <div key={key} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 140px' }}>
+                                                        <p>{a.contractorVendorId?.name || '—'}</p>
+                                                        <p><span className="item-category">Contractor</span></p>
+                                                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={sqftInputs[key] || ''} onChange={e => setSqftInputs(p => ({ ...p, [key]: e.target.value }))} />
+                                                    </div>
+                                                );
+                                            })}
+                                            {[...new Map(labourers.map(a => [a.labourerId._id, a])).values()].map(a => {
+                                                const key = `labour|${a.labourerId._id}`;
+                                                return (
+                                                    <div key={key} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 140px' }}>
+                                                        <p>{a.labourerId?.name || '—'}</p>
+                                                        <p><span className="item-category">Labour</span></p>
+                                                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={sqftInputs[key] || ''} onChange={e => setSqftInputs(p => ({ ...p, [key]: e.target.value }))} />
+                                                    </div>
+                                                );
+                                            })}
+                                            {contractors.length === 0 && labourers.length === 0 && (
+                                                <div className="admin-empty-state"><p>No contractors or labourers assigned to this work — cannot distribute the rejected sqft, so this review can't be saved.</p></div>
+                                            )}
+                                        </div>
+
+                                        {supervisors.length > 0 && (
+                                            <div className="list-table finance-table" style={{ marginBottom: '12px' }}>
+                                                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.8fr 140px' }}>
+                                                    <b>Name</b><b>Type</b><b>₹ to Deduct (optional)</b>
+                                                </div>
+                                                {supervisors.map(s => (
+                                                    <div key={s.employeeId} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 140px' }}>
+                                                        <p>{s.name}</p>
+                                                        <p><span className="item-category">Supervisor</span></p>
+                                                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={amountInputs[s.employeeId] || ''} onChange={e => setAmountInputs(p => ({ ...p, [s.employeeId]: e.target.value }))} />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <p className="admin-subtitle" style={{ marginBottom: '12px', fontWeight: 600, color: fullyDistributed ? 'var(--moss)' : '#c0392b' }}>
+                                            {fullyDistributed ? 'Fully distributed' : remainingToDistribute > 0 ? `${remainingToDistribute} sqft still left to distribute` : `${Math.abs(remainingToDistribute)} sqft over-allocated`}
+                                        </p>
+
+                                        <div className="add-product-name flex-col wizard-field-full" style={{ marginBottom: '8px' }}>
+                                            <p>Reason *</p>
+                                            <input type="text" value={reason} onChange={e => setReason(e.target.value)} placeholder="What went wrong" />
+                                        </div>
+                                    </>
+                                )
+                            )}
+
                             <div className="edit-modal-actions">
                                 <button type="button" className="add-btn cancel-btn" onClick={closeReview}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save Review'}</button>
+                                <button type="submit" className="add-btn" disabled={saving || loadingParties || (needsDistribution && !fullyDistributed)}>{saving ? 'Saving…' : 'Save Review'}</button>
                             </div>
                         </form>
                     </div>

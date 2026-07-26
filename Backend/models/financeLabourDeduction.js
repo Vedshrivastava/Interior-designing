@@ -42,6 +42,12 @@ const financeLabourDeductionSchema = new mongoose.Schema({
 
     notes: { type: String, default: '' },
 
+    // See financeContractorDeduction.js's identical field for the full
+    // reasoning — stamped with the Work's financeWorkReview.reviewCycle
+    // when this row was created via the atomic review-and-distribute flow;
+    // null for a standalone manual deduction.
+    workReviewCycle: { type: Number, default: null },
+
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },
     deletedBy: { type: String },

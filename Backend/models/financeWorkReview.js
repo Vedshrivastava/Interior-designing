@@ -37,6 +37,22 @@ const financeWorkReviewSchema = new mongoose.Schema({
     // copy of a number something else already owns).
     rejectedAreaSqft: { type: Number, required: true, default: 0 },
 
+    // Bumped by 1 every time reviewWork saves (see controllers/
+    // financeWorkReview.js) — the ONLY reliable way to tell "attribution
+    // for THIS rejection" apart from "attribution for a past, already-
+    // superseded rejection on the same Work." Since this document is
+    // upserted in place (one row per Work, re-review updates it rather
+    // than creating a new one), a Work reviewed twice would otherwise have
+    // no way to distinguish its two rejection pools — a real bug this
+    // fixed: stale financeContractorDeduction/financeLabourDeduction rows
+    // from an earlier rejection silently "covered" a brand new one just
+    // because the sqft happened to add up, letting a review through with
+    // nobody ever actually distributing the new blame. Every deduction
+    // created alongside a review now stamps this same cycle number
+    // (workReviewCycle on those models); attribution only ever counts a
+    // match against the CURRENT cycle.
+    reviewCycle: { type: Number, required: true, default: 0 },
+
     lastReviewedAt: { type: Date },
     lastReviewedBy: { type: String },
 }, { timestamps: true });

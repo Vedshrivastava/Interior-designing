@@ -28,57 +28,51 @@ const categoryIdsWithFlag = async (flagField) => {
     return categories.map(c => c._id);
 };
 
-// Sum of client-direct-payment amounts (category flagged "cut from worker
-// payout") for one contractor/labourer, bucketed per Work — needed
-// wherever a Work's own Approved/Unapproved split has to absorb a specific
-// direct payment correctly (a direct payment is entered against one exact
-// Work, so it must net against THAT Work's own unapproved amount first —
-// pooling it across every Work a party has on a project would let a
-// payment tied to one Work "borrow" absorption capacity from another).
-// Returns Map<workId, amount>; callers do their own unapproved-first split
-// since only they know each Work's own unapproved amount.
-export const getWorkerPayoutDeductionByWork = async (partyType, partyId, workIds) => {
-    const byWork = new Map();
-    if (!workIds.length) return byWork;
+// Flat total of client-direct-payment amounts (category flagged "cut from
+// worker payout", e.g. "Personal Expense") for one contractor/labourer —
+// NOT tied to any one Work's sqft/approval status. This money was never
+// payment for specific measured output (it's an advance — see the model's
+// own notes on real records, "2000 for 10 workers each"), so unlike
+// Advances/Deductions it doesn't net against a Work's unapproved-then-
+// approved split; it's a flat subtraction from Balance Payable, same as
+// any other advance. Optionally scoped to one project — projectId is a
+// required field on this model (never untagged), so this is always an
+// exact filter, never a proportional allocation the way Advances/
+// Deductions handle untagged rows.
+export const getWorkerPayoutTotal = async (partyType, partyId, projectId) => {
     const categoryIds = await categoryIdsWithFlag('deductFromWorkerPayout');
-    if (!categoryIds.length) return byWork;
-    const rows = await FinanceClientDirectPayment.find(
-        { partyType, partyId, workId: { $in: workIds }, categoryId: { $in: categoryIds }, deleted: { $ne: true } },
-        'workId amount'
-    );
-    for (const r of rows) {
-        const key = r.workId.toString();
-        byWork.set(key, (byWork.get(key) || 0) + r.amount);
-    }
-    return byWork;
+    if (!categoryIds.length) return 0;
+    const filter = { partyType, partyId, categoryId: { $in: categoryIds }, deleted: { $ne: true } };
+    if (projectId) filter.projectId = projectId;
+    const rows = await FinanceClientDirectPayment.find(filter, 'amount');
+    return rows.reduce((sum, r) => sum + r.amount, 0);
 };
 
-// Company-wide bulk variant — every direct payment across a set of Works
-// (the Dashboard's live operational widget spans every non-completed Work
-// at once), split into a contractor map and a labour map, each keyed by
-// `${workId}_${partyId}` to match computeDashboardApprovedBreakdown's own
-// per-(work,party) accumulation keys.
-export const getWorkerPayoutDeductionsBulk = async (workIds) => {
-    const empty = { contractorByWorkParty: new Map(), labourByWorkParty: new Map() };
-    if (!workIds.length) return empty;
+// Bulk sibling of getWorkerPayoutTotal — every party of one type at once
+// (company-wide, or scoped to one project), for callers that need every
+// contractor's/labourer's own flat total in one query instead of one call
+// per party. Returns Map<partyId, amount>.
+export const getWorkerPayoutTotalsBulk = async (partyType, projectId) => {
+    const totals = new Map();
     const categoryIds = await categoryIdsWithFlag('deductFromWorkerPayout');
-    if (!categoryIds.length) return empty;
-    const rows = await FinanceClientDirectPayment.find(
-        { workId: { $in: workIds }, categoryId: { $in: categoryIds }, deleted: { $ne: true } },
-        'workId partyType partyId amount'
-    );
+    if (!categoryIds.length) return totals;
+    const filter = { partyType, categoryId: { $in: categoryIds }, deleted: { $ne: true } };
+    if (projectId) filter.projectId = projectId;
+    const rows = await FinanceClientDirectPayment.find(filter, 'partyId amount');
     for (const r of rows) {
-        const key = `${r.workId}_${r.partyId}`;
-        const map = r.partyType === 'contractor' ? empty.contractorByWorkParty : empty.labourByWorkParty;
-        map.set(key, (map.get(key) || 0) + r.amount);
+        const key = r.partyId.toString();
+        totals.set(key, (totals.get(key) || 0) + r.amount);
     }
-    return empty;
+    return totals;
 };
 
-// Inverse of getWorkerPayoutDeductionByWork — one Work, every party that
-// has a direct payment against it (a Work Detail page needs this since it
-// shows every contributing contractor/labourer at once, not one party at a
-// time). Returns Map<`${partyType}_${partyId}`, amount>.
+// One Work, every party that has a direct payment recorded against it (a
+// Work Detail page needs this since it shows every contributing
+// contractor/labourer at once, not one party at a time) — informational
+// only now (see getWorkerPayoutTotal's comment: this money doesn't net
+// against the Work's own approved/unapproved split anymore), just "here's
+// what was recorded while working on this Work" context. Returns
+// Map<`${partyType}_${partyId}`, amount>.
 export const getWorkerPayoutDeductionsForWork = async (workId) => {
     const byParty = new Map();
     const categoryIds = await categoryIdsWithFlag('deductFromWorkerPayout');

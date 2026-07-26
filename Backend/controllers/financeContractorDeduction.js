@@ -106,4 +106,4 @@ const removeContractorDeduction = async (req, res) => {
     }
 };
 
-export { listContractorDeductions, addContractorDeduction, updateContractorDeduction, removeContractorDeduction };
+export { listContractorDeductions, addContractorDeduction, updateContractorDeduction, removeContractorDeduction, resolveContractorDeductionAmount };

@@ -22,6 +22,16 @@ const financeContractorDeductionSchema = new mongoose.Schema({
     date:   { type: Date, required: true },
     notes:  { type: String, default: '' },
 
+    // Set only when this row was created as part of a Work's atomic
+    // review-and-distribute flow (financeWorkReview.js's reviewWork) —
+    // stamped with that Work's financeWorkReview.reviewCycle AT THE TIME
+    // this deduction was saved, so attribution checks can tell "covers the
+    // current rejection" apart from "leftover from an earlier, already-
+    // superseded one." `null` for a deduction entered manually outside
+    // that flow (a Ledger's own "+ Add Deduction") — those are standalone
+    // corrections, never meant to satisfy the attribution gate.
+    workReviewCycle: { type: Number, default: null },
+
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },
     deletedBy: { type: String },

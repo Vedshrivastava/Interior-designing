@@ -8,6 +8,7 @@ import FinanceStockMovement from '../models/financeStockMovement.js';
 import FinanceProject from '../models/financeProject.js';
 import FinanceRunningBill from '../models/financeRunningBill.js';
 import FinanceReceipt from '../models/financeReceipt.js';
+import { summarizeProject } from './financeReceivable.js';
 import FinanceClient from '../models/financeClient.js';
 import FinanceVendor from '../models/financeVendor.js';
 import FinanceReferral from '../models/financeReferral.js';
@@ -243,10 +244,14 @@ const checkOverdueReceivables = async (settings) => {
     for (const project of projects) {
         const issuedBills = await FinanceRunningBill.find({ projectId: project._id, status: 'issued', deleted: { $ne: true } }).sort({ billDate: 1 });
         if (issuedBills.length === 0) continue;
-        const issuedTotal = issuedBills.reduce((sum, b) => sum + b.totalAmount, 0);
-        const receipts = await FinanceReceipt.find({ projectId: project._id, deleted: { $ne: true } });
-        const receivedTotal = receipts.reduce((sum, r) => sum + r.amount, 0);
-        const balance = issuedTotal - receivedTotal;
+        // Same formula Receivables/Dashboard/Client Detail all use
+        // (summarizeProject) — GST-inclusive issuedTotal, net of both
+        // receipts and client direct payments. This used to be its own
+        // issuedTotal(totalAmount only) - receivedTotal calc, which both
+        // understated the true billed amount by the GST portion and never
+        // credited direct payments, so a project fully settled via direct
+        // payment could still fire a false "overdue" alert.
+        const { balance } = await summarizeProject(project);
         if (balance <= 0) continue;
 
         const oldestBill = issuedBills[0];

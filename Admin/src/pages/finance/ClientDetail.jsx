@@ -264,7 +264,7 @@ const ClientBillsTab = ({ url, clientId }) => {
                     <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${b.projectId}`)}>{b.projectName}</p>
                     <p>#{b.billNumber}</p>
                     <p>{new Date(b.billDate).toLocaleDateString()}</p>
-                    <p>₹{b.totalAmount.toLocaleString('en-IN')}</p>
+                    <p>₹{(b.totalAmount + (b.gstAmount || 0)).toLocaleString('en-IN')}</p>
                     <p><span className="item-category">{BILL_STATUS_LABEL[b.status]}</span></p>
                     <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
                         <DownloadButton
@@ -311,7 +311,7 @@ const ClientReceiptsTab = ({ url, clientId }) => {
 const useMergedFeed = (url, clientId) => {
     const { bills, receipts, loading } = useClientBillsAndReceipts(url, clientId);
     const feed = [
-        ...bills.filter(b => b.status === 'issued').map(b => ({ type: 'bill', date: b.billDate, amount: b.totalAmount, label: `Bill #${b.billNumber} issued · ${b.projectName}` })),
+        ...bills.filter(b => b.status === 'issued').map(b => ({ type: 'bill', date: b.billDate, amount: b.totalAmount + (b.gstAmount || 0), label: `Bill #${b.billNumber} issued · ${b.projectName}` })),
         ...receipts.map(r => ({ type: 'receipt', date: r.receiptDate, amount: r.amount, label: `Receipt received${r.paymentMode ? ` (${r.paymentMode})` : ''}` })),
     ];
     return { feed, loading };

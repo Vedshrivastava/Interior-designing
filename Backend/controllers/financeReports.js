@@ -932,7 +932,7 @@ const splitApprovedAreaByShare = (approvedAreaSqft, partyArea, totalAreaAllParti
 // only the rejected slice itself should never double up on top of it).
 const getCategoryApprovedAreaByWorkId = async (workIds) => {
     if (!workIds.length) return new Map();
-    const [approvedByWorkId, contractorAgg, labourAgg] = await Promise.all([
+    const [approvedByWorkId, contractorAgg, labourAgg, reviews, contractorDeductions, labourDeductions] = await Promise.all([
         getApprovedBillingByWorkId(workIds),
         FinanceMeasurement.aggregate([
             { $match: { workId: { $in: workIds }, deleted: { $ne: true } } },
@@ -942,9 +942,61 @@ const getCategoryApprovedAreaByWorkId = async (workIds) => {
             { $match: { workId: { $in: workIds }, deleted: { $ne: true } } },
             { $group: { _id: '$workId', total: { $sum: '$areaCoveredSqft' } } },
         ]),
+        FinanceWorkReview.find({ workId: { $in: workIds } }, 'workId reviewCycle'),
+        // Exact, deliberate per-vendor blame for a rejection — see below.
+        FinanceContractorDeduction.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId vendorId areaSqft workReviewCycle'),
+        FinanceLabourDeduction.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId labourerId areaSqft workReviewCycle'),
     ]);
     const contractorTotalByWorkId = new Map(contractorAgg.map(r => [r._id.toString(), r.total]));
     const labourTotalByWorkId = new Map(labourAgg.map(r => [r._id.toString(), r.total]));
+    const cycleByWorkId = new Map(reviews.map(r => [r.workId.toString(), r.reviewCycle]));
+
+    // BUG FIX: every caller below used to split a Work's rejected sqft
+    // across its contributing vendors/labourers by PROPORTION OF LOGGED
+    // AREA (splitApprovedAreaByShare) — a guess. But since the atomic
+    // review-and-distribute flow (reviewWork in financeWorkReview.js) now
+    // *requires* the reviewer to say exactly whose sqft was rejected
+    // (FinanceContractorDeduction/FinanceLabourDeduction, each stamped with
+    // workReviewCycle), that exact answer already exists — the proportional
+    // guess was silently overriding it, then callers that also apply the
+    // deduction row's ₹ amount against a vendor's Balance Payable were
+    // effectively docking that vendor twice for the same rejection (once
+    // via the wrong guessed share, again via the real deduction), while any
+    // OTHER vendor on the same Work absorbed a share of the rejection they
+    // were never actually blamed for.
+    //
+    // A row only counts as this exact answer when its workReviewCycle
+    // matches the Work's CURRENT review cycle — a row from a superseded
+    // cycle (the review was redone) or a genuinely standalone manual
+    // deduction (workReviewCycle: null, added directly from the Contractor/
+    // Labour Ledger, unrelated to any review) is not "the current
+    // rejection's attribution" and must not feed this. Below, "complete"
+    // additionally requires the exact rows for a Work to sum to exactly
+    // that Work's own category-level rejected sqft — anything less (a
+    // legacy review from before this mechanism existed) falls back to the
+    // proportional guess exactly as before, rather than under-attributing.
+    const exactContractorRejectedByWork = new Map(); // workId -> Map(vendorId -> area)
+    const exactContractorSumByWork = new Map();
+    for (const d of contractorDeductions) {
+        const workKey = d.workId.toString();
+        if (d.workReviewCycle == null || d.workReviewCycle !== cycleByWorkId.get(workKey)) continue;
+        if (!exactContractorRejectedByWork.has(workKey)) exactContractorRejectedByWork.set(workKey, new Map());
+        const m = exactContractorRejectedByWork.get(workKey);
+        const vKey = d.vendorId.toString();
+        m.set(vKey, (m.get(vKey) || 0) + (d.areaSqft || 0));
+        exactContractorSumByWork.set(workKey, (exactContractorSumByWork.get(workKey) || 0) + (d.areaSqft || 0));
+    }
+    const exactLabourRejectedByWork = new Map();
+    const exactLabourSumByWork = new Map();
+    for (const d of labourDeductions) {
+        const workKey = d.workId.toString();
+        if (d.workReviewCycle == null || d.workReviewCycle !== cycleByWorkId.get(workKey)) continue;
+        if (!exactLabourRejectedByWork.has(workKey)) exactLabourRejectedByWork.set(workKey, new Map());
+        const m = exactLabourRejectedByWork.get(workKey);
+        const lKey = d.labourerId.toString();
+        m.set(lKey, (m.get(lKey) || 0) + (d.areaSqft || 0));
+        exactLabourSumByWork.set(workKey, (exactLabourSumByWork.get(workKey) || 0) + (d.areaSqft || 0));
+    }
 
     const result = new Map();
     for (const workId of workIds) {
@@ -955,13 +1007,46 @@ const getCategoryApprovedAreaByWorkId = async (workIds) => {
         const contractorTotal = contractorTotalByWorkId.get(key) || 0;
         const labourTotal = labourTotalByWorkId.get(key) || 0;
         const combinedTotal = contractorTotal + labourTotal;
+
+        // The exact per-vendor/per-labourer rows just gathered also settle
+        // how much of the rejection belongs to the contractor category vs.
+        // the labour category in the first place — checked against the
+        // review's own real rejectedAreaSqft (authoritative), not against a
+        // proportional guess (a work with, say, one contractor and one
+        // labourer sharing a rejection almost never splits it exactly by
+        // logged-area share, so comparing the exact sum against that guess
+        // would nearly always — wrongly — read as "incomplete").
+        const exactContractorMap = exactContractorRejectedByWork.get(key) || null;
+        const exactLabourMap = exactLabourRejectedByWork.get(key) || null;
+        const exactContractorSum = exactContractorSumByWork.get(key) || 0;
+        const exactLabourSum = exactLabourSumByWork.get(key) || 0;
+        const exactWorkComplete = (exactContractorMap || exactLabourMap)
+            && Math.abs((exactContractorSum + exactLabourSum) - workRejectedAreaSqft) < 0.01;
+
+        const contractorRejectedAreaSqft = exactWorkComplete
+            ? exactContractorSum
+            : splitApprovedAreaByShare(workRejectedAreaSqft, contractorTotal, combinedTotal);
+        const labourRejectedAreaSqft = exactWorkComplete
+            ? exactLabourSum
+            : splitApprovedAreaByShare(workRejectedAreaSqft, labourTotal, combinedTotal);
+
         result.set(key, {
-            contractorApprovedAreaSqft: splitApprovedAreaByShare(workApprovedAreaSqft, contractorTotal, combinedTotal),
-            labourApprovedAreaSqft: splitApprovedAreaByShare(workApprovedAreaSqft, labourTotal, combinedTotal),
-            contractorRejectedAreaSqft: splitApprovedAreaByShare(workRejectedAreaSqft, contractorTotal, combinedTotal),
-            labourRejectedAreaSqft: splitApprovedAreaByShare(workRejectedAreaSqft, labourTotal, combinedTotal),
+            contractorApprovedAreaSqft: exactWorkComplete
+                ? round2(contractorTotal - contractorRejectedAreaSqft)
+                : splitApprovedAreaByShare(workApprovedAreaSqft, contractorTotal, combinedTotal),
+            labourApprovedAreaSqft: exactWorkComplete
+                ? round2(labourTotal - labourRejectedAreaSqft)
+                : splitApprovedAreaByShare(workApprovedAreaSqft, labourTotal, combinedTotal),
+            contractorRejectedAreaSqft, labourRejectedAreaSqft,
             heldForAttribution: billing?.heldForAttribution || false,
             date: billing?.date || null,
+            // Exact per-vendor/per-labourer rejected sqft when the atomic
+            // review's own distribution fully accounts for this Work's
+            // rejection this cycle — null means "no exact answer, fall back
+            // to the proportional guess" (splitApprovedAreaByShare), same
+            // as every caller already did before this existed.
+            contractorExactRejectedByVendor: exactWorkComplete ? (exactContractorMap || new Map()) : null,
+            labourExactRejectedByLabourer: exactWorkComplete ? (exactLabourMap || new Map()) : null,
         });
     }
     return result;
@@ -1127,8 +1212,9 @@ const computeWorkProfit = async (work) => {
     const {
         contractorApprovedAreaSqft, labourApprovedAreaSqft,
         contractorRejectedAreaSqft, labourRejectedAreaSqft,
+        contractorExactRejectedByVendor, labourExactRejectedByLabourer,
     } = (await getCategoryApprovedAreaByWorkId([work._id])).get(work._id.toString())
-        || { contractorApprovedAreaSqft: 0, labourApprovedAreaSqft: 0, contractorRejectedAreaSqft: 0, labourRejectedAreaSqft: 0 };
+        || { contractorApprovedAreaSqft: 0, labourApprovedAreaSqft: 0, contractorRejectedAreaSqft: 0, labourRejectedAreaSqft: 0, contractorExactRejectedByVendor: null, labourExactRejectedByLabourer: null };
     const directPaymentsForWork = await getWorkerPayoutDeductionsForWork(work._id);
     const measurements = await FinanceMeasurement.find({ workId: work._id, deleted: { $ne: true } });
     const areaByVendor = new Map(); // contractorVendorId -> totalArea
@@ -1160,11 +1246,18 @@ const computeWorkProfit = async (work) => {
         for (const [vendorId, totalArea] of areaByVendor) {
             const rate = rateByVendor.get(vendorId);
             const perUnit = rate ? (rate.ratePerSqft) : 0;
-            const approvedArea = splitApprovedAreaByShare(contractorApprovedAreaSqft, totalArea, totalVendorArea);
             // A rejection is final, already-reviewed — this vendor's own
             // share of it must not sit in Unapproved forever. See
-            // getCategoryApprovedAreaByWorkId's header comment.
-            const rejectedArea = splitApprovedAreaByShare(contractorRejectedAreaSqft, totalArea, totalVendorArea);
+            // getCategoryApprovedAreaByWorkId's header comment. Prefer the
+            // exact, deliberate per-vendor attribution from the atomic
+            // review's own distribution over the proportional guess
+            // whenever it's available.
+            const rejectedArea = contractorExactRejectedByVendor
+                ? (contractorExactRejectedByVendor.get(vendorId) || 0)
+                : splitApprovedAreaByShare(contractorRejectedAreaSqft, totalArea, totalVendorArea);
+            const approvedArea = contractorExactRejectedByVendor
+                ? round2(totalArea - rejectedArea)
+                : splitApprovedAreaByShare(contractorApprovedAreaSqft, totalArea, totalVendorArea);
             const unapprovedArea = round2(Math.max(0, totalArea - approvedArea - rejectedArea));
             const totalAmount = round2(totalArea * perUnit);
             const approvedAmount = round2(approvedArea * perUnit);
@@ -1224,11 +1317,18 @@ const computeWorkProfit = async (work) => {
         for (const [labourerId, totalArea] of areaByLabourer) {
             const rate = rateByLabourer.get(labourerId);
             const perUnit = rate ? rate.ratePerSqft : 0;
-            const approvedArea = splitApprovedAreaByShare(labourApprovedAreaSqft, totalArea, totalLabourerArea);
             // A rejection is final, already-reviewed — this labourer's own
             // share of it must not sit in Unapproved forever. See
-            // getCategoryApprovedAreaByWorkId's header comment.
-            const rejectedArea = splitApprovedAreaByShare(labourRejectedAreaSqft, totalArea, totalLabourerArea);
+            // getCategoryApprovedAreaByWorkId's header comment. Prefer the
+            // exact, deliberate per-labourer attribution from the atomic
+            // review's own distribution over the proportional guess
+            // whenever it's available.
+            const rejectedArea = labourExactRejectedByLabourer
+                ? (labourExactRejectedByLabourer.get(labourerId) || 0)
+                : splitApprovedAreaByShare(labourRejectedAreaSqft, totalArea, totalLabourerArea);
+            const approvedArea = labourExactRejectedByLabourer
+                ? round2(totalArea - rejectedArea)
+                : splitApprovedAreaByShare(labourApprovedAreaSqft, totalArea, totalLabourerArea);
             const unapprovedArea = round2(Math.max(0, totalArea - approvedArea - rejectedArea));
             const totalAmount = round2(totalArea * perUnit);
             const approvedAmount = round2(approvedArea * perUnit);
@@ -1772,12 +1872,20 @@ const computeContractorAnalysisRows = async (projectId) => {
 
             const categoryEntry = categoryApprovedByWorkId.get(workKey);
             const workApprovedArea = categoryEntry?.contractorApprovedAreaSqft || 0;
-            const vendorApprovedArea = splitApprovedAreaByShare(workApprovedArea, vendorArea, totalAreaByWork.get(workKey) || 0);
             // A rejection is final, already-reviewed — this vendor's own
             // share of it must not sit in Unapproved forever. See
-            // getCategoryApprovedAreaByWorkId's header comment.
+            // getCategoryApprovedAreaByWorkId's header comment. Prefer the
+            // exact, deliberate per-vendor attribution from the atomic
+            // review's own distribution over the proportional guess
+            // whenever it's available (see that function's own comment on
+            // why the guess used to silently double-count against it).
             const workRejectedArea = categoryEntry?.contractorRejectedAreaSqft || 0;
-            const vendorRejectedArea = splitApprovedAreaByShare(workRejectedArea, vendorArea, totalAreaByWork.get(workKey) || 0);
+            const vendorRejectedArea = categoryEntry?.contractorExactRejectedByVendor
+                ? (categoryEntry.contractorExactRejectedByVendor.get(v._id.toString()) || 0)
+                : splitApprovedAreaByShare(workRejectedArea, vendorArea, totalAreaByWork.get(workKey) || 0);
+            const vendorApprovedArea = categoryEntry?.contractorExactRejectedByVendor
+                ? round2(vendorArea - vendorRejectedArea)
+                : splitApprovedAreaByShare(workApprovedArea, vendorArea, totalAreaByWork.get(workKey) || 0);
             const vendorUnapprovedArea = Math.max(0, vendorArea - vendorApprovedArea - vendorRejectedArea);
             totalEarnings += workEarningsGross;
             earnings += vendorApprovedArea * rate.ratePerSqft;
@@ -1798,11 +1906,19 @@ const computeContractorAnalysisRows = async (projectId) => {
         // their gross earnings — deterministic, and the sum of every
         // project's own balancePayable (if added up) always equals this
         // vendor's true company-wide balance, same as the unscoped call.
-        const [advances, deductions, payments] = await Promise.all([
+        const [advances, allDeductions, payments] = await Promise.all([
             FinanceContractorAdvance.find({ vendorId: v._id, deleted: { $ne: true } }),
             FinanceContractorDeduction.find({ vendorId: v._id, deleted: { $ne: true } }),
             FinanceContractorPayment.find({ vendorId: v._id, deleted: { $ne: true } }),
         ]);
+        // A row with a workReviewCycle set is the atomic review's own exact
+        // rejection attribution (see getCategoryApprovedAreaByWorkId) — its
+        // ₹ impact is already reflected above via vendorApprovedArea, so
+        // counting it again here would deduct it twice. A row from a
+        // superseded cycle (the review was redone) shouldn't count at all —
+        // only a genuinely standalone manual deduction (workReviewCycle:
+        // null, added directly from the Contractor Ledger) belongs here.
+        const deductions = allDeductions.filter(d => d.workReviewCycle == null);
         // `field` defaults to 'amount'; also reused for 'tdsAmount' below —
         // an untagged payment's TDS gets the same proportional share as the
         // payment amount itself, for the same reasoning.
@@ -1915,12 +2031,19 @@ const computeLabourAnalysisRows = async (projectId) => {
 
             const categoryEntry = categoryApprovedByWorkId.get(workKey);
             const workApprovedArea = categoryEntry?.labourApprovedAreaSqft || 0;
-            const labourerApprovedArea = splitApprovedAreaByShare(workApprovedArea, labourerArea, totalAreaByWork.get(workKey) || 0);
             // A rejection is final, already-reviewed — this labourer's own
             // share of it must not sit in Unapproved forever. See
-            // getCategoryApprovedAreaByWorkId's header comment.
+            // getCategoryApprovedAreaByWorkId's header comment. Prefer the
+            // exact, deliberate per-labourer attribution from the atomic
+            // review's own distribution over the proportional guess
+            // whenever it's available.
             const workRejectedArea = categoryEntry?.labourRejectedAreaSqft || 0;
-            const labourerRejectedArea = splitApprovedAreaByShare(workRejectedArea, labourerArea, totalAreaByWork.get(workKey) || 0);
+            const labourerRejectedArea = categoryEntry?.labourExactRejectedByLabourer
+                ? (categoryEntry.labourExactRejectedByLabourer.get(l._id.toString()) || 0)
+                : splitApprovedAreaByShare(workRejectedArea, labourerArea, totalAreaByWork.get(workKey) || 0);
+            const labourerApprovedArea = categoryEntry?.labourExactRejectedByLabourer
+                ? round2(labourerArea - labourerRejectedArea)
+                : splitApprovedAreaByShare(workApprovedArea, labourerArea, totalAreaByWork.get(workKey) || 0);
             const labourerUnapprovedArea = Math.max(0, labourerArea - labourerApprovedArea - labourerRejectedArea);
             totalEarnings += workEarningsGross;
             earnings += labourerApprovedArea * rate.ratePerSqft;
@@ -1934,11 +2057,14 @@ const computeLabourAnalysisRows = async (projectId) => {
         // Always company-wide — see computeContractorAnalysisRows' identical
         // comment (financeLabourAdvance/Deduction/Payment.projectId is just
         // as optional).
-        const [advances, deductions, payments] = await Promise.all([
+        const [advances, allDeductions, payments] = await Promise.all([
             FinanceLabourAdvance.find({ labourerId: l._id, deleted: { $ne: true } }),
             FinanceLabourDeduction.find({ labourerId: l._id, deleted: { $ne: true } }),
             FinanceLabourPayment.find({ labourerId: l._id, deleted: { $ne: true } }),
         ]);
+        // See computeContractorAnalysisRows' identical comment — a
+        // workReviewCycle-tagged row is already reflected in earnings above.
+        const deductions = allDeductions.filter(d => d.workReviewCycle == null);
         // See computeContractorAnalysisRows' identical comment.
         const allocate = (rows, field = 'amount') => {
             if (!projectId) return rows.reduce((s, r) => s + (r[field] || 0), 0);
@@ -2851,7 +2977,7 @@ const bucketForAgeDays = (days) => (days <= 30 ? '0-30' : days <= 60 ? '30-60' :
 // payment not tied to one bill) reduce the oldest still-open bill first —
 // `bills` must already be sorted oldest-first by billDate.
 const computeBillBalances = (bills, receipts) => {
-    const balances = new Map(bills.map(b => [b._id.toString(), b.totalAmount]));
+    const balances = new Map(bills.map(b => [b._id.toString(), b.totalAmount + (b.gstAmount || 0)]));
     for (const r of receipts) {
         if (r.runningBillId && balances.has(r.runningBillId.toString())) {
             const key = r.runningBillId.toString();
@@ -3164,7 +3290,7 @@ const getProjectCompletionReadiness = async (projectId) => {
     // client yet, let alone paid.
     const draftBills = await FinanceRunningBill.find({ projectId, status: 'draft', deleted: { $ne: true } });
     if (draftBills.length) {
-        const draftTotal = round2(draftBills.reduce((s, b) => s + b.totalAmount, 0));
+        const draftTotal = round2(draftBills.reduce((s, b) => s + b.totalAmount + (b.gstAmount || 0), 0));
         blockers.push({ category: 'draft_bills', label: `${draftBills.length} draft bill${draftBills.length === 1 ? '' : 's'} never issued to the client`, amount: draftTotal });
     }
 
@@ -3628,7 +3754,7 @@ const computeClientsSummaryRows = async () => {
             FinanceReceipt.find({ projectId: { $in: projectIds }, deleted: { $ne: true } }),
             Promise.all(projects.map(summarizeProject)),
         ]) : [[], [], []];
-        const totalBilled = bills.reduce((s, b) => s + b.totalAmount, 0);
+        const totalBilled = bills.reduce((s, b) => s + b.totalAmount + (b.gstAmount || 0), 0);
         const totalReceived = receipts.reduce((s, r) => s + r.amount, 0);
         // outstanding/clientCreditBalance come from summarizeProject
         // (per-project, each already clamped at 0) summed here — not
@@ -3689,7 +3815,7 @@ const getClientDetail = async (req, res) => {
             FinanceReceipt.find({ projectId: { $in: projectIds }, deleted: { $ne: true } }).sort({ receiptDate: -1 }),
             Promise.all(billableProjects.map(summarizeProject)),
         ]);
-        const totalBilled = bills.reduce((s, b) => s + b.totalAmount, 0);
+        const totalBilled = bills.reduce((s, b) => s + b.totalAmount + (b.gstAmount || 0), 0);
         const totalReceived = receipts.reduce((s, r) => s + r.amount, 0);
         const summaryByProjectId = new Map(summaries.map(s => [s.projectId.toString(), s]));
         // Client-wide outstanding/credit summed from each project's own
@@ -3701,7 +3827,7 @@ const getClientDetail = async (req, res) => {
         const projectsSummary = billableProjects.map(p => {
             const pBills = bills.filter(b => b.projectId.toString() === p._id.toString());
             const pReceipts = receipts.filter(r => r.projectId.toString() === p._id.toString());
-            const billed = pBills.reduce((s, b) => s + b.totalAmount, 0);
+            const billed = pBills.reduce((s, b) => s + b.totalAmount + (b.gstAmount || 0), 0);
             const received = pReceipts.reduce((s, r) => s + r.amount, 0);
             const summary = summaryByProjectId.get(p._id.toString());
             return {

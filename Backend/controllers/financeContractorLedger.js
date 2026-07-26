@@ -140,13 +140,19 @@ const computeContractorLedger = async (vendorId, projectId) => {
         const rateValue = rate ? rate.ratePerSqft : 0;
         const categoryEntry = categoryApprovedByWorkId.get(workKey);
         const contractorApprovedAreaSqft = categoryEntry?.contractorApprovedAreaSqft || 0;
-        const approvedArea = splitApprovedAreaByShare(contractorApprovedAreaSqft, totalArea, allVendorsArea);
         // A rejection is a FINAL, already-reviewed decision — this vendor's
         // own share of it must not sit in Unapproved forever just because
         // it was never re-labeled Approved. See getCategoryApprovedAreaByWorkId's
-        // header comment.
+        // header comment. Prefer the exact, deliberate per-vendor
+        // attribution from the atomic review's own distribution over the
+        // proportional guess whenever it's available.
         const contractorRejectedAreaSqft = categoryEntry?.contractorRejectedAreaSqft || 0;
-        const rejectedArea = splitApprovedAreaByShare(contractorRejectedAreaSqft, totalArea, allVendorsArea);
+        const rejectedArea = categoryEntry?.contractorExactRejectedByVendor
+            ? (categoryEntry.contractorExactRejectedByVendor.get(vendorId.toString()) || 0)
+            : splitApprovedAreaByShare(contractorRejectedAreaSqft, totalArea, allVendorsArea);
+        const approvedArea = categoryEntry?.contractorExactRejectedByVendor
+            ? round2(totalArea - rejectedArea)
+            : splitApprovedAreaByShare(contractorApprovedAreaSqft, totalArea, allVendorsArea);
         const unapprovedArea = round2(Math.max(0, totalArea - approvedArea - rejectedArea));
         const totalAmount = round2(rate ? totalArea * rateValue : 0);
         const earnings = round2(rate ? approvedArea * rateValue : 0);
@@ -172,11 +178,17 @@ const computeContractorLedger = async (vendorId, projectId) => {
 
     const moneyFilter = { vendorId, deleted: { $ne: true } };
     if (projectId) moneyFilter.projectId = projectId;
-    const [advances, deductions, payments] = await Promise.all([
+    const [advances, allDeductions, payments] = await Promise.all([
         FinanceContractorAdvance.find(moneyFilter).sort({ date: -1 }),
         FinanceContractorDeduction.find(moneyFilter).sort({ date: -1 }),
         FinanceContractorPayment.find(moneyFilter).populate('bankAccountId', 'accountName').populate('tdsSectionId', 'name code').sort({ date: -1 }),
     ]);
+    // A workReviewCycle-tagged row is the atomic review's own exact
+    // rejection attribution — already reflected above via approvedArea, so
+    // it isn't a separate Deduction here (would double-count it). Only a
+    // genuinely standalone manual deduction (workReviewCycle: null) is.
+    // See getCategoryApprovedAreaByWorkId's own comment for the full story.
+    const deductions = allDeductions.filter(d => d.workReviewCycle == null);
 
     const advancesTotal = advances.reduce((sum, a) => sum + a.amount, 0);
     const deductionsTotal = deductions.reduce((sum, d) => sum + d.amount, 0);

@@ -156,7 +156,7 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                                             <StyledSelect
                                                 value={form.runningBillId} onChange={v => setField('runningBillId', v)}
                                                 placeholder="Not tied to a specific bill"
-                                                options={issuedBills.map(b => ({ value: b._id, label: `#${b.billNumber} · ₹${b.totalAmount.toLocaleString('en-IN')}` }))}
+                                                options={issuedBills.map(b => ({ value: b._id, label: `#${b.billNumber} · ₹${(b.totalAmount + (b.gstAmount || 0)).toLocaleString('en-IN')}` }))}
                                             />
                                         </div>
                                         <div className="add-product-name flex-col">

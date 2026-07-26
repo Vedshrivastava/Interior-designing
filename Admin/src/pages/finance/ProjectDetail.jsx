@@ -119,6 +119,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
             const sumNegative = (rows, key) => round2(rows.reduce((s, r) => s + Math.max(0, -r[key]), 0));
             const sumPlain = (rows, key) => round2(rows.reduce((s, r) => s + (r[key] || 0), 0));
             setPayables({
+                expenseCount: expenseRes.data.success ? expenseRes.data.data.length : 0,
                 vendorPaymentLeft: vendorRes.data.success ? sumPositive(vendorRes.data.data, 'amountOwed') : 0,
                 contractorBalancePayable: contractorRes.data.success ? sumPositive(contractorRes.data.data, 'balancePayable') : 0,
                 labourBalancePayable: labourRes.data.success ? sumPositive(labourRes.data.data, 'balancePayable') : 0,
@@ -194,19 +195,32 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
     return (
         <div>
             <KpiGrid>
-                <KpiCard label="Revenue" value={formatINR(profit.revenue)} />
-                <KpiCard label="Material Cost" value={formatINR(profit.materialCost)} />
+                <KpiCard label="Revenue" value={formatINR(profit.revenue)}
+                    sub={receivable ? `${receivable.issuedBillCount} bill${receivable.issuedBillCount === 1 ? '' : 's'} issued to date` : undefined} />
+                <KpiCard label="Material Cost" value={formatINR(profit.materialCost)}
+                    sub={materials.length > 0 ? `${materials.length} material${materials.length === 1 ? '' : 's'} tracked` : undefined} />
                 <KpiCard label="Material Waste Cost" value={formatINR(profit.materialWasteCost)} tone={profit.materialWasteCost > 0 ? 'danger' : undefined}
                     sub="Wasted material at the same rate it was bought — a real loss, already counted in Profit" />
                 <KpiCard label="Contractor Cost" value={formatINR(profit.contractorCost)}
-                    sub={profit.approvedContractorAreaSqft > 0 ? `${profit.approvedContractorAreaSqft.toLocaleString('en-IN')} sqft approved` : undefined} />
-                <KpiCard label="Commission Cost" value={formatINR(profit.commissionCost)} />
+                    sub={[
+                        profit.approvedContractorAreaSqft > 0 ? `${profit.approvedContractorAreaSqft.toLocaleString('en-IN')} sqft approved` : null,
+                        profit.unapprovedContractorCost === 0 && profit.rejectedContractorCost > 0 ? `${formatINR(profit.rejectedContractorCost)} rejected (already settled)` : null,
+                    ].filter(Boolean).join('  ') || undefined} />
+                <KpiCard label="Commission Cost" value={formatINR(profit.commissionCost)}
+                    sub={profit.unapprovedCommissionCost === 0 && profit.rejectedCommissionCost > 0
+                        ? `${formatINR(profit.rejectedCommissionCost)} rejected (already settled)`
+                        : (profit.unapprovedCommissionCost > 0 ? `Total logged: ${formatINR(profit.totalCommissionCost)}` : undefined)} />
                 <KpiCard label="Labour Cost" value={formatINR(profit.labourCost)}
-                    sub={profit.approvedLabourAreaSqft > 0 ? `${profit.approvedLabourAreaSqft.toLocaleString('en-IN')} sqft approved` : undefined} />
-                <KpiCard label="Other Expenses" value={formatINR(profit.otherExpenses)} />
+                    sub={[
+                        profit.approvedLabourAreaSqft > 0 ? `${profit.approvedLabourAreaSqft.toLocaleString('en-IN')} sqft approved` : null,
+                        profit.unapprovedLabourCost === 0 && profit.rejectedLabourCost > 0 ? `${formatINR(profit.rejectedLabourCost)} rejected (already settled)` : null,
+                    ].filter(Boolean).join('  ') || undefined} />
+                <KpiCard label="Other Expenses" value={formatINR(profit.otherExpenses)}
+                    sub={payables?.expenseCount > 0 ? `${payables.expenseCount} expense${payables.expenseCount === 1 ? '' : 's'} recorded` : undefined} />
                 <KpiCard label="Profit" value={formatINR(profit.profit)} tone={profit.profit >= 0 ? 'good' : 'danger'}
                     sub={`Revenue ${formatINR(profit.revenue)} − Costs ${formatINR(profit.materialCost + profit.materialWasteCost + profit.contractorCost + profit.commissionCost + profit.labourCost + profit.otherExpenses)}`} />
-                <KpiCard label="Margin %" value={`${Math.round(profit.marginPercent * 10) / 10}%`} tone={profit.marginPercent >= 0 ? 'good' : 'danger'} />
+                <KpiCard label="Margin %" value={`${Math.round(profit.marginPercent * 10) / 10}%`} tone={profit.marginPercent >= 0 ? 'good' : 'danger'}
+                    sub={`Profit ${formatINR(profit.profit)} on Revenue ${formatINR(profit.revenue)}`} />
             </KpiGrid>
 
             {(profit.unapprovedAreaSqft > 0 || profit.unapprovedCommissionCost > 0) && (

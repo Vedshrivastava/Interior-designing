@@ -69,6 +69,7 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
             const sumNegative = (rows, key) => Math.round(rows.reduce((s, r) => s + Math.max(0, -r[key]), 0) * 100) / 100;
             const sumPlain = (rows, key) => Math.round(rows.reduce((s, r) => s + (r[key] || 0), 0) * 100) / 100;
             setPayables({
+                expenseCount: expenseRes.data.success ? expenseRes.data.data.length : 0,
                 vendorPaymentLeft: vendorRes.data.success ? sumPositive(vendorRes.data.data, 'amountOwed') : 0,
                 contractorBalancePayable: contractorRes.data.success ? sumPositive(contractorRes.data.data, 'balancePayable') : 0,
                 labourBalancePayable: labourRes.data.success ? sumPositive(labourRes.data.data, 'balancePayable') : 0,
@@ -115,9 +116,11 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                 <KpiCard label="Revenue" value={formatINR(profit.revenue)} sub="All-time, from issued bills" />
                 <KpiCard label="Profit" value={formatINR(profit.profit)} tone={profit.profit >= 0 ? 'good' : 'danger'}
                     sub={`Revenue ${formatINR(profit.revenue)} − Costs ${formatINR(profit.materialCost + profit.materialWasteCost + profit.contractorCost + profit.commissionCost + profit.labourCost + profit.otherExpenses)}`} />
-                <KpiCard label="Margin %" value={`${profit.marginPercent.toFixed(1)}%`} tone={profit.marginPercent >= 0 ? 'good' : 'danger'} />
-                <KpiCard label="Material Cost" value={formatINR(profit.materialCost)} />
-                <KpiCard label="Material Waste Cost" value={formatINR(profit.materialWasteCost)} tone={profit.materialWasteCost > 0 ? 'danger' : undefined} />
+                <KpiCard label="Margin %" value={`${profit.marginPercent.toFixed(1)}%`} tone={profit.marginPercent >= 0 ? 'good' : 'danger'}
+                    sub={`Profit ${formatINR(profit.profit)} on Revenue ${formatINR(profit.revenue)}`} />
+                <KpiCard label="Material Cost" value={formatINR(profit.materialCost)} sub="Weighted average cost of materials consumed (see Overview tab)" />
+                <KpiCard label="Material Waste Cost" value={formatINR(profit.materialWasteCost)} tone={profit.materialWasteCost > 0 ? 'danger' : undefined}
+                    sub="Already counted in Profit above" />
                 <KpiCard
                     label="Contractor Cost (Approved)"
                     value={profit.contractorCost > 0 ? formatINR(profit.contractorCost) : (profit.totalContractorCost > 0 ? 'Unapproved' : formatINR(0))}
@@ -144,7 +147,8 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                     tone={profit.commissionCost > 0 ? 'good' : (profit.totalCommissionCost > 0 ? 'danger' : undefined)}
                     sub={profit.unapprovedCommissionCost > 0 ? `Total logged: ${formatINR(profit.totalCommissionCost)}` : 'All-time'}
                 />
-                <KpiCard label="Other Expenses" value={formatINR(profit.otherExpenses)} />
+                <KpiCard label="Other Expenses" value={formatINR(profit.otherExpenses)}
+                    sub={payables?.expenseCount > 0 ? `${payables.expenseCount} expense${payables.expenseCount === 1 ? '' : 's'} recorded` : undefined} />
             </KpiGrid>
 
             {payables && (
@@ -240,14 +244,17 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                 <>
                     <KpiSectionLabel>Receivables</KpiSectionLabel>
                     <KpiGrid>
-                        <KpiCard label="Billed" value={formatINR(receivable.issuedTotal)} />
+                        <KpiCard label="Billed" value={formatINR(receivable.issuedTotal)}
+                            sub={`Subtotal ${formatINR(receivable.issuedSubtotal)}  + GST ${formatINR(receivable.issuedGst)}`} />
                         <KpiCard label="Received" value={formatINR(receivable.receivedTotal)} />
                         {receivable.balance > 0 ? (
-                            <KpiCard label="Outstanding" value={formatINR(receivable.balance)} tone="danger" />
+                            <KpiCard label="Outstanding" value={formatINR(receivable.balance)} tone="danger"
+                                sub={receivable.directPaymentCredits > 0 ? `Already net of ${formatINR(receivable.directPaymentCredits)} direct payment credit` : undefined} />
                         ) : receivable.balance < 0 ? (
                             <KpiCard label="Advance Credit" value={formatINR(Math.abs(receivable.balance))} sub="Received ahead of billing" tone="good" />
                         ) : (
-                            <KpiCard label="Outstanding" value={formatINR(0)} tone="good" />
+                            <KpiCard label="Outstanding" value={formatINR(0)} tone="good"
+                                sub={receivable.directPaymentCredits > 0 ? `Already net of ${formatINR(receivable.directPaymentCredits)} direct payment credit` : undefined} />
                         )}
                         <KpiCard label="Bills Issued" value={receivable.issuedBillCount} />
                         {receivable.oldestIssuedBillDate && (

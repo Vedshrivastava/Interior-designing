@@ -88,11 +88,17 @@ const WorkDetail = ({ url }) => {
             axios.get(`${url}/api/finance/expenses/list`, { ...authHeader, params: { projectId } }),
         ]).then(([vendorRes, contractorRes, labourRes, expenseRes]) => {
             const sumPositive = (rows, key) => Math.round(rows.reduce((s, r) => s + Math.max(0, r[key]), 0) * 100) / 100;
+            // See ProjectDetail.jsx's identical helper — the credit side of
+            // the same balance, never netted against the payable figures.
+            const sumNegative = (rows, key) => Math.round(rows.reduce((s, r) => s + Math.max(0, -r[key]), 0) * 100) / 100;
             setPayables({
                 vendorPaymentLeft: vendorRes.data.success ? sumPositive(vendorRes.data.data, 'amountOwed') : 0,
                 contractorBalancePayable: contractorRes.data.success ? sumPositive(contractorRes.data.data, 'balancePayable') : 0,
                 labourBalancePayable: labourRes.data.success ? sumPositive(labourRes.data.data, 'balancePayable') : 0,
                 expensePayable: expenseRes.data.success ? sumPositive(expenseRes.data.data, 'balance') : 0,
+                vendorCredit: vendorRes.data.success ? sumNegative(vendorRes.data.data, 'amountOwed') : 0,
+                contractorCredit: contractorRes.data.success ? sumNegative(contractorRes.data.data, 'balancePayable') : 0,
+                labourCredit: labourRes.data.success ? sumNegative(labourRes.data.data, 'balancePayable') : 0,
             });
         }).catch(() => {});
     };
@@ -275,13 +281,26 @@ const WorkDetail = ({ url }) => {
                 {payables && (payables.vendorPaymentLeft > 0 || payables.contractorBalancePayable > 0 || payables.labourBalancePayable > 0 || payables.expensePayable > 0) && (
                     <div style={{ marginBottom: '24px' }}>
                         <p className="admin-subtitle" style={{ marginBottom: '10px' }}>
-                            Payables — everything {data.projectName} still owes, right now (project-wide, not just this Work; approved and unapproved combined).
+                            Payables — everything {data.projectName} still owes, right now (project-wide, not just this Work; Contractor/Labour count approved earnings only, same as everywhere else).
                         </p>
                         <KpiGrid>
                             <KpiCard label="Vendor Payment Left" value={formatINR(payables.vendorPaymentLeft)} tone={payables.vendorPaymentLeft > 0 ? 'danger' : 'good'} />
                             <KpiCard label="Contractor Balance Payable" value={formatINR(payables.contractorBalancePayable)} tone={payables.contractorBalancePayable > 0 ? 'danger' : 'good'} />
                             <KpiCard label="Labour Balance Payable" value={formatINR(payables.labourBalancePayable)} tone={payables.labourBalancePayable > 0 ? 'danger' : 'good'} />
                             <KpiCard label="Expense Payables" value={formatINR(payables.expensePayable)} tone={payables.expensePayable > 0 ? 'danger' : 'good'} />
+                        </KpiGrid>
+                    </div>
+                )}
+
+                {payables && (payables.vendorCredit > 0 || payables.contractorCredit > 0 || payables.labourCredit > 0) && (
+                    <div style={{ marginBottom: '24px' }}>
+                        <p className="admin-subtitle" style={{ marginBottom: '10px' }}>
+                            Credit — project-wide, these parties have already been paid/returned more than what's currently confirmed owed, so they owe the company back instead.
+                        </p>
+                        <KpiGrid>
+                            {payables.vendorCredit > 0 && <KpiCard label="Vendor Owes Us" value={formatINR(payables.vendorCredit)} tone="good" />}
+                            {payables.contractorCredit > 0 && <KpiCard label="Contractor Owes Us" value={formatINR(payables.contractorCredit)} tone="good" />}
+                            {payables.labourCredit > 0 && <KpiCard label="Labour Owes Us" value={formatINR(payables.labourCredit)} tone="good" />}
                         </KpiGrid>
                     </div>
                 )}

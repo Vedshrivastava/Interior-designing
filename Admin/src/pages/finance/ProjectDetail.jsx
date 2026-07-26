@@ -98,12 +98,28 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
             // project (same reasoning as the Client Credit Balance fix).
             const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
             const sumPositive = (rows, key) => round2(rows.reduce((s, r) => s + Math.max(0, r[key]), 0));
+            // Mirror of sumPositive for the other side of the same balance —
+            // a party whose returns/payments/deductions already exceed what's
+            // actually confirmed owed to them (approved earnings for
+            // Contractor/Labour; purchases for Vendor) owes the company back,
+            // not the other way round. Clamped at 0 per row first for the
+            // identical reason sumPositive is: one party's credit must never
+            // quietly net against a different party's real debt in the
+            // combined total.
+            const sumNegative = (rows, key) => round2(rows.reduce((s, r) => s + Math.max(0, -r[key]), 0));
             const sumPlain = (rows, key) => round2(rows.reduce((s, r) => s + (r[key] || 0), 0));
             setPayables({
                 vendorPaymentLeft: vendorRes.data.success ? sumPositive(vendorRes.data.data, 'amountOwed') : 0,
                 contractorBalancePayable: contractorRes.data.success ? sumPositive(contractorRes.data.data, 'balancePayable') : 0,
                 labourBalancePayable: labourRes.data.success ? sumPositive(labourRes.data.data, 'balancePayable') : 0,
                 expensePayable: expenseRes.data.success ? sumPositive(expenseRes.data.data, 'balance') : 0,
+                // Same three parties, the credit side — never netted against
+                // the payable figures above, shown as its own line instead
+                // (same "never silently absorbed" treatment Client Credit
+                // Balance already gets on the Dashboard).
+                vendorCredit: vendorRes.data.success ? sumNegative(vendorRes.data.data, 'amountOwed') : 0,
+                contractorCredit: contractorRes.data.success ? sumNegative(contractorRes.data.data, 'balancePayable') : 0,
+                labourCredit: labourRes.data.success ? sumNegative(labourRes.data.data, 'balancePayable') : 0,
                 // Informational only — already inside Balance Payable above
                 // (the gross figure); surfaces how much of what's already
                 // been paid was withheld as TDS rather than reaching the
@@ -243,7 +259,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
             {payables && (payables.vendorPaymentLeft > 0 || payables.contractorBalancePayable > 0 || payables.labourBalancePayable > 0 || payables.expensePayable > 0) && (
                 <div style={{ marginBottom: '24px' }}>
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>
-                        Payables — everything this project itself still owes, right now (approved and unapproved combined; Vendor/Expense already shown in more detail below).
+                        Payables — everything this project itself still owes, right now (Contractor/Labour count approved earnings only, same as everywhere else; Vendor/Expense already shown in more detail below).
                     </p>
                     <KpiGrid>
                         <KpiCard label="Vendor Payment Left" value={formatINR(payables.vendorPaymentLeft)} tone={payables.vendorPaymentLeft > 0 ? 'danger' : 'good'} />
@@ -252,6 +268,19 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                         <KpiCard label="Labour Balance Payable" value={formatINR(payables.labourBalancePayable)} tone={payables.labourBalancePayable > 0 ? 'danger' : 'good'}
                             sub={payables.labourTdsTotal > 0 ? `Of which ${formatINR(payables.labourTdsTotal)} was TDS` : undefined} />
                         <KpiCard label="Expense Payables" value={formatINR(payables.expensePayable)} tone={payables.expensePayable > 0 ? 'danger' : 'good'} onClick={onViewExpenses} />
+                    </KpiGrid>
+                </div>
+            )}
+
+            {payables && (payables.vendorCredit > 0 || payables.contractorCredit > 0 || payables.labourCredit > 0) && (
+                <div style={{ marginBottom: '24px' }}>
+                    <p className="admin-subtitle" style={{ marginBottom: '10px' }}>
+                        Credit — this project has already paid/returned more than what's currently confirmed owed, so these parties owe the company back instead.
+                    </p>
+                    <KpiGrid>
+                        {payables.vendorCredit > 0 && <KpiCard label="Vendor Owes Us" value={formatINR(payables.vendorCredit)} tone="good" />}
+                        {payables.contractorCredit > 0 && <KpiCard label="Contractor Owes Us" value={formatINR(payables.contractorCredit)} tone="good" />}
+                        {payables.labourCredit > 0 && <KpiCard label="Labour Owes Us" value={formatINR(payables.labourCredit)} tone="good" />}
                     </KpiGrid>
                 </div>
             )}

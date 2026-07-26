@@ -54,11 +54,17 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
             if (receivableRes?.data.success) setReceivable(receivableRes.data.data);
 
             const sumPositive = (rows, key) => Math.round(rows.reduce((s, r) => s + Math.max(0, r[key]), 0) * 100) / 100;
+            // See ProjectDetail.jsx's identical helper — the credit side of
+            // the same balance, never netted against the payable figures.
+            const sumNegative = (rows, key) => Math.round(rows.reduce((s, r) => s + Math.max(0, -r[key]), 0) * 100) / 100;
             setPayables({
                 vendorPaymentLeft: vendorRes.data.success ? sumPositive(vendorRes.data.data, 'amountOwed') : 0,
                 contractorBalancePayable: contractorRes.data.success ? sumPositive(contractorRes.data.data, 'balancePayable') : 0,
                 labourBalancePayable: labourRes.data.success ? sumPositive(labourRes.data.data, 'balancePayable') : 0,
                 expensePayable: expenseRes.data.success ? sumPositive(expenseRes.data.data, 'balance') : 0,
+                vendorCredit: vendorRes.data.success ? sumNegative(vendorRes.data.data, 'amountOwed') : 0,
+                contractorCredit: contractorRes.data.success ? sumNegative(contractorRes.data.data, 'balancePayable') : 0,
+                labourCredit: labourRes.data.success ? sumNegative(labourRes.data.data, 'balancePayable') : 0,
             });
         } catch { toast.error('Error fetching profitability data'); }
         finally { setLoading(false); }
@@ -106,6 +112,17 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                         <KpiCard label="Contractor Balance Payable" value={formatINR(payables.contractorBalancePayable)} tone={payables.contractorBalancePayable > 0 ? 'danger' : 'good'} />
                         <KpiCard label="Labour Balance Payable" value={formatINR(payables.labourBalancePayable)} tone={payables.labourBalancePayable > 0 ? 'danger' : 'good'} />
                         <KpiCard label="Expense Payables" value={formatINR(payables.expensePayable)} tone={payables.expensePayable > 0 ? 'danger' : 'good'} />
+                    </KpiGrid>
+                </>
+            )}
+
+            {payables && (payables.vendorCredit > 0 || payables.contractorCredit > 0 || payables.labourCredit > 0) && (
+                <>
+                    <KpiSectionLabel>Credit — These Parties Owe The Company Back</KpiSectionLabel>
+                    <KpiGrid>
+                        {payables.vendorCredit > 0 && <KpiCard label="Vendor Owes Us" value={formatINR(payables.vendorCredit)} tone="good" />}
+                        {payables.contractorCredit > 0 && <KpiCard label="Contractor Owes Us" value={formatINR(payables.contractorCredit)} tone="good" />}
+                        {payables.labourCredit > 0 && <KpiCard label="Labour Owes Us" value={formatINR(payables.labourCredit)} tone="good" />}
                     </KpiGrid>
                 </>
             )}

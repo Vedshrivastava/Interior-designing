@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_MODULE_OPTIONS } from '../../config/financeNav';
 import '../../styles/list.css';
+import '../../styles/add.css';
 
 /* MASTER-only — which finance sidebar sections each ADMIN user can reach.
    Unset (every user by default) means full access, same as before this
@@ -66,33 +67,43 @@ const PermissionsManager = ({ url }) => {
             {admins.map(a => {
                 const isRestricted = Array.isArray(a.allowedFinanceModules);
                 const isEditing = editingId === a._id;
-                return (
-                    <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1fr 220px', alignItems: isEditing ? 'flex-start' : 'center' }}>
-                        <p>{a.name}<br /><span style={{ fontSize: '0.8rem', color: 'var(--text-lt)' }}>{a.email}</span></p>
-                        {isEditing ? (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px 0' }}>
-                                {FINANCE_MODULE_OPTIONS.map(m => (
-                                    <label key={m.key} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', border: '1px solid var(--border)', borderRadius: '4px', padding: '2px 6px' }}>
-                                        <input type="checkbox" checked={editingModules.includes(m.key)} onChange={() => toggleModule(m.key)} />
-                                        {m.label}
-                                    </label>
-                                ))}
-                            </div>
-                        ) : (
-                            <p>{isRestricted ? `${a.allowedFinanceModules.length} module(s)` : 'Full access'}</p>
-                        )}
-                        <div className="action-buttons">
-                            {isEditing ? (
-                                <>
+
+                if (isEditing) {
+                    return (
+                        <div key={a._id} className="list-table-format row-item permissions-edit-row">
+                            <div className="permissions-edit-header">
+                                <p>{a.name}<br /><span style={{ fontSize: '0.8rem', color: 'var(--text-lt)' }}>{a.email}</span></p>
+                                <div className="action-buttons">
                                     <p onClick={() => saveRestricted(a._id)} className="cursor edit-action">{saving ? 'Saving…' : 'Save'}</p>
                                     <p onClick={cancelEdit} className="cursor delete-action">Cancel</p>
-                                </>
-                            ) : (
-                                <>
-                                    <p onClick={() => startEdit(a)} className="cursor edit-action">Edit</p>
-                                    {isRestricted && <p onClick={() => clearRestriction(a._id)} className="cursor delete-action">Clear</p>}
-                                </>
-                            )}
+                                </div>
+                            </div>
+                            <div className="add-multi-section flex-col">
+                                <p>Allowed modules <span style={{ fontSize: '0.72rem', fontWeight: 400, color: '#888' }}>(saving with none selected blocks this admin from every finance section — use Clear afterward to restore full access)</span></p>
+                                <div className="add-multi-grid">
+                                    {FINANCE_MODULE_OPTIONS.map(m => {
+                                        const sel = editingModules.includes(m.key);
+                                        return (
+                                            <button key={m.key} type="button"
+                                                className={`add-multi-chip${sel ? ' active' : ''}`}
+                                                onClick={() => toggleModule(m.key)}>
+                                                {m.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1fr 220px' }}>
+                        <p>{a.name}<br /><span style={{ fontSize: '0.8rem', color: 'var(--text-lt)' }}>{a.email}</span></p>
+                        <p>{isRestricted ? `${a.allowedFinanceModules.length} module(s)` : 'Full access'}</p>
+                        <div className="action-buttons">
+                            <p onClick={() => startEdit(a)} className="cursor edit-action">Edit</p>
+                            {isRestricted && <p onClick={() => clearRestriction(a._id)} className="cursor delete-action">Clear</p>}
                         </div>
                     </div>
                 );

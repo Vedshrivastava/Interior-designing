@@ -2101,7 +2101,7 @@ const getInventorySummary = async (req, res) => {
                 return {
                     materialId: mat._id, materialName: mat.name, unit: mat.unit,
                     currentStock, minimumStockLevel: mat.minimumStockLevel, belowMinimum: currentStock < mat.minimumStockLevel,
-                    totalConsumed: s.consume, totalWasted: s.waste, wastageRate,
+                    totalDumped: s.dump, totalReturned: s.returned, totalConsumed: s.consume, totalWasted: s.waste, wastageRate,
                 };
             });
         } else {
@@ -2119,11 +2119,13 @@ const getInventorySummary = async (req, res) => {
             }
             stockTable = materials.map(mat => {
                 const rows = rowsByMaterial.get(mat._id.toString()) || [];
-                let currentStock = 0, totalConsumed = 0, totalWasted = 0;
+                let currentStock = 0, totalDumped = 0, totalReturned = 0, totalConsumed = 0, totalWasted = 0;
                 let activeProjectCount = 0, lowAtProjectCount = 0;
                 for (const r of rows) {
                     const projectStock = r.dump - r.consume - r.returned - r.waste;
                     currentStock += projectStock;
+                    totalDumped += r.dump;
+                    totalReturned += r.returned;
                     totalConsumed += r.consume;
                     totalWasted += r.waste;
                     if (activeProjectIds.has(r._id.projectId.toString())) {
@@ -2136,7 +2138,7 @@ const getInventorySummary = async (req, res) => {
                     materialId: mat._id, materialName: mat.name, unit: mat.unit,
                     currentStock, minimumStockLevel: mat.minimumStockLevel,
                     belowMinimum: lowAtProjectCount > 0, lowAtProjectCount, activeProjectCount,
-                    totalConsumed, totalWasted, wastageRate,
+                    totalDumped, totalReturned, totalConsumed, totalWasted, wastageRate,
                 };
             });
         }

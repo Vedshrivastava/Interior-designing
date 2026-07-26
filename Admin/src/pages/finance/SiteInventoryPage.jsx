@@ -11,11 +11,14 @@ import '../../styles/dashboard.css';
 
 /*
  * Tier-1 mini-dashboard for Site Inventory — current stock with a
- * below-minimum flag, a monthly consumption trend, and wastage rate
- * (wasted ÷ (wasted + consumed)) sorted highest-first, above the existing
- * project-picker + manual movement entry. `?filter=low-stock` (from the
- * Company Dashboard's Material Low Alerts KPI card) pre-filters the stock
- * table to only materials currently below their minimum.
+ * below-minimum flag, dumped/returned/consumed/wasted per material (each
+ * already tracked project-scoped at the FinanceStockMovement level — this
+ * table just surfaces the breakdown instead of only the derived current-
+ * stock/wastage-rate figures), a monthly consumption trend, and wastage
+ * rate (wasted ÷ (wasted + consumed)) sorted highest-first, above the
+ * existing project-picker + manual movement entry. `?filter=low-stock`
+ * (from the Company Dashboard's Material Low Alerts KPI card) pre-filters
+ * the stock table to only materials currently below their minimum.
  */
 const SiteInventoryPage = ({ url }) => {
     const token = localStorage.getItem('token');
@@ -65,7 +68,7 @@ const SiteInventoryPage = ({ url }) => {
     const wastageData = (summary?.wastageRateSorted || []).map(r => ({ ...r, wastagePercent: Math.round(r.wastageRate * 1000) / 10 }));
 
     return (
-        <FinanceTabShell label="Site Inventory" subtitle="Current stock, consumption trend, and wastage rate. Manual waste entry per project below; Dump/Return happen through Procurement's Purchase/Returns instead.">
+        <FinanceTabShell label="Site Inventory" subtitle="Current stock, dumped/returned/consumed/wasted per material, consumption trend, and wastage rate. Manual waste entry per project below; Dump/Return happen through Procurement's Purchase/Returns instead.">
             {(loading || stockTable.length > 0) && (
                 <>
                     <ChartGrid>
@@ -103,11 +106,11 @@ const SiteInventoryPage = ({ url }) => {
                     </ChartGrid>
 
                     <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '280px 1fr 1fr 1fr 1fr' }}>
-                            <b>Material</b><b>Current Stock</b><b>Minimum</b><b>Consumed</b><b>Wastage %</b>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '240px 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr' }}>
+                            <b>Material</b><b>Current Stock</b><b>Minimum</b><b>Dumped</b><b>Returned</b><b>Consumed</b><b>Wastage</b>
                         </div>
                         {stockTable.map(r => (
-                            <div key={r.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '280px 1fr 1fr 1fr 1fr' }}>
+                            <div key={r.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '240px 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr' }}>
                                 <p>{r.materialName}</p>
                                 <p style={{ color: r.belowMinimum ? '#c0392b' : 'inherit', fontWeight: r.belowMinimum ? 600 : 400 }}>
                                     {r.belowMinimum && '⚠ '}{r.currentStock} {r.unit}
@@ -123,8 +126,10 @@ const SiteInventoryPage = ({ url }) => {
                                     )}
                                 </p>
                                 <p>{r.minimumStockLevel} {r.unit}</p>
+                                <p>{r.totalDumped} {r.unit}</p>
+                                <p>{r.totalReturned} {r.unit}</p>
                                 <p>{r.totalConsumed} {r.unit}</p>
-                                <p>{Math.round(r.wastageRate * 1000) / 10}%</p>
+                                <p>{r.totalWasted} {r.unit} <span className="admin-subtitle" style={{ fontSize: '0.78rem' }}>({Math.round(r.wastageRate * 1000) / 10}%)</span></p>
                             </div>
                         ))}
                     </div>

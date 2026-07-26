@@ -48,6 +48,8 @@ const addLabourPayment = async (req, res) => {
                 reason: 'Labour payment', relatedLabourPaymentId: item._id, notes: notes || '',
             });
             broadcast({ type: 'financeCashBookChanged' });
+        } else {
+            broadcast({ type: 'financeBankAccountsChanged' });
         }
 
         broadcast({ type: 'financeLabourLedgerChanged', labourerId });
@@ -82,6 +84,7 @@ const removeLabourPayment = async (req, res) => {
         );
         broadcast({ type: 'financeLabourLedgerChanged', labourerId: item.labourerId });
         broadcast({ type: 'financeCashBookChanged' });
+        if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
         res.json({ success: true, message: 'Payment removed' });
     } catch (err) {
         console.error(err);

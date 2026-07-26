@@ -179,7 +179,7 @@ const computeContractorLedger = async (vendorId, projectId) => {
     const moneyFilter = { vendorId, deleted: { $ne: true } };
     if (projectId) moneyFilter.projectId = projectId;
     const [advances, deductions, payments] = await Promise.all([
-        FinanceContractorAdvance.find(moneyFilter).sort({ date: -1 }),
+        FinanceContractorAdvance.find(moneyFilter).populate('bankAccountId', 'accountName').sort({ date: -1 }),
         FinanceContractorDeduction.find(moneyFilter).sort({ date: -1 }),
         FinanceContractorPayment.find(moneyFilter).populate('bankAccountId', 'accountName').populate('tdsSectionId', 'name code').sort({ date: -1 }),
     ]);

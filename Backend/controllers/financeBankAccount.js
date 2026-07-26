@@ -9,6 +9,8 @@ import FinanceCommissionPayment from '../models/financeCommissionPayment.js';
 import FinanceLabourProviderPayment from '../models/financeLabourProviderPayment.js';
 import FinanceExpense from '../models/financeExpense.js';
 import FinanceExpensePayment from '../models/financeExpensePayment.js';
+import FinanceContractorAdvance from '../models/financeContractorAdvance.js';
+import FinanceLabourAdvance from '../models/financeLabourAdvance.js';
 import { broadcast } from '../middlewares/webSocket.js';
 
 /*
@@ -25,6 +27,12 @@ import { broadcast } from '../middlewares/webSocket.js';
  * was actually still in the bank. Fixed by querying both, same as every
  * other payment type already here.
  *
+ * Contractor/Labour Advances had the identical gap — an advance is real
+ * cash handed over right now (Balance Payable already treats it exactly
+ * like a Payment), but the model never even carried a bankAccountId until
+ * this fix, so a bank-mode advance was completely invisible to every
+ * account's balance.
+ *
  * Expense is the one payable read two ways here: an old-style paid-at-entry
  * expense carries bankAccountId directly on itself (still read below), while
  * an accrued expense settled later carries bankAccountId on its
@@ -34,7 +42,7 @@ import { broadcast } from '../middlewares/webSocket.js';
  */
 const getAccountActivity = async (accountId) => {
     const filter = { bankAccountId: accountId, deleted: { $ne: true } };
-    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, expensePayments, transfersOut, transfersIn] = await Promise.all([
+    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, expensePayments, contractorAdvances, labourAdvances, transfersOut, transfersIn] = await Promise.all([
         FinanceReceipt.find(filter),
         FinanceContractorPayment.find(filter),
         FinanceVendorPayment.find(filter),
@@ -44,6 +52,8 @@ const getAccountActivity = async (accountId) => {
         FinanceLabourProviderPayment.find(filter),
         FinanceExpense.find(filter),
         FinanceExpensePayment.find(filter).populate('expenseId', 'expenseCategory'),
+        FinanceContractorAdvance.find(filter),
+        FinanceLabourAdvance.find(filter),
         FinanceBankTransfer.find({ fromAccountId: accountId, deleted: { $ne: true } }),
         FinanceBankTransfer.find({ toAccountId: accountId, deleted: { $ne: true } }),
     ]);
@@ -71,6 +81,8 @@ const getAccountActivity = async (accountId) => {
         ...labourProviderPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: 'Labour provider payment', sourceType: 'labourProviderPayment', sourceId: p._id })),
         ...expenses.map(e => ({ date: e.date, amount: e.amount, direction: 'debit', description: e.expenseCategory ? `Expense — ${e.expenseCategory}` : 'Expense', sourceType: 'expense', sourceId: e._id })),
         ...expensePayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Expense payment', sourceType: 'expensePayment', sourceId: p._id })),
+        ...contractorAdvances.map(a => ({ date: a.date, amount: a.amount, direction: 'debit', description: 'Contractor advance', sourceType: 'contractorAdvance', sourceId: a._id })),
+        ...labourAdvances.map(a => ({ date: a.date, amount: a.amount, direction: 'debit', description: 'Labour advance', sourceType: 'labourAdvance', sourceId: a._id })),
         ...transfersOut.map(t => ({ date: t.date, amount: t.amount, direction: 'debit', description: 'Transfer out', sourceType: 'transfer', sourceId: t._id })),
         ...transfersIn.map(t => ({ date: t.date, amount: t.amount, direction: 'credit', description: 'Transfer in', sourceType: 'transfer', sourceId: t._id })),
     ];

@@ -25,6 +25,8 @@ const financeCashEntrySchema = new mongoose.Schema({
     relatedLabourPaymentId:       { type: mongoose.Schema.Types.ObjectId, ref: 'financeLabourPayment', default: null },
     relatedExpensePaymentId:      { type: mongoose.Schema.Types.ObjectId, ref: 'financeExpensePayment', default: null },
     relatedLabourProviderPaymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeLabourProviderPayment', default: null },
+    relatedContractorAdvanceId:   { type: mongoose.Schema.Types.ObjectId, ref: 'financeContractorAdvance', default: null },
+    relatedLabourAdvanceId:       { type: mongoose.Schema.Types.ObjectId, ref: 'financeLabourAdvance', default: null },
 
     notes: { type: String, default: '' },
 

@@ -12,6 +12,7 @@ const financeLabourAdvanceSchema = new mongoose.Schema({
 
     paymentMode:     { type: String, default: '' }, // reuses financeSetting's payment_mode values
     bankOrCashLabel: { type: String, default: '' },
+    bankAccountId:   { type: mongoose.Schema.Types.ObjectId, ref: 'financeBankAccount', default: null },
     notes:           { type: String, default: '' },
 
     deleted:   { type: Boolean, default: false },

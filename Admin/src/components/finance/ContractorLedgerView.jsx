@@ -29,7 +29,7 @@ const buildMonthlyMoneyFlow = (advances, deductions, payments) => {
     return [...byMonth.values()].sort((a, b) => a.month.localeCompare(b.month));
 };
 
-const emptyAdvanceForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', utrNumber: '', notes: '' };
+const emptyAdvanceForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '' };
 const emptyDeductionForm = { areaSqft: '', reason: '', date: '', notes: '', workId: '' };
 const emptyPaymentForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', workId: '', projectId: '', tdsSectionId: '', tdsAmount: '' };
 
@@ -334,14 +334,15 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                 <div className="admin-empty-state"><p>No advances yet.</p></div>
             ) : (
                 <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
-                        <b>Date</b><b>Amount</b><b>Mode</b><b>Notes</b><b>Action</b>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
+                        <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>Notes</b><b>Action</b>
                     </div>
                     {ledger.advances.map(a => (
-                        <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 100px' }}>
+                        <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
                             <p>{new Date(a.date).toLocaleDateString()}</p>
                             <p>₹{a.amount.toLocaleString('en-IN')}</p>
                             <p>{a.paymentMode || '-'}</p>
+                            <p>{a.bankAccountId?.accountName || 'Cash'}</p>
                             <p>{a.notes || '-'}</p>
                             <div className="action-buttons"><p onClick={() => remove('advance', a._id)} className="cursor delete-action">X</p></div>
                         </div>
@@ -368,6 +369,13 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                     <input type="text" value={advanceForm.paymentMode} onChange={e => setAdvanceForm(p => ({ ...p, paymentMode: e.target.value }))} />
                                 </div>
                                 <div className="add-product-name flex-col">
+                                    <p>Bank Account</p>
+                                    <StyledSelect
+                                        value={advanceForm.bankAccountId} onChange={v => setAdvanceForm(p => ({ ...p, bankAccountId: v }))} placeholder="Cash"
+                                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                                    />
+                                </div>
+                                <div className="add-product-name flex-col wizard-field-full">
                                     <p>Notes</p>
                                     <input type="text" value={advanceForm.notes} onChange={e => setAdvanceForm(p => ({ ...p, notes: e.target.value }))} />
                                 </div>

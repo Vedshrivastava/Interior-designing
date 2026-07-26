@@ -2562,7 +2562,7 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         if (to) { receiptFilter.receiptDate.$lte = new Date(to); otherFilter.date.$lte = new Date(to); }
     }
 
-    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses] = await Promise.all([
+    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, contractorAdvances, labourAdvances] = await Promise.all([
         FinanceReceipt.find(receiptFilter),
         FinanceContractorPayment.find(otherFilter),
         FinanceVendorPayment.find(otherFilter),
@@ -2571,6 +2571,10 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         FinanceCommissionPayment.find(otherFilter),
         FinanceLabourProviderPayment.find(otherFilter),
         FinanceExpense.find(otherFilter),
+        // Real cash out today, same as a Payment — see
+        // financeBankAccount.js's getAccountActivity, identical reasoning.
+        FinanceContractorAdvance.find(otherFilter),
+        FinanceLabourAdvance.find(otherFilter),
     ]);
 
     // Cash actually leaving the company for any of these six payment types
@@ -2591,10 +2595,10 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
 
     const totalIn = receipts.reduce((s, r) => s + r.amount, 0) + vendorRefundsTotal;
     const outByCategory = {
-        contractor: contractorPayments.reduce((s, p) => s + netOut(p), 0),
+        contractor: contractorPayments.reduce((s, p) => s + netOut(p), 0) + contractorAdvances.reduce((s, a) => s + a.amount, 0),
         vendor: vendorOutPayments.reduce((s, p) => s + netOut(p), 0),
         salary: salaryPayments.reduce((s, p) => s + netOut(p), 0),
-        labour: labourPayments.reduce((s, p) => s + netOut(p), 0),
+        labour: labourPayments.reduce((s, p) => s + netOut(p), 0) + labourAdvances.reduce((s, a) => s + a.amount, 0),
         commission: commissionPayments.reduce((s, p) => s + netOut(p), 0),
         labourProvider: labourProviderPayments.reduce((s, p) => s + netOut(p), 0),
         expense: expenses.reduce((s, e) => s + e.amount, 0),
@@ -2610,6 +2614,7 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
     receipts.forEach(r => bump(r.receiptDate, 'in', r.amount));
     vendorRefunds.forEach(p => bump(p.date, 'in', netOut(p)));
     [...contractorPayments, ...vendorOutPayments, ...salaryPayments, ...labourPayments, ...commissionPayments, ...labourProviderPayments].forEach(p => bump(p.date, 'out', netOut(p)));
+    [...contractorAdvances, ...labourAdvances].forEach(a => bump(a.date, 'out', a.amount));
     expenses.forEach(p => bump(p.date, 'out', p.amount));
 
     const seriesArr = [...series.values()]

@@ -154,7 +154,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
     const moneyFilter = { labourerId, deleted: { $ne: true } };
     if (projectId) moneyFilter.projectId = projectId;
     const [advances, deductions, payments] = await Promise.all([
-        FinanceLabourAdvance.find(moneyFilter).sort({ date: -1 }),
+        FinanceLabourAdvance.find(moneyFilter).populate('bankAccountId', 'accountName').sort({ date: -1 }),
         FinanceLabourDeduction.find(moneyFilter).sort({ date: -1 }),
         FinanceLabourPayment.find(moneyFilter).populate('bankAccountId', 'accountName').populate('tdsSectionId', 'name code').sort({ date: -1 }),
     ]);

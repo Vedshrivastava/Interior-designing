@@ -1,4 +1,5 @@
 import FinanceContractorAdvance from '../models/financeContractorAdvance.js';
+import FinanceCashEntry from '../models/financeCashEntry.js';
 import { assertContractorVendor } from '../utils/contractorVendor.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
@@ -18,12 +19,16 @@ const listContractorAdvances = async (req, res) => {
     }
 };
 
-// The ledger (GET /api/finance/contractors/:vendorId/ledger) just creates
-// and sums these — nothing here ever gets decremented or written to
-// anywhere else.
+// BUG FIX: an advance is real cash handed to the contractor right now
+// (Balance Payable already treats it exactly like a Payment — see
+// financeContractorLedger.js's own comment) — it used to never touch the
+// Cash Book or a bank account at all, so giving a cash advance silently
+// left Cash in Hand overstated, and a bank-mode advance never showed up
+// in that account's activity/balance. Mirrors addContractorPayment's own
+// cash-entry automation (minus TDS — advances aren't withheld against).
 const addContractorAdvance = async (req, res) => {
     try {
-        const { vendorId, projectId, amount, date, paymentMode, bankOrCashLabel, utrNumber, notes } = req.body;
+        const { vendorId, projectId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes } = req.body;
         if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
         const vendor = await assertContractorVendor(vendorId);
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
@@ -31,9 +36,20 @@ const addContractorAdvance = async (req, res) => {
 
         const item = new FinanceContractorAdvance({
             vendorId, projectId: projectId || null, amount: Number(amount), date,
-            paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', utrNumber: utrNumber || '', notes: notes || '',
+            paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null, utrNumber: utrNumber || '', notes: notes || '',
         });
         await item.save();
+
+        if (!bankAccountId) {
+            await FinanceCashEntry.create({
+                date, type: 'out', amount: Number(amount), projectId: projectId || null,
+                reason: 'Contractor advance', relatedContractorAdvanceId: item._id, notes: notes || '',
+            });
+            broadcast({ type: 'financeCashBookChanged' });
+        } else {
+            broadcast({ type: 'financeBankAccountsChanged' });
+        }
+
         broadcast({ type: 'financeContractorLedgerChanged', vendorId });
 
         await logActivity({
@@ -79,7 +95,13 @@ const removeContractorAdvance = async (req, res) => {
         if (!item) return res.status(404).json({ success: false, message: 'Not found' });
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
+        await FinanceCashEntry.updateMany(
+            { relatedContractorAdvanceId: item._id },
+            { deleted: true, deletedAt: new Date(), deletedBy: req.userName || 'Admin' }
+        );
         broadcast({ type: 'financeContractorLedgerChanged', vendorId: item.vendorId });
+        broadcast({ type: 'financeCashBookChanged' });
+        if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
         res.json({ success: true, message: 'Advance removed' });
     } catch (err) {
         console.error(err);

@@ -338,6 +338,9 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
                     <div className="loader-modal-box edit-modal">
                         <h2>Add Advance</h2>
+                        <p className="admin-subtitle" style={{ marginTop: '-20px', marginBottom: '20px' }}>
+                            Current {totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}: <span style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</span>
+                        </p>
                         <form onSubmit={submitAdvance}>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
@@ -505,6 +508,9 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
                     <div className="loader-modal-box edit-modal">
                         <h2>Add Payment</h2>
+                        <p className="admin-subtitle" style={{ marginTop: '-20px', marginBottom: '20px' }}>
+                            {totals.balancePayable < 0 ? 'Extra Paid' : 'Payment Left'}: <span style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</span>
+                        </p>
                         <form onSubmit={submitPayment}>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">

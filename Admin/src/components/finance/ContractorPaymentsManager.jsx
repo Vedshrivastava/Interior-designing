@@ -35,6 +35,7 @@ const ContractorPaymentsManager = ({ url }) => {
     const [works, setWorks] = useState([]);
     const [paymentModes, setPaymentModes] = useState([]);
     const [payments, setPayments] = useState([]);
+    const [balancePayable, setBalancePayable] = useState(null);
     const [loading, setLoading] = useState(false);
 
     const [form, setForm] = useState(emptyForm);
@@ -71,12 +72,25 @@ const ContractorPaymentsManager = ({ url }) => {
         finally { setLoading(false); }
     };
 
-    useEffect(() => { if (vendorId) fetchPayments(); else setPayments([]); }, [vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Balance Payable — same figure ContractorLedgerView.jsx already shows,
+    // surfaced here too so it's visible right where you're about to record
+    // a payment against it, not just on the separate Ledger tab. See
+    // VendorPaymentsManager.jsx's identical fetchAmountOwed.
+    const fetchBalancePayable = async () => {
+        try {
+            const res = await axios.get(`${url}/api/finance/contractors/${vendorId}/ledger`, authHeader);
+            if (res.data.success) setBalancePayable(res.data.data.totals.balancePayable);
+        } catch { setBalancePayable(null); }
+    };
+
+    useEffect(() => {
+        if (vendorId) { fetchPayments(); fetchBalancePayable(); } else { setPayments([]); setBalancePayable(null); }
+    }, [vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // A payment for this contractor recorded elsewhere (ContractorLedgerView,
     // or this same tab in another browser tab/admin) wouldn't otherwise show
     // up here until the contractor was reselected.
-    useFinanceWsRefresh(['financeContractorLedgerChanged'], () => { if (vendorId) fetchPayments(); });
+    useFinanceWsRefresh(['financeContractorLedgerChanged'], () => { if (vendorId) { fetchPayments(); fetchBalancePayable(); } });
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -122,7 +136,8 @@ const ContractorPaymentsManager = ({ url }) => {
             });
             if (res.data.success) {
                 if (form.paymentMode) await registerSettingIfNew(url, authHeader, 'payment_mode', form.paymentMode, paymentModes.map(m => ({ name: m })));
-                toast.success(res.data.message); setForm(emptyForm); setFile(null); setModalOpen(false); await fetchPayments();
+                toast.success(res.data.message); setForm(emptyForm); setFile(null); setModalOpen(false);
+                await fetchPayments(); await fetchBalancePayable();
             }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording payment'); }
@@ -132,7 +147,7 @@ const ContractorPaymentsManager = ({ url }) => {
     const remove = async (id) => {
         try {
             const res = await axios.delete(`${url}/api/finance/contractor-payments/remove`, { ...authHeader, data: { _id: id } });
-            if (res.data.success) { toast.success(res.data.message); await fetchPayments(); }
+            if (res.data.success) { toast.success(res.data.message); await fetchPayments(); await fetchBalancePayable(); }
             else toast.error(res.data.message);
         } catch { toast.error('Error removing payment'); }
     };
@@ -153,6 +168,11 @@ const ContractorPaymentsManager = ({ url }) => {
                         <h3 style={{ margin: 0 }}>Payments</h3>
                         <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>+ Add Payment</button>
                     </div>
+                    {balancePayable !== null && (
+                        <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
+                            {balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}: <span style={{ fontWeight: 700, color: balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(balancePayable).toLocaleString('en-IN')}</span>
+                        </p>
+                    )}
                     {loading ? (
                         <div className="admin-empty-state"><p>Loading…</p></div>
                     ) : payments.length === 0 ? (
@@ -180,6 +200,11 @@ const ContractorPaymentsManager = ({ url }) => {
                         <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
                             <div className="loader-modal-box edit-modal">
                                 <h2>Add Payment</h2>
+                                {balancePayable !== null && (
+                                    <p className="admin-subtitle" style={{ marginTop: '-20px', marginBottom: '20px' }}>
+                                        {balancePayable < 0 ? 'Extra Paid' : 'Payment Left'}: <span style={{ fontWeight: 700, color: balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(balancePayable).toLocaleString('en-IN')}</span>
+                                    </p>
+                                )}
                                 <form onSubmit={submit}>
                                     <div className="wizard-field-grid">
                                         <div className="add-product-name flex-col">

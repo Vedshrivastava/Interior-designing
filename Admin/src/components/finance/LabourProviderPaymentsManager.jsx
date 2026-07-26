@@ -28,6 +28,7 @@ const LabourProviderPaymentsManager = ({ url }) => {
     const [tdsSections, setTdsSections] = useState([]);
     const [paymentModes, setPaymentModes] = useState([]);
     const [payments, setPayments] = useState([]);
+    const [balancePayable, setBalancePayable] = useState(null);
     const [loading, setLoading] = useState(false);
 
     const [form, setForm] = useState(emptyForm);
@@ -52,11 +53,24 @@ const LabourProviderPaymentsManager = ({ url }) => {
         finally { setLoading(false); }
     };
 
-    useEffect(() => { if (labourProviderId) fetchPayments(); else setPayments([]); }, [labourProviderId]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Balance Payable — same figure the Labour Provider Ledger tab already
+    // shows, surfaced here too so it's visible right where you're about to
+    // record a payment against it. See VendorPaymentsManager.jsx's
+    // identical fetchAmountOwed.
+    const fetchBalancePayable = async () => {
+        try {
+            const res = await axios.get(`${url}/api/finance/labour-providers/${labourProviderId}/labour-provider-ledger`, authHeader);
+            if (res.data.success) setBalancePayable(res.data.data.totals.balancePayable);
+        } catch { setBalancePayable(null); }
+    };
+
+    useEffect(() => {
+        if (labourProviderId) { fetchPayments(); fetchBalancePayable(); } else { setPayments([]); setBalancePayable(null); }
+    }, [labourProviderId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // A payment for this labour provider recorded elsewhere wouldn't
     // otherwise show up here until reselected.
-    useFinanceWsRefresh(['financeLabourProviderPaymentsChanged'], () => { if (labourProviderId) fetchPayments(); });
+    useFinanceWsRefresh(['financeLabourProviderPaymentsChanged'], () => { if (labourProviderId) { fetchPayments(); fetchBalancePayable(); } });
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -70,7 +84,8 @@ const LabourProviderPaymentsManager = ({ url }) => {
             const res = await axios.post(`${url}/api/finance/labour-provider-payments/add`, { ...form, labourProviderId }, authHeader);
             if (res.data.success) {
                 if (form.paymentMode) await registerSettingIfNew(url, authHeader, 'payment_mode', form.paymentMode, paymentModes.map(m => ({ name: m })));
-                toast.success(res.data.message); setForm(emptyForm); setModalOpen(false); await fetchPayments();
+                toast.success(res.data.message); setForm(emptyForm); setModalOpen(false);
+                await fetchPayments(); await fetchBalancePayable();
             }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording labour provider payment'); }
@@ -80,7 +95,7 @@ const LabourProviderPaymentsManager = ({ url }) => {
     const remove = async (id) => {
         try {
             const res = await axios.delete(`${url}/api/finance/labour-provider-payments/remove`, { ...authHeader, data: { _id: id } });
-            if (res.data.success) { toast.success(res.data.message); await fetchPayments(); }
+            if (res.data.success) { toast.success(res.data.message); await fetchPayments(); await fetchBalancePayable(); }
             else toast.error(res.data.message);
         } catch { toast.error('Error removing labour provider payment'); }
     };
@@ -101,6 +116,11 @@ const LabourProviderPaymentsManager = ({ url }) => {
                         <h3 style={{ margin: 0 }}>Payments</h3>
                         <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>+ Add Payment</button>
                     </div>
+                    {balancePayable !== null && (
+                        <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
+                            {balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}: <span style={{ fontWeight: 700, color: balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(balancePayable).toLocaleString('en-IN')}</span>
+                        </p>
+                    )}
                     {loading ? (
                         <div className="admin-empty-state"><p>Loading…</p></div>
                     ) : payments.length === 0 ? (
@@ -127,6 +147,11 @@ const LabourProviderPaymentsManager = ({ url }) => {
                         <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
                             <div className="loader-modal-box edit-modal">
                                 <h2>Add Payment</h2>
+                                {balancePayable !== null && (
+                                    <p className="admin-subtitle" style={{ marginTop: '-20px', marginBottom: '20px' }}>
+                                        {balancePayable < 0 ? 'Extra Paid' : 'Payment Left'}: <span style={{ fontWeight: 700, color: balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(balancePayable).toLocaleString('en-IN')}</span>
+                                    </p>
+                                )}
                                 <form onSubmit={submit}>
                                     <div className="wizard-field-grid">
                                         <div className="add-product-name flex-col">

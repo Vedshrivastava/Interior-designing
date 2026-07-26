@@ -262,7 +262,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                 </ChartCard>
             </ChartGrid>
 
-            {payables && (payables.vendorPaymentLeft > 0 || payables.contractorBalancePayable > 0 || payables.labourBalancePayable > 0 || payables.expensePayable > 0) && (
+            {payables && (
                 <div style={{ marginBottom: '24px' }}>
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>
                         Payables — everything this project itself still owes, right now (Contractor/Labour count approved earnings only, same as everywhere else; Vendor/Expense already shown in more detail below).

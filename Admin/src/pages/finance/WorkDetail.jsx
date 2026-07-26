@@ -287,7 +287,7 @@ const WorkDetail = ({ url }) => {
                     </div>
                 )}
 
-                {payables && (payables.vendorPaymentLeft > 0 || payables.contractorBalancePayable > 0 || payables.labourBalancePayable > 0 || payables.expensePayable > 0) && (
+                {payables && (
                     <div style={{ marginBottom: '24px' }}>
                         <p className="admin-subtitle" style={{ marginBottom: '10px' }}>
                             Payables — everything {data.projectName} still owes, right now (project-wide, not just this Work; Contractor/Labour count approved earnings only, same as everywhere else).

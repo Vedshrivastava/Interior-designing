@@ -105,7 +105,7 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                 <KpiCard label="Other Expenses" value={formatINR(profit.otherExpenses)} />
             </KpiGrid>
 
-            {payables && (payables.vendorPaymentLeft > 0 || payables.contractorBalancePayable > 0 || payables.labourBalancePayable > 0 || payables.expensePayable > 0) && (
+            {payables && (
                 <>
                     <KpiSectionLabel>Payables — Everything This Project Still Owes, Right Now</KpiSectionLabel>
                     <KpiGrid>

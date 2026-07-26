@@ -3480,7 +3480,13 @@ const computeCaMonthlyPackage = async (month) => {
     const purchases = await FinancePurchase.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } });
     const purchaseRows = purchases.filter(p => p.transactionType === 'purchase');
     const returnRows = purchases.filter(p => p.transactionType === 'return');
-    const purchaseGst = purchaseRows.reduce((sum, p) => sum + (p.gstAmount || 0), 0);
+    // Net of returns — a return carries its own gstAmount (the GST on the
+    // material being sent back), and that credit is no longer claimable
+    // once the material's returned, same as totalPurchased/totalReturned
+    // already net against each other for the non-GST amount. Missing this
+    // silently over-claimed Input GST on every returned purchase.
+    const purchaseGst = purchaseRows.reduce((sum, p) => sum + (p.gstAmount || 0), 0)
+        - returnRows.reduce((sum, p) => sum + (p.gstAmount || 0), 0);
     const totalPurchased = purchaseRows.reduce((sum, p) => sum + p.totalAmount, 0);
     const totalReturned = returnRows.reduce((sum, p) => sum + p.totalAmount, 0);
 

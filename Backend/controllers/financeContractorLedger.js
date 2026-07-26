@@ -178,20 +178,22 @@ const computeContractorLedger = async (vendorId, projectId) => {
 
     const moneyFilter = { vendorId, deleted: { $ne: true } };
     if (projectId) moneyFilter.projectId = projectId;
-    const [advances, allDeductions, payments] = await Promise.all([
+    const [advances, deductions, payments] = await Promise.all([
         FinanceContractorAdvance.find(moneyFilter).sort({ date: -1 }),
         FinanceContractorDeduction.find(moneyFilter).sort({ date: -1 }),
         FinanceContractorPayment.find(moneyFilter).populate('bankAccountId', 'accountName').populate('tdsSectionId', 'name code').sort({ date: -1 }),
     ]);
-    // A workReviewCycle-tagged row is the atomic review's own exact
-    // rejection attribution — already reflected above via approvedArea, so
-    // it isn't a separate Deduction here (would double-count it). Only a
-    // genuinely standalone manual deduction (workReviewCycle: null) is.
-    // See getCategoryApprovedAreaByWorkId's own comment for the full story.
-    const deductions = allDeductions.filter(d => d.workReviewCycle == null);
 
     const advancesTotal = advances.reduce((sum, a) => sum + a.amount, 0);
-    const deductionsTotal = deductions.reduce((sum, d) => sum + d.amount, 0);
+    // A workReviewCycle-tagged row is the atomic review's own exact
+    // rejection attribution — already reflected above via approvedArea, so
+    // it must not ALSO reduce Balance Payable again here (would double-
+    // count it). It still ships in `deductions` below for a complete
+    // history (the frontend labels it "From Review" vs "Manual"), just
+    // excluded from this sum — only a genuinely standalone manual
+    // deduction (workReviewCycle: null) counts toward the total. See
+    // getCategoryApprovedAreaByWorkId's own comment for the full story.
+    const deductionsTotal = deductions.filter(d => d.workReviewCycle == null).reduce((sum, d) => sum + d.amount, 0);
     const paymentsTotal = payments.reduce((sum, p) => sum + p.amount, 0);
     const tdsTotal = round2(payments.reduce((sum, p) => sum + (p.tdsAmount || 0), 0));
     earningsTotal = round2(earningsTotal);

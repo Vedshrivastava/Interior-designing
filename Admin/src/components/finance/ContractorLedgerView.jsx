@@ -390,6 +390,9 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
             </div>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>
                 Sqft in, ₹ out: the amount is always derived from the picked work's rate, never typed directly.
+                {ledger.deductions.some(d => d.workReviewCycle != null) && (
+                    <> Rows labeled <b>From Review</b> came from a Work Review's rejection distribution — their ₹ is already reflected in Approved Earnings above, so they aren't counted again in the Deductions total below (only <b>Manual</b> rows are).</>
+                )}
             </p>
             {showWorks && ledger.works.length === 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '20px' }}>No works for this contractor yet; a deduction needs a work to derive its rate from.</p>
@@ -398,17 +401,24 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                 <div className="admin-empty-state"><p>No deductions yet.</p></div>
             ) : (
                 <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.8fr 1fr 1.3fr 1fr 100px' }}>
-                        <b>Date</b><b>Sqft</b><b>Amount</b><b>Reason</b><b>Work</b><b>Action</b>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.8fr 0.9fr 1fr 1.1fr 1fr 100px' }}>
+                        <b>Date</b><b>Sqft</b><b>Amount</b><b>Source</b><b>Reason</b><b>Work</b><b>Action</b>
                     </div>
                     {ledger.deductions.map(d => (
-                        <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 1fr 1.3fr 1fr 100px' }}>
+                        <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 0.9fr 1fr 1.1fr 1fr 100px' }}>
                             <p>{new Date(d.date).toLocaleDateString()}</p>
                             <p>{d.areaSqft ?? '-'}</p>
                             <p>₹{d.amount.toLocaleString('en-IN')}</p>
+                            <p style={{ color: d.workReviewCycle != null ? 'var(--text-lt)' : 'inherit', fontWeight: d.workReviewCycle == null ? 600 : 400 }}>
+                                {d.workReviewCycle != null ? 'From Review' : 'Manual'}
+                            </p>
                             <p>{d.reason}</p>
                             <p>{ledger.works.find(w => w._id === (d.workId?._id || d.workId))?.workType || '-'}</p>
-                            <div className="action-buttons"><p onClick={() => remove('deduction', d._id)} className="cursor delete-action">X</p></div>
+                            <div className="action-buttons">
+                                {d.workReviewCycle != null
+                                    ? <p title="Change this by redoing the Work Review, not by deleting it here" style={{ color: 'var(--text-lt)', fontSize: '0.85em' }}>—</p>
+                                    : <p onClick={() => remove('deduction', d._id)} className="cursor delete-action">X</p>}
+                            </div>
                         </div>
                     ))}
                 </div>

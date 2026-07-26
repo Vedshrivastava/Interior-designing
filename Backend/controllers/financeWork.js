@@ -5,6 +5,12 @@ import FinanceWorkLabourAssignment from '../models/financeWorkLabourAssignment.j
 import { assertLabourersAvailable } from '../utils/labourAvailability.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
+// Shared with financeProject.js's completion-readiness check — same reasoning
+// as that module's own cross-controller imports (e.g. financeMeasurement.js
+// importing computeCurrentStock from financeStockMovement.js).
+import { computeWorkExpectedPay } from './financeReports.js';
+
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 // projectId is optional — omit it for a cross-project view (e.g. Site
 // Operations' Daily Measurements, scanning every project for a given work
@@ -91,12 +97,37 @@ const addWork = async (req, res) => {
 // financeWorkContractorAssignment.js.
 const updateWork = async (req, res) => {
     try {
-        const { _id, workType, workOrderNumber, startDate, estimatedAreaSqft, status, notes } = req.body;
+        const { _id, workType, workOrderNumber, startDate, estimatedAreaSqft, status, notes, confirmOverride } = req.body;
         const existing = await FinanceWork.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Work not found' });
         if (!workType) return res.status(400).json({ success: false, message: 'Work type is required' });
 
         const newStatus = ['active', 'completed'].includes(status) ? status : existing.status;
+
+        // Warn-don't-block, same pattern as completeFinanceProject
+        // (financeProject.js): a Work completing with real unreviewed area
+        // still on it silently drops that contractor/labour/commission
+        // liability out of company-wide "approved" aggregates, since those
+        // only scan active works — this was the direct cause of an earlier
+        // dashboard-mismatch bug, patched downstream but never at the
+        // source. Surface it once; confirmOverride:true pushes through
+        // (a Work can legitimately close with a small unreviewed tail, same
+        // as a project closing with one stray balance).
+        if (existing.status !== 'completed' && newStatus === 'completed') {
+            const expectedPay = await computeWorkExpectedPay(existing);
+            if (expectedPay.unapprovedAreaSqft > 0.01 && !confirmOverride) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'This work has unreviewed area',
+                    blockers: [{
+                        category: 'unreviewed_area',
+                        label: `${round2(expectedPay.unapprovedAreaSqft)} sqft logged but never reviewed`,
+                        amount: round2(expectedPay.unapprovedAmount),
+                    }],
+                });
+            }
+        }
+
         await FinanceWork.findByIdAndUpdate(_id, {
             workType: workType.trim(),
             workOrderNumber: workOrderNumber || '',

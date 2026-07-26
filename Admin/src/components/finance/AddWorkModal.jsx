@@ -39,6 +39,7 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
     const [labourSupervisorId, setLabourSupervisorId] = useState('');
     const [selectedLabourerIds, setSelectedLabourerIds] = useState([]);
     const [saving, setSaving] = useState(false);
+    const [completionBlockers, setCompletionBlockers] = useState(null); // [{category,label,amount}] | null
     const { checkSupervisor, modal: supervisorConflictModal } = useSupervisorConflictCheck(url);
 
     useEffect(() => {
@@ -51,6 +52,34 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
         setContractorAssignments(prev => prev.map((a, i) => (i === idx ? { ...a, [key]: value } : a)));
     const addAssignmentRow = () => setContractorAssignments(prev => [...prev, emptyAssignmentRow()]);
     const removeAssignmentRow = (idx) => setContractorAssignments(prev => prev.filter((_, i) => i !== idx));
+
+    // Warn-don't-block, same pattern as project completion (ProjectDetail.jsx
+    // completeProject): the first save either goes through outright or comes
+    // back with a blockers[] list to show; "Save Anyway" in that modal
+    // resends with confirmOverride:true.
+    const saveWork = async (confirmOverride = false) => {
+        setSaving(true);
+        try {
+            const payload = editingId
+                ? { ...form, _id: editingId, projectId, confirmOverride }
+                : {
+                    ...form, projectId,
+                    contractorAssignments: contractorAssignments.filter(a => a.contractorVendorId),
+                    labourSupervisorId: selectedLabourerIds.length ? labourSupervisorId : undefined,
+                    labourerIds: selectedLabourerIds,
+                };
+            const endpoint = editingId ? 'update' : 'add';
+            const res = await axios.post(`${url}/api/finance/works/${endpoint}`, payload, authHeader);
+            if (res.data.success) {
+                toast.success(res.data.message || 'Work saved');
+                setCompletionBlockers(null);
+                onSaved(res.data.data);
+            } else toast.error(res.data.message);
+        } catch (err) {
+            if (err.response?.data?.blockers) setCompletionBlockers(err.response.data.blockers);
+            else toast.error(err.response?.data?.message || 'Error saving work');
+        } finally { setSaving(false); }
+    };
 
     const submit = async (e) => {
         e.preventDefault();
@@ -65,25 +94,7 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
                 return toast.error('Supervisor is required for the labour team');
             }
         }
-        setSaving(true);
-        try {
-            const payload = editingId
-                ? { ...form, _id: editingId, projectId }
-                : {
-                    ...form, projectId,
-                    contractorAssignments: contractorAssignments.filter(a => a.contractorVendorId),
-                    labourSupervisorId: selectedLabourerIds.length ? labourSupervisorId : undefined,
-                    labourerIds: selectedLabourerIds,
-                };
-            const endpoint = editingId ? 'update' : 'add';
-            const res = await axios.post(`${url}/api/finance/works/${endpoint}`, payload, authHeader);
-            if (res.data.success) {
-                toast.success(res.data.message || 'Work saved');
-                onSaved(res.data.data);
-            } else toast.error(res.data.message);
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Error saving work');
-        } finally { setSaving(false); }
+        await saveWork(false);
     };
 
     return (
@@ -178,6 +189,30 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
                                 <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
                             </div>
                         </form>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {completionBlockers && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !saving && setCompletionBlockers(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>This work has unreviewed area</h3>
+                        <p className="bin-confirm-name" style={{ display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' }}>
+                            {completionBlockers.map((b, i) => (
+                                <span key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                                    <span>{b.label}</span>
+                                    <b style={{ whiteSpace: 'nowrap' }}>{b.amount < 0 ? '-' : ''}₹{Math.abs(b.amount).toLocaleString('en-IN')}</b>
+                                </span>
+                            ))}
+                        </p>
+                        <p className="bin-confirm-warning">Completing this work now will drop that unreviewed area out of company-wide approved totals — review it first (Payables/Receivables → Work Review) if it should still count.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setCompletionBlockers(null)} disabled={saving}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={() => saveWork(true)} disabled={saving}>
+                                {saving ? 'Saving…' : 'Save Anyway'}
+                            </button>
+                        </div>
                     </div>
                 </div>,
                 document.body

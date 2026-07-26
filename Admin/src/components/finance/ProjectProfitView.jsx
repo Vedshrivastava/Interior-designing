@@ -122,6 +122,9 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                             <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
                                 Logged work whose cost isn't counted in Profit yet — Contractor/Labour Payment Left is already net of client direct payments.
                             </p>
+                            <p className="admin-subtitle" style={{ padding: '0 20px 16px', fontWeight: 600, color: data.totalProjectedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>
+                                Total Projected Profit (Approved + Unapproved): ₹{data.totalProjectedProfit.toLocaleString('en-IN')}
+                            </p>
                         </div>
                     )}
 

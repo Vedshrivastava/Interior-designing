@@ -90,6 +90,9 @@ const WorkProfitView = ({ url, workId }) => {
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
                         Logged work on this Work whose cost isn't counted in Profit yet — Contractor/Labour Payment Left is already net of client direct payments recorded against this Work.
                     </p>
+                    <p className="admin-subtitle" style={{ padding: '0 20px 16px', fontWeight: 600, color: data.totalProjectedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>
+                        Total Projected Profit (Approved + Unapproved): ₹{data.totalProjectedProfit.toLocaleString('en-IN')}
+                    </p>
                 </div>
             )}
 

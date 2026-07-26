@@ -220,6 +220,8 @@ const FinanceHome = ({ url }) => {
                     <KpiCard hero loading={phase1Loading} icon={faArrowTrendUp} label="This Month Profit" value={formatINR(summary?.thisMonthProfit)} onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.thisMonthProfit >= 0 ? 'good' : 'danger'} />
                     <KpiCard hero loading={phase1Loading} icon={faMoneyBillWave} label="This Month Expense" value={formatINR(summary?.thisMonthExpense)} onClick={() => navigate('/finance/payables?tab=expenses')} />
                     <KpiCard hero loading={phase1Loading} icon={faReceipt} label="Total Expense - Ongoing Projects" value={formatINR(summary?.totalExpenseToDate)} sub="All-time, excludes completed projects" onClick={() => navigate('/finance/payables?tab=expenses')} />
+                    <KpiCard hero loading={phase1Loading} icon={faArrowTrendUp} label="Total Approved Profit - Ongoing Projects" value={formatINR(summary?.totalApprovedProfitToDate)} sub="All-time, excludes completed projects" onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.totalApprovedProfitToDate >= 0 ? 'good' : 'danger'} />
+                    <KpiCard hero loading={phase1Loading} icon={faTriangleExclamation} label="Material Wastage Loss - Ongoing Projects" value={formatINR(summary?.materialWasteCostToDate)} sub="All-time, excludes completed projects; already counted in Profit above" onClick={() => navigate('/finance/site-inventory')} tone={summary?.materialWasteCostToDate > 0 ? 'danger' : 'good'} />
                 </KpiGrid>
 
                 <KpiSectionLabel>Cash, Receivables &amp; Payables</KpiSectionLabel>
@@ -309,6 +311,9 @@ const FinanceHome = ({ url }) => {
                                         onClick={() => navigate('/finance/daily-labour')} tone={summary.unapprovedLabourTotal > 0 ? 'danger' : undefined} />
                                     <KpiCard icon={faHandHoldingDollar} label="Commission - Unapproved" value={formatINR(summary.unapprovedCommissionTotal)} onClick={() => navigate('/finance/referrals')} tone={summary.unapprovedCommissionTotal > 0 ? 'danger' : undefined} />
                                     <KpiCard icon={faArrowTrendUp} label="Profit - Unapproved" value={formatINR(summary.unapprovedProfitTotal)} sub={`Revenue once approved: ${formatINR(summary.unapprovedRevenueTotal)}`} onClick={() => navigate('/finance/receivables')} tone={summary.unapprovedProfitTotal >= 0 ? 'good' : 'danger'} />
+                                    <KpiCard icon={faArrowTrendUp} label="Total Projected Profit" value={formatINR(summary.totalProjectedProfit)}
+                                        sub="Approved (ongoing projects) + Unapproved (all), once everything currently logged clears review"
+                                        onClick={() => navigate('/finance/receivables')} tone={summary.totalProjectedProfit >= 0 ? 'good' : 'danger'} />
                                     {(summary.directPaymentContractorUnapproved + summary.directPaymentLabourUnapproved + summary.directPaymentContractorApproved + summary.directPaymentLabourApproved) > 0 && (
                                         <KpiCard icon={faHandHoldingDollar} label="Direct Payments (Client → Workers)"
                                             value={formatINR(summary.directPaymentContractorUnapproved + summary.directPaymentLabourUnapproved + summary.directPaymentContractorApproved + summary.directPaymentLabourApproved)}

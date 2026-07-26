@@ -200,6 +200,9 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                             ' Contractor/Labour Payment Left is already net of client direct payments — see Direct Payments below.'
                         )}
                     </p>
+                    <p className="admin-subtitle" style={{ padding: '0 20px 16px', fontWeight: 600, color: profit.totalProjectedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>
+                        Total Projected Profit (Approved + Unapproved): {formatINR(profit.totalProjectedProfit)}
+                    </p>
                 </div>
             )}
 

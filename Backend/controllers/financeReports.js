@@ -627,6 +627,8 @@ const computeProjectProfit = async (projectId) => {
     const grossUnapprovedContractorCost = round2(Math.max(0, contractorCostInfo.totalAmount - contractorCost));
     const grossUnapprovedLabourCost = round2(Math.max(0, labourCostInfo.totalAmount - labourCost));
 
+    const unapprovedProfit = round2(unapprovedRevenue - grossUnapprovedContractorCost - grossUnapprovedLabourCost - unapprovedCommissionCost);
+
     return {
         projectId: project._id, projectName: project.name, clientId: project.clientId,
         revenue, materialCost, materialWasteCost, contractorCost, commissionCost, otherExpenses, labourCost, profit,
@@ -639,8 +641,12 @@ const computeProjectProfit = async (projectId) => {
         // once approved, minus the unapproved cost lines above — the
         // "Unapproved" section's own mini profit picture, same shape as the
         // approved figures above it.
-        unapprovedRevenue, unapprovedAreaSqft,
-        unapprovedProfit: round2(unapprovedRevenue - grossUnapprovedContractorCost - grossUnapprovedLabourCost - unapprovedCommissionCost),
+        unapprovedRevenue, unapprovedAreaSqft, unapprovedProfit,
+        // What Profit becomes once everything currently logged and still
+        // pending review actually clears review — Approved + Unapproved,
+        // computed once here so every view showing both never has to add
+        // them together itself.
+        totalProjectedProfit: round2(profit + unapprovedProfit),
         marginPercent: revenue > 0 ? (profit / revenue) * 100 : 0,
     };
 };
@@ -1339,6 +1345,10 @@ const getWorkProfit = async (req, res) => {
         const wp = await computeWorkProfit(work);
         const totalContractorAmount = round2(wp.contractorBreakdown.reduce((s, b) => s + b.totalAmount, 0));
         const totalLabourAmount = round2(wp.labourBreakdown.reduce((s, b) => s + b.totalAmount, 0));
+        const unapprovedProfit = round2(wp.unapprovedRevenue
+            - round2(Math.max(0, totalContractorAmount - wp.contractorCost))
+            - round2(Math.max(0, totalLabourAmount - wp.labourCost))
+            - wp.unapprovedCommissionAmount);
         res.json({
             success: true,
             data: {
@@ -1359,10 +1369,8 @@ const getWorkProfit = async (req, res) => {
                 // never exposed it, so Reports' Work Profit tab could only
                 // ever show Approved figures.
                 unapprovedRevenue: wp.unapprovedRevenue,
-                unapprovedProfit: round2(wp.unapprovedRevenue
-                    - round2(Math.max(0, totalContractorAmount - wp.contractorCost))
-                    - round2(Math.max(0, totalLabourAmount - wp.labourCost))
-                    - wp.unapprovedCommissionAmount),
+                unapprovedProfit,
+                totalProjectedProfit: round2(wp.profit + unapprovedProfit),
                 contractorPaymentLeftUnapproved: wp.contractorPaymentLeftUnapproved,
                 labourPaymentLeftUnapproved: wp.labourPaymentLeftUnapproved,
                 contractorDirectPaymentUnapproved: wp.contractorDirectPaymentUnapproved,
@@ -1420,6 +1428,10 @@ const getWorkDetail = async (req, res) => {
         const report = await computeWorkScopedReport(work, { dateStart, dateEnd, avgRate });
         const totalContractorAmount = round2(workProfit.contractorBreakdown.reduce((s, b) => s + b.totalAmount, 0));
         const totalLabourAmount = round2(workProfit.labourBreakdown.reduce((s, b) => s + b.totalAmount, 0));
+        const unapprovedProfit = round2(workProfit.unapprovedRevenue
+            - round2(Math.max(0, totalContractorAmount - workProfit.contractorCost))
+            - round2(Math.max(0, totalLabourAmount - workProfit.labourCost))
+            - workProfit.unapprovedCommissionAmount);
 
         res.json({
             success: true,
@@ -1469,10 +1481,10 @@ const getWorkDetail = async (req, res) => {
                 // Profit once reviewed and billed, mirroring
                 // ProjectDetail.jsx's Unapproved table exactly.
                 unapprovedRevenue: workProfit.unapprovedRevenue,
-                unapprovedProfit: round2(workProfit.unapprovedRevenue
-                    - round2(Math.max(0, totalContractorAmount - workProfit.contractorCost))
-                    - round2(Math.max(0, totalLabourAmount - workProfit.labourCost))
-                    - workProfit.unapprovedCommissionAmount),
+                unapprovedProfit,
+                // Approved + Unapproved — what Profit becomes once this
+                // Work's still-pending sqft actually clears review.
+                totalProjectedProfit: round2(workProfit.profit + unapprovedProfit),
                 // Client direct payments (category flagged "cut from worker
                 // payout") tied to this Work — netted against Unapproved
                 // first, leftover reduces Approved (see
@@ -3029,6 +3041,13 @@ const getDashboardSummary = async (req, res) => {
         const billableProjectIds = billableProjects.map(p => p._id);
         const activeProjects = await FinanceProject.find({ status: 'active', deleted: { $ne: true } }, '_id');
         const activeProjectIds = activeProjects.map(p => p._id);
+        // Ongoing projects only — same "not completed" scope
+        // computeCompanyWideExpenseToDate already uses, for the same reason:
+        // a completed project's all-time numbers are already settled and
+        // visible on its own Project Overview; this card is meant to answer
+        // "how are the projects still running actually doing," not a
+        // permanent lifetime total that only ever grows.
+        const ongoingProjects = await FinanceProject.find({ deleted: { $ne: true }, status: { $ne: 'completed' } }, '_id');
         // Completed Works are done accruing "today's site activity" — a
         // finished project's historical revenue/cost still counts toward
         // Total Profit below, it just stops nudging the operational
@@ -3039,6 +3058,7 @@ const getDashboardSummary = async (req, res) => {
             bankAccounts, cashEntriesToDate, receivableSummaries, contractorRows, vendorRows,
             readyProjectIds, activeProjectsCount, activeWorksCount, labourersWorkingTodayIds, lowStockCount,
             todayContractorMeasurements, todayLabourMeasurements, monthRevenueAgg, recentActivities,
+            ongoingProjectProfits,
         ] = await Promise.all([
             FinanceBankAccount.find({ deleted: { $ne: true } }),
             FinanceCashEntry.find({ deleted: { $ne: true }, date: { $lte: todayEnd } }),
@@ -3070,6 +3090,11 @@ const getDashboardSummary = async (req, res) => {
                 { $group: { _id: null, total: { $sum: '$totalAmount' } } },
             ]),
             FinanceActivityLog.find().sort({ timestamp: -1 }).limit(15),
+            // All-time Approved Profit + Material Waste Cost, ongoing
+            // projects only (see ongoingProjects' own comment) — one pass
+            // over computeProjectProfit gives both, so there's no separate
+            // waste-only query needed.
+            Promise.all(ongoingProjects.map(p => computeProjectProfit(p._id))),
         ]);
 
         const bankBalances = await Promise.all(bankAccounts.map(async (a) => {
@@ -3181,6 +3206,20 @@ const getDashboardSummary = async (req, res) => {
         const thisMonthExpense = monthExpenseAgg[0]?.total || 0;
         const thisMonthProfit = thisMonthRevenue - monthMaterialCost - monthMaterialWasteCost - monthContractorCost - monthCommissionCost
             - thisMonthExpense - monthLabourCost - salaryPaidThisMonth;
+        // All-time Approved Profit and Material Waste Cost, ongoing projects
+        // only — pairs with Profit - Unapproved below, which is already
+        // all-time/cumulative rather than month-scoped, so these two read as
+        // the two halves of the same picture instead of mismatched time
+        // scopes (This Month Profit is monthly; this one is a running total).
+        const totalApprovedProfitToDate = round2(ongoingProjectProfits.reduce((s, p) => s + p.profit, 0));
+        const materialWasteCostToDate = round2(ongoingProjectProfits.reduce((s, p) => s + p.materialWasteCost, 0));
+        // Company-wide Unapproved Profit, computed here (not just inline in
+        // the response below) so totalProjectedProfit can reuse the exact
+        // same number instead of a second, easy-to-drift copy of the formula.
+        const unapprovedProfitTotal = round2(approvedBreakdown.unapprovedRevenueTotal
+            - (approvedBreakdown.unapprovedContractorTotal + approvedBreakdown.directPaymentContractorUnapproved)
+            - (approvedBreakdown.unapprovedLabourTotal + approvedBreakdown.directPaymentLabourUnapproved)
+            - commissionBreakdown.unapprovedCommissionTotal);
 
         res.json({
             success: true,
@@ -3240,11 +3279,18 @@ const getDashboardSummary = async (req, res) => {
                 // unapprovedContractorTotal/unapprovedLabourTotal above back
                 // up to their gross (pre-direct-payment) cost here, same fix
                 // as computeProjectProfit's unapprovedProfit.
-                unapprovedProfitTotal: round2(approvedBreakdown.unapprovedRevenueTotal
-                    - (approvedBreakdown.unapprovedContractorTotal + approvedBreakdown.directPaymentContractorUnapproved)
-                    - (approvedBreakdown.unapprovedLabourTotal + approvedBreakdown.directPaymentLabourUnapproved)
-                    - commissionBreakdown.unapprovedCommissionTotal),
+                unapprovedProfitTotal,
                 thisMonthRevenue, thisMonthProfit, thisMonthExpense,
+                // Ongoing projects only (see ongoingProjects' own comment) —
+                // pairs with unapprovedProfitTotal above (also all-time, not
+                // month-scoped) rather than mismatching against This Month
+                // Profit's monthly window.
+                totalApprovedProfitToDate, materialWasteCostToDate,
+                // What Profit becomes once everything currently logged and
+                // still-unreviewed actually clears review — not a separate
+                // number to reconcile by hand, so it's computed once here
+                // rather than asking the frontend to add two cards together.
+                totalProjectedProfit: round2(totalApprovedProfitToDate + unapprovedProfitTotal),
                 recentActivities,
             },
         });

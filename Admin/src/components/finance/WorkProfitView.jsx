@@ -62,11 +62,12 @@ const WorkProfitView = ({ url, workId }) => {
                     </p>
                     <p>₹{data.labourCost.toLocaleString('en-IN')}</p>
                 </div>
-                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                    <b>Material Cost <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>(weighted avg)</span></b><b>Commission Cost</b><b>Profit</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                    <b>Material Cost <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>(weighted avg)</span></b><b>Material Waste Cost</b><b>Commission Cost</b><b>Profit</b>
                 </div>
-                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                     <p>₹{data.materialCost.toLocaleString('en-IN')}</p>
+                    <p style={{ color: data.materialWasteCost > 0 ? '#c0392b' : 'inherit' }}>₹{data.materialWasteCost.toLocaleString('en-IN')}</p>
                     <p>₹{data.commissionCost.toLocaleString('en-IN')}</p>
                     <p style={{ fontWeight: 700, color: data.profit >= 0 ? 'var(--moss)' : '#c0392b' }}>₹{data.profit.toLocaleString('en-IN')}</p>
                 </div>

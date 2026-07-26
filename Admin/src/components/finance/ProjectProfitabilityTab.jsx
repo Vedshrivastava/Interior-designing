@@ -83,6 +83,7 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                 <KpiCard label="Profit" value={formatINR(profit.profit)} tone={profit.profit >= 0 ? 'good' : 'danger'} />
                 <KpiCard label="Margin %" value={`${profit.marginPercent.toFixed(1)}%`} tone={profit.marginPercent >= 0 ? 'good' : 'danger'} />
                 <KpiCard label="Material Cost" value={formatINR(profit.materialCost)} />
+                <KpiCard label="Material Waste Cost" value={formatINR(profit.materialWasteCost)} tone={profit.materialWasteCost > 0 ? 'danger' : undefined} />
                 <KpiCard
                     label="Contractor Cost (Approved)"
                     value={profit.contractorCost > 0 ? formatINR(profit.contractorCost) : (profit.totalContractorCost > 0 ? 'Unapproved' : formatINR(0))}

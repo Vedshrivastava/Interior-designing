@@ -230,6 +230,9 @@ const WorkDetail = ({ url }) => {
                         tone={data.commissionCost > 0 ? 'good' : (data.totalCommissionAmount > 0 ? 'danger' : undefined)}
                         sub={data.totalCommissionAmount > data.commissionCost ? `Total logged: ${formatINR(data.totalCommissionAmount)}` : 'All-time'}
                     />
+                    <KpiCard label="Material Cost" value={formatINR(data.materialCost)} sub="Always all-time — material has no approval gate" />
+                    <KpiCard label="Material Waste Cost" value={formatINR(data.materialWasteCost)} tone={data.materialWasteCost > 0 ? 'danger' : undefined}
+                        sub="Wasted material at the same rate it was bought — a real loss, already counted in Profit" />
                 </KpiGrid>
 
                 {(data.totalContractorAmount > data.contractorCost || data.totalLabourAmount > data.labourCost || data.totalCommissionAmount > data.commissionCost) && (

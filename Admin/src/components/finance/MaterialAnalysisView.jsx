@@ -79,7 +79,12 @@ const MaterialAnalysisView = ({ url }) => {
                         <p>{r.totalPurchased.toLocaleString('en-IN')} {r.unit}</p>
                         <p>{r.totalReturned.toLocaleString('en-IN')} {r.unit}</p>
                         <p>{r.totalConsumed.toLocaleString('en-IN')} {r.unit}</p>
-                        <p>{r.totalWasted.toLocaleString('en-IN')} {r.unit}</p>
+                        <p style={{ color: r.wasteCost > 0 ? '#c0392b' : 'inherit' }}>
+                            {r.totalWasted.toLocaleString('en-IN')} {r.unit}
+                            {r.wasteCost > 0 && (
+                                <span style={{ display: 'block', fontWeight: 400, fontSize: '0.75rem' }}>₹{r.wasteCost.toLocaleString('en-IN')} loss</span>
+                            )}
+                        </p>
                         <p>{r.currentStock.toLocaleString('en-IN')} {r.unit}</p>
                         <p>₹{r.weightedAverageCost.toFixed(2)}/{r.unit}</p>
                         <p>{projectId && r.areaCoveredSqft > 0 ? `₹${r.costPerSqft.toFixed(2)}/sqft` : '—'}</p>

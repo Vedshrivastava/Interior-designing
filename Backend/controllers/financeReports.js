@@ -107,6 +107,23 @@ const computeProjectMaterialCost = async (projectId) => {
     return total;
 };
 
+// Wasted material is a real loss at the same weighted-average rate the
+// material was actually bought at — it was paid for and produced zero
+// value, same as consumed material produced value, so it belongs in
+// Profit too. Kept as its own line (not folded into computeProjectMaterialCost)
+// so "material productively used" and "material lost" stay distinguishable
+// everywhere this is shown, not just netted into one blended number.
+const computeProjectMaterialWasteCost = async (projectId) => {
+    const avgRate = await computeMaterialAvgRates(projectId);
+    const wasted = await FinanceStockMovement.aggregate([
+        { $match: { projectId: new mongoose.Types.ObjectId(projectId), movementType: 'waste', deleted: { $ne: true } } },
+        { $group: { _id: '$materialId', qty: { $sum: '$quantity' } } },
+    ]);
+    let total = 0;
+    for (const row of wasted) total += row.qty * (avgRate.get(row._id.toString()) || 0);
+    return total;
+};
+
 // Work-level material cost scopes the same per-project average rate down
 // to only this work's consumed quantity — consume movements don't carry
 // workId directly, so this traces through relatedMeasurementId/
@@ -136,6 +153,25 @@ const computeWorkMaterialCost = async (projectId, workId) => {
     ]);
     let total = 0;
     for (const row of consumed) total += row.qty * (avgRate.get(row._id.toString()) || 0);
+    return total;
+};
+
+// Waste, at Work granularity — unlike consume, a waste movement isn't tied
+// to a measurement (nothing was actually done with it), it's tied directly
+// to workId instead (manually pickable on the entry form — see
+// financeStockMovement.js's schema comment). Rows entered before that field
+// existed stay workId: null and simply aren't attributable to any one Work
+// here (they still count at the project level via
+// computeProjectMaterialWasteCost, same "don't hide it, don't force a
+// guess" treatment computeWorkScopedReport already gives project-level waste).
+const computeWorkMaterialWasteCost = async (projectId, workId) => {
+    const avgRate = await computeMaterialAvgRates(projectId);
+    const wasted = await FinanceStockMovement.aggregate([
+        { $match: { workId: new mongoose.Types.ObjectId(workId), movementType: 'waste', deleted: { $ne: true } } },
+        { $group: { _id: '$materialId', qty: { $sum: '$quantity' } } },
+    ]);
+    let total = 0;
+    for (const row of wasted) total += row.qty * (avgRate.get(row._id.toString()) || 0);
     return total;
 };
 
@@ -542,12 +578,13 @@ const computeProjectProfit = async (projectId) => {
     const project = await FinanceProject.findOne({ _id: projectId, deleted: { $ne: true } });
     if (!project) return null;
 
-    const [revenueAgg, materialCost, contractorCostInfo, commissionCostInfo, expenseAgg, labourCostInfo, unapprovedRevenueInfo] = await Promise.all([
+    const [revenueAgg, materialCost, materialWasteCost, contractorCostInfo, commissionCostInfo, expenseAgg, labourCostInfo, unapprovedRevenueInfo] = await Promise.all([
         FinanceRunningBill.aggregate([
             { $match: { projectId: project._id, status: 'issued', deleted: { $ne: true } } },
             { $group: { _id: null, total: { $sum: '$totalAmount' } } },
         ]),
         computeProjectMaterialCost(project._id),
+        computeProjectMaterialWasteCost(project._id),
         computeProjectContractorCost(project._id),
         computeProjectCommissionCost(project),
         FinanceExpense.aggregate([
@@ -567,7 +604,10 @@ const computeProjectProfit = async (projectId) => {
     const contractorCost = contractorCostInfo.approvedAmount;
     const labourCost = labourCostInfo.approvedAmount;
     const commissionCost = commissionCostInfo.approvedAmount;
-    const profit = revenue - materialCost - contractorCost - commissionCost - otherExpenses - labourCost;
+    // Waste is unconditional (like material cost itself) — there's no
+    // "approval" concept for material, wasted or otherwise, so this always
+    // counts in full, same as materialCost.
+    const profit = revenue - materialCost - materialWasteCost - contractorCost - commissionCost - otherExpenses - labourCost;
 
     // "Pending review" — logged work whose cost isn't counted in Profit yet
     // because it hasn't been reviewed. Never negative: review can only ever
@@ -589,7 +629,7 @@ const computeProjectProfit = async (projectId) => {
 
     return {
         projectId: project._id, projectName: project.name, clientId: project.clientId,
-        revenue, materialCost, contractorCost, commissionCost, otherExpenses, labourCost, profit,
+        revenue, materialCost, materialWasteCost, contractorCost, commissionCost, otherExpenses, labourCost, profit,
         totalContractorCost: contractorCostInfo.totalAmount, totalLabourCost: labourCostInfo.totalAmount,
         totalCommissionCost: commissionCostInfo.totalAmount,
         unapprovedContractorCost, unapprovedLabourCost, unapprovedCommissionCost,
@@ -661,6 +701,7 @@ const getClientProfit = async (req, res) => {
         const totals = perProject.reduce((acc, p) => ({
             revenue: acc.revenue + p.revenue,
             materialCost: acc.materialCost + p.materialCost,
+            materialWasteCost: acc.materialWasteCost + p.materialWasteCost,
             contractorCost: acc.contractorCost + p.contractorCost,
             commissionCost: acc.commissionCost + p.commissionCost,
             otherExpenses: acc.otherExpenses + p.otherExpenses,
@@ -683,7 +724,7 @@ const getClientProfit = async (req, res) => {
             directPaymentContractorApproved: acc.directPaymentContractorApproved + p.directPaymentContractorApproved,
             directPaymentLabourApproved: acc.directPaymentLabourApproved + p.directPaymentLabourApproved,
         }), {
-            revenue: 0, materialCost: 0, contractorCost: 0, commissionCost: 0, otherExpenses: 0, labourCost: 0,
+            revenue: 0, materialCost: 0, materialWasteCost: 0, contractorCost: 0, commissionCost: 0, otherExpenses: 0, labourCost: 0,
             totalContractorCost: 0, totalLabourCost: 0, totalCommissionCost: 0,
             unapprovedContractorCost: 0, unapprovedLabourCost: 0, unapprovedCommissionCost: 0,
             unapprovedRevenue: 0, unapprovedProfit: 0, unapprovedAreaSqft: 0, profit: 0,
@@ -1074,7 +1115,8 @@ const computeWorkProfit = async (work) => {
     }
 
     const materialCost = await computeWorkMaterialCost(work.projectId, work._id);
-    const profit = revenue - contractorCost - labourCost - materialCost - commissionCost;
+    const materialWasteCost = await computeWorkMaterialWasteCost(work.projectId, work._id);
+    const profit = revenue - contractorCost - labourCost - materialCost - materialWasteCost - commissionCost;
     const {
         expectedPay, deductedTotal, expectedPayNetOfDeductions,
         totalAreaSqft, totalAmount, approvedAreaSqft, approvedAmount, approvedDate, unapprovedAreaSqft, unapprovedAmount,
@@ -1101,7 +1143,7 @@ const computeWorkProfit = async (work) => {
     const unapprovedRevenue = round2(unapprovedAreaSqft * clientRatePerSqft);
 
     return {
-        revenue, contractorCost, contractorBreakdown, labourCost, labourBreakdown, materialCost, profit, areaBilledSqft,
+        revenue, contractorCost, contractorBreakdown, labourCost, labourBreakdown, materialCost, materialWasteCost, profit, areaBilledSqft,
         commissionCost, totalCommissionAmount, unapprovedCommissionAmount, unapprovedRevenue,
         expectedPay, deductedTotal, expectedPayNetOfDeductions,
         totalAreaSqft, totalAmount, approvedAreaSqft, approvedAmount, approvedDate, unapprovedAreaSqft, unapprovedAmount,
@@ -1307,7 +1349,7 @@ const getWorkProfit = async (req, res) => {
                 labourCost: wp.labourCost, labourBreakdown: wp.labourBreakdown,
                 commissionCost: wp.commissionCost, totalCommissionAmount: wp.totalCommissionAmount,
                 unapprovedCommissionAmount: wp.unapprovedCommissionAmount,
-                materialCost: wp.materialCost, profit: wp.profit,
+                materialCost: wp.materialCost, materialWasteCost: wp.materialWasteCost, profit: wp.profit,
                 totalAreaSqft: wp.totalAreaSqft, totalAmount: wp.totalAmount,
                 approvedAreaSqft: wp.approvedAreaSqft, approvedAmount: wp.approvedAmount, approvedDate: wp.approvedDate,
                 unapprovedAreaSqft: wp.unapprovedAreaSqft, unapprovedAmount: wp.unapprovedAmount,
@@ -1407,6 +1449,13 @@ const getWorkDetail = async (req, res) => {
                 approvedAreaSqft: workProfit.approvedAreaSqft, approvedAmount: workProfit.approvedAmount, approvedDate: workProfit.approvedDate,
                 unapprovedAreaSqft: workProfit.unapprovedAreaSqft, unapprovedAmount: workProfit.unapprovedAmount,
                 revenue: workProfit.revenue, profit: workProfit.profit,
+                // All-time, unconditional — the `report` spread above only
+                // has the Day/Month/All-Time *scoped* material figures
+                // (dailyBreakdown etc.); Profit always uses these two
+                // regardless of scope, same "always all-time" treatment as
+                // revenue/contractorCost/labourCost above, so they need
+                // their own explicit key rather than relying on the spread.
+                materialCost: workProfit.materialCost, materialWasteCost: workProfit.materialWasteCost,
                 // Commission (Approved) — same review-gated shape as
                 // Contractor/Labour Cost above, attributed to just this
                 // Work's own workType rate. Zero for projects with no
@@ -2044,6 +2093,10 @@ const getMaterialAnalysis = async (req, res) => {
                 totalDumped: s.dump,
                 totalPurchased: p.purchasedQty, totalReturned: p.returnedQty,
                 totalConsumed: s.consume, totalWasted: s.waste,
+                // Wasted material at the same weighted-average rate it was
+                // bought at — a real loss, not just a quantity to note (see
+                // computeProjectMaterialWasteCost's identical reasoning).
+                wasteCost: s.waste * weightedAverageCost,
                 currentStock: s.dump - s.consume - s.returned - s.waste,
                 weightedAverageCost,
                 // Only populated when scoped to one project (projectId set).
@@ -2346,7 +2399,10 @@ const endOfDay = (d = new Date()) => { const x = new Date(d); x.setHours(23, 59,
 // the dashboard's "This Month Profit" and the Revenue-vs-Cost trend, both
 // of which need this for every project or a handful of months at once).
 // Optional projectIds narrows to a specific set (e.g. active projects only).
-const computeCompanyWideMaterialCostInRange = async (start, end, projectIds = null) => {
+// movementType defaults to 'consume' (the real Material Cost figure);
+// pass 'waste' for the equivalent company-wide Material Waste Cost — same
+// avgRate, same everything else, just which stock movements it sums.
+const computeCompanyWideMaterialCostInRange = async (start, end, projectIds = null, movementType = 'consume') => {
     const purchaseFilter = { deleted: { $ne: true } };
     if (projectIds) purchaseFilter.projectId = { $in: projectIds };
     const purchases = await FinancePurchase.find(purchaseFilter);
@@ -2362,7 +2418,7 @@ const computeCompanyWideMaterialCostInRange = async (start, end, projectIds = nu
     const avgRate = new Map();
     for (const [key, m] of rateByKey) avgRate.set(key, m.qty > 0 ? m.amt / m.qty : 0);
 
-    const consumeMatch = { movementType: 'consume', date: { $gte: start, $lte: end }, deleted: { $ne: true } };
+    const consumeMatch = { movementType, date: { $gte: start, $lte: end }, deleted: { $ne: true } };
     if (projectIds) consumeMatch.projectId = { $in: projectIds };
     const consumed = await FinanceStockMovement.aggregate([
         { $match: consumeMatch },
@@ -3102,8 +3158,9 @@ const getDashboardSummary = async (req, res) => {
         // incurred regardless of payment timing). Salary is cash-basis —
         // see computeSalaryPaidInRange's own comment for why it's different
         // from expense here.
-        const [monthMaterialCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth, expensePayableBreakdown, totalExpenseToDate] = await Promise.all([
+        const [monthMaterialCost, monthMaterialWasteCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth, expensePayableBreakdown, totalExpenseToDate] = await Promise.all([
             computeCompanyWideMaterialCostInRange(monthStart, monthEnd),
+            computeCompanyWideMaterialCostInRange(monthStart, monthEnd, null, 'waste'),
             computeCompanyWideContractorCostInRange(monthStart, monthEnd, null, true),
             computeCompanyWideCommissionCostInRange(monthStart, monthEnd, null, true),
             FinanceExpense.aggregate([
@@ -3122,7 +3179,7 @@ const getDashboardSummary = async (req, res) => {
         ]);
         const thisMonthRevenue = monthRevenueAgg[0]?.total || 0;
         const thisMonthExpense = monthExpenseAgg[0]?.total || 0;
-        const thisMonthProfit = thisMonthRevenue - monthMaterialCost - monthContractorCost - monthCommissionCost
+        const thisMonthProfit = thisMonthRevenue - monthMaterialCost - monthMaterialWasteCost - monthContractorCost - monthCommissionCost
             - thisMonthExpense - monthLabourCost - salaryPaidThisMonth;
 
         res.json({
@@ -3210,12 +3267,13 @@ const getDashboardTrends = async (req, res) => {
 
         const revenueVsCost = await Promise.all(monthKeys.map(async (monthKey) => {
             const { start, end } = monthBounds(monthKey);
-            const [revenueAgg, materialCost, contractorCost, commissionCost, expenseAgg, labourCost] = await Promise.all([
+            const [revenueAgg, materialCost, materialWasteCost, contractorCost, commissionCost, expenseAgg, labourCost] = await Promise.all([
                 FinanceRunningBill.aggregate([
                     { $match: { status: 'issued', billDate: { $gte: start, $lte: end }, deleted: { $ne: true } } },
                     { $group: { _id: null, total: { $sum: '$totalAmount' } } },
                 ]),
                 computeCompanyWideMaterialCostInRange(start, end),
+                computeCompanyWideMaterialCostInRange(start, end, null, 'waste'),
                 computeCompanyWideContractorCostInRange(start, end),
                 computeCompanyWideCommissionCostInRange(start, end),
                 FinanceExpense.aggregate([
@@ -3225,7 +3283,7 @@ const getDashboardTrends = async (req, res) => {
                 computeCompanyWideLabourCostInRange(start, end),
             ]);
             const revenue = revenueAgg[0]?.total || 0;
-            const cost = materialCost + contractorCost + commissionCost + (expenseAgg[0]?.total || 0) + labourCost;
+            const cost = materialCost + materialWasteCost + contractorCost + commissionCost + (expenseAgg[0]?.total || 0) + labourCost;
             return { month: monthKey, revenue, cost };
         }));
 

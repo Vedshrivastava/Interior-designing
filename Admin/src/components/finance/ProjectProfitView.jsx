@@ -87,10 +87,10 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                             </p>
                             <p>₹{data.commissionCost.toLocaleString('en-IN')}</p>
                         </div>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                            <b>Labour Cost</b><b>Other Expenses</b><b>Profit</b>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                            <b>Labour Cost</b><b>Other Expenses</b><b>Material Waste Cost</b><b>Profit</b>
                         </div>
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                        <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                             <p>
                                 {data.labourCost > 0 ? `₹${data.labourCost.toLocaleString('en-IN')}` : (data.totalLabourCost > 0 ? <span style={{ color: '#c0392b' }}>Unapproved</span> : '₹0')}
                                 {data.totalLabourCost > data.labourCost && (
@@ -98,6 +98,7 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                                 )}
                             </p>
                             <p>₹{data.otherExpenses.toLocaleString('en-IN')}</p>
+                            <p style={{ color: data.materialWasteCost > 0 ? '#c0392b' : 'inherit' }}>₹{data.materialWasteCost.toLocaleString('en-IN')}</p>
                             <p style={{ fontWeight: 700, color: data.profit >= 0 ? 'var(--moss)' : '#c0392b' }}>
                                 ₹{data.profit.toLocaleString('en-IN')} ({data.marginPercent.toFixed(1)}%)
                             </p>

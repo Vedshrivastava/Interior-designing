@@ -158,6 +158,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
 
     const costBreakdown = [
         { name: 'Material', value: profit.materialCost },
+        { name: 'Material Waste', value: profit.materialWasteCost },
         { name: 'Contractor', value: profit.contractorCost },
         { name: 'Commission', value: profit.commissionCost },
         { name: 'Labour', value: profit.labourCost },
@@ -169,6 +170,8 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
             <KpiGrid>
                 <KpiCard label="Revenue" value={formatINR(profit.revenue)} />
                 <KpiCard label="Material Cost" value={formatINR(profit.materialCost)} />
+                <KpiCard label="Material Waste Cost" value={formatINR(profit.materialWasteCost)} tone={profit.materialWasteCost > 0 ? 'danger' : undefined}
+                    sub="Wasted material at the same rate it was bought — a real loss, already counted in Profit" />
                 <KpiCard label="Contractor Cost" value={formatINR(profit.contractorCost)} />
                 <KpiCard label="Commission Cost" value={formatINR(profit.commissionCost)} />
                 <KpiCard label="Labour Cost" value={formatINR(profit.labourCost)} />

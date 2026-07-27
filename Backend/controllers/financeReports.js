@@ -736,12 +736,24 @@ const computeProjectProfit = async (projectId) => {
 
 // Cumulative completedAreaSqft over time isn't stored anywhere (only the
 // current total lives on the work doc) — approximated by bucketing each
-// dated FinanceMeasurement into ISO weeks since the project's startDate (or
-// its first measurement, if startDate isn't set) and running a cumulative
-// sum. Same "measurement dates as the only dated proxy for progress"
-// approximation used by the month-scoped company-wide helpers below.
+// dated measurement into weeks since the project's startDate (or its first
+// measurement, if startDate isn't set) and running a cumulative sum. Same
+// "measurement dates as the only dated proxy for progress" approximation
+// used by the month-scoped company-wide helpers below.
+//
+// Pulls from BOTH FinanceMeasurement (contractor vendor) and
+// FinanceLabourMeasurement (individual labourer) — a work can be measured
+// by either attribution type (or both, on different days), and progress is
+// about total physical area completed regardless of who did it. Querying
+// only the contractor collection meant a project worked entirely by an
+// in-house labour team (no contractor vendor involved at all) showed this
+// chart as empty no matter how much had actually been measured.
 const computeProgressOverTime = async (projectId, startDate) => {
-    const measurements = await FinanceMeasurement.find({ projectId, deleted: { $ne: true } }).sort({ date: 1 });
+    const [contractorMeasurements, labourMeasurements] = await Promise.all([
+        FinanceMeasurement.find({ projectId, deleted: { $ne: true } }, 'date areaCoveredSqft'),
+        FinanceLabourMeasurement.find({ projectId, deleted: { $ne: true } }, 'date areaCoveredSqft'),
+    ]);
+    const measurements = [...contractorMeasurements, ...labourMeasurements].sort((a, b) => new Date(a.date) - new Date(b.date));
     if (!measurements.length) return [];
     const start = startDate ? new Date(startDate) : new Date(measurements[0].date);
 

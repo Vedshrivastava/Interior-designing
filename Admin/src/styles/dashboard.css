@@ -1468,14 +1468,20 @@
     .ov-material-row,
     .ov-vendor-row {
         grid-template-columns: 1fr;
-        gap: 10px;
-        padding: 14px 16px;
+        gap: 14px;
+        padding: 16px;
     }
 
+    /* A fixed 3-column grid, not flex-wrap — flex-wrap let each field claim
+       only as much width as its own text needed, so a short "Wasted: 0 bag"
+       sat right up against its neighbour while a longer value left an
+       uneven gap elsewhere. A grid gives every field an equal-width column,
+       so the row reads as deliberate columns whether there are 3 of them
+       (Vendors) or 6 (Materials, wrapping to two rows of 3). */
     .ov-fields {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px 20px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px 12px;
     }
 
     .ov-field {
@@ -1490,6 +1496,10 @@
         letter-spacing: 0.3px;
         text-transform: uppercase;
         color: var(--text-lt, #9a8e84);
-        margin-bottom: 2px;
+        margin-bottom: 3px;
+    }
+
+    .ov-field-value {
+        font-size: 0.88rem;
     }
 }

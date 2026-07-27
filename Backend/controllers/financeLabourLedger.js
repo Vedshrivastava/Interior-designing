@@ -169,6 +169,12 @@ const computeLabourLedger = async (labourerId, projectId) => {
     // deduction (workReviewCycle: null) counts toward the total. See
     // getCategoryApprovedAreaByWorkId's own comment for the full story.
     const deductionsTotal = deductions.filter(d => d.workReviewCycle == null).reduce((sum, d) => sum + d.amount, 0);
+    // The material a rejection wasted, priced separately from `amount`
+    // above (see the model's own comment) — kept as its own figure rather
+    // than folded into deductionsTotal so "Deductions" never silently
+    // means two different things depending on which rows exist; Balance
+    // Payable below subtracts both explicitly.
+    const materialWasteTotal = round2(deductions.reduce((sum, d) => sum + (d.materialWasteAmount || 0), 0));
     const paymentsTotal = payments.reduce((sum, p) => sum + p.amount, 0);
     const tdsTotal = round2(payments.reduce((sum, p) => sum + (p.tdsAmount || 0), 0));
     earningsTotal = round2(earningsTotal);
@@ -177,7 +183,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
     // Flat — see getWorkerPayoutTotal's comment; kept separate from
     // deductionsTotal so a real rejection-deduction and an advance the
     // client already paid this labourer directly never blend together.
-    const balancePayable = round2(earningsTotal - advancesTotal - deductionsTotal - paymentsTotal - directPaymentTotal);
+    const balancePayable = round2(earningsTotal - advancesTotal - deductionsTotal - materialWasteTotal - paymentsTotal - directPaymentTotal);
 
     // Pooled total/total across every work this labourer has touched — same
     // convention as the per-work figure above, just not scoped to one work.
@@ -191,7 +197,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
         works: worksOut, measurements, advances, deductions, payments,
         totals: {
             earnings: earningsTotal, totalAmount: totalAmountTotal, unapprovedAmount: unapprovedAmountTotal,
-            advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal,
+            advances: advancesTotal, deductions: deductionsTotal, materialWasteTotal, payments: paymentsTotal,
             // Flat total of client-paid amounts (category flagged "cut from
             // worker payout") — see getWorkerPayoutTotal's comment; its own
             // term in balancePayable above, not blended into deductionsTotal.
@@ -286,18 +292,20 @@ const downloadLabourBillStatement = async (req, res) => {
             drawTable(doc, {
                 company,
                 columns: [
-                    { label: 'Date', width: 60, align: 'left' },
-                    { label: 'Work', width: 105, align: 'left' },
-                    { label: 'Sqft', width: 50, align: 'right' },
-                    { label: 'Amount', width: 74, align: 'right' },
-                    { label: 'Source', width: 70, align: 'left' },
-                    { label: 'Reason', width: 97, align: 'left' },
+                    { label: 'Date', width: 55, align: 'left' },
+                    { label: 'Work', width: 90, align: 'left' },
+                    { label: 'Sqft', width: 45, align: 'right' },
+                    { label: 'Amount', width: 65, align: 'right' },
+                    { label: 'Material Waste', width: 75, align: 'right' },
+                    { label: 'Source', width: 62, align: 'left' },
+                    { label: 'Reason', width: 120, align: 'left' },
                 ],
                 rows: data.deductions.map(d => [
                     formatDate(d.date),
                     workTypeById.get((d.workId?._id || d.workId)?.toString()) || '—',
                     d.areaSqft ?? '—',
                     formatCurrency(d.amount),
+                    d.materialWasteAmount > 0 ? formatCurrency(d.materialWasteAmount) : '—',
                     d.workReviewCycle != null ? 'Review' : 'Manual',
                     d.reason || '—',
                 ]),
@@ -305,7 +313,7 @@ const downloadLabourBillStatement = async (req, res) => {
             // See downloadContractorBillStatement's identical comment/block.
             if (data.deductions.some(d => d.workReviewCycle != null)) {
                 doc.fontSize(8).fillColor('#888888')
-                    .text('Review-sourced deductions are already reflected in Approved Earnings above, so only Manual ones are subtracted again in the Deductions total below.', left, doc.y, { width });
+                    .text('Review-sourced rows: Amount is already reflected in Approved Earnings above (only Manual rows\' Amount is subtracted again in Deductions below); Material Waste, if any, is always an additional deduction on top.', left, doc.y, { width });
                 doc.fillColor('#000000').fontSize(10);
             }
             doc.moveDown(0.4);
@@ -345,6 +353,10 @@ const downloadLabourBillStatement = async (req, res) => {
             doc.moveDown(0.4);
         }
 
+        // BUG FIX: see downloadContractorBillStatement's identical comment —
+        // Direct Pay was silently subtracted into Balance Payable below but
+        // never shown as its own line, so the printed totals didn't add up
+        // to that banner whenever a labourer had any.
         const totalsBoxWidth = 260;
         const totalsX = right - totalsBoxWidth;
         const labelWidth = 150;
@@ -355,7 +367,9 @@ const downloadLabourBillStatement = async (req, res) => {
             ['Approved Earnings', data.totals.earnings],
             ['Advances', -data.totals.advances],
             ['Deductions', -data.totals.deductions],
+            ...(data.totals.materialWasteTotal > 0 ? [['Material Waste', -data.totals.materialWasteTotal]] : []),
             ['Payments', -data.totals.payments],
+            ...(data.totals.directPaymentTotal > 0 ? [['Direct Pay (from Client)', -data.totals.directPaymentTotal]] : []),
         ].forEach(([label, value]) => {
             doc.text(label, totalsX, ty, { width: labelWidth });
             doc.text(formatCurrency(Math.abs(value)), totalsX + labelWidth, ty, { width: valueWidth, align: 'right' });
@@ -364,6 +378,12 @@ const downloadLabourBillStatement = async (req, res) => {
         doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(BRAND_GREEN).lineWidth(1).stroke();
         ty += 6;
         doc.y = ty + 10;
+        if (data.totals.directPaymentTotal > 0) {
+            doc.fontSize(8).fillColor('#888888')
+                .text('Direct Pay: amounts the client paid you straight, bypassing the company — already counted as settled above.', left, doc.y, { width });
+            doc.fillColor('#000000').fontSize(10);
+            doc.moveDown(0.4);
+        }
 
         // TDS Breakdown — see downloadContractorBillStatement's identical block.
         if (data.totals.tdsTotal > 0) {
@@ -387,6 +407,8 @@ const downloadLabourBillStatement = async (req, res) => {
             });
             doc.font('Helvetica-Bold').fontSize(10)
                 .text(`Total TDS Withheld: ${formatCurrency(data.totals.tdsTotal)}`, left, doc.y + 4);
+            // See downloadContractorBillStatement's identical comment.
+            doc.text(`Total Net Paid (cash/bank, after TDS): ${formatCurrency(data.totals.payments - data.totals.tdsTotal)}`, left, doc.y + 2);
             doc.font('Helvetica').fontSize(10);
             doc.moveDown(0.8);
         }

@@ -43,6 +43,13 @@ const financeLabourDeductionSchema = new mongoose.Schema({
     notes: { type: String, default: '' },
 
     // See financeContractorDeduction.js's identical field for the full
+    // reasoning — the material this labourer's own rejected areaSqft
+    // wasted, always additionally subtracted (unlike `amount`, already
+    // reflected via reduced Approved Earnings), and reclassified into the
+    // project's Material Waste Cost.
+    materialWasteAmount: { type: Number, default: 0 },
+
+    // See financeContractorDeduction.js's identical field for the full
     // reasoning — stamped with the Work's financeWorkReview.reviewCycle
     // when this row was created via the atomic review-and-distribute flow;
     // null for a standalone manual deduction.

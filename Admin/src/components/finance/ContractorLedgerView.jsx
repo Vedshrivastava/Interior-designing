@@ -237,15 +237,18 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
             </div>
 
             <div className="list-table finance-table" style={{ marginBottom: '8px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(8, 1fr)' }}>
-                    <b>Total (All Logged)</b><b>Approved (Reviewed)</b><b>Unapproved</b><b>Advances</b><b>Deductions</b><b>Direct Payments</b><b>Payments</b><b>{totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}</b>
+                <div className="list-table-format title" style={{ gridTemplateColumns: totals.materialWasteTotal > 0 ? 'repeat(9, 1fr)' : 'repeat(8, 1fr)' }}>
+                    <b>Total (All Logged)</b><b>Approved (Reviewed)</b><b>Unapproved</b><b>Advances</b><b>Deductions</b>
+                    {totals.materialWasteTotal > 0 && <b>Material Waste</b>}
+                    <b>Direct Payments</b><b>Payments</b><b>{totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}</b>
                 </div>
-                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(8, 1fr)' }}>
+                <div className="list-table-format row-item" style={{ gridTemplateColumns: totals.materialWasteTotal > 0 ? 'repeat(9, 1fr)' : 'repeat(8, 1fr)' }}>
                     <p>₹{totals.totalAmount.toLocaleString('en-IN')}</p>
                     <p style={{ color: totals.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{totals.earnings > 0 ? `₹${totals.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
                     <p style={{ color: totals.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>₹{totals.unapprovedAmount.toLocaleString('en-IN')}</p>
                     <p>₹{totals.advances.toLocaleString('en-IN')}</p>
                     <p>₹{totals.deductions.toLocaleString('en-IN')}</p>
+                    {totals.materialWasteTotal > 0 && <p>₹{totals.materialWasteTotal.toLocaleString('en-IN')}</p>}
                     <p>₹{totals.directPaymentTotal.toLocaleString('en-IN')}</p>
                     <p>₹{totals.payments.toLocaleString('en-IN')}</p>
                     <p style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</p>
@@ -254,6 +257,11 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
             {totals.unapprovedAmount > 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
                     ₹{totals.unapprovedAmount.toLocaleString('en-IN')} worth of measured work hasn't been reviewed yet (or is still awaiting rejected-sqft attribution); it isn't counted as Approved earnings until that's resolved (Payables/Receivables → Deductions).
+                </p>
+            )}
+            {totals.materialWasteTotal > 0 && (
+                <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
+                    ₹{totals.materialWasteTotal.toLocaleString('en-IN')} is the material this contractor's own rejected work wasted (priced at their own material-cost-per-sqft) — a separate, additional deduction from Deductions above, already subtracted from Balance Payable.
                 </p>
             )}
             {totals.directPaymentTotal > 0 && (
@@ -402,7 +410,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>
                 Sqft in, ₹ out: the amount is always derived from the picked work's rate, never typed directly.
                 {ledger.deductions.some(d => d.workReviewCycle != null) && (
-                    <> Rows labeled <b>From Review</b> came from a Work Review's rejection distribution — their ₹ is already reflected in Approved Earnings above, so they aren't counted again in the Deductions total below (only <b>Manual</b> rows are).</>
+                    <> Rows labeled <b>From Review</b> came from a Work Review's rejection distribution — their <b>Amount</b> is already reflected in Approved Earnings above, so it isn't counted again in the Deductions total below (only <b>Manual</b> rows' Amount is). Their <b>Material Waste</b>, if any, is different — always an additional, real deduction on top.</>
                 )}
             </p>
             {showWorks && ledger.works.length === 0 && (
@@ -412,14 +420,15 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                 <div className="admin-empty-state"><p>No deductions yet.</p></div>
             ) : (
                 <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.8fr 0.9fr 1fr 1.1fr 1fr 100px' }}>
-                        <b>Date</b><b>Sqft</b><b>Amount</b><b>Source</b><b>Reason</b><b>Work</b><b>Action</b>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.7fr 0.8fr 0.9fr 0.8fr 1fr 0.9fr 100px' }}>
+                        <b>Date</b><b>Sqft</b><b>Amount</b><b>Material Waste</b><b>Source</b><b>Reason</b><b>Work</b><b>Action</b>
                     </div>
                     {ledger.deductions.map(d => (
-                        <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 0.9fr 1fr 1.1fr 1fr 100px' }}>
+                        <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.7fr 0.8fr 0.9fr 0.8fr 1fr 0.9fr 100px' }}>
                             <p>{new Date(d.date).toLocaleDateString()}</p>
                             <p>{d.areaSqft ?? '-'}</p>
                             <p>₹{d.amount.toLocaleString('en-IN')}</p>
+                            <p>{d.materialWasteAmount > 0 ? `₹${d.materialWasteAmount.toLocaleString('en-IN')}` : '-'}</p>
                             <p style={{ color: d.workReviewCycle != null ? 'var(--text-lt)' : 'inherit', fontWeight: d.workReviewCycle == null ? 600 : 400 }}>
                                 {d.workReviewCycle != null ? 'From Review' : 'Manual'}
                             </p>

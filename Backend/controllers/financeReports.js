@@ -125,6 +125,55 @@ const computeProjectMaterialWasteCost = async (projectId) => {
     return total;
 };
 
+// A vendor's/labourer's own material-cost-per-sqft on one Work — the same
+// figure the Contractor/Labour Ledger's own "Material Cost/Sqft" column
+// shows (this party's own material-tagged measurements only, weighted-
+// average purchase rate). Falls back to every measurement of that same
+// party type on the Work (not just this one party's) when they never
+// logged material usage themselves, so a rejection can still be priced
+// even if the specific person didn't tag material on their own entries.
+// Used to price the material a rejected allocation wasted — see
+// financeWorkReview.js's reviewWork.
+const computePartyMaterialCostPerSqft = async (partyType, partyId, workId) => {
+    const work = await FinanceWork.findById(workId);
+    if (!work) return 0;
+    const avgRate = await computeMaterialAvgRates(work.projectId);
+    const Model = partyType === 'contractor' ? FinanceMeasurement : FinanceLabourMeasurement;
+    const partyFilter = partyType === 'contractor' ? { contractorVendorId: partyId } : { labourerId: partyId };
+    const [partyMeasurements, allMeasurements] = await Promise.all([
+        Model.find({ workId, ...partyFilter, deleted: { $ne: true } }),
+        Model.find({ workId, deleted: { $ne: true } }),
+    ]);
+    const rateFrom = (rows) => {
+        let cost = 0, area = 0;
+        for (const m of rows) {
+            if (m.materialUsed?.length) {
+                cost += m.materialUsed.reduce((s, u) => s + u.quantity * (avgRate.get(u.materialId.toString()) || 0), 0);
+                area += m.areaCoveredSqft;
+            }
+        }
+        return area > 0 ? cost / area : 0;
+    };
+    const partyRate = rateFrom(partyMeasurements);
+    return partyRate > 0 ? partyRate : rateFrom(allMeasurements);
+};
+
+// Total materialWasteAmount ever stamped on a project's deduction rows
+// (both contractor and labour) — the sum a rejection's own material cost
+// has been reclassified out of plain Material Cost and into Material
+// Waste Cost. See computeProjectProfit's own use of this for why it nets
+// against both, not just added to one.
+const computeProjectMaterialWasteReclassified = async (projectId) => {
+    const works = await FinanceWork.find({ projectId, deleted: { $ne: true } }, '_id');
+    const workIds = works.map(w => w._id);
+    if (!workIds.length) return 0;
+    const [contractorRows, labourRows] = await Promise.all([
+        FinanceContractorDeduction.find({ workId: { $in: workIds }, deleted: { $ne: true }, materialWasteAmount: { $gt: 0 } }, 'materialWasteAmount'),
+        FinanceLabourDeduction.find({ workId: { $in: workIds }, deleted: { $ne: true }, materialWasteAmount: { $gt: 0 } }, 'materialWasteAmount'),
+    ]);
+    return [...contractorRows, ...labourRows].reduce((s, d) => s + (d.materialWasteAmount || 0), 0);
+};
+
 // Work-level material cost scopes the same per-project average rate down
 // to only this work's consumed quantity — consume movements don't carry
 // workId directly, so this traces through relatedMeasurementId/
@@ -586,13 +635,20 @@ const computeProjectProfit = async (projectId) => {
     const project = await FinanceProject.findOne({ _id: projectId, deleted: { $ne: true } });
     if (!project) return null;
 
-    const [revenueAgg, materialCost, materialWasteCost, contractorCostInfo, commissionCostInfo, expenseAgg, labourCostInfo, unapprovedRevenueInfo, directPaymentContractorByVendor, directPaymentLabourByLabourer] = await Promise.all([
+    const [revenueAgg, rawMaterialCost, rawMaterialWasteCost, materialWasteReclassified, contractorCostInfo, commissionCostInfo, expenseAgg, labourCostInfo, unapprovedRevenueInfo, directPaymentContractorByVendor, directPaymentLabourByLabourer] = await Promise.all([
         FinanceRunningBill.aggregate([
             { $match: { projectId: project._id, status: 'issued', deleted: { $ne: true } } },
             { $group: { _id: null, total: { $sum: '$totalAmount' } } },
         ]),
         computeProjectMaterialCost(project._id),
         computeProjectMaterialWasteCost(project._id),
+        // A rejection's own wasted material was, until it was reviewed,
+        // sitting inside rawMaterialCost like any other consumed material
+        // (consumption is logged the moment a measurement's entered, long
+        // before anyone knows the work will be rejected) — this moves it
+        // into Material Waste Cost below instead, net zero effect on
+        // Profit from the move itself. See computeProjectMaterialWasteReclassified.
+        computeProjectMaterialWasteReclassified(project._id),
         computeProjectContractorCost(project._id),
         computeProjectCommissionCost(project),
         FinanceExpense.aggregate([
@@ -612,6 +668,14 @@ const computeProjectProfit = async (projectId) => {
     const revenue = revenueAgg[0]?.total || 0;
     const otherExpenses = expenseAgg[0]?.total || 0;
     const { unapprovedRevenue, unapprovedAreaSqft } = unapprovedRevenueInfo;
+    // Clamped at 0 — materialWasteReclassified was priced at review time
+    // using the material average rate as it stood then; a purchase/return
+    // recorded since could have shifted that rate enough that it no longer
+    // divides cleanly out of a freshly-recomputed rawMaterialCost. Rare,
+    // but "Material Cost: -₹40" would be a worse outcome than slightly
+    // under-crediting the reclassification in that edge case.
+    const materialCost = round2(Math.max(0, rawMaterialCost - materialWasteReclassified));
+    const materialWasteCost = round2(rawMaterialWasteCost + materialWasteReclassified);
     // Profit is built off Approved (reviewed) cost — Total cost (every
     // logged sqft, unconditional) is exposed alongside for context, split
     // out as its own unapproved figure below, but never subtracted here.
@@ -1931,6 +1995,16 @@ const computeContractorAnalysisRows = async (projectId) => {
             return tagged + general * share;
         };
         const advancesTotal = round2(allocate(advances));
+        // materialWasteAmount is a genuinely new deduction (unlike `amount`
+        // on a workReviewCycle-tagged row) — nothing else already accounts
+        // for it, so it's summed across every deduction regardless of
+        // cycle. KNOWN LIMITATION: a Work re-reviewed more than once could
+        // in principle leave a stale, superseded cycle's materialWasteAmount
+        // still counted here (the same staleness `amount` is filtered
+        // against above) — accepted because cleaning that up needs the
+        // same per-work "current cycle" lookup getCategoryApprovedAreaByWorkId
+        // already does internally, not cheaply available at this scope.
+        const materialWasteTotal = round2(allocate(allDeductions, 'materialWasteAmount'));
         const deductionsTotal = round2(allocate(deductions));
         const paymentsTotal = round2(allocate(payments));
         // Informational only — already inside paymentsTotal (the gross
@@ -1940,15 +2014,17 @@ const computeContractorAnalysisRows = async (projectId) => {
         // Flat — see getWorkerPayoutTotal's comment; a separate term from
         // deductionsTotal so a real rejection-deduction and an advance the
         // client already paid this vendor directly never blend into one
-        // ambiguous "Deductions" figure.
-        const balancePayable = round2(earnings - advancesTotal - deductionsTotal - paymentsTotal - directPaymentTotal);
+        // ambiguous "Deductions" figure. materialWasteTotal is kept
+        // separate too, for the same reason — see this file's own comment
+        // a few lines up.
+        const balancePayable = round2(earnings - advancesTotal - deductionsTotal - materialWasteTotal - paymentsTotal - directPaymentTotal);
 
         return {
             // Field names match financeContractorLedger.js's getContractorLedger
             // totals shape (totalAmount/earnings/unapprovedAmount) so both
             // feeds render identically on the frontend.
             vendorId: v._id, vendorName: v.name, earnings, totalAmount: totalEarnings, unapprovedAmount: unapprovedAmountTotal,
-            advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal, tdsTotal, directPaymentTotal, balancePayable,
+            advances: advancesTotal, deductions: deductionsTotal, materialWasteTotal, payments: paymentsTotal, tdsTotal, directPaymentTotal, balancePayable,
         };
     }));
 };
@@ -2075,19 +2151,22 @@ const computeLabourAnalysisRows = async (projectId) => {
             return tagged + general * share;
         };
         const advancesTotal = round2(allocate(advances));
+        // See computeContractorAnalysisRows' identical comment/KNOWN LIMITATION.
+        const materialWasteTotal = round2(allocate(allDeductions, 'materialWasteAmount'));
         const deductionsTotal = round2(allocate(deductions));
         const paymentsTotal = round2(allocate(payments));
         const tdsTotal = round2(allocate(payments, 'tdsAmount'));
         // Flat — see getWorkerPayoutTotal's comment; kept separate from
         // deductionsTotal so a real rejection-deduction and an advance the
         // client already paid this labourer directly never blend together.
-        const balancePayable = round2(earnings - advancesTotal - deductionsTotal - paymentsTotal - directPaymentTotal);
+        // materialWasteTotal is kept separate too, for the same reason.
+        const balancePayable = round2(earnings - advancesTotal - deductionsTotal - materialWasteTotal - paymentsTotal - directPaymentTotal);
 
         return {
             // Field names match financeLabourLedger.js's getLabourLedger
             // totals shape so both feeds render identically on the frontend.
             labourerId: l._id, labourerName: l.name, earnings, totalAmount: totalEarnings, unapprovedAmount: unapprovedAmountTotal,
-            advances: advancesTotal, deductions: deductionsTotal, payments: paymentsTotal, tdsTotal, directPaymentTotal, balancePayable,
+            advances: advancesTotal, deductions: deductionsTotal, materialWasteTotal, payments: paymentsTotal, tdsTotal, directPaymentTotal, balancePayable,
         };
     }));
 };
@@ -3391,14 +3470,18 @@ const computeLabourBalancesForProject = async (projectId, works) => {
 
     const moneyFilter = { projectId, deleted: { $ne: true } };
     return Promise.all(labourerIds.map(async (labourerId) => {
-        const [advances, deductions, payments] = await Promise.all([
+        const [advances, allDeductions, payments] = await Promise.all([
             FinanceLabourAdvance.find({ ...moneyFilter, labourerId }),
             FinanceLabourDeduction.find({ ...moneyFilter, labourerId }),
             FinanceLabourPayment.find({ ...moneyFilter, labourerId }),
         ]);
         const earnings = round2(earningsByLabourer.get(labourerId) || 0);
         const advancesTotal = advances.reduce((s, a) => s + a.amount, 0);
-        const deductionsTotal = deductions.reduce((s, d) => s + d.amount, 0);
+        // See computeContractorAnalysisRows' identical comment — a
+        // workReviewCycle-tagged row's `amount` is already reflected in
+        // earnings above (would double-count it), but materialWasteAmount
+        // is a genuinely new deduction nothing else accounts for.
+        const deductionsTotal = allDeductions.reduce((s, d) => s + (d.workReviewCycle == null ? (d.amount || 0) : 0) + (d.materialWasteAmount || 0), 0);
         const paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
         return {
             labourerId, labourerName: labourerById.get(labourerId)?.name || '—',
@@ -4295,4 +4378,8 @@ export {
     // per-worker Material Cost/Sqft column — same weighted-average material
     // rate lookup used by getMaterialAnalysis/computeWorkScopedReport.
     computeMaterialAvgRates,
+    // Shared with financeWorkReview.js's reviewWork — prices the material a
+    // rejected allocation wasted, same rate the Ledger's own "Material
+    // Cost/Sqft" column already shows for that party.
+    computePartyMaterialCostPerSqft,
 };

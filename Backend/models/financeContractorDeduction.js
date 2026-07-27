@@ -22,6 +22,21 @@ const financeContractorDeductionSchema = new mongoose.Schema({
     date:   { type: Date, required: true },
     notes:  { type: String, default: '' },
 
+    // The material cost this vendor's own rejected areaSqft wasted — set
+    // only for atomic-review-flow rows (see workReviewCycle below), priced
+    // at this vendor's own material-cost-per-sqft on this Work (falls back
+    // to the Work's overall rate if they never logged material usage
+    // themselves). Unlike `amount` (the labour-rate value, already fully
+    // reflected via reduced Approved Earnings — see
+    // getCategoryApprovedAreaByWorkId's own comment), this is a genuinely
+    // NEW deduction: nothing else already accounts for it, so every reader
+    // of deductionsTotal must always include it, regardless of
+    // workReviewCycle. Also reclassified into the project's Material Waste
+    // Cost (see computeProjectMaterialWasteReclassified) — net zero effect
+    // on Profit from the reclassification itself, since it's removed from
+    // plain Material Cost at the same time.
+    materialWasteAmount: { type: Number, default: 0 },
+
     // Set only when this row was created as part of a Work's atomic
     // review-and-distribute flow (financeWorkReview.js's reviewWork) —
     // stamped with that Work's financeWorkReview.reviewCycle AT THE TIME

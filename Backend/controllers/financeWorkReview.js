@@ -14,6 +14,9 @@ import { logActivity } from '../utils/financeActivityLog.js';
 // pricing rule for the same kind of record.
 import { resolveContractorDeductionAmount } from './financeContractorDeduction.js';
 import { resolveLabourDeductionAmount } from './financeLabourDeduction.js';
+// Prices the material a rejected allocation wasted — see this file's own
+// reviewWork and financeReports.js's computePartyMaterialCostPerSqft.
+import { computePartyMaterialCostPerSqft } from './financeReports.js';
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
@@ -150,13 +153,22 @@ const reviewWork = async (req, res) => {
         // Resolve every allocation's ₹ amount (and confirm a rate actually
         // exists) BEFORE writing anything — a missing rate config fails the
         // whole request instead of leaving a half-saved review with only
-        // some of its distribution recorded.
+        // some of its distribution recorded. Also prices the material that
+        // party's own rejected sqft wasted (see reviewWork's header
+        // comment) — priced even when it comes out to 0 (no material
+        // logged on this Work at all), never blocking the review over it.
         const resolvedAllocations = await Promise.all(cleanAllocations.map(async (a) => {
             const areaSqft = round2(Number(a.areaSqft));
-            const resolved = a.partyType === 'contractor'
-                ? await resolveContractorDeductionAmount(workId, a.partyId, areaSqft)
-                : await resolveLabourDeductionAmount(workId, a.partyId, areaSqft);
-            return { partyType: a.partyType, partyId: a.partyId, areaSqft, amount: resolved.amount, projectId: resolved.projectId };
+            const [resolved, materialCostPerSqft] = await Promise.all([
+                a.partyType === 'contractor'
+                    ? resolveContractorDeductionAmount(workId, a.partyId, areaSqft)
+                    : resolveLabourDeductionAmount(workId, a.partyId, areaSqft),
+                computePartyMaterialCostPerSqft(a.partyType, a.partyId, workId),
+            ]);
+            return {
+                partyType: a.partyType, partyId: a.partyId, areaSqft, amount: resolved.amount, projectId: resolved.projectId,
+                materialWasteAmount: round2(areaSqft * materialCostPerSqft),
+            };
         }));
         const cleanSupervisorAllocations = Array.isArray(supervisorAllocations)
             ? supervisorAllocations.filter(s => s && s.employeeId && Number(s.amount) > 0)
@@ -177,12 +189,14 @@ const reviewWork = async (req, res) => {
                 if (a.partyType === 'contractor') {
                     await new FinanceContractorDeduction({
                         vendorId: a.partyId, projectId: a.projectId, workId, areaSqft: a.areaSqft, amount: a.amount,
+                        materialWasteAmount: a.materialWasteAmount,
                         reason: trimmedReason, date: review.lastReviewedAt, workReviewCycle: review.reviewCycle,
                     }).save();
                     broadcast({ type: 'financeContractorLedgerChanged', vendorId: a.partyId });
                 } else {
                     await new FinanceLabourDeduction({
                         labourerId: a.partyId, projectId: a.projectId, workId, areaSqft: a.areaSqft, amount: a.amount,
+                        materialWasteAmount: a.materialWasteAmount,
                         reason: trimmedReason, date: review.lastReviewedAt, source: 'engineer_review', workReviewCycle: review.reviewCycle,
                     }).save();
                     broadcast({ type: 'financeLabourLedgerChanged', labourerId: a.partyId });

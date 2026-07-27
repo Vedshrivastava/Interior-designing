@@ -18,7 +18,13 @@ const lastCompletedMonth = () => {
     const d = new Date();
     d.setDate(1);
     d.setMonth(d.getMonth() - 1);
-    return d.toISOString().slice(0, 7);
+    // Built from local calendar fields, not .toISOString() — piping this
+    // through toISOString would convert to UTC and, for any viewer east of
+    // UTC, roll the 1st back into the wrong month whenever the browser's
+    // local clock reads between midnight and the UTC offset (e.g. before
+    // ~5:30am IST) — a real dashboard.css/getDashboardTrends bug this
+    // mirrors (see that function's own comment).
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
 const OTHER_CATEGORY = 'Others';
 

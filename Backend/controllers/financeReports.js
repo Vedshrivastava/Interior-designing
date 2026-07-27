@@ -3828,8 +3828,15 @@ const getDashboardTrends = async (req, res) => {
         const months = Math.min(24, Math.max(1, parseInt(req.query.months, 10) || 6));
         const now = new Date();
         const monthKeys = [];
+        // Build "YYYY-MM" from the local calendar fields directly — piping a
+        // local-midnight Date through .toISOString() would subtract this
+        // server's UTC offset (IST, +5:30) and roll the 1st back into the
+        // previous month's last day in UTC, silently shifting every month
+        // key here one month early (this dropped the current month off the
+        // end of the chart entirely).
         for (let i = months - 1; i >= 0; i--) {
-            monthKeys.push(new Date(now.getFullYear(), now.getMonth() - i, 1).toISOString().slice(0, 7));
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
         }
 
         const revenueVsCost = await Promise.all(monthKeys.map(async (monthKey) => {

@@ -23,7 +23,10 @@ const lastCompletedMonth = () => {
     const d = new Date();
     d.setDate(1);
     d.setMonth(d.getMonth() - 1);
-    return d.toISOString().slice(0, 7);
+    // Built from local calendar fields, not .toISOString() — see
+    // PayablesPage.jsx's identical helper for why toISOString() here would
+    // roll the month back for viewers east of UTC in the early-morning hours.
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
 
 // Project names run long ("Malhotra Enterprises — HQ Advance Contract") and

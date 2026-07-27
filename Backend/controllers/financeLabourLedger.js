@@ -376,10 +376,6 @@ const downloadLabourBillStatement = async (req, res) => {
                 ],
                 rows: [...tdsBySection.values()].map(s => [s.label, formatCurrency(s.total)]),
             });
-            doc.font('Helvetica-Bold').fontSize(10)
-                .text(`Total TDS Withheld: ${formatCurrency(data.totals.tdsTotal)}`, left, doc.y + 4);
-            // See downloadContractorBillStatement's identical comment.
-            doc.text(`Total Net Paid (cash/bank, after TDS): ${formatCurrency(data.totals.payments - data.totals.tdsTotal)}`, left, doc.y + 2);
             doc.font('Helvetica').fontSize(10);
             doc.moveDown(0.8);
         }
@@ -407,9 +403,23 @@ const downloadLabourBillStatement = async (req, res) => {
         if (data.totals.directPaymentTotal > 0) totalsLine('Direct Pay (from Client)', -data.totals.directPaymentTotal);
         doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(BRAND_GREEN).lineWidth(1).stroke();
         ty += 6;
-        const netPayable = round2(data.totals.earnings - data.totals.advances - data.totals.deductions - data.totals.materialWasteTotal - data.totals.directPaymentTotal);
-        totalsLine('Net Payable', netPayable, true);
-        totalsLine('Payments', -data.totals.payments);
+        const subtotalBeforeTds = round2(data.totals.earnings - data.totals.advances - data.totals.deductions - data.totals.materialWasteTotal - data.totals.directPaymentTotal);
+        // See downloadContractorBillStatement's identical comment: TDS is
+        // cut from the subtotal owed, not from a single payment's gross
+        // amount, so it belongs in this roll-up, not as a disconnected
+        // side note above it.
+        if (data.totals.tdsTotal > 0) {
+            totalsLine('Subtotal (before TDS)', subtotalBeforeTds, true);
+            totalsLine('TDS Withheld', -data.totals.tdsTotal);
+            doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(BRAND_GREEN).lineWidth(1).stroke();
+            ty += 6;
+            const netPayable = round2(subtotalBeforeTds - data.totals.tdsTotal);
+            totalsLine('Net Payable (after TDS)', netPayable, true);
+            totalsLine('Payments (net, after TDS)', -(data.totals.payments - data.totals.tdsTotal));
+        } else {
+            totalsLine('Net Payable', subtotalBeforeTds, true);
+            totalsLine('Payments', -data.totals.payments);
+        }
         doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(BRAND_GREEN).lineWidth(1).stroke();
         ty += 6;
         doc.font('Helvetica').fontSize(10);

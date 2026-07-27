@@ -1148,11 +1148,13 @@
     }
 }
 
-/* ── Project Directory (ProjectsList.jsx) ── same "name + self-labeled
-   fields + actions" shape as the mastercrud card above, but this table
-   isn't rendered through MasterCrudTable — it's a bespoke page with a
-   fixed 6-column layout, so it gets its own row classes rather than
-   reaching for classes named after a different component. */
+/* ── Project Directory (ProjectsList.jsx) ── every cell carries an explicit
+   grid-area (pl-name/pl-client/pl-contract/pl-status/pl-readiness/
+   pl-actions) instead of relying on source order to land in the right
+   column. That's what lets the mobile breakpoint below completely re-flow
+   the card (name+readiness paired on top, badges paired underneath, full-
+   width action row) via grid-template-areas alone — same six elements,
+   no separate mobile markup. */
 .projects-list-card {
     padding: 0;
 }
@@ -1165,6 +1167,7 @@
 .projects-list-row {
     display: grid;
     grid-template-columns: 2fr 1.3fr 1fr 1fr 1fr 100px;
+    grid-template-areas: "name client contract status readiness action";
     align-items: center;
     gap: 16px;
     padding: 14px 20px;
@@ -1185,35 +1188,43 @@
     padding-bottom: 10px;
 }
 
-.projects-list-name {
-    margin: 0;
+.pl-name { grid-area: name; margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); cursor: pointer; }
+.pl-name:hover { color: #8a6d3e; text-decoration: underline; }
+.projects-list-row.projects-list-header .pl-name { cursor: default; color: inherit; }
+
+.pl-client { grid-area: client; margin: 0; }
+
+.pl-contract { grid-area: contract; justify-self: start; }
+.pl-status { grid-area: status; justify-self: start; }
+
+.pl-readiness {
+    grid-area: readiness;
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
     font-weight: 600;
-    color: var(--text-dark, #1a1208);
-    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill, 999px);
+    width: fit-content;
 }
 
-.projects-list-name:hover {
-    color: #8a6d3e;
-    text-decoration: underline;
+.pl-readiness.is-ready {
+    color: var(--moss);
+    background: rgba(45, 74, 53, 0.08);
+    border: 1px solid rgba(45, 74, 53, 0.18);
 }
 
-/* Desktop: contents lets each field fall into its own column of the
-   6-column grid above, lined up under the header row. */
-.projects-list-fields {
-    display: contents;
+.pl-readiness.is-missing {
+    color: #c0392b;
+    background: rgba(192, 57, 43, 0.08);
+    border: 1px solid rgba(192, 57, 43, 0.2);
 }
 
-.projects-list-field {
-    display: contents;
-}
+.projects-list-row.projects-list-header .pl-readiness { background: none; border: none; padding: 0; color: inherit; font: inherit; }
 
-.projects-list-field-label {
-    display: none;
-}
-
-.projects-list-actions {
-    justify-content: flex-end;
-}
+.pl-actions { grid-area: action; justify-content: flex-end; }
 
 @media (max-width: 640px) {
     .projects-list-card .dash-chart-title {
@@ -1224,34 +1235,51 @@
         display: none;
     }
 
+    /* Name paired with its readiness chip up top (the two things worth
+       seeing at a glance), client as a quiet subtitle right below, the two
+       badges split evenly underneath, then a full-width action row —
+       reads top-to-bottom like a card instead of a cramped, unevenly
+       wrapping label/value list. */
     .projects-list-row {
-        grid-template-columns: 1fr;
-        gap: 10px;
-        padding: 14px 16px;
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "name readiness"
+            "client client"
+            "contract status"
+            "action action";
+        row-gap: 10px;
+        column-gap: 10px;
+        padding: 16px;
     }
 
-    .projects-list-fields {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px 20px;
+    .pl-name {
+        font-size: 1rem;
     }
 
-    .projects-list-field {
-        display: flex;
-        flex-direction: column;
+    .pl-readiness {
+        justify-self: end;
     }
 
-    .projects-list-field-label {
-        display: block;
-        font-size: 0.6rem;
-        font-weight: 700;
-        letter-spacing: 0.3px;
-        text-transform: uppercase;
+    .pl-client {
+        font-size: 0.82rem;
         color: var(--text-lt, #9a8e84);
-        margin-bottom: 2px;
     }
 
-    .projects-list-actions {
-        justify-content: flex-start;
+    .pl-contract, .pl-status {
+        font-size: 0.72rem;
+    }
+
+    .pl-actions {
+        justify-content: stretch;
+        gap: 10px;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+
+    .pl-actions .edit-action,
+    .pl-actions .delete-action {
+        flex: 1;
+        text-align: center;
     }
 }

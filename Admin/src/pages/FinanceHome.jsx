@@ -299,6 +299,9 @@ const FinanceHome = ({ url }) => {
                     <KpiCard loading={phase1Loading} icon={faFileInvoice} label="Expense Payables" value={formatINR(summary?.expensePayables)}
                         sub={summary?.expensePayablesCount > 0 ? `${summary.expensePayablesCount} expense${summary.expensePayablesCount === 1 ? '' : 's'} pending or partially paid` : undefined}
                         onClick={() => navigate('/finance/payables?tab=expenses&status=unpaid')} tone={summary?.expensePayables > 0 ? 'danger' : 'good'} />
+                    <KpiCard loading={phase1Loading} icon={faFileInvoiceDollar} label="TDS Payable" value={formatINR(summary?.tdsPayable)}
+                        sub={`Withheld ${formatINR(summary?.tdsWithheldToDate)} − Deposited ${formatINR(summary?.tdsDepositedToDate)}`}
+                        onClick={() => navigate('/finance/payments?tab=tds')} tone={summary?.tdsPayable > 0 ? 'danger' : 'good'} />
                     <KpiCard loading={phase1Loading} icon={faReceipt} label="Running Bills Ready" value={summary?.runningBillsReady ?? 0} onClick={() => navigate('/finance/receivables')} />
                 </KpiGrid>
 

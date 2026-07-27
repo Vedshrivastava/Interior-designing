@@ -7,6 +7,7 @@ import {
     getMaterialAnalysis, getInventorySummary,
     getCashFlow, getExpenseAnalysis,
     getCaMonthlyPackage, downloadCaMonthlyPackage,
+    getTdsPayable,
     getReconciliation,
     getDashboardSummary, getDashboardTrends,
     getClientsSummary, getClientDetail,
@@ -31,6 +32,7 @@ router.get('/cash-flow',           adminAuthMiddleware, getCashFlow);
 router.get('/expense-analysis',    adminAuthMiddleware, getExpenseAnalysis);
 router.get('/ca-monthly-package',          adminAuthMiddleware, getCaMonthlyPackage);
 router.get('/ca-monthly-package/download', adminAuthMiddleware, downloadCaMonthlyPackage);
+router.get('/tds-payable',         adminAuthMiddleware, getTdsPayable);
 router.get('/reconciliation',      adminAuthMiddleware, getReconciliation);
 
 // Finance Dashboard — three-tier architecture

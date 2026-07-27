@@ -38,6 +38,7 @@ import { summarizeProject } from './financeReceivable.js';
 import { expectedSalaryForMonth } from './financeSalaryLedger.js';
 import { getWorkerPayoutTotal, getWorkerPayoutTotalsBulk, getWorkerPayoutDeductionsForWork } from './financeClientDirectPayment.js';
 import FinanceSetting from '../models/financeSetting.js';
+import FinanceTdsDeposit from '../models/financeTdsDeposit.js';
 import FinanceBankAccount from '../models/financeBankAccount.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
 import FinanceActivityLog from '../models/financeActivityLog.js';
@@ -2562,7 +2563,7 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         if (to) { receiptFilter.receiptDate.$lte = new Date(to); otherFilter.date.$lte = new Date(to); }
     }
 
-    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, contractorAdvances, labourAdvances] = await Promise.all([
+    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, contractorAdvances, labourAdvances, tdsDeposits] = await Promise.all([
         FinanceReceipt.find(receiptFilter),
         FinanceContractorPayment.find(otherFilter),
         FinanceVendorPayment.find(otherFilter),
@@ -2575,6 +2576,7 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         // financeBankAccount.js's getAccountActivity, identical reasoning.
         FinanceContractorAdvance.find(otherFilter),
         FinanceLabourAdvance.find(otherFilter),
+        FinanceTdsDeposit.find(otherFilter),
     ]);
 
     // Cash actually leaving the company for any of these six payment types
@@ -2602,6 +2604,7 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         commission: commissionPayments.reduce((s, p) => s + netOut(p), 0),
         labourProvider: labourProviderPayments.reduce((s, p) => s + netOut(p), 0),
         expense: expenses.reduce((s, e) => s + e.amount, 0),
+        tdsDeposit: tdsDeposits.reduce((s, d) => s + d.amount, 0),
     };
     const totalOut = Object.values(outByCategory).reduce((a, b) => a + b, 0);
 
@@ -2615,6 +2618,7 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
     vendorRefunds.forEach(p => bump(p.date, 'in', netOut(p)));
     [...contractorPayments, ...vendorOutPayments, ...salaryPayments, ...labourPayments, ...commissionPayments, ...labourProviderPayments].forEach(p => bump(p.date, 'out', netOut(p)));
     [...contractorAdvances, ...labourAdvances].forEach(a => bump(a.date, 'out', a.amount));
+    tdsDeposits.forEach(d => bump(d.date, 'out', d.amount));
     expenses.forEach(p => bump(p.date, 'out', p.amount));
 
     const seriesArr = [...series.values()]
@@ -3434,7 +3438,7 @@ const getDashboardSummary = async (req, res) => {
             bankAccounts, cashEntriesToDate, receivableSummaries, contractorRows, vendorRows,
             readyProjectIds, activeProjectsCount, activeWorksCount, labourersWorkingTodayIds, lowStockCount,
             todayContractorMeasurements, todayLabourMeasurements, monthRevenueAgg, recentActivities,
-            ongoingProjectProfits,
+            ongoingProjectProfits, tdsPayableInfo,
         ] = await Promise.all([
             FinanceBankAccount.find({ deleted: { $ne: true } }),
             FinanceCashEntry.find({ deleted: { $ne: true }, date: { $lte: todayEnd } }),
@@ -3471,6 +3475,7 @@ const getDashboardSummary = async (req, res) => {
             // over computeProjectProfit gives both, so there's no separate
             // waste-only query needed.
             Promise.all(ongoingProjects.map(p => computeProjectProfit(p._id))),
+            computeTdsPayable(),
         ]);
 
         const bankBalances = await Promise.all(bankAccounts.map(async (a) => {
@@ -3681,6 +3686,14 @@ const getDashboardSummary = async (req, res) => {
                 expensePayables: expensePayableBreakdown.payable,
                 expensePayablesCount: expensePayableBreakdown.count,
                 oldestPendingExpenseDate: expensePayableBreakdown.oldestPendingDate,
+                // TDS withheld from every contractor/vendor/salary/labour/
+                // commission/labour-provider payment ever made, minus what's
+                // actually been deposited with the tax department — a real
+                // liability the company owes, same shape as every other
+                // Payables figure here. See computeTdsPayable's own comment.
+                tdsPayable: tdsPayableInfo.payable,
+                tdsWithheldToDate: tdsPayableInfo.totalWithheld,
+                tdsDepositedToDate: tdsPayableInfo.totalDeposited,
                 // All-time FinanceExpense total, ongoing projects + general
                 // overhead only (completed projects excluded) — see
                 // computeCompanyWideExpenseToDate's own comment.
@@ -3985,6 +3998,80 @@ const computeCaMonthlyPackage = async (month) => {
     };
 };
 
+// Company-wide, all-time TDS Payable — the running liability owed to the
+// tax department, not a month-scoped snapshot like the CA Monthly
+// Package's own `tds` block above. Total TDS ever withheld across every
+// payment type that carries one (Contractor/Vendor/Salary/Labour/
+// Commission/Labour Provider Payments), minus every deposit actually made
+// (financeTdsDeposit) — computed fresh, same rule as every other Payables
+// figure in this file. Broken down by section so a deposit tagged to one
+// section only reconciles against that section's own liability; an
+// untagged deposit reduces the unspecified-section pool first.
+const computeTdsPayable = async () => {
+    const filter = { deleted: { $ne: true }, tdsAmount: { $gt: 0 } };
+    const [contractorP, vendorP, salaryP, labourP, commissionP, labourProviderP, deposits] = await Promise.all([
+        FinanceContractorPayment.find(filter, 'tdsAmount tdsSectionId'),
+        FinanceVendorPayment.find(filter, 'tdsAmount tdsSectionId'),
+        FinanceSalaryPayment.find(filter, 'tdsAmount tdsSectionId'),
+        FinanceLabourPayment.find(filter, 'tdsAmount tdsSectionId'),
+        FinanceCommissionPayment.find(filter, 'tdsAmount tdsSectionId'),
+        FinanceLabourProviderPayment.find(filter, 'tdsAmount tdsSectionId'),
+        FinanceTdsDeposit.find({ deleted: { $ne: true } }, 'amount tdsSectionId'),
+    ]);
+    const allWithheld = [...contractorP, ...vendorP, ...salaryP, ...labourP, ...commissionP, ...labourProviderP];
+
+    const withheldBySection = new Map();
+    let totalWithheld = 0;
+    for (const p of allWithheld) {
+        const amt = p.tdsAmount || 0;
+        totalWithheld += amt;
+        const key = p.tdsSectionId ? p.tdsSectionId.toString() : 'unspecified';
+        withheldBySection.set(key, (withheldBySection.get(key) || 0) + amt);
+    }
+
+    const depositedBySection = new Map();
+    let totalDeposited = 0;
+    for (const d of deposits) {
+        totalDeposited += d.amount;
+        const key = d.tdsSectionId ? d.tdsSectionId.toString() : 'unspecified';
+        depositedBySection.set(key, (depositedBySection.get(key) || 0) + d.amount);
+    }
+
+    const sectionIds = [...new Set([...withheldBySection.keys(), ...depositedBySection.keys()])].filter(k => k !== 'unspecified');
+    const sections = sectionIds.length ? await FinanceSetting.find({ _id: { $in: sectionIds } }) : [];
+    const sectionById = new Map(sections.map(s => [s._id.toString(), s]));
+
+    const allKeys = new Set([...withheldBySection.keys(), ...depositedBySection.keys()]);
+    const bySection = [...allKeys].map(key => {
+        const withheld = round2(withheldBySection.get(key) || 0);
+        const deposited = round2(depositedBySection.get(key) || 0);
+        const section = key === 'unspecified' ? null : sectionById.get(key);
+        return {
+            tdsSectionId: key === 'unspecified' ? null : key,
+            tdsSectionName: section?.name || 'Unspecified section',
+            tdsSectionCode: section?.code || '',
+            withheld, deposited, payable: round2(withheld - deposited),
+        };
+    }).sort((a, b) => b.payable - a.payable);
+
+    return {
+        totalWithheld: round2(totalWithheld),
+        totalDeposited: round2(totalDeposited),
+        payable: round2(totalWithheld - totalDeposited),
+        bySection,
+    };
+};
+
+const getTdsPayable = async (req, res) => {
+    try {
+        const data = await computeTdsPayable();
+        res.json({ success: true, data });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing TDS payable' });
+    }
+};
+
 const getCaMonthlyPackage = async (req, res) => {
     try {
         const { month } = req.query;
@@ -4190,6 +4277,7 @@ export {
     getMaterialAnalysis, getInventorySummary,
     getCashFlow, getExpenseAnalysis,
     getCaMonthlyPackage, downloadCaMonthlyPackage,
+    getTdsPayable,
     getReconciliation,
     getDashboardSummary, getDashboardTrends,
     getClientsSummary, getClientDetail,

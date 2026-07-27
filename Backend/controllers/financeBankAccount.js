@@ -11,6 +11,7 @@ import FinanceExpense from '../models/financeExpense.js';
 import FinanceExpensePayment from '../models/financeExpensePayment.js';
 import FinanceContractorAdvance from '../models/financeContractorAdvance.js';
 import FinanceLabourAdvance from '../models/financeLabourAdvance.js';
+import FinanceTdsDeposit from '../models/financeTdsDeposit.js';
 import { broadcast } from '../middlewares/webSocket.js';
 
 /*
@@ -42,7 +43,7 @@ import { broadcast } from '../middlewares/webSocket.js';
  */
 const getAccountActivity = async (accountId) => {
     const filter = { bankAccountId: accountId, deleted: { $ne: true } };
-    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, expensePayments, contractorAdvances, labourAdvances, transfersOut, transfersIn] = await Promise.all([
+    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, expensePayments, contractorAdvances, labourAdvances, tdsDeposits, transfersOut, transfersIn] = await Promise.all([
         FinanceReceipt.find(filter),
         FinanceContractorPayment.find(filter),
         FinanceVendorPayment.find(filter),
@@ -54,6 +55,7 @@ const getAccountActivity = async (accountId) => {
         FinanceExpensePayment.find(filter).populate('expenseId', 'expenseCategory'),
         FinanceContractorAdvance.find(filter),
         FinanceLabourAdvance.find(filter),
+        FinanceTdsDeposit.find(filter),
         FinanceBankTransfer.find({ fromAccountId: accountId, deleted: { $ne: true } }),
         FinanceBankTransfer.find({ toAccountId: accountId, deleted: { $ne: true } }),
     ]);
@@ -83,6 +85,7 @@ const getAccountActivity = async (accountId) => {
         ...expensePayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: 'Expense payment', sourceType: 'expensePayment', sourceId: p._id })),
         ...contractorAdvances.map(a => ({ date: a.date, amount: a.amount, direction: 'debit', description: 'Contractor advance', sourceType: 'contractorAdvance', sourceId: a._id })),
         ...labourAdvances.map(a => ({ date: a.date, amount: a.amount, direction: 'debit', description: 'Labour advance', sourceType: 'labourAdvance', sourceId: a._id })),
+        ...tdsDeposits.map(d => ({ date: d.date, amount: d.amount, direction: 'debit', description: 'TDS deposit', sourceType: 'tdsDeposit', sourceId: d._id })),
         ...transfersOut.map(t => ({ date: t.date, amount: t.amount, direction: 'debit', description: 'Transfer out', sourceType: 'transfer', sourceId: t._id })),
         ...transfersIn.map(t => ({ date: t.date, amount: t.amount, direction: 'credit', description: 'Transfer in', sourceType: 'transfer', sourceId: t._id })),
     ];

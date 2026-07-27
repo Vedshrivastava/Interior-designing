@@ -266,6 +266,7 @@ const Navbar = ({ setShowLogin, setAuthType }) => {
                     <NavLink
                       key={to}
                       to={to}
+                      end
                       className={({ isActive }) =>
                         `admin-mobile-nav-item${isActive ? ' active' : ''}`
                       }

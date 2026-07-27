@@ -205,6 +205,17 @@ const FinanceHome = ({ url }) => {
     // structure, just quietly replaces both when the response lands.
     useFinanceWsRefresh(['*'], fetchDashboard);
 
+    // Sized to the longest name actually on screen (after the same
+    // truncation the tick itself applies), not a flat 110px regardless of
+    // content — a fixed column left a large dead gap before the y-axis
+    // label whenever project names were short (a bare "TEST_1" doesn't need
+    // the same room as "Malhotra Enterprises — HQ..."). Clamped so a single
+    // very long name can't crowd the bars out, and a single short one still
+    // gets a sane minimum.
+    const projectNameAxisWidth = projectProfits.length > 0
+        ? Math.min(140, Math.max(50, Math.max(...projectProfits.map(p => truncateLabel(p.projectName).length)) * 6.2 + 14))
+        : 60;
+
     const payablesData = payablesBreakdown ? [
         { name: 'Vendor', value: payablesBreakdown.vendor },
         { name: 'Contractor', value: payablesBreakdown.contractor },
@@ -435,11 +446,11 @@ const FinanceHome = ({ url }) => {
                     <ChartCard title="Project Profitability">
                         {phase2Loading ? <ChartSkeleton /> : projectProfits.length > 0 ? (
                             <ResponsiveContainer width="100%" height={Math.max(260, projectProfits.length * 38)}>
-                                <ComposedChart data={projectProfits} layout="vertical" margin={{ left: 24 }}>
+                                <ComposedChart data={projectProfits} layout="vertical" margin={{ left: 4 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                     <XAxis type="number" tick={{ fontSize: 11 }} />
                                     <YAxis
-                                        type="category" dataKey="projectName" width={110}
+                                        type="category" dataKey="projectName" width={projectNameAxisWidth}
                                         tick={<ProjectNameTick />} interval={0}
                                     />
                                     <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />

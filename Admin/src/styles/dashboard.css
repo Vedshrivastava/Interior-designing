@@ -1291,3 +1291,205 @@
         text-align: center;
     }
 }
+
+/* ── Project Overview tab (ProjectDetail.jsx) ── every raw .list-table-format
+   block on this page hit the exact same mobile bug the rest of this app's
+   tables did before their own passes: list.css's max-width:480px transform
+   is hard-coded for one row shape (image + title + subtitle + action
+   buttons) and mangles anything else forced into it. Three shapes here,
+   three dedicated treatments below. */
+
+/* Plain label/value settings rows (Site Location, Start Date, Advance
+   Invoiced/Received controls, etc.) — desktop keeps label and value side by
+   side; mobile stacks label above value since several rows carry an input
+   or a button that needs the full row's width to read comfortably. */
+.project-info-card {
+    padding: 0;
+}
+
+.project-info-card .dash-chart-title {
+    margin: 0;
+    padding: 18px 20px 14px;
+}
+
+.project-info-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 16px;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.project-info-row:last-child {
+    border-bottom: none;
+}
+
+.project-info-row b {
+    font-weight: 600;
+    color: var(--text-dark, #1a1208);
+}
+
+.project-info-row p {
+    margin: 0;
+}
+
+@media (max-width: 640px) {
+    .project-info-row {
+        grid-template-columns: 1fr;
+        gap: 6px;
+        padding: 12px 16px;
+    }
+
+    .project-info-row b {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: var(--text-lt, #9a8e84);
+    }
+}
+
+/* Single-record "N labelled figures" summaries (Unapproved, Direct
+   Payments, Receivable Status) — auto-fit/minmax wraps naturally at any
+   width, so the same markup reflows from a wide single row down to 2-3
+   columns without a separate mobile breakpoint. */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 16px 20px;
+    padding: 18px 20px;
+}
+
+.stat-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.stat-block-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: var(--text-lt, #9a8e84);
+}
+
+.stat-block-value {
+    font-size: 1rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-dark, #1a1208);
+}
+
+/* Read-only "name + several figures" lists (Materials, Vendors) — same
+   name-plus-wrapping-self-labeled-fields shape as MasterCrudTable's themed
+   card, just with no actions column and per-table column counts, so each
+   gets its own grid-template-columns rather than sharing one generic
+   class. The field-level classes (.ov-field*) are shared since only the
+   column count differs, not the field presentation. */
+.ov-card {
+    padding: 0;
+}
+
+.ov-card .dash-chart-title {
+    margin: 0;
+    padding: 18px 20px 14px;
+}
+
+.ov-material-row,
+.ov-vendor-row {
+    display: grid;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.ov-material-row:last-child,
+.ov-vendor-row:last-child {
+    border-bottom: none;
+}
+
+.ov-material-row {
+    grid-template-columns: 1.3fr 0.9fr 0.9fr 0.9fr 1fr 1fr 1fr;
+}
+
+.ov-vendor-row {
+    grid-template-columns: 1.8fr 1fr 1fr 1fr;
+}
+
+.ov-material-row.ov-header,
+.ov-vendor-row.ov-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-top: 0;
+    padding-bottom: 10px;
+}
+
+.ov-name {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-dark, #1a1208);
+}
+
+/* Desktop: contents lets each field fall into its own column of the row's
+   fixed grid, lined up under the header. */
+.ov-fields {
+    display: contents;
+}
+
+.ov-field {
+    display: contents;
+}
+
+.ov-field-label {
+    display: none;
+}
+
+.ov-field-value {
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+    .ov-card .dash-chart-title {
+        padding: 16px 16px 12px;
+    }
+
+    .ov-material-row.ov-header,
+    .ov-vendor-row.ov-header {
+        display: none;
+    }
+
+    .ov-material-row,
+    .ov-vendor-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 14px 16px;
+    }
+
+    .ov-fields {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 20px;
+    }
+
+    .ov-field {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ov-field-label {
+        display: block;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: var(--text-lt, #9a8e84);
+        margin-bottom: 2px;
+    }
+}

@@ -223,19 +223,24 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                     sub={`Profit ${formatINR(profit.profit)} on Revenue ${formatINR(profit.revenue)}`} />
             </KpiGrid>
 
+            {/* Stat grids, not a table — each of these is one record's worth
+                of labelled figures, not a repeating list, so auto-fit/minmax
+                wraps them cleanly at any width without needing a table's
+                header-row/column-alignment machinery (or its mobile
+                breakage). */}
             {(profit.unapprovedAreaSqft > 0 || profit.unapprovedCommissionCost > 0) && (
-                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                        <b>Area</b><b>Contractor Unapproved</b><b>Labour Unapproved</b><b>Commission</b><b>Revenue</b><b>Profit</b>
-                    </div>
-                    <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                        <p>{profit.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
-                        <p>{formatINR(profit.unapprovedContractorCost)}</p>
-                        <p>{formatINR(profit.unapprovedLabourCost)}</p>
-                        <p>{formatINR(profit.unapprovedCommissionCost)}</p>
-                        <p>{formatINR(profit.unapprovedRevenue)}</p>
-                        <p style={{ color: profit.unapprovedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>{formatINR(profit.unapprovedProfit)}</p>
+                <div className="dash-chart-card ov-card" style={{ marginBottom: '24px' }}>
+                    <p className="dash-chart-title">Unapproved (Pending Review)</p>
+                    <div className="stat-grid">
+                        <div className="stat-block"><span className="stat-block-label">Area</span><span className="stat-block-value">{profit.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</span></div>
+                        <div className="stat-block"><span className="stat-block-label">Contractor Unapproved</span><span className="stat-block-value">{formatINR(profit.unapprovedContractorCost)}</span></div>
+                        <div className="stat-block"><span className="stat-block-label">Labour Unapproved</span><span className="stat-block-value">{formatINR(profit.unapprovedLabourCost)}</span></div>
+                        <div className="stat-block"><span className="stat-block-label">Commission</span><span className="stat-block-value">{formatINR(profit.unapprovedCommissionCost)}</span></div>
+                        <div className="stat-block"><span className="stat-block-label">Revenue</span><span className="stat-block-value">{formatINR(profit.unapprovedRevenue)}</span></div>
+                        <div className="stat-block">
+                            <span className="stat-block-label">Profit</span>
+                            <span className="stat-block-value" style={{ color: profit.unapprovedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>{formatINR(profit.unapprovedProfit)}</span>
+                        </div>
                     </div>
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
                         Logged work whose cost isn't counted in Profit yet — review it in Payables/Receivables → Deductions to move it in. Revenue/Profit here are what this same unapproved work would add once reviewed and billed.
@@ -247,23 +252,16 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
             )}
 
             {(profit.directPaymentContractorTotal > 0 || profit.directPaymentLabourTotal > 0) && (
-                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Direct Payments (Client → Workers)</b></div>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                        <b>Party</b><b>Total</b>
+                <div className="dash-chart-card ov-card" style={{ marginBottom: '24px' }}>
+                    <p className="dash-chart-title">Direct Payments (Client → Workers)</p>
+                    <div className="stat-grid">
+                        {profit.directPaymentContractorTotal > 0 && (
+                            <div className="stat-block"><span className="stat-block-label">Contractor</span><span className="stat-block-value">{formatINR(profit.directPaymentContractorTotal)}</span></div>
+                        )}
+                        {profit.directPaymentLabourTotal > 0 && (
+                            <div className="stat-block"><span className="stat-block-label">Labour</span><span className="stat-block-value">{formatINR(profit.directPaymentLabourTotal)}</span></div>
+                        )}
                     </div>
-                    {profit.directPaymentContractorTotal > 0 && (
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                            <p>Contractor</p>
-                            <p>{formatINR(profit.directPaymentContractorTotal)}</p>
-                        </div>
-                    )}
-                    {profit.directPaymentLabourTotal > 0 && (
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                            <p>Labour</p>
-                            <p>{formatINR(profit.directPaymentLabourTotal)}</p>
-                        </div>
-                    )}
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
                         Amounts the client paid directly to a worker on this project (Payables → Client Direct Payments) — an advance, not tied to specific sqft, so it's a flat reduction against that worker's overall Balance Payable, not netted against Unapproved/Approved above.
                     </p>
@@ -348,22 +346,25 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
 
             {receivable && (() => {
                 const hasCredits = receivable.directPaymentCredits > 0;
-                const cols = hasCredits ? '1fr 1fr 1fr 1fr 1fr' : '1fr 1fr 1fr';
                 return (
-                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Receivable Status</b></div>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: cols }}>
-                            <b>Billed</b><b>Received</b>
-                            {hasCredits && <b>Client Direct Payment Credits</b>}
-                            {hasCredits && <b>Client Credit Balance</b>}
-                            <b>Outstanding</b>
-                        </div>
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: cols }}>
-                            <p>{formatINR(receivable.issuedTotal)}</p>
-                            <p>{formatINR(receivable.receivedTotal)}</p>
-                            {hasCredits && <p>{formatINR(receivable.directPaymentCredits)}</p>}
-                            {hasCredits && <p style={{ color: receivable.clientCreditBalance > 0 ? 'var(--moss)' : undefined }}>{formatINR(receivable.clientCreditBalance)}</p>}
-                            <p style={{ color: receivable.balance > 0 ? '#c0392b' : 'var(--moss)' }}>{formatINR(receivable.balance)}</p>
+                    <div className="dash-chart-card ov-card" style={{ marginBottom: '24px' }}>
+                        <p className="dash-chart-title">Receivable Status</p>
+                        <div className="stat-grid">
+                            <div className="stat-block"><span className="stat-block-label">Billed</span><span className="stat-block-value">{formatINR(receivable.issuedTotal)}</span></div>
+                            <div className="stat-block"><span className="stat-block-label">Received</span><span className="stat-block-value">{formatINR(receivable.receivedTotal)}</span></div>
+                            {hasCredits && (
+                                <div className="stat-block"><span className="stat-block-label">Client Direct Payment Credits</span><span className="stat-block-value">{formatINR(receivable.directPaymentCredits)}</span></div>
+                            )}
+                            {hasCredits && (
+                                <div className="stat-block">
+                                    <span className="stat-block-label">Client Credit Balance</span>
+                                    <span className="stat-block-value" style={{ color: receivable.clientCreditBalance > 0 ? 'var(--moss)' : undefined }}>{formatINR(receivable.clientCreditBalance)}</span>
+                                </div>
+                            )}
+                            <div className="stat-block">
+                                <span className="stat-block-label">Outstanding</span>
+                                <span className="stat-block-value" style={{ color: receivable.balance > 0 ? '#c0392b' : 'var(--moss)' }}>{formatINR(receivable.balance)}</span>
+                            </div>
                         </div>
                         {receivable.clientCreditBalance > 0 && (
                             <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
@@ -374,36 +375,50 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                 );
             })()}
 
+            {/* Own row classes, not .list-table-format — same reasoning as
+                every other table on this page (and Clients/Activity Timeline/
+                All Projects before it): name + wrapping self-labeled fields
+                on mobile instead of a fixed table forced into a row shape it
+                was never built for. */}
             {materials.length > 0 && (
-                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr 1fr' }}>
+                <div className="dash-chart-card ov-card" style={{ marginBottom: '24px' }}>
+                    <p className="dash-chart-title">Materials</p>
+                    <div className="ov-material-row ov-header">
                         <b>Material</b><b>Dumped</b><b>Consumed</b><b>Wasted</b><b>Current Stock</b><b>Avg Cost</b><b>Cost/Sqft</b>
                     </div>
                     {materials.map(m => (
-                        <div key={m.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.1fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr 1fr' }}>
-                            <p>{m.materialName}</p>
-                            <p>{m.totalDumped} {m.unit}</p>
-                            <p>{m.totalConsumed} {m.unit}</p>
-                            <p>{m.totalWasted} {m.unit}</p>
-                            <p>{m.currentStock} {m.unit}</p>
-                            <p>{formatINR(m.weightedAverageCost)}{m.unit ? `/${m.unit}` : ''}</p>
-                            <p>{m.areaCoveredSqft > 0 ? `₹${m.costPerSqft.toFixed(2)}/sqft` : '—'}</p>
+                        <div key={m.materialId} className="ov-material-row">
+                            <p className="ov-name">{m.materialName}</p>
+                            <div className="ov-fields">
+                                <div className="ov-field"><span className="ov-field-label">Dumped</span><span className="ov-field-value">{m.totalDumped} {m.unit}</span></div>
+                                <div className="ov-field"><span className="ov-field-label">Consumed</span><span className="ov-field-value">{m.totalConsumed} {m.unit}</span></div>
+                                <div className="ov-field"><span className="ov-field-label">Wasted</span><span className="ov-field-value">{m.totalWasted} {m.unit}</span></div>
+                                <div className="ov-field"><span className="ov-field-label">Current Stock</span><span className="ov-field-value">{m.currentStock} {m.unit}</span></div>
+                                <div className="ov-field"><span className="ov-field-label">Avg Cost</span><span className="ov-field-value">{formatINR(m.weightedAverageCost)}{m.unit ? `/${m.unit}` : ''}</span></div>
+                                <div className="ov-field"><span className="ov-field-label">Cost/Sqft</span><span className="ov-field-value">{m.areaCoveredSqft > 0 ? `₹${m.costPerSqft.toFixed(2)}/sqft` : '—'}</span></div>
+                            </div>
                         </div>
                     ))}
                 </div>
             )}
 
             {vendors.length > 0 && (
-                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr' }}>
-                        <b>Vendors Supplying This Project</b><b>Purchased</b><b>Returns</b><b>Payment Left</b>
+                <div className="dash-chart-card ov-card" style={{ marginBottom: '24px' }}>
+                    <p className="dash-chart-title">Vendors Supplying This Project</p>
+                    <div className="ov-vendor-row ov-header">
+                        <b /><b>Purchased</b><b>Returns</b><b>Payment Left</b>
                     </div>
                     {vendors.map(v => (
-                        <div key={v.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr' }}>
-                            <p>{v.vendorName}</p>
-                            <p>{formatINR(v.purchases)}</p>
-                            <p>{formatINR(v.returns)}</p>
-                            <p style={{ color: v.amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}>{formatINR(v.amountOwed)}</p>
+                        <div key={v.vendorId} className="ov-vendor-row">
+                            <p className="ov-name">{v.vendorName}</p>
+                            <div className="ov-fields">
+                                <div className="ov-field"><span className="ov-field-label">Purchased</span><span className="ov-field-value">{formatINR(v.purchases)}</span></div>
+                                <div className="ov-field"><span className="ov-field-label">Returns</span><span className="ov-field-value">{formatINR(v.returns)}</span></div>
+                                <div className="ov-field">
+                                    <span className="ov-field-label">Payment Left</span>
+                                    <span className="ov-field-value" style={{ color: v.amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}>{formatINR(v.amountOwed)}</span>
+                                </div>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -713,19 +728,26 @@ const ProjectDetail = ({ url }) => {
 
                 {activeTab === 'overview' && (
                     <div>
-                        <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Site Location</b></p><p>{project.siteLocation || '-'}</p></div>
-                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Start Date</b></p><p>{project.startDate ? new Date(project.startDate).toLocaleDateString() : '-'}</p></div>
-                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Estimated Area</b></p><p>{project.estimatedAreaSqft || 0} sqft</p></div>
-                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Material Tracking</b></p><p>{project.materialTrackingEnabled ? 'Enabled' : 'Disabled'}</p></div>
+                        {/* Own row class, not .list-table-format — that class's
+                            mobile transform is hard-coded for a completely
+                            different row shape (image + title + subtitle +
+                            action buttons) and mangles a plain label/value
+                            settings list the same way it mangled every other
+                            table on this page before this pass. */}
+                        <div className="dash-chart-card project-info-card" style={{ marginBottom: '24px' }}>
+                            <p className="dash-chart-title">Project Details</p>
+                            <div className="project-info-row"><b>Site Location</b><p>{project.siteLocation || '-'}</p></div>
+                            <div className="project-info-row"><b>Start Date</b><p>{project.startDate ? new Date(project.startDate).toLocaleDateString() : '-'}</p></div>
+                            <div className="project-info-row"><b>Estimated Area</b><p>{project.estimatedAreaSqft || 0} sqft</p></div>
+                            <div className="project-info-row"><b>Material Tracking</b><p>{project.materialTrackingEnabled ? 'Enabled' : 'Disabled'}</p></div>
                             {project.contractType === 'advance' && (
                                 <>
-                                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Total Estimated Cost</b></p><p>₹{project.totalEstimatedCost?.toLocaleString('en-IN')}</p></div>
-                                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Advance Amount</b></p><p>₹{project.advanceAmount?.toLocaleString('en-IN')}</p></div>
+                                    <div className="project-info-row"><b>Total Estimated Cost</b><p>₹{project.totalEstimatedCost?.toLocaleString('en-IN')}</p></div>
+                                    <div className="project-info-row"><b>Advance Amount</b><p>₹{project.advanceAmount?.toLocaleString('en-IN')}</p></div>
                                     {project.referralId && (
-                                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                                            <p><b>Referral Commission</b></p>
-                                            <div className="add-product-name" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px', margin: 0 }}>
+                                        <div className="project-info-row">
+                                            <b>Referral Commission</b>
+                                            <div className="add-product-name" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px', margin: 0, flexWrap: 'wrap' }}>
                                                 <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={commissionInput} onChange={e => setCommissionInput(e.target.value)} style={{ maxWidth: '140px' }} />
                                                 {Number(commissionInput) !== (project.referralCommissionAmount || 0) && (
                                                     <button type="button" className="add-point-btn" disabled={savingCommission} onClick={saveCommission}>
@@ -735,8 +757,8 @@ const ProjectDetail = ({ url }) => {
                                             </div>
                                         </div>
                                     )}
-                                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                                        <p><b>Advance Invoiced</b></p>
+                                    <div className="project-info-row">
+                                        <b>Advance Invoiced</b>
                                         <div>
                                             {project.advanceInvoiced ? (
                                                 <span>Yes, {new Date(project.advanceInvoicedAt).toLocaleDateString()}</span>
@@ -747,11 +769,11 @@ const ProjectDetail = ({ url }) => {
                                             )}
                                         </div>
                                     </div>
-                                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                                        <p><b>Advance Received</b></p>
+                                    <div className="project-info-row">
+                                        <b>Advance Received</b>
                                         <div>
                                             {project.advanceReceived ? (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                                                     <span>Yes, {new Date(project.advanceReceivedAt).toLocaleDateString()}</span>
                                                     <DownloadButton
                                                         as="p" downloading={downloadingReceipt} progress={receiptProgress}
@@ -767,7 +789,7 @@ const ProjectDetail = ({ url }) => {
                                     </div>
                                 </>
                             )}
-                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Notes</b></p><p>{project.notes || '-'}</p></div>
+                            <div className="project-info-row"><b>Notes</b><p>{project.notes || '-'}</p></div>
                         </div>
                         <ProjectOverviewTab url={url} projectId={id} contractType={project.contractType} onViewWorks={() => setActiveTab('works')} onViewExpenses={() => setActiveTab('expenses')} />
                     </div>

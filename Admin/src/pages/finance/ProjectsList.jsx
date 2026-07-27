@@ -3,8 +3,8 @@ import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
-import { ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ChartTooltip, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
+import { ResponsiveContainer, BarChart, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
+import { ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ChartTooltip, CHART_COLORS, formatINR, truncateLabel, ProjectNameTick } from '../../components/finance/DashboardWidgets';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
@@ -102,6 +102,15 @@ const ProjectsList = ({ url }) => {
         list.reduce((acc, p) => { acc[p.contractType] = (acc[p.contractType] || 0) + 1; return acc; }, {})
     ).map(([type, count]) => ({ name: CONTRACT_TYPE_LABEL[type] || type, value: count }));
 
+    // Same dynamic sizing as the Dashboard's own Project Profitability chart
+    // (FinanceHome.jsx) — sized to the longest name actually on screen
+    // (after the same truncation the tick itself applies) instead of a flat
+    // width regardless of content, and tall enough to give every project its
+    // own row rather than squeezing them into a fixed height.
+    const profitNameAxisWidth = profitData.length > 0
+        ? Math.min(140, Math.max(50, Math.max(...profitData.map(p => truncateLabel(p.projectName).length)) * 6.2 + 14))
+        : 60;
+
     const confirmDelete = async () => {
         if (!confirmItem) return;
         setDeleting(true);
@@ -127,16 +136,24 @@ const ProjectsList = ({ url }) => {
                 <ChartGrid>
                     <ChartCard title="Profitability: active projects">
                         {loading || statsLoading ? <ChartSkeleton /> : profitData.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={240}>
-                                <BarChart data={profitData} layout="vertical" margin={{ left: 24 }}>
+                            <ResponsiveContainer width="100%" height={Math.max(240, profitData.length * 38)}>
+                                <ComposedChart data={profitData} layout="vertical" margin={{ left: 4 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                                     <XAxis type="number" tick={{ fontSize: 11 }} />
-                                    <YAxis type="category" dataKey="projectName" tick={{ fontSize: 11 }} width={110} />
+                                    <YAxis
+                                        type="category" dataKey="projectName" width={profitNameAxisWidth}
+                                        tick={<ProjectNameTick />} interval={0}
+                                    />
                                     <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
-                                    <Bar dataKey="profit" name="Profit" radius={[0, 4, 4, 0]} onClick={(d) => navigate(`/finance/projects/${d.projectId}`)} style={{ cursor: 'pointer' }}>
+                                    <Bar
+                                        dataKey="profit" name="Profit" radius={[0, 4, 4, 0]}
+                                        onClick={(d) => navigate(`/finance/projects/${d.projectId}`)}
+                                        style={{ cursor: 'pointer' }}
+                                        activeBar={false}
+                                    >
                                         {profitData.map((p, i) => <Cell key={i} fill={p.profit >= 0 ? CHART_COLORS[0] : CHART_COLORS[2]} />)}
                                     </Bar>
-                                </BarChart>
+                                </ComposedChart>
                             </ResponsiveContainer>
                         ) : <EmptyChart text="No active projects yet." />}
                     </ChartCard>

@@ -35,6 +35,25 @@ export const formatINR = (n) => {
     return `${rounded < 0 ? '-' : ''}₹${Math.abs(rounded).toLocaleString('en-IN')}`;
 };
 
+// Shared by every "profit per project" bar chart (Dashboard, All Projects) —
+// project names run long ("Malhotra Enterprises — HQ Advance Contract") and
+// the chart's y-axis has nowhere near that much room. Recharts renders axis
+// ticks as raw SVG text, so CSS text-overflow can't help; truncate the tick
+// label itself instead (the tooltip still shows the full name via the data
+// object, untouched).
+export const truncateLabel = (name, max = 15) => (name.length > max ? `${name.slice(0, max - 1)}…` : name);
+
+// Recharts' own Y-axis tick <Text> component applies its own word-wrapping
+// against the axis `width`, which mangles long category labels in ways a
+// tickFormatter alone can't prevent (different names truncate to wildly
+// different, sometimes single-letter, lengths). A custom tick renders
+// exactly the string we hand it — no further "helpful" wrapping.
+export const ProjectNameTick = ({ x, y, payload }) => (
+    <text x={x} y={y} dy={4} textAnchor="end" fontSize={11} fill="#5a5248">
+        {truncateLabel(payload.value)}
+    </text>
+);
+
 // `icon` (optional): a @fortawesome/free-solid-svg-icons import, shown bare
 // (no background badge) above the title, tinted by `tone` — moss green for
 // `good`, a muted brick-red for `danger`, brand gold for the untoned/

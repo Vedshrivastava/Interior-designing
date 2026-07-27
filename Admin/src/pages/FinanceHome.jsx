@@ -11,7 +11,7 @@ import {
     faCartShopping, faHardHat, faReceipt, faBuilding, faClipboardList, faPersonDigging,
     faRulerCombined, faTriangleExclamation, faMoneyBillWave, faHandHoldingDollar, faUsers, faFileInvoice,
 } from '@fortawesome/free-solid-svg-icons';
-import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ActivityCard, ChartTooltip, CHART_COLORS, formatINR } from '../components/finance/DashboardWidgets';
+import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ActivityCard, ChartTooltip, CHART_COLORS, formatINR, truncateLabel, ProjectNameTick } from '../components/finance/DashboardWidgets';
 import '../styles/welcome.css';
 import '../styles/list.css';
 
@@ -28,12 +28,6 @@ const lastCompletedMonth = () => {
     // roll the month back for viewers east of UTC in the early-morning hours.
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
-
-// Project names run long ("Malhotra Enterprises — HQ Advance Contract") and
-// the chart's y-axis has nowhere near that much room — Recharts renders
-// axis ticks as raw SVG text, so CSS text-overflow can't help; truncate the
-// tick label itself instead (the tooltip below still shows the full name).
-const truncateLabel = (name, max = 15) => (name.length > max ? `${name.slice(0, max - 1)}…` : name);
 
 // Builds a KpiCard `sub` line out of a headline's own contributing terms
 // (e.g. Contractor Payables = Earned − Advances − Deductions − Direct Pay −
@@ -57,17 +51,6 @@ const buildBreakdownSub = (parts) => {
 // genuine first load (no cache yet) shows any skeleton at all.
 let dashboardCache = null;
 
-// Recharts' own Y-axis tick <Text> component applies its own word-wrapping
-// against the axis `width`, which mangles long category labels in ways a
-// tickFormatter alone can't prevent (different names truncate to wildly
-// different, sometimes single-letter, lengths). A custom tick renders
-// exactly the string we hand it — no further "helpful" wrapping.
-const ProjectNameTick = ({ x, y, payload }) => (
-    <text x={x} y={y} dy={4} textAnchor="end" fontSize={11} fill="#5a5248">
-        {truncateLabel(payload.value)}
-    </text>
-);
-
 /*
  * Tier 0 — Company Dashboard. Answers "how's the business doing right now"
  * in ~10 seconds: KPI cards (every one a doorway into its Tier-1 home) plus
@@ -79,18 +62,25 @@ const FinanceHome = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-    const [summary, setSummary] = useState(null);
-    const [trends, setTrends] = useState(null);
-    const [projectProfits, setProjectProfits] = useState([]);
-    const [payablesBreakdown, setPayablesBreakdown] = useState(null);
+    // Lazy-initialized straight from dashboardCache (not null/true, then
+    // synced in an effect after first paint) — same pattern as
+    // ClientsPage/ProjectsList's caches. Reading the cache only inside a
+    // mount effect meant every single visit, cached or not, painted one
+    // frame of the loading skeleton before the effect could flip it off —
+    // a visible "flash of reload" on every revisit that the other Tier-0/1
+    // pages don't have.
+    const [summary, setSummary] = useState(dashboardCache?.summary ?? null);
+    const [trends, setTrends] = useState(dashboardCache?.trends ?? null);
+    const [projectProfits, setProjectProfits] = useState(dashboardCache?.projectProfits ?? []);
+    const [payablesBreakdown, setPayablesBreakdown] = useState(dashboardCache?.payablesBreakdown ?? null);
     // Two independent flags, not one — summary/trends resolve in the first
     // request batch, but projectProfits/payablesBreakdown depend on a
     // second, chained N+1 fan-out (salary/commission ledgers, per-project
     // profit) that's meaningfully slower. Gating everything behind a single
     // flag meant the whole page (including the KPI cards, which only need
     // the fast batch) sat behind a blank spinner waiting on the slow one.
-    const [phase1Loading, setPhase1Loading] = useState(true);
-    const [phase2Loading, setPhase2Loading] = useState(true);
+    const [phase1Loading, setPhase1Loading] = useState(!dashboardCache);
+    const [phase2Loading, setPhase2Loading] = useState(!dashboardCache);
 
     // Check-on-load, not a background job — no cron infrastructure exists
     // in this codebase. Silent: de-duplication (24h cooldown per
@@ -182,20 +172,10 @@ const FinanceHome = ({ url }) => {
         }
     };
 
-    useEffect(() => {
-        if (dashboardCache) {
-            setSummary(dashboardCache.summary);
-            setTrends(dashboardCache.trends);
-            setProjectProfits(dashboardCache.projectProfits);
-            setPayablesBreakdown(dashboardCache.payablesBreakdown);
-            setPhase1Loading(false);
-            setPhase2Loading(false);
-        } else {
-            setPhase1Loading(true);
-            setPhase2Loading(true);
-        }
-        fetchDashboard();
-    }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    // State above already starts from dashboardCache (or the true/null
+    // no-cache defaults) — this just kicks off the silent background
+    // fetch that keeps it fresh, same as every other mount.
+    useEffect(() => { fetchDashboard(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Nearly every finance mutation feeds into this dashboard's KPIs/charts
     // somewhere (revenue, cash, payables, labour, materials...), so rather

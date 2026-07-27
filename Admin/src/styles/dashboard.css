@@ -1166,7 +1166,7 @@
 
 .projects-list-row {
     display: grid;
-    grid-template-columns: 2fr 1.3fr 1fr 1fr 1fr 100px;
+    grid-template-columns: 2fr 1.3fr 1.5fr 1fr 1fr 100px;
     grid-template-areas: "name client contract status readiness action";
     align-items: center;
     gap: 16px;
@@ -1257,6 +1257,14 @@
     }
 
     .pl-readiness {
+        justify-self: end;
+    }
+
+    /* Status pairs with Contract Type on the same row — left/right rather
+       than both hugging left, so the card reads as two aligned columns
+       (Name/Contract on the left, Readiness/Status on the right) instead of
+       the two badges bunching together in the middle of the row. */
+    .pl-status {
         justify-self: end;
     }
 

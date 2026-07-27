@@ -41,8 +41,23 @@ import '../../styles/wizard.css';
    makes sense as a one-time initial assignment (e.g. a Labour Team's
    starting Contractor/Supervisor), the same way AddWorkModal only shows
    its Contractor(s)/Labour Team sections when !editingId, rather than
-   letting an edit silently reassign something that should stay put. */
-const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, hideAddButton, presetValues = {} }, ref) => {
+   letting an edit silently reassign something that should stay put.
+
+   `searchQuery` / `onSearchChange` (optional, pass both together): lifts
+   the search box out of this component entirely — the caller renders its
+   own search input (styled however it likes, positioned wherever it
+   likes, e.g. Clients hoists it above its own summary card) and owns the
+   query string; this table just filters by whatever it's given and skips
+   rendering its own internal search UI. Omit both for the default
+   self-contained search (every other current consumer).
+
+   `cardTitle` (optional): opts into a themed dash-chart-card rendering
+   (title + gold top strip, matching the Dashboard/Activity Timeline/
+   Clients-summary look) with its own responsive row layout — name on its
+   own line, secondary columns self-label in a wrapping row, actions full-
+   width — instead of the default .list-table-format table. Omit for the
+   existing plain look every other current consumer still gets unchanged. */
+const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, hideAddButton, presetValues = {}, searchQuery, onSearchChange, cardTitle }, ref) => {
     const navigate = useNavigate();
     const resource = FINANCE_MASTERS[resourceKey];
     const token = localStorage.getItem('token');
@@ -206,47 +221,87 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
         return content;
     };
 
+    const isControlledSearch = onSearchChange !== undefined;
+    const effectiveQuery = isControlledSearch ? (searchQuery || '') : query;
+
     const searchKey = resource.columns[0]?.key;
     const displayList = (filter ? list.filter(filter) : list)
-        .filter(item => !query || String(item[searchKey] || '').toLowerCase().includes(query.toLowerCase()));
+        .filter(item => !effectiveQuery || String(item[searchKey] || '').toLowerCase().includes(effectiveQuery.toLowerCase()));
+
+    const gridCols = `repeat(${resource.columns.length}, 1fr) 140px`;
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                <div className="admin-search-wrap">
-                    <i className="fa-solid fa-magnifying-glass" />
-                    <input type="text" placeholder={`Search ${resource.labelPlural.toLowerCase()}…`} value={query} onChange={e => setQuery(e.target.value)} />
-                    {query && <button className="admin-search-clear" onClick={() => setQuery('')}>×</button>}
-                </div>
-                {!hideAddButton && (
-                    <button type="button" className="add-point-btn" onClick={openAdd}>+ Add {resource.label}</button>
-                )}
-            </div>
-
-            <div className="list-table finance-table">
-                <div className="list-table-format title"
-                    style={{ gridTemplateColumns: `repeat(${resource.columns.length}, 1fr) 140px` }}>
-                    {resource.columns.map(c => <b key={c.key}>{c.label}</b>)}
-                    <b>Action</b>
-                </div>
-
-                {loading ? (
-                    <div className="admin-empty-state"><p>Loading…</p></div>
-                ) : displayList.length === 0 ? (
-                    <div className="admin-empty-state"><p>No {resource.labelPlural.toLowerCase()} yet.</p></div>
-                ) : (
-                    displayList.map(item => (
-                        <div key={item._id} className="list-table-format row-item"
-                            style={{ gridTemplateColumns: `repeat(${resource.columns.length}, 1fr) 140px` }}>
-                            {resource.columns.map((c, i) => <p key={c.key}>{renderCell(item, c, i === 0)}</p>)}
-                            <div className="action-buttons">
-                                <p onClick={() => openEdit(item)} className="cursor edit-action">Edit</p>
-                                <p onClick={() => setConfirmItem(item)} className="cursor delete-action">X</p>
-                            </div>
+            {(!isControlledSearch || !hideAddButton) && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                    {!isControlledSearch && (
+                        <div className="admin-search-wrap">
+                            <i className="fa-solid fa-magnifying-glass" />
+                            <input type="text" placeholder={`Search ${resource.labelPlural.toLowerCase()}…`} value={query} onChange={e => setQuery(e.target.value)} />
+                            {query && <button className="admin-search-clear" onClick={() => setQuery('')}>×</button>}
                         </div>
-                    ))
-                )}
-            </div>
+                    )}
+                    {!hideAddButton && (
+                        <button type="button" className="add-point-btn" onClick={openAdd}>+ Add {resource.label}</button>
+                    )}
+                </div>
+            )}
+
+            {cardTitle ? (
+                <div className="dash-chart-card mastercrud-card">
+                    <p className="dash-chart-title">{cardTitle}</p>
+                    <div className="mastercrud-row mastercrud-header" style={{ gridTemplateColumns: gridCols }}>
+                        {resource.columns.map(c => <b key={c.key}>{c.label}</b>)}
+                        <b>Action</b>
+                    </div>
+                    {loading ? (
+                        <div className="dash-empty">Loading…</div>
+                    ) : displayList.length === 0 ? (
+                        <div className="dash-empty">No {resource.labelPlural.toLowerCase()} yet.</div>
+                    ) : (
+                        displayList.map(item => (
+                            <div key={item._id} className="mastercrud-row" style={{ gridTemplateColumns: gridCols }}>
+                                <div className="mastercrud-name">{renderCell(item, resource.columns[0], true)}</div>
+                                <div className="mastercrud-fields">
+                                    {resource.columns.slice(1).map(c => (
+                                        <div key={c.key} className="mastercrud-field">
+                                            <span className="mastercrud-field-label">{c.label}</span>
+                                            <span className="mastercrud-field-value">{renderCell(item, c, false)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="action-buttons mastercrud-actions">
+                                    <p onClick={() => openEdit(item)} className="cursor edit-action">Edit</p>
+                                    <p onClick={() => setConfirmItem(item)} className="cursor delete-action">X</p>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            ) : (
+                <div className="list-table finance-table">
+                    <div className="list-table-format title" style={{ gridTemplateColumns: gridCols }}>
+                        {resource.columns.map(c => <b key={c.key}>{c.label}</b>)}
+                        <b>Action</b>
+                    </div>
+
+                    {loading ? (
+                        <div className="admin-empty-state"><p>Loading…</p></div>
+                    ) : displayList.length === 0 ? (
+                        <div className="admin-empty-state"><p>No {resource.labelPlural.toLowerCase()} yet.</p></div>
+                    ) : (
+                        displayList.map(item => (
+                            <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: gridCols }}>
+                                {resource.columns.map((c, i) => <p key={c.key}>{renderCell(item, c, i === 0)}</p>)}
+                                <div className="action-buttons">
+                                    <p onClick={() => openEdit(item)} className="cursor edit-action">Edit</p>
+                                    <p onClick={() => setConfirmItem(item)} className="cursor delete-action">X</p>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
 
             {modalOpen && ReactDOM.createPortal(
                 <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>

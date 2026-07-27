@@ -34,6 +34,7 @@ const ClientsPage = ({ url }) => {
     const [summary, setSummary] = useState(clientsSummaryCache);
     const [loading, setLoading] = useState(!clientsSummaryCache);
     const [sortKey, setSortKey] = useState('totalBilled');
+    const [clientQuery, setClientQuery] = useState('');
     const clientTableRef = useRef(null);
 
     const fetchSummary = () => {
@@ -105,6 +106,22 @@ const ClientsPage = ({ url }) => {
                         </ChartCard>
                     </ChartGrid>
 
+                    {/* Hoisted above the summary card (and shared with the client
+                        directory further down, via MasterCrudTable's controlled-
+                        search props) rather than living inside either — one search
+                        box for both, positioned where it reads as a page-level
+                        control rather than being buried under one specific table. */}
+                    <div className="admin-search-wrap" style={{ marginBottom: '20px' }}>
+                        <i className="fa-solid fa-magnifying-glass" />
+                        <input
+                            type="text"
+                            placeholder="Search clients…"
+                            value={clientQuery}
+                            onChange={e => setClientQuery(e.target.value)}
+                        />
+                        {clientQuery && <button className="admin-search-clear" onClick={() => setClientQuery('')}>×</button>}
+                    </div>
+
                     {/* Its own class, not .list-table-format — that class carries a
                         heavy !important mobile transform in list.css built for a
                         different row shape (image + title + subtitle + action
@@ -161,7 +178,16 @@ const ClientsPage = ({ url }) => {
                 </>
             )}
 
-            <MasterCrudTable ref={clientTableRef} url={url} resourceKey="clients" getDetailLink={(item) => `/finance/clients/${item._id}`} hideAddButton />
+            <MasterCrudTable
+                ref={clientTableRef}
+                url={url}
+                resourceKey="clients"
+                getDetailLink={(item) => `/finance/clients/${item._id}`}
+                hideAddButton
+                cardTitle="Client Directory"
+                searchQuery={clientQuery}
+                onSearchChange={setClientQuery}
+            />
         </FinanceTabShell>
     );
 };

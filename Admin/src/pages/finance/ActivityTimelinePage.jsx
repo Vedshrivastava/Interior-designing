@@ -94,79 +94,82 @@ const ActivityTimelinePage = ({ url }) => {
             activeKey="timeline"
             onTabChange={() => {}}
         >
-            <div className="wizard-field-grid" style={{ marginBottom: '20px' }}>
-                <div className="add-product-name flex-col">
-                    <p>Project</p>
-                    <StyledSelect
-                        value={filters.projectId}
-                        onChange={v => setField('projectId', v)}
-                        placeholder="All Projects"
-                        options={[{ value: '', label: 'All Projects' }, ...projects.map(p => ({ value: p._id, label: p.name }))]}
-                    />
-                </div>
-                <div className="add-product-name flex-col">
-                    <p>Event Type</p>
-                    <StyledSelect
-                        value={filters.eventType}
-                        onChange={v => setField('eventType', v)}
-                        placeholder="All Events"
-                        options={[{ value: '', label: 'All Events' }, ...EVENT_TYPES.map(et => ({ value: et, label: eventLabel(et) }))]}
-                    />
-                </div>
-                <div className="add-product-name flex-col">
-                    <p>From</p>
-                    <StyledDatePicker value={filters.dateFrom} onChange={v => setField('dateFrom', v)} />
-                </div>
-                <div className="add-product-name flex-col">
-                    <p>To</p>
-                    <StyledDatePicker value={filters.dateTo} onChange={v => setField('dateTo', v)} />
+            {/* Same white/gold-strip card language as every Dashboard card
+                (KpiCard, ChartCard) — dash-chart-card, not a bare form grid,
+                so filters read as a section of this page rather than a
+                leftover wizard step. */}
+            <div className="dash-chart-card" style={{ marginBottom: '24px' }}>
+                <p className="dash-chart-title">Filters</p>
+                <div className="wizard-field-grid">
+                    <div className="add-product-name flex-col">
+                        <p>Project</p>
+                        <StyledSelect
+                            value={filters.projectId}
+                            onChange={v => setField('projectId', v)}
+                            placeholder="All Projects"
+                            options={[{ value: '', label: 'All Projects' }, ...projects.map(p => ({ value: p._id, label: p.name }))]}
+                        />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>Event Type</p>
+                        <StyledSelect
+                            value={filters.eventType}
+                            onChange={v => setField('eventType', v)}
+                            placeholder="All Events"
+                            options={[{ value: '', label: 'All Events' }, ...EVENT_TYPES.map(et => ({ value: et, label: eventLabel(et) }))]}
+                        />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>From</p>
+                        <StyledDatePicker value={filters.dateFrom} onChange={v => setField('dateFrom', v)} />
+                    </div>
+                    <div className="add-product-name flex-col">
+                        <p>To</p>
+                        <StyledDatePicker value={filters.dateTo} onChange={v => setField('dateTo', v)} />
+                    </div>
                 </div>
             </div>
 
             {loading && entries.length === 0 ? (
-                <div className="admin-empty-state"><p>Loading…</p></div>
+                <div className="dash-chart-card"><div className="dash-empty">Loading…</div></div>
             ) : entries.length === 0 ? (
-                <div className="admin-empty-state"><p>No activity recorded yet.</p></div>
+                <div className="dash-chart-card"><div className="dash-empty">No activity recorded yet.</div></div>
             ) : (
                 Object.entries(grouped).map(([day, items]) => (
-                    <div key={day} style={{ marginBottom: '28px' }}>
-                        <p className="activity-date-heading">{day}</p>
-                        <div className="list-table finance-table">
-                            {/* Its own class, not .list-table-format — that class carries a
-                                heavy !important mobile transform elsewhere in list.css built
-                                for a different row shape (image + title + subtitle + action
-                                buttons), which fought this row's own mobile layout via
-                                :nth-child positioning regardless of specificity. */}
-                            <div className="activity-row activity-row-header">
-                                <span /><b>Time</b><b>Activity</b><b>Amount</b>
-                            </div>
-                            {items.map(e => {
-                                const meta = ACTIVITY_META[e.eventType] || DEFAULT_ACTIVITY_META;
-                                return (
-                                    <div key={e._id} className="activity-row">
-                                        <span className={`dash-activity-icon at-icon tone-${meta.tone}`}>
-                                            <FontAwesomeIcon icon={meta.icon} />
-                                        </span>
-                                        <p className="at-time">{timeLabel(e.timestamp)}</p>
-                                        <p className="at-summary">
-                                            {highlightEntities(e.summary, e.entityNames)}
-                                            {e.performedBy && <span className="item-category" style={{ marginLeft: '8px' }}>{e.performedBy}</span>}
-                                        </p>
-                                        <p className="at-amount">{e.amount != null ? `₹${e.amount.toLocaleString('en-IN')}` : '-'}</p>
-                                    </div>
-                                );
-                            })}
+                    <div key={day} className="dash-chart-card" style={{ marginBottom: '20px', padding: 0 }}>
+                        <p className="dash-activity-date-heading" style={{ padding: '18px 20px 6px' }}>{day}</p>
+                        {/* Its own class, not .list-table-format — that class carries a
+                            heavy !important mobile transform elsewhere in list.css built
+                            for a different row shape (image + title + subtitle + action
+                            buttons), which fought this row's own mobile layout via
+                            :nth-child positioning regardless of specificity. */}
+                        <div className="activity-row activity-row-header">
+                            <span /><b>Time</b><b>Activity</b><b>Amount</b>
                         </div>
+                        {items.map(e => {
+                            const meta = ACTIVITY_META[e.eventType] || DEFAULT_ACTIVITY_META;
+                            return (
+                                <div key={e._id} className="activity-row">
+                                    <span className={`dash-activity-icon at-icon tone-${meta.tone}`}>
+                                        <FontAwesomeIcon icon={meta.icon} />
+                                    </span>
+                                    <p className="at-time">{timeLabel(e.timestamp)}</p>
+                                    <p className="at-summary">
+                                        {highlightEntities(e.summary, e.entityNames)}
+                                        {e.performedBy && <span className="item-category" style={{ marginLeft: '8px' }}>{e.performedBy}</span>}
+                                    </p>
+                                    <p className="at-amount">{e.amount != null ? `₹${e.amount.toLocaleString('en-IN')}` : '-'}</p>
+                                </div>
+                            );
+                        })}
                     </div>
                 ))
             )}
 
             {hasMore && (
-                <div style={{ textAlign: 'center', marginTop: '16px' }}>
-                    <button className="add-btn" onClick={() => fetchPage(page + 1, false)} disabled={loading}>
-                        {loading ? 'Loading…' : 'Load More'}
-                    </button>
-                </div>
+                <button type="button" className="dash-activity-viewall" onClick={() => fetchPage(page + 1, false)} disabled={loading}>
+                    {loading ? 'Loading…' : 'Load More'}
+                </button>
             )}
         </FinanceTabShell>
     );

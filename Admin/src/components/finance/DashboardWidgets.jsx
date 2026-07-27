@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faXmark } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/dashboard.css';
 
 // One consistent palette across every chart in every tier of the Finance
@@ -27,22 +28,89 @@ export const formatINR = (n) => {
 // as data arrives) with a shimmer bar standing in for the value — same
 // "this piece specifically is still loading" idea as ChartSkeleton, at
 // KPI-card scale. Not clickable while loading (there's nothing to show yet).
-export const KpiCard = ({ label, value, sub, onClick, tone, icon, hero, loading }) => (
-    <div className={`dash-kpi-card${onClick && !loading ? ' clickable' : ''}${hero ? ' hero' : ''}${tone ? ` tone-${tone}` : ''}`} onClick={loading ? undefined : onClick}>
-        <div className="dash-kpi-row">
-            {icon && (
-                <div className={`dash-kpi-icon${tone ? ` tone-${tone}` : ''}`}>
-                    <FontAwesomeIcon icon={icon} />
+export const KpiCard = ({ label, value, sub, onClick, tone, icon, hero, loading }) => {
+    const [detailOpen, setDetailOpen] = useState(false);
+
+    return (
+        <>
+            <div
+                className={`dash-kpi-card${onClick && !loading ? ' clickable' : ''}${hero ? ' hero' : ''}${tone ? ` tone-${tone}` : ''}`}
+                onClick={loading ? undefined : onClick}
+            >
+                <div className="dash-kpi-row">
+                    {icon && (
+                        <div className={`dash-kpi-icon${tone ? ` tone-${tone}` : ''}`}>
+                            <FontAwesomeIcon icon={icon} />
+                        </div>
+                    )}
+                    <div className="dash-kpi-text">
+                        <p className="dash-kpi-label">{label}</p>
+                        {loading ? <div className="kpi-skeleton-bar" /> : <p className={`dash-kpi-value${tone ? ` tone-${tone}` : ''}`}>{value}</p>}
+                    </div>
                 </div>
-            )}
-            <div className="dash-kpi-text">
-                <p className="dash-kpi-label">{label}</p>
-                {loading ? <div className="kpi-skeleton-bar" /> : <p className={`dash-kpi-value${tone ? ` tone-${tone}` : ''}`}>{value}</p>}
+                {/* The card itself is always a plain, direct link (tapping or
+                    clicking anywhere on it navigates, same as before) — this
+                    "See details" button is a separate, explicit affordance
+                    for reading the full breakdown without leaving the page;
+                    it stops propagation so it never also triggers the
+                    card's own onClick navigation. Truncated to one line at
+                    the card's own width (sub can run long), full text
+                    always available via this button regardless of screen size. */}
+                {!loading && sub && (
+                    <div className="dash-kpi-sub-row">
+                        <p className="dash-kpi-sub">{sub}</p>
+                        <button
+                            type="button"
+                            className="dash-kpi-details-btn"
+                            onClick={(e) => { e.stopPropagation(); setDetailOpen(true); }}
+                        >
+                            See details
+                        </button>
+                    </div>
+                )}
             </div>
-        </div>
-        {!loading && sub && <p className="dash-kpi-sub">{sub}</p>}
-    </div>
-);
+
+            {detailOpen && createPortal(
+                // Rendered into document.body, not in place — .admin-list-container's
+                // entrance animation uses animation-fill-mode: both, which leaves a
+                // permanent (no-op) `transform: translateY(0)` on it even once the
+                // animation finishes. Per the CSS spec, any non-none transform on an
+                // ancestor creates a new containing block for fixed-position
+                // descendants, so this sheet would otherwise anchor to that
+                // container's box instead of the real viewport. A portal sidesteps
+                // the ancestor chain entirely.
+                <div className="dash-kpi-sheet-backdrop" onClick={() => setDetailOpen(false)}>
+                    <div className="dash-kpi-sheet" onClick={(e) => e.stopPropagation()}>
+                        <button type="button" className="dash-kpi-sheet-close" onClick={() => setDetailOpen(false)} aria-label="Close">
+                            <FontAwesomeIcon icon={faXmark} />
+                        </button>
+                        <div className="dash-kpi-sheet-head">
+                            {icon && (
+                                <div className={`dash-kpi-icon${tone ? ` tone-${tone}` : ''}`}>
+                                    <FontAwesomeIcon icon={icon} />
+                                </div>
+                            )}
+                            <p className="dash-kpi-sheet-label">{label}</p>
+                        </div>
+                        <p className={`dash-kpi-sheet-value${tone ? ` tone-${tone}` : ''}`}>{value}</p>
+                        {sub && <p className="dash-kpi-sheet-sub">{sub}</p>}
+                        {onClick && (
+                            <button
+                                type="button"
+                                className="dash-kpi-sheet-cta"
+                                onClick={() => { setDetailOpen(false); onClick(); }}
+                            >
+                                View details
+                                <FontAwesomeIcon icon={faArrowRight} />
+                            </button>
+                        )}
+                    </div>
+                </div>,
+                document.body
+            )}
+        </>
+    );
+};
 
 export const KpiGrid = ({ children, hero }) => <div className={`dash-kpi-grid${hero ? ' hero-row' : ''}`}>{children}</div>;
 

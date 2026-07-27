@@ -159,10 +159,47 @@
     animation: chart-skeleton-shimmer 1.6s ease-in-out infinite;
 }
 
+/* Sub line + its "See details" affordance sit in their own row so the
+   button never gets pushed onto a second line when the sub text is long —
+   the sub itself truncates to one line instead (full text lives in the
+   tap-to-open sheet below). */
+.dash-kpi-sub-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 8px;
+}
+
 .dash-kpi-sub {
     font-size: 0.74rem;
     color: var(--text-lt, #9a8e84);
-    margin: 8px 0 0;
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dash-kpi-details-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: #8a6d3e;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.dash-kpi-details-btn:hover,
+.dash-kpi-details-btn:active {
+    color: var(--gold, #c9a87c);
+    text-decoration: underline;
 }
 
 /* ── Hero cards — the this-month headline figures stay physically
@@ -198,11 +235,30 @@
 }
 
 .dash-chart-card {
+    position: relative;
     background: var(--white, #fff);
     border: 1px solid rgba(201, 168, 124, 0.18);
     border-radius: var(--radius, 14px);
     padding: 18px 20px;
+    overflow: hidden;
     box-shadow: 0 1px 2px rgba(16, 37, 37, 0.04), 0 1px 12px rgba(16, 37, 37, 0.03);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Same crisp top accent strip as .dash-kpi-card, so charts read as the
+   same family of "card" rather than a plain bordered box next to them. */
+.dash-chart-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--gold, #c9a87c);
+    opacity: 0.45;
+}
+
+.dash-chart-card:hover {
+    border-color: rgba(201, 168, 124, 0.4);
+    box-shadow: 0 6px 20px rgba(16, 37, 37, 0.07);
 }
 
 .dash-chart-title {
@@ -371,4 +427,219 @@
     color: #fff;
     border-color: var(--gold, #c9a87c);
     box-shadow: 0 4px 14px rgba(201, 168, 124, 0.35);
+}
+
+/* ── KPI tap-to-preview bottom sheet ── touch-only (see useIsTouchDevice in
+   DashboardWidgets.jsx); a native-feeling action sheet rather than a
+   centered dialog, since it's standing in for a hover state on a phone. */
+.dash-kpi-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    background: rgba(26, 18, 8, 0.45);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    animation: dashSheetFade 0.18s ease both;
+}
+
+.dash-kpi-sheet {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    background: var(--white, #fff);
+    border-radius: 20px 20px 0 0;
+    padding: 26px 22px calc(24px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -14px 40px rgba(16, 37, 37, 0.22);
+    animation: dashSheetSlideUp 0.28s cubic-bezier(.22, .61, .36, 1) both;
+}
+
+.dash-kpi-sheet::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(201, 168, 124, 0.4);
+}
+
+@keyframes dashSheetFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dashSheetSlideUp { from { transform: translateY(28px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.dash-kpi-sheet-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(201, 168, 124, 0.3);
+    background: rgba(201, 168, 124, 0.1);
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.dash-kpi-sheet-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-right: 40px;
+    margin: 10px 0 14px;
+}
+
+.dash-kpi-sheet-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--text-lt, #9a8e84);
+    margin: 0;
+}
+
+.dash-kpi-sheet-value {
+    font-size: 2.1rem;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-dark, #1a1208);
+    margin: 0 0 12px;
+    line-height: 1.1;
+}
+
+.dash-kpi-sheet-value.tone-danger { color: var(--danger, #c0392b); }
+.dash-kpi-sheet-value.tone-good   { color: var(--moss, #2d4a35); }
+
+.dash-kpi-sheet-sub {
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: #5a5248;
+    margin: 0 0 22px;
+    white-space: normal;
+}
+
+.dash-kpi-sheet-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: var(--radius-sm, 10px);
+    background: var(--moss, #2d4a35);
+    color: #fff;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.dash-kpi-sheet-cta:active { background: #1f3527; }
+
+/* ── Mobile ── two KPI tiles per row (not one flat stack) so the dashboard
+   still reads as a grid of related figures at a glance, matching the
+   compact "tap for detail" pattern above. Charts drop to one per row —
+   unlike KPI tiles they need real width to stay legible, not just glance-
+   ability, so a 340px min-width would otherwise force horizontal overflow
+   on any phone narrower than roughly 340px + page padding. */
+@media (max-width: 640px) {
+    .dash-kpi-grid,
+    .dash-kpi-grid.hero-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .dash-kpi-card,
+    .dash-kpi-card.hero {
+        padding: 13px 14px;
+    }
+
+    .dash-kpi-row { gap: 10px; }
+
+    .dash-kpi-icon,
+    .dash-kpi-card.hero .dash-kpi-icon {
+        width: 34px;
+        height: 34px;
+        font-size: 0.9rem;
+        border-radius: 9px;
+    }
+
+    .dash-kpi-label,
+    .dash-kpi-card.hero .dash-kpi-label {
+        font-size: 0.6rem;
+    }
+
+    .dash-kpi-value {
+        font-size: 1.05rem;
+    }
+
+    .dash-kpi-card.hero .dash-kpi-value {
+        font-size: 1.2rem;
+    }
+
+    .dash-kpi-sub-row {
+        margin-top: 6px;
+    }
+
+    .dash-kpi-sub {
+        font-size: 0.7rem;
+    }
+
+    .dash-kpi-details-btn {
+        font-size: 0.6rem;
+    }
+
+    .dash-kpi-section-label {
+        font-size: 0.66rem;
+        margin: 18px 0 10px;
+    }
+
+    .dash-chart-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .dash-chart-card {
+        padding: 15px 16px;
+    }
+
+    .dash-chart-title {
+        font-size: 0.8rem;
+        margin-bottom: 10px;
+    }
+
+    .dash-activity-row {
+        grid-template-columns: 56px 1fr auto;
+        gap: 10px;
+        padding: 11px 2px;
+    }
+
+    .dash-activity-summary { font-size: 0.8rem; }
+    .dash-activity-amount { font-size: 0.8rem; }
+}
+
+@media (max-width: 380px) {
+    .dash-kpi-grid,
+    .dash-kpi-grid.hero-row {
+        gap: 8px;
+    }
+
+    .dash-kpi-card,
+    .dash-kpi-card.hero {
+        padding: 11px 12px;
+    }
+
+    .dash-kpi-value { font-size: 0.98rem; }
+    .dash-kpi-card.hero .dash-kpi-value { font-size: 1.1rem; }
 }

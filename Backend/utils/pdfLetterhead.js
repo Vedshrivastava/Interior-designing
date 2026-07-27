@@ -249,7 +249,6 @@ const drawInfoBox = (doc, x, width, title, lines, company, forcedHeight, theme =
     const pad = 10;
     const innerWidth = width - pad * 2;
     const filteredLines = lines.filter(Boolean);
-    const startY = doc.y;
 
     doc.font('Helvetica-Bold').fontSize(8.5);
     const titleH = doc.heightOfString(title.toUpperCase(), { width: innerWidth, characterSpacing: 1 });
@@ -258,6 +257,14 @@ const drawInfoBox = (doc, x, width, title, lines, company, forcedHeight, theme =
     const linesH = lineHeights.reduce((a, b) => a + b, 0);
     const naturalH = pad + titleH + 5 + linesH + pad;
     const boxH = forcedHeight ? Math.max(forcedHeight, naturalH) : naturalH;
+
+    // Same page-break-aware rule drawTable's own ensureSpace uses — without
+    // this, a box landing near the bottom margin (typically a trailing
+    // "Pay To" block) doesn't cleanly jump to a fresh page: PDFKit's own
+    // per-text-call auto-pagination instead fragments it one line per page
+    // once the write position crosses the margin mid-box.
+    if (doc.y + boxH > doc.page.height - doc.page.margins.bottom) doc.addPage();
+    const startY = doc.y;
 
     doc.roundedRect(x, startY, width, boxH, 3).lineWidth(0.5).strokeColor(theme.accentBorder).stroke();
 

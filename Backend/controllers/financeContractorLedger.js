@@ -322,20 +322,33 @@ const downloadContractorBillStatement = async (req, res) => {
             drawTable(doc, {
                 company,
                 columns: [
-                    { label: 'Date', width: 67, align: 'left' },
-                    { label: 'Work', width: 125, align: 'left' },
-                    { label: 'Sqft', width: 59, align: 'right' },
-                    { label: 'Amount', width: 84, align: 'right' },
-                    { label: 'Reason', width: 177, align: 'left' },
+                    { label: 'Date', width: 60, align: 'left' },
+                    { label: 'Work', width: 105, align: 'left' },
+                    { label: 'Sqft', width: 50, align: 'right' },
+                    { label: 'Amount', width: 74, align: 'right' },
+                    { label: 'Source', width: 70, align: 'left' },
+                    { label: 'Reason', width: 97, align: 'left' },
                 ],
                 rows: data.deductions.map(d => [
                     formatDate(d.date),
                     workTypeById.get((d.workId?._id || d.workId)?.toString()) || '—',
                     d.areaSqft ?? '—',
                     formatCurrency(d.amount),
+                    d.workReviewCycle != null ? 'Review' : 'Manual',
                     d.reason || '—',
                 ]),
             });
+            // A Review-sourced deduction is already reflected in Approved
+            // Earnings above (see getCategoryApprovedAreaByWorkId's own
+            // comment) — only a Manual one is separately subtracted in the
+            // Deductions total below, so this list's own sum won't match
+            // that total whenever both kinds are present. Same explanation
+            // ContractorLedgerView.jsx gives on screen.
+            if (data.deductions.some(d => d.workReviewCycle != null)) {
+                doc.fontSize(8).fillColor('#888888')
+                    .text('Review-sourced deductions are already reflected in Approved Earnings above, so only Manual ones are subtracted again in the Deductions total below.', left, doc.y, { width });
+                doc.fillColor('#000000').fontSize(10);
+            }
             doc.moveDown(0.4);
         }
 

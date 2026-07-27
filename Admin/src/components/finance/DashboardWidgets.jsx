@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faArrowRight, faChevronRight, faXmark,
-    faHardHat, faPersonDigging, faUsers, faHandHoldingDollar, faReceipt, faCartShopping,
+    faHardHat, faPersonDigging, faUsers, faHandHoldingDollar, faReceipt, faBoxOpen,
     faTriangleExclamation, faFileInvoiceDollar, faFileInvoice, faRulerCombined, faClipboardList,
     faBuilding, faBuildingColumns,
 } from '@fortawesome/free-solid-svg-icons';
@@ -190,7 +190,14 @@ export const ChartTooltip = ({ active, payload, label, valueFormatter = formatIN
 // as a whole, also neutral. Only genuine inflows (client payments, vendor
 // refunds) and outflows (every payment/advance/purchase/deposit) get a
 // directional tint. Icon is per broad category, not per exact eventType —
-// 40+ distinct icons would be its own kind of clutter.
+// 40+ distinct icons would be its own kind of clutter. Picked to stay
+// visually consistent as a set: faCartShopping (wheels, basket weave) reads
+// noticeably bolder/busier than the plain line-style document/ruler icons
+// at the small size this list renders at, so material/vendor rows use
+// faBoxOpen (a plainer silhouette) instead — .dash-activity-icon's own
+// opacity also takes the remaining edge off the inherently chunkier
+// pictorial icons (faHardHat, faPersonDigging) FA's free set has no
+// thinner equivalent for.
 export const ACTIVITY_META = {
     contractor_paid: { tone: 'out', icon: faHardHat },
     contractor_advance_given: { tone: 'out', icon: faHardHat },
@@ -205,12 +212,12 @@ export const ACTIVITY_META = {
     commission_paid: { tone: 'out', icon: faHandHoldingDollar },
     expense_paid: { tone: 'out', icon: faReceipt },
     expense_recorded: { tone: 'neutral', icon: faReceipt },
-    material_purchased: { tone: 'out', icon: faCartShopping },
-    stock_returned: { tone: 'neutral', icon: faCartShopping },
-    stock_dumped: { tone: 'neutral', icon: faCartShopping },
+    material_purchased: { tone: 'out', icon: faBoxOpen },
+    stock_returned: { tone: 'neutral', icon: faBoxOpen },
+    stock_dumped: { tone: 'neutral', icon: faBoxOpen },
     stock_wasted: { tone: 'neutral', icon: faTriangleExclamation },
-    vendor_paid: { tone: 'out', icon: faCartShopping },
-    vendor_refund_received: { tone: 'in', icon: faCartShopping },
+    vendor_paid: { tone: 'out', icon: faBoxOpen },
+    vendor_refund_received: { tone: 'in', icon: faBoxOpen },
     receipt_received: { tone: 'in', icon: faFileInvoiceDollar },
     running_bill_generated: { tone: 'neutral', icon: faFileInvoiceDollar },
     tds_deposited: { tone: 'out', icon: faFileInvoiceDollar },

@@ -511,10 +511,36 @@
     justify-content: center;
     font-size: 0.85rem;
     color: var(--text-lt, #9a8e84);
+    /* Some FA solid glyphs (faHardHat, faPersonDigging, faUsers) carry a lot
+       more filled area than the plain line-style document/ruler icons
+       alongside them and read as visually heavier/"bolder" as a result —
+       there's no thinner equivalent in the free icon set for those, so this
+       softens the whole icon set uniformly to close the gap instead. */
+    opacity: 0.82;
+}
+
+/* Inline SVG's default baseline-reserving behavior (space kept below the
+   glyph for a hypothetical descender) can nudge it a px or two off from a
+   sibling text baseline even inside a centered flex box — display:block
+   drops that reserved space so vertical centering lines up against the
+   row's actual text. */
+.dash-activity-icon svg {
+    display: block;
 }
 
 .dash-activity-icon.tone-out { color: #b5654a; }
 .dash-activity-icon.tone-in  { color: #8a6d3e; }
+
+/* Who performed the action (ActivityTimelinePage.jsx only — the compact
+   dashboard card doesn't show this) — plain muted text, not a bordered
+   pill: a pill repeated on every row (usually the same actor) competed
+   visually with the entity-name highlights that actually vary per row. */
+.activity-performed-by {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.78rem;
+    margin-left: 4px;
+    white-space: nowrap;
+}
 
 /* The party name(s) FinanceActivityLog stamps onto entityNames — see
    highlightEntities in DashboardWidgets.jsx. Styling only (no real link

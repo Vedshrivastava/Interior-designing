@@ -222,9 +222,16 @@ const ActivityTimelinePage = ({ url }) => {
                                     <p className="at-time">{timeLabel(e.timestamp)}</p>
                                     <p className="at-summary">
                                         {highlightEntities(e.summary, e.entityNames)}
-                                        {e.performedBy && <span className="item-category" style={{ marginLeft: '8px' }}>{e.performedBy}</span>}
+                                        {/* Plain text, not a bordered pill — a pill on every single
+                                            row (same actor, most of the time) competed visually with
+                                            the entity-name pills/highlights that actually carry new
+                                            information per row. */}
+                                        {e.performedBy && <span className="activity-performed-by">· {e.performedBy}</span>}
                                     </p>
-                                    <p className="at-amount">{e.amount != null ? `₹${e.amount.toLocaleString('en-IN')}` : '-'}</p>
+                                    {/* Empty, not a "–" — a dash read as missing data rather than
+                                        "this row has no amount", for the many non-financial rows
+                                        (measurements, work/project status, reviews). */}
+                                    <p className="at-amount">{e.amount != null ? `₹${e.amount.toLocaleString('en-IN')}` : ''}</p>
                                 </div>
                             );
                         })}

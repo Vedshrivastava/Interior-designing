@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import StyledSelect from '../../components/finance/StyledSelect';
 import StyledDatePicker from '../../components/finance/StyledDatePicker';
@@ -13,6 +14,23 @@ import '../../styles/add.css';
 import '../../styles/dashboard.css';
 
 const TABS = [{ key: 'timeline', label: 'Timeline' }];
+
+const EMPTY_FILTERS = { projectId: '', eventType: '', dateFrom: '', dateTo: '' };
+
+// Collapsed-by-default only applies on mobile — desktop always shows the
+// full field grid regardless of this state (see the render below). A
+// plain window-width check, same 700px breakpoint wizard-field-grid's own
+// CSS already switches to a single column at.
+const useIsMobile = () => {
+    const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 700px)').matches);
+    useEffect(() => {
+        const mq = window.matchMedia('(max-width: 700px)');
+        const handler = (e) => setIsMobile(e.matches);
+        if (mq.addEventListener) mq.addEventListener('change', handler); else mq.addListener(handler);
+        return () => { if (mq.removeEventListener) mq.removeEventListener('change', handler); else mq.removeListener(handler); };
+    }, []);
+    return isMobile;
+};
 
 const EVENT_TYPES = [
     'measurement_logged', 'stock_dumped', 'stock_returned', 'stock_wasted',
@@ -44,7 +62,15 @@ const ActivityTimelinePage = ({ url }) => {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
-    const [filters, setFilters] = useState({ projectId: '', eventType: '', dateFrom: '', dateTo: '' });
+    const [filters, setFilters] = useState(EMPTY_FILTERS);
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const isMobile = useIsMobile();
+
+    const activeCount = Object.keys(EMPTY_FILTERS).filter(k => filters[k] !== EMPTY_FILTERS[k]).length;
+    // ISO yyyy-mm-dd strings compare correctly lexicographically — no need
+    // to parse into Date objects just to check ordering.
+    const dateRangeInvalid = !!(filters.dateFrom && filters.dateTo && filters.dateTo < filters.dateFrom);
+    const clearAllFilters = () => setFilters(EMPTY_FILTERS);
 
     const fetchPage = async (pageNum, replace) => {
         setLoading(true);
@@ -64,7 +90,14 @@ const ActivityTimelinePage = ({ url }) => {
         finally { setLoading(false); }
     };
 
-    useEffect(() => { fetchPage(1, true); }, [filters.projectId, filters.eventType, filters.dateFrom, filters.dateTo]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Filters apply live (no separate "Apply" step) — but never fire a
+    // request with a nonsensical date range; the inline error below is
+    // what tells the user why nothing happened, instead of silently
+    // sending (or silently not sending) a bad query.
+    useEffect(() => {
+        if (dateRangeInvalid) return;
+        fetchPage(1, true);
+    }, [filters.projectId, filters.eventType, filters.dateFrom, filters.dateTo]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
@@ -97,37 +130,70 @@ const ActivityTimelinePage = ({ url }) => {
             {/* Same white/gold-strip card language as every Dashboard card
                 (KpiCard, ChartCard) — dash-chart-card, not a bare form grid,
                 so filters read as a section of this page rather than a
-                leftover wizard step. */}
-            <div className="dash-chart-card" style={{ marginBottom: '24px' }}>
-                <p className="dash-chart-title">Filters</p>
-                <div className="wizard-field-grid">
-                    <div className="add-product-name flex-col">
-                        <p>Project</p>
-                        <StyledSelect
-                            value={filters.projectId}
-                            onChange={v => setField('projectId', v)}
-                            placeholder="All Projects"
-                            options={[{ value: '', label: 'All Projects' }, ...projects.map(p => ({ value: p._id, label: p.name }))]}
-                        />
+                leftover wizard step. dash-filter-card overrides overflow
+                back to visible: the shared card clips to round its gold
+                strip's corners, but StyledSelect/StyledDatePicker render
+                their open dropdown/calendar as a plain absolutely-positioned
+                child (no portal), so that same clipping was cutting them off
+                whenever they'd extend past the card's edge. */}
+            <div className="dash-chart-card dash-filter-card" style={{ marginBottom: '24px' }}>
+                <div className="dash-filter-head">
+                    <div className="dash-filter-head-left">
+                        <p className="dash-chart-title">
+                            Filters
+                            {activeCount > 0 && <span className="dash-filter-badge">{activeCount} active</span>}
+                        </p>
+                        {activeCount > 0 && (
+                            <button type="button" className="dash-filter-clear" onClick={clearAllFilters}>
+                                Clear all
+                            </button>
+                        )}
                     </div>
-                    <div className="add-product-name flex-col">
-                        <p>Event Type</p>
-                        <StyledSelect
-                            value={filters.eventType}
-                            onChange={v => setField('eventType', v)}
-                            placeholder="All Events"
-                            options={[{ value: '', label: 'All Events' }, ...EVENT_TYPES.map(et => ({ value: et, label: eventLabel(et) }))]}
-                        />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>From</p>
-                        <StyledDatePicker value={filters.dateFrom} onChange={v => setField('dateFrom', v)} />
-                    </div>
-                    <div className="add-product-name flex-col">
-                        <p>To</p>
-                        <StyledDatePicker value={filters.dateTo} onChange={v => setField('dateTo', v)} />
-                    </div>
+                    {isMobile && (
+                        <button
+                            type="button"
+                            className="dash-filter-toggle"
+                            onClick={() => setMobileOpen(o => !o)}
+                            aria-label={mobileOpen ? 'Collapse filters' : 'Expand filters'}
+                        >
+                            <FontAwesomeIcon icon={mobileOpen ? faChevronUp : faChevronDown} />
+                        </button>
+                    )}
                 </div>
+
+                {(!isMobile || mobileOpen) && (
+                    <div className="wizard-field-grid" style={{ marginTop: '16px', marginBottom: 0 }}>
+                        <div className="add-product-name flex-col">
+                            <p>Project</p>
+                            <StyledSelect
+                                value={filters.projectId}
+                                onChange={v => setField('projectId', v)}
+                                placeholder="All Projects"
+                                options={[{ value: '', label: 'All Projects' }, ...projects.map(p => ({ value: p._id, label: p.name }))]}
+                            />
+                        </div>
+                        <div className="add-product-name flex-col">
+                            <p>Event Type</p>
+                            <StyledSelect
+                                value={filters.eventType}
+                                onChange={v => setField('eventType', v)}
+                                placeholder="All Events"
+                                options={[{ value: '', label: 'All Events' }, ...EVENT_TYPES.map(et => ({ value: et, label: eventLabel(et) }))]}
+                            />
+                        </div>
+                        <div className="add-product-name flex-col">
+                            <p>From</p>
+                            <StyledDatePicker value={filters.dateFrom} onChange={v => setField('dateFrom', v)} />
+                        </div>
+                        <div className={`add-product-name flex-col${dateRangeInvalid ? ' field-error' : ''}`}>
+                            <p>To</p>
+                            <StyledDatePicker value={filters.dateTo} onChange={v => setField('dateTo', v)} />
+                            {dateRangeInvalid && (
+                                <span className="dash-filter-error">&quot;To&quot; date can&apos;t be before &quot;From&quot; date.</span>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {loading && entries.length === 0 ? (

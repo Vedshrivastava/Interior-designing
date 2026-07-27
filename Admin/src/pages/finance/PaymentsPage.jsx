@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import ContractorPaymentsManager from '../../components/finance/ContractorPaymentsManager';
+import LabourPaymentsManager from '../../components/finance/LabourPaymentsManager';
 import VendorPaymentsManager from '../../components/finance/VendorPaymentsManager';
 import SalaryPaymentsManager from '../../components/finance/SalaryPaymentsManager';
 import CommissionPaymentsManager from '../../components/finance/CommissionPaymentsManager';
@@ -12,6 +13,7 @@ import TdsPayableManager from '../../components/finance/TdsPayableManager';
 const TABS = [
     { key: 'vendor',     label: 'Vendor Payment' },
     { key: 'contractor', label: 'Contractor Payment' },
+    { key: 'labour',     label: 'Labour Payment' },
     { key: 'salary',     label: 'Salary' },
     { key: 'commission', label: 'Commission' },
     { key: 'labourProvider', label: 'Labour Provider' },
@@ -33,6 +35,7 @@ const PaymentsPage = ({ url }) => {
         >
             {activeTab === 'vendor' && <VendorPaymentsManager url={url} />}
             {activeTab === 'contractor' && <ContractorPaymentsManager url={url} />}
+            {activeTab === 'labour' && <LabourPaymentsManager url={url} />}
             {activeTab === 'salary' && <SalaryPaymentsManager url={url} />}
             {activeTab === 'commission' && <CommissionPaymentsManager url={url} />}
             {activeTab === 'labourProvider' && <LabourProviderPaymentsManager url={url} />}

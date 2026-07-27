@@ -327,14 +327,15 @@ const downloadContractorBillStatement = async (req, res) => {
             writeSectionHeading(doc, 'Deductions');
             drawTable(doc, {
                 company,
+                rowHeight: 28, headerHeight: 26,
                 columns: [
-                    { label: 'Date', width: 55, align: 'left' },
-                    { label: 'Work', width: 90, align: 'left' },
-                    { label: 'Sqft', width: 45, align: 'right' },
-                    { label: 'Amount', width: 65, align: 'right' },
-                    { label: 'Material Waste', width: 75, align: 'right' },
-                    { label: 'Source', width: 62, align: 'left' },
-                    { label: 'Reason', width: 120, align: 'left' },
+                    { label: 'Date', width: 62, align: 'left' },
+                    { label: 'Work', width: 78, align: 'left' },
+                    { label: 'Sqft', width: 42, align: 'right' },
+                    { label: 'Amount', width: 62, align: 'right' },
+                    { label: 'Mat. Waste', width: 68, align: 'right' },
+                    { label: 'Source', width: 55, align: 'left' },
+                    { label: 'Reason', width: 145, align: 'left' },
                 ],
                 rows: data.deductions.map(d => [
                     formatDate(d.date),
@@ -396,47 +397,15 @@ const downloadContractorBillStatement = async (req, res) => {
             doc.moveDown(0.4);
         }
 
-        // Totals — same shape as the client Bill Statement's own totals block.
-        // BUG FIX: this used to list Approved Earnings/Advances/Deductions/
-        // Payments only — Direct Pay (what the client paid this contractor
-        // straight, bypassing the company) is silently subtracted into the
-        // Balance Payable banner below too, but was never itself a line
-        // here, so the printed numbers didn't add up to that banner
-        // whenever a contractor had any (see ContractorLedgerView.jsx's own
-        // on-screen note for the identical figure).
-        const totalsBoxWidth = 260;
-        const totalsX = right - totalsBoxWidth;
-        const labelWidth = 150;
-        const valueWidth = totalsBoxWidth - labelWidth;
-        let ty = doc.y;
-        doc.font('Helvetica').fontSize(10);
-        [
-            ['Approved Earnings', data.totals.earnings],
-            ['Advances', -data.totals.advances],
-            ['Deductions', -data.totals.deductions],
-            ...(data.totals.materialWasteTotal > 0 ? [['Material Waste', -data.totals.materialWasteTotal]] : []),
-            ['Payments', -data.totals.payments],
-            ...(data.totals.directPaymentTotal > 0 ? [['Direct Pay (from Client)', -data.totals.directPaymentTotal]] : []),
-        ].forEach(([label, value]) => {
-            doc.text(label, totalsX, ty, { width: labelWidth });
-            doc.text(formatCurrency(Math.abs(value)), totalsX + labelWidth, ty, { width: valueWidth, align: 'right' });
-            ty += 16;
-        });
-        doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(BRAND_GREEN).lineWidth(1).stroke();
-        ty += 6;
-        doc.y = ty + 10;
-        if (data.totals.directPaymentTotal > 0) {
-            doc.fontSize(8).fillColor('#888888')
-                .text('Direct Pay: amounts the client paid you straight, bypassing the company — already counted as settled above.', left, doc.y, { width });
-            doc.fillColor('#000000').fontSize(10);
-            doc.moveDown(0.4);
-        }
-
-        // TDS Breakdown — informational, already inside Payments above (the
-        // gross figure Balance Payable nets against); this just states how
-        // much of it was withheld rather than paid directly. Grouped by
-        // section the same shape computeCaMonthlyPackage already uses for
-        // its own TDS Summary.
+        // TDS Breakdown — comes before the Totals summary below on purpose:
+        // this is still "detail" (which payments carried TDS, and where it
+        // went), same tier as the Payments table right above it, not part
+        // of the final Approved-Earnings-to-Balance-Payable roll-up.
+        // Informational only — already inside Payments below (the gross
+        // figure Balance Payable nets against); this just states how much
+        // of it was withheld rather than paid directly. Grouped by section
+        // the same shape computeCaMonthlyPackage already uses for its own
+        // TDS Summary.
         if (data.totals.tdsTotal > 0) {
             const tdsBySection = new Map();
             for (const p of data.payments) {
@@ -465,6 +434,52 @@ const downloadContractorBillStatement = async (req, res) => {
             doc.text(`Total Net Paid (cash/bank, after TDS): ${formatCurrency(data.totals.payments - data.totals.tdsTotal)}`, left, doc.y + 2);
             doc.font('Helvetica').fontSize(10);
             doc.moveDown(0.8);
+        }
+
+        // Totals — same shape as the client Bill Statement's own totals
+        // block, reordered into two tiers: everything that determines what
+        // this contractor was truly owed (Approved Earnings down through
+        // Direct Pay) settles into one Net Payable subtotal, THEN Payments
+        // already made are subtracted from that to reach the Balance
+        // Payable banner below — reads as "what you earned → what's left
+        // after what you've already been paid," not a flat, unordered list.
+        // BUG FIX (kept from the original version of this block): Direct
+        // Pay (what the client paid this contractor straight, bypassing
+        // the company) is silently subtracted into the Balance Payable
+        // banner below too, but used to never be its own line here, so the
+        // printed numbers didn't add up to that banner whenever a
+        // contractor had any (see ContractorLedgerView.jsx's own on-screen
+        // note for the identical figure).
+        const totalsBoxWidth = 260;
+        const totalsX = right - totalsBoxWidth;
+        const labelWidth = 150;
+        const valueWidth = totalsBoxWidth - labelWidth;
+        let ty = doc.y;
+        const totalsLine = (label, value, bold = false) => {
+            doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(10);
+            doc.text(label, totalsX, ty, { width: labelWidth });
+            doc.text(formatCurrency(Math.abs(value)), totalsX + labelWidth, ty, { width: valueWidth, align: 'right' });
+            ty += bold ? 18 : 16;
+        };
+        totalsLine('Approved Earnings', data.totals.earnings);
+        totalsLine('Advances', -data.totals.advances);
+        totalsLine('Deductions', -data.totals.deductions);
+        if (data.totals.materialWasteTotal > 0) totalsLine('Material Waste', -data.totals.materialWasteTotal);
+        if (data.totals.directPaymentTotal > 0) totalsLine('Direct Pay (from Client)', -data.totals.directPaymentTotal);
+        doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(BRAND_GREEN).lineWidth(1).stroke();
+        ty += 6;
+        const netPayable = round2(data.totals.earnings - data.totals.advances - data.totals.deductions - data.totals.materialWasteTotal - data.totals.directPaymentTotal);
+        totalsLine('Net Payable', netPayable, true);
+        totalsLine('Payments', -data.totals.payments);
+        doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(BRAND_GREEN).lineWidth(1).stroke();
+        ty += 6;
+        doc.font('Helvetica').fontSize(10);
+        doc.y = ty + 10;
+        if (data.totals.directPaymentTotal > 0) {
+            doc.fontSize(8).fillColor('#888888')
+                .text('Direct Pay: amounts the client paid you straight, bypassing the company — already counted as settled above.', left, doc.y, { width });
+            doc.fillColor('#000000').fontSize(10);
+            doc.moveDown(0.4);
         }
 
         // Balance banner — same convention as ContractorLedgerView.jsx's own

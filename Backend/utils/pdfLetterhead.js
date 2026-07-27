@@ -282,11 +282,16 @@ const drawInfoBox = (doc, x, width, title, lines, company, forcedHeight, theme =
 
 // Bordered, page-break-aware table. `columns`: [{ label, width, align }],
 // widths should sum to the page's content width. `rows`: array of arrays
-// of cell strings, positionally matched to columns.
-const drawTable = (doc, { columns, rows, theme = COLOR_THEME }) => {
+// of cell strings, positionally matched to columns. `rowHeight`/
+// `headerHeight` (optional) override the default 20/22 — a table with a
+// lot of columns crammed into the page width (each one's text sitting
+// close to its own edges) reads as cluttered at the default height; a
+// taller row gives the same content visible breathing room without
+// touching column widths.
+const drawTable = (doc, { columns, rows, theme = COLOR_THEME, rowHeight = 20, headerHeight = 22 }) => {
     const { left, right, width: tableWidth } = contentBox(doc);
-    const rowH = 20;
-    const headerH = 22;
+    const rowH = rowHeight;
+    const headerH = headerHeight;
 
     const ensureSpace = (h) => {
         if (doc.y + h > doc.page.height - doc.page.margins.bottom) doc.addPage();

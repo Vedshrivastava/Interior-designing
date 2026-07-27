@@ -108,25 +108,31 @@
   background: var(--gold);
 }
 
-/* icon badge */
+/* icon badge — no background/border at rest: every icon used to carry a
+   faint chip box unconditionally, so an inactive item like "Dashboard"
+   still looked "boxed"/emphasized next to a genuinely active row like
+   "Activity Timeline" right below it, just at lower opacity. The chip
+   itself is now what hover/active turn ON, not what they merely intensify,
+   so only "this is the current page (or about to be)" gets a visible box. */
 .sidebar-option-icon {
   width: 34px;
   height: 34px;
   border-radius: 9px;
-  background: rgba(201,168,124,0.08);
-  border: 1px solid rgba(201,168,124,0.14);
+  background: transparent;
+  border: 1px solid transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.85rem;
   color: var(--gold);
   flex-shrink: 0;
-  transition: background 0.25s ease, transform 0.25s ease;
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
 }
 
 .sidebar-option:hover .sidebar-option-icon,
 .sidebar-option.active .sidebar-option-icon {
   background: rgba(201,168,124,0.18);
+  border-color: rgba(201,168,124,0.3);
   transform: scale(1.06);
 }
 

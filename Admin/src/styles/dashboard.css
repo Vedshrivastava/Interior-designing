@@ -192,17 +192,20 @@
     white-space: nowrap;
 }
 
-/* Never truncated with "…" — see showInlineSub in DashboardWidgets.jsx;
-   past its character budget this line is left off the card face entirely
-   rather than clipped mid-word (the chevron's sheet still has the full
-   text). overflow:hidden here is just a safety net, not how long context
-   text is normally handled. */
+/* Single-line preview, truncated with "…" at whatever width the card
+   actually has — same idea as the frontend home page's card text
+   (line-clamp there; single-line ellipsis here since this is meant to
+   stay one line). Pure CSS, so it's correct at any width automatically —
+   no need to know the column count in advance. The chevron's sheet always
+   shows this same text in full, untruncated. */
 .dash-kpi-sub {
     font-size: 0.72rem;
     color: var(--text-lt, #9a8e84);
     margin: 0.35rem 0 0;
+    max-width: 100%;
     white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ── Hero cards — the this-month headline figures stay physically

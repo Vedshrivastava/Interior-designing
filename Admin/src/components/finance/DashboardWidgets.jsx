@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight, faChevronRight, faXmark } from '@fortawesome/free-solid-svg-icons';
@@ -45,25 +45,6 @@ export const KpiCard = ({ label, value, sub, onClick, tone, icon, hero, loading 
     const [detailOpen, setDetailOpen] = useState(false);
     const { title, qualifier } = splitLabel(label);
 
-    // Never truncated with "…" — rather than guess a character budget (which
-    // would need a different number for every grid this shared card ends up
-    // in, from a 2-up mobile tile to a 6-up desktop row), actually measure
-    // whether the rendered line overflows its own box and drop it entirely
-    // if so; the chevron's sheet always has the full, untruncated text
-    // regardless. useLayoutEffect runs before paint, so a line that doesn't
-    // fit is hidden before the browser ever shows it mid-clip.
-    const subRef = useRef(null);
-    const [subFits, setSubFits] = useState(true);
-    useLayoutEffect(() => {
-        const measure = () => {
-            const el = subRef.current;
-            if (el) setSubFits(el.scrollWidth <= el.clientWidth + 1);
-        };
-        measure();
-        window.addEventListener('resize', measure);
-        return () => window.removeEventListener('resize', measure);
-    }, [sub, value, qualifier, title]);
-
     return (
         <>
             <div
@@ -88,9 +69,14 @@ export const KpiCard = ({ label, value, sub, onClick, tone, icon, hero, loading 
                 <p className="dash-kpi-label">{title}</p>
                 {loading ? <div className="kpi-skeleton-bar" /> : <p className={`dash-kpi-value${tone ? ` tone-${tone}` : ''}`}>{value}</p>}
                 {!loading && qualifier && <span className="dash-kpi-qualifier">{qualifier}</span>}
-                {!loading && sub && (
-                    <p ref={subRef} className="dash-kpi-sub" style={subFits ? undefined : { display: 'none' }}>{sub}</p>
-                )}
+                {/* Truncated to one line with a trailing "…" via pure CSS
+                    (text-overflow: ellipsis) — same idea as the frontend
+                    home page's card text (line-clamp there, single-line
+                    ellipsis here since this is meant to stay one line),
+                    at whatever width the card actually has, mobile or
+                    desktop. The chevron below always opens the full,
+                    untruncated text — this line is only a preview. */}
+                {!loading && sub && <p className="dash-kpi-sub">{sub}</p>}
             </div>
 
             {detailOpen && createPortal(
@@ -116,6 +102,9 @@ export const KpiCard = ({ label, value, sub, onClick, tone, icon, hero, loading 
                             <p className="dash-kpi-sheet-label">{label}</p>
                         </div>
                         <p className={`dash-kpi-sheet-value${tone ? ` tone-${tone}` : ''}`}>{value}</p>
+                        {/* Full, untruncated text — this is the box's own
+                            complete explanation, never clipped regardless
+                            of how the inline preview above had to shrink it. */}
                         {sub && <p className="dash-kpi-sheet-sub">{sub}</p>}
                         {onClick && (
                             <button

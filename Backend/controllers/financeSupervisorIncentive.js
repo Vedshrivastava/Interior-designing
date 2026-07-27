@@ -57,7 +57,8 @@ const addSupervisorIncentive = async (req, res) => {
             entityType: 'financeSupervisorIncentive',
             entityId: item._id,
             projectId: projectId || null,
-            summary: `Incentive of ₹${Number(amount)} given to ${employee?.name || 'employee'}`,
+            summary: `Incentive given to ${employee?.name || 'employee'}`,
+            entityNames: employee?.name ? [employee.name] : [],
             amount: Number(amount),
             req,
         });

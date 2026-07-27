@@ -48,7 +48,7 @@ const addTdsDeposit = async (req, res) => {
             entityType: 'financeTdsDeposit',
             entityId: item._id,
             projectId: null,
-            summary: `₹${Number(amount)} TDS deposited to the tax department${challanNumber ? ` (Challan ${challanNumber})` : ''}`,
+            summary: `TDS deposited to the tax department${challanNumber ? ` (Challan ${challanNumber})` : ''}`,
             amount: Number(amount),
             req,
         });

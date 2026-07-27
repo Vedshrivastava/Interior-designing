@@ -57,7 +57,8 @@ const addLabourAdvance = async (req, res) => {
             entityType: 'financeLabourAdvance',
             entityId: item._id,
             projectId: projectId || null,
-            summary: `₹${Number(amount)} advanced to ${labourer.name}`,
+            summary: `Advance given to ${labourer.name}`,
+            entityNames: [labourer.name],
             amount: Number(amount),
             req,
         });

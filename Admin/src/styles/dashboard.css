@@ -368,29 +368,78 @@
     flex-direction: column;
 }
 
+/* One heading per calendar day instead of repeating the date on every row
+   (see ActivityCard's own grouping in DashboardWidgets.jsx) — the first
+   group sits right under the card title, so it gets less top margin than
+   the ones after it. */
+.dash-activity-group + .dash-activity-group {
+    margin-top: 4px;
+}
+
+.dash-activity-date-heading {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-lt, #9a8e84);
+    margin: 0 0 4px;
+    padding: 10px 4px 0;
+}
+
+.dash-activity-group:first-child .dash-activity-date-heading {
+    padding-top: 0;
+}
+
+/* Desktop: icon, description and amount all sit in one row. Mobile
+   overrides this into a 2-line stack (see the max-width:640px block). */
 .dash-activity-row {
     display: grid;
-    grid-template-columns: 68px 1fr auto;
+    grid-template-columns: 22px 1fr auto;
     align-items: center;
-    gap: 16px;
-    padding: 12px 4px;
+    gap: 12px;
+    padding: 10px 4px;
     border-bottom: 1px solid rgba(201, 168, 124, 0.12);
 }
 
-.dash-activity-row:last-child { border-bottom: none; }
+.dash-activity-group .dash-activity-row:last-child { border-bottom: none; }
 
-.dash-activity-date {
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.3px;
+/* Tone mirrors KpiCard's, but "in" uses the brand's gold/olive accent
+   rather than green, and "out" a muted rust rather than a sharp red —
+   deliberately its own, slightly warmer palette from the KPI tone colors,
+   per this card's own design brief. Neutral logs (measurements, work
+   status, reviews) get the same muted gray as everything else non-
+   financial in this dashboard. */
+.dash-activity-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
     color: var(--text-lt, #9a8e84);
-    white-space: nowrap;
+}
+
+.dash-activity-icon.tone-out { color: #b5654a; }
+.dash-activity-icon.tone-in  { color: #8a6d3e; }
+
+/* The party name(s) FinanceActivityLog stamps onto entityNames — see
+   highlightEntities in DashboardWidgets.jsx. Styling only (no real link
+   yet), so no cursor:pointer — that would promise an action tapping it
+   doesn't actually perform. */
+.dash-activity-entity {
+    color: #8a6d3e;
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-color: rgba(138, 109, 62, 0.35);
+    text-underline-offset: 2px;
 }
 
 .dash-activity-summary {
     font-size: 0.85rem;
     color: var(--text-dark, #1a1208);
     line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .dash-activity-amount {
@@ -621,14 +670,20 @@
         margin-bottom: 10px;
     }
 
+    /* Icon + description stack as their own line; amount drops to a second,
+       right-aligned line below rather than staying in the same row — a
+       third auto column here would either force horizontal scroll or
+       squeeze the description down to a sliver on a narrow phone. */
     .dash-activity-row {
-        grid-template-columns: 56px 1fr auto;
-        gap: 10px;
-        padding: 11px 2px;
+        grid-template-columns: 18px 1fr;
+        grid-template-areas: "icon summary" "amount amount";
+        gap: 3px 8px;
+        padding: 10px 2px;
     }
 
-    .dash-activity-summary { font-size: 0.8rem; }
-    .dash-activity-amount { font-size: 0.8rem; }
+    .dash-activity-icon { grid-area: icon; align-self: flex-start; margin-top: 1px; }
+    .dash-activity-summary { grid-area: summary; font-size: 0.8rem; }
+    .dash-activity-amount { grid-area: amount; font-size: 0.8rem; margin-top: 2px; }
 }
 
 @media (max-width: 380px) {

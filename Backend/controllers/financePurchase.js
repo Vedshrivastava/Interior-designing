@@ -87,7 +87,8 @@ const addPurchase = async (req, res) => {
                 entityType: 'financePurchase',
                 entityId: purchase._id,
                 projectId,
-                summary: `${Number(quantity)} ${material?.unit || ''} of ${material?.name || 'material'} purchased from ${vendor?.name || 'vendor'} — ₹${totalAmount}`,
+                summary: `${Number(quantity)} ${material?.unit || ''} of ${material?.name || 'material'} purchased from ${vendor?.name || 'vendor'}`,
+                entityNames: vendor?.name ? [vendor.name] : [],
                 amount: totalAmount,
                 req,
             });

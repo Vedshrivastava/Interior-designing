@@ -108,7 +108,7 @@ const addExpense = async (req, res) => {
             entityType: 'financeExpense',
             entityId: item._id,
             projectId: projectId || null,
-            summary: `Expense of ₹${Number(amount)} recorded — ${expenseCategory || 'General'}`,
+            summary: `Expense recorded — ${expenseCategory || 'General'}`,
             amount: Number(amount),
             req,
         });

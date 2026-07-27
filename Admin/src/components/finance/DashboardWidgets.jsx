@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowRight, faChevronRight, faXmark } from '@fortawesome/free-solid-svg-icons';
+import {
+    faArrowRight, faChevronRight, faXmark,
+    faHardHat, faPersonDigging, faUsers, faHandHoldingDollar, faReceipt, faCartShopping,
+    faTriangleExclamation, faFileInvoiceDollar, faFileInvoice, faRulerCombined, faClipboardList,
+    faBuilding, faBuildingColumns,
+} from '@fortawesome/free-solid-svg-icons';
 import '../../styles/dashboard.css';
 
 // "Total Expense - Ongoing Projects" → title "Total Expense", qualifier
@@ -176,26 +181,125 @@ export const ChartTooltip = ({ active, payload, label, valueFormatter = formatIN
     );
 };
 
+// One entry per FinanceActivityLog eventType (see Backend/utils/
+// financeActivityLog.js and every controller's logActivity() call) —
+// `tone` is about which way money actually moved for the COMPANY's own
+// accounts, not just "does this row have an amount": a deduction or a bill
+// being generated carries a ₹ figure but isn't itself cash moving, so it
+// stays neutral; an internal bank_transfer nets to zero for the company
+// as a whole, also neutral. Only genuine inflows (client payments, vendor
+// refunds) and outflows (every payment/advance/purchase/deposit) get a
+// directional tint. Icon is per broad category, not per exact eventType —
+// 40+ distinct icons would be its own kind of clutter.
+const ACTIVITY_META = {
+    contractor_paid: { tone: 'out', icon: faHardHat },
+    contractor_advance_given: { tone: 'out', icon: faHardHat },
+    contractor_deduction_applied: { tone: 'neutral', icon: faHardHat },
+    labour_paid: { tone: 'out', icon: faPersonDigging },
+    labour_advance_given: { tone: 'out', icon: faPersonDigging },
+    labour_deduction_applied: { tone: 'neutral', icon: faPersonDigging },
+    labour_provider_paid: { tone: 'out', icon: faPersonDigging },
+    salary_paid: { tone: 'out', icon: faUsers },
+    supervisor_incentive_given: { tone: 'out', icon: faUsers },
+    supervisor_deduction_applied: { tone: 'neutral', icon: faUsers },
+    commission_paid: { tone: 'out', icon: faHandHoldingDollar },
+    expense_paid: { tone: 'out', icon: faReceipt },
+    expense_recorded: { tone: 'neutral', icon: faReceipt },
+    material_purchased: { tone: 'out', icon: faCartShopping },
+    stock_returned: { tone: 'neutral', icon: faCartShopping },
+    stock_dumped: { tone: 'neutral', icon: faCartShopping },
+    stock_wasted: { tone: 'neutral', icon: faTriangleExclamation },
+    vendor_paid: { tone: 'out', icon: faCartShopping },
+    vendor_refund_received: { tone: 'in', icon: faCartShopping },
+    receipt_received: { tone: 'in', icon: faFileInvoiceDollar },
+    running_bill_generated: { tone: 'neutral', icon: faFileInvoiceDollar },
+    tds_deposited: { tone: 'out', icon: faFileInvoiceDollar },
+    measurement_logged: { tone: 'neutral', icon: faRulerCombined },
+    labour_measurement_logged: { tone: 'neutral', icon: faRulerCombined },
+    measurement_deleted: { tone: 'neutral', icon: faRulerCombined },
+    labour_measurement_deleted: { tone: 'neutral', icon: faRulerCombined },
+    work_created: { tone: 'neutral', icon: faClipboardList },
+    work_completed: { tone: 'neutral', icon: faClipboardList },
+    work_reviewed: { tone: 'neutral', icon: faClipboardList },
+    work_contractor_assignment_added: { tone: 'neutral', icon: faClipboardList },
+    work_contractor_assignment_removed: { tone: 'neutral', icon: faClipboardList },
+    work_labour_team_added: { tone: 'neutral', icon: faClipboardList },
+    work_labour_assignment_removed: { tone: 'neutral', icon: faClipboardList },
+    project_created: { tone: 'neutral', icon: faBuilding },
+    project_activated: { tone: 'neutral', icon: faBuilding },
+    project_completed: { tone: 'neutral', icon: faBuilding },
+    client_quotation_issued: { tone: 'neutral', icon: faFileInvoice },
+    client_quotation_status_changed: { tone: 'neutral', icon: faFileInvoice },
+    client_direct_payment_recorded: { tone: 'neutral', icon: faHandHoldingDollar },
+    site_diary_entry: { tone: 'neutral', icon: faClipboardList },
+    site_diary_issue_resolved: { tone: 'neutral', icon: faClipboardList },
+    bank_transfer: { tone: 'neutral', icon: faBuildingColumns },
+};
+const DEFAULT_ACTIVITY_META = { tone: 'neutral', icon: faClipboardList };
+
+// Wraps each name in `entityNames` (the contractor/labourer/vendor/etc.
+// party already interpolated server-side into `summary` — see
+// FinanceActivityLog's own comment) in a styled span, so "Contractor
+// test_1 paid" reads with test_1 visually distinct from the surrounding
+// sentence. Styling only for now, not an actual link — see the entity's
+// own real page/route isn't resolvable from the activity log's current
+// data for most event types without a larger backend change.
+const highlightEntities = (summary, entityNames) => {
+    const names = (entityNames || []).filter(Boolean);
+    if (!names.length) return summary;
+    const escaped = names.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const re = new RegExp(`(${escaped.join('|')})`, 'g');
+    return summary.split(re).map((part, i) => (names.includes(part) ? <span key={i} className="dash-activity-entity">{part}</span> : part));
+};
+
 // Recent Activity panel — its own component (not a reuse of the generic
 // list-table CRUD styling) so its row layout and "view all" footer can be
 // built to match this card's own padding, instead of a manually-placed
-// link that doesn't line up with anything else in the card. `loading`
-// (optional): shows ChartSkeleton in place of the list/empty-state, same
-// reasoning as everywhere else it's used — "no activity yet" must never
-// be what a still-in-flight fetch looks like.
-export const ActivityCard = ({ title, items, renderRow, onViewAll, viewAllLabel = 'View Full Timeline', emptyText = 'No activity recorded yet.', loading }) => (
-    <div className="dash-chart-card dash-activity-card">
-        <p className="dash-chart-title">{title}</p>
-        {loading ? <ChartSkeleton /> : items?.length > 0 ? (
-            <div className="dash-activity-list">
-                {items.map(renderRow)}
-            </div>
-        ) : <EmptyChart text={emptyText} />}
-        {onViewAll && (
-            <button type="button" className="dash-activity-viewall" onClick={onViewAll}>
-                {viewAllLabel}
-                <FontAwesomeIcon icon={faArrowRight} />
-            </button>
-        )}
-    </div>
-);
+// link that doesn't line up with anything else in the card. Rows group
+// under a single date heading instead of repeating the date per row (see
+// ActivityTimelinePage.jsx's identical grouping for the full-page version
+// of this feed). `loading` (optional): shows ChartSkeleton in place of the
+// list/empty-state, same reasoning as everywhere else it's used — "no
+// activity yet" must never be what a still-in-flight fetch looks like.
+export const ActivityCard = ({ title, items, onViewAll, viewAllLabel = 'View Full Timeline', emptyText = 'No activity recorded yet.', loading }) => {
+    const dayKeys = [];
+    const byDay = new Map();
+    for (const a of items || []) {
+        const key = new Date(a.timestamp).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+        if (!byDay.has(key)) { byDay.set(key, []); dayKeys.push(key); }
+        byDay.get(key).push(a);
+    }
+
+    return (
+        <div className="dash-chart-card dash-activity-card">
+            <p className="dash-chart-title">{title}</p>
+            {loading ? <ChartSkeleton /> : items?.length > 0 ? (
+                <div className="dash-activity-list">
+                    {dayKeys.map(day => (
+                        <div key={day} className="dash-activity-group">
+                            <p className="dash-activity-date-heading">{day}</p>
+                            {byDay.get(day).map(a => {
+                                const meta = ACTIVITY_META[a.eventType] || DEFAULT_ACTIVITY_META;
+                                return (
+                                    <div key={a._id} className="dash-activity-row">
+                                        <span className={`dash-activity-icon tone-${meta.tone}`}>
+                                            <FontAwesomeIcon icon={meta.icon} />
+                                        </span>
+                                        <span className="dash-activity-summary">{highlightEntities(a.summary, a.entityNames)}</span>
+                                        {a.amount != null && <span className="dash-activity-amount">{formatINR(a.amount)}</span>}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+            ) : <EmptyChart text={emptyText} />}
+            {onViewAll && (
+                <button type="button" className="dash-activity-viewall" onClick={onViewAll}>
+                    {viewAllLabel}
+                    <FontAwesomeIcon icon={faArrowRight} />
+                </button>
+            )}
+        </div>
+    );
+};

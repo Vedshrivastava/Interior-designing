@@ -86,8 +86,9 @@ const addVendorPayment = async (req, res) => {
             entityId: item._id,
             projectId: projectId || null,
             summary: refund
-                ? `₹${Number(amount)} refund received from vendor ${vendor?.name || 'vendor'}`
-                : `₹${Number(amount)} paid to vendor ${vendor?.name || 'vendor'}`,
+                ? `Refund received from vendor ${vendor?.name || 'vendor'}`
+                : `Paid to vendor ${vendor?.name || 'vendor'}`,
+            entityNames: vendor?.name ? [vendor.name] : [],
             amount: Number(amount),
             req,
         });

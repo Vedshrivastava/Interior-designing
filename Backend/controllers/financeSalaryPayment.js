@@ -56,7 +56,8 @@ const addSalaryPayment = async (req, res) => {
             eventType: 'salary_paid',
             entityType: 'financeSalaryPayment',
             entityId: item._id,
-            summary: `Salary of ₹${Number(amount)} paid to ${employee?.name || 'employee'} for ${month}`,
+            summary: `Salary paid to ${employee?.name || 'employee'} for ${month}`,
+            entityNames: employee?.name ? [employee.name] : [],
             amount: Number(amount),
             req,
         });

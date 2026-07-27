@@ -41,7 +41,8 @@ const addSupervisorDeduction = async (req, res) => {
             entityType: 'financeSupervisorDeduction',
             entityId: item._id,
             projectId: projectId || null,
-            summary: `₹${Number(amount)} deducted from ${employee?.name || 'employee'} — ${reason.trim()}`,
+            summary: `Deducted from ${employee?.name || 'employee'} — ${reason.trim()}`,
+            entityNames: employee?.name ? [employee.name] : [],
             amount: Number(amount),
             req,
         });

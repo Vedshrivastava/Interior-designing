@@ -70,7 +70,8 @@ const addReceipt = async (req, res) => {
             entityType: 'financeReceipt',
             entityId: item._id,
             projectId,
-            summary: `₹${Number(amount)} received from ${client?.name || 'client'} for ${project?.name || 'project'}`,
+            summary: `Payment received from ${client?.name || 'client'} for ${project?.name || 'project'}`,
+            entityNames: client?.name ? [client.name] : [],
             amount: Number(amount),
             req,
         });

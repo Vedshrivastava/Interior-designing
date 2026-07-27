@@ -63,7 +63,8 @@ const addClientQuotation = async (req, res) => {
         await logActivity({
             eventType: 'client_quotation_issued', entityType: 'financeClientQuotation', entityId: item._id,
             projectId,
-            summary: `Quotation #${quotationNumber} issued for ${project.name} (${project.clientId?.name || 'client'}) — ₹${amount}`,
+            summary: `Quotation #${quotationNumber} issued for ${project.name} (${project.clientId?.name || 'client'})`,
+            entityNames: project.clientId?.name ? [project.clientId.name] : [],
             amount, req,
         });
 

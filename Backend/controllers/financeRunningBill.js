@@ -246,7 +246,7 @@ const generateRunningBill = async (req, res) => {
             entityType: 'financeRunningBill',
             entityId: bill._id,
             projectId,
-            summary: `Running Bill #${billNumber} generated for ${project.name} — ₹${totalAmount}`,
+            summary: `Running Bill #${billNumber} generated for ${project.name}`,
             amount: totalAmount,
             req,
         });

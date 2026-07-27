@@ -54,7 +54,8 @@ const addCommissionPayment = async (req, res) => {
             entityType: 'financeCommissionPayment',
             entityId: item._id,
             projectId: projectId || null,
-            summary: `Commission of ₹${Number(amount)} paid to ${referral.name}`,
+            summary: `Commission paid to ${referral.name}`,
+            entityNames: [referral.name],
             amount: Number(amount),
             req,
         });

@@ -77,7 +77,8 @@ const addLabourDeduction = async (req, res) => {
             entityType: 'financeLabourDeduction',
             entityId: item._id,
             projectId,
-            summary: `${areaSqft} sqft (₹${amount}) deducted from ${labourer.name} — ${reason.trim()}`,
+            summary: `${areaSqft} sqft deducted from ${labourer.name} — ${reason.trim()}`,
+            entityNames: [labourer.name],
             amount,
             req,
         });
@@ -96,7 +97,8 @@ const addLabourDeduction = async (req, res) => {
                 entityType: 'financeSupervisorIncentive',
                 entityId: incentive._id,
                 projectId,
-                summary: `Incentive of ₹${amount} given to ${supervisor?.name || 'employee'} for catching ${labourer.name}'s mistake`,
+                summary: `Incentive given to ${supervisor?.name || 'employee'} for catching ${labourer.name}'s mistake`,
+                entityNames: [supervisor?.name, labourer.name].filter(Boolean),
                 amount,
                 req,
             });

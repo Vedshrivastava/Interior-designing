@@ -487,13 +487,6 @@ const FinanceHome = ({ url }) => {
                     loading={phase1Loading}
                     items={summary?.recentActivities}
                     onViewAll={() => navigate('/finance/activity')}
-                    renderRow={(a) => (
-                        <div key={a._id} className="dash-activity-row">
-                            <span className="dash-activity-date">{new Date(a.timestamp).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
-                            <span className="dash-activity-summary">{a.summary}</span>
-                            <span className="dash-activity-amount">{a.amount != null ? formatINR(a.amount) : ''}</span>
-                        </div>
-                    )}
                 />
             </div>
         </div>

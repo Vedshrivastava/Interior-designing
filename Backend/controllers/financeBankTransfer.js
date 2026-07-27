@@ -39,7 +39,7 @@ const addBankTransfer = async (req, res) => {
             eventType: 'bank_transfer',
             entityType: 'financeBankTransfer',
             entityId: item._id,
-            summary: `₹${Number(amount)} transferred from ${fromAccount?.accountName || 'account'} to ${toAccount?.accountName || 'account'}`,
+            summary: `Transferred from ${fromAccount?.accountName || 'account'} to ${toAccount?.accountName || 'account'}`,
             amount: Number(amount),
             req,
         });

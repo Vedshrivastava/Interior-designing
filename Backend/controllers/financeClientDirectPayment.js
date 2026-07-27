@@ -152,7 +152,8 @@ const addClientDirectPayment = async (req, res) => {
             entityType: 'financeClientDirectPayment',
             entityId: item._id,
             projectId,
-            summary: `Client paid ${party.name} ₹${amount} directly (${category.name})`,
+            summary: `Client paid ${party.name} directly (${category.name})`,
+            entityNames: [party.name],
             amount: Number(amount),
             req,
         });

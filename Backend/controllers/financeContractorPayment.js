@@ -92,7 +92,8 @@ const addContractorPayment = async (req, res) => {
             entityType: 'financeContractorPayment',
             entityId: item._id,
             projectId: projectId || null,
-            summary: `Contractor ${vendor.name} paid ₹${Number(amount)}`,
+            summary: `Contractor ${vendor.name} paid`,
+            entityNames: [vendor.name],
             amount: Number(amount),
             req,
         });

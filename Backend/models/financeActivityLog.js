@@ -10,6 +10,12 @@ const financeActivityLogSchema = new mongoose.Schema({
     entityId:    { type: mongoose.Schema.Types.ObjectId, required: true, refPath: 'entityType' },
     projectId:   { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', default: null },
     summary:     { type: String, required: true },
+    // The party name(s) already interpolated into `summary` (e.g. a
+    // contractor/labourer/vendor's own .name) — kept as bare display
+    // strings, not a link/route, so the Recent Activity feed can style
+    // them distinctly from the rest of the sentence without needing to
+    // resolve a real navigation target for every event type.
+    entityNames: { type: [String], default: [] },
     amount:      { type: Number, default: null },
     performedBy: { type: String, default: '' },
     timestamp:   { type: Date, default: Date.now },

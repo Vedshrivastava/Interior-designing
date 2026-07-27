@@ -58,7 +58,8 @@ const addContractorDeduction = async (req, res) => {
             entityType: 'financeContractorDeduction',
             entityId: item._id,
             projectId,
-            summary: `${areaSqft} sqft (₹${amount}) deducted from ${vendor.name} — ${reason.trim()}`,
+            summary: `${areaSqft} sqft deducted from ${vendor.name} — ${reason.trim()}`,
+            entityNames: [vendor.name],
             amount,
             req,
         });

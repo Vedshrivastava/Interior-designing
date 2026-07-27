@@ -59,7 +59,8 @@ const addLabourPayment = async (req, res) => {
             entityType: 'financeLabourPayment',
             entityId: item._id,
             projectId: projectId || null,
-            summary: `${labourer.name} paid ₹${Number(amount)}`,
+            summary: `${labourer.name} paid`,
+            entityNames: [labourer.name],
             amount: Number(amount),
             req,
         });

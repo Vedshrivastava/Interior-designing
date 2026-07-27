@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { FINANCE_SETTING_TYPES } from '../../config/financeMasters';
 import ToggleSwitch from './ToggleSwitch';
 import StyledSelect from './StyledSelect';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -59,11 +60,27 @@ const SettingsCrudList = ({ url, lockedType }) => {
 
     useEffect(() => { fetchList(); }, [activeType]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => {
-        if (!typeConfig.hasTdsSection) return;
+    const fetchTdsSections = () => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
             .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
+    };
+    useEffect(() => {
+        if (!typeConfig.hasTdsSection) return;
+        fetchTdsSections();
     }, [url, activeType]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // A setting added/edited/removed elsewhere (another tab, another admin,
+    // or this same list's own form saving) wouldn't otherwise show up here
+    // until the tab was reselected or the page reloaded — this list never
+    // subscribed to the financeSettingsChanged broadcast the backend
+    // already sends on every add/update/remove. Only refetch when it's
+    // this list's own settingType (or, for a type whose form references
+    // TDS Sections in its own picker — Work Types — when tds_section
+    // itself changed, so that picker's options stay live too).
+    useFinanceWsRefresh(['financeSettingsChanged'], (msg) => {
+        if (!msg.settingType || msg.settingType === activeType) fetchList();
+        if (msg.settingType === 'tds_section' && typeConfig.hasTdsSection) fetchTdsSections();
+    });
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
     const openAdd = () => { setForm(emptyForm); setEditingId(null); setModalOpen(true); };

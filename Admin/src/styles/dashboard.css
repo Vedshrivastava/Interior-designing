@@ -1147,3 +1147,111 @@
         justify-content: flex-start;
     }
 }
+
+/* ── Project Directory (ProjectsList.jsx) ── same "name + self-labeled
+   fields + actions" shape as the mastercrud card above, but this table
+   isn't rendered through MasterCrudTable — it's a bespoke page with a
+   fixed 6-column layout, so it gets its own row classes rather than
+   reaching for classes named after a different component. */
+.projects-list-card {
+    padding: 0;
+}
+
+.projects-list-card .dash-chart-title {
+    margin: 0;
+    padding: 18px 20px 14px;
+}
+
+.projects-list-row {
+    display: grid;
+    grid-template-columns: 2fr 1.3fr 1fr 1fr 1fr 100px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.projects-list-row:last-child {
+    border-bottom: none;
+}
+
+.projects-list-row.projects-list-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-top: 0;
+    padding-bottom: 10px;
+}
+
+.projects-list-name {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-dark, #1a1208);
+    cursor: pointer;
+}
+
+.projects-list-name:hover {
+    color: #8a6d3e;
+    text-decoration: underline;
+}
+
+/* Desktop: contents lets each field fall into its own column of the
+   6-column grid above, lined up under the header row. */
+.projects-list-fields {
+    display: contents;
+}
+
+.projects-list-field {
+    display: contents;
+}
+
+.projects-list-field-label {
+    display: none;
+}
+
+.projects-list-actions {
+    justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+    .projects-list-card .dash-chart-title {
+        padding: 16px 16px 12px;
+    }
+
+    .projects-list-row.projects-list-header {
+        display: none;
+    }
+
+    .projects-list-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 14px 16px;
+    }
+
+    .projects-list-fields {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 20px;
+    }
+
+    .projects-list-field {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .projects-list-field-label {
+        display: block;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: var(--text-lt, #9a8e84);
+        margin-bottom: 2px;
+    }
+
+    .projects-list-actions {
+        justify-content: flex-start;
+    }
+}

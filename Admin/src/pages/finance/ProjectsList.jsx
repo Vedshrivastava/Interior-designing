@@ -172,27 +172,46 @@ const ProjectsList = ({ url }) => {
                     </ChartCard>
                 </ChartGrid>
 
-                <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1.3fr 1fr 1fr 1fr 100px' }}>
+                {/* Own row class, not .list-table-format — that class carries a
+                    heavy !important mobile transform built for a different row
+                    shape (image + title + subtitle + action buttons), which
+                    mangled this table's columns the same way it originally
+                    mangled Activity Timeline/Clients before those got the
+                    same treatment. */}
+                <div className="dash-chart-card projects-list-card">
+                    <p className="dash-chart-title">Project Directory</p>
+                    <div className="projects-list-row projects-list-header">
                         <b>Name</b><b>Client</b><b>Contract Type</b><b>Status</b><b>Readiness</b><b>Action</b>
                     </div>
                     {loading ? (
-                        <div className="admin-empty-state"><p>Loading…</p></div>
+                        <div className="dash-empty">Loading…</div>
                     ) : list.length === 0 ? (
-                        <div className="admin-empty-state"><p>No projects yet: start with "+ New Project".</p></div>
+                        <div className="dash-empty">No projects yet: start with "+ New Project".</div>
                     ) : (
                         list.map(item => (
-                            <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1.3fr 1fr 1fr 1fr 100px' }}>
-                                <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${item._id}`)}>{item.name}</p>
-                                <p>{item.clientId?.name || '-'}</p>
-                                <p><span className="item-category">{CONTRACT_TYPE_LABEL[item.contractType]}</span></p>
-                                <p><span className="item-category">{STATUS_LABEL[item.status]}</span></p>
-                                <p>
-                                    {item.readiness?.ready
-                                        ? <span style={{ color: 'var(--moss)' }}>✓ Ready</span>
-                                        : <span title={item.readiness?.missing?.join(', ')} style={{ color: '#c0392b' }}>⚠ Missing {item.readiness?.missing?.length}</span>}
-                                </p>
-                                <div className="action-buttons">
+                            <div key={item._id} className="projects-list-row">
+                                <p className="projects-list-name" onClick={() => navigate(`/finance/projects/${item._id}`)}>{item.name}</p>
+                                <div className="projects-list-fields">
+                                    <div className="projects-list-field">
+                                        <span className="projects-list-field-label">Client</span>
+                                        <span className="projects-list-field-value">{item.clientId?.name || '-'}</span>
+                                    </div>
+                                    <div className="projects-list-field">
+                                        <span className="projects-list-field-label">Contract Type</span>
+                                        <span className="item-category">{CONTRACT_TYPE_LABEL[item.contractType]}</span>
+                                    </div>
+                                    <div className="projects-list-field">
+                                        <span className="projects-list-field-label">Status</span>
+                                        <span className="item-category">{STATUS_LABEL[item.status]}</span>
+                                    </div>
+                                    <div className="projects-list-field">
+                                        <span className="projects-list-field-label">Readiness</span>
+                                        {item.readiness?.ready
+                                            ? <span style={{ color: 'var(--moss)' }}>✓ Ready</span>
+                                            : <span title={item.readiness?.missing?.join(', ')} style={{ color: '#c0392b' }}>⚠ Missing {item.readiness?.missing?.length}</span>}
+                                    </div>
+                                </div>
+                                <div className="action-buttons projects-list-actions">
                                     <p onClick={() => navigate(`/finance/projects/${item._id}`)} className="cursor edit-action">View</p>
                                     <p onClick={() => setConfirmItem(item)} className="cursor delete-action">X</p>
                                 </div>

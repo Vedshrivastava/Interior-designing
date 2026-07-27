@@ -191,7 +191,7 @@ export const ChartTooltip = ({ active, payload, label, valueFormatter = formatIN
 // refunds) and outflows (every payment/advance/purchase/deposit) get a
 // directional tint. Icon is per broad category, not per exact eventType —
 // 40+ distinct icons would be its own kind of clutter.
-const ACTIVITY_META = {
+export const ACTIVITY_META = {
     contractor_paid: { tone: 'out', icon: faHardHat },
     contractor_advance_given: { tone: 'out', icon: faHardHat },
     contractor_deduction_applied: { tone: 'neutral', icon: faHardHat },
@@ -235,7 +235,7 @@ const ACTIVITY_META = {
     site_diary_issue_resolved: { tone: 'neutral', icon: faClipboardList },
     bank_transfer: { tone: 'neutral', icon: faBuildingColumns },
 };
-const DEFAULT_ACTIVITY_META = { tone: 'neutral', icon: faClipboardList };
+export const DEFAULT_ACTIVITY_META = { tone: 'neutral', icon: faClipboardList };
 
 // Wraps each name in `entityNames` (the contractor/labourer/vendor/etc.
 // party already interpolated server-side into `summary` — see
@@ -244,7 +244,7 @@ const DEFAULT_ACTIVITY_META = { tone: 'neutral', icon: faClipboardList };
 // sentence. Styling only for now, not an actual link — see the entity's
 // own real page/route isn't resolvable from the activity log's current
 // data for most event types without a larger backend change.
-const highlightEntities = (summary, entityNames) => {
+export const highlightEntities = (summary, entityNames) => {
     const names = (entityNames || []).filter(Boolean);
     if (!names.length) return summary;
     const escaped = names.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));

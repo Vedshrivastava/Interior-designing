@@ -1,13 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import StyledSelect from '../../components/finance/StyledSelect';
 import StyledDatePicker from '../../components/finance/StyledDatePicker';
+import { ACTIVITY_META, DEFAULT_ACTIVITY_META, highlightEntities } from '../../components/finance/DashboardWidgets';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
+import '../../styles/dashboard.css';
 
 const TABS = [{ key: 'timeline', label: 'Timeline' }];
 
@@ -129,19 +132,30 @@ const ActivityTimelinePage = ({ url }) => {
                     <div key={day} style={{ marginBottom: '28px' }}>
                         <p className="activity-date-heading">{day}</p>
                         <div className="list-table finance-table">
-                            <div className="list-table-format title" style={{ gridTemplateColumns: '80px 1fr 140px' }}>
-                                <b>Time</b><b>Activity</b><b>Amount</b>
+                            {/* Its own class, not .list-table-format — that class carries a
+                                heavy !important mobile transform elsewhere in list.css built
+                                for a different row shape (image + title + subtitle + action
+                                buttons), which fought this row's own mobile layout via
+                                :nth-child positioning regardless of specificity. */}
+                            <div className="activity-row activity-row-header">
+                                <span /><b>Time</b><b>Activity</b><b>Amount</b>
                             </div>
-                            {items.map(e => (
-                                <div key={e._id} className="list-table-format row-item" style={{ gridTemplateColumns: '80px 1fr 140px' }}>
-                                    <p>{timeLabel(e.timestamp)}</p>
-                                    <p>
-                                        {e.summary}
-                                        {e.performedBy && <span className="item-category" style={{ marginLeft: '8px' }}>{e.performedBy}</span>}
-                                    </p>
-                                    <p>{e.amount != null ? `₹${e.amount.toLocaleString('en-IN')}` : '-'}</p>
-                                </div>
-                            ))}
+                            {items.map(e => {
+                                const meta = ACTIVITY_META[e.eventType] || DEFAULT_ACTIVITY_META;
+                                return (
+                                    <div key={e._id} className="activity-row">
+                                        <span className={`dash-activity-icon at-icon tone-${meta.tone}`}>
+                                            <FontAwesomeIcon icon={meta.icon} />
+                                        </span>
+                                        <p className="at-time">{timeLabel(e.timestamp)}</p>
+                                        <p className="at-summary">
+                                            {highlightEntities(e.summary, e.entityNames)}
+                                            {e.performedBy && <span className="item-category" style={{ marginLeft: '8px' }}>{e.performedBy}</span>}
+                                        </p>
+                                        <p className="at-amount">{e.amount != null ? `₹${e.amount.toLocaleString('en-IN')}` : '-'}</p>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 ))

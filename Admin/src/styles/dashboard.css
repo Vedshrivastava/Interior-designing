@@ -479,6 +479,71 @@
     box-shadow: 0 4px 14px rgba(201, 168, 124, 0.35);
 }
 
+/* ── Activity Timeline page (ActivityTimelinePage.jsx) ── the same icon/
+   tone/entity-highlight language as the dashboard's Recent Activity card,
+   applied to its own table-row layout (which additionally has a Time
+   column the compact card doesn't). Deliberately its OWN class, not a
+   reuse of .list-table-format — that class carries a heavy !important
+   mobile transform elsewhere in list.css built for a different row shape
+   (image + title + subtitle + action buttons) that hijacked this row's
+   layout via :nth-child positioning regardless of how specific a
+   .list-table-format.xxx override selector was. */
+.activity-row {
+    display: grid;
+    grid-template-columns: 32px 70px 1fr 140px;
+    align-items: center;
+    gap: 20px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+    font-size: 14px;
+}
+
+.activity-row:last-child { border-bottom: none; }
+
+.activity-row.activity-row-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding: 14px 20px 10px;
+}
+
+.activity-row .at-time {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.85rem;
+}
+
+.activity-row .at-amount {
+    text-align: right;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 700px) {
+    /* Column headers stop meaning anything once rows reflow into a
+       2-line stack below, same as the dashboard card's own mobile
+       treatment — hide rather than squeeze into an unreadable strip. */
+    .activity-row.activity-row-header {
+        display: none;
+    }
+
+    .activity-row {
+        grid-template-columns: 22px 1fr auto;
+        grid-template-areas:
+            "icon time amount"
+            "icon summary summary";
+        row-gap: 4px;
+        padding: 14px 4px;
+        gap: 8px;
+    }
+
+    .activity-row .at-icon { grid-area: icon; align-self: flex-start; margin-top: 2px; }
+    .activity-row .at-time { grid-area: time; font-size: 0.72rem; text-align: left; }
+    .activity-row .at-summary { grid-area: summary; }
+    .activity-row .at-amount { grid-area: amount; text-align: right; font-size: 0.85rem; }
+}
+
 /* ── KPI tap-to-preview bottom sheet ── touch-only (see useIsTouchDevice in
    DashboardWidgets.jsx); a native-feeling action sheet rather than a
    centered dialog, since it's standing in for a hover state on a phone. */

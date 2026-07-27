@@ -4,6 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import { useFileDownload } from '../../hooks/useFileDownload';
@@ -271,15 +273,33 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
             <ChartGrid>
                 <ChartCard title="Progress Over Time">
                     {profit.progressOverTime?.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={240}>
-                            <LineChart data={profit.progressOverTime}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                                <XAxis dataKey="weekStart" tick={{ fontSize: 10 }} />
-                                <YAxis tick={{ fontSize: 11 }} />
-                                <Tooltip content={<ChartTooltip />} />
-                                <Line type="monotone" dataKey="completedAreaSqft" name="Completed Sqft" stroke={CHART_COLORS[0]} strokeWidth={2} dot={{ r: 2 }} />
-                            </LineChart>
-                        </ResponsiveContainer>
+                        <>
+                            <ResponsiveContainer width="100%" height={240}>
+                                <LineChart data={profit.progressOverTime}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                    <XAxis dataKey="weekStart" tick={{ fontSize: 10 }} />
+                                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                                    <Tooltip content={<ChartTooltip />} />
+                                    {/* dot needs real size to read as a data point at all —
+                                        a single-week project (the common case for a project
+                                        still in its first week) has exactly one point, and a
+                                        Line with no second point to connect to draws no
+                                        visible segment, so a tiny r:2 dot alone looked like
+                                        an empty chart. */}
+                                    <Line
+                                        type="monotone" dataKey="completedAreaSqft" name="Completed Sqft"
+                                        stroke={CHART_COLORS[0]} strokeWidth={2}
+                                        dot={{ r: 4, strokeWidth: 2, fill: CHART_COLORS[0] }}
+                                        activeDot={{ r: 6 }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                            {profit.progressOverTime.length === 1 && (
+                                <p className="admin-subtitle" style={{ margin: '12px 0 0' }}>
+                                    Only one week of measurements logged so far — this will grow into a trend line as more weeks are recorded.
+                                </p>
+                            )}
+                        </>
                     ) : <EmptyChart text="No measurements logged yet." />}
                 </ChartCard>
 
@@ -424,9 +444,13 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                 </div>
             )}
 
-            <div style={{ textAlign: 'right' }}>
-                <span className="cursor edit-action" onClick={onViewWorks}>View all Works →</span>
-            </div>
+            {/* Same full-width pill button as ActivityCard's "View Full
+                Timeline" — the previous plain right-aligned text link had a
+                thin, easy-to-miss tap target on mobile. */}
+            <button type="button" className="dash-activity-viewall" onClick={onViewWorks}>
+                View all Works
+                <FontAwesomeIcon icon={faArrowRight} />
+            </button>
         </div>
     );
 };

@@ -105,28 +105,56 @@ const ClientsPage = ({ url }) => {
                         </ChartCard>
                     </ChartGrid>
 
-                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr' }}>
-                            <b>Client</b>
+                    {/* Its own class, not .list-table-format — that class carries a
+                        heavy !important mobile transform in list.css built for a
+                        different row shape (image + title + subtitle + action
+                        buttons), which mangled this table's 4 financial columns the
+                        same way it originally did on the Activity Timeline page. */}
+                    <div className="dash-chart-card client-summary-card" style={{ marginBottom: '24px' }}>
+                        <div className="client-summary-head">
+                            <p className="dash-chart-title">Client Summary</p>
+                            {/* Column headers (which carry sorting on desktop) are
+                                hidden once rows stack into cards on mobile — this is
+                                the replacement way to change sort there. */}
+                            <select
+                                className="client-summary-mobile-sort"
+                                value={sortKey}
+                                onChange={e => setSortKey(e.target.value)}
+                                aria-label="Sort clients by"
+                            >
+                                <option value="totalBilled">Sort: Billed</option>
+                                <option value="totalReceived">Sort: Received</option>
+                                <option value="outstanding">Sort: Outstanding</option>
+                            </select>
+                        </div>
+                        <div className="client-summary-row client-summary-header">
+                            <span />
                             {sortableHeader('totalBilled', 'Billed')}
                             {sortableHeader('totalReceived', 'Received')}
                             {sortableHeader('outstanding', 'Outstanding')}
                         </div>
                         {loading ? (
-                            <div className="admin-empty-state"><p>Loading…</p></div>
+                            <div className="dash-empty">Loading…</div>
                         ) : sorted.map(c => (
-                            <div key={c.clientId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr' }}>
-                                <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/clients/${c.clientId}`)}>{c.clientName}</p>
-                                <p>{formatINR(c.totalBilled)}</p>
-                                <p>{formatINR(c.totalReceived)}</p>
-                                <p style={{ color: c.outstanding > 0 ? '#c0392b' : 'var(--moss)' }}>
-                                    {formatINR(c.outstanding)}
+                            <div key={c.clientId} className="client-summary-row">
+                                <p className="client-summary-name" onClick={() => navigate(`/finance/clients/${c.clientId}`)}>{c.clientName}</p>
+                                <div className="client-summary-figure cs-billed">
+                                    <span className="client-summary-label">Billed</span>
+                                    <span className="client-summary-value">{formatINR(c.totalBilled)}</span>
+                                </div>
+                                <div className="client-summary-figure cs-received">
+                                    <span className="client-summary-label">Received</span>
+                                    <span className="client-summary-value">{formatINR(c.totalReceived)}</span>
+                                </div>
+                                <div className="client-summary-figure cs-outstanding">
+                                    <span className="client-summary-label">Outstanding</span>
+                                    <span className="client-summary-value" style={{ color: c.outstanding > 0 ? '#c0392b' : 'var(--moss)' }}>
+                                        {formatINR(c.outstanding)}
+                                    </span>
                                     {c.clientCreditBalance > 0 && (
-                                        <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--moss)', fontWeight: 400 }}>
-                                            {formatINR(c.clientCreditBalance)} credit
-                                        </span>
+                                        <span className="client-summary-credit">{formatINR(c.clientCreditBalance)} credit</span>
                                     )}
-                                </p>
+                                </div>
                             </div>
                         ))}
                     </div>

@@ -887,3 +887,148 @@
     .dash-kpi-value { font-size: 0.98rem; }
     .dash-kpi-card.hero .dash-kpi-value { font-size: 1.1rem; }
 }
+
+/* ── Client Summary table (ClientsPage.jsx) ── Billed/Received/Outstanding
+   per client, in the same dash-chart-card language as everywhere else —
+   its own row class rather than .list-table-format, which mangled this
+   table's 4 financial columns the same way it originally mangled Activity
+   Timeline's row shape (see that page's own comment). */
+.client-summary-card {
+    padding: 0;
+}
+
+.client-summary-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 20px 14px;
+}
+
+.client-summary-head .dash-chart-title {
+    margin: 0;
+}
+
+/* Column headers carry sorting on desktop — this select is the mobile
+   replacement once those headers are hidden (see the row layout below). */
+.client-summary-mobile-sort {
+    display: none;
+}
+
+.client-summary-row {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr 1fr 1fr;
+    align-items: center;
+    gap: 20px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.client-summary-row:last-child {
+    border-bottom: none;
+}
+
+.client-summary-row.client-summary-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-top: 0;
+    padding-bottom: 10px;
+}
+
+.client-summary-row.client-summary-header b {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+.client-summary-name {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-dark, #1a1208);
+    cursor: pointer;
+}
+
+.client-summary-name:hover {
+    color: #8a6d3e;
+    text-decoration: underline;
+}
+
+.client-summary-figure {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Only shown on mobile, once the header row (which labels these columns
+   on desktop) is hidden — see the max-width:640px block below. */
+.client-summary-label {
+    display: none;
+}
+
+.client-summary-value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.client-summary-credit {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--moss, #2d4a35);
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+    .client-summary-head {
+        padding: 16px 16px 12px;
+        flex-wrap: wrap;
+    }
+
+    .client-summary-mobile-sort {
+        display: block;
+        padding: 6px 10px;
+        border-radius: 20px;
+        border: 1px solid rgba(201, 168, 124, 0.3);
+        background: rgba(201, 168, 124, 0.06);
+        color: #8a6d3e;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+
+    .client-summary-row.client-summary-header {
+        display: none;
+    }
+
+    .client-summary-row {
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-areas: "name name name" "billed received outstanding";
+        row-gap: 10px;
+        column-gap: 10px;
+        padding: 14px 16px;
+    }
+
+    .client-summary-name {
+        grid-area: name;
+        font-size: 1rem;
+    }
+
+    .client-summary-figure.cs-billed { grid-area: billed; }
+    .client-summary-figure.cs-received { grid-area: received; }
+    .client-summary-figure.cs-outstanding { grid-area: outstanding; }
+
+    .client-summary-label {
+        display: block;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: var(--text-lt, #9a8e84);
+        margin-bottom: 2px;
+    }
+
+    .client-summary-value {
+        font-size: 0.85rem;
+    }
+}

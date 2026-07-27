@@ -1,8 +1,20 @@
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowRight, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faChevronRight, faXmark } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/dashboard.css';
+
+// "Total Expense - Ongoing Projects" → title "Total Expense", qualifier
+// "Ongoing Projects" shown as its own small pill instead of forcing the
+// heading to wrap across 2-3 lines. Every current call site's label either
+// has no " - " at all (title stays as-is, no pill) or uses it exactly as
+// this qualifier suffix (verified against every KpiCard usage in the app —
+// none use " - " as part of a single indivisible phrase), so this is safe
+// to apply unconditionally rather than needing an explicit extra prop.
+const splitLabel = (label) => {
+    const idx = label.indexOf(' - ');
+    return idx === -1 ? { title: label, qualifier: null } : { title: label.slice(0, idx), qualifier: label.slice(idx + 3) };
+};
 
 // One consistent palette across every chart in every tier of the Finance
 // Dashboard — Recharts is the only charting library in this codebase
@@ -18,18 +30,39 @@ export const formatINR = (n) => {
     return `${rounded < 0 ? '-' : ''}₹${Math.abs(rounded).toLocaleString('en-IN')}`;
 };
 
-// `icon` (optional): a @fortawesome/free-solid-svg-icons import, shown in a
-// tone-tinted badge beside the label/value column (not stacked above it) —
-// same icon set the sidebar already uses, so no new dependency. `hero`
-// (optional): the two headline this-month figures stay physically bigger
-// than every count/alert card below, but use the exact same white-card
-// look — no separate color treatment. `loading` (optional): the card,
-// icon, and label render immediately (the grid's shape never jumps around
-// as data arrives) with a shimmer bar standing in for the value — same
-// "this piece specifically is still loading" idea as ChartSkeleton, at
-// KPI-card scale. Not clickable while loading (there's nothing to show yet).
+// `icon` (optional): a @fortawesome/free-solid-svg-icons import, shown bare
+// (no background badge) above the title, tinted by `tone` — moss green for
+// `good`, a muted brick-red for `danger`, brand gold for the untoned/
+// informational default. `hero` (optional): the two headline this-month
+// figures stay physically bigger than every count/alert card below, but use
+// the exact same white-card look — no separate color treatment. `loading`
+// (optional): the card, icon, and title render immediately (the grid's
+// shape never jumps around as data arrives) with a shimmer bar standing in
+// for the value — same "this piece specifically is still loading" idea as
+// ChartSkeleton, at KPI-card scale. Not clickable while loading (there's
+// nothing to show yet).
 export const KpiCard = ({ label, value, sub, onClick, tone, icon, hero, loading }) => {
     const [detailOpen, setDetailOpen] = useState(false);
+    const { title, qualifier } = splitLabel(label);
+
+    // Never truncated with "…" — rather than guess a character budget (which
+    // would need a different number for every grid this shared card ends up
+    // in, from a 2-up mobile tile to a 6-up desktop row), actually measure
+    // whether the rendered line overflows its own box and drop it entirely
+    // if so; the chevron's sheet always has the full, untruncated text
+    // regardless. useLayoutEffect runs before paint, so a line that doesn't
+    // fit is hidden before the browser ever shows it mid-clip.
+    const subRef = useRef(null);
+    const [subFits, setSubFits] = useState(true);
+    useLayoutEffect(() => {
+        const measure = () => {
+            const el = subRef.current;
+            if (el) setSubFits(el.scrollWidth <= el.clientWidth + 1);
+        };
+        measure();
+        window.addEventListener('resize', measure);
+        return () => window.removeEventListener('resize', measure);
+    }, [sub, value, qualifier, title]);
 
     return (
         <>
@@ -37,36 +70,26 @@ export const KpiCard = ({ label, value, sub, onClick, tone, icon, hero, loading 
                 className={`dash-kpi-card${onClick && !loading ? ' clickable' : ''}${hero ? ' hero' : ''}${tone ? ` tone-${tone}` : ''}`}
                 onClick={loading ? undefined : onClick}
             >
-                <div className="dash-kpi-row">
-                    {icon && (
-                        <div className={`dash-kpi-icon${tone ? ` tone-${tone}` : ''}`}>
-                            <FontAwesomeIcon icon={icon} />
-                        </div>
-                    )}
-                    <div className="dash-kpi-text">
-                        <p className="dash-kpi-label">{label}</p>
-                        {loading ? <div className="kpi-skeleton-bar" /> : <p className={`dash-kpi-value${tone ? ` tone-${tone}` : ''}`}>{value}</p>}
-                    </div>
-                </div>
-                {/* The card itself is always a plain, direct link (tapping or
-                    clicking anywhere on it navigates, same as before) — this
-                    "See details" button is a separate, explicit affordance
-                    for reading the full breakdown without leaving the page;
-                    it stops propagation so it never also triggers the
-                    card's own onClick navigation. Truncated to one line at
-                    the card's own width (sub can run long), full text
-                    always available via this button regardless of screen size. */}
                 {!loading && sub && (
-                    <div className="dash-kpi-sub-row">
-                        <p className="dash-kpi-sub">{sub}</p>
-                        <button
-                            type="button"
-                            className="dash-kpi-details-btn"
-                            onClick={(e) => { e.stopPropagation(); setDetailOpen(true); }}
-                        >
-                            See details
-                        </button>
+                    <button
+                        type="button"
+                        className="dash-kpi-chevron"
+                        aria-label="See details"
+                        onClick={(e) => { e.stopPropagation(); setDetailOpen(true); }}
+                    >
+                        <FontAwesomeIcon icon={faChevronRight} />
+                    </button>
+                )}
+                {icon && (
+                    <div className={`dash-kpi-icon${tone ? ` tone-${tone}` : ''}`}>
+                        <FontAwesomeIcon icon={icon} />
                     </div>
+                )}
+                <p className="dash-kpi-label">{title}</p>
+                {loading ? <div className="kpi-skeleton-bar" /> : <p className={`dash-kpi-value${tone ? ` tone-${tone}` : ''}`}>{value}</p>}
+                {!loading && qualifier && <span className="dash-kpi-qualifier">{qualifier}</span>}
+                {!loading && sub && (
+                    <p ref={subRef} className="dash-kpi-sub" style={subFits ? undefined : { display: 'none' }}>{sub}</p>
                 )}
             </div>
 

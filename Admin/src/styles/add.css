@@ -1111,6 +1111,31 @@
     }
     .add-multi-grid { gap: 7px; }
     .add-multi-chip { padding: 7px 12px; font-size: 0.74rem; }
+
+    /* StyledDatePicker's calendar panel is a fixed 280px dropdown — inside
+       a phone-width modal that's often narrower than 280px, it overflows
+       past the field's own edge. Mirrors .add-cat-list's existing
+       left:0/right:0 fluid-width pattern instead of a fixed px width, so
+       it can never be wider than the trigger that opened it. */
+    .date-picker-panel {
+        left: 0;
+        right: 0;
+        width: auto;
+    }
+
+    /* Native file input's button + filename text crowd a narrow field —
+       tighten both a step so "Choose File" and the selected filename fit
+       comfortably side by side. */
+    .add-product-name input[type="file"] {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+    }
+    .add-product-name input[type="file"]::file-selector-button,
+    .add-product-name input[type="file"]::-webkit-file-upload-button {
+        margin-right: 10px;
+        padding: 7px 12px;
+        font-size: 0.7rem;
+    }
 }
 
 /* ══════════════════════════════════════════════

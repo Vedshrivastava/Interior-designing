@@ -1,12 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheck, faBan, faRotateLeft, faTrash, faEye, faUpload } from '@fortawesome/free-solid-svg-icons';
 import AddQuotationModal from './AddQuotationModal';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
 const QUOTATION_STATUS_LABEL = { pending: 'Pending', accepted: 'Accepted', rejected: 'Rejected' };
+const QUOTATION_STATUS_PILL_CLASS = { pending: 'pq-pill-pending', accepted: 'pq-pill-accepted', rejected: 'pq-pill-rejected' };
 
 /*
  * Quotations for one project — issued before the work order / signed rate
@@ -38,6 +42,12 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
     const [uploadingId, setUploadingId] = useState(null);
     const fileInputRef = useRef(null);
     const uploadTargetRef = useRef(null);
+    // Removing a quotation is a real, irreversible record deletion (not
+    // recovery-bin backed like most other resources in this app) — held
+    // here until confirmed, rather than firing straight off the X button
+    // the way Accept/Reject/Reopen do.
+    const [confirmQuotation, setConfirmQuotation] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchList = () => {
         setLoading(true);
@@ -57,12 +67,15 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
         } catch { toast.error('Error updating status'); }
     };
 
-    const remove = async (_id) => {
+    const confirmRemove = async () => {
+        if (!confirmQuotation) return;
+        setDeleting(true);
         try {
-            const res = await axios.post(`${url}/api/finance/client-quotations/remove`, { _id }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); fetchList(); }
+            const res = await axios.post(`${url}/api/finance/client-quotations/remove`, { _id: confirmQuotation._id }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); setConfirmQuotation(null); fetchList(); }
             else toast.error(res.data.message);
         } catch { toast.error('Error removing quotation'); }
+        finally { setDeleting(false); }
     };
 
     // One shared hidden file input, retargeted per row via uploadTargetRef —
@@ -96,7 +109,10 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
         <div>
             <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileChosen} />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            {/* .pq-section-header stacks this button below the title/subtitle
+                on mobile instead of letting "+ Add Quotation" wrap onto 2
+                lines beside the wrapping description text. */}
+            <div className="pq-section-header">
                 <div>
                     <h3 style={{ margin: '0 0 4px' }}>Quotations</h3>
                     <p className="admin-subtitle" style={{ margin: 0 }}>Issued to the client before the work order / signed rate stage; accept one to move the project forward.</p>
@@ -130,42 +146,85 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
                    dashed-divider groups crammed side by side. */
                 <div className="dash-chart-card pq-card">
                     <div className="pq-row pq-header">
-                        <b className="pq-num">#</b><b className="pq-date">Date</b><b className="pq-amount">Amount</b><b className="pq-status">Status</b><b className="pq-file">File</b><b className="pq-status-actions">Status Action</b>
+                        <b className="pq-num">#</b><b className="pq-date">Date</b><b className="pq-amount">Amount</b><b className="pq-status">Status</b><b className="pq-file">File</b><b className="pq-status-actions">Actions</b>
                     </div>
-                    {quotations.map(q => (
-                        <div key={q._id} className="pq-row">
-                            <p className="pq-num">#{q.quotationNumber}</p>
-                            <p className="pq-date">{new Date(q.date).toLocaleDateString()}</p>
-                            <p className="pq-amount">₹{q.amount.toLocaleString('en-IN')}</p>
-                            <p className="pq-status"><span className="item-category">{QUOTATION_STATUS_LABEL[q.status]}</span></p>
-                            <div className="pq-file">
-                                <span className="pq-group-label">File</span>
-                                <div className="action-buttons pq-action-buttons">
-                                    {q.documents?.[0] && (
-                                        <a href={q.documents[0].fileUrl} target="_blank" rel="noreferrer" className="cursor edit-action" style={{ textDecoration: 'none' }}>View</a>
-                                    )}
-                                    <p onClick={() => triggerUpload(q)} className="cursor edit-action">
-                                        {uploadingId === q._id ? 'Uploading…' : q.documents?.[0] ? 'Replace' : 'Upload'}
-                                    </p>
+                    {quotations.map(q => {
+                        const doc = q.documents?.[0];
+                        return (
+                            <div key={q._id} className="pq-row">
+                                <p className="pq-num">#{q.quotationNumber}</p>
+                                <p className="pq-date">{new Date(q.date).toLocaleDateString()}</p>
+                                <p className="pq-amount">₹{q.amount.toLocaleString('en-IN')}</p>
+                                <p className="pq-status">
+                                    <span className={`item-category ${QUOTATION_STATUS_PILL_CLASS[q.status]}`}>{QUOTATION_STATUS_LABEL[q.status]}</span>
+                                </p>
+                                <div className="pq-file">
+                                    <span className="pq-group-label">File</span>
+                                    {/* Its own line, not squeezed into the same flex row as the
+                                        View/Replace buttons — with 3 items fighting a fixed-width
+                                        column, the filename (the only one of the three that can
+                                        shrink) was being squeezed to 0 width and disappearing. */}
+                                    {doc && <span className="pq-uploaded-name" title={doc.name}>{doc.name}</span>}
+                                    <div className="action-buttons pq-action-buttons">
+                                        {doc && (
+                                            <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="cursor edit-action" style={{ textDecoration: 'none' }}>
+                                                <FontAwesomeIcon icon={faEye} className="pq-action-icon" /> View
+                                            </a>
+                                        )}
+                                        <p onClick={() => triggerUpload(q)} className="cursor edit-action">
+                                            <FontAwesomeIcon icon={faUpload} className="pq-action-icon" /> {uploadingId === q._id ? 'Uploading…' : doc ? 'Replace' : 'Upload'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="pq-status-actions">
+                                    <span className="pq-group-label">Actions</span>
+                                    <div className="action-buttons pq-action-buttons">
+                                        {q.status === 'pending' ? (
+                                            <>
+                                                <button type="button" onClick={() => changeStatus(q._id, 'accepted')} className="cursor pq-btn-accept">
+                                                    <FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Accept
+                                                </button>
+                                                <p onClick={() => changeStatus(q._id, 'rejected')} className="cursor delete-action">
+                                                    <FontAwesomeIcon icon={faBan} className="pq-action-icon" /> Reject
+                                                </p>
+                                            </>
+                                        ) : (
+                                            <p onClick={() => changeStatus(q._id, 'pending')} className="cursor edit-action">
+                                                <FontAwesomeIcon icon={faRotateLeft} className="pq-action-icon" /> Reopen
+                                            </p>
+                                        )}
+                                        {/* Demoted well below Accept/Reject/Reopen — a real record
+                                            deletion, not a status change, so it's icon-only, muted,
+                                            and gated behind its own confirm dialog rather than firing
+                                            straight off this click. */}
+                                        <button
+                                            type="button" onClick={() => setConfirmQuotation(q)}
+                                            className="pq-btn-ghost-danger" title="Remove quotation" aria-label="Remove quotation"
+                                        >
+                                            <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="pq-status-actions">
-                                <span className="pq-group-label">Status</span>
-                                <div className="action-buttons pq-action-buttons">
-                                    {q.status === 'pending' ? (
-                                        <>
-                                            <p onClick={() => changeStatus(q._id, 'accepted')} className="cursor edit-action">Accept</p>
-                                            <p onClick={() => changeStatus(q._id, 'rejected')} className="cursor delete-action">Reject</p>
-                                        </>
-                                    ) : (
-                                        <p onClick={() => changeStatus(q._id, 'pending')} className="cursor edit-action">Reopen</p>
-                                    )}
-                                    <p onClick={() => remove(q._id)} className="cursor delete-action">X</p>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
+            )}
+
+            {confirmQuotation && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmQuotation(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>Remove Quotation?</h3>
+                        <p className="bin-confirm-name">#{confirmQuotation.quotationNumber} — ₹{confirmQuotation.amount.toLocaleString('en-IN')}</p>
+                        <p className="bin-confirm-warning">This removes it from the list for good — there's no Recovery Bin for quotations.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setConfirmQuotation(null)} disabled={deleting}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={confirmRemove} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );

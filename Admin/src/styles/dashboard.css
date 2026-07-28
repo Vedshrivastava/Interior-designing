@@ -1520,15 +1520,18 @@
 
 .pq-row {
     display: grid;
-    /* File/Status Action get a fixed floor (not fr) wide enough for their
-       buttons to sit on one line — 1.3fr previously came out too narrow at
-       most viewport widths, wrapping "X" onto its own second line under
-       Accept/Reject. Date/Amount get a minmax floor too so they can't get
-       squeezed as the fr columns fight the fixed ones for space. */
-    grid-template-columns: 60px minmax(95px, 1fr) minmax(100px, 1fr) 110px 150px 260px;
+    /* File and Actions are the same fixed width — both are "a small group
+       of buttons" and read as a matched, deliberately designed pair when
+       they occupy equal space, rather than File looking like an
+       afterthought squeezed next to Actions' wider column. Sized to what
+       Actions actually needs (Accept+Reject+delete on one line); File
+       just centers its shorter content within the same width. Date/Amount
+       get a minmax floor so they can't get squeezed as the fr columns
+       fight the fixed ones for space. */
+    grid-template-columns: 46px minmax(80px, 1fr) minmax(85px, 1fr) 100px 240px 240px;
     grid-template-areas: "num date amount status file statusActions";
     align-items: center;
-    gap: 24px;
+    gap: 14px;
     padding: 16px 20px;
     border-bottom: 1px solid rgba(201, 168, 124, 0.12);
 }
@@ -1551,10 +1554,21 @@
     padding-bottom: 12px;
 }
 
+/* Num stays left (it's the row's identifier, reads naturally flush with
+   the card's own left edge) — everything after it centers within its own
+   column, Amount included, so the row's rhythm is consistent end to end
+   rather than left/left/right/left/center/center reading as arbitrary. */
 .pq-num { grid-area: num; margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
-.pq-date { grid-area: date; margin: 0; }
-.pq-amount { grid-area: amount; margin: 0; font-variant-numeric: tabular-nums; }
-.pq-status { grid-area: status; }
+.pq-date { grid-area: date; margin: 0; text-align: center; }
+/* Centered like Date/Status/File/Actions — desktop only; mobile pairs
+   date+amount in a 2-column row where left-aligned reads more naturally
+   (see the mobile override below). */
+.pq-amount { grid-area: amount; margin: 0; font-variant-numeric: tabular-nums; text-align: center; }
+.pq-status {
+    grid-area: status;
+    display: flex;
+    justify-content: center;
+}
 
 .pq-file { grid-area: file; }
 .pq-status-actions { grid-area: statusActions; }
@@ -1563,6 +1577,7 @@
 .pq-status-actions {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 6px;
 }
 
@@ -1575,15 +1590,46 @@
    an inline style="flexWrap:'wrap'" on these divs forced wrapping
    unconditionally (inline styles beat any CSS class), which is what wrapped
    a lone "X" onto its own second line under Accept/Reject even when the
-   column had room. */
+   column had room. One explicit gap value for every button in the row
+   (Accept/Reject/Reopen/delete alike) — previously this inherited
+   .action-buttons' bare 10px, which read as uneven next to the
+   delete button's own zero-padding square shape. */
 .pq-action-buttons {
     justify-content: flex-start;
     flex-wrap: nowrap;
+    gap: 12px;
 }
 
+/* Icon + label needs to be an inline-flex row with its own small gap, or
+   the icon and text wrap onto separate lines the moment the button's flex
+   item gets squeezed even slightly narrower than its content's natural
+   inline-flow width. */
+.pq-action-buttons .cursor,
+.pq-action-buttons .pq-btn-accept {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+/* Divider sits centered in the row's own 16px column gap (8px either
+   side) via a pseudo-element rather than a real border-left + padding-left
+   on this cell — a real border+padding only pushed this side's content
+   away from the line while File's content stayed hard up against it,
+   reading as asymmetric. */
 .pq-status-actions {
-    border-left: 1px dashed rgba(201, 168, 124, 0.35);
-    padding-left: 20px;
+    position: relative;
+}
+
+@media (min-width: 641px) {
+    .pq-status-actions::before {
+        content: "";
+        position: absolute;
+        left: -7px;
+        top: 2px;
+        bottom: 2px;
+        border-left: 1px dashed rgba(201, 168, 124, 0.35);
+    }
 }
 
 @media (max-width: 640px) {
@@ -1611,6 +1657,17 @@
         justify-self: end;
     }
 
+    /* Date/Amount pair naturally left-to-right here (not a column of many
+       rows to scan), so centering/right-aligning them like the desktop
+       table would just look like a stray gap between the two. */
+    .pq-date {
+        text-align: left;
+    }
+
+    .pq-amount {
+        text-align: left;
+    }
+
     .pq-group-label {
         display: block;
         font-size: 0.6rem;
@@ -1620,14 +1677,25 @@
         color: var(--text-lt, #9a8e84);
     }
 
+    /* Stretch, not flex-start — this is a layout-width fix, not an
+       alignment one: flex-start meant the action-buttons row (and the
+       label/filename text above it) only ever sized to its own content's
+       width, so a single button (Reopen alone, no Reject) sat at a fixed
+       ~90px with a dead gap of empty card before the delete icon at the
+       far right, instead of the button's flex:1 having any real room to
+       grow into. Text still reads flush left regardless (stretch only
+       affects the invisible box, not text-align). */
+    .pq-file,
+    .pq-status-actions {
+        align-items: stretch;
+    }
+
     .pq-file {
         padding-top: 12px;
         border-top: 1px dashed rgba(201, 168, 124, 0.25);
     }
 
     .pq-status-actions {
-        border-left: none;
-        padding-left: 0;
         padding-top: 12px;
         border-top: 1px dashed rgba(201, 168, 124, 0.25);
     }
@@ -1641,5 +1709,131 @@
         flex: 1;
         text-align: center;
         min-width: 90px;
+    }
+}
+
+/* Stacks the "+ Add Quotation" button below the title/subtitle on mobile
+   instead of letting it wrap onto 2 lines beside wrapping body text —
+   desktop keeps the original side-by-side row untouched. */
+.pq-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 640px) {
+    .pq-section-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .pq-section-header .add-btn {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+/* Status pills — distinct colors per state instead of the same
+   low-contrast tan every .item-category badge elsewhere uses (contract
+   type, work status, etc. are single-fact labels that don't need this;
+   pending/accepted/rejected is a meaningful 3-way outcome worth telling
+   apart at a glance). Extra class beats .item-category's own color/
+   background/border on specificity, so no !important needed. */
+.pq-pill-pending.item-category {
+    color: #8a6d3e;
+    background: rgba(201, 168, 124, 0.18);
+    border-color: rgba(201, 168, 124, 0.45);
+}
+
+.pq-pill-accepted.item-category {
+    color: var(--moss, #2d4a35);
+    background: rgba(45, 74, 53, 0.1);
+    border-color: rgba(45, 74, 53, 0.3);
+}
+
+.pq-pill-rejected.item-category {
+    color: var(--danger, #c0392b);
+    background: rgba(192, 57, 43, 0.1);
+    border-color: rgba(192, 57, 43, 0.3);
+}
+
+/* Accept gets solid primary weight — this section's own description says
+   "accept one to move the project forward", so it should read as the
+   default desired action, not equal-weight with Reject/Reopen's outline
+   pills. */
+.pq-btn-accept {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: var(--moss, #2d4a35);
+    color: var(--white, #fff);
+    border: 1px solid var(--moss, #2d4a35);
+    font-family: "DM Sans", sans-serif;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm, 8px);
+    cursor: pointer;
+    transition: all 0.22s ease;
+}
+
+.pq-btn-accept:hover {
+    background: var(--forest, #1e3a2a);
+    border-color: var(--forest, #1e3a2a);
+    box-shadow: 0 4px 14px rgba(45, 74, 53, 0.25);
+    transform: translateY(-1px);
+}
+
+/* One size for every icon in this action row (Accept/Reject/Reopen/Upload/
+   View/delete alike) — FontAwesome solid glyphs otherwise render at
+   whatever size each icon's own default viewBox implies relative to its
+   container, which read as inconsistent next to text set at 0.75rem. */
+.pq-action-icon {
+    font-size: 0.75rem;
+    width: 0.75rem;
+    height: 0.75rem;
+}
+
+/* Delete (X) demoted well below Reject's visual weight, and confirmed via
+   its own dialog before firing — an actual record removal shouldn't read
+   as equal-weight with Accept/Reject/Reopen's everyday pill buttons. */
+.pq-btn-ghost-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    color: var(--text-lt, #9a8e84);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm, 8px);
+    cursor: pointer;
+    transition: all 0.22s ease;
+}
+
+.pq-btn-ghost-danger:hover {
+    color: var(--danger, #c0392b);
+    background: rgba(192, 57, 43, 0.08);
+    border-color: rgba(192, 57, 43, 0.25);
+}
+
+.pq-uploaded-name {
+    font-size: 0.72rem;
+    color: var(--text-mid, #5a4e44);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+@media (max-width: 640px) {
+    .pq-uploaded-name {
+        max-width: none;
     }
 }

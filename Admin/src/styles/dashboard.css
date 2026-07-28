@@ -1503,3 +1503,147 @@
         font-size: 0.88rem;
     }
 }
+
+/* ── Quotations tab (ProjectQuotationsManager.jsx) ── same dash-chart-card
+   language as every other redesigned table this app has, not the bare
+   .list-table-format shell this one was still using — that class's
+   max-width:480px transform is hard-coded for a completely different row
+   shape (image + title + subtitle + action buttons) and mangled this
+   table's columns the same way it mangled every other one before its own
+   pass. Two independent action groups (File: View/Upload; Status:
+   Accept/Reject/Reopen/X) each get their own small uppercase caption so
+   the grouping reads as deliberate instead of relying on a divider line
+   alone to explain itself. */
+.pq-card {
+    padding: 0;
+}
+
+.pq-card .dash-chart-title {
+    margin: 0;
+    padding: 18px 20px 14px;
+}
+
+.pq-row {
+    display: grid;
+    /* File/Status Action get a fixed floor (not fr) wide enough for their
+       buttons to sit on one line — 1.3fr previously came out too narrow at
+       most viewport widths, wrapping "X" onto its own second line under
+       Accept/Reject. */
+    grid-template-columns: 60px 1fr 1fr 100px 150px 260px;
+    grid-template-areas: "num date amount status file statusActions";
+    align-items: center;
+    gap: 20px;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.pq-row:last-child {
+    border-bottom: none;
+}
+
+.pq-row.pq-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-top: 0;
+    padding-bottom: 10px;
+}
+
+.pq-num { grid-area: num; margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.pq-date { grid-area: date; margin: 0; }
+.pq-amount { grid-area: amount; margin: 0; font-variant-numeric: tabular-nums; }
+.pq-status { grid-area: status; }
+
+.pq-file { grid-area: file; }
+.pq-status-actions { grid-area: statusActions; }
+
+.pq-file,
+.pq-status-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pq-group-label {
+    display: none;
+}
+
+/* Desktop: fixed nowrap so 2-3 pill buttons always sit on one line — the
+   column widths above (150px/260px) are sized for exactly that. Previously
+   an inline style="flexWrap:'wrap'" on these divs forced wrapping
+   unconditionally (inline styles beat any CSS class), which is what wrapped
+   a lone "X" onto its own second line under Accept/Reject even when the
+   column had room. */
+.pq-action-buttons {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+}
+
+.pq-status-actions {
+    border-left: 1px dashed rgba(201, 168, 124, 0.35);
+    padding-left: 20px;
+}
+
+@media (max-width: 640px) {
+    .pq-card .dash-chart-title {
+        padding: 16px 16px 12px;
+    }
+
+    .pq-row.pq-header {
+        display: none;
+    }
+
+    .pq-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "num status"
+            "date amount"
+            "file file"
+            "statusActions statusActions";
+        row-gap: 14px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+
+    .pq-num {
+        font-size: 1rem;
+    }
+
+    .pq-status {
+        justify-self: end;
+    }
+
+    .pq-group-label {
+        display: block;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: var(--text-lt, #9a8e84);
+    }
+
+    .pq-file {
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+
+    .pq-status-actions {
+        border-left: none;
+        padding-left: 0;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+
+    .pq-action-buttons {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .pq-action-buttons .cursor {
+        flex: 1;
+        text-align: center;
+        min-width: 90px;
+    }
+}

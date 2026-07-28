@@ -117,34 +117,51 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
             ) : quotations.length === 0 ? (
                 <div className="admin-empty-state"><p>No quotations issued for this project yet.</p></div>
             ) : (
-                <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '60px 1fr 1fr 100px 170px 230px' }}>
-                        <b>#</b><b>Date</b><b>Amount</b><b>Status</b><b>File</b><b>Status Action</b>
+                /* Own row class, not .list-table-format — that class's mobile
+                   transform is hard-coded for a different row shape (image +
+                   title + subtitle + action buttons) and mangled this
+                   table's columns the same way it mangled every other one on
+                   this app before its own pass. Every cell carries an
+                   explicit grid-area (num/date/amount/status/file/
+                   statusActions) so mobile can regroup them via
+                   grid-template-areas alone: number paired with its status
+                   badge, date+amount below, then each action group gets its
+                   own full-width, clearly labeled row instead of two
+                   dashed-divider groups crammed side by side. */
+                <div className="dash-chart-card pq-card">
+                    <div className="pq-row pq-header">
+                        <b className="pq-num">#</b><b className="pq-date">Date</b><b className="pq-amount">Amount</b><b className="pq-status">Status</b><b className="pq-file">File</b><b className="pq-status-actions">Status Action</b>
                     </div>
                     {quotations.map(q => (
-                        <div key={q._id} className="list-table-format row-item" style={{ gridTemplateColumns: '60px 1fr 1fr 100px 170px 230px' }}>
-                            <p>#{q.quotationNumber}</p>
-                            <p>{new Date(q.date).toLocaleDateString()}</p>
-                            <p>₹{q.amount.toLocaleString('en-IN')}</p>
-                            <p><span className="item-category">{QUOTATION_STATUS_LABEL[q.status]}</span></p>
-                            <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
-                                {q.documents?.[0] && (
-                                    <a href={q.documents[0].fileUrl} target="_blank" rel="noreferrer" className="cursor edit-action" style={{ textDecoration: 'none' }}>View</a>
-                                )}
-                                <p onClick={() => triggerUpload(q)} className="cursor edit-action">
-                                    {uploadingId === q._id ? 'Uploading…' : q.documents?.[0] ? 'Replace' : 'Upload'}
-                                </p>
+                        <div key={q._id} className="pq-row">
+                            <p className="pq-num">#{q.quotationNumber}</p>
+                            <p className="pq-date">{new Date(q.date).toLocaleDateString()}</p>
+                            <p className="pq-amount">₹{q.amount.toLocaleString('en-IN')}</p>
+                            <p className="pq-status"><span className="item-category">{QUOTATION_STATUS_LABEL[q.status]}</span></p>
+                            <div className="pq-file">
+                                <span className="pq-group-label">File</span>
+                                <div className="action-buttons pq-action-buttons">
+                                    {q.documents?.[0] && (
+                                        <a href={q.documents[0].fileUrl} target="_blank" rel="noreferrer" className="cursor edit-action" style={{ textDecoration: 'none' }}>View</a>
+                                    )}
+                                    <p onClick={() => triggerUpload(q)} className="cursor edit-action">
+                                        {uploadingId === q._id ? 'Uploading…' : q.documents?.[0] ? 'Replace' : 'Upload'}
+                                    </p>
+                                </div>
                             </div>
-                            <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px', borderLeft: '1px dashed rgba(201,168,124,0.35)', paddingLeft: '16px' }}>
-                                {q.status === 'pending' ? (
-                                    <>
-                                        <p onClick={() => changeStatus(q._id, 'accepted')} className="cursor edit-action">Accept</p>
-                                        <p onClick={() => changeStatus(q._id, 'rejected')} className="cursor delete-action">Reject</p>
-                                    </>
-                                ) : (
-                                    <p onClick={() => changeStatus(q._id, 'pending')} className="cursor edit-action">Reopen</p>
-                                )}
-                                <p onClick={() => remove(q._id)} className="cursor delete-action">X</p>
+                            <div className="pq-status-actions">
+                                <span className="pq-group-label">Status</span>
+                                <div className="action-buttons pq-action-buttons">
+                                    {q.status === 'pending' ? (
+                                        <>
+                                            <p onClick={() => changeStatus(q._id, 'accepted')} className="cursor edit-action">Accept</p>
+                                            <p onClick={() => changeStatus(q._id, 'rejected')} className="cursor delete-action">Reject</p>
+                                        </>
+                                    ) : (
+                                        <p onClick={() => changeStatus(q._id, 'pending')} className="cursor edit-action">Reopen</p>
+                                    )}
+                                    <p onClick={() => remove(q._id)} className="cursor delete-action">X</p>
+                                </div>
                             </div>
                         </div>
                     ))}

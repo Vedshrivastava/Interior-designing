@@ -1984,3 +1984,144 @@
         padding: 40px 20px;
     }
 }
+
+/* ══════════════════════════════════════════════
+   MEASUREMENTS TAB (WorkMeasurementsSummary) — MOBILE (≤640px)
+   Both the filter row and the results table set grid-template-columns
+   inline via JSX (columns differ between project-scoped and
+   cross-project mode) — inline styles always beat a plain media-query
+   rule, so wizard.css's generic .wizard-field-grid mobile collapse
+   silently does nothing here without !important, same root cause as
+   the Works & Rates tables above.
+
+   .wm-row's field-to-grid-area mapping also differs between the
+   project-scoped and cross-project (.wm-cross) cases — one has an extra
+   leading Work column — which shifts which field lands on the generic
+   ≤480px .list-table-format nth-child(2)/(3) hijack (see the Works &
+   Rates block's own comment above for the full mechanism); both variants
+   are reconciled below with the same 3-part-compound-selector +
+   !important approach used there.
+══════════════════════════════════════════════ */
+@media (max-width: 640px) {
+    .wm-filter-grid {
+        grid-template-columns: 1fr !important;
+    }
+    /* The Add button's column has a visibility:hidden label above it
+       purely to align with the other fields' real labels on desktop's
+       row layout — once stacked to one column that placeholder row just
+       leaves a dead gap above the button. */
+    .wm-filter-addbtn p[aria-hidden="true"] {
+        display: none;
+    }
+
+    .list-table-format.wm-header { display: none !important; }
+
+    /* ── Project-scoped (no .wm-cross): worker is 1st child (unhijacked),
+       area is nth-child(2), remarks is nth-child(3). ── */
+    .list-table-format.wm-row:not(.wm-cross) {
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas:
+            "worker action"
+            "area area"
+            "remarks remarks" !important;
+        row-gap: 6px !important;
+        padding: 16px !important;
+    }
+    .list-table-format.wm-row:not(.wm-cross) .wm-worker { grid-area: worker !important; }
+    /* nth-child(2) — reset. */
+    .list-table-format.wm-row:not(.wm-cross) .wm-area {
+        grid-area: area !important;
+        align-self: center !important;
+        margin: 0 !important;
+        font-size: 0.85rem !important;
+        font-weight: 400 !important;
+        color: inherit !important;
+    }
+    /* nth-child(3) — reset. */
+    .list-table-format.wm-row:not(.wm-cross) .wm-remarks {
+        grid-area: remarks !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: 0.8rem !important;
+        font-weight: 400 !important;
+        color: var(--text-lt) !important;
+    }
+
+    /* ── Cross-project (.wm-cross): adds a leading Work row, which
+       shifts worker to nth-child(2) and area to nth-child(3); remarks
+       (4th child) isn't hijacked but still needs its grid-area set. ── */
+    .list-table-format.wm-row.wm-cross {
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas:
+            "work work"
+            "worker action"
+            "area area"
+            "remarks remarks" !important;
+        row-gap: 6px !important;
+        padding: 16px !important;
+    }
+    /* 1st child — not hijacked, but kept at matching specificity. */
+    .list-table-format.wm-row.wm-cross .wm-work {
+        grid-area: work !important;
+        margin: 0 0 2px !important;
+        font-size: 0.78rem !important;
+        font-weight: 400 !important;
+        color: var(--text-lt) !important;
+    }
+    /* nth-child(2) — reset. */
+    .list-table-format.wm-row.wm-cross .wm-worker {
+        grid-area: worker !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    /* nth-child(3) — reset. */
+    .list-table-format.wm-row.wm-cross .wm-area {
+        grid-area: area !important;
+        align-self: center !important;
+        margin: 0 !important;
+        font-size: 0.85rem !important;
+        font-weight: 400 !important;
+        color: inherit !important;
+    }
+    /* 4th child — not hijacked, kept at matching specificity. */
+    .list-table-format.wm-row.wm-cross .wm-remarks {
+        grid-area: remarks !important;
+        margin: 0 !important;
+        font-size: 0.8rem !important;
+        color: var(--text-lt) !important;
+    }
+
+    /* Carries the generic .action-buttons class in both variants —
+       same reset as wkc-action/wkl-action/wt-action above. */
+    .list-table-format.wm-row .wm-action {
+        grid-area: action !important;
+        align-self: center !important;
+        flex-direction: row !important;
+        justify-content: flex-end !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        border-top: none !important;
+        font-size: inherit !important;
+    }
+
+    /* Icon-only on mobile — "Details" text next to the icon reads fine on
+       desktop's wider action column but crowds this narrow one; the icon
+       alone (already labeled via the row's own Details click target and
+       matching the delete button's icon-only treatment) is enough. */
+    .wm-action-label {
+        display: none;
+    }
+    /* .edit-action's always-on border+padding (list.css, unconditional)
+       reads as a pill/tab shape alongside its own text — once that text
+       is hidden above, the same box just outlines the bare icon like a
+       stray button. Strip it here so Details matches the delete button's
+       already-borderless icon-only look. */
+    .wm-action .edit-action {
+        border: none !important;
+        background: transparent !important;
+        padding: 4px !important;
+    }
+}

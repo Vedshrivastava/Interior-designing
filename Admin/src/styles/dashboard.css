@@ -1856,7 +1856,7 @@
     }
 }
 
-/* index.css's .loader-modal-box — a class every one of these five dialogs
+/* index.css's .loader-modal-box — a class every one of these six dialogs
    still carries from the original simple loading-modal markup — sets
    text-align:center unconditionally, at every width, with nothing here
    ever overriding it (.edit-modal p/h2/input etc. never declare their
@@ -1867,14 +1867,15 @@
    width mobile column is what actually exposed it. This predates
    anything from today's session — every .loader-modal-box dialog in the
    app has always had this — but it's only fixed here, scoped to these
-   five, since some other .loader-modal-box dialogs (e.g.
+   six, since some other .loader-modal-box dialogs (e.g.
    .bin-confirm-modal's delete confirmations) genuinely want centered
    text and shouldn't be touched. */
 .edit-modal.aw-modal,
 .edit-modal.ac-modal,
 .edit-modal.al-modal,
 .edit-modal.qap-modal,
-.edit-modal.aq-modal {
+.edit-modal.aq-modal,
+.edit-modal.amm-modal {
     text-align: left;
 }
 
@@ -2009,15 +2010,17 @@
     }
 }
 
-/* Add Contractor's and QuickAddPicker's (Employee/Labour Provider) own
-   Save/Cancel rows are wired via form="..." and sit outside the <form>
-   (see .ac-modal-footer/.qap-modal-footer below), so — same reasoning as
-   .aw-modal-footer above — this replaces the 28px flex `gap` + 8px own
-   margin-top they used to get from being a form child. Neither had an
-   inline margin-top override of its own (unlike Add Labourer below), so
-   both use the same shared 36px value. */
+/* Add Contractor's, QuickAddPicker's (Employee/Labour Provider), and Add
+   Measurement's own Save/Cancel rows are wired via form="..." and sit
+   outside the <form> (see .ac-modal-footer/.qap-modal-footer/
+   .amm-modal-footer below), so — same reasoning as .aw-modal-footer
+   above — this replaces the 28px flex `gap` + 8px own margin-top they
+   used to get from being a form child. None had an inline margin-top
+   override of its own (unlike Add Labourer below), so all three use the
+   same shared 36px value. */
 .edit-modal-actions.ac-modal-footer,
-.edit-modal-actions.qap-modal-footer {
+.edit-modal-actions.qap-modal-footer,
+.edit-modal-actions.amm-modal-footer {
     margin-top: 36px;
 }
 
@@ -2209,5 +2212,131 @@
         padding: 15px 16px;
         font-size: 16px;
         border-radius: 10px;
+    }
+}
+
+/* ── Add Measurement modal — mobile bottom sheet, mechanically identical
+   to Add Work/Add Contractor/Add Labourer/QuickAddPicker above: same
+   540px breakpoint, corner radius, max-height, and aqSheetUp animation,
+   reused rather than redefined. Kept as its own separate rule set (not
+   merged into the shared selector lists above) since this modal has two
+   things none of the others do — the Contractor/Labour type toggle,
+   which stays in the header so it's visible without scrolling, and the
+   Material Used checklist — so the already-working modals above stay
+   completely untouched. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.amm-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+
+    .edit-modal.amm-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        /* Same fix as .aw-modal/.ac-modal above — index.css's
+           .loader-modal-box sets align-items:center unconditionally;
+           inert while .edit-modal keeps display:block, but making this
+           flex for the header/body/footer split revives it. */
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .amm-modal-header {
+        flex-shrink: 0;
+        padding: 26px 20px 16px;
+    }
+    .amm-modal-header h2 {
+        margin: 0 !important;
+        padding-bottom: 0 !important;
+        border-bottom: none !important;
+        font-size: 1.5rem !important;
+    }
+    /* .measurement-type-toggle's own base rule (list.css) is tuned for
+       sitting directly below h2 on desktop (margin: -8px 0 24px, pulling
+       up against h2's own bottom margin) — inside the header's own
+       padding here, that negative top margin just eats into the
+       padding, and the 24px bottom margin is redundant with the
+       header's own padding-bottom. Reset to a plain top gap; still only
+       applies inside this header wrapper, so desktop is untouched. */
+    .amm-modal-header .measurement-type-toggle {
+        margin: 12px 0 0;
+    }
+
+    .amm-modal-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 0 20px 20px;
+    }
+    .amm-modal-body form {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+
+    .edit-modal-actions.amm-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.amm-modal-footer button {
+        width: 100% !important;
+    }
+
+    /* Field sizing — same corrected (not over-shrunk) touch-target
+       treatment as the other five bottom sheets; ties in specificity
+       with .edit-modal p/.edit-modal input[type="..."] (list.css)
+       otherwise, so needs !important to reliably win regardless of
+       stylesheet import order. */
+    .amm-modal-body p {
+        font-size: 0.7rem !important;
+        letter-spacing: 1.2px !important;
+        margin-bottom: 8px !important;
+    }
+    .amm-modal-body .wizard-field-grid {
+        gap: 20px;
+    }
+    .amm-modal-body input[type="text"],
+    .amm-modal-body input[type="number"],
+    .amm-modal-body input[type="tel"],
+    .amm-modal-body input[type="email"],
+    .amm-modal-body input[type="date"],
+    .amm-modal-body textarea,
+    .amm-modal-body select {
+        font-size: 16px !important;
+        padding: 15px 16px !important;
+        border-radius: 10px !important;
+    }
+    /* StyledSelect/StyledDatePicker's trigger button isn't a real
+       <input> — already higher specificity than .add-cat-trigger's own
+       base rule (add.css), so no !important needed here. */
+    .amm-modal-body .add-cat-trigger {
+        padding: 15px 16px;
+        font-size: 16px;
+        border-radius: 10px;
+    }
+
+    /* Material Used line — name + quantity input sit side by side via
+       inline flex:2/flex:1 styles; !important needed to beat those.
+       Stacked so the quantity input isn't squeezed to a sliver next to a
+       long material name on a narrow sheet. */
+    .amm-material-line {
+        flex-wrap: wrap !important;
+    }
+    .amm-material-name {
+        flex: 1 1 100% !important;
+        font-weight: 600;
+    }
+    .amm-material-qty {
+        flex: 1 1 100% !important;
     }
 }

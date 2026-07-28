@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCircleInfo, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import StyledSelect from './StyledSelect';
@@ -190,7 +192,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
     return (
         <div>
             <div
-                className="wizard-field-grid"
+                className="wizard-field-grid wm-filter-grid"
                 style={{
                     gridTemplateColumns: crossProject
                         ? 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(230px,1.4fr)'
@@ -218,7 +220,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
                     <p>Date</p>
                     <StyledDatePicker value={date} onChange={setDate} />
                 </div>
-                <div className="add-product-name flex-col">
+                <div className="add-product-name flex-col wm-filter-addbtn">
                     <p aria-hidden="true" style={{ visibility: 'hidden' }}>Add</p>
                     <button
                         type="button" className="add-btn"
@@ -257,22 +259,26 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
                                     <span className="rate-group-bar" />
                                     <b>{g.label}</b>
                                 </div>
-                                <div className="list-table-format title" style={{ gridTemplateColumns: columns }}>
+                                <div className="list-table-format title wm-row wm-header" style={{ gridTemplateColumns: columns }}>
                                     {crossProject && <b>Work</b>}
                                     <b>Logged By</b><b>Area Covered</b><b>Remarks</b><b>Action</b>
                                 </div>
                                 {g.rows.map(({ kind, data: m }) => (
-                                    <div key={m._id} className="list-table-format row-item rate-row" style={{ gridTemplateColumns: columns }}>
+                                    <div
+                                        key={m._id}
+                                        className={`list-table-format row-item rate-row wm-row${crossProject ? ' wm-cross' : ''}`}
+                                        style={{ gridTemplateColumns: columns }}
+                                    >
                                         {crossProject && (
-                                            <p>{m.workId?.workType}{m.workId?.workOrderNumber ? ` (${m.workId.workOrderNumber})` : ''}</p>
+                                            <p className="wm-work">{m.workId?.workType}{m.workId?.workOrderNumber ? ` (${m.workId.workOrderNumber})` : ''}</p>
                                         )}
                                         {kind === 'contractor' ? (
-                                            <div>
+                                            <div className="wm-worker">
                                                 <p style={{ margin: 0 }}>{m.contractorVendorId?.name || '-'}</p>
                                                 <span className="item-category" style={{ marginTop: '4px' }}>Contractor</span>
                                             </div>
                                         ) : (
-                                            <div>
+                                            <div className="wm-worker">
                                                 <p style={{ margin: 0 }}>{m.labourerId?.name || '-'}</p>
                                                 <span className="admin-subtitle" style={{ display: 'block', margin: '2px 0 4px' }}>
                                                     Team: {m.supervisorId?.name || '-'}
@@ -280,16 +286,23 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
                                                 <span className="item-category">Labour</span>
                                             </div>
                                         )}
-                                        <p>{m.areaCoveredSqft} sqft</p>
-                                        <p>{m.remarks || '-'}</p>
-                                        <div className="action-buttons">
+                                        <p className="wm-area">{m.areaCoveredSqft} sqft</p>
+                                        <p className="wm-remarks">{m.remarks || '-'}</p>
+                                        <div className="action-buttons wm-action">
                                             <p
                                                 onClick={() => navigate(`/finance/projects/${crossProject ? (m.projectId?._id || m.projectId) : fixedProjectId}/works/${m.workId?._id || m.workId}?date=${toDateKey(m.date)}`)}
                                                 className="cursor edit-action"
+                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
                                             >
-                                                Details
+                                                <FontAwesomeIcon icon={faCircleInfo} className="pq-action-icon" /> <span className="wm-action-label">Details</span>
                                             </p>
-                                            <p onClick={() => (kind === 'contractor' ? removeContractorMeasurement(m) : removeLabourMeasurement(m))} className="cursor delete-action">X</p>
+                                            <button
+                                                type="button"
+                                                onClick={() => (kind === 'contractor' ? removeContractorMeasurement(m) : removeLabourMeasurement(m))}
+                                                className="pq-btn-ghost-danger" title="Remove measurement" aria-label="Remove measurement"
+                                            >
+                                                <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                            </button>
                                         </div>
                                     </div>
                                 ))}

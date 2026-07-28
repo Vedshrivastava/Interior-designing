@@ -22,6 +22,15 @@ const emptyState = {
  * different underlying models (financeMeasurement vs.
  * financeLabourMeasurement) with different fields — the type toggle at
  * the top switches which sub-form and which endpoint is used.
+ *
+ * amm-overlay/amm-modal are scoping hooks only, same pattern as
+ * AddWorkModal's aw-overlay/aw-modal — mobile-only bottom-sheet rules
+ * target these classes specifically. Header/body/footer are split into
+ * their own wrapper divs so the sheet can scroll its fields (the
+ * Contractor/Labour type toggle stays in the header, always visible, not
+ * buried mid-scroll) while Cancel/Save stay pinned at the bottom edge on
+ * mobile — Save is wired to the form via form="add-measurement-form"
+ * since it now lives outside the <form> itself.
  */
 const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId, defaultDate, defaultWorkId, onClose, onSaved }) => {
     const token = localStorage.getItem('token');
@@ -196,16 +205,19 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
     const isContractor = form.measurementType === 'contractor';
 
     return <>{ReactDOM.createPortal(
-        <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
-            <div className="loader-modal-box edit-modal">
-                <h2>Add Measurement</h2>
+        <div className="submit-loader-overlay amm-overlay" style={{ zIndex: 100000 }}>
+            <div className="loader-modal-box edit-modal amm-modal">
+                <div className="amm-modal-header">
+                    <h2>Add Measurement</h2>
 
-                <div className="measurement-type-toggle">
-                    <button type="button" className={`labour-chip${isContractor ? ' active' : ''}`} onClick={() => setField('measurementType', 'contractor')}>Contractor</button>
-                    <button type="button" className={`labour-chip${!isContractor ? ' active' : ''}`} onClick={() => setField('measurementType', 'labour')}>Labour</button>
+                    <div className="measurement-type-toggle">
+                        <button type="button" className={`labour-chip${isContractor ? ' active' : ''}`} onClick={() => setField('measurementType', 'contractor')}>Contractor</button>
+                        <button type="button" className={`labour-chip${!isContractor ? ' active' : ''}`} onClick={() => setField('measurementType', 'labour')}>Labour</button>
+                    </div>
                 </div>
 
-                <form onSubmit={submit}>
+                <div className="amm-modal-body">
+                <form id="add-measurement-form" onSubmit={submit}>
                     <div className="wizard-field-grid">
                         {!fixedProjectId && (
                             <div className="add-product-name flex-col wizard-field-full">
@@ -279,7 +291,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                     </div>
 
                     {materialTrackingEnabled && (
-                        <div style={{ margin: '4px 0 20px' }}>
+                        <div className="amm-materials" style={{ margin: '4px 0 20px' }}>
                             <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
                                 Material Used {materialLines.length > 0 && `(for ${form.areaCoveredSqft || '?'} sqft covered above, not per material)`}
                             </p>
@@ -292,9 +304,9 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                             ) : materialLines.map((line, idx) => {
                                 const material = materials.find(m => m._id === line.materialId);
                                 return (
-                                    <div key={line.materialId} style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'center' }}>
-                                        <p style={{ flex: 2, margin: 0 }}>{material?.name || '-'}</p>
-                                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <div key={line.materialId} className="amm-material-line" style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'center' }}>
+                                        <p className="amm-material-name" style={{ flex: 2, margin: 0 }}>{material?.name || '-'}</p>
+                                        <div className="amm-material-qty" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <input type="number" onWheel={e => e.target.blur()} min="0" step="any" placeholder="Quantity" value={line.quantity} onChange={e => setMaterialLine(idx, 'quantity', e.target.value)} style={{ width: '100%' }} />
                                             {material?.unit && <span className="admin-subtitle" style={{ whiteSpace: 'nowrap' }}>{material.unit}</span>}
                                         </div>
@@ -303,12 +315,13 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                             })}
                         </div>
                     )}
-
-                    <div className="edit-modal-actions">
-                        <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
-                        <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save Measurement'}</button>
-                    </div>
                 </form>
+                </div>
+
+                <div className="edit-modal-actions amm-modal-footer">
+                    <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
+                    <button type="submit" form="add-measurement-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save Measurement'}</button>
+                </div>
             </div>
         </div>,
         document.body

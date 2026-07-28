@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheck, faTrash } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -133,13 +135,15 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
                                         )}
                                         <div className="rate-entry-action">
                                             {existing ? (
-                                                <p onClick={() => removeRate(existing._id)} className="cursor delete-action" style={{ margin: 0 }}>Remove</p>
+                                                <button type="button" onClick={() => removeRate(existing._id)} className="pq-btn-ghost-danger" title="Remove rate" aria-label="Remove rate">
+                                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                                </button>
                                             ) : (
                                                 <button
-                                                    type="button" className="add-point-btn" disabled={savingKey === key}
+                                                    type="button" className="pq-btn-accept" disabled={savingKey === key}
                                                     onClick={() => saveGridRate(workType, c.vendorId, key)}
                                                 >
-                                                    {savingKey === key ? 'Saving…' : 'Save'}
+                                                    <FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> {savingKey === key ? 'Saving…' : 'Save'}
                                                 </button>
                                             )}
                                         </div>

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheck, faTrash } from '@fortawesome/free-solid-svg-icons';
 import AddWorkModal from './AddWorkModal';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
@@ -120,7 +122,7 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                     </p>
                     <div className="list-table finance-table">
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 1.1fr 1.1fr 0.9fr 1fr' }}>
-                            <b>Work Type</b><b>Client Rate</b><b>Referral Cut</b><b>GST %</b><b>Action</b>
+                            <b>Work Type</b><b>Client Rate</b><b>Referral Cut</b><b>GST %</b><b style={{ textAlign: 'right' }}>Action</b>
                         </div>
                         {[...realWorkTypes].map(workType => {
                             const existing = findExisting(workType);
@@ -139,7 +141,9 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                                                 {existing.gstRatePercent != null ? `${existing.gstRatePercent}%` : <span style={{ color: 'var(--text-lt)' }}>Company default</span>}
                                             </p>
                                             <div className="action-buttons">
-                                                <p onClick={() => removeRate(existing._id)} className="cursor delete-action">Remove</p>
+                                                <button type="button" onClick={() => removeRate(existing._id)} className="pq-btn-ghost-danger" title="Remove rate" aria-label="Remove rate">
+                                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                                </button>
                                             </div>
                                         </>
                                     ) : (
@@ -158,10 +162,10 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                                             />
                                             <div className="action-buttons">
                                                 <button
-                                                    type="button" className="add-point-btn" disabled={savingKey === workType}
+                                                    type="button" className="pq-btn-accept" disabled={savingKey === workType}
                                                     onClick={() => saveGridRate(workType)}
                                                 >
-                                                    {savingKey === workType ? 'Saving…' : 'Save'}
+                                                    <FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> {savingKey === workType ? 'Saving…' : 'Save'}
                                                 </button>
                                             </div>
                                         </>

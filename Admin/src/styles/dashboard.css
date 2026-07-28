@@ -1794,6 +1794,18 @@
     transform: translateY(-1px);
 }
 
+/* Reused as-is (not a Quotations-only class despite the name) for the
+   Works & Rates tab's own "Save" rate buttons — same "solid primary
+   confirm action" role Accept plays on the Quotations table, just a
+   different label. Quotations' own Accept never sets `disabled`, so this
+   is purely additive there. */
+.pq-btn-accept:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 /* One size for every icon in this action row (Accept/Reject/Reopen/Upload/
    View/delete alike) — FontAwesome solid glyphs otherwise render at
    whatever size each icon's own default viewBox implies relative to its

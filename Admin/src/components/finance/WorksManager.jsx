@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCircleInfo, faUserGroup, faPersonDigging, faPen, faTrash } from '@fortawesome/free-solid-svg-icons';
 import ContractorOrLabourPicker from './ContractorOrLabourPicker';
 import LabourMultiSelect from './LabourMultiSelect';
 import QuickAddPicker from './QuickAddPicker';
@@ -216,13 +218,13 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                 <div className="admin-empty-state"><p>No works yet for this project.</p></div>
             ) : (
                 <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.7fr 110px 440px' }}>
-                        <b>Work Type</b><b>Completed / Estimated</b><b>Status</b><b>Action</b>
+                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.7fr 110px 500px' }}>
+                        <b>Work Type</b><b>Completed / Estimated</b><b>Status</b><b style={{ textAlign: 'center' }}>Action</b>
                     </div>
                     {works.map(w => {
                         const pct = w.estimatedAreaSqft > 0 ? Math.min(100, Math.round((w.completedAreaSqft / w.estimatedAreaSqft) * 100)) : 0;
                         return (
-                            <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.7fr 110px 440px' }}>
+                            <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.7fr 110px 500px' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
                                     <p style={{ margin: 0 }}>{w.workType}</p>
                                     {w.quickAdded && (
@@ -237,12 +239,34 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                                 </div>
                                 <p>{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft ({pct}%)</p>
                                 <p><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
-                                <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
-                                    <p onClick={() => navigate(`/finance/projects/${projectId}/works/${w._id}`)} className="cursor edit-action">Details</p>
-                                    <p onClick={() => openContractorsModal(w)} className="cursor edit-action">Contractors</p>
-                                    <p onClick={() => openLabourModal(w)} className="cursor edit-action">Labour</p>
-                                    <p onClick={() => openEdit(w)} className="cursor edit-action">Edit</p>
-                                    <p onClick={() => setConfirmItem(w)} className="cursor delete-action">X</p>
+                                {/* Single line, not wrapping — the widened 500px column fits
+                                    all 4 management actions plus the delete icon on one row.
+                                    Details/Contractors/Labour/Edit stay grouped together;
+                                    space-between pushes the delete icon to the column's own
+                                    right edge, separated from (not equal-weight with) the rest,
+                                    same as the Quotations table's own delete-button treatment. */}
+                                <div className="action-buttons" style={{ flexWrap: 'nowrap', justifyContent: 'space-between' }}>
+                                    <div style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: '10px' }}>
+                                        <p onClick={() => navigate(`/finance/projects/${projectId}/works/${w._id}`)} className="cursor edit-action" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                                            <FontAwesomeIcon icon={faCircleInfo} className="pq-action-icon" /> Details
+                                        </p>
+                                        <p onClick={() => openContractorsModal(w)} className="cursor edit-action" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                                            <FontAwesomeIcon icon={faUserGroup} className="pq-action-icon" /> Contractors
+                                        </p>
+                                        <p onClick={() => openLabourModal(w)} className="cursor edit-action" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                                            <FontAwesomeIcon icon={faPersonDigging} className="pq-action-icon" /> Labour
+                                        </p>
+                                        <p onClick={() => openEdit(w)} className="cursor edit-action" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                                            <FontAwesomeIcon icon={faPen} className="pq-action-icon" /> Edit
+                                        </p>
+                                    </div>
+                                    {/* Demoted below the others — a real record deletion (already
+                                        gated behind the confirm dialog further down), not a
+                                        management action, so it shouldn't read as equal-weight with
+                                        Details/Contractors/Labour/Edit. */}
+                                    <button type="button" onClick={() => setConfirmItem(w)} className="pq-btn-ghost-danger" title="Remove work" aria-label="Remove work">
+                                        <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                    </button>
                                 </div>
                             </div>
                         );
@@ -269,8 +293,10 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                                     <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1.5fr 100px' }}>
                                         <p>{a.contractorVendorId?.name || '-'}</p>
                                         <p>{a.notes || '-'}</p>
-                                        <div className="action-buttons">
-                                            <p onClick={() => removeWorkContractor(a._id)} className="cursor delete-action">X</p>
+                                        <div className="action-buttons" style={{ justifyContent: 'center' }}>
+                                            <button type="button" onClick={() => removeWorkContractor(a._id)} className="pq-btn-ghost-danger" title="Remove contractor" aria-label="Remove contractor">
+                                                <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                            </button>
                                         </div>
                                     </div>
                                 ))}
@@ -322,8 +348,10 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                                         <p>{a.labourerId?.name || '-'}</p>
                                         <p>{a.supervisorId?.name || '-'}</p>
                                         <p>{a.notes || '-'}</p>
-                                        <div className="action-buttons">
-                                            <p onClick={() => removeWorkLabourer(a._id)} className="cursor delete-action">X</p>
+                                        <div className="action-buttons" style={{ justifyContent: 'center' }}>
+                                            <button type="button" onClick={() => removeWorkLabourer(a._id)} className="pq-btn-ghost-danger" title="Remove labourer" aria-label="Remove labourer">
+                                                <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                            </button>
                                         </div>
                                     </div>
                                 ))}

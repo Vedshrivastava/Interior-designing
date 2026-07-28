@@ -537,7 +537,10 @@
     color: var(--text-dark);
 }
 
-.rate-entry-action { display: flex; align-items: center; }
+/* Right-aligned to match Work Type Rates' own action column (that one's
+   plain .action-buttons already defaults to justify-content:flex-end) —
+   this was left-aligned by default, reading inconsistent next to it. */
+.rate-entry-action { display: flex; align-items: center; justify-content: flex-end; }
 
 /* ══════════════════════════════════════════════
    4c. LABOUR MULTI-SELECT — chip picker for forming

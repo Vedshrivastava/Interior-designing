@@ -1518,21 +1518,17 @@
     padding: 0;
 }
 
-.pq-card .dash-chart-title {
-    margin: 0;
-    padding: 18px 20px 14px;
-}
-
 .pq-row {
     display: grid;
     /* File/Status Action get a fixed floor (not fr) wide enough for their
        buttons to sit on one line — 1.3fr previously came out too narrow at
        most viewport widths, wrapping "X" onto its own second line under
-       Accept/Reject. */
-    grid-template-columns: 60px 1fr 1fr 100px 150px 260px;
+       Accept/Reject. Date/Amount get a minmax floor too so they can't get
+       squeezed as the fr columns fight the fixed ones for space. */
+    grid-template-columns: 60px minmax(95px, 1fr) minmax(100px, 1fr) 110px 150px 260px;
     grid-template-areas: "num date amount status file statusActions";
     align-items: center;
-    gap: 20px;
+    gap: 24px;
     padding: 16px 20px;
     border-bottom: 1px solid rgba(201, 168, 124, 0.12);
 }
@@ -1541,14 +1537,18 @@
     border-bottom: none;
 }
 
+/* No dash-chart-title above this table (the page's own "Quotations" h3
+   already serves that role) — the header row is the first thing inside
+   the card, so it needs its own top breathing room instead of sitting
+   flush against the card's rounded top edge like a cut-off label. */
 .pq-row.pq-header {
     color: var(--text-lt, #9a8e84);
     font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.4px;
     text-transform: uppercase;
-    padding-top: 0;
-    padding-bottom: 10px;
+    padding-top: 18px;
+    padding-bottom: 12px;
 }
 
 .pq-num { grid-area: num; margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
@@ -1587,10 +1587,6 @@
 }
 
 @media (max-width: 640px) {
-    .pq-card .dash-chart-title {
-        padding: 16px 16px 12px;
-    }
-
     .pq-row.pq-header {
         display: none;
     }

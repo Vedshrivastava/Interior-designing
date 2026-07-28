@@ -121,7 +121,7 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                         One row per work type this project actually has; fill in a rate to confirm it.
                     </p>
                     <div className="list-table finance-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 1.1fr 1.1fr 0.9fr 1fr' }}>
+                        <div className="list-table-format title wt-row wt-header" style={{ gridTemplateColumns: '1.1fr 1.1fr 1.1fr 0.9fr 1fr' }}>
                             <b>Work Type</b><b>Client Rate</b><b>Referral Cut</b><b>GST %</b><b style={{ textAlign: 'right' }}>Action</b>
                         </div>
                         {[...realWorkTypes].map(workType => {
@@ -129,18 +129,27 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                             const entry = pending[workType] || { clientRate: '', referralRate: '', gstRate: '' };
                             return (
                                 <div
-                                    key={workType} className="list-table-format row-item"
+                                    key={workType} className="list-table-format row-item wt-row"
                                     style={{ gridTemplateColumns: '1.1fr 1.1fr 1.1fr 0.9fr 1fr', alignItems: 'start' }}
                                 >
-                                    <p>{workType}</p>
+                                    <p className="wt-name">{workType}</p>
                                     {existing ? (
                                         <>
-                                            <p className="rate-entry-saved">₹{existing.clientRatePerSqft}/sqft</p>
-                                            <p className="rate-entry-saved">₹{existing.referralRatePerSqft}/sqft</p>
-                                            <p className="rate-entry-saved">
-                                                {existing.gstRatePercent != null ? `${existing.gstRatePercent}%` : <span style={{ color: 'var(--text-lt)' }}>Company default</span>}
-                                            </p>
-                                            <div className="action-buttons">
+                                            <div className="wt-field wt-client">
+                                                <span className="wt-field-label">Client Rate</span>
+                                                <p className="rate-entry-saved">₹{existing.clientRatePerSqft}/sqft</p>
+                                            </div>
+                                            <div className="wt-field wt-referral">
+                                                <span className="wt-field-label">Referral Cut</span>
+                                                <p className="rate-entry-saved">₹{existing.referralRatePerSqft}/sqft</p>
+                                            </div>
+                                            <div className="wt-field wt-gst">
+                                                <span className="wt-field-label">GST %</span>
+                                                <p className="rate-entry-saved">
+                                                    {existing.gstRatePercent != null ? `${existing.gstRatePercent}%` : <span style={{ color: 'var(--text-lt)' }}>Company default</span>}
+                                                </p>
+                                            </div>
+                                            <div className="action-buttons wt-action">
                                                 <button type="button" onClick={() => removeRate(existing._id)} className="pq-btn-ghost-danger" title="Remove rate" aria-label="Remove rate">
                                                     <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
                                                 </button>
@@ -148,19 +157,28 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                                         </>
                                     ) : (
                                         <>
-                                            <input
-                                                type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder="₹/sqft" value={entry.clientRate} style={{ width: '100%' }}
-                                                onChange={e => setPendingField(workType, 'clientRate', e.target.value)}
-                                            />
-                                            <input
-                                                type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder="₹/sqft" value={entry.referralRate} style={{ width: '100%' }}
-                                                onChange={e => setPendingField(workType, 'referralRate', e.target.value)}
-                                            />
-                                            <input
-                                                type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder="Default" title="Leave blank to use Settings → GST's company-wide default" style={{ width: '100%' }}
-                                                value={entry.gstRate} onChange={e => setPendingField(workType, 'gstRate', e.target.value)}
-                                            />
-                                            <div className="action-buttons">
+                                            <div className="wt-field wt-client">
+                                                <span className="wt-field-label">Client Rate</span>
+                                                <input
+                                                    type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder="₹/sqft" value={entry.clientRate} style={{ width: '100%' }}
+                                                    onChange={e => setPendingField(workType, 'clientRate', e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="wt-field wt-referral">
+                                                <span className="wt-field-label">Referral Cut</span>
+                                                <input
+                                                    type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder="₹/sqft" value={entry.referralRate} style={{ width: '100%' }}
+                                                    onChange={e => setPendingField(workType, 'referralRate', e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="wt-field wt-gst">
+                                                <span className="wt-field-label">GST %</span>
+                                                <input
+                                                    type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder="Default" title="Leave blank to use Settings → GST's company-wide default" style={{ width: '100%' }}
+                                                    value={entry.gstRate} onChange={e => setPendingField(workType, 'gstRate', e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="action-buttons wt-action">
                                                 <button
                                                     type="button" className="pq-btn-accept" disabled={savingKey === workType}
                                                     onClick={() => saveGridRate(workType)}

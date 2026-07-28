@@ -218,14 +218,14 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                 <div className="admin-empty-state"><p>No works yet for this project.</p></div>
             ) : (
                 <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.7fr 110px 500px' }}>
+                    <div className="list-table-format title wk-row wk-header" style={{ gridTemplateColumns: '1fr 1.7fr 110px 500px' }}>
                         <b>Work Type</b><b>Completed / Estimated</b><b>Status</b><b style={{ textAlign: 'center' }}>Action</b>
                     </div>
                     {works.map(w => {
                         const pct = w.estimatedAreaSqft > 0 ? Math.min(100, Math.round((w.completedAreaSqft / w.estimatedAreaSqft) * 100)) : 0;
                         return (
-                            <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.7fr 110px 500px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                            <div key={w._id} className="list-table-format row-item wk-row" style={{ gridTemplateColumns: '1fr 1.7fr 110px 500px' }}>
+                                <div className="wk-name" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
                                     <p style={{ margin: 0 }}>{w.workType}</p>
                                     {w.quickAdded && (
                                         <span
@@ -237,16 +237,16 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                                         </span>
                                     )}
                                 </div>
-                                <p>{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft ({pct}%)</p>
-                                <p><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
+                                <p className="wk-progress">{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft ({pct}%)</p>
+                                <p className="wk-status"><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
                                 {/* Single line, not wrapping — the widened 500px column fits
                                     all 4 management actions plus the delete icon on one row.
                                     Details/Contractors/Labour/Edit stay grouped together;
                                     space-between pushes the delete icon to the column's own
                                     right edge, separated from (not equal-weight with) the rest,
                                     same as the Quotations table's own delete-button treatment. */}
-                                <div className="action-buttons" style={{ flexWrap: 'nowrap', justifyContent: 'space-between' }}>
-                                    <div style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: '10px' }}>
+                                <div className="action-buttons wk-actions" style={{ flexWrap: 'nowrap', justifyContent: 'space-between' }}>
+                                    <div className="wk-actions-group" style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: '10px' }}>
                                         <p onClick={() => navigate(`/finance/projects/${projectId}/works/${w._id}`)} className="cursor edit-action" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
                                             <FontAwesomeIcon icon={faCircleInfo} className="pq-action-icon" /> Details
                                         </p>
@@ -286,14 +286,14 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                             <div className="admin-empty-state"><p>Loading…</p></div>
                         ) : (
                             <div className="list-table finance-table" style={{ marginBottom: '16px' }}>
-                                <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1.5fr 100px' }}>
+                                <div className="list-table-format title wkc-row wkc-header" style={{ gridTemplateColumns: '1.5fr 1.5fr 100px' }}>
                                     <b>Contractor</b><b>Notes</b><b>Action</b>
                                 </div>
                                 {workContractors.map(a => (
-                                    <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1.5fr 100px' }}>
-                                        <p>{a.contractorVendorId?.name || '-'}</p>
-                                        <p>{a.notes || '-'}</p>
-                                        <div className="action-buttons" style={{ justifyContent: 'center' }}>
+                                    <div key={a._id} className="list-table-format row-item wkc-row" style={{ gridTemplateColumns: '1.5fr 1.5fr 100px' }}>
+                                        <p className="wkc-name">{a.contractorVendorId?.name || '-'}</p>
+                                        <p className="wkc-notes">{a.notes || '-'}</p>
+                                        <div className="action-buttons wkc-action" style={{ justifyContent: 'center' }}>
                                             <button type="button" onClick={() => removeWorkContractor(a._id)} className="pq-btn-ghost-danger" title="Remove contractor" aria-label="Remove contractor">
                                                 <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
                                             </button>
@@ -338,17 +338,17 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                             <div className="admin-empty-state"><p>Loading…</p></div>
                         ) : (
                             <div className="list-table finance-table" style={{ marginBottom: '16px' }}>
-                                <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1.3fr 1.3fr 100px' }}>
+                                <div className="list-table-format title wkl-row wkl-header" style={{ gridTemplateColumns: '1.3fr 1.3fr 1.3fr 100px' }}>
                                     <b>Labourer</b><b>Supervisor</b><b>Notes</b><b>Action</b>
                                 </div>
                                 {workLabourers.length === 0 ? (
                                     <div className="admin-empty-state"><p>No labour team on this work yet.</p></div>
                                 ) : workLabourers.map(a => (
-                                    <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1.3fr 1.3fr 100px' }}>
-                                        <p>{a.labourerId?.name || '-'}</p>
-                                        <p>{a.supervisorId?.name || '-'}</p>
-                                        <p>{a.notes || '-'}</p>
-                                        <div className="action-buttons" style={{ justifyContent: 'center' }}>
+                                    <div key={a._id} className="list-table-format row-item wkl-row" style={{ gridTemplateColumns: '1.3fr 1.3fr 1.3fr 100px' }}>
+                                        <p className="wkl-name">{a.labourerId?.name || '-'}</p>
+                                        <p className="wkl-supervisor">{a.supervisorId?.name || '-'}</p>
+                                        <p className="wkl-notes">{a.notes || '-'}</p>
+                                        <div className="action-buttons wkl-action" style={{ justifyContent: 'center' }}>
                                             <button type="button" onClick={() => removeWorkLabourer(a._id)} className="pq-btn-ghost-danger" title="Remove labourer" aria-label="Remove labourer">
                                                 <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
                                             </button>

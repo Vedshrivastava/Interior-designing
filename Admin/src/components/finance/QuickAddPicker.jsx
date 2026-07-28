@@ -30,12 +30,28 @@ const listCache = new Map();
  * hidden from it — e.g. { vendorType: 'labour_contractor' } from the
  * Contractors picker, so the new vendor immediately satisfies whatever
  * `filter` this same picker applies to its dropdown.
+ *
+ * qap-overlay/qap-modal are scoping hooks only, same pattern as
+ * AddWorkModal's aw-overlay/aw-modal — mobile-only bottom-sheet rules
+ * target these classes specifically. Header/body/footer are split into
+ * their own wrapper divs so the sheet can scroll its fields while
+ * Cancel/Save stay pinned at the bottom edge on mobile — Save is wired to
+ * the form via a per-resourceKey form id (qap-form-${resourceKey}) rather
+ * than a single shared id, since more than one QuickAddPicker instance
+ * can exist on the same page, and duplicate form ids would make the
+ * wrong Save button submit the wrong form. Field-section groups stay in
+ * a bare Fragment (not wrapped in a divider class) since
+ * .wizard-section-label:not(:first-child) (wizard.css) already gives
+ * each one its own gap and depends on the label being a direct child of
+ * the form to detect "not first" — wrapping it would silently break
+ * that spacing (see AddLabourModal, which hit this exact issue).
  */
 const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValues = {}, placeholder, disabled }) => {
     const resource = FINANCE_MASTERS[resourceKey];
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const cacheKey = `${url}::${resourceKey}`;
+    const formId = `qap-form-${resourceKey}`;
 
     const [list, setList] = useState(() => listCache.get(cacheKey) || []);
     const [modalOpen, setModalOpen] = useState(false);
@@ -116,29 +132,35 @@ const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValue
             </div>
 
             {modalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>Add {resource.label}</h2>
-                        <form onSubmit={submit}>
-                            {groupFieldsBySection(visibleFields.filter(f => !f.showIf || f.showIf(form))).map((group, gi) => (
-                                <React.Fragment key={gi}>
-                                    {group.section && <p className="wizard-section-label">{group.section}</p>}
-                                    <div className="wizard-field-grid">
-                                        {group.fields.map(f => (
-                                            <div key={f.key} className={`add-product-name flex-col${isFullWidthField(f, group) ? ' wizard-field-full' : ''}`}>
-                                                <p>{f.label}{f.required ? ' *' : ''}</p>
-                                                {renderMasterField(f, form, setField, { url, settingOptions })}
-                                                <FieldNote note={f.note} />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </React.Fragment>
-                            ))}
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                            </div>
-                        </form>
+                <div className="submit-loader-overlay qap-overlay" style={{ zIndex: 100000 }}>
+                    <div className="loader-modal-box edit-modal qap-modal">
+                        <div className="qap-modal-header">
+                            <h2>Add {resource.label}</h2>
+                        </div>
+
+                        <div className="qap-modal-body">
+                            <form id={formId} onSubmit={submit}>
+                                {groupFieldsBySection(visibleFields.filter(f => !f.showIf || f.showIf(form))).map((group, gi) => (
+                                    <React.Fragment key={gi}>
+                                        {group.section && <p className="wizard-section-label">{group.section}</p>}
+                                        <div className="wizard-field-grid">
+                                            {group.fields.map(f => (
+                                                <div key={f.key} className={`add-product-name flex-col${isFullWidthField(f, group) ? ' wizard-field-full' : ''}`}>
+                                                    <p>{f.label}{f.required ? ' *' : ''}</p>
+                                                    {renderMasterField(f, form, setField, { url, settingOptions })}
+                                                    <FieldNote note={f.note} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </React.Fragment>
+                                ))}
+                            </form>
+                        </div>
+
+                        <div className="edit-modal-actions qap-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
+                            <button type="submit" form={formId} className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body

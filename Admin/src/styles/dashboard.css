@@ -1856,6 +1856,28 @@
     }
 }
 
+/* index.css's .loader-modal-box — a class every one of these five dialogs
+   still carries from the original simple loading-modal markup — sets
+   text-align:center unconditionally, at every width, with nothing here
+   ever overriding it (.edit-modal p/h2/input etc. never declare their
+   own text-align, so it was always just inherited). That's live on
+   desktop too, not only ≤540px — it just reads as "acceptable" there,
+   since a short label centered above its own wide grid column doesn't
+   look obviously wrong at a glance; the same centering on a single full-
+   width mobile column is what actually exposed it. This predates
+   anything from today's session — every .loader-modal-box dialog in the
+   app has always had this — but it's only fixed here, scoped to these
+   five, since some other .loader-modal-box dialogs (e.g.
+   .bin-confirm-modal's delete confirmations) genuinely want centered
+   text and shouldn't be touched. */
+.edit-modal.aw-modal,
+.edit-modal.ac-modal,
+.edit-modal.al-modal,
+.edit-modal.qap-modal,
+.edit-modal.aq-modal {
+    text-align: left;
+}
+
 /* ── Add Quotation modal — mobile bottom sheet, matching the frontend's
    Consult modal shape/position (Frontend/src/styles/consult.css's own
    max-width:540px block): anchored to the bottom edge instead of
@@ -1885,5 +1907,307 @@
     @keyframes aqSheetUp {
         from { opacity: 0; transform: translateY(100%); }
         to   { opacity: 1; transform: translateY(0); }
+    }
+}
+
+/* Add Work's Save/Cancel row is wired via form="add-work-form" and sits
+   outside the <form> (so it can be pinned in its own footer wrapper on
+   mobile — see the aw-modal-footer rules below), which means it no longer
+   sits inside .edit-modal form's flex `gap: 28px` (list.css). This
+   replaces that lost spacing (28px gap + the row's own 8px margin-top)
+   so desktop/tablet spacing above the buttons is unchanged from before. */
+.edit-modal-actions.aw-modal-footer {
+    margin-top: 36px;
+}
+
+/* ── Add Work modal — mobile bottom sheet, mechanically identical to the
+   Add Quotation modal above (.aq-overlay/.aq-modal): same breakpoint,
+   corner radius, max-height, and aqSheetUp slide-up animation, reused
+   here rather than redefined. On top of that shared shape, Add Work adds
+   header/body/footer splitting (so its field area scrolls while
+   Cancel/Save stay pinned to the bottom edge) and .aw-group section
+   dividers, since it carries more content — Work Type, a repeatable
+   Contractor list, a Labour Team builder, a 4-field Details grid — than
+   Quotation's single field grid. No other modal, and no view of this one
+   above 540px, is touched.
+
+   align-items:stretch below is a real fix, not decoration: index.css's
+   .loader-modal-box (a class every one of these dialogs still carries,
+   inherited from the original simple loading-modal markup) sets
+   align-items:center unconditionally, at every width. On desktop that's
+   inert — .edit-modal's own display:block !important overrides
+   .loader-modal-box's display:flex, and align-items does nothing on a
+   block container. But making .aw-modal itself display:flex here to get
+   the header/body/footer column layout revives it: with no align-items
+   override of our own, .aw-modal-header/-body/-footer inherit
+   align-items:center as flex items and shrink to their own content
+   width instead of stretching to fill the sheet — every field renders
+   in a narrow, horizontally-centered column instead of full width. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.aw-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+
+    .edit-modal.aw-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .aw-modal-header {
+        flex-shrink: 0;
+        padding: 26px 20px 0;
+    }
+
+    .aw-modal-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 0 20px 20px;
+    }
+
+    .edit-modal-actions.aw-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.aw-modal-footer button { width: 100% !important; }
+
+    /* Each field group gets its own divider so the sheet reads as clearly
+       separated sections instead of one long list of fields. */
+    .aw-group + .aw-group {
+        margin-top: 4px;
+        padding-top: 18px;
+        border-top: 1px dashed rgba(201,168,124,0.25);
+    }
+
+    /* Contractor row: picker + notes + remove button crowd one line with
+       no room in a narrower sheet — stack picker/notes full width, float
+       remove to its own line on the right. */
+    .contractor-assign-row {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    .contractor-assign-picker,
+    .contractor-assign-notes {
+        flex: 1 1 100% !important;
+        min-width: 100% !important;
+    }
+    .contractor-assign-remove {
+        margin-left: auto !important;
+    }
+}
+
+/* Add Contractor's and QuickAddPicker's (Employee/Labour Provider) own
+   Save/Cancel rows are wired via form="..." and sit outside the <form>
+   (see .ac-modal-footer/.qap-modal-footer below), so — same reasoning as
+   .aw-modal-footer above — this replaces the 28px flex `gap` + 8px own
+   margin-top they used to get from being a form child. Neither had an
+   inline margin-top override of its own (unlike Add Labourer below), so
+   both use the same shared 36px value. */
+.edit-modal-actions.ac-modal-footer,
+.edit-modal-actions.qap-modal-footer {
+    margin-top: 36px;
+}
+
+/* Add Labourer's own Save/Cancel row previously had an extra inline
+   marginTop:16px (8px shared default + 8px of its own) on top of the
+   28px flex `gap` it got from being a form child — 44px total. Moving it
+   outside the <form> loses that gap, so this replaces the full 44px
+   rather than the shared 36px other modals use. */
+.edit-modal-actions.al-modal-footer {
+    margin-top: 44px;
+}
+
+/* ── Add Contractor / Add Labourer / QuickAddPicker (Employee, Labour
+   Provider) modals — same mobile bottom sheet as Add Work (.aw-overlay/
+   .aw-modal above): same breakpoint, corner radius, max-height, and
+   aqSheetUp animation, reused rather than redefined. All three are
+   opened as a "+ Add New" link from inside another already-open sheet
+   (Add Work, Manage Contractors, Manage Labour), so they get the same
+   header/body/footer split and pinned footer treatment, and already use
+   a higher inline zIndex (100000) than .aw-overlay's 99999 to stack
+   correctly above it — no CSS needed for that part. No other modal, and
+   no view of any of these three above 540px, is touched. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.ac-overlay,
+    .submit-loader-overlay.al-overlay,
+    .submit-loader-overlay.qap-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+
+    .edit-modal.ac-modal,
+    .edit-modal.al-modal,
+    .edit-modal.qap-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        /* Same fix as .aw-modal above — index.css's .loader-modal-box (a
+           class all these dialogs still carry) sets align-items:center
+           unconditionally; inert while .edit-modal keeps display:block,
+           but making this flex for the header/body/footer split revives
+           it, shrinking each wrapper to its own content width instead of
+           the full sheet unless stretch is restated here. */
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .ac-modal-header,
+    .al-modal-header,
+    .qap-modal-header {
+        flex-shrink: 0;
+        padding: 26px 20px 0;
+    }
+
+    .ac-modal-body,
+    .al-modal-body,
+    .qap-modal-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 0 20px 20px;
+    }
+
+    .edit-modal-actions.ac-modal-footer,
+    .edit-modal-actions.al-modal-footer,
+    .edit-modal-actions.qap-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.ac-modal-footer button,
+    .edit-modal-actions.al-modal-footer button,
+    .edit-modal-actions.qap-modal-footer button {
+        width: 100% !important;
+    }
+
+    /* Each field group gets its own divider so the sheet reads as
+       clearly separated sections instead of one long list of fields. */
+    .ac-group + .ac-group {
+        margin-top: 4px;
+        padding-top: 18px;
+        border-top: 1px dashed rgba(201,168,124,0.25);
+    }
+}
+
+/* ── Field sizing inside the bottom-sheet modals (mobile only) ── touch
+   targets that felt fine on a mouse read as small/cramped on a real
+   phone: taller inputs, more generous padding, more breathing room
+   between fields. Scoped to these five modals' own field areas only, so
+   .wizard-field-grid/.edit-modal p's shared desktop styling stays
+   untouched everywhere else this app uses them.
+
+   AddWorkModal/AddContractorModal/AddLabourModal/QuickAddPicker all got
+   a real .xx-modal-body wrapper earlier — AddQuotationModal never did
+   (still its original flat <form>, no header/body/footer split), so it's
+   reached via `.aq-modal form` instead; that extra `form` in the
+   selector happens to give it enough specificity to win outright anyway.
+   The other four's `.xx-modal-body p`/`input[type="..."]` selectors tie
+   in specificity with the base `.edit-modal p`/`.edit-modal
+   input[type="..."]` rules they're meant to override (list.css) — a
+   coin-flip on which file's CSS loads first — so those need !important
+   to reliably win regardless of import order, same reasoning already
+   used throughout this block. Breakpoint matches these modals' own real
+   bottom-sheet threshold (540px, not the 640px most of this file's other
+   responsive rules use) — anything wider than that and the modal is
+   still in its centered desktop shape, so mobile-sized fields there
+   would look mismatched rather than fixed. */
+@media (max-width: 540px) {
+    .aw-modal-body p,
+    .ac-modal-body p,
+    .al-modal-body p,
+    .qap-modal-body p,
+    .aq-modal form p {
+        font-size: 0.7rem !important;
+        letter-spacing: 1.2px !important;
+        margin-bottom: 8px !important;
+    }
+
+    .aw-modal-body .wizard-field-grid,
+    .ac-modal-body .wizard-field-grid,
+    .al-modal-body .wizard-field-grid,
+    .qap-modal-body .wizard-field-grid,
+    .aq-modal form .wizard-field-grid {
+        gap: 20px;
+    }
+
+    /* 16px is the minimum font-size that avoids iOS Safari's automatic
+       zoom-on-focus for text inputs. Padding is increased well past
+       desktop's 13px to give each field a taller, easier-to-tap touch
+       target — comfortable finger-sized hit area, not just zoom-safe. */
+    .aw-modal-body input[type="text"],
+    .aw-modal-body input[type="number"],
+    .aw-modal-body input[type="tel"],
+    .aw-modal-body input[type="email"],
+    .aw-modal-body input[type="date"],
+    .aw-modal-body textarea,
+    .aw-modal-body select,
+    .ac-modal-body input[type="text"],
+    .ac-modal-body input[type="number"],
+    .ac-modal-body input[type="tel"],
+    .ac-modal-body input[type="email"],
+    .ac-modal-body input[type="date"],
+    .ac-modal-body textarea,
+    .ac-modal-body select,
+    .al-modal-body input[type="text"],
+    .al-modal-body input[type="number"],
+    .al-modal-body input[type="tel"],
+    .al-modal-body input[type="email"],
+    .al-modal-body input[type="date"],
+    .al-modal-body textarea,
+    .al-modal-body select,
+    .qap-modal-body input[type="text"],
+    .qap-modal-body input[type="number"],
+    .qap-modal-body input[type="tel"],
+    .qap-modal-body input[type="email"],
+    .qap-modal-body input[type="date"],
+    .qap-modal-body textarea,
+    .qap-modal-body select,
+    .aq-modal form input[type="text"],
+    .aq-modal form input[type="number"],
+    .aq-modal form input[type="tel"],
+    .aq-modal form input[type="email"],
+    .aq-modal form input[type="date"],
+    .aq-modal form textarea,
+    .aq-modal form select {
+        font-size: 16px !important;
+        padding: 15px 16px !important;
+        border-radius: 10px !important;
+    }
+
+    /* StyledSelect/StyledDatePicker's trigger button isn't a real
+       <input>, so the rule above doesn't reach it — match the same
+       height/padding here so every field type in these sheets (plain
+       inputs, dropdowns, date pickers) feels consistent. Already higher
+       specificity than .add-cat-trigger's own base rule (add.css), so no
+       !important needed here. */
+    .aw-modal-body .add-cat-trigger,
+    .ac-modal-body .add-cat-trigger,
+    .al-modal-body .add-cat-trigger,
+    .qap-modal-body .add-cat-trigger,
+    .aq-modal form .add-cat-trigger {
+        padding: 15px 16px;
+        font-size: 16px;
+        border-radius: 10px;
     }
 }

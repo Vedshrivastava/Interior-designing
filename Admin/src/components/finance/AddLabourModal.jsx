@@ -19,6 +19,21 @@ import '../../styles/wizard.css';
  * all required" and no way to see why from this modal. Driving off the
  * same FINANCE_MASTERS.labourers.fields MasterCrudTable itself uses means
  * this can't go stale like that again.
+ *
+ * al-overlay/al-modal are scoping hooks only, same pattern as
+ * AddWorkModal's aw-overlay/aw-modal (dashboard.css) — mobile-only
+ * bottom-sheet rules target these classes specifically, so no other
+ * modal is touched. Header/body/footer are split into their own wrapper
+ * divs so the sheet can scroll its fields while Cancel/Save stay pinned
+ * at the bottom edge on mobile — Save is wired to the form via
+ * form="add-labour-form" since it now lives outside the <form> itself.
+ * The Documents list is wrapped in .al-group purely as a styling hook
+ * for a mobile-only section divider above it; the per-section field
+ * groups above stay in a bare Fragment (not .al-group) since
+ * .wizard-section-label:not(:first-child) (wizard.css) already gives
+ * each one its own 24px divider gap and depends on the label being a
+ * direct child of the form to detect "not first" — wrapping it would
+ * silently break that spacing.
  */
 const AddLabourModal = ({ url, onClose, onLabourerCreated }) => {
     const token = localStorage.getItem('token');
@@ -60,33 +75,41 @@ const AddLabourModal = ({ url, onClose, onLabourerCreated }) => {
     };
 
     return ReactDOM.createPortal(
-        <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
-            <div className="loader-modal-box edit-modal">
-                <h2>Add Labourer</h2>
-                <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                    Hired directly by the company, paid per sqft. Not owned by any supervisor; pick who runs their crew when you add them to a Work's team, and that can change project to project.
-                </p>
-                <form onSubmit={submit}>
-                    {groupFieldsBySection(labourerResource.fields.filter(f => !f.showIf || f.showIf(form))).map((group, gi) => (
-                        <React.Fragment key={gi}>
-                            {group.section && <p className="wizard-section-label">{group.section}</p>}
-                            <div className="wizard-field-grid">
-                                {group.fields.map(f => (
-                                    <div key={f.key} className={`add-product-name flex-col${f.type === 'textarea' ? ' wizard-field-full' : ''}`}>
-                                        <p>{f.label}{f.required ? ' *' : ''}</p>
-                                        {renderMasterField(f, form, setField, { url })}
-                                        <FieldNote note={f.note} />
-                                    </div>
-                                ))}
-                            </div>
-                        </React.Fragment>
-                    ))}
-                    <DocumentUploadList lines={documentLines} onChange={setDocumentLines} />
-                    <div className="edit-modal-actions" style={{ marginTop: '16px' }}>
-                        <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
-                        <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                    </div>
-                </form>
+        <div className="submit-loader-overlay al-overlay" style={{ zIndex: 100000 }}>
+            <div className="loader-modal-box edit-modal al-modal">
+                <div className="al-modal-header">
+                    <h2>Add Labourer</h2>
+                    <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
+                        Hired directly by the company, paid per sqft. Not owned by any supervisor; pick who runs their crew when you add them to a Work's team, and that can change project to project.
+                    </p>
+                </div>
+
+                <div className="al-modal-body">
+                    <form id="add-labour-form" onSubmit={submit}>
+                        {groupFieldsBySection(labourerResource.fields.filter(f => !f.showIf || f.showIf(form))).map((group, gi) => (
+                            <React.Fragment key={gi}>
+                                {group.section && <p className="wizard-section-label">{group.section}</p>}
+                                <div className="wizard-field-grid">
+                                    {group.fields.map(f => (
+                                        <div key={f.key} className={`add-product-name flex-col${f.type === 'textarea' ? ' wizard-field-full' : ''}`}>
+                                            <p>{f.label}{f.required ? ' *' : ''}</p>
+                                            {renderMasterField(f, form, setField, { url })}
+                                            <FieldNote note={f.note} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </React.Fragment>
+                        ))}
+                        <div className="al-group">
+                            <DocumentUploadList lines={documentLines} onChange={setDocumentLines} />
+                        </div>
+                    </form>
+                </div>
+
+                <div className="edit-modal-actions al-modal-footer">
+                    <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
+                    <button type="submit" form="add-labour-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                </div>
             </div>
         </div>,
         document.body

@@ -537,6 +537,54 @@
     color: var(--text-dark);
 }
 
+/* Mobile-only field label — originally just Work Type Rates' Client Rate/
+   Referral Cut/GST % columns (WorkTypeRatesManager.jsx's .wt-field-label),
+   now shared by Contractor/Labour Rates' own single Rate field too (same
+   class, reused rather than duplicated — purely generic: small uppercase
+   caption, hidden here). Desktop already has these as grid header cells
+   (or, for Contractor/Labour Rates, the value is self-descriptive), so the
+   label would be a dup there; shown only ≤640px once these rows stop
+   being a grid (see the Works & Rates mobile block below). */
+.wt-field-label { display: none; }
+
+/* .finance-table .list-table-format > *:not(:first-child):not(:last-child)
+   above centers every middle column by matching it as a *direct* grid
+   child — .wt-field/.cr-field/.lr-field (the wrapper these rate cells now
+   need for their mobile label) is that direct child instead of the
+   input/value itself, so it still gets centered, but a plain <input>
+   doesn't inherit text-align from it the way .rate-entry-saved's <p>/
+   <span> does (a form control's own UA default of text-align:start
+   otherwise wins over an inherited value). This restores the centering
+   on the input specifically. */
+.wt-field .rate-entry-input,
+.cr-field .rate-entry-input,
+.lr-field .rate-entry-input { text-align: center; }
+.wt-field .rate-entry-saved,
+.wt-field .rate-entry-input,
+.cr-field .rate-entry-saved,
+.cr-field .rate-entry-input,
+.lr-field .rate-entry-saved,
+.lr-field .rate-entry-input { margin: 0; }
+
+/* WorkTypeRatesManager's own rate inputs already render at width:100%
+   (inline style), so wrapping them in .wt-field never changed their
+   layout. ContractorRatesManager/WorkersManager's rate inputs rely on
+   .rate-entry-input's class default (a fixed 110px, inline-block) instead
+   — as a direct grid child that couldn't stretch to fill its column, grid
+   alignment fell back to start (left-aligned) automatically. Wrapped in
+   .cr-field/.lr-field (a plain block div that *does* stretch to fill the
+   column), the input is no longer a grid item at all — as an ordinary
+   inline-block child, .cr-field's own text-align:center (from the shared
+   rule above) now centers the whole 110px box within that wider wrapper
+   instead of leaving it at the start edge, visibly shifting it right.
+   Forcing it to display:block takes it out of that inline-level
+   text-align alignment entirely, restoring its original left/start
+   position at its original 110px width — matching .rate-entry-saved's
+   <span>, which stayed correct because plain inline text (not a fixed-
+   width inline-block box) *is* meant to re-center within its container. */
+.cr-field .rate-entry-input,
+.lr-field .rate-entry-input { display: block; }
+
 /* Right-aligned to match Work Type Rates' own action column (that one's
    plain .action-buttons already defaults to justify-content:flex-end) —
    this was left-aligned by default, reading inconsistent next to it. */
@@ -1553,4 +1601,386 @@
     color: var(--text-lt);
     padding: 0 4px;
     user-select: none;
+}
+
+/* ══════════════════════════════════════════════
+   WORKS & RATES TAB — MOBILE (≤640px)
+   Four tables (Works, Work Type Rates, Contractor
+   Rates, Labour Rates) plus WorksManager's own
+   Manage Contractors/Labour sub-modal tables — none
+   of them fit the generic .list-table-format 480px
+   transform above (built for image+title+subtitle+
+   actions), so each gets its own compound-selector
+   override here instead.
+
+   That generic 480px block (@media max-width:480px,
+   further up this file) is entirely !important and
+   unscoped — `.list-table-format > :nth-child(2)`/
+   `:nth-child(3)` force an image+title+subtitle grid
+   position onto whatever our 2nd/3rd field happens to
+   be, `.action-buttons` forces its own flex layout
+   onto any action cell that carries that class, and
+   bare `.edit-action`/`.delete-action` force their own
+   sizing — since our own viewport range (≤640px)
+   overlaps that block's (≤480px), every one of our
+   field rules below needs BOTH !important (to beat
+   those !important declarations at all) AND specificity
+   ≥ theirs, `.list-table-format` + a class/pseudo-class
+   = 2 classes' worth (0,2,0). Rather than lean on
+   source order (fragile — breaks if this block ever
+   moves), every selector here is a 3-part compound
+   (`.list-table-format.xx-row .xx-field`, 3 classes,
+   (0,3,0)) that unconditionally outranks it, plus an
+   explicit reset for every property that rule forces
+   (grid position, font-size/weight/color/margin/
+   align-self, or flex-direction/gap/justify-content/
+   border for the generic .action-buttons rule) — not
+   just the ones we visibly cared about, since anything
+   left unreset silently leaks through. Grid-template
+   overrides also need !important to beat each row's own
+   inline gridTemplateColumns style, same reasoning as
+   add.css's own .permissions-edit-row (though that one
+   only had .list-table-format's plain display:grid to
+   outrank, not an inline style too, so it didn't need
+   !important, just the compound selector).
+══════════════════════════════════════════════ */
+@media (max-width: 640px) {
+
+    /* ── Works table (WorksManager) ── */
+    .list-table-format.wk-header { display: none !important; }
+
+    .list-table-format.wk-row {
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas:
+            "name status"
+            "progress progress"
+            "actions actions" !important;
+        row-gap: 8px !important;
+        padding: 16px !important;
+    }
+    /* 1st child — not touched by the generic nth-child(2)/(3) hijack, but
+       kept at the same specificity as its siblings below for consistency. */
+    .list-table-format.wk-row .wk-name { grid-area: name !important; }
+    /* nth-child(3) under the generic rule — reset its forced grid
+       position + font-size/margin/align-self back to plain values. */
+    .list-table-format.wk-row .wk-status {
+        grid-area: status !important;
+        justify-self: end !important;
+        align-self: center !important;
+        font-size: inherit !important;
+        font-weight: normal !important;
+        margin: 0 !important;
+    }
+    /* nth-child(2) under the generic rule — same reset, plus the
+       font-size/weight this cell actually wants. */
+    .list-table-format.wk-row .wk-progress {
+        grid-area: progress !important;
+        align-self: center !important;
+        margin: 0 !important;
+        font-size: 0.85rem !important;
+        font-weight: 400 !important;
+        color: var(--green) !important;
+    }
+    /* Carries the generic .action-buttons class, so its grid position
+       (coincidentally already grid-column:1/-1 + row 3 — same as ours)
+       comes with unwanted flex/spacing baggage that needs resetting too. */
+    .list-table-format.wk-row .wk-actions {
+        grid-area: actions !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        justify-content: flex-start !important;
+        margin-top: 4px !important;
+        padding-top: 12px !important;
+        border-top: 1px dashed rgba(201,168,124,0.25) !important;
+    }
+    .list-table-format.wk-row .wk-actions .edit-action,
+    .list-table-format.wk-row .wk-actions .delete-action {
+        flex: 1 1 28% !important;
+        min-width: 84px !important;
+        text-align: center !important;
+        padding: 8px 6px !important;
+        font-size: 0.7rem !important;
+    }
+
+    /* Reconciled against the real WorksManager.jsx (which grew FontAwesome
+       icons + a pq-btn-ghost-danger delete button since this pattern was
+       drafted, not the plain text edit-action/delete-action row above
+       assumes): wk-actions' first child is its own inline
+       flexWrap:'nowrap' group of the 4 .edit-action items, and the delete
+       control is .pq-btn-ghost-danger, not .delete-action. Un-nowrap that
+       inner group and give both it and the delete button the same wrap
+       behavior so all 5 controls reflow together instead of the icons
+       staying crushed onto one unwrapped line. */
+    .list-table-format.wk-row .wk-actions-group {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    .list-table-format.wk-row .wk-actions-group .edit-action {
+        flex: 1 1 28% !important;
+        min-width: 84px !important;
+        justify-content: center !important;
+        text-align: center !important;
+        padding: 8px 6px !important;
+        font-size: 0.7rem !important;
+    }
+    .list-table-format.wk-row .wk-actions .pq-btn-ghost-danger {
+        width: 100% !important;
+        height: 36px !important;
+    }
+
+    /* ── Manage Contractors modal sub-table ── */
+    .list-table-format.wkc-header { display: none !important; }
+    .list-table-format.wkc-row {
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas:
+            "name action"
+            "notes notes" !important;
+        row-gap: 6px !important;
+        padding: 14px !important;
+    }
+    .list-table-format.wkc-row .wkc-name { grid-area: name !important; margin: 0 !important; }
+    /* nth-child(2) — reset the forced title-style position/typography. */
+    .list-table-format.wkc-row .wkc-notes {
+        grid-area: notes !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: 0.78rem !important;
+        font-weight: 400 !important;
+        color: var(--text-lt) !important;
+    }
+    /* nth-child(3) AND .action-buttons — both hijack this cell; the 2-row
+       "name action"/"notes notes" shape has no 3rd row to span into, so
+       the generic rule's border-top/margin-top/padding-top/justify-center
+       all need clearing, not just its grid position. */
+    .list-table-format.wkc-row .wkc-action {
+        grid-area: action !important;
+        align-self: center !important;
+        flex-direction: row !important;
+        justify-content: flex-end !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        border-top: none !important;
+        font-size: inherit !important;
+    }
+
+    /* ── Manage Labour modal sub-table ── */
+    .list-table-format.wkl-header { display: none !important; }
+    .list-table-format.wkl-row {
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas:
+            "name action"
+            "supervisor supervisor"
+            "notes notes" !important;
+        row-gap: 6px !important;
+        padding: 14px !important;
+    }
+    .list-table-format.wkl-row .wkl-name { grid-area: name !important; margin: 0 !important; }
+    /* nth-child(2) — reset. */
+    .list-table-format.wkl-row .wkl-supervisor {
+        grid-area: supervisor !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: 0.78rem !important;
+        font-weight: 400 !important;
+        color: var(--text-lt) !important;
+    }
+    /* nth-child(3) — reset. */
+    .list-table-format.wkl-row .wkl-notes {
+        grid-area: notes !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: 0.78rem !important;
+        font-weight: 400 !important;
+        color: var(--text-lt) !important;
+    }
+    /* Not nth-child(2)/(3) here (4th child), but still carries the
+       generic .action-buttons class — same reset as wkc-action. */
+    .list-table-format.wkl-row .wkl-action {
+        grid-area: action !important;
+        align-self: center !important;
+        flex-direction: row !important;
+        justify-content: flex-end !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        border-top: none !important;
+        font-size: inherit !important;
+    }
+
+    /* ── Work Type Rates table ── the mobile bug this fixes: raw values
+       like "5%" and "₹0/sqft" rendered with no label at all, unreadable
+       without the desktop header row for context. Each field now carries
+       its own small uppercase label, hidden on desktop (where the header
+       row already provides it) via .wt-field-label's default display:none. */
+    .list-table-format.wt-header { display: none !important; }
+    .list-table-format.wt-row {
+        grid-template-columns: 1fr 1fr !important;
+        grid-template-areas:
+            "name action"
+            "client referral"
+            "gst gst" !important;
+        row-gap: 12px !important;
+        padding: 16px !important;
+    }
+    .list-table-format.wt-row .wt-name {
+        grid-area: name !important;
+        margin: 0 !important;
+        align-self: center !important;
+    }
+    /* nth-child(2) — .wt-field wrapper itself gets hijacked; reset its
+       grid position and the typography that would otherwise cascade into
+       its label/value children (a plain <p>/<span> does inherit these,
+       unlike a form control). */
+    .list-table-format.wt-row .wt-client {
+        grid-area: client !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    /* nth-child(3) — same reset. */
+    .list-table-format.wt-row .wt-referral {
+        grid-area: referral !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    /* 4th child — not hijacked, but kept at matching specificity. */
+    .list-table-format.wt-row .wt-gst { grid-area: gst !important; }
+    /* 5th child, carries .action-buttons — same reset as wkc-action. */
+    .list-table-format.wt-row .wt-action {
+        grid-area: action !important;
+        justify-self: end !important;
+        align-self: center !important;
+        flex-direction: row !important;
+        justify-content: flex-end !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        border-top: none !important;
+        font-size: inherit !important;
+    }
+    .list-table-format.wt-row .wt-field,
+    .list-table-format.cr-row .cr-field,
+    .list-table-format.lr-row .lr-field {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 3px !important;
+    }
+    .wt-field .rate-entry-saved,
+    .wt-field .rate-entry-input,
+    .cr-field .rate-entry-saved,
+    .cr-field .rate-entry-input,
+    .lr-field .rate-entry-saved,
+    .lr-field .rate-entry-input { margin: 0 !important; }
+    /* Desktop needs .cr-field/.lr-field's rate input to keep its original
+       fixed 110px (the display:block fix above), but at this width that
+       just reads as a stray narrow box — Work Type Rates' own inputs are
+       already full-width (inline style), so match that here too for the
+       same comfortable mobile tap target. */
+    .cr-field .rate-entry-input,
+    .lr-field .rate-entry-input { width: 100% !important; }
+    .wt-field-label {
+        display: block;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: var(--text-lt);
+    }
+
+    /* ── Contractor Rates table ── same labeled-field treatment as Work
+       Type Rates now (a bare "₹12 / sqft" with no header row for context
+       read as sparse next to it): Rate gets the shared .wt-field-label
+       caption, and the action button moves up next to the name so the
+       card reads name+action on top, Rate below — matching Work Type
+       Rates' own "name action" top row exactly. No .action-buttons class
+       on cr-action (it's .rate-entry-action), so only the nth-child(2)/(3)
+       hijack applies here, not the flex one. */
+    .list-table-format.cr-row {
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas:
+            "name action"
+            "rate rate" !important;
+        row-gap: 10px !important;
+        padding: 16px !important;
+    }
+    .list-table-format.cr-row .cr-name {
+        grid-area: name !important;
+        align-self: center !important;
+        margin: 0 !important;
+    }
+    /* nth-child(2) — .cr-field wrapper (Rate label + value) gets hijacked;
+       same reset as .wt-client/.wt-referral above. */
+    .list-table-format.cr-row .cr-field {
+        grid-area: rate !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    /* nth-child(3) — reset, plus move up to sit beside the name. */
+    .list-table-format.cr-row .cr-action {
+        grid-area: action !important;
+        justify-self: end !important;
+        align-self: center !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+    }
+
+    /* ── Labour Rates table ── same shape as Contractor Rates, plus the
+       supervisor sub-line; also no .action-buttons class on lr-action. */
+    .list-table-format.lr-row {
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas:
+            "name action"
+            "supervisor supervisor"
+            "rate rate" !important;
+        row-gap: 8px !important;
+        padding: 16px !important;
+    }
+    .list-table-format.lr-row .lr-name {
+        grid-area: name !important;
+        align-self: center !important;
+        margin: 0 !important;
+    }
+    /* nth-child(2) — reset. */
+    .list-table-format.lr-row .lr-supervisor {
+        grid-area: supervisor !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: 0.78rem !important;
+        font-weight: 400 !important;
+    }
+    /* nth-child(3) — .lr-field wrapper gets hijacked; same reset as
+       .cr-field above. */
+    .list-table-format.lr-row .lr-field {
+        grid-area: rate !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    /* 4th child — not hijacked, but moved up to sit beside the name. */
+    .list-table-format.lr-row .lr-action {
+        grid-area: action !important;
+        justify-self: end !important;
+        align-self: center !important;
+    }
+
+    /* ── Empty state card treatment (mobile only) ── the bare italic text
+       used by all four tables' "nothing yet" states floats with no
+       container; give it a dashed-border card on mobile without touching
+       its existing (unstyled) desktop appearance. */
+    .admin-empty-state {
+        margin: 0 4px;
+        border: 1px dashed rgba(201,168,124,0.35);
+        border-radius: var(--radius);
+        background: rgba(201,168,124,0.03);
+        padding: 40px 20px;
+    }
 }

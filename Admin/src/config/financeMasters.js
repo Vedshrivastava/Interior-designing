@@ -33,7 +33,7 @@ export const FINANCE_MASTERS = {
     vendors: {
         label: 'Vendor', labelPlural: 'Vendors', apiBase: '/api/finance/vendors',
         fields: [
-            { key: 'name', label: 'Name', type: 'text', required: true, section: 'Contact' },
+            { key: 'name', label: 'Name', type: 'text', required: true, placeholder: 'Contractor or company name', section: 'Contact' },
             {
                 key: 'vendorType', label: 'Vendor Type', type: 'select', default: 'other', section: 'Contact',
                 options: [
@@ -42,16 +42,16 @@ export const FINANCE_MASTERS = {
                     { value: 'other', label: 'Other' },
                 ],
             },
-            { key: 'phone', label: 'Phone', type: 'tel', section: 'Contact' },
-            { key: 'email', label: 'Email', type: 'email', section: 'Contact' },
-            { key: 'address', label: 'Address', type: 'textarea', section: 'Contact' },
-            { key: 'gstNumber', label: 'GSTIN (if GST-registered)', type: 'text', section: 'Contact' },
-            { key: 'accountName', label: 'Bank Account Holder Name', type: 'text', required: true, section: 'Bank Details' },
-            { key: 'bankName', label: 'Bank Name', type: 'text', required: true, section: 'Bank Details' },
-            { key: 'accountNumber', label: 'Account Number', type: 'text', required: true, section: 'Bank Details' },
+            { key: 'phone', label: 'Phone', type: 'tel', placeholder: '10-digit mobile number', section: 'Contact' },
+            { key: 'email', label: 'Email', type: 'email', placeholder: 'name@example.com', section: 'Contact' },
+            { key: 'address', label: 'Address', type: 'textarea', placeholder: 'Full address', section: 'Contact' },
+            { key: 'gstNumber', label: 'GSTIN (if GST-registered)', type: 'text', placeholder: 'e.g. 23AAAAA0000A1Z5', section: 'Contact' },
+            { key: 'accountName', label: 'Bank Account Holder Name', type: 'text', required: true, placeholder: 'As per bank records', section: 'Bank Details' },
+            { key: 'bankName', label: 'Bank Name', type: 'text', required: true, placeholder: 'e.g. State Bank of India', section: 'Bank Details' },
+            { key: 'accountNumber', label: 'Account Number', type: 'text', required: true, placeholder: 'Bank account number', section: 'Bank Details' },
             { key: 'confirmAccountNumber', label: 'Re-enter Account Number', type: 'confirmText', matchKey: 'accountNumber', required: true, placeholder: 'Retype to confirm', section: 'Bank Details' },
-            { key: 'ifscCode', label: 'IFSC Code', type: 'text', required: true, section: 'Bank Details' },
-            { key: 'notes', label: 'Notes', type: 'textarea', section: 'Other' },
+            { key: 'ifscCode', label: 'IFSC Code', type: 'text', required: true, placeholder: 'e.g. SBIN0001234', section: 'Bank Details' },
+            { key: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Any additional notes…', section: 'Other' },
         ],
         columns: [
             { key: 'name', label: 'Name' },
@@ -168,22 +168,22 @@ export const FINANCE_MASTERS = {
     labourers: {
         label: 'Labourer', labelPlural: 'Labourers', apiBase: '/api/finance/labourers',
         fields: [
-            { key: 'name', label: 'Name', type: 'text', required: true },
+            { key: 'name', label: 'Name', type: 'text', required: true, placeholder: "Labourer's full name" },
             {
                 key: 'labourProviderId', label: 'Labour Provider (optional)', type: 'resourceSelect', resourceKey: 'labourProviders',
                 section: 'Labour Provider',
             },
             {
-                key: 'labourProviderRatePerSqft', label: 'Labour Provider Rate (₹/sqft) *', type: 'number', section: 'Labour Provider',
+                key: 'labourProviderRatePerSqft', label: 'Labour Provider Rate (₹/sqft) *', type: 'number', placeholder: 'e.g. 5', section: 'Labour Provider',
                 showIf: (form) => !!form.labourProviderId,
                 note: "A separate cost paid to the provider, based on this labourer's reviewed sqft. Never deducted from their own pay.",
             },
-            { key: 'accountName', label: 'Bank Account Holder Name', type: 'text', required: true, section: 'Bank Details' },
-            { key: 'bankName', label: 'Bank Name', type: 'text', required: true, section: 'Bank Details' },
-            { key: 'accountNumber', label: 'Account Number', type: 'text', required: true, section: 'Bank Details' },
+            { key: 'accountName', label: 'Bank Account Holder Name', type: 'text', required: true, placeholder: 'As per bank records', section: 'Bank Details' },
+            { key: 'bankName', label: 'Bank Name', type: 'text', required: true, placeholder: 'e.g. State Bank of India', section: 'Bank Details' },
+            { key: 'accountNumber', label: 'Account Number', type: 'text', required: true, placeholder: 'Bank account number', section: 'Bank Details' },
             { key: 'confirmAccountNumber', label: 'Re-enter Account Number', type: 'confirmText', matchKey: 'accountNumber', required: true, placeholder: 'Retype to confirm', section: 'Bank Details' },
-            { key: 'ifscCode', label: 'IFSC Code', type: 'text', required: true, section: 'Bank Details' },
-            { key: 'notes', label: 'Notes', type: 'textarea' },
+            { key: 'ifscCode', label: 'IFSC Code', type: 'text', required: true, placeholder: 'e.g. SBIN0001234', section: 'Bank Details' },
+            { key: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Any additional notes…' },
         ],
         columns: [
             { key: 'name', label: 'Name' },

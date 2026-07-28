@@ -120,18 +120,21 @@ const WorkersManager = ({ url, projectId, worksVersion }) => {
                                 const key = pairKey(workType, l.labourerId);
                                 const rate = pending[key] ?? '';
                                 return (
-                                    <div key={key} className="list-table-format row-item rate-row" style={{ gridTemplateColumns: '1.2fr 1.2fr 1.1fr 130px' }}>
-                                        <p>{l.labourerName}</p>
-                                        <p className="admin-subtitle">{l.supervisorName}</p>
-                                        {existing ? (
-                                            <span className="rate-entry-saved">₹{existing.ratePerSqft} / sqft</span>
-                                        ) : (
-                                            <input
-                                                type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder="Rate ₹/sqft" value={rate}
-                                                onChange={e => setPendingField(key, e.target.value)}
-                                            />
-                                        )}
-                                        <div className="rate-entry-action">
+                                    <div key={key} className="list-table-format row-item rate-row lr-row" style={{ gridTemplateColumns: '1.2fr 1.2fr 1.1fr 130px' }}>
+                                        <p className="lr-name">{l.labourerName}</p>
+                                        <p className="admin-subtitle lr-supervisor">{l.supervisorName}</p>
+                                        <div className="lr-field">
+                                            <span className="wt-field-label">Rate</span>
+                                            {existing ? (
+                                                <span className="rate-entry-saved">₹{existing.ratePerSqft} / sqft</span>
+                                            ) : (
+                                                <input
+                                                    type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder="Rate ₹/sqft" value={rate}
+                                                    onChange={e => setPendingField(key, e.target.value)}
+                                                />
+                                            )}
+                                        </div>
+                                        <div className="rate-entry-action lr-action">
                                             {existing ? (
                                                 <button type="button" onClick={() => removeRate(existing._id)} className="pq-btn-ghost-danger" title="Remove rate" aria-label="Remove rate">
                                                     <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />

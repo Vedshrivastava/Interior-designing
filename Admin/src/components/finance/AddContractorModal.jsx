@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
-import { emptyFormFromFields, renderMasterField, FieldNote } from './masterFieldRenderer';
+import { emptyFormFromFields, renderMasterField, groupFieldsBySection, FieldNote, isFullWidthField } from './masterFieldRenderer';
 import DocumentUploadList from './DocumentUploadList';
 import '../../styles/wizard.css';
 
@@ -17,6 +17,29 @@ const CONTRACTOR_PRESET = { vendorType: 'labour_contractor' };
  * caller already knows which type it wants (the Add Work form has
  * separate Contractor(s) and Labour Team sections), so the toggle was
  * just an extra click to the same place.
+ *
+ * Field rendering mirrors AddLabourModal: groupFieldsBySection splits the
+ * vendor resource's 11 fields into their tagged sections (Contact / Bank
+ * Details / Other), still grouped into separate field grids so mobile
+ * doesn't read as one undivided wall of fields — but only Bank Details
+ * gets a visible wizard-section-label heading; Contact and Other read
+ * fine without one (Contact is the form's first, self-evident group, and
+ * Other is just the single Notes field), so those two are suppressed.
+ *
+ * ac-overlay/ac-modal are scoping hooks only, same pattern as
+ * AddWorkModal's aw-overlay/aw-modal (dashboard.css) — mobile-only
+ * bottom-sheet rules target these classes specifically, so no other
+ * modal is touched. Header/body/footer are split into their own wrapper
+ * divs so the sheet can scroll its fields while Cancel/Save stay pinned
+ * at the bottom edge on mobile — Save is wired to the form via
+ * form="add-contractor-form" since it now lives outside the <form>
+ * itself. The per-section field groups stay in a bare Fragment (not
+ * .ac-group) since wizard-section-label:not(:first-child) (wizard.css)
+ * already gives each one its own 24px divider gap and depends on the
+ * label being a direct child of the form to detect "not first" —
+ * wrapping it would silently break that spacing (same reasoning as
+ * AddLabourModal's own comment on this). .ac-group stays only around the
+ * Documents list, which has no section tag of its own to hook into.
  */
 const AddContractorModal = ({ url, onClose, onContractorCreated }) => {
     const token = localStorage.getItem('token');
@@ -55,28 +78,41 @@ const AddContractorModal = ({ url, onClose, onContractorCreated }) => {
     };
 
     return ReactDOM.createPortal(
-        <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
-            <div className="loader-modal-box edit-modal">
-                <h2>Add Contractor</h2>
-                <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                    Added as a labour contractor vendor, scoped to this Work's Contractor(s) list.
-                </p>
-                <form onSubmit={submit}>
-                    <div className="wizard-field-grid">
-                        {visibleFields.filter(f => !f.showIf || f.showIf(vendorForm)).map(f => (
-                            <div key={f.key} className={`add-product-name flex-col${f.type === 'textarea' ? ' wizard-field-full' : ''}`}>
-                                <p>{f.label}{f.required ? ' *' : ''}</p>
-                                {renderMasterField(f, vendorForm, setVendorField, { url })}
-                                <FieldNote note={f.note} />
-                            </div>
+        <div className="submit-loader-overlay ac-overlay" style={{ zIndex: 100000 }}>
+            <div className="loader-modal-box edit-modal ac-modal">
+                <div className="ac-modal-header">
+                    <h2>Add Contractor</h2>
+                    <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
+                        Added as a labour contractor vendor, scoped to this Work's Contractor(s) list.
+                    </p>
+                </div>
+
+                <div className="ac-modal-body">
+                    <form id="add-contractor-form" onSubmit={submit}>
+                        {groupFieldsBySection(visibleFields.filter(f => !f.showIf || f.showIf(vendorForm))).map((group, gi) => (
+                            <React.Fragment key={gi}>
+                                {group.section && group.section !== 'Contact' && group.section !== 'Other' && <p className="wizard-section-label">{group.section}</p>}
+                                <div className="wizard-field-grid">
+                                    {group.fields.map(f => (
+                                        <div key={f.key} className={`add-product-name flex-col${isFullWidthField(f, group) ? ' wizard-field-full' : ''}`}>
+                                            <p>{f.label}{f.required ? ' *' : ''}</p>
+                                            {renderMasterField(f, vendorForm, setVendorField, { url })}
+                                            <FieldNote note={f.note} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </React.Fragment>
                         ))}
-                    </div>
-                    <DocumentUploadList lines={documentLines} onChange={setDocumentLines} />
-                    <div className="edit-modal-actions">
-                        <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
-                        <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                    </div>
-                </form>
+                        <div className="ac-group">
+                            <DocumentUploadList lines={documentLines} onChange={setDocumentLines} />
+                        </div>
+                    </form>
+                </div>
+
+                <div className="edit-modal-actions ac-modal-footer">
+                    <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
+                    <button type="submit" form="add-contractor-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                </div>
             </div>
         </div>,
         document.body

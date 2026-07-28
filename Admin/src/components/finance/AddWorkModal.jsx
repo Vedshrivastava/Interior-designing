@@ -22,7 +22,20 @@ const emptyAssignmentRow = () => ({ contractorVendorId: '', notes: '' });
    no real Work yet to rate against). That second trigger used to open a
    separate, lighter QuickAddWorkModal (Work Type / Estimated Area /
    Contractor(s) only, no labour team) — now it's the exact same dialog
-   regardless of where it's opened from. */
+   regardless of where it's opened from.
+
+   aw-overlay/aw-modal are scoping hooks only, same pattern as
+   AddQuotationModal's aq-overlay/aq-modal — mobile-only bottom-sheet
+   rules in dashboard.css target these classes specifically (and reuse
+   aq-modal's real breakpoint/shape/animation), so no other modal is
+   touched and this modal above that breakpoint is untouched. Header/
+   body/footer are split into their own wrapper divs so the sheet can
+   scroll its fields while Cancel/Save stay pinned at the bottom edge on
+   mobile — Save is wired to the form via form="add-work-form" since it
+   now lives outside the <form> itself. Each field group is additionally
+   wrapped in .aw-group purely as a styling hook for a mobile-only
+   section divider — the labels/markup inside are unchanged so desktop
+   stays pixel-identical to before. */
 const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -100,95 +113,109 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
     return (
         <>
             {ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>{editingId ? 'Edit Work' : 'Add Work'}</h2>
-                        <form className="flex-col" onSubmit={submit}>
-                            <div className="add-product-name flex-col">
-                                <p>Work Type *</p>
-                                <StyledSelect
-                                    value={form.workType} onChange={v => setField('workType', v)}
-                                    placeholder="Select work type…"
-                                    options={workTypeOptions.map(w => ({ value: w, label: w }))}
-                                />
-                            </div>
+                <div className="submit-loader-overlay aw-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal aw-modal">
+                        <div className="aw-modal-header">
+                            <h2>{editingId ? 'Edit Work' : 'Add Work'}</h2>
+                        </div>
 
-                            {!editingId && (
-                                <div className="add-product-name flex-col">
-                                    <p>Contractor(s)</p>
-                                    <div className="contractor-assign-box">
-                                        {contractorAssignments.map((a, idx) => (
-                                            <div key={idx} className="contractor-assign-row">
-                                                <div className="contractor-assign-picker">
-                                                    <ContractorOrLabourPicker url={url} value={a.contractorVendorId}
-                                                        onChange={v => setAssignmentField(idx, 'contractorVendorId', v)} />
+                        <div className="aw-modal-body">
+                            <form id="add-work-form" className="flex-col" onSubmit={submit}>
+                                <div className="aw-group">
+                                    <div className="add-product-name flex-col">
+                                        <p>Work Type *</p>
+                                        <StyledSelect
+                                            value={form.workType} onChange={v => setField('workType', v)}
+                                            placeholder="Select work type…"
+                                            options={workTypeOptions.map(w => ({ value: w, label: w }))}
+                                        />
+                                    </div>
+                                </div>
+
+                                {!editingId && (
+                                    <div className="aw-group">
+                                        <div className="add-product-name flex-col">
+                                            <p>Contractor(s)</p>
+                                            <div className="contractor-assign-box">
+                                                {contractorAssignments.map((a, idx) => (
+                                                    <div key={idx} className="contractor-assign-row">
+                                                        <div className="contractor-assign-picker">
+                                                            <ContractorOrLabourPicker url={url} value={a.contractorVendorId}
+                                                                onChange={v => setAssignmentField(idx, 'contractorVendorId', v)} />
+                                                        </div>
+                                                        <div className="contractor-assign-notes">
+                                                            <input type="text" placeholder="Notes (optional)" value={a.notes}
+                                                                onChange={e => setAssignmentField(idx, 'notes', e.target.value)} />
+                                                        </div>
+                                                        {contractorAssignments.length > 1 && (
+                                                            <button type="button" className="contractor-assign-remove" aria-label="Remove contractor row"
+                                                                onClick={() => removeAssignmentRow(idx)}>×</button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                <div className="contractor-assign-footer">
+                                                    <button type="button" className="add-point-btn" onClick={addAssignmentRow}>+ Add Contractor</button>
                                                 </div>
-                                                <div className="contractor-assign-notes">
-                                                    <input type="text" placeholder="Notes (optional)" value={a.notes}
-                                                        onChange={e => setAssignmentField(idx, 'notes', e.target.value)} />
-                                                </div>
-                                                {contractorAssignments.length > 1 && (
-                                                    <button type="button" className="contractor-assign-remove" aria-label="Remove contractor row"
-                                                        onClick={() => removeAssignmentRow(idx)}>×</button>
-                                                )}
                                             </div>
-                                        ))}
-                                        <div className="contractor-assign-footer">
-                                            <button type="button" className="add-point-btn" onClick={addAssignmentRow}>+ Add Contractor</button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!editingId && (
+                                    <div className="aw-group">
+                                        <div className="add-product-name flex-col">
+                                            <p>Labour Team{selectedLabourerIds.length > 0 ? ' *' : ''}</p>
+                                            <p className="admin-subtitle" style={{ margin: '0 0 8px' }}>Pick a supervisor and the labourers they're bringing to this work; optional, only if you're assigning labour now.</p>
+                                            <div style={{ marginBottom: '8px' }}>
+                                                <QuickAddPicker
+                                                    url={url} resourceKey="employees" value={labourSupervisorId}
+                                                    onChange={id => checkSupervisor(id, null, () => setLabourSupervisorId(id))}
+                                                    filter={e => e.role === 'supervisor'} presetValues={{ role: 'supervisor' }}
+                                                    placeholder="Select supervisor for this team…"
+                                                />
+                                            </div>
+                                            <LabourMultiSelect url={url} selectedIds={selectedLabourerIds} onChange={setSelectedLabourerIds} />
+                                            <p className="admin-subtitle" style={{ marginTop: '6px' }}>At least one contractor or labourer is required.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="aw-group">
+                                    <div className="wizard-field-grid">
+                                        <div className="add-product-name flex-col">
+                                            <p>Work Order Number</p>
+                                            <input type="text" placeholder="e.g. WO-2024-118" value={form.workOrderNumber} onChange={e => setField('workOrderNumber', e.target.value)} />
+                                        </div>
+                                        <div className="add-product-name flex-col">
+                                            <p>Start Date</p>
+                                            <StyledDatePicker value={form.startDate} onChange={v => setField('startDate', v)} />
+                                        </div>
+                                        <div className="add-product-name flex-col">
+                                            <p>Estimated Area (sqft) *</p>
+                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" placeholder="e.g. 450" value={form.estimatedAreaSqft} onChange={e => setField('estimatedAreaSqft', e.target.value)} />
+                                        </div>
+                                        {editingId && (
+                                            <div className="add-product-name flex-col">
+                                                <p>Status</p>
+                                                <select value={form.status} onChange={e => setField('status', e.target.value)}>
+                                                    <option value="active">Active</option>
+                                                    <option value="completed">Completed</option>
+                                                </select>
+                                            </div>
+                                        )}
+                                        <div className="add-product-name flex-col wizard-field-full">
+                                            <p>Notes</p>
+                                            <textarea rows="2" placeholder="Any additional notes about this work…" value={form.notes} onChange={e => setField('notes', e.target.value)} />
                                         </div>
                                     </div>
                                 </div>
-                            )}
+                            </form>
+                        </div>
 
-                            {!editingId && (
-                                <div className="add-product-name flex-col">
-                                    <p>Labour Team{selectedLabourerIds.length > 0 ? ' *' : ''}</p>
-                                    <p className="admin-subtitle" style={{ margin: '0 0 8px' }}>Pick a supervisor and the labourers they're bringing to this work; optional, only if you're assigning labour now.</p>
-                                    <div style={{ marginBottom: '8px' }}>
-                                        <QuickAddPicker
-                                            url={url} resourceKey="employees" value={labourSupervisorId}
-                                            onChange={id => checkSupervisor(id, null, () => setLabourSupervisorId(id))}
-                                            filter={e => e.role === 'supervisor'} presetValues={{ role: 'supervisor' }}
-                                            placeholder="Select supervisor for this team…"
-                                        />
-                                    </div>
-                                    <LabourMultiSelect url={url} selectedIds={selectedLabourerIds} onChange={setSelectedLabourerIds} />
-                                    <p className="admin-subtitle" style={{ marginTop: '6px' }}>At least one contractor or labourer is required.</p>
-                                </div>
-                            )}
-
-                            <div className="wizard-field-grid">
-                                <div className="add-product-name flex-col">
-                                    <p>Work Order Number</p>
-                                    <input type="text" value={form.workOrderNumber} onChange={e => setField('workOrderNumber', e.target.value)} />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Start Date</p>
-                                    <StyledDatePicker value={form.startDate} onChange={v => setField('startDate', v)} />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Estimated Area (sqft) *</p>
-                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.estimatedAreaSqft} onChange={e => setField('estimatedAreaSqft', e.target.value)} />
-                                </div>
-                                {editingId && (
-                                    <div className="add-product-name flex-col">
-                                        <p>Status</p>
-                                        <select value={form.status} onChange={e => setField('status', e.target.value)}>
-                                            <option value="active">Active</option>
-                                            <option value="completed">Completed</option>
-                                        </select>
-                                    </div>
-                                )}
-                                <div className="add-product-name flex-col wizard-field-full">
-                                    <p>Notes</p>
-                                    <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
-                                </div>
-                            </div>
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                            </div>
-                        </form>
+                        <div className="edit-modal-actions aw-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
+                            <button type="submit" form="add-work-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body

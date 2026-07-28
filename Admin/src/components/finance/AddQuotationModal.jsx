@@ -58,8 +58,15 @@ const AddQuotationModal = ({ url, projectId, onClose, onSaved }) => {
     };
 
     return ReactDOM.createPortal(
-        <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
-            <div className="loader-modal-box edit-modal">
+        // aq-overlay/aq-modal are scoping hooks only — every other class here
+        // (submit-loader-overlay/loader-modal-box/edit-modal/etc.) is the same
+        // shared chrome every other modal in this app uses. The mobile-only
+        // bottom-sheet rules in dashboard.css target .aq-overlay/.aq-modal
+        // specifically (mirrors the frontend's Consult modal — anchored to
+        // the bottom edge, full width, top corners only, slides up), so no
+        // other modal — and no view of this one above 540px — is touched.
+        <div className="submit-loader-overlay aq-overlay" style={{ zIndex: 100000 }}>
+            <div className="loader-modal-box edit-modal aq-modal">
                 <h2>Add Quotation</h2>
                 <form onSubmit={submit}>
                     <div className="wizard-field-grid">

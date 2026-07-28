@@ -1843,3 +1843,35 @@
         max-width: none;
     }
 }
+
+/* ── Add Quotation modal — mobile bottom sheet, matching the frontend's
+   Consult modal shape/position (Frontend/src/styles/consult.css's own
+   max-width:540px block): anchored to the bottom edge instead of
+   vertically centered, full width, top corners only, slides up rather
+   than fading in place. .aq-overlay/.aq-modal are scoping hooks only —
+   every other class here (submit-loader-overlay/edit-modal/etc.) is the
+   same shared chrome every other modal in this app uses, and the shared
+   mobile rule for .edit-modal (list.css, @media max-width:480px) is
+   !important, so these need matching specificity (two classes) and
+   !important themselves to reliably win regardless of stylesheet order —
+   no other modal, and no view of this one above 540px, is touched. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.aq-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+
+    .edit-modal.aq-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    @keyframes aqSheetUp {
+        from { opacity: 0; transform: translateY(100%); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+}

@@ -1657,15 +1657,15 @@
         justify-self: end;
     }
 
-    /* Date/Amount pair naturally left-to-right here (not a column of many
-       rows to scan), so centering/right-aligning them like the desktop
-       table would just look like a stray gap between the two. */
+    /* Date stays left; Amount pushes to the card's right edge — the pair
+       reads like a receipt line (label-ish date on the left, figure on the
+       right) instead of both hugging left with dead space after Amount. */
     .pq-date {
         text-align: left;
     }
 
     .pq-amount {
-        text-align: left;
+        text-align: right;
     }
 
     .pq-group-label {
@@ -1705,9 +1705,15 @@
         flex-wrap: wrap;
     }
 
+    /* justify-content, not text-align — these are display:inline-flex (set
+       above for the icon+label row), so text-align has no effect on how
+       the icon+text sit inside the now-stretched button; Upload/Reopen/
+       Reject were all reading left-hugged with a dead gap on their right,
+       while Accept (its own .pq-btn-accept rule already had
+       justify-content: center) looked correctly centered. */
     .pq-action-buttons .cursor {
         flex: 1;
-        text-align: center;
+        justify-content: center;
         min-width: 90px;
     }
 }

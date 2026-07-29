@@ -888,6 +888,36 @@
     .dash-kpi-card.hero .dash-kpi-value { font-size: 1.1rem; }
 }
 
+/* ── Client avatar (Client Summary + Client Directory, desktop/laptop only)
+   — the two tables read as a flat wall of underlined names with nothing to
+   anchor the eye row-to-row; a small initial circle (same gradient/serif
+   language as MyAccount's own .account-avatar, scaled down for a table row)
+   gives each row a visual identity the way a real contact list would.
+   Mobile keeps its existing plain-text row exactly as before — hidden
+   there rather than restyled, since that layout was already confirmed
+   right and isn't part of this pass. */
+.client-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--green), var(--moss));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(16,37,37,0.15);
+}
+.client-avatar-initials {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--gold-lt, #e8d0a8);
+    letter-spacing: -0.2px;
+}
+@media (max-width: 640px) {
+    .client-avatar { display: none; }
+}
+
 /* ── Client Summary table (ClientsPage.jsx) ── Billed/Received/Outstanding
    per client, in the same dash-chart-card language as everywhere else —
    its own row class rather than .list-table-format, which mangled this
@@ -928,6 +958,13 @@
     border-bottom: none;
 }
 
+/* Row hover — inert on touch (no hover concept there), so this is a
+   desktop-only affordance without needing a media guard: a flat list of
+   rows otherwise gives no scan-line feedback as the cursor moves down it. */
+.client-summary-row:not(.client-summary-header):hover {
+    background: rgba(201, 168, 124, 0.06);
+}
+
 .client-summary-row.client-summary-header {
     color: var(--text-lt, #9a8e84);
     font-size: 0.7rem;
@@ -944,16 +981,35 @@
     cursor: pointer;
 }
 
+/* Wraps the avatar + name together as one clickable unit — grid-area
+   assignment lives here (not on .client-summary-name) so the wrapper is
+   what the mobile media query below repositions; the avatar itself is
+   hidden there, leaving the exact same single-<p>-in-a-box mobile layout
+   as before this pass. */
+.client-summary-name-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+/* Underline is a base-level style, not :hover-only — a hover-only signal
+   is invisible on mobile (no hover concept on touch), so at rest this
+   read as plain unstyled text with no indication tapping it does
+   anything, on both desktop (until you happened to mouse over it) and
+   mobile (never at all). */
 .client-summary-name {
     margin: 0;
     font-weight: 600;
     color: var(--text-dark, #1a1208);
-    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgba(138, 109, 62, 0.3);
+    text-underline-offset: 2px;
 }
 
-.client-summary-name:hover {
+.client-summary-name-wrap:hover .client-summary-name {
     color: #8a6d3e;
-    text-decoration: underline;
+    text-decoration-color: currentColor;
 }
 
 .client-summary-figure {
@@ -971,6 +1027,15 @@
     font-variant-numeric: tabular-nums;
     font-weight: 600;
 }
+
+/* Outstanding as a colored status pill rather than plain colored text —
+   "at a glance" (the page's own subtitle) reads faster off a shape+color
+   badge than a number that merely happens to be red. Pill shape/background
+   is desktop-only (media block near the bottom of this section); mobile
+   keeps the exact plain red/green text it had before, just via these same
+   two classes instead of an inline style. */
+.client-summary-status-pill.is-due { color: #c0392b; }
+.client-summary-status-pill.is-clear { color: var(--moss, #2d4a35); }
 
 .client-summary-credit {
     display: block;
@@ -1009,8 +1074,12 @@
         padding: 14px 16px;
     }
 
-    .client-summary-name {
+    .client-summary-name-wrap {
         grid-area: name;
+        gap: 0;
+    }
+
+    .client-summary-name {
         font-size: 1rem;
     }
 
@@ -1031,6 +1100,17 @@
     .client-summary-value {
         font-size: 0.85rem;
     }
+}
+
+@media (min-width: 641px) {
+    .client-summary-status-pill {
+        display: inline-flex;
+        width: fit-content;
+        padding: 3px 11px;
+        border-radius: 20px;
+    }
+    .client-summary-status-pill.is-due { background: rgba(192, 57, 43, 0.1); }
+    .client-summary-status-pill.is-clear { background: rgba(45, 74, 53, 0.1); }
 }
 
 /* ── MasterCrudTable themed card (cardTitle prop) ── opt-in alternative to
@@ -1060,6 +1140,12 @@
     border-bottom: none;
 }
 
+/* Same scan-line affordance as Client Summary's own row hover, right
+   above it on the page — inert on touch, no media guard needed. */
+.mastercrud-row:not(.mastercrud-header):hover {
+    background: rgba(201, 168, 124, 0.06);
+}
+
 .mastercrud-row.mastercrud-header {
     color: var(--text-lt, #9a8e84);
     font-size: 0.7rem;
@@ -1079,6 +1165,43 @@
     margin: 0;
     font-weight: 600;
     color: var(--text-dark, #1a1208);
+}
+
+/* Desktop only — lays the avatar next to the name. Mobile (≤640px) leaves
+   .mastercrud-name as the plain block it already was; the avatar itself
+   is hidden there (shared .client-avatar rule above), so no override is
+   needed to keep that layout exactly as it was before this pass. */
+@media (min-width: 641px) {
+    .mastercrud-name {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* Name (first column) stays exactly as it was — left-aligned, avatar
+       hugging the column's left edge. Phone/Email/Action center instead:
+       CSS Grid's default justify-items is stretch, so each of those was a
+       full-width box with its content sitting at the box's own left edge,
+       EXCEPT Action, where the header's "ACTION" text stretched-and-left
+       like every other header while its actual button group set its own
+       internal justify-content:flex-end, pushing the buttons to the
+       column's right edge instead — header said left, buttons rendered
+       right, a real mismatch rather than a style preference. Centering
+       Action's header cell and its button group together fixes that
+       mismatch; Phone/Email get the same centered treatment for a
+       consistent, deliberate-looking row instead of an arbitrary mix.
+       Mobile's own re-flowed card layout (grid-template-areas below) is
+       untouched by this. */
+    .mastercrud-field-value {
+        justify-self: center;
+    }
+    .mastercrud-actions {
+        justify-self: center;
+        justify-content: center;
+    }
+    .mastercrud-row.mastercrud-header b:not(:first-child) {
+        justify-self: center;
+    }
 }
 
 /* Only meaningful when getDetailLink is set (Clients) — renderCell already
@@ -1103,8 +1226,71 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* Phone/Email's own muted glyph (FIELD_ICONS, MasterCrudTable.jsx) —
+   desktop only, same "don't touch the already-right mobile card" reasoning
+   as .client-avatar above; mobile keeps the plain text value it already
+   had under its own uppercase field label. */
+.mastercrud-field-icon {
+    display: none;
+}
+@media (min-width: 641px) {
+    .mastercrud-field-value {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+    }
+    .mastercrud-field-icon {
+        display: inline-block;
+        font-size: 0.72rem;
+        color: var(--text-lt, #9a8e84);
+        opacity: 0.85;
+    }
+}
+
 .mastercrud-actions {
     justify-content: flex-end;
+}
+
+/* Icon + text on both desktop and mobile now — desktop used to keep Edit/X
+   as plain text-only pills (icon hidden), which read as a generic, dated
+   holdover next to Client Summary's own avatar/pill treatment right above
+   it on the same page. Mobile (below) still drops the text label once the
+   row narrows, same "icon replaces label" swap used throughout this pass —
+   only the desktop icon-hidden half of that split is gone. */
+.mastercrud-action-icon {
+    display: inline-block;
+}
+/* Beyond the icon+text addition above: a light background tint at rest
+   (both were fully transparent, so next to Client Directory's now-colored
+   avatars/icons they read as thin, unfinished outline text rather than
+   real buttons) and a shared min-width so Edit/Remove read as one
+   consistent pair instead of two different-width pills sized off however
+   long each label happens to be. */
+@media (min-width: 641px) {
+    .mastercrud-actions .edit-action,
+    .mastercrud-actions .delete-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-width: 92px;
+    }
+    /* :not(:hover) rather than a plain selector — .edit-action:hover/
+       .delete-action:hover (list.css) fill with a solid dark background
+       and switch the text/icon to white, but that hover rule ties in
+       specificity with a plain `.mastercrud-actions .edit-action`
+       (one pseudo-class vs one class, same weight), so which one wins was
+       coming down to stylesheet import order and losing here — white
+       text landing on this rest-state's own near-white tint instead of
+       the intended solid fill. :not(:hover) simply stops matching the
+       moment it's hovered, so there's nothing left to compete with the
+       hover rule at all. */
+    .mastercrud-actions .edit-action:not(:hover) {
+        background: rgba(45, 74, 53, 0.06);
+    }
+    .mastercrud-actions .delete-action:not(:hover) {
+        background: rgba(192, 57, 43, 0.06);
+    }
 }
 
 @media (max-width: 640px) {
@@ -1116,13 +1302,23 @@
         display: none;
     }
 
+    /* Name and actions share row 1 (grid-template-areas) instead of
+       actions getting their own row below Fields — the icons are small
+       enough now that they read better paired with the name they act on
+       than sitting on a separate line at the bottom of the card. */
     .mastercrud-row {
-        grid-template-columns: 1fr !important;
-        gap: 10px;
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas:
+            "name actions"
+            "fields fields" !important;
+        row-gap: 10px;
+        column-gap: 10px;
         padding: 14px 16px;
     }
-
+    .mastercrud-name { grid-area: name; }
+    .mastercrud-actions { grid-area: actions; }
     .mastercrud-fields {
+        grid-area: fields;
         display: flex;
         flex-wrap: wrap;
         gap: 12px 20px;
@@ -1131,6 +1327,29 @@
     .mastercrud-field {
         display: flex;
         flex-direction: column;
+    }
+
+    /* Name/label/value match Client Summary's own mobile card exactly
+       (font-family, size, weight) — the two cards sit right on top of
+       each other on this page, and previously read as two different
+       designs: the name's underlying .item-name (list.css) sets its own
+       "Cormorant Garamond" serif at 1.05rem, meant for the decorative-
+       title look product/design list rows want, and the value had no
+       explicit size at all (falling back to the browser default), next
+       to Client Summary's plain DM Sans at 1rem/0.85rem just above it.
+       Desktop is untouched — .item-name's serif stays as-is there. */
+    .mastercrud-name,
+    .mastercrud-name .item-name,
+    .mastercrud-field-label,
+    .mastercrud-field-value {
+        font-family: "DM Sans", sans-serif;
+    }
+    .mastercrud-name,
+    .mastercrud-name .item-name {
+        font-size: 1rem;
+    }
+    .mastercrud-field-value {
+        font-size: 0.85rem;
     }
 
     .mastercrud-field-label {
@@ -1143,8 +1362,66 @@
         margin-bottom: 2px;
     }
 
+    /* Right-aligned, matching desktop — was flex-start, which read as
+       arbitrary next to Name/fields' own left/wrapped alignment above it,
+       and buried the actions on the side a thumb naturally isn't already
+       resting near for a name/details-first card. */
     .mastercrud-actions {
-        justify-content: flex-start;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .mastercrud-action-icon {
+        display: inline-block;
+    }
+    .mastercrud-action-text {
+        display: none;
+    }
+
+    /* Icon-only compact controls (32×32, transparent-until-hover) rather
+       than the full-text pill treatment desktop keeps — matching
+       pq-btn-ghost-danger's established visual language elsewhere this
+       session, reproduced here via override rather than swapping classes
+       so the same <p>/<button> works at both widths. Edit gets an
+       analogous neutral (moss-toned) variant since it isn't destructive. */
+    /* !important throughout — the generic ≤480px hijack (list.css) sets
+       `.edit-action, .delete-action { flex:1 !important; text-align:
+       center !important; padding:10px 0 !important; font-size:0.72rem
+       !important; }` for a different row shape (image+title+subtitle+
+       actions), and its ≤480px range overlaps this rule's own ≤640px —
+       without matching !important here it silently wins at anything
+       ≤480px, leaving Edit stretched into a wide text-pill instead of a
+       32×32 square regardless of what width/height/padding say here. */
+    .mastercrud-row .mastercrud-actions .edit-action,
+    .mastercrud-row .mastercrud-actions .delete-action {
+        display: inline-flex !important;
+        flex: 0 0 auto !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 32px !important;
+        height: 32px !important;
+        padding: 0 !important;
+        border-radius: var(--radius-sm, 8px) !important;
+        background: transparent !important;
+        font-size: inherit !important;
+        text-align: center !important;
+    }
+    .mastercrud-row .mastercrud-actions .edit-action {
+        border: 1px solid transparent !important;
+        color: var(--moss, #2d4a35) !important;
+    }
+    .mastercrud-row .mastercrud-actions .edit-action:hover {
+        background: var(--forest, #1e3a2a) !important;
+        color: #fff !important;
+    }
+    .mastercrud-row .mastercrud-actions .delete-action {
+        border: 1px solid transparent !important;
+        color: var(--text-lt, #9a8e84) !important;
+    }
+    .mastercrud-row .mastercrud-actions .delete-action:hover {
+        background: rgba(192,57,43,0.08) !important;
+        color: var(--danger, #c0392b) !important;
+        border-color: rgba(192,57,43,0.25) !important;
     }
 }
 
@@ -1841,6 +2118,68 @@
     border-color: rgba(192, 57, 43, 0.25);
 }
 
+/* ── Receipts / Expenses — action row polish (all widths) ──
+   These two tables' actions inherit list.css's base .action-buttons/
+   .edit-action styling (bordered pill buttons, right-aligned, 10px gap)
+   — functional, but with zero visual separation between routine actions
+   and the destructive one (delete, a pq-btn-ghost-danger icon button).
+   This adds breathing room before the delete button specifically, rather
+   than treating it as just another item in the row. Running Bills gets
+   its own structural split below instead (rb-actions-row1/row2) — a
+   single row couldn't fit up to 5 actions without either wrapping
+   unpredictably or squeezing its other columns to unreadable widths. */
+.rcpt-action .pq-btn-ghost-danger,
+.exp-actions .pq-btn-ghost-danger {
+    margin-left: 10px;
+}
+
+/* pq-btn-ghost-danger is a fixed 32×32 square on desktop; the surrounding
+   text buttons (.edit-action/.delete-action) run taller due to their own
+   padding. align-items:center on the shared .action-buttons flex row
+   already centers them vertically — stated explicitly here so it can't
+   silently drift later. */
+.rcpt-action,
+.exp-actions {
+    align-items: center;
+}
+
+/* ── Running Bills action row (all widths) ──
+   Actions live outside the info grid, spanning its full width
+   (grid-column:1/-1 — desktop's grid has no named areas of its own to
+   hook into; mobile's does, via rb-actions-row1's own grid-area
+   assignment in list.css, which overrides this). One row: Issue/Mark
+   Draft, GST, Statement, B&W left-anchored and wrapping freely (no
+   column-width ceiling to fight anymore), delete pinned to the far right
+   via its own auto margin. */
+.rb-actions-row1 {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+/* Icon + label needs its own inline-flex row with a small gap, or the
+   icon and text sit hard against each other (a plain <p> has no gap
+   between inline children on its own). Used by every action in the row
+   now that GST/Mark Draft/Statement/B&W all carry an icon, not just
+   Issue/delete. */
+.rb-btn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+/* Pinned to the far right via auto margin — the gap this creates plus
+   its own icon-only ghost styling is what sets delete apart, no divider
+   needed. */
+.rb-delete-btn {
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
 .pq-uploaded-name {
     font-size: 0.72rem;
     color: var(--text-mid, #5a4e44);
@@ -1856,18 +2195,18 @@
     }
 }
 
-/* index.css's .loader-modal-box — a class every one of these six dialogs
-   still carries from the original simple loading-modal markup — sets
-   text-align:center unconditionally, at every width, with nothing here
-   ever overriding it (.edit-modal p/h2/input etc. never declare their
-   own text-align, so it was always just inherited). That's live on
+/* index.css's .loader-modal-box — a class every one of these eight
+   dialogs still carries from the original simple loading-modal markup —
+   sets text-align:center unconditionally, at every width, with nothing
+   here ever overriding it (.edit-modal p/h2/input etc. never declare
+   their own text-align, so it was always just inherited). That's live on
    desktop too, not only ≤540px — it just reads as "acceptable" there,
    since a short label centered above its own wide grid column doesn't
    look obviously wrong at a glance; the same centering on a single full-
    width mobile column is what actually exposed it. This predates
    anything from today's session — every .loader-modal-box dialog in the
    app has always had this — but it's only fixed here, scoped to these
-   six, since some other .loader-modal-box dialogs (e.g.
+   eight, since some other .loader-modal-box dialogs (e.g.
    .bin-confirm-modal's delete confirmations) genuinely want centered
    text and shouldn't be touched. */
 .edit-modal.aw-modal,
@@ -1875,8 +2214,35 @@
 .edit-modal.al-modal,
 .edit-modal.qap-modal,
 .edit-modal.aq-modal,
-.edit-modal.amm-modal {
+.edit-modal.amm-modal,
+.edit-modal.sdm-modal,
+.edit-modal.asm-modal,
+.edit-modal.rbg-modal,
+.edit-modal.rbgst-modal,
+.edit-modal.rcpt-modal,
+.edit-modal.exp-modal,
+.edit-modal.exps-modal,
+.edit-modal.expv-modal,
+.edit-modal.doc-modal,
+.edit-modal.pt-modal,
+.edit-modal.mc-modal {
     text-align: left;
+}
+
+/* Generate Bill and GST-edit's own field areas never sat inside a <form>
+   originally (both used a plain onClick handler, not submission) — every
+   bit of their desktop spacing came from the fields/table's own inline
+   margins, not from any flex gap. Wiring their Confirm/Save buttons via
+   form="..." (so they can live in a pinned mobile footer) required
+   introducing a real <form> around that content for the first time, which
+   would otherwise pick up .edit-modal form's unconditional
+   display:flex/gap:28px !important (list.css) and add spacing that was
+   never there before. This neutralizes it back to plain block stacking on
+   desktop/tablet; the mobile media queries below re-enable flex (with
+   their own tighter gap) same as every other bottom sheet. */
+.edit-modal.rbg-modal .rbg-modal-body form,
+.edit-modal.rbgst-modal .rbgst-modal-body form {
+    display: block !important;
 }
 
 /* ── Add Quotation modal — mobile bottom sheet, matching the frontend's
@@ -2010,17 +2376,26 @@
     }
 }
 
-/* Add Contractor's, QuickAddPicker's (Employee/Labour Provider), and Add
-   Measurement's own Save/Cancel rows are wired via form="..." and sit
-   outside the <form> (see .ac-modal-footer/.qap-modal-footer/
-   .amm-modal-footer below), so — same reasoning as .aw-modal-footer
-   above — this replaces the 28px flex `gap` + 8px own margin-top they
-   used to get from being a form child. None had an inline margin-top
-   override of its own (unlike Add Labourer below), so all three use the
-   same shared 36px value. */
+/* Add Contractor's, QuickAddPicker's (Employee/Labour Provider), Add
+   Measurement's, Log Site Diary Entry's, and Record Waste's own
+   Save/Cancel rows are wired via form="..." and sit outside the <form>
+   (see .ac-modal-footer/.qap-modal-footer/.amm-modal-footer/
+   .sdm-modal-footer/.asm-modal-footer below), so — same reasoning as
+   .aw-modal-footer above — this replaces the 28px flex `gap` + 8px own
+   margin-top they used to get from being a form child. None had an
+   inline margin-top override of its own (unlike Add Labourer below), so
+   all five use the same shared 36px value. */
 .edit-modal-actions.ac-modal-footer,
 .edit-modal-actions.qap-modal-footer,
-.edit-modal-actions.amm-modal-footer {
+.edit-modal-actions.amm-modal-footer,
+.edit-modal-actions.sdm-modal-footer,
+.edit-modal-actions.asm-modal-footer,
+.edit-modal-actions.rcpt-modal-footer,
+.edit-modal-actions.exp-modal-footer,
+.edit-modal-actions.exps-modal-footer,
+.edit-modal-actions.doc-modal-footer,
+.edit-modal-actions.pt-modal-footer,
+.edit-modal-actions.mc-modal-footer {
     margin-top: 36px;
 }
 
@@ -2338,5 +2713,699 @@
     }
     .amm-material-qty {
         flex: 1 1 100% !important;
+    }
+}
+
+/* ── Log Site Diary Entry modal (SiteDiaryManager) / Record Waste modal
+   (AddStockMovementModal) — mobile bottom sheets, mechanically identical
+   to the six above: same 540px breakpoint, corner radius, max-height,
+   and aqSheetUp animation, reused rather than redefined, plus the same
+   align-items/text-align .loader-modal-box fix and corrected
+   touch-target field sizing. Kept as their own separate rule set (not
+   merged into the shared selector lists above) so the already-working
+   modals stay completely untouched. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.sdm-overlay,
+    .submit-loader-overlay.asm-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+
+    .edit-modal.sdm-modal,
+    .edit-modal.asm-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .sdm-modal-header,
+    .asm-modal-header {
+        flex-shrink: 0;
+        padding: 26px 20px 0;
+    }
+    /* Record Waste's intro <p> sits in the header too — tighten its
+       spacing to sit under the tightened h2 (matches .ac-modal-header's
+       own .admin-subtitle rule). */
+    .asm-modal-header .admin-subtitle {
+        margin: 6px 0 0 !important;
+    }
+
+    .sdm-modal-body,
+    .asm-modal-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 0 20px 20px;
+    }
+    .sdm-modal-body form,
+    .asm-modal-body form {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+
+    .edit-modal-actions.sdm-modal-footer,
+    .edit-modal-actions.asm-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.sdm-modal-footer button,
+    .edit-modal-actions.asm-modal-footer button {
+        width: 100% !important;
+    }
+
+    /* Field sizing — same corrected touch-target treatment as the other
+       six bottom sheets; ties in specificity with .edit-modal
+       p/.edit-modal input[type="..."] (list.css) otherwise, so needs
+       !important to reliably win regardless of stylesheet import order. */
+    .sdm-modal-body p,
+    .asm-modal-body p {
+        font-size: 0.7rem !important;
+        letter-spacing: 1.2px !important;
+        margin-bottom: 8px !important;
+    }
+    .sdm-modal-body .wizard-field-grid,
+    .asm-modal-body .wizard-field-grid {
+        gap: 20px;
+    }
+    .sdm-modal-body input[type="text"],
+    .sdm-modal-body input[type="date"],
+    .sdm-modal-body textarea,
+    .sdm-modal-body select,
+    .asm-modal-body input[type="text"],
+    .asm-modal-body input[type="number"],
+    .asm-modal-body input[type="date"],
+    .asm-modal-body select {
+        font-size: 16px !important;
+        padding: 15px 16px !important;
+        border-radius: 10px !important;
+    }
+    /* StyledSelect/StyledDatePicker's trigger button isn't a real
+       <input> — already higher specificity than .add-cat-trigger's own
+       base rule (add.css), so no !important needed here. */
+    .sdm-modal-body .add-cat-trigger,
+    .asm-modal-body .add-cat-trigger {
+        padding: 15px 16px;
+        font-size: 16px;
+        border-radius: 10px;
+    }
+}
+
+/* ── Generate Running Bill / GST edit modals (RunningBillsManager) —
+   mobile bottom sheets, mechanically identical to the seven above: same
+   540px breakpoint, corner radius, max-height, and aqSheetUp animation,
+   plus the same align-items/text-align .loader-modal-box fix and
+   corrected touch-target field sizing. Generate Bill also carries its own
+   nested "available work" table (rbg-row, reconciled against the generic
+   ≤480px hijack in list.css same as every other nested table this
+   session). */
+@media (max-width: 540px) {
+    .submit-loader-overlay.rbg-overlay,
+    .submit-loader-overlay.rbgst-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+
+    .edit-modal.rbg-modal,
+    .edit-modal.rbgst-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .rbg-modal-header,
+    .rbgst-modal-header {
+        flex-shrink: 0;
+        padding: 26px 20px 0;
+    }
+    .rbg-modal-header .admin-subtitle,
+    .rbgst-modal-header .admin-subtitle {
+        margin: 6px 0 0 !important;
+    }
+
+    .rbg-modal-body,
+    .rbgst-modal-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 0 20px 20px;
+    }
+    /* Desktop neutralizes .edit-modal form's flex/gap (see the base-level
+       rule above this modal never had a <form> before), but mobile wants
+       exactly that flex-column scroll behavior back — same gap as every
+       other bottom sheet's form. */
+    .edit-modal.rbg-modal .rbg-modal-body form,
+    .edit-modal.rbgst-modal .rbgst-modal-body form {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+
+    .edit-modal-actions.rbg-modal-footer,
+    .edit-modal-actions.rbgst-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.rbg-modal-footer button,
+    .edit-modal-actions.rbgst-modal-footer button {
+        width: 100% !important;
+    }
+
+    .rbg-modal-body p,
+    .rbgst-modal-body p {
+        font-size: 0.7rem !important;
+        letter-spacing: 1.2px !important;
+        margin-bottom: 8px !important;
+    }
+    .rbg-modal-body input[type="number"],
+    .rbgst-modal-body input[type="number"] {
+        font-size: 16px !important;
+        padding: 15px 16px !important;
+        border-radius: 10px !important;
+    }
+    /* Period From's chip buttons wrap fine as-is (flex-wrap already
+       inline) — just give them a comfortable touch target. */
+    .rbg-modal-body .labour-chip {
+        padding: 10px 14px !important;
+        font-size: 0.78rem !important;
+    }
+    .rbg-modal-body .add-cat-trigger {
+        padding: 15px 16px;
+        font-size: 16px;
+        border-radius: 10px;
+    }
+    /* rbg-row itself (the nested available-work table's mobile card
+       layout) is defined in list.css alongside every other in-app table,
+       at the table breakpoint (640px) rather than this modal's own
+       breakpoint (540px) — same split as wkc-row/wkl-row inside the
+       Manage Contractors/Labour sub-modals. */
+    .rbg-sqft input[type="number"] {
+        width: 100% !important;
+    }
+}
+
+/* ── Record Receipt modal (ReceiptsManager) — mobile bottom sheet,
+   mechanically identical to the modals above. Its own footer keeps the
+   standard 36px desktop compensation (see the shared selector list
+   above) since, unlike Generate Bill/GST edit, it already had a real
+   <form> before this session — only the footer moved outside it. */
+@media (max-width: 540px) {
+    .rcpt-header-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px;
+    }
+    .rcpt-header-row .add-btn { width: 100%; }
+
+    .submit-loader-overlay.rcpt-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+
+    .edit-modal.rcpt-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .rcpt-modal-header {
+        flex-shrink: 0;
+        padding: 26px 20px 0;
+    }
+
+    .rcpt-modal-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 0 20px 20px;
+    }
+    .rcpt-modal-body .wizard-field-grid {
+        gap: 20px;
+    }
+
+    .edit-modal-actions.rcpt-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.rcpt-modal-footer button { width: 100% !important; }
+
+    .rcpt-modal-body p {
+        font-size: 0.7rem !important;
+        letter-spacing: 1.2px !important;
+        margin-bottom: 8px !important;
+    }
+    .rcpt-modal-body input[type="text"],
+    .rcpt-modal-body input[type="number"],
+    .rcpt-modal-body textarea,
+    .rcpt-modal-body select {
+        font-size: 16px !important;
+        padding: 15px 16px !important;
+        border-radius: 10px !important;
+    }
+    .rcpt-modal-body .add-cat-trigger {
+        padding: 15px 16px;
+        font-size: 16px;
+        border-radius: 10px;
+    }
+}
+
+/* ── Record Expense / Settle Expense / View Expense modals
+   (ExpensesManager) — mobile bottom sheets, same mechanics as every
+   other modal above. Record Expense and Settle Expense already had a
+   real <form> before this session (standard 36px footer compensation,
+   shared list above); View Expense never did — it's read-only, no
+   <form> at all, so its footer needs no compensation and its body is
+   just a kv-row detail list (list.css) rather than a form. */
+@media (max-width: 540px) {
+    .exp-header-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px;
+    }
+    .exp-header-row .add-btn { width: 100%; }
+
+    .submit-loader-overlay.exp-overlay,
+    .submit-loader-overlay.exps-overlay,
+    .submit-loader-overlay.expv-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+
+    .edit-modal.exp-modal,
+    .edit-modal.exps-modal,
+    .edit-modal.expv-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .exp-modal-header,
+    .exps-modal-header,
+    .expv-modal-header {
+        flex-shrink: 0;
+        padding: 26px 20px 0;
+    }
+    .exps-modal-header .admin-subtitle {
+        margin: 6px 0 0 !important;
+    }
+    .expv-modal-header h2 {
+        font-size: 1.25rem !important;
+    }
+
+    .exp-modal-body,
+    .exps-modal-body,
+    .expv-modal-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 0 20px 20px;
+    }
+    .exp-modal-body .wizard-field-grid,
+    .exps-modal-body .wizard-field-grid {
+        gap: 20px;
+    }
+
+    .edit-modal-actions.exp-modal-footer,
+    .edit-modal-actions.exps-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.exp-modal-footer button,
+    .edit-modal-actions.exps-modal-footer button {
+        width: 100% !important;
+    }
+    /* View Expense's Close button never lived inside a form (no
+       compensation to replace), just wants the same sticky-footer
+       treatment and full-width tap target as every other sheet. */
+    .edit-modal-actions.expv-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+    }
+    .edit-modal-actions.expv-modal-footer button { width: 100% !important; }
+
+    .exp-modal-body p,
+    .exps-modal-body p {
+        font-size: 0.7rem !important;
+        letter-spacing: 1.2px !important;
+        margin-bottom: 8px !important;
+    }
+    .exp-modal-body input[type="text"],
+    .exp-modal-body input[type="number"],
+    .exp-modal-body textarea,
+    .exp-modal-body select,
+    .exps-modal-body input[type="number"],
+    .exps-modal-body select {
+        font-size: 16px !important;
+        padding: 15px 16px !important;
+        border-radius: 10px !important;
+    }
+    .exp-modal-body .add-cat-trigger,
+    .exps-modal-body .add-cat-trigger {
+        padding: 15px 16px;
+        font-size: 16px;
+        border-radius: 10px;
+    }
+    /* esh-row (Settle Expense's nested payment-history table) and kv-row
+       (View Expense's label:value rows) are defined in list.css at the
+       table breakpoint (640px), same split as rbg-row above. */
+}
+
+/* ── Upload Document modal (DocumentsTab — shared by Client Detail and
+   Project Detail) — mobile bottom sheet, mechanically identical to every
+   modal above: same 540px breakpoint, corner radius, max-height, and
+   aqSheetUp animation, plus the same align-items/text-align
+   .loader-modal-box fix. Already had a real <form> before this pass
+   (wrapping wizard-field-grid + edit-modal-actions together), so the
+   standard 36px footer compensation (shared list above) applies — no
+   special no-form neutralizer needed, unlike Generate Bill/GST edit. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.doc-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+
+    .edit-modal.doc-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .doc-modal-header {
+        flex-shrink: 0;
+        padding: 26px 20px 0;
+    }
+
+    .doc-modal-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 0 20px 20px;
+    }
+
+    .edit-modal-actions.doc-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.doc-modal-footer button { width: 100% !important; }
+
+    .doc-modal-body p {
+        font-size: 0.7rem !important;
+        letter-spacing: 1.2px !important;
+        margin-bottom: 8px !important;
+    }
+    .doc-modal-body input[type="text"],
+    .doc-modal-body input[type="file"] {
+        font-size: 16px !important;
+        padding: 15px 16px !important;
+        border-radius: 10px !important;
+    }
+}
+
+/* ── Add Photos modal (PhotosTab) — mobile bottom sheet, mechanically
+   identical to every modal above: same 540px breakpoint, corner radius,
+   max-height, and aqSheetUp animation, plus the same align-items/
+   text-align .loader-modal-box fix. Already had a real <form> before
+   this pass (wrapping both fields + edit-modal-actions), so the standard
+   36px footer compensation (shared list above) applies. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.pt-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+
+    .edit-modal.pt-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .pt-modal-header {
+        flex-shrink: 0;
+        padding: 26px 20px 0;
+    }
+
+    .pt-modal-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 0 20px 20px;
+    }
+    .pt-modal-body form {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+
+    .edit-modal-actions.pt-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.pt-modal-footer button { width: 100% !important; }
+
+    .pt-modal-body p {
+        font-size: 0.7rem !important;
+        letter-spacing: 1.2px !important;
+        margin-bottom: 8px !important;
+    }
+    .pt-modal-body input[type="text"],
+    .pt-modal-body input[type="file"] {
+        font-size: 16px !important;
+        padding: 15px 16px !important;
+        border-radius: 10px !important;
+    }
+}
+
+/* ── Add/Edit modal design pass (MasterCrudTable) — all widths ──
+   Section icon: a small glyph before each group label (Contact/Bank
+   Details/Compliance/Other) so a long multi-section form has a visual
+   anchor to scan by instead of every divider reading as the same plain
+   uppercase strip — inspired by the Frontend's Consult form, which uses
+   an icon-led notice callout the same way. Required-field asterisk gets
+   its own color instead of blending into the label's own muted tone —
+   currently the ONLY thing distinguishing a required field from an
+   optional one is a single un-emphasized character. Save gets an icon
+   to match Consult's own icon-led submit button. */
+.mc-section-icon {
+    margin-right: 8px;
+    font-size: 0.7rem;
+    opacity: 0.75;
+}
+
+.mc-required-mark {
+    color: var(--gold, #c9a87c);
+    font-weight: 700;
+}
+
+.mc-modal-footer button[type="submit"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* ── Add/Edit modal (MasterCrudTable) — compact rhythm, all widths ──
+   Side-by-side against the frontend's Consult form (the explicit design
+   reference for this pass), the stock .edit-modal/.wizard-field-grid
+   defaults read as needlessly roomy: .edit-modal form's 28px flex `gap`
+   (list.css) stacks with .wizard-section-label's own 24px margin-top and
+   .wizard-field-grid's 20px margin-bottom, so a section boundary can carry
+   50px+ of dead space where Consult's equivalent (.cm-form gap, consult.css)
+   is 14px flat. !important is required to beat list.css's own !important
+   on the form gap. Scoped to .mc-modal only — every other .edit-modal
+   (Add Work, Add Vendor, etc.) keeps its original spacing. */
+.mc-modal {
+    padding: 36px !important;
+}
+.mc-modal h2 {
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+}
+.mc-modal-body form {
+    gap: 16px !important;
+}
+.mc-modal-body .wizard-section-label {
+    margin-bottom: 10px;
+}
+.mc-modal-body .wizard-section-label:not(:first-child) {
+    margin-top: 4px;
+}
+.mc-modal-body .wizard-field-grid {
+    gap: 14px;
+    margin-bottom: 0;
+}
+.mc-modal-body p {
+    font-size: 0.62rem;
+    letter-spacing: 1.4px;
+    margin-bottom: 6px;
+}
+.mc-modal-body input[type="text"],
+.mc-modal-body input[type="tel"],
+.mc-modal-body input[type="email"],
+.mc-modal-body input[type="number"],
+.mc-modal-body input[type="date"],
+.mc-modal-body textarea,
+.mc-modal-body select {
+    padding: 11px 14px;
+}
+.mc-modal-body .add-cat-trigger {
+    padding: 11px 14px;
+}
+
+/* ── Add/Edit modal (MasterCrudTable) — mobile bottom sheet, mechanically
+   identical to every modal above: same 540px breakpoint, corner radius,
+   max-height, and aqSheetUp animation, plus the same align-items/
+   text-align .loader-modal-box fix. Already had a real <form> before
+   this pass (wrapping every field group + edit-modal-actions together),
+   so the standard 36px footer compensation (shared list above) applies.
+   Shared by five resource types (Clients, Vendors, Employees, Materials,
+   Labour Teams) — one restructuring here fixes all five at once. Field
+   sizing covers every input type masterFieldRenderer.jsx can produce
+   (plain inputs, textarea, select, and the StyledSelect/StyledDatePicker/
+   QuickAddPicker trigger button style, .add-cat-trigger). */
+@media (max-width: 540px) {
+    .submit-loader-overlay.mc-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+
+    .edit-modal.mc-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .mc-modal-header {
+        flex-shrink: 0;
+        padding: 26px 20px 0;
+    }
+
+    .mc-modal-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 0 20px 20px;
+    }
+
+    /* Section dividers (groupFieldsBySection — e.g. Vendors' Contact/Bank
+       Details/Other) — same spacing treatment as Add Contractor/Add
+       Labourer's own .al-group dividers, reproduced directly on
+       .wizard-section-label since this form doesn't wrap each section in
+       its own group element. */
+    .mc-modal-body .wizard-section-label:not(:first-child) {
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px dashed rgba(201,168,124,0.25);
+    }
+
+    .edit-modal-actions.mc-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.mc-modal-footer button { width: 100% !important; }
+
+    .mc-modal-body p {
+        font-size: 0.64rem !important;
+        letter-spacing: 1.3px !important;
+        margin-bottom: 6px !important;
+    }
+    .mc-modal-body .wizard-field-grid {
+        gap: 14px;
+    }
+    .mc-modal-body input[type="text"],
+    .mc-modal-body input[type="tel"],
+    .mc-modal-body input[type="email"],
+    .mc-modal-body input[type="number"],
+    .mc-modal-body input[type="date"],
+    .mc-modal-body textarea,
+    .mc-modal-body select {
+        /* font-size stays 16px !important — anything smaller triggers
+           Safari's automatic zoom-on-focus on iOS. */
+        font-size: 16px !important;
+        padding: 13px 14px !important;
+        border-radius: 10px !important;
+    }
+    .mc-modal-body .add-cat-trigger {
+        padding: 13px 14px;
+        font-size: 16px;
+        border-radius: 10px;
     }
 }

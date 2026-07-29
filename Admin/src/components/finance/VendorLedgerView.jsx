@@ -7,6 +7,7 @@ import { ChartCard, EmptyChart, ChartTooltip, CHART_COLORS, formatINR } from './
 import StyledDatePicker from './StyledDatePicker';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import ViewAttachmentLink from './ViewAttachmentLink';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -205,7 +206,7 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                             <p>{p.paymentMode || '-'}</p>
                             <p>{p.bankAccountId?.accountName || 'Cash'}</p>
                             <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
-                            <p>{p.attachmentUrl ? <a href={p.attachmentUrl} target="_blank" rel="noreferrer">View</a> : '-'}</p>
+                            <p>{p.attachmentUrl ? <ViewAttachmentLink url={p.attachmentUrl}>View</ViewAttachmentLink> : '-'}</p>
                             <div className="action-buttons"><p onClick={() => removePayment(p._id)} className="cursor delete-action">X</p></div>
                         </div>
                     ))}

@@ -11,7 +11,11 @@ export const FINANCE_MASTERS = {
             { key: 'phone', label: 'Phone', type: 'tel', section: 'Contact' },
             { key: 'email', label: 'Email', type: 'email', section: 'Contact' },
             { key: 'address', label: 'Address', type: 'textarea', section: 'Contact' },
-            { key: 'gstNumber', label: 'GSTIN (if GST-registered)', type: 'text', section: 'Contact' },
+            // Its own section, not grouped under Contact — a tax ID isn't
+            // "how to reach this client," and splitting it out gives the
+            // Add Client form a clear break between "who they are" and
+            // "banking/compliance paperwork" instead of one long list.
+            { key: 'gstNumber', label: 'GSTIN (if GST-registered)', type: 'text', section: 'Compliance' },
             { key: 'accountName', label: 'Bank Account Holder Name', type: 'text', required: true, section: 'Bank Details' },
             { key: 'bankName', label: 'Bank Name', type: 'text', required: true, section: 'Bank Details' },
             { key: 'accountNumber', label: 'Account Number', type: 'text', required: true, section: 'Bank Details' },

@@ -8,6 +8,7 @@ import StyledSelect from './StyledSelect';
 import DownloadButton from './DownloadButton';
 import { useFileDownload } from '../../hooks/useFileDownload';
 import StyledDatePicker from './StyledDatePicker';
+import ViewAttachmentLink from './ViewAttachmentLink';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
@@ -504,7 +505,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                             <p>{p.paymentMode || '-'}</p>
                             <p>{p.bankAccountId?.accountName || 'Cash'}</p>
                             <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
-                            <p>{p.attachmentUrl ? <a href={p.attachmentUrl} target="_blank" rel="noreferrer">View</a> : '-'}</p>
+                            <p>{p.attachmentUrl ? <ViewAttachmentLink url={p.attachmentUrl}>View</ViewAttachmentLink> : '-'}</p>
                             <div className="action-buttons"><p onClick={() => remove('payment', p._id)} className="cursor delete-action">X</p></div>
                         </div>
                     ))}

@@ -28,6 +28,16 @@ const buildBreakdownSub = (parts) => {
  * running bills, which aren't measurement-dated), same reasoning
  * WorkDetail.jsx documents for why its own scope picker never touches
  * Revenue/Profit either.
+ *
+ * KpiGrid/KpiCard already have their own mobile treatment (dashboard.css)
+ * — the four raw list-table.finance-table tables below (Unapproved,
+ * Direct Payments, Contractor/Labourer earnings) didn't, and are the
+ * only things this pass touches. pp-earn-row's 8 columns are the densest
+ * table in Project Detail — Name stays its own column, the middle 6
+ * figures group into pp-earn-stats (a 2-column mobile grid; display:
+ * contents on desktop so it doesn't disturb the existing 8-column row),
+ * Balance Payable stays its own emphasized field since it's the one
+ * number this table exists to answer.
  */
 const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
     const token = localStorage.getItem('token');
@@ -196,16 +206,18 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
             {(profit.unapprovedAreaSqft > 0 || profit.unapprovedCommissionCost > 0) && (
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                    <div className="list-table-format title pp-unapp-row pp-unapp-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
                         <b>Area</b><b>Contractor Unapproved</b><b>Labour Unapproved</b><b>Commission</b><b>Revenue</b><b>Profit</b>
                     </div>
-                    <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                        <p>{profit.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
-                        <p>{formatINR(profit.unapprovedContractorCost)}</p>
-                        <p>{formatINR(profit.unapprovedLabourCost)}</p>
-                        <p>{formatINR(profit.unapprovedCommissionCost)}</p>
-                        <p>{formatINR(profit.unapprovedRevenue)}</p>
-                        <p style={{ color: profit.unapprovedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>{formatINR(profit.unapprovedProfit)}</p>
+                    <div className="list-table-format row-item pp-unapp-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                        <p className="pp-unapp-field pp-unapp-area"><span className="pp-field-label">Area</span>{profit.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
+                        <p className="pp-unapp-field"><span className="pp-field-label">Contractor Unapproved</span>{formatINR(profit.unapprovedContractorCost)}</p>
+                        <p className="pp-unapp-field"><span className="pp-field-label">Labour Unapproved</span>{formatINR(profit.unapprovedLabourCost)}</p>
+                        <p className="pp-unapp-field"><span className="pp-field-label">Commission</span>{formatINR(profit.unapprovedCommissionCost)}</p>
+                        <p className="pp-unapp-field"><span className="pp-field-label">Revenue</span>{formatINR(profit.unapprovedRevenue)}</p>
+                        <p className="pp-unapp-field pp-unapp-profit" style={{ color: profit.unapprovedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>
+                            <span className="pp-field-label">Profit</span>{formatINR(profit.unapprovedProfit)}
+                        </p>
                     </div>
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
                         Logged work whose cost isn't counted in Profit yet — review it in Payables/Receivables → Deductions to move it in. Revenue/Profit here are what this same unapproved work would add once reviewed and billed.
@@ -219,19 +231,19 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
             {(profit.directPaymentContractorTotal > 0 || profit.directPaymentLabourTotal > 0) && (
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Direct Payments (Client → Workers)</b></div>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                    <div className="list-table-format title pp-dp-row pp-dp-header" style={{ gridTemplateColumns: '1fr 1fr' }}>
                         <b>Party</b><b>Total</b>
                     </div>
                     {profit.directPaymentContractorTotal > 0 && (
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                            <p>Contractor</p>
-                            <p>{formatINR(profit.directPaymentContractorTotal)}</p>
+                        <div className="list-table-format row-item pp-dp-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                            <p className="pp-dp-party">Contractor</p>
+                            <p className="pp-dp-total">{formatINR(profit.directPaymentContractorTotal)}</p>
                         </div>
                     )}
                     {profit.directPaymentLabourTotal > 0 && (
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                            <p>Labour</p>
-                            <p>{formatINR(profit.directPaymentLabourTotal)}</p>
+                        <div className="list-table-format row-item pp-dp-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                            <p className="pp-dp-party">Labour</p>
+                            <p className="pp-dp-total">{formatINR(profit.directPaymentLabourTotal)}</p>
                         </div>
                     )}
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
@@ -268,19 +280,23 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                 <div className="admin-empty-state"><p>No contractor has logged work on this project yet.</p></div>
             ) : (
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr' }}>
+                    <div className="list-table-format title pp-earn-row pp-earn-header" style={{ gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr' }}>
                         <b>Contractor</b><b>Total Logged</b><b>Approved Earnings</b><b>Advances</b><b>Deductions</b><b>Direct Pay</b><b>Payments</b><b>Balance Payable</b>
                     </div>
                     {contractors.map(c => (
-                        <div key={c.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr' }}>
-                            <p>{c.vendorName}</p>
-                            <p>{formatINR(c.totalAmount)}</p>
-                            <p>{formatINR(c.earnings)}</p>
-                            <p>{formatINR(c.advances)}</p>
-                            <p>{formatINR(c.deductions)}</p>
-                            <p>{formatINR(c.directPaymentTotal || 0)}</p>
-                            <p>{formatINR(c.payments)}</p>
-                            <p style={{ color: c.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>{formatINR(c.balancePayable)}</p>
+                        <div key={c.vendorId} className="list-table-format row-item pp-earn-row" style={{ gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr' }}>
+                            <p className="pp-earn-name">{c.vendorName}</p>
+                            <div className="pp-earn-stats">
+                                <p className="pp-earn-field"><span className="pp-field-label">Total Logged</span>{formatINR(c.totalAmount)}</p>
+                                <p className="pp-earn-field"><span className="pp-field-label">Approved Earnings</span>{formatINR(c.earnings)}</p>
+                                <p className="pp-earn-field"><span className="pp-field-label">Advances</span>{formatINR(c.advances)}</p>
+                                <p className="pp-earn-field"><span className="pp-field-label">Deductions</span>{formatINR(c.deductions)}</p>
+                                <p className="pp-earn-field"><span className="pp-field-label">Direct Pay</span>{formatINR(c.directPaymentTotal || 0)}</p>
+                                <p className="pp-earn-field"><span className="pp-field-label">Payments</span>{formatINR(c.payments)}</p>
+                            </div>
+                            <p className="pp-earn-balance" style={{ color: c.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>
+                                <span className="pp-field-label">Balance Payable</span>{formatINR(c.balancePayable)}
+                            </p>
                         </div>
                     ))}
                 </div>
@@ -290,19 +306,23 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                 <div className="admin-empty-state"><p>No labourer has logged work on this project yet.</p></div>
             ) : (
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr' }}>
+                    <div className="list-table-format title pp-earn-row pp-earn-header" style={{ gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr' }}>
                         <b>Labourer</b><b>Total Logged</b><b>Approved Earnings</b><b>Advances</b><b>Deductions</b><b>Direct Pay</b><b>Payments</b><b>Balance Payable</b>
                     </div>
                     {labourers.map(l => (
-                        <div key={l.labourerId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr' }}>
-                            <p>{l.labourerName}</p>
-                            <p>{formatINR(l.totalAmount)}</p>
-                            <p>{formatINR(l.earnings)}</p>
-                            <p>{formatINR(l.advances)}</p>
-                            <p>{formatINR(l.deductions)}</p>
-                            <p>{formatINR(l.directPaymentTotal || 0)}</p>
-                            <p>{formatINR(l.payments)}</p>
-                            <p style={{ color: l.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>{formatINR(l.balancePayable)}</p>
+                        <div key={l.labourerId} className="list-table-format row-item pp-earn-row" style={{ gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr' }}>
+                            <p className="pp-earn-name">{l.labourerName}</p>
+                            <div className="pp-earn-stats">
+                                <p className="pp-earn-field"><span className="pp-field-label">Total Logged</span>{formatINR(l.totalAmount)}</p>
+                                <p className="pp-earn-field"><span className="pp-field-label">Approved Earnings</span>{formatINR(l.earnings)}</p>
+                                <p className="pp-earn-field"><span className="pp-field-label">Advances</span>{formatINR(l.advances)}</p>
+                                <p className="pp-earn-field"><span className="pp-field-label">Deductions</span>{formatINR(l.deductions)}</p>
+                                <p className="pp-earn-field"><span className="pp-field-label">Direct Pay</span>{formatINR(l.directPaymentTotal || 0)}</p>
+                                <p className="pp-earn-field"><span className="pp-field-label">Payments</span>{formatINR(l.payments)}</p>
+                            </div>
+                            <p className="pp-earn-balance" style={{ color: l.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>
+                                <span className="pp-field-label">Balance Payable</span>{formatINR(l.balancePayable)}
+                            </p>
                         </div>
                     ))}
                 </div>

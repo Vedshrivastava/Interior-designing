@@ -9,6 +9,8 @@ import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import QuickAddPicker from './QuickAddPicker';
 import { RELATED_TO_UI_OPTIONS, relatedToUiConfig } from '../../config/relatedToTypes';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -57,6 +59,18 @@ const workLabel = (w) => `${w.workType}${w.workOrderNumber ? ` · ${w.workOrderN
  *     Company Expenses tab — Related To field/column disappears, always
  *     posting that fixed type+id (e.g. every director hotel stay tagged
  *     straight to the company, no picker step).
+ *
+ * exp-row/exp-header: main list mobile card hooks. Category/Project/Work/
+ * Related To are conditionally rendered depending on the four scoping
+ * props — each optional field carries its own inline .exp-field-label
+ * (hidden on desktop, shown on mobile), same self-labeling pattern as
+ * ProjectOverviewTab's .ov-field-label, since a single fixed
+ * grid-template-areas layout can't account for a variable column set.
+ * exp-overlay/exp-modal: "Record Expense" bottom sheet.
+ * exps-overlay/exps-modal: "Settle Expense" bottom sheet; esh-row is the
+ * mobile card hook for its nested payment-history table.
+ * expv-overlay/expv-modal: "View Expense" detail bottom sheet — kv-row is
+ * the mobile hook for its label:value rows.
  */
 const STATUS_FILTERS = [
     { key: 'all',     label: 'All' },
@@ -275,7 +289,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            <div className="exp-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                 {heading ? (
                     <div>
                         <h3 style={{ margin: '0 0 4px' }}>{heading.title}</h3>
@@ -296,93 +310,99 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
             )}
 
             {modalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>Record Expense</h2>
-                        <form onSubmit={submit}>
-                            <div className="wizard-field-grid">
-                                {!hideCategoryField && (
+                <div className="submit-loader-overlay exp-overlay" style={{ zIndex: 100000 }}>
+                    <div className="loader-modal-box edit-modal exp-modal">
+                        <div className="exp-modal-header">
+                            <h2>Record Expense</h2>
+                        </div>
+
+                        <div className="exp-modal-body">
+                            <form id="record-expense-form" onSubmit={submit}>
+                                <div className="wizard-field-grid">
+                                    {!hideCategoryField && (
+                                        <div className="add-product-name flex-col">
+                                            <p>Category</p>
+                                            <SettingSelectField
+                                                settingType="expense_category" options={categories.map(c => ({ _id: c, name: c }))}
+                                                value={form.expenseCategory} onChange={v => setField('expenseCategory', v)} placeholder="e.g. Fuel, Tools, Site Snacks…"
+                                            />
+                                        </div>
+                                    )}
+                                    {!hideProjectField && (
+                                        <div className="add-product-name flex-col">
+                                            <p>Project (optional, general overhead if blank)</p>
+                                            <StyledSelect
+                                                value={form.projectId} onChange={setProjectField} placeholder="General / overhead"
+                                                options={projects.map(p => ({ value: p._id, label: p.name }))}
+                                            />
+                                        </div>
+                                    )}
+                                    {!hideWorkField && (
+                                        <div className="add-product-name flex-col">
+                                            <p>Work (optional{effectiveProjectId ? '' : ', pick a project first'})</p>
+                                            <StyledSelect
+                                                value={form.workId} onChange={v => setField('workId', v)} placeholder="Not tied to a Work"
+                                                disabled={!effectiveProjectId} options={worksForProject.map(w => ({ value: w._id, label: workLabel(w) }))}
+                                            />
+                                        </div>
+                                    )}
+                                    {!hideRelatedToField && (
+                                        <div className="add-product-name flex-col">
+                                            <p>Related To (optional)</p>
+                                            <StyledSelect
+                                                value={form.relatedToUiType} onChange={setRelatedToUiType} placeholder="None"
+                                                options={RELATED_TO_UI_OPTIONS}
+                                            />
+                                        </div>
+                                    )}
+                                    {!hideRelatedToField && form.relatedToUiType && (
+                                        <div className="add-product-name flex-col">
+                                            <p>{relatedToUiConfig(form.relatedToUiType).label}</p>
+                                            <QuickAddPicker
+                                                url={url} resourceKey={relatedToUiConfig(form.relatedToUiType).resourceKey}
+                                                filter={relatedToUiConfig(form.relatedToUiType).filter}
+                                                presetValues={relatedToUiConfig(form.relatedToUiType).presetValues}
+                                                value={form.relatedToId} onChange={v => setField('relatedToId', v)}
+                                            />
+                                        </div>
+                                    )}
                                     <div className="add-product-name flex-col">
-                                        <p>Category</p>
-                                        <SettingSelectField
-                                            settingType="expense_category" options={categories.map(c => ({ _id: c, name: c }))}
-                                            value={form.expenseCategory} onChange={v => setField('expenseCategory', v)} placeholder="e.g. Fuel, Tools, Site Snacks…"
-                                        />
+                                        <p>Amount (₹) *</p>
+                                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => setField('amount', e.target.value)} />
                                     </div>
-                                )}
-                                {!hideProjectField && (
                                     <div className="add-product-name flex-col">
-                                        <p>Project (optional, general overhead if blank)</p>
-                                        <StyledSelect
-                                            value={form.projectId} onChange={setProjectField} placeholder="General / overhead"
-                                            options={projects.map(p => ({ value: p._id, label: p.name }))}
-                                        />
+                                        <p>GST Rate % (optional, if claimable)</p>
+                                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.gstRate} onChange={e => setField('gstRate', e.target.value)} />
                                     </div>
-                                )}
-                                {!hideWorkField && (
                                     <div className="add-product-name flex-col">
-                                        <p>Work (optional{effectiveProjectId ? '' : ', pick a project first'})</p>
-                                        <StyledSelect
-                                            value={form.workId} onChange={v => setField('workId', v)} placeholder="Not tied to a Work"
-                                            disabled={!effectiveProjectId} options={worksForProject.map(w => ({ value: w._id, label: workLabel(w) }))}
-                                        />
+                                        <p>Date *</p>
+                                        <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
                                     </div>
-                                )}
-                                {!hideRelatedToField && (
                                     <div className="add-product-name flex-col">
-                                        <p>Related To (optional)</p>
-                                        <StyledSelect
-                                            value={form.relatedToUiType} onChange={setRelatedToUiType} placeholder="None"
-                                            options={RELATED_TO_UI_OPTIONS}
-                                        />
+                                        <p>Payment Status</p>
+                                        <StyledSelect value={paidNow ? 'paid' : 'pending'} onChange={v => setPaidNow(v === 'paid')} options={PAID_STATUS_OPTIONS} />
                                     </div>
-                                )}
-                                {!hideRelatedToField && form.relatedToUiType && (
-                                    <div className="add-product-name flex-col">
-                                        <p>{relatedToUiConfig(form.relatedToUiType).label}</p>
-                                        <QuickAddPicker
-                                            url={url} resourceKey={relatedToUiConfig(form.relatedToUiType).resourceKey}
-                                            filter={relatedToUiConfig(form.relatedToUiType).filter}
-                                            presetValues={relatedToUiConfig(form.relatedToUiType).presetValues}
-                                            value={form.relatedToId} onChange={v => setField('relatedToId', v)}
-                                        />
+                                    {paidNow && (
+                                        <div className="add-product-name flex-col">
+                                            <p>Bank Account (leave blank if cash)</p>
+                                            <StyledSelect
+                                                value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
+                                                options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="add-product-name flex-col wizard-field-full">
+                                        <p>Notes</p>
+                                        <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} placeholder="What was this actually for?" />
                                     </div>
-                                )}
-                                <div className="add-product-name flex-col">
-                                    <p>Amount (₹) *</p>
-                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => setField('amount', e.target.value)} />
                                 </div>
-                                <div className="add-product-name flex-col">
-                                    <p>GST Rate % (optional, if claimable)</p>
-                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.gstRate} onChange={e => setField('gstRate', e.target.value)} />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Date *</p>
-                                    <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Payment Status</p>
-                                    <StyledSelect value={paidNow ? 'paid' : 'pending'} onChange={v => setPaidNow(v === 'paid')} options={PAID_STATUS_OPTIONS} />
-                                </div>
-                                {paidNow && (
-                                    <div className="add-product-name flex-col">
-                                        <p>Bank Account (leave blank if cash)</p>
-                                        <StyledSelect
-                                            value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
-                                            options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
-                                        />
-                                    </div>
-                                )}
-                                <div className="add-product-name flex-col wizard-field-full">
-                                    <p>Notes</p>
-                                    <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} placeholder="What was this actually for?" />
-                                </div>
-                            </div>
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Record Expense'}</button>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
+
+                        <div className="edit-modal-actions exp-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
+                            <button type="submit" form="record-expense-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Record Expense'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body
@@ -396,7 +416,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                 <div className="admin-empty-state"><p>Nothing matches this filter.</p></div>
             ) : (
                 <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: columns }}>
+                    <div className="list-table-format title exp-row exp-header" style={{ gridTemplateColumns: columns }}>
                         <b>Date</b>
                         {!hideCategoryField && <b>Category</b>}
                         {!hideProjectField && <b>Project</b>}
@@ -408,24 +428,36 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                             const status = statusFor(e);
                             return (
                                 <div
-                                    key={e._id} id={`expense-row-${e._id}`} className="list-table-format row-item"
+                                    key={e._id} id={`expense-row-${e._id}`} className="list-table-format row-item exp-row"
                                     style={{ gridTemplateColumns: columns, ...(flashId === e._id ? { background: 'rgba(201,168,124,0.28)', transition: 'background 2s ease' } : {}) }}
                                 >
-                                    <p>{new Date(e.date).toLocaleDateString()}</p>
-                                    {!hideCategoryField && <p>{e.expenseCategory || '-'}</p>}
-                                    {!hideProjectField && <p>{e.projectId?.name || 'General'}</p>}
-                                    {!hideWorkField && <p>{e.workId?.workType || '-'}</p>}
-                                    {!hideRelatedToField && <p>{e.relatedToId?.name || e.relatedToId?.companyName || '-'}</p>}
-                                    <p>₹{e.amount.toLocaleString('en-IN')}</p>
-                                    <p>₹{e.paidAmount.toLocaleString('en-IN')}</p>
-                                    <p><span className="item-category" style={{ color: status.color }}>{status.label}</span></p>
-                                    <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
+                                    <p className="exp-date">{new Date(e.date).toLocaleDateString()}</p>
+                                    <div className="exp-fields">
+                                        {!hideCategoryField && (
+                                            <p className="exp-field exp-category"><span className="exp-field-label">Category</span>{e.expenseCategory || '-'}</p>
+                                        )}
+                                        {!hideProjectField && (
+                                            <p className="exp-field exp-project"><span className="exp-field-label">Project</span>{e.projectId?.name || 'General'}</p>
+                                        )}
+                                        {!hideWorkField && (
+                                            <p className="exp-field exp-work"><span className="exp-field-label">Work</span>{e.workId?.workType || '-'}</p>
+                                        )}
+                                        {!hideRelatedToField && (
+                                            <p className="exp-field exp-relatedto"><span className="exp-field-label">Related To</span>{e.relatedToId?.name || e.relatedToId?.companyName || '-'}</p>
+                                        )}
+                                    </div>
+                                    <p className="exp-amount"><span className="exp-field-label">Amount</span>₹{e.amount.toLocaleString('en-IN')}</p>
+                                    <p className="exp-paid"><span className="exp-field-label">Paid</span>₹{e.paidAmount.toLocaleString('en-IN')}</p>
+                                    <p className="exp-status"><span className="item-category" style={{ color: status.color }}>{status.label}</span></p>
+                                    <div className="action-buttons exp-actions" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
                                         <p onClick={() => setViewTarget(e)} className="cursor edit-action">View</p>
                                         {fixedProjectId && (
                                             <p onClick={() => navigate(`/finance/payables?tab=expenses&expenseId=${e._id}`)} className="cursor edit-action">Details</p>
                                         )}
                                         {e.balance > 0 && <p onClick={() => openSettle(e)} className="cursor edit-action">Settle</p>}
-                                        <p onClick={() => remove(e._id)} className="cursor delete-action">X</p>
+                                        <button type="button" onClick={() => remove(e._id)} className="pq-btn-ghost-danger" title="Remove expense" aria-label="Remove expense">
+                                            <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                        </button>
                                     </div>
                                 </div>
                             );
@@ -434,88 +466,118 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
             )}
 
             {settleTarget && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>Settle Expense: {settleTarget.expenseCategory || 'General'}</h2>
-                        <p className="admin-subtitle" style={{ margin: '4px 0 16px' }}>
-                            Amount ₹{settleTarget.amount.toLocaleString('en-IN')} · Paid ₹{settleTarget.paidAmount?.toLocaleString('en-IN') ?? '0'} · Balance ₹{settleTarget.balance.toLocaleString('en-IN')}
-                        </p>
+                <div className="submit-loader-overlay exps-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal exps-modal">
+                        <div className="exps-modal-header">
+                            <h2>Settle Expense: {settleTarget.expenseCategory || 'General'}</h2>
+                            <p className="admin-subtitle" style={{ margin: '4px 0 16px' }}>
+                                Amount ₹{settleTarget.amount.toLocaleString('en-IN')} · Paid ₹{settleTarget.paidAmount?.toLocaleString('en-IN') ?? '0'} · Balance ₹{settleTarget.balance.toLocaleString('en-IN')}
+                            </p>
+                        </div>
 
-                        {paymentsLoading ? (
-                            <div className="admin-empty-state"><p>Loading…</p></div>
-                        ) : payments.length > 0 && (
-                            <div className="list-table finance-table" style={{ marginBottom: '16px' }}>
-                                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
-                                    <b>Date</b><b>Amount</b><b>Mode</b>
-                                </div>
-                                {payments.map(p => (
-                                    <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
-                                        <p>{new Date(p.date).toLocaleDateString()}</p>
-                                        <p>₹{p.amount.toLocaleString('en-IN')}</p>
-                                        <p>{p.bankAccountId?.accountName || 'Cash'}</p>
+                        <div className="exps-modal-body">
+                            {paymentsLoading ? (
+                                <div className="admin-empty-state"><p>Loading…</p></div>
+                            ) : payments.length > 0 && (
+                                <div className="list-table finance-table" style={{ marginBottom: '16px' }}>
+                                    <div className="list-table-format title esh-row esh-header" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                                        <b>Date</b><b>Amount</b><b>Mode</b>
                                     </div>
-                                ))}
-                            </div>
-                        )}
+                                    {payments.map(p => (
+                                        <div key={p._id} className="list-table-format row-item esh-row" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                                            <p className="esh-date">{new Date(p.date).toLocaleDateString()}</p>
+                                            <p className="esh-amount">₹{p.amount.toLocaleString('en-IN')}</p>
+                                            <p className="esh-mode">{p.bankAccountId?.accountName || 'Cash'}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
 
-                        <form onSubmit={submitSettle}>
-                            <div className="wizard-field-grid">
-                                <div className="add-product-name flex-col">
-                                    <p>Payment Amount (₹) *</p>
-                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={settleForm.amount} onChange={e => setSettleField('amount', e.target.value)} />
+                            <form id="settle-expense-form" onSubmit={submitSettle}>
+                                <div className="wizard-field-grid">
+                                    <div className="add-product-name flex-col">
+                                        <p>Payment Amount (₹) *</p>
+                                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={settleForm.amount} onChange={e => setSettleField('amount', e.target.value)} />
+                                    </div>
+                                    <div className="add-product-name flex-col">
+                                        <p>Date *</p>
+                                        <StyledDatePicker value={settleForm.date} onChange={v => setSettleField('date', v)} />
+                                    </div>
+                                    <div className="add-product-name flex-col wizard-field-full">
+                                        <p>Bank Account (leave blank if cash)</p>
+                                        <StyledSelect
+                                            value={settleForm.bankAccountId} onChange={v => setSettleField('bankAccountId', v)} placeholder="Cash"
+                                            options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Date *</p>
-                                    <StyledDatePicker value={settleForm.date} onChange={v => setSettleField('date', v)} />
-                                </div>
-                                <div className="add-product-name flex-col wizard-field-full">
-                                    <p>Bank Account (leave blank if cash)</p>
-                                    <StyledSelect
-                                        value={settleForm.bankAccountId} onChange={v => setSettleField('bankAccountId', v)} placeholder="Cash"
-                                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
-                                    />
-                                </div>
-                            </div>
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={closeSettle}>Close</button>
-                                <button type="submit" className="add-btn" disabled={settling}>{settling ? 'Saving…' : '+ Add Payment'}</button>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
+
+                        <div className="edit-modal-actions exps-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={closeSettle}>Close</button>
+                            <button type="submit" form="settle-expense-form" className="add-btn" disabled={settling}>{settling ? 'Saving…' : '+ Add Payment'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body
             )}
 
             {viewTarget && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }} onClick={() => setViewTarget(null)}>
-                    <div className="loader-modal-box edit-modal" onClick={e => e.stopPropagation()}>
-                        <h2>{viewTarget.expenseCategory || 'General'} · ₹{viewTarget.amount.toLocaleString('en-IN')}</h2>
-                        <div className="list-table finance-table" style={{ marginTop: '12px' }}>
-                            {[
-                                ['Category', viewTarget.expenseCategory || '-'],
-                                ['Amount', `₹${viewTarget.amount.toLocaleString('en-IN')}`],
-                                ['GST Claimable', viewTarget.gstAmount ? `₹${viewTarget.gstAmount.toLocaleString('en-IN')} (${viewTarget.gstRate}%)` : 'None'],
-                                ['Paid', `₹${viewTarget.paidAmount.toLocaleString('en-IN')}`],
-                                ['Balance', `₹${viewTarget.balance.toLocaleString('en-IN')}`],
-                                ['Status', statusFor(viewTarget).label],
-                                ['Date', new Date(viewTarget.date).toLocaleDateString()],
-                                ['Project', viewTarget.projectId?.name || 'General / overhead'],
-                                ['Work', viewTarget.workId?.workType || 'Not tied to a Work'],
-                                ['Related To', viewTarget.relatedToId ? `${relatedToTypeLabel(viewTarget)}: ${viewTarget.relatedToId.name || viewTarget.relatedToId.companyName}` : 'None'],
-                                ['Payment Mode', viewTarget.paymentMode || '-'],
-                                ['Bank Account', viewTarget.bankAccountId?.accountName || (viewTarget.paymentMode ? 'Cash' : '-')],
-                                ['Bank / Cash Label', viewTarget.bankOrCashLabel || '-'],
-                                ['Recorded', viewTarget.createdAt ? new Date(viewTarget.createdAt).toLocaleString() : '-'],
-                            ].map(([label, value]) => (
-                                <div key={label} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.4fr' }}>
-                                    <p><b>{label}</b></p><p>{value}</p>
+                <div className="submit-loader-overlay expv-overlay" style={{ zIndex: 99999 }} onClick={() => setViewTarget(null)}>
+                    <div className="loader-modal-box edit-modal expv-modal" onClick={e => e.stopPropagation()}>
+                        <div className="expv-modal-header">
+                            <h2>{viewTarget.expenseCategory || 'General'} · ₹{viewTarget.amount.toLocaleString('en-IN')}</h2>
+                        </div>
+
+                        <div className="expv-modal-body">
+                            <div className="list-table finance-table" style={{ marginTop: '12px' }}>
+                                {/* Amount/Status/Paid/Balance/GST/Date are the figures
+                                    someone opening this modal actually wants at a glance —
+                                    grouped into their own block (expv-stat-grid) so mobile
+                                    can pair them two-per-line instead of 6 full-width rows
+                                    in a row; desktop is untouched (display:contents below
+                                    keeps every .kv-row a normal direct list-table child,
+                                    identical to before). The remaining fields are lower-
+                                    priority metadata (links, payment plumbing, recording
+                                    timestamp) and stay a plain stacked list. */}
+                                <div className="expv-stat-grid">
+                                    {[
+                                        ['Amount', `₹${viewTarget.amount.toLocaleString('en-IN')}`, null, true],
+                                        ['Status', statusFor(viewTarget).label, statusFor(viewTarget).color, true],
+                                        ['Paid', `₹${viewTarget.paidAmount.toLocaleString('en-IN')}`],
+                                        ['Balance', `₹${viewTarget.balance.toLocaleString('en-IN')}`, null, true],
+                                        ['GST Claimable', viewTarget.gstAmount ? `₹${viewTarget.gstAmount.toLocaleString('en-IN')} (${viewTarget.gstRate}%)` : 'None'],
+                                        ['Date', new Date(viewTarget.date).toLocaleDateString()],
+                                    ].map(([label, value, color, emphasize]) => (
+                                        <div key={label} className={`list-table-format row-item kv-row${emphasize ? ' expv-stat-emphasis' : ''}`} style={{ gridTemplateColumns: '1fr 1.4fr' }}>
+                                            <p><b>{label}</b></p><p style={color ? { color } : undefined}>{value}</p>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                            <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.4fr', alignItems: 'start' }}>
-                                <p><b>Notes</b></p><p style={{ whiteSpace: 'pre-wrap' }}>{viewTarget.notes || '-'}</p>
+                                <div className="expv-details-list">
+                                    {[
+                                        ['Category', viewTarget.expenseCategory || '-'],
+                                        ['Project', viewTarget.projectId?.name || 'General / overhead'],
+                                        ['Work', viewTarget.workId?.workType || 'Not tied to a Work'],
+                                        ['Related To', viewTarget.relatedToId ? `${relatedToTypeLabel(viewTarget)}: ${viewTarget.relatedToId.name || viewTarget.relatedToId.companyName}` : 'None'],
+                                        ['Payment Mode', viewTarget.paymentMode || '-'],
+                                        ['Bank Account', viewTarget.bankAccountId?.accountName || (viewTarget.paymentMode ? 'Cash' : '-')],
+                                        ['Bank / Cash Label', viewTarget.bankOrCashLabel || '-'],
+                                        ['Recorded', viewTarget.createdAt ? new Date(viewTarget.createdAt).toLocaleString() : '-'],
+                                    ].map(([label, value]) => (
+                                        <div key={label} className="list-table-format row-item kv-row" style={{ gridTemplateColumns: '1fr 1.4fr' }}>
+                                            <p><b>{label}</b></p><p>{value}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="list-table-format row-item kv-row expv-notes-row" style={{ gridTemplateColumns: '1fr 1.4fr', alignItems: 'start' }}>
+                                    <p><b>Notes</b></p><p style={{ whiteSpace: 'pre-wrap' }}>{viewTarget.notes || '-'}</p>
+                                </div>
                             </div>
                         </div>
-                        <div className="edit-modal-actions">
+
+                        <div className="edit-modal-actions expv-modal-footer">
                             <button type="button" className="add-btn cancel-btn" onClick={() => setViewTarget(null)}>Close</button>
                         </div>
                     </div>

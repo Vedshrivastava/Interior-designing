@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import ViewAttachmentLink from './ViewAttachmentLink';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -12,6 +15,9 @@ import '../../styles/add.css';
  * site approvals, floor plans — specific to this job). Same backend shape
  * on both sides (financeClientDocument / financeProjectDocument), so this
  * only needs the API prefix and the scope field name to work either way.
+ *
+ * doc-row/doc-header: main table mobile card hooks.
+ * doc-overlay/doc-modal: "Upload Document" bottom sheet.
  */
 const DocumentsTab = ({ url, apiBase, scopeParam, scopeId, title = 'Documents', subtitle = 'Files on record: work orders, approvals, agreements, and anything else worth keeping.', emptyText = 'No documents on file yet.' }) => {
     const token = localStorage.getItem('token');
@@ -78,7 +84,7 @@ const DocumentsTab = ({ url, apiBase, scopeParam, scopeId, title = 'Documents', 
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            <div className="doc-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                 <div>
                     <h3 style={{ margin: '0 0 4px' }}>{title}</h3>
                     <p className="admin-subtitle" style={{ margin: 0 }}>{subtitle}</p>
@@ -87,29 +93,35 @@ const DocumentsTab = ({ url, apiBase, scopeParam, scopeId, title = 'Documents', 
             </div>
 
             {modalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>Upload Document</h2>
-                        <form onSubmit={submit}>
-                            <div className="wizard-field-grid">
-                                <div className="add-product-name flex-col wizard-field-full">
-                                    <p>File *</p>
-                                    <input type="file" onChange={e => setFile(e.target.files[0])} />
+                <div className="submit-loader-overlay doc-overlay" style={{ zIndex: 100000 }}>
+                    <div className="loader-modal-box edit-modal doc-modal">
+                        <div className="doc-modal-header">
+                            <h2>Upload Document</h2>
+                        </div>
+
+                        <div className="doc-modal-body">
+                            <form id="upload-document-form" onSubmit={submit}>
+                                <div className="wizard-field-grid">
+                                    <div className="add-product-name flex-col wizard-field-full">
+                                        <p>File *</p>
+                                        <input type="file" onChange={e => setFile(e.target.files[0])} />
+                                    </div>
+                                    <div className="add-product-name flex-col">
+                                        <p>Name</p>
+                                        <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Defaults to file name" />
+                                    </div>
+                                    <div className="add-product-name flex-col">
+                                        <p>Notes</p>
+                                        <input type="text" value={notes} onChange={e => setNotes(e.target.value)} />
+                                    </div>
                                 </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Name</p>
-                                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Defaults to file name" />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Notes</p>
-                                    <input type="text" value={notes} onChange={e => setNotes(e.target.value)} />
-                                </div>
-                            </div>
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Uploading…' : 'Upload Document'}</button>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
+
+                        <div className="edit-modal-actions doc-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
+                            <button type="submit" form="upload-document-form" className="add-btn" disabled={saving}>{saving ? 'Uploading…' : 'Upload Document'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body
@@ -121,17 +133,19 @@ const DocumentsTab = ({ url, apiBase, scopeParam, scopeId, title = 'Documents', 
                 <div className="admin-empty-state"><p>{emptyText}</p></div>
             ) : (
                 <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1fr 1.5fr 150px' }}>
+                    <div className="list-table-format title doc-row doc-header" style={{ gridTemplateColumns: '1.5fr 1fr 1.5fr 150px' }}>
                         <b>Name</b><b>Uploaded</b><b>Notes</b><b>Action</b>
                     </div>
                     {documents.map(d => (
-                        <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1fr 1.5fr 150px' }}>
-                            <p>{d.name}</p>
-                            <p>{new Date(d.createdAt).toLocaleDateString()}</p>
-                            <p>{d.notes || '-'}</p>
-                            <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
-                                <a href={d.fileUrl} target="_blank" rel="noreferrer" className="cursor edit-action" style={{ textDecoration: 'none' }}>View</a>
-                                <p onClick={() => setConfirmItem(d)} className="cursor delete-action">X</p>
+                        <div key={d._id} className="list-table-format row-item doc-row" style={{ gridTemplateColumns: '1.5fr 1fr 1.5fr 150px' }}>
+                            <p className="doc-name">{d.name}</p>
+                            <p className="doc-date"><span className="doc-field-label">Uploaded</span>{new Date(d.createdAt).toLocaleDateString()}</p>
+                            <p className="doc-notes"><span className="doc-field-label">Notes</span>{d.notes || '-'}</p>
+                            <div className="action-buttons doc-actions" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
+                                <ViewAttachmentLink url={d.fileUrl} name={d.name} className="cursor edit-action" style={{ textDecoration: 'none' }}>View</ViewAttachmentLink>
+                                <button type="button" onClick={() => setConfirmItem(d)} className="pq-btn-ghost-danger" title="Remove document" aria-label="Remove document">
+                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                </button>
                             </div>
                         </div>
                     ))}

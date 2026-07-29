@@ -11,6 +11,9 @@ import '../../styles/dashboard.css';
 
 const AGE_BUCKETS = ['0-30', '30-60', '60-90', '90+'];
 
+const getInitials = (name = '') =>
+    name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
+
 // Kept outside the component so it survives a route remount, same as
 // FinanceHome.jsx's dashboardCache — navigating away and back to Clients
 // shows the last-known summary instantly instead of every chart/table
@@ -145,7 +148,7 @@ const ClientsPage = ({ url }) => {
                             </select>
                         </div>
                         <div className="client-summary-row client-summary-header">
-                            <span />
+                            <span className="client-summary-header-label">Client</span>
                             {sortableHeader('totalBilled', 'Billed')}
                             {sortableHeader('totalReceived', 'Received')}
                             {sortableHeader('outstanding', 'Outstanding')}
@@ -154,7 +157,10 @@ const ClientsPage = ({ url }) => {
                             <div className="dash-empty">Loading…</div>
                         ) : sorted.map(c => (
                             <div key={c.clientId} className="client-summary-row">
-                                <p className="client-summary-name" onClick={() => navigate(`/finance/clients/${c.clientId}`)}>{c.clientName}</p>
+                                <div className="client-summary-name-wrap" onClick={() => navigate(`/finance/clients/${c.clientId}`)}>
+                                    <span className="client-avatar"><span className="client-avatar-initials">{getInitials(c.clientName)}</span></span>
+                                    <p className="client-summary-name">{c.clientName}</p>
+                                </div>
                                 <div className="client-summary-figure cs-billed">
                                     <span className="client-summary-label">Billed</span>
                                     <span className="client-summary-value">{formatINR(c.totalBilled)}</span>
@@ -165,7 +171,7 @@ const ClientsPage = ({ url }) => {
                                 </div>
                                 <div className="client-summary-figure cs-outstanding">
                                     <span className="client-summary-label">Outstanding</span>
-                                    <span className="client-summary-value" style={{ color: c.outstanding > 0 ? '#c0392b' : 'var(--moss)' }}>
+                                    <span className={`client-summary-value client-summary-status-pill ${c.outstanding > 0 ? 'is-due' : 'is-clear'}`}>
                                         {formatINR(c.outstanding)}
                                     </span>
                                     {c.clientCreditBalance > 0 && (

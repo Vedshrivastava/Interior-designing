@@ -14,8 +14,11 @@ import React from 'react';
  * `as="p"` switches to this app's text-link action style
  * (RunningBillsManager/ClientDetail/ProjectDetail's "Statement"/"Download
  * Receipt" triggers); default is a real <button>.
+ * `icon` (optional) renders before the label in the idle state only — a
+ * spinner already covers the downloading state, showing both would be
+ * redundant. Every other call site omits it and is unaffected.
  */
-const DownloadButton = ({ as = 'button', downloading, progress, idleLabel, onClick, className = '', style }) => {
+const DownloadButton = ({ as = 'button', downloading, progress, idleLabel, icon, onClick, className = '', style }) => {
     const As = as;
     const label = downloading
         ? `Downloading…${progress?.label ? ` ${progress.label}` : ''}`
@@ -30,6 +33,7 @@ const DownloadButton = ({ as = 'button', downloading, progress, idleLabel, onCli
             style={style}
         >
             {downloading && <span className="btn-spinner" />}
+            {!downloading && icon}
             {label}
             {downloading && progress?.percent != null && (
                 <span className="btn-progress-track">

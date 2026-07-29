@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
@@ -14,6 +16,12 @@ import '../../styles/add.css';
  * showcase, so display order doesn't carry meaning the way it does for the
  * public-site Design gallery this borrows its lightbox pattern from
  * (ListDesigns.jsx's `lb-*` classes, already available via list.css).
+ *
+ * pt-overlay/pt-modal: "Add Photos" bottom sheet. pt-remove-btn: the
+ * per-thumbnail delete trigger — a solid circular backdrop (not the
+ * ghost/transparent pq-btn-ghost-danger used in every list-table row
+ * this session) since it sits directly on top of a photo of unknown
+ * color/contrast, not a plain white row.
  */
 const PhotosTab = ({ url, projectId }) => {
     const token = localStorage.getItem('token');
@@ -107,33 +115,41 @@ const PhotosTab = ({ url, projectId }) => {
                                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
                             />
                             <button
-                                type="button" className="remove-point-btn"
-                                style={{ position: 'absolute', top: '6px', right: '6px' }}
+                                type="button" className="pt-remove-btn"
                                 onClick={() => setConfirmItem(p)}
-                            >X</button>
+                                title="Remove photo" aria-label="Remove photo"
+                            >
+                                <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                            </button>
                         </div>
                     ))}
                 </div>
             )}
 
             {uploadOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>Add Photos</h2>
-                        <form onSubmit={submitUpload}>
-                            <div className="add-product-name flex-col wizard-field-full">
-                                <p>Photos *</p>
-                                <input type="file" accept="image/*" multiple onChange={e => setFiles([...e.target.files])} />
-                            </div>
-                            <div className="add-product-name flex-col wizard-field-full">
-                                <p>Caption (optional)</p>
-                                <input type="text" value={caption} onChange={e => setCaption(e.target.value)} placeholder="Applies to every photo in this upload" />
-                            </div>
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={closeUpload}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={uploading}>{uploading ? 'Uploading…' : 'Upload'}</button>
-                            </div>
-                        </form>
+                <div className="submit-loader-overlay pt-overlay" style={{ zIndex: 100000 }}>
+                    <div className="loader-modal-box edit-modal pt-modal">
+                        <div className="pt-modal-header">
+                            <h2>Add Photos</h2>
+                        </div>
+
+                        <div className="pt-modal-body">
+                            <form id="add-photos-form" onSubmit={submitUpload}>
+                                <div className="add-product-name flex-col wizard-field-full">
+                                    <p>Photos *</p>
+                                    <input type="file" accept="image/*" multiple onChange={e => setFiles([...e.target.files])} />
+                                </div>
+                                <div className="add-product-name flex-col wizard-field-full">
+                                    <p>Caption (optional)</p>
+                                    <input type="text" value={caption} onChange={e => setCaption(e.target.value)} placeholder="Applies to every photo in this upload" />
+                                </div>
+                            </form>
+                        </div>
+
+                        <div className="edit-modal-actions pt-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={closeUpload}>Cancel</button>
+                            <button type="submit" form="add-photos-form" className="add-btn" disabled={uploading}>{uploading ? 'Uploading…' : 'Upload'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body

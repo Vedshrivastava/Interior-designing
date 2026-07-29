@@ -20,7 +20,12 @@ const MOVEMENT_LABEL = { dump: 'Dump', consume: 'Consume', return: 'Return', was
    just growing forever unscoped — "From Project Start" jumps straight to
    the project's own startDate instead of hunting for it on the calendar.
    Consume/waste rows tied to a Work link through to it, same "Details"
-   pattern as Works/Measurements. */
+   pattern as Works/Measurements.
+
+   smm-stock-row/smm-hist-row are separate mobile card hooks (list.css)
+   for this component's two independent tables (Current Stock, Movement
+   History) — different column counts and content, so each gets its own
+   grid-template-areas rather than sharing one class. */
 const StockMovementsManager = ({ url, projectId }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
@@ -82,7 +87,7 @@ const StockMovementsManager = ({ url, projectId }) => {
             <h3 style={{ marginBottom: '4px' }}>Current Stock</h3>
             <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>Always current: SUM(dump) − SUM(consume) − SUM(return) − SUM(waste), computed fresh, never stored.</p>
             <div className="list-table finance-table" style={{ marginBottom: '32px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: '280px 1fr 1fr' }}>
+                <div className="list-table-format title smm-stock-row smm-stock-header" style={{ gridTemplateColumns: '280px 1fr 1fr' }}>
                     <b>Material</b><b>Current Stock</b><b>Unit</b>
                 </div>
                 {loadingStock ? (
@@ -91,10 +96,16 @@ const StockMovementsManager = ({ url, projectId }) => {
                     <div className="admin-empty-state"><p>No stock movements recorded yet.</p></div>
                 ) : (
                     stock.map(row => (
-                        <div key={row.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '280px 1fr 1fr' }}>
-                            <p>{row.materialName || '-'}</p>
-                            <p style={{ color: row.currentStock < 0 ? '#c0392b' : undefined }}>{row.currentStock}</p>
-                            <p>{row.unit || '-'}</p>
+                        <div key={row.materialId} className="list-table-format row-item smm-stock-row" style={{ gridTemplateColumns: '280px 1fr 1fr' }}>
+                            <p className="smm-stock-material">{row.materialName || '-'}</p>
+                            <div className="smm-stock-value-field">
+                                <span className="wt-field-label">Current Stock</span>
+                                <p className={`smm-stock-value${row.currentStock < 0 ? ' smm-stock-negative' : ''}`}>{row.currentStock}</p>
+                            </div>
+                            <div className="smm-stock-unit-field">
+                                <span className="wt-field-label">Unit</span>
+                                <p className="smm-stock-unit">{row.unit || '-'}</p>
+                            </div>
                         </div>
                     ))
                 )}
@@ -102,7 +113,7 @@ const StockMovementsManager = ({ url, projectId }) => {
 
             <h3 style={{ marginBottom: '4px' }}>Movement History</h3>
             <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>Every dump, consume, return, and waste movement ever recorded at this project; filter by date to narrow it down.</p>
-            <div className="wizard-field-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0,220px))', marginBottom: '10px', alignItems: 'end' }}>
+            <div className="wizard-field-grid smm-filter-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0,220px))', marginBottom: '10px', alignItems: 'end' }}>
                 <div className="add-product-name flex-col">
                     <p>From</p>
                     <StyledDatePicker value={fromDate} onChange={setFromDate} />
@@ -111,7 +122,7 @@ const StockMovementsManager = ({ url, projectId }) => {
                     <p>To</p>
                     <StyledDatePicker value={toDate} onChange={setToDate} />
                 </div>
-                <div className="add-product-name flex-col">
+                <div className="add-product-name flex-col smm-filter-addbtn">
                     <p aria-hidden="true" style={{ visibility: 'hidden' }}>Add</p>
                     <button type="button" className="add-btn" style={{ width: '100%', boxSizing: 'border-box', border: '1px solid transparent', margin: 0 }} onClick={() => setAddModalOpen(true)}>
                         + Record Waste
@@ -140,7 +151,7 @@ const StockMovementsManager = ({ url, projectId }) => {
             )}
 
             <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr 1fr 130px' }}>
+                <div className="list-table-format title smm-hist-row smm-hist-header" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr 1fr 130px' }}>
                     <b>Date</b><b>Material</b><b>Type</b><b>Vendor / Work</b><b>Quantity</b><b>Notes</b><b>Action</b>
                 </div>
                 {loadingHistory ? (
@@ -149,14 +160,14 @@ const StockMovementsManager = ({ url, projectId }) => {
                     <div className="admin-empty-state"><p>{movements.length === 0 ? 'No movements yet.' : 'No movements in this date range.'}</p></div>
                 ) : (
                     filteredMovements.map(m => (
-                        <div key={m._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr 1fr 130px' }}>
-                            <p>{new Date(m.date).toLocaleDateString()}</p>
-                            <p>{m.materialId?.name || '-'}</p>
-                            <p><span className="item-category">{MOVEMENT_LABEL[m.movementType]}{m.relatedMeasurementId ? ' (auto)' : ''}</span></p>
-                            <p>{m.vendorId?.name || m.workId?.workType || '-'}</p>
-                            <p>{m.quantity} {m.materialId?.unit || ''}</p>
-                            <p>{m.notes || '-'}</p>
-                            <div className="action-buttons">
+                        <div key={m._id} className="list-table-format row-item smm-hist-row" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr 1fr 130px' }}>
+                            <p className="smm-hist-date">{new Date(m.date).toLocaleDateString()}</p>
+                            <p className="smm-hist-material">{m.materialId?.name || '-'}</p>
+                            <p className="smm-hist-type"><span className="item-category">{MOVEMENT_LABEL[m.movementType]}{m.relatedMeasurementId ? ' (auto)' : ''}</span></p>
+                            <p className="smm-hist-vendor">{m.vendorId?.name || m.workId?.workType || '-'}</p>
+                            <p className="smm-hist-qty">{m.quantity} {m.materialId?.unit || ''}</p>
+                            <p className="smm-hist-notes">{m.notes || '-'}</p>
+                            <div className="action-buttons smm-hist-action">
                                 {m.workId && <p onClick={() => navigate(`/finance/projects/${projectId}/works/${m.workId._id}`)} className="cursor edit-action">Details</p>}
                                 {!m.relatedMeasurementId && <p onClick={() => removeMovement(m)} className="cursor delete-action">X</p>}
                             </div>

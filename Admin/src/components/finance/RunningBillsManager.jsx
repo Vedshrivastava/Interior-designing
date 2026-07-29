@@ -5,6 +5,8 @@ import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
 import { useFileDownload } from '../../hooks/useFileDownload';
 import DownloadButton from './DownloadButton';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash, faCheck, faRotateLeft, faPercent, faFileArrowDown } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -22,6 +24,13 @@ const STATUS_LABEL = { draft: 'Draft', issued: 'Issued' };
  *
  * `statusFilter` (optional): 'draft' | 'issued' — used by the Receivables
  * page's Pending Bills / Approved Bills tabs to show the same list, filtered.
+ *
+ * rb-row/rb-header: main bill list mobile card hooks.
+ * rbg-overlay/rbg-modal: "+ Generate Bill" bottom sheet; rbg-row is the
+ * mobile card hook for the nested "available work" table inside it.
+ * rbgst-overlay/rbgst-modal: GST edit bottom sheet.
+ * Delete confirm stays on bin-confirm-modal — already fluid-width
+ * (min(420px,92vw)), no change needed.
  */
 const RunningBillsManager = ({ url, projectId, statusFilter }) => {
     const token = localStorage.getItem('token');
@@ -229,7 +238,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            <div className="rb-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                 <div>
                     <h3 style={{ margin: '0 0 4px' }}>Running Bills</h3>
                     <p className="admin-subtitle" style={{ margin: 0 }}>Sqft is manually confirmed per work type at generation: draft until issued; only issued bills count as revenue or approved work.</p>
@@ -244,8 +253,8 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
             )}
 
             <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1fr 110px 260px' }}>
-                    <b>Bill #</b><b>Date</b><b>Period</b><b>Total</b><b>Status</b><b>Action</b>
+                <div className="list-table-format title rb-row rb-header" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1.3fr 110px' }}>
+                    <b className="rb-num">Bill #</b><b className="rb-date">Date</b><b className="rb-period">Period</b><b className="rb-total">Total</b><b className="rb-status">Status</b>
                 </div>
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
@@ -253,11 +262,11 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                     <div className="admin-empty-state"><p>No bills yet.</p></div>
                 ) : (
                     bills.map(b => (
-                        <div key={b._id} className="list-table-format row-item" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1fr 110px 260px' }}>
-                            <p>#{b.billNumber}</p>
-                            <p>{new Date(b.billDate).toLocaleDateString()}</p>
-                            <p>{new Date(b.periodFrom).toLocaleDateString()} – {new Date(b.periodTo).toLocaleDateString()}</p>
-                            <p>
+                        <div key={b._id} className="list-table-format row-item rb-row" style={{ gridTemplateColumns: '0.7fr 1fr 1.3fr 1.3fr 110px' }}>
+                            <p className="rb-num">#{b.billNumber}</p>
+                            <p className="rb-date">{new Date(b.billDate).toLocaleDateString()}</p>
+                            <p className="rb-period"><span className="rb-field-label">Period</span>{new Date(b.periodFrom).toLocaleDateString()} – {new Date(b.periodTo).toLocaleDateString()}</p>
+                            <p className="rb-total">
                                 ₹{b.totalAmount.toLocaleString('en-IN')}
                                 {b.gstAmount
                                     ? (() => {
@@ -273,28 +282,51 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                                         <span title="Mark this bill Draft to add GST; it's locked once issued." style={{ color: 'var(--text-lt)', fontSize: '0.85em' }}> · no GST</span>
                                     ))}
                             </p>
-                            <p style={{ color: b.status === 'issued' ? 'var(--moss)' : 'var(--text-lt)' }}>
+                            <p className="rb-status" style={{ color: b.status === 'issued' ? 'var(--moss)' : 'var(--text-lt)' }}>
                                 <span className="item-category">{STATUS_LABEL[b.status]}</span>
                             </p>
-                            <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
-                                {b.status === 'draft' && <p onClick={() => openGstEdit(b)} className="cursor edit-action">GST</p>}
-                                {/* Was previously only reachable by clicking the plain
-                                    status badge above — indistinguishable from every
-                                    other non-interactive status pill in the app, easy to
-                                    miss entirely. An explicit action here matches every
-                                    other row action (GST/Statement/B&W/X). */}
-                                <p onClick={() => toggleStatus(b)} className={`cursor ${b.status === 'draft' ? 'edit-action' : 'delete-action'}`}>
-                                    {b.status === 'draft' ? 'Issue' : 'Mark Draft'}
-                                </p>
+                            {/* Actions live outside the 5-column info grid entirely —
+                                a single fixed-width "Action" column can't hold up to 5
+                                buttons without either wrapping unpredictably or forcing
+                                Bill/Date/Period/Total down to unreadable widths. One row,
+                                spanning the full row width (rb-actions-row1, see CSS):
+                                routine actions (Issue/Mark Draft, GST, Statement, B&W)
+                                left-anchored, delete pinned to the far right via its own
+                                auto margin — set apart by the gap, no divider needed. */}
+                            <div className="rb-actions-row1">
+                                {/* Issue is the primary desired action on a draft bill
+                                    (same weight as Quotations' Accept), so it's promoted
+                                    to a solid button; Mark Draft is a reversal, not a
+                                    forward step, so it stays an outline pill with the
+                                    same faRotateLeft icon Quotations' own Reopen uses for
+                                    the same reason. */}
+                                {b.status === 'draft' ? (
+                                    <button type="button" onClick={() => toggleStatus(b)} className="cursor pq-btn-accept rb-btn">
+                                        <FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Issue
+                                    </button>
+                                ) : (
+                                    <p onClick={() => toggleStatus(b)} className="cursor edit-action rb-btn">
+                                        <FontAwesomeIcon icon={faRotateLeft} className="pq-action-icon" /> Mark Draft
+                                    </p>
+                                )}
+                                {b.status === 'draft' && (
+                                    <p onClick={() => openGstEdit(b)} className="cursor edit-action rb-btn">
+                                        <FontAwesomeIcon icon={faPercent} className="pq-action-icon" /> GST
+                                    </p>
+                                )}
                                 <DownloadButton
                                     as="p" downloading={downloadingKey === `${b._id}:color`} progress={downloadingKey === `${b._id}:color` ? downloadProgress : null}
-                                    idleLabel="Statement" onClick={() => downloadStatement(b, 'color')} className="cursor edit-action"
+                                    idleLabel="Statement" icon={<FontAwesomeIcon icon={faFileArrowDown} className="pq-action-icon" />}
+                                    onClick={() => downloadStatement(b, 'color')} className="cursor edit-action rb-btn"
                                 />
                                 <DownloadButton
                                     as="p" downloading={downloadingKey === `${b._id}:bw`} progress={downloadingKey === `${b._id}:bw` ? downloadProgress : null}
-                                    idleLabel="B&W" onClick={() => downloadStatement(b, 'bw')} className="cursor edit-action"
+                                    idleLabel="B&W" icon={<FontAwesomeIcon icon={faFileArrowDown} className="pq-action-icon" />}
+                                    onClick={() => downloadStatement(b, 'bw')} className="cursor edit-action rb-btn"
                                 />
-                                <p onClick={() => setConfirmItem(b)} className="cursor delete-action">X</p>
+                                <button type="button" onClick={() => setConfirmItem(b)} className="pq-btn-ghost-danger rb-delete-btn" title="Remove bill" aria-label="Remove bill">
+                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                </button>
                             </div>
                         </div>
                     ))
@@ -302,91 +334,98 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
             </div>
 
             {modalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal" style={{ maxWidth: '660px' }}>
-                        <h2>Generate Running Bill</h2>
-                        <p className="admin-subtitle" style={{ margin: '4px 0 16px' }}>
-                            Sqft below is pre-filled with everything logged and not yet approved; edit it down to what you're actually confirming for each work type. The ₹ amount is always derived from the configured rate.
-                        </p>
-                        <div className="wizard-field-grid">
-                            <div className="add-product-name flex-col">
-                                <p>Period From</p>
-                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                    <button
-                                        type="button"
-                                        className={`labour-chip${periodFromChoice === 'lastBill' ? ' active' : ''}`}
-                                        onClick={() => setPeriodFromChoice('lastBill')}
-                                        disabled={!lastBillFromDate}
-                                        style={!lastBillFromDate ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
-                                        title={!lastBillFromDate ? 'No prior bill for this project yet' : undefined}
-                                    >
-                                        From Last Bill{lastBillFromDate ? ` — ${new Date(lastBillFromDate).toLocaleDateString()}` : ''}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`labour-chip${periodFromChoice === 'workStart' ? ' active' : ''}`}
-                                        onClick={() => setPeriodFromChoice('workStart')}
-                                        disabled={!workStartDate}
-                                        style={!workStartDate ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
-                                        title={!workStartDate ? 'Project has no start date set' : undefined}
-                                    >
-                                        From Work Start{workStartDate ? ` — ${new Date(workStartDate).toLocaleDateString()}` : ''}
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="add-product-name flex-col">
-                                <p>Period To</p>
-                                <StyledDatePicker value={periodTo} onChange={setPeriodTo} align="right" />
-                            </div>
-                            <div className="add-product-name flex-col">
-                                <p>Bill Date</p>
-                                <StyledDatePicker value={billDate} onChange={setBillDate} />
-                            </div>
+                <div className="submit-loader-overlay rbg-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal rbg-modal" style={{ maxWidth: '660px' }}>
+                        <div className="rbg-modal-header">
+                            <h2>Generate Running Bill</h2>
+                            <p className="admin-subtitle" style={{ margin: '4px 0 16px' }}>
+                                Sqft below is pre-filled with everything logged and not yet approved; edit it down to what you're actually confirming for each work type. The ₹ amount is always derived from the configured rate.
+                            </p>
                         </div>
 
-                        {loadingAvailable ? (
-                            <div className="admin-empty-state" style={{ margin: '16px 0' }}><p>Loading available work…</p></div>
-                        ) : !available || available.length === 0 ? (
-                            <div className="admin-empty-state" style={{ margin: '16px 0' }}><p>Nothing reviewed and ready to bill for this project right now — review logged work first (Payables/Receivables → Work Review).</p></div>
-                        ) : (
-                            <div className="list-table finance-table" style={{ margin: '16px 0' }}>
-                                <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.9fr 0.9fr 0.7fr 1fr' }}>
-                                    <b>Work Type</b><b>Approved Sqft</b><b>Rate</b><b>GST %</b><b>Amount</b>
-                                </div>
-                                {available.map(a => {
-                                    const sqft = Number(workTypeSqft[a.workType]) || 0;
-                                    const amount = sqft * (a.clientRatePerSqft || 0);
-                                    return (
-                                        <div key={a.workType} className="list-table-format row-item" style={{ gridTemplateColumns: '1.1fr 0.9fr 0.9fr 0.7fr 1fr' }}>
-                                            <p>{a.workType} <span style={{ fontSize: '0.75rem', color: 'var(--text-lt)' }}>(of {a.availableSqft} available)</span></p>
-                                            <p>
-                                                <input
-                                                    type="number" onWheel={e => e.target.blur()} min={0} step="any" max={a.availableSqft}
-                                                    value={workTypeSqft[a.workType] ?? ''}
-                                                    onChange={e => setSqftFor(a.workType, e.target.value)}
-                                                    style={{ width: '90px' }}
-                                                />
-                                            </p>
-                                            <p>{a.clientRatePerSqft != null ? `₹${a.clientRatePerSqft}/sqft` : <span title="No Work Type Rate configured">(no rate)</span>}</p>
-                                            <p title="From this work type's own Work Type Rate, or the company default from Settings → GST">
-                                                {a.gstRatePercent != null ? `${a.gstRatePercent}%` : '—'}
-                                            </p>
-                                            <p>₹{amount.toLocaleString('en-IN')}</p>
+                        <div className="rbg-modal-body">
+                            <form id="generate-bill-form" onSubmit={e => { e.preventDefault(); confirmGenerate(); }}>
+                                <div className="wizard-field-grid">
+                                    <div className="add-product-name flex-col">
+                                        <p>Period From</p>
+                                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                            <button
+                                                type="button"
+                                                className={`labour-chip${periodFromChoice === 'lastBill' ? ' active' : ''}`}
+                                                onClick={() => setPeriodFromChoice('lastBill')}
+                                                disabled={!lastBillFromDate}
+                                                style={!lastBillFromDate ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+                                                title={!lastBillFromDate ? 'No prior bill for this project yet' : undefined}
+                                            >
+                                                From Last Bill{lastBillFromDate ? ` — ${new Date(lastBillFromDate).toLocaleDateString()}` : ''}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`labour-chip${periodFromChoice === 'workStart' ? ' active' : ''}`}
+                                                onClick={() => setPeriodFromChoice('workStart')}
+                                                disabled={!workStartDate}
+                                                style={!workStartDate ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+                                                title={!workStartDate ? 'Project has no start date set' : undefined}
+                                            >
+                                                From Work Start{workStartDate ? ` — ${new Date(workStartDate).toLocaleDateString()}` : ''}
+                                            </button>
                                         </div>
-                                    );
-                                })}
-                                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr', fontWeight: 600 }}>
-                                    <p>
-                                        Total: ₹{totalPreviewAmount.toLocaleString('en-IN')}
-                                        {totalPreviewGst > 0 && ` + GST: ₹${totalPreviewGst.toLocaleString('en-IN')}`}
-                                    </p>
+                                    </div>
+                                    <div className="add-product-name flex-col">
+                                        <p>Period To</p>
+                                        <StyledDatePicker value={periodTo} onChange={setPeriodTo} align="right" />
+                                    </div>
+                                    <div className="add-product-name flex-col">
+                                        <p>Bill Date</p>
+                                        <StyledDatePicker value={billDate} onChange={setBillDate} />
+                                    </div>
                                 </div>
-                            </div>
-                        )}
 
-                        <div className="edit-modal-actions">
+                                {loadingAvailable ? (
+                                    <div className="admin-empty-state" style={{ margin: '16px 0' }}><p>Loading available work…</p></div>
+                                ) : !available || available.length === 0 ? (
+                                    <div className="admin-empty-state" style={{ margin: '16px 0' }}><p>Nothing reviewed and ready to bill for this project right now — review logged work first (Payables/Receivables → Work Review).</p></div>
+                                ) : (
+                                    <div className="list-table finance-table" style={{ margin: '16px 0' }}>
+                                        <div className="list-table-format title rbg-row rbg-header" style={{ gridTemplateColumns: '1.1fr 0.9fr 0.9fr 0.7fr 1fr' }}>
+                                            <b>Work Type</b><b>Approved Sqft</b><b>Rate</b><b>GST %</b><b>Amount</b>
+                                        </div>
+                                        {available.map(a => {
+                                            const sqft = Number(workTypeSqft[a.workType]) || 0;
+                                            const amount = sqft * (a.clientRatePerSqft || 0);
+                                            return (
+                                                <div key={a.workType} className="list-table-format row-item rbg-row" style={{ gridTemplateColumns: '1.1fr 0.9fr 0.9fr 0.7fr 1fr' }}>
+                                                    <p className="rbg-worktype">{a.workType} <span style={{ fontSize: '0.75rem', color: 'var(--text-lt)' }}>(of {a.availableSqft} available)</span></p>
+                                                    <p className="rbg-sqft">
+                                                        <input
+                                                            type="number" onWheel={e => e.target.blur()} min={0} step="any" max={a.availableSqft}
+                                                            value={workTypeSqft[a.workType] ?? ''}
+                                                            onChange={e => setSqftFor(a.workType, e.target.value)}
+                                                            style={{ width: '90px' }}
+                                                        />
+                                                    </p>
+                                                    <p className="rbg-rate">{a.clientRatePerSqft != null ? `₹${a.clientRatePerSqft}/sqft` : <span title="No Work Type Rate configured">(no rate)</span>}</p>
+                                                    <p className="rbg-gst" title="From this work type's own Work Type Rate, or the company default from Settings → GST">
+                                                        {a.gstRatePercent != null ? `${a.gstRatePercent}%` : '—'}
+                                                    </p>
+                                                    <p className="rbg-amount">₹{amount.toLocaleString('en-IN')}</p>
+                                                </div>
+                                            );
+                                        })}
+                                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr', fontWeight: 600 }}>
+                                            <p>
+                                                Total: ₹{totalPreviewAmount.toLocaleString('en-IN')}
+                                                {totalPreviewGst > 0 && ` + GST: ₹${totalPreviewGst.toLocaleString('en-IN')}`}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </form>
+                        </div>
+
+                        <div className="edit-modal-actions rbg-modal-footer">
                             <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
-                            <button type="button" className="add-btn" disabled={!available || available.length === 0 || generating} onClick={confirmGenerate}>
+                            <button type="submit" form="generate-bill-form" className="add-btn" disabled={!available || available.length === 0 || generating}>
                                 {generating ? 'Generating…' : 'Confirm & Generate'}
                             </button>
                         </div>
@@ -396,28 +435,36 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
             )}
 
             {gstEditItem && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal" style={{ maxWidth: '420px' }}>
-                        <h2>GST: Bill #{gstEditItem.billNumber}</h2>
-                        <p style={{ margin: '4px 0 16px', color: 'var(--text-lt)', fontSize: '0.9em' }}>
-                            One rate per work type — a bill mixing e.g. a material claim and a labour/service claim can be taxed differently for each. Leave a row blank for no GST on that work type.
-                        </p>
-                        {[...new Map(gstEditItem.lineItems.map(li => [li.workType, li])).values()].map(li => (
-                            <div key={li.workType} className="add-product-name flex-col" style={{ marginBottom: '10px' }}>
-                                <p>{li.workType} <span style={{ fontSize: '0.75rem', color: 'var(--text-lt)' }}>(subtotal ₹{gstEditItem.lineItems.filter(x => x.workType === li.workType).reduce((s, x) => s + x.amount, 0).toLocaleString('en-IN')})</span></p>
-                                <input
-                                    type="number" onWheel={e => e.target.blur()} min="0" step="any"
-                                    value={gstEditRates[li.workType] ?? ''} onChange={e => setGstEditRate(li.workType, e.target.value)}
-                                />
-                            </div>
-                        ))}
-                        <p style={{ margin: '12px 0 0', fontWeight: 600 }}>
-                            Grand Total: ₹{(gstEditItem.totalAmount + gstEditTotal).toLocaleString('en-IN')}
-                            {gstEditTotal > 0 && <span style={{ fontWeight: 400, color: 'var(--text-lt)' }}> (incl. ₹{gstEditTotal.toLocaleString('en-IN')} GST)</span>}
-                        </p>
-                        <div className="edit-modal-actions">
+                <div className="submit-loader-overlay rbgst-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal rbgst-modal" style={{ maxWidth: '420px' }}>
+                        <div className="rbgst-modal-header">
+                            <h2>GST: Bill #{gstEditItem.billNumber}</h2>
+                            <p style={{ margin: '4px 0 16px', color: 'var(--text-lt)', fontSize: '0.9em' }}>
+                                One rate per work type — a bill mixing e.g. a material claim and a labour/service claim can be taxed differently for each. Leave a row blank for no GST on that work type.
+                            </p>
+                        </div>
+
+                        <div className="rbgst-modal-body">
+                            <form id="gst-edit-form" onSubmit={e => { e.preventDefault(); saveGst(); }}>
+                                {[...new Map(gstEditItem.lineItems.map(li => [li.workType, li])).values()].map(li => (
+                                    <div key={li.workType} className="add-product-name flex-col" style={{ marginBottom: '10px' }}>
+                                        <p>{li.workType} <span style={{ fontSize: '0.75rem', color: 'var(--text-lt)' }}>(subtotal ₹{gstEditItem.lineItems.filter(x => x.workType === li.workType).reduce((s, x) => s + x.amount, 0).toLocaleString('en-IN')})</span></p>
+                                        <input
+                                            type="number" onWheel={e => e.target.blur()} min="0" step="any"
+                                            value={gstEditRates[li.workType] ?? ''} onChange={e => setGstEditRate(li.workType, e.target.value)}
+                                        />
+                                    </div>
+                                ))}
+                                <p style={{ margin: '12px 0 0', fontWeight: 600 }}>
+                                    Grand Total: ₹{(gstEditItem.totalAmount + gstEditTotal).toLocaleString('en-IN')}
+                                    {gstEditTotal > 0 && <span style={{ fontWeight: 400, color: 'var(--text-lt)' }}> (incl. ₹{gstEditTotal.toLocaleString('en-IN')} GST)</span>}
+                                </p>
+                            </form>
+                        </div>
+
+                        <div className="edit-modal-actions rbgst-modal-footer">
                             <button type="button" className="add-btn cancel-btn" onClick={() => setGstEditItem(null)}>Cancel</button>
-                            <button type="button" className="add-btn" disabled={savingGst} onClick={saveGst}>
+                            <button type="submit" form="gst-edit-form" className="add-btn" disabled={savingGst}>
                                 {savingGst ? 'Saving…' : 'Save'}
                             </button>
                         </div>

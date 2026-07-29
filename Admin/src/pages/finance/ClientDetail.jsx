@@ -9,6 +9,7 @@ import DocumentsTab from '../../components/finance/DocumentsTab';
 import { useFileDownload } from '../../hooks/useFileDownload';
 import DownloadButton from '../../components/finance/DownloadButton';
 import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, ChartTooltip, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
+import ViewAttachmentLink from '../../components/finance/ViewAttachmentLink';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -398,7 +399,7 @@ const ClientQuotationsTab = ({ url, clientId }) => {
                     <p><span className="item-category">{QUOTATION_STATUS_LABEL[q.status]}</span></p>
                     <p>
                         {q.documents?.[0]
-                            ? <a href={q.documents[0].fileUrl} target="_blank" rel="noreferrer" className="cursor edit-action" style={{ textDecoration: 'none' }}>View</a>
+                            ? <ViewAttachmentLink url={q.documents[0].fileUrl} name={q.documents[0].name} className="cursor edit-action" style={{ textDecoration: 'none' }}>View</ViewAttachmentLink>
                             : '-'}
                     </p>
                 </div>

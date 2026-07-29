@@ -1,20 +1,34 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { ACTIVITY_META, DEFAULT_ACTIVITY_META, highlightEntities } from './DashboardWidgets';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 
 const dateKey = (d) => new Date(d).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
 const timeLabel = (d) => new Date(d).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
 /*
  * Chronological activity log scoped to one project — mirrors
- * ActivityTimelinePage.jsx's day-grouped list-table rendering byte-for-byte
- * for visual parity (deliberately a separate component, not an extraction:
- * that page is already shipped/in active use and its fetch/filter/
- * websocket logic isn't cleanly separated from render, so extracting risks
- * regressing a working page for a small amount of shared logic). No
- * filter UI here — the project itself is already the fixed scope.
+ * ActivityTimelinePage.jsx's day-grouped row rendering exactly (same
+ * dash-chart-card/dash-activity-date-heading/activity-row/at-* classes,
+ * same per-event icon + tone from ACTIVITY_META, same entity-name
+ * highlighting) for visual parity (deliberately a separate component,
+ * not an extraction: that page is already shipped/in active use and its
+ * fetch/filter/websocket logic isn't cleanly separated from render, so
+ * extracting risks regressing a working page for a small amount of
+ * shared logic). No filter UI here — the project itself is already the
+ * fixed scope. .activity-row is its own class rather than a reuse of
+ * .list-table-format deliberately — see that page's own comment on why
+ * (the generic ≤480px .list-table-format mobile transform, built for an
+ * image+title+subtitle+actions row shape, hijacked this row's layout
+ * regardless of override specificity). Already has a full ≤700px mobile
+ * treatment (dashboard.css) — nothing new needed here, just reusing it.
+ *
+ * No dialogue modal here — this tab is read-only (an activity log, not
+ * something you add/edit entries into directly).
  */
 const ProjectTimelineTab = ({ url, projectId }) => {
     const token = localStorage.getItem('token');
@@ -60,33 +74,35 @@ const ProjectTimelineTab = ({ url, projectId }) => {
                 <div className="admin-empty-state"><p>No activity recorded yet for this project.</p></div>
             ) : (
                 Object.entries(grouped).map(([day, items]) => (
-                    <div key={day} style={{ marginBottom: '28px' }}>
-                        <p className="activity-date-heading">{day}</p>
-                        <div className="list-table finance-table">
-                            <div className="list-table-format title" style={{ gridTemplateColumns: '80px 1fr 140px' }}>
-                                <b>Time</b><b>Activity</b><b>Amount</b>
-                            </div>
-                            {items.map(e => (
-                                <div key={e._id} className="list-table-format row-item" style={{ gridTemplateColumns: '80px 1fr 140px' }}>
-                                    <p>{timeLabel(e.timestamp)}</p>
-                                    <p>
-                                        {e.summary}
-                                        {e.performedBy && <span className="item-category" style={{ marginLeft: '8px' }}>{e.performedBy}</span>}
-                                    </p>
-                                    <p>{e.amount != null ? `₹${e.amount.toLocaleString('en-IN')}` : '-'}</p>
-                                </div>
-                            ))}
+                    <div key={day} className="dash-chart-card" style={{ marginBottom: '20px', padding: 0 }}>
+                        <p className="dash-activity-date-heading" style={{ padding: '18px 20px 6px' }}>{day}</p>
+                        <div className="activity-row activity-row-header">
+                            <span /><b>Time</b><b>Activity</b><b>Amount</b>
                         </div>
+                        {items.map(e => {
+                            const meta = ACTIVITY_META[e.eventType] || DEFAULT_ACTIVITY_META;
+                            return (
+                                <div key={e._id} className="activity-row">
+                                    <span className={`dash-activity-icon at-icon tone-${meta.tone}`}>
+                                        <FontAwesomeIcon icon={meta.icon} />
+                                    </span>
+                                    <p className="at-time">{timeLabel(e.timestamp)}</p>
+                                    <p className="at-summary">
+                                        {highlightEntities(e.summary, e.entityNames)}
+                                        {e.performedBy && <span className="activity-performed-by">· {e.performedBy}</span>}
+                                    </p>
+                                    <p className="at-amount">{e.amount != null ? `₹${e.amount.toLocaleString('en-IN')}` : ''}</p>
+                                </div>
+                            );
+                        })}
                     </div>
                 ))
             )}
 
             {hasMore && (
-                <div style={{ textAlign: 'center', marginTop: '16px' }}>
-                    <button className="add-btn" onClick={() => fetchPage(page + 1, false)} disabled={loading}>
-                        {loading ? 'Loading…' : 'Load More'}
-                    </button>
-                </div>
+                <button type="button" className="dash-activity-viewall" onClick={() => fetchPage(page + 1, false)} disabled={loading}>
+                    {loading ? 'Loading…' : 'Load More'}
+                </button>
             )}
         </div>
     );

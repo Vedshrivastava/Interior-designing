@@ -378,6 +378,22 @@
     letter-spacing: -0.2px;
 }
 
+/* .item-name alone is reused everywhere as just "the bold primary name"
+   (Designs/Products/Projects list rows, etc.) regardless of whether it's
+   actually clickable — this modifier is the opt-in for when it is (an
+   onClick navigating to a detail page), so only genuinely interactive
+   names pick up the underline. Base-level, not :hover-only — a hover-
+   only signal never shows on mobile at all. */
+.item-name-link {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgba(45, 74, 53, 0.3);
+    text-underline-offset: 2px;
+}
+.item-name-link:hover {
+    text-decoration-color: currentColor;
+}
+
 .item-category {
     font-family: "DM Sans", sans-serif;
     color: var(--moss);
@@ -547,6 +563,69 @@
    being a grid (see the Works & Rates mobile block below). */
 .wt-field-label { display: none; }
 
+/* Mobile-only field label for the Expenses table's conditionally-rendered
+   columns (Category/Project/Work/Related To — see ExpensesManager.jsx's
+   hideXField props). Unlike wt-field-label above, desktop's own header
+   row can't be relied on for context here since ≤640px collapses all
+   four optional fields into one stacked group (.exp-field, grid-area
+   "fields") rather than one column each — a raw value with no label at
+   all would be unreadable without knowing which field it even is. */
+.exp-field-label { display: none; }
+
+/* Same mobile-only label pattern for Running Bills' Period field and
+   Receipts' Bill/Mode/Account/Reference fields — bare values with no
+   header row for context read as ambiguous or, when empty, as broken
+   ("-" floating with no indication of which field is empty). */
+.rb-field-label,
+.rcpt-field-label,
+.doc-field-label,
+.pp-field-label { display: none; }
+
+/* .exp-fields is the wrapper around Category/Project/Work/Related To
+   (ExpensesManager.jsx) — display:contents removes it from the desktop
+   grid entirely, so its 0-4 conditionally-rendered .exp-field children
+   become direct grid items themselves, one per column, exactly as if the
+   wrapper weren't there at all (desktop needs each field in its own
+   column, matching the header row's own separate <b> cells). The ≤640px
+   override below turns it into a real flex column instead — see that
+   rule's own comment for why a shared grid-area alone doesn't work here. */
+.exp-fields { display: contents; }
+
+/* .pp-earn-stats is the wrapper around Contractor/Labourer earnings'
+   middle 6 figures (Total Logged/Approved Earnings/Advances/Deductions/
+   Direct Pay/Payments) — display:contents keeps desktop's 8-column row
+   exactly as before (each figure is still a direct grid item in its own
+   column); the ≤640px override turns it into a real 2-column grid so
+   those six pair up instead of stacking full-width one per line. */
+.pp-earn-stats { display: contents; }
+
+/* .expv-stat-grid is the wrapper around View Expense's Amount/Status/
+   Paid/Balance/GST/Date rows — display:contents keeps desktop unchanged
+   (each .kv-row stays a normal direct child of .list-table, stacked
+   exactly as before); the ≤640px override turns it into a real 2-column
+   grid so those six rows pair up instead of stacking full-width. */
+.expv-stat-grid { display: contents; }
+/* Same pattern for the remaining Category…Recorded rows — display:
+   contents on desktop, a real container on mobile (see ≤640px block)
+   so they can get the same card treatment as the stat grid above them
+   without being forced into a 2-column pair (several of these values —
+   Related To, Bank Account — run long enough that pairing them would
+   just wrap awkwardly). */
+.expv-details-list { display: contents; }
+
+/* .edit-modal p (dashboard.css) uppercases every <p> inside any add/edit
+   dialog — meant for form field labels (every other modal's <p> is only
+   ever a label, the real value lives in a sibling <input>/<select>).
+   kv-row repurposes <p> for the VALUE too, which this rule was never
+   meant to reach — "Sharma Residence" rendering as "SHARMA RESIDENCE" is
+   a readability bug, not a deliberate style. Specificity here already
+   beats it structurally (3 selector parts vs 1), !important stated
+   anyway per this file's own convention. Applies at every width — the
+   bug has no media query, so neither does its fix. */
+.list-table-format.kv-row p:last-child {
+    text-transform: none !important;
+}
+
 /* .finance-table .list-table-format > *:not(:first-child):not(:last-child)
    above centers every middle column by matching it as a *direct* grid
    child — .wt-field/.cr-field/.lr-field (the wrapper these rate cells now
@@ -589,6 +668,17 @@
    plain .action-buttons already defaults to justify-content:flex-end) —
    this was left-aligned by default, reading inconsistent next to it. */
 .rate-entry-action { display: flex; align-items: center; justify-content: flex-end; }
+
+/* StockMovementsManager's Current Stock table used to set this red
+   inline (style={{color: negative ? '#c0392b' : undefined}}) — moved to
+   a class so the mobile nth-child(2) hijack reset below (which needs
+   !important to win at all) can't silently out-!important an inline
+   style and erase the negative-stock highlight. High specificity here
+   (3 classes) so it wins at every width, not just desktop, without
+   needing a second mobile-only override. */
+.list-table-format.smm-stock-row .smm-stock-negative {
+    color: #c0392b !important;
+}
 
 /* ══════════════════════════════════════════════
    4c. LABOUR MULTI-SELECT — chip picker for forming
@@ -1040,6 +1130,41 @@
 }
 .edit-modal .add-point-btn:hover {
     background: rgba(201,168,124,0.08);
+}
+
+/* ── Photo gallery thumbnail delete button (PhotosTab) — a solid circular
+   backdrop rather than the ghost/transparent pq-btn-ghost-danger used in
+   every list-table row this session, since this sits directly on top of
+   a photo of unknown color/contrast, not a plain white row. Positioning
+   used to be inline JSX (position:absolute; top:6px; right:6px) — moved
+   here alongside the rest of its styling now that it's a real named
+   class instead of the borrowed, .edit-modal-scoped .remove-point-btn
+   (which never actually applied here — this button sits outside any
+   .edit-modal, so that rule silently did nothing). */
+.pt-remove-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(11, 26, 26, 0.55);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+.pt-remove-btn:hover {
+    background: rgba(192, 57, 43, 0.85);
+    border-color: rgba(192, 57, 43, 0.9);
+}
+.pt-remove-btn .pq-action-icon {
+    font-size: 0.65rem;
+    width: 0.65rem;
+    height: 0.65rem;
 }
 
 .edit-modal .upload-icon {
@@ -2123,5 +2248,1142 @@
         border: none !important;
         background: transparent !important;
         padding: 4px !important;
+    }
+}
+
+/* ══════════════════════════════════════════════
+   SITE DIARY TAB (SiteDiaryManager) — MOBILE (≤640px)
+   Same nth-child(2)/(3) hijack risk as every table above (see the
+   Works & Rates block's own comment for the full mechanism) — Type and
+   Status stay two separate elements (not merged into one wrapper, see
+   SiteDiaryManager.jsx's own comment on why), so both the project-scoped
+   and cross-project variants need their own reconciliation since which
+   field lands on nth-child(2)/(3) differs between them.
+══════════════════════════════════════════════ */
+@media (max-width: 640px) {
+    /* Filter row: minWidth:220px/180px inline on the Project/Status
+       fields overflows a narrow screen side by side — stack to one
+       column, button full width below. */
+    .sdm-filter-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    .sdm-filter-group {
+        flex-direction: column !important;
+    }
+    .sdm-project-filter,
+    .sdm-status-filter {
+        min-width: 0 !important;
+        width: 100%;
+    }
+    .sdm-add-wrap .add-btn {
+        width: 100%;
+    }
+
+    .list-table-format.sd-header { display: none !important; }
+
+    /* ── Project-scoped (no .sd-cross): date is 1st child (unhijacked),
+       type is nth-child(2), status is nth-child(3). ── */
+    .list-table-format.sd-row:not(.sd-cross) {
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas:
+            "date type"
+            "date status"
+            "loggedby loggedby"
+            "entry entry"
+            "actions actions" !important;
+        row-gap: 6px !important;
+        padding: 16px !important;
+    }
+    .list-table-format.sd-row:not(.sd-cross) .sd-date {
+        grid-area: date !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: 0.85rem !important;
+    }
+    /* nth-child(2) — reset. */
+    .list-table-format.sd-row:not(.sd-cross) .sd-type {
+        grid-area: type !important;
+        justify-self: end !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    /* nth-child(3) — reset. */
+    .list-table-format.sd-row:not(.sd-cross) .sd-status {
+        grid-area: status !important;
+        justify-self: end !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    .list-table-format.sd-row:not(.sd-cross) .sd-loggedby {
+        grid-area: loggedby !important;
+        margin: 0 !important;
+        font-size: 0.78rem !important;
+        color: var(--text-lt) !important;
+    }
+    .list-table-format.sd-row:not(.sd-cross) .sd-entry {
+        grid-area: entry !important;
+        margin: 0 !important;
+        font-size: 0.88rem !important;
+        line-height: 1.5 !important;
+        padding: 10px 0 !important;
+        border-top: 1px dashed rgba(201,168,124,0.2) !important;
+        border-bottom: 1px dashed rgba(201,168,124,0.2) !important;
+    }
+
+    /* ── Cross-project (.sd-cross): project is nth-child(2), type is
+       nth-child(3); status/loggedby/entry (4th/5th/6th) aren't hijacked
+       but still need their grid-area set. ── */
+    .list-table-format.sd-row.sd-cross {
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas:
+            "project project"
+            "date type"
+            "date status"
+            "loggedby loggedby"
+            "entry entry"
+            "actions actions" !important;
+        row-gap: 6px !important;
+        padding: 16px !important;
+    }
+    .list-table-format.sd-row.sd-cross .sd-date {
+        grid-area: date !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: 0.85rem !important;
+    }
+    /* nth-child(2) — reset. */
+    .list-table-format.sd-row.sd-cross .sd-project {
+        grid-area: project !important;
+        align-self: start !important;
+        margin: 0 0 2px !important;
+        font-size: 0.78rem !important;
+        font-weight: 400 !important;
+        color: var(--text-lt) !important;
+    }
+    /* nth-child(3) — reset. */
+    .list-table-format.sd-row.sd-cross .sd-type {
+        grid-area: type !important;
+        justify-self: end !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    /* 4th child — not hijacked, kept at matching specificity. */
+    .list-table-format.sd-row.sd-cross .sd-status {
+        grid-area: status !important;
+        justify-self: end !important;
+        align-self: start !important;
+        margin: 0 !important;
+    }
+    .list-table-format.sd-row.sd-cross .sd-loggedby {
+        grid-area: loggedby !important;
+        margin: 0 !important;
+        font-size: 0.78rem !important;
+        color: var(--text-lt) !important;
+    }
+    .list-table-format.sd-row.sd-cross .sd-entry {
+        grid-area: entry !important;
+        margin: 0 !important;
+        font-size: 0.88rem !important;
+        line-height: 1.5 !important;
+        padding: 10px 0 !important;
+        border-top: 1px dashed rgba(201,168,124,0.2) !important;
+        border-bottom: 1px dashed rgba(201,168,124,0.2) !important;
+    }
+
+    /* Carries the generic .action-buttons class in both variants —
+       same reset as wkc-action/wt-action/wm-action above. */
+    .list-table-format.sd-row .sd-actions {
+        grid-area: actions !important;
+        flex-wrap: wrap !important;
+        justify-content: flex-start !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        border-top: none !important;
+        font-size: inherit !important;
+    }
+    /* .edit-action/.delete-action tie in specificity with the generic
+       ≤480px .edit-action,.delete-action rule (list.css) otherwise, so
+       need !important to reliably win. */
+    .sd-actions .edit-action,
+    .sd-actions .delete-action {
+        flex: 1 1 auto !important;
+        text-align: center !important;
+    }
+}
+
+/* ══════════════════════════════════════════════
+   MATERIALS TAB (StockMovementsManager) — MOBILE (≤640px)
+   Two independent tables (Current Stock, Movement History), each with
+   its own nth-child(2)/(3) hijack reconciliation (same mechanism as
+   every table above).
+══════════════════════════════════════════════ */
+@media (max-width: 640px) {
+    /* ── Current Stock table — no .action-buttons here at all (no action
+       column), so only the nth-child(2)/(3) hijack applies. ── */
+    .list-table-format.smm-stock-header { display: none !important; }
+    .list-table-format.smm-stock-row {
+        grid-template-columns: 1fr 1fr !important;
+        grid-template-areas:
+            "material material"
+            "stock unit" !important;
+        row-gap: 6px !important;
+        padding: 14px !important;
+    }
+    .list-table-format.smm-stock-row .smm-stock-material {
+        grid-area: material !important;
+        margin: 0 !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        text-align: center !important;
+    }
+    /* nth-child(2) — .smm-stock-value-field wrapper gets hijacked; same
+       reset as .wt-client/.wt-referral above. Color intentionally left
+       alone here — see .smm-stock-negative above, which already has
+       enough specificity to survive this hijack (and reaches straight
+       through the new wrapper via a descendant combinator) on its own.
+       justify-self:start shrinks this field to its own content width —
+       driven by "Current Stock", its widest line — and anchors that box
+       to the left edge of the column (its own "corner"); align-items:
+       center below then centers the value under the label's own width
+       within that box, without moving the label or spanning the whole
+       column. */
+    .list-table-format.smm-stock-row .smm-stock-value-field {
+        grid-area: stock !important;
+        justify-self: start !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    /* nth-child(3) — same reset and reasoning, anchored to the right
+       edge instead to match "Unit"'s own corner. */
+    .list-table-format.smm-stock-row .smm-stock-unit-field {
+        grid-area: unit !important;
+        justify-self: end !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    .list-table-format.smm-stock-row .smm-stock-value-field,
+    .list-table-format.smm-stock-row .smm-stock-unit-field {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+    }
+    .smm-stock-row .smm-stock-value,
+    .smm-stock-row .smm-stock-unit {
+        margin: 0 !important;
+        text-align: center !important;
+    }
+    /* The value is the one number in this row worth a second glance —
+       give it the same size bump Work Type Rates' own labeled fields use. */
+    .smm-stock-row .smm-stock-value {
+        font-size: 1.1rem !important;
+        font-weight: 700 !important;
+    }
+    .smm-stock-row .smm-stock-unit {
+        color: var(--text-lt) !important;
+    }
+
+    /* Filter row (From/To/Record Waste) — inline
+       gridTemplateColumns:repeat(3,minmax(0,220px)) needs !important to
+       override, same reasoning as every other inline-styled filter grid
+       so far. */
+    .smm-filter-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .smm-filter-addbtn p[aria-hidden="true"] { display: none; }
+
+    /* ── Movement History table ── */
+    .list-table-format.smm-hist-header { display: none !important; }
+    .list-table-format.smm-hist-row {
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas:
+            "date type"
+            "material material"
+            "vendor vendor"
+            "quantity quantity"
+            "notes notes"
+            "actions actions" !important;
+        row-gap: 6px !important;
+        padding: 16px !important;
+    }
+    .list-table-format.smm-hist-row .smm-hist-date {
+        grid-area: date !important;
+        align-self: center !important;
+        margin: 0 !important;
+        font-size: 0.85rem !important;
+    }
+    /* nth-child(2) — reset. */
+    .list-table-format.smm-hist-row .smm-hist-material {
+        grid-area: material !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: 600 !important;
+        color: inherit !important;
+    }
+    /* nth-child(3) — reset. */
+    .list-table-format.smm-hist-row .smm-hist-type {
+        grid-area: type !important;
+        justify-self: end !important;
+        align-self: center !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    /* 4th/5th/6th children — not hijacked, kept at matching specificity. */
+    .list-table-format.smm-hist-row .smm-hist-vendor {
+        grid-area: vendor !important;
+        margin: 0 !important;
+        font-size: 0.82rem !important;
+        color: var(--text-lt) !important;
+    }
+    .list-table-format.smm-hist-row .smm-hist-qty {
+        grid-area: quantity !important;
+        margin: 0 !important;
+        font-size: 0.85rem !important;
+    }
+    .list-table-format.smm-hist-row .smm-hist-notes {
+        grid-area: notes !important;
+        margin: 0 !important;
+        font-size: 0.8rem !important;
+        color: var(--text-lt) !important;
+    }
+    /* Carries the generic .action-buttons class — same reset as
+       wkc-action/wt-action/wm-action above. */
+    .list-table-format.smm-hist-row .smm-hist-action {
+        grid-area: actions !important;
+        justify-content: flex-start !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        border-top: none !important;
+        font-size: inherit !important;
+    }
+}
+
+/* ══════════════════════════════════════════════
+   RUNNING BILLS TAB (RunningBillsManager)
+   Actions live outside the info grid entirely (rb-actions-row1, spanning
+   the full row width) rather than in a 6th fixed-width column — up to 5
+   buttons (Issue/Mark Draft, GST, Statement, B&W, delete) can't fit a
+   narrow "Action" column without either wrapping unpredictably or
+   squeezing Bill/Date/Period/Total to unreadable widths. Same shape at
+   every width; only the info grid above it (num/date/period/total/
+   status) actually changes between desktop's row layout and mobile's
+   stacked card. rb-num/rb-date/rb-period/rb-total/rb-status classes are
+   shared between the header row's <b> cells and the data row's <p>
+   cells, so heading and content alignment can never drift apart.
+══════════════════════════════════════════════ */
+/* These same classes are reused on the header row's <b> cells (see
+   rb-header's JSX) as well as the data row's <p> cells — one rule per
+   column governs both, so heading and content can never drift apart.
+   Desktop: every column centers, header and data alike — same width
+   area (they already share one grid-template-columns value) plus the
+   same alignment means each heading sits exactly above its own content.
+   Mobile overrides this per column below, where the card layout (not a
+   real grid header) wants its own left/right scheme instead — except
+   Total, which stays centered on mobile too by simply not overriding it. */
+.list-table-format.rb-row .rb-num,
+.list-table-format.rb-row .rb-date,
+.list-table-format.rb-row .rb-period,
+.list-table-format.rb-row .rb-total,
+.list-table-format.rb-row .rb-status {
+    text-align: center !important;
+}
+
+/* ── MOBILE (≤640px) ──
+   Same nth-child(2)/(3) hijack risk as every table above. rbg-row is the
+   nested "available work" table inside the Generate Bill sheet
+   (dashboard.css, 540px breakpoint) — same split as wkc-row/wkl-row
+   inside the Manage Contractors/Labour sub-modals: modal mechanics live
+   in dashboard.css at the modal's own breakpoint, the table *inside* it
+   lives here at the table breakpoint. */
+@media (max-width: 640px) {
+    .rb-header-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px;
+    }
+    .rb-header-row .add-point-btn { width: 100%; }
+
+    .list-table-format.rb-header { display: none !important; }
+    .list-table-format.rb-row {
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas:
+            "num status"
+            "date period"
+            "total total"
+            "actions1 actions1" !important;
+        row-gap: 8px !important;
+        padding: 16px !important;
+    }
+    /* Card layout, not a real grid header — the base-level rule above
+       centers every column to match desktop's heading/content pairing,
+       but mobile's stacked card wants its own left/right scheme instead
+       (no header row visible to "match" against here). Total is the one
+       exception: it stays centered on mobile too, so no override below. */
+    .list-table-format.rb-row .rb-num {
+        grid-area: num !important;
+        margin: 0 !important;
+        font-weight: 600 !important;
+        text-align: left !important;
+    }
+    /* nth-child(2) under the generic ≤480px hijack — reset. */
+    .list-table-format.rb-row .rb-date {
+        grid-area: date !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: 0.82rem !important;
+        font-weight: normal !important;
+        color: inherit !important;
+        text-align: left !important;
+    }
+    /* nth-child(3) under the generic ≤480px hijack — reset. */
+    .list-table-format.rb-row .rb-period {
+        grid-area: period !important;
+        justify-self: end !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: 0.78rem !important;
+        font-weight: normal !important;
+        color: var(--text-lt) !important;
+        text-align: right !important;
+    }
+    .rb-field-label {
+        display: block;
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: var(--text-lt);
+        margin-bottom: 2px;
+    }
+    /* 4th child — not hijacked by the generic ≤480px rule. Centered, same
+       as desktop — inherits the base-level rule, no override here. */
+    .list-table-format.rb-row .rb-total {
+        grid-area: total !important;
+        margin: 0 !important;
+        font-weight: 600 !important;
+        padding-top: 8px !important;
+        border-top: 1px dashed rgba(201,168,124,0.2) !important;
+    }
+    /* 5th child — not hijacked by the generic ≤480px rule. */
+    .list-table-format.rb-row .rb-status {
+        grid-area: status !important;
+        justify-self: end !important;
+        text-align: right !important;
+    }
+    /* Routine actions row — grid-area replaces dashboard.css's base-level
+       grid-column:1/-1 (desktop has no named areas to hook into; mobile
+       does, via this template). Own margin/border cleared since the
+       grid's row-gap already provides spacing here. justify-content:
+       center only visibly matters on a line with leftover space after
+       flex-grow + the max-width cap below (e.g. B&W alone) — on a full
+       line (Issue/GST/Statement) grow already consumes the width, so
+       centering has nothing left to do. flex-wrap treats each wrapped
+       line as its own mini flex container for this, so a line ending in
+       .rb-delete-btn (margin-left:auto, dashboard.css) isn't affected:
+       the auto margin claims all remaining space on that line first,
+       leaving nothing for centering to redistribute — B&W still lands at
+       the left edge of its own line, delete at the right. */
+    .list-table-format.rb-row .rb-actions-row1 {
+        grid-area: actions1 !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        margin-top: 0 !important;
+    }
+    /* Every text action (GST/Mark Draft/Statement/B&W) also carries
+       .rb-btn (dashboard.css: display:inline-flex for icon+label gap) —
+       text-align:center no longer centers a flex child's content, so
+       justify-content:center replaces it here to keep icon+label
+       centered within each button's own width. flex-grow:1 lets a full
+       line (Issue/GST/Statement) share leftover width evenly instead of
+       sitting at a fixed 28% with dead space; max-width caps how far
+       that can go so a button left alone on the last wrapped line (B&W,
+       most often) can't stretch past a normal button size to consume the
+       entire remaining row width. */
+    .list-table-format.rb-row .rb-actions-row1 .edit-action {
+        flex: 1 1 28% !important;
+        min-width: 70px !important;
+        max-width: 160px !important;
+        justify-content: center !important;
+        padding: 8px 6px !important;
+        font-size: 0.7rem !important;
+    }
+    /* Issue's solid pq-btn-accept button doesn't carry .edit-action, so it
+       needs its own matching flex-basis to sit in the wrap alongside GST/
+       Statement/B&W at the same size — same reasoning as above, just for
+       a different button class. */
+    .list-table-format.rb-row .rb-actions-row1 .pq-btn-accept {
+        flex: 1 1 28% !important;
+        min-width: 70px !important;
+        max-width: 160px !important;
+        justify-content: center !important;
+        padding: 8px 6px !important;
+        font-size: 0.7rem !important;
+    }
+    /* Delete stays compact and pinned to the far right at every width
+       (dashboard.css's .rb-delete-btn margin-left:auto, unchanged here)
+       rather than stretching full-width on mobile — matches the "single
+       row, delete set apart by the gap" design; no mobile-specific
+       override needed. */
+
+    /* ── Nested "available work" table inside the Generate Bill sheet ── */
+    .list-table-format.rbg-header { display: none !important; }
+    .list-table-format.rbg-row {
+        grid-template-columns: 1fr 1fr !important;
+        grid-template-areas:
+            "worktype worktype"
+            "sqft rate"
+            "gst amount" !important;
+        row-gap: 10px !important;
+        padding: 14px !important;
+    }
+    .list-table-format.rbg-row .rbg-worktype {
+        grid-area: worktype !important;
+        margin: 0 !important;
+        font-weight: 600 !important;
+        font-size: inherit !important;
+        color: inherit !important;
+    }
+    /* nth-child(2) — reset. */
+    .list-table-format.rbg-row .rbg-sqft {
+        grid-area: sqft !important;
+        align-self: center !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    /* nth-child(3) — reset. */
+    .list-table-format.rbg-row .rbg-rate {
+        grid-area: rate !important;
+        justify-self: end !important;
+        align-self: center !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    .list-table-format.rbg-row .rbg-gst {
+        grid-area: gst !important;
+        margin: 0 !important;
+        font-size: 0.78rem !important;
+        color: var(--text-lt) !important;
+    }
+    .list-table-format.rbg-row .rbg-amount {
+        grid-area: amount !important;
+        justify-self: end !important;
+        margin: 0 !important;
+        font-weight: 600 !important;
+        font-size: inherit !important;
+        color: inherit !important;
+    }
+    .rbg-sqft input[type="number"] {
+        width: 100% !important;
+    }
+}
+
+/* ══════════════════════════════════════════════
+   RECEIPTS TAB (ReceiptsManager) — MOBILE (≤640px)
+══════════════════════════════════════════════ */
+@media (max-width: 640px) {
+    .list-table-format.rcpt-header { display: none !important; }
+    .list-table-format.rcpt-row {
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas:
+            "date amount"
+            "bill bill"
+            "mode account"
+            "reference reference"
+            "actions actions" !important;
+        row-gap: 6px !important;
+        padding: 16px !important;
+    }
+    .list-table-format.rcpt-row .rcpt-date {
+        grid-area: date !important;
+        margin: 0 !important;
+        font-size: 0.85rem !important;
+    }
+    /* nth-child(2) under the generic ≤480px hijack — reset. */
+    .list-table-format.rcpt-row .rcpt-amount {
+        grid-area: amount !important;
+        justify-self: end !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: 600 !important;
+        color: inherit !important;
+    }
+    /* nth-child(3) under the generic ≤480px hijack — reset. */
+    .list-table-format.rcpt-row .rcpt-bill {
+        grid-area: bill !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: 0.8rem !important;
+        font-weight: normal !important;
+        color: var(--text-lt) !important;
+    }
+    /* 4th/5th/6th children — not hijacked, kept at matching specificity.
+       Mode needs an explicit text-align: .finance-table's own base rule
+       (`.finance-table .list-table-format > *:not(:first-child):not
+       (:last-child) { text-align: center }`, list.css, no media query —
+       always active) centers this cell's text by default; text-align:
+       left here overrides it for mobile only, matching Date/Bill above. */
+    .list-table-format.rcpt-row .rcpt-mode {
+        grid-area: mode !important;
+        margin: 0 !important;
+        font-size: 0.82rem !important;
+        text-align: left !important;
+    }
+    .list-table-format.rcpt-row .rcpt-account {
+        grid-area: account !important;
+        justify-self: end !important;
+        margin: 0 !important;
+        font-size: 0.82rem !important;
+        text-align: right !important;
+    }
+    .list-table-format.rcpt-row .rcpt-reference {
+        grid-area: reference !important;
+        margin: 0 !important;
+        font-size: 0.78rem !important;
+        color: var(--text-lt) !important;
+    }
+    .rcpt-field-label {
+        display: block;
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: var(--text-lt);
+        margin-bottom: 2px;
+    }
+    /* Carries the generic .action-buttons class — same reset as
+       wkc-action/wt-action above. */
+    .list-table-format.rcpt-row .rcpt-action {
+        grid-area: actions !important;
+        flex-direction: row !important;
+        justify-content: flex-start !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        border-top: none !important;
+        font-size: inherit !important;
+    }
+    /* margin-left:0 clears dashboard.css's base-level desktop separation
+       (10px) — a 100%-wide button doesn't need it, same reasoning as
+       rb-actions above. */
+    .list-table-format.rcpt-row .rcpt-action .pq-btn-ghost-danger {
+        width: 100% !important;
+        height: 36px !important;
+        margin-left: 0 !important;
+    }
+}
+
+/* ══════════════════════════════════════════════
+   EXPENSES TAB (ExpensesManager) — MOBILE (≤640px)
+   Category/Project/Work/Related To (ExpensesManager.jsx's hideXField
+   props) are now wrapped in a single always-rendered .exp-fields div
+   (display:contents on desktop, see that rule's own comment above) —
+   this makes its position in the row deterministic regardless of
+   scoping: Date is always child 1, .exp-fields is always child 2, Amount
+   is always child 3. Paid (child 4+) is never hijacked by the generic
+   ≤480px rule; .exp-fields and Amount still are and need the reset.
+
+   An earlier version of this fix gave all four .exp-field <p> elements
+   the SAME grid-area directly (no wrapper) — CSS Grid doesn't stack
+   multiple items sharing one area, it overlaps them in the same cell,
+   which is exactly the text-on-top-of-text bug that shipped. The wrapper
+   fixes it structurally: on mobile .exp-fields becomes a real flex
+   column (below), so its children stack in normal flow instead of
+   competing for one grid cell.
+══════════════════════════════════════════════ */
+@media (max-width: 640px) {
+    .exp-header-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px;
+    }
+    .exp-header-row .add-btn { width: 100%; }
+
+    .list-table-format.exp-header { display: none !important; }
+    .list-table-format.exp-row {
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas:
+            "date status"
+            "amount paid"
+            "fields fields"
+            "actions actions" !important;
+        row-gap: 8px !important;
+        padding: 16px !important;
+    }
+    .list-table-format.exp-row .exp-date {
+        grid-area: date !important;
+        margin: 0 !important;
+        font-size: 0.85rem !important;
+    }
+    /* Not hijacked at any field count (Status is always 4th-from-last at
+       minimum), but kept at matching specificity. */
+    .list-table-format.exp-row .exp-status {
+        grid-area: status !important;
+        justify-self: end !important;
+    }
+    /* Amount/Paid — nth-child(2)/(3) exactly when zero optional fields are
+       present (fixedCategory + fixedProjectId both set); harmless full
+       reset regardless of whether they actually land there. */
+    /* .finance-table's own base rule (`.finance-table .list-table-format >
+       *:not(:first-child):not(:last-child) { text-align: center }`,
+       list.css, no media query — always active) centers this cell's text
+       by default; text-align:left here overrides it for mobile only (the
+       card's own wide "amount" grid cell otherwise reads as the value
+       floating toward the middle instead of sitting flush with its
+       label). Desktop is untouched — it still centers, matching every
+       other middle column there. */
+    .list-table-format.exp-row .exp-amount {
+        grid-area: amount !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: 0.85rem !important;
+        font-weight: normal !important;
+        color: inherit !important;
+        padding-top: 8px !important;
+        border-top: 1px dashed rgba(201,168,124,0.2) !important;
+        text-align: left !important;
+    }
+    .list-table-format.exp-row .exp-paid {
+        grid-area: paid !important;
+        justify-self: end !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: 0.85rem !important;
+        font-weight: normal !important;
+        color: inherit !important;
+        text-align: right !important;
+        padding-top: 8px !important;
+        border-top: 1px dashed rgba(201,168,124,0.2) !important;
+    }
+    /* nth-child(2) under the generic ≤480px hijack, always (the wrapper
+       always renders even when empty) — reset its forced grid position
+       and typography, then turn it into a real flex column so its 0-4
+       .exp-field children stack in normal flow instead of overlapping. */
+    .list-table-format.exp-row .exp-fields {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+        grid-area: fields !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: inherit !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    .exp-field {
+        margin: 0 !important;
+        font-size: 0.85rem !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    .exp-field-label {
+        display: block;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: var(--text-lt);
+        margin-bottom: 2px;
+    }
+    /* Carries the generic .action-buttons class — same reset as
+       wkc-action/wt-action above, plus its own wrap (up to 4 actions:
+       View/Details/Settle/X). */
+    .list-table-format.exp-row .exp-actions {
+        grid-area: actions !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        justify-content: flex-start !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        border-top: none !important;
+    }
+    .list-table-format.exp-row .exp-actions .edit-action,
+    .list-table-format.exp-row .exp-actions .delete-action {
+        flex: 1 1 40% !important;
+        min-width: 80px !important;
+        text-align: center !important;
+        padding: 8px 6px !important;
+        font-size: 0.7rem !important;
+    }
+    /* margin-left:0 clears dashboard.css's base-level desktop separation
+       (10px) — same reasoning as rb-actions above. */
+    .list-table-format.exp-row .exp-actions .pq-btn-ghost-danger {
+        width: 100% !important;
+        height: 36px !important;
+        margin-left: 0 !important;
+    }
+
+    /* ── Nested payment-history table inside the Settle Expense sheet ── */
+    .list-table-format.esh-header { display: none !important; }
+    .list-table-format.esh-row {
+        grid-template-columns: 1fr 1fr !important;
+        grid-template-areas: "date mode" "amount amount" !important;
+        row-gap: 6px !important;
+        padding: 12px !important;
+    }
+    .list-table-format.esh-row .esh-date {
+        grid-area: date !important;
+        margin: 0 !important;
+        font-size: 0.8rem !important;
+        font-weight: normal !important;
+        color: inherit !important;
+    }
+    /* nth-child(3) — reset. */
+    .list-table-format.esh-row .esh-mode {
+        grid-area: mode !important;
+        justify-self: end !important;
+        align-self: center !important;
+        margin: 0 !important;
+        font-size: 0.8rem !important;
+        font-weight: normal !important;
+        color: var(--text-lt) !important;
+    }
+    .list-table-format.esh-row .esh-amount {
+        grid-area: amount !important;
+        margin: 0 !important;
+        font-weight: 600 !important;
+        font-size: inherit !important;
+        color: inherit !important;
+    }
+
+    /* ── View Expense's label:value detail rows — generic kv-row hook,
+       reusable beyond this modal in principle, only used here today.
+       Only 2 children per row, so the generic hijack's nth-child(3) rule
+       never matches anything; nth-child(2) (the value cell) still does. ── */
+    .list-table-format.kv-row {
+        grid-template-columns: 1fr !important;
+        grid-template-areas: "label" "value" !important;
+        row-gap: 2px !important;
+        padding: 10px 4px !important;
+    }
+    .list-table-format.kv-row p:first-child {
+        grid-area: label !important;
+        margin: 0 !important;
+        font-size: 0.68rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.3px !important;
+        color: var(--text-lt) !important;
+    }
+    /* nth-child(2) under the generic ≤480px hijack — reset. Sized/colored
+       down a step from the label:value default (was 0.88rem, inherited
+       full-strength text color) — next to the label's own small caps
+       above it and the new tinted card boundary around the whole row,
+       full-size dark text read as competing for attention rather than
+       just quietly answering the label. Amount/Status/Balance's own
+       .expv-stat-emphasis rule (below) still overrides this back up for
+       the three figures that should stand out. color has no !important
+       deliberately — Status's value carries its own inline status color
+       (green/amber/red, ExpensesManager.jsx) which an !important rule
+       here would silently override; specificity (3 selector parts) is
+       already enough to beat .edit-modal p's own non-important color
+       for every row that has no inline color of its own. */
+    .list-table-format.kv-row p:last-child {
+        grid-area: value !important;
+        grid-column: 1 / 2 !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: 0.8rem !important;
+        font-weight: normal !important;
+        color: var(--text-mid);
+    }
+
+    /* ── View Expense's stat grid (Amount/Status/Paid/Balance/GST/Date) ──
+       Desktop keeps these as plain stacked kv-rows (.expv-stat-grid is
+       display:contents there, see the base-level rule above the media
+       query) — this only changes the mobile card: instead of 6 more
+       full-width stacked rows after Category's header context, they pair
+       two-per-line as compact stat pills, cutting the modal's scroll
+       length roughly in half and grouping the numbers someone actually
+       opens this modal to check. Needs its own background/border/radius/
+       padding here (not just the generic ≤480px card-ification, which
+       doesn't cover 481–640px) so the pairing looks consistent across
+       this rule's entire ≤640px range, not just below 480px. */
+    .expv-stat-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+        margin: 0 0 14px !important;
+    }
+    .expv-stat-grid .list-table-format.kv-row {
+        background: var(--ivory, #faf6ef) !important;
+        border: 1px solid rgba(201,168,124,0.18) !important;
+        border-radius: var(--radius-sm, 8px) !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 10px 12px !important;
+    }
+    /* Amount/Status/Balance are what someone actually scans for first —
+       a larger, bolder value (and Status's own status-color, already
+       inline via JSX) gives them more visual weight than the other three
+       stats without needing a whole separate "hero" section. */
+    .expv-stat-grid .list-table-format.kv-row.expv-stat-emphasis p:last-child {
+        font-size: 1.05rem !important;
+        font-weight: 700 !important;
+    }
+
+    /* ── Category…Recorded detail rows ── same tinted-card look as the
+       stat grid above (consistent polish throughout the modal instead of
+       stopping at the six stat rows), single column rather than paired —
+       Related To and Bank Account can run long enough that a 2-column
+       pair would wrap awkwardly, so each stays full width with its own
+       label above and value below, just with a visible card boundary
+       instead of a bare divider line. */
+    .expv-details-list {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+        margin: 0 0 10px !important;
+    }
+    .expv-details-list .list-table-format.kv-row {
+        background: var(--ivory, #faf6ef) !important;
+        border: 1px solid rgba(201,168,124,0.18) !important;
+        border-radius: var(--radius-sm, 8px) !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 10px 12px !important;
+    }
+
+    /* ── Notes ── freeform text deserves to read as its own note, not
+       just another label:value row — a tinted card, full width, sitting
+       apart from the stat grid and the plain detail list above it. */
+    .list-table-format.kv-row.expv-notes-row {
+        background: rgba(201,168,124,0.06) !important;
+        border: 1px solid rgba(201,168,124,0.18) !important;
+        border-radius: var(--radius-sm, 8px) !important;
+        box-shadow: none !important;
+        margin: 10px 0 0 !important;
+        padding: 12px !important;
+    }
+}
+
+/* ══════════════════════════════════════════════
+   DOCUMENTS TAB (DocumentsTab — shared by Client Detail and Project
+   Detail) — MOBILE (≤640px)
+   Same nth-child(2)/(3) hijack risk as every table above. Only 4 columns
+   (Name/Uploaded/Notes/Action), same reconciliation pattern regardless.
+══════════════════════════════════════════════ */
+@media (max-width: 640px) {
+    .doc-header-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px;
+    }
+    .doc-header-row .add-btn { width: 100%; }
+
+    .list-table-format.doc-header { display: none !important; }
+    .list-table-format.doc-row {
+        grid-template-columns: 1fr !important;
+        grid-template-areas:
+            "name"
+            "date"
+            "notes"
+            "actions" !important;
+        row-gap: 6px !important;
+        padding: 16px !important;
+    }
+    .list-table-format.doc-row .doc-name {
+        grid-area: name !important;
+        margin: 0 !important;
+        font-weight: 600 !important;
+    }
+    /* nth-child(2) under the generic ≤480px hijack — reset. */
+    .list-table-format.doc-row .doc-date {
+        grid-area: date !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: 0.8rem !important;
+        font-weight: normal !important;
+        color: var(--text-lt) !important;
+        text-align: left !important;
+    }
+    /* nth-child(3) under the generic ≤480px hijack — reset. */
+    .list-table-format.doc-row .doc-notes {
+        grid-area: notes !important;
+        align-self: start !important;
+        margin: 0 !important;
+        font-size: 0.85rem !important;
+        font-weight: normal !important;
+        color: inherit !important;
+        text-align: left !important;
+    }
+    .doc-field-label {
+        display: block;
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: var(--text-lt);
+        margin-bottom: 2px;
+    }
+    /* Carries the generic .action-buttons class — same reset as
+       wkc-action/wt-action above. */
+    .list-table-format.doc-row .doc-actions {
+        grid-area: actions !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        justify-content: flex-start !important;
+        margin-top: 4px !important;
+        padding-top: 12px !important;
+        border-top: 1px dashed rgba(201,168,124,0.25) !important;
+    }
+    .list-table-format.doc-row .doc-actions .edit-action {
+        flex: 1 1 40% !important;
+        min-width: 80px !important;
+        text-align: center !important;
+        padding: 8px 6px !important;
+        font-size: 0.7rem !important;
+    }
+    .list-table-format.doc-row .doc-actions .pq-btn-ghost-danger {
+        margin-left: auto;
+    }
+}
+
+/* ══════════════════════════════════════════════
+   PROFITABILITY TAB (ProjectProfitabilityTab) — MOBILE (≤640px)
+   Four raw list-table.finance-table tables, none sharing a column count:
+   Unapproved (6 cols), Direct Payments (2 cols), Contractor/Labourer
+   earnings (8 cols each, identical shape — share one class). Same
+   nth-child(2)/(3) hijack risk as every table above throughout.
+══════════════════════════════════════════════ */
+@media (max-width: 640px) {
+    /* ── Unapproved (Pending Review) — single summary row, 6 fields ── */
+    .list-table-format.pp-unapp-header { display: none !important; }
+    .list-table-format.pp-unapp-row {
+        grid-template-columns: 1fr 1fr !important;
+        grid-template-areas:
+            "area contractor"
+            "labour commission"
+            "revenue profit" !important;
+        row-gap: 12px !important;
+        padding: 16px !important;
+    }
+    .list-table-format.pp-unapp-row .pp-unapp-field {
+        margin: 0 !important;
+        font-size: 0.85rem !important;
+        font-weight: normal !important;
+        color: inherit !important;
+        text-align: left !important;
+    }
+    .list-table-format.pp-unapp-row .pp-unapp-area { grid-area: area !important; }
+    /* nth-child(2)/(3) under the generic ≤480px hijack — the reset above
+       already covers font-size/weight/color/text-align; grid-area still
+       needs setting per field since the generic rule forces its own. */
+    .list-table-format.pp-unapp-row :nth-child(2) { grid-area: contractor !important; }
+    .list-table-format.pp-unapp-row :nth-child(3) { grid-area: labour !important; }
+    .list-table-format.pp-unapp-row :nth-child(4) { grid-area: commission !important; }
+    .list-table-format.pp-unapp-row :nth-child(5) { grid-area: revenue !important; }
+    .list-table-format.pp-unapp-row .pp-unapp-profit {
+        grid-area: profit !important;
+        font-weight: 700 !important;
+    }
+    .pp-field-label {
+        display: block;
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: var(--text-lt);
+        margin-bottom: 2px;
+    }
+
+    /* ── Direct Payments — Party/Total, already only 2 columns ── */
+    .list-table-format.pp-dp-header { display: none !important; }
+    .list-table-format.pp-dp-row {
+        grid-template-columns: 1fr 1fr !important;
+        padding: 14px 16px !important;
+    }
+    .list-table-format.pp-dp-row .pp-dp-party {
+        margin: 0 !important;
+        font-size: 0.88rem !important;
+        font-weight: 600 !important;
+        text-align: left !important;
+    }
+    /* nth-child(2) under the generic ≤480px hijack — reset. */
+    .list-table-format.pp-dp-row .pp-dp-total {
+        margin: 0 !important;
+        font-size: 0.88rem !important;
+        font-weight: normal !important;
+        color: inherit !important;
+        text-align: right !important;
+        align-self: center !important;
+    }
+
+    /* ── Contractor / Labourer earnings — 8 columns, densest table here ── */
+    .list-table-format.pp-earn-header { display: none !important; }
+    .list-table-format.pp-earn-row {
+        grid-template-columns: 1fr !important;
+        grid-template-areas:
+            "name"
+            "stats"
+            "balance" !important;
+        row-gap: 10px !important;
+        padding: 16px !important;
+    }
+    .list-table-format.pp-earn-row .pp-earn-name {
+        grid-area: name !important;
+        margin: 0 !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        text-align: left !important;
+    }
+    /* .pp-earn-stats is a real grid here (not display:contents, see the
+       base-level rule) — its own area, 2 columns for the 6 figures
+       inside it to pair up on. */
+    .list-table-format.pp-earn-row .pp-earn-stats {
+        grid-area: stats !important;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+        padding: 12px !important;
+        background: var(--ivory, #faf6ef);
+        border: 1px solid rgba(201,168,124,0.18);
+        border-radius: var(--radius-sm, 8px);
+    }
+    /* Every figure inside .pp-earn-stats is nested two levels deep (row >
+       .pp-earn-stats > .pp-earn-field), not a direct child of
+       .list-table-format — the generic ≤480px hijack's `>` child
+       combinator can't reach it at all, so no nth-child reset is needed
+       here the way every other table's middle fields have required. */
+    .pp-earn-field {
+        margin: 0 !important;
+        font-size: 0.8rem !important;
+        font-weight: normal !important;
+        color: var(--text-mid, #5a4e44) !important;
+        text-align: left !important;
+    }
+    .list-table-format.pp-earn-row .pp-earn-balance {
+        grid-area: balance !important;
+        margin: 0 !important;
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+        text-align: left !important;
+        padding-top: 10px !important;
+        border-top: 1px dashed rgba(201,168,124,0.25) !important;
     }
 }

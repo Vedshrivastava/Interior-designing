@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPen, faTrash, faCheck, faAddressCard, faBuildingColumns, faFileInvoice, faUserGroup, faNoteSticky, faCircleInfo, faPhone, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
 import { registerSettingIfNew } from './SettingSelectField';
 import { emptyFormFromFields, renderMasterField, groupFieldsBySection, FieldNote, isFullWidthField } from './masterFieldRenderer';
@@ -10,6 +12,35 @@ import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/add.css';
 import '../../styles/wizard.css';
+
+// Every section name any FINANCE_MASTERS resource actually uses (a quick
+// grep across financeMasters.js) — a small icon next to each label gives
+// a long, multi-section form (Clients' Contact/Compliance/Bank Details/
+// Other, four groups deep) a visual anchor to scan by by instead of
+// every section reading as the same plain uppercase strip. Falls back to
+// a generic info icon for any section name not in this list, since the
+// config can grow without this list keeping up.
+const SECTION_ICONS = {
+    'Contact': faAddressCard,
+    'Bank Details': faBuildingColumns,
+    'Compliance': faFileInvoice,
+    'Details': faCircleInfo,
+    'Labour Provider': faUserGroup,
+    'Other': faNoteSticky,
+};
+
+// cardTitle-only (Clients' own Directory list) — a small initial avatar
+// next to the name gives that table the same visual anchor as its Client
+// Summary card sitting right above it. Same two-letter rule as MyAccount's
+// own getInitials.
+const getInitials = (name = '') =>
+    name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
+
+// cardTitle-only, keyed by column (not resource-wide, since a resource
+// mixes iconable contact fields with plain ones) — a small muted glyph
+// ahead of the value gives Phone/Email their own contact-card identity
+// instead of reading as two more plain strings next to Name's new avatar.
+const FIELD_ICONS = { phone: faPhone, email: faEnvelope };
 
 /* Generic add/list/edit/delete table for the simple Phase 0 masters
    (Clients, Vendors, Employees, Materials, Labour Teams) — one config-driven
@@ -56,7 +87,11 @@ import '../../styles/wizard.css';
    Clients-summary look) with its own responsive row layout — name on its
    own line, secondary columns self-label in a wrapping row, actions full-
    width — instead of the default .list-table-format table. Omit for the
-   existing plain look every other current consumer still gets unchanged. */
+   existing plain look every other current consumer still gets unchanged.
+
+   mc-overlay/mc-modal: the Add/Edit bottom sheet — shared by every
+   consumer (Clients, Vendors, Employees, Materials, Labour Teams), so
+   this one restructuring covers all five at once. */
 const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, hideAddButton, presetValues = {}, searchQuery, onSearchChange, cardTitle }, ref) => {
     const navigate = useNavigate();
     const resource = FINANCE_MASTERS[resourceKey];
@@ -216,7 +251,7 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
         } else content = value || '-';
 
         if (isFirst && getDetailLink) {
-            return <span className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(getDetailLink(item))}>{content}</span>;
+            return <span className="item-name item-name-link" onClick={() => navigate(getDetailLink(item))}>{content}</span>;
         }
         return content;
     };
@@ -228,7 +263,23 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
     const displayList = (filter ? list.filter(filter) : list)
         .filter(item => !effectiveQuery || String(item[searchKey] || '').toLowerCase().includes(effectiveQuery.toLowerCase()));
 
-    const gridCols = `repeat(${resource.columns.length}, 1fr) 140px`;
+    // cardTitle's Edit/Remove now carry a desktop min-width (dashboard.css)
+    // so the pair reads as one consistent-width unit instead of two pills
+    // sized off however long "Edit" vs "Remove" happens to be — 140px (the
+    // plain .list-table-format branch's own Action width, untouched) isn't
+    // wide enough for both at that min-width, so cardTitle gets its own
+    // wider action column instead of shrinking the buttons to fit.
+    //
+    // Equal 1fr columns also left Email visibly cramped against Phone's
+    // fixed-length value (Clients' own directory: Name/Phone/Email) — Phone
+    // never needs as much room as it was given, Email regularly does. The
+    // minmax floor on Phone keeps a full "+91 xxxxx xxxxx" on one line —
+    // 0.7fr alone shrank below that and wrapped mid-number once Email's
+    // extra share left less room to go around.
+    const colWidth = (key) => (key === 'phone' ? 'minmax(185px, 0.7fr)' : key === 'email' ? '1.5fr' : '1fr');
+    const gridCols = cardTitle
+        ? `${resource.columns.map(c => colWidth(c.key)).join(' ')} 220px`
+        : `repeat(${resource.columns.length}, 1fr) 140px`;
 
     return (
         <div>
@@ -261,18 +312,37 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
                     ) : (
                         displayList.map(item => (
                             <div key={item._id} className="mastercrud-row" style={{ gridTemplateColumns: gridCols }}>
-                                <div className="mastercrud-name">{renderCell(item, resource.columns[0], true)}</div>
+                                <div className="mastercrud-name">
+                                    <span className="client-avatar"><span className="client-avatar-initials">{getInitials(String(item[resource.columns[0].key] || ''))}</span></span>
+                                    {renderCell(item, resource.columns[0], true)}
+                                </div>
                                 <div className="mastercrud-fields">
                                     {resource.columns.slice(1).map(c => (
                                         <div key={c.key} className="mastercrud-field">
                                             <span className="mastercrud-field-label">{c.label}</span>
-                                            <span className="mastercrud-field-value">{renderCell(item, c, false)}</span>
+                                            <span className="mastercrud-field-value">
+                                                {FIELD_ICONS[c.key] && <FontAwesomeIcon icon={FIELD_ICONS[c.key]} className="mastercrud-field-icon" />}
+                                                {renderCell(item, c, false)}
+                                            </span>
                                         </div>
                                     ))}
                                 </div>
+                                {/* Icon shown at every width now; text label drops out only
+                                    ≤640px (mobile keeps the compact icon-only square), same
+                                    icon-on-mobile/icon+text-on-desktop split as everywhere
+                                    else this pass. Delete reads "Remove" rather than "X" —
+                                    pairing a trash icon with a literal "X" character read as
+                                    two redundant symbols instead of an icon plus a real word,
+                                    and "Remove" already matches this button's own aria-label. */}
                                 <div className="action-buttons mastercrud-actions">
-                                    <p onClick={() => openEdit(item)} className="cursor edit-action">Edit</p>
-                                    <p onClick={() => setConfirmItem(item)} className="cursor delete-action">X</p>
+                                    <p onClick={() => openEdit(item)} className="cursor edit-action">
+                                        <FontAwesomeIcon icon={faPen} className="pq-action-icon mastercrud-action-icon" />
+                                        <span className="mastercrud-action-text">Edit</span>
+                                    </p>
+                                    <button type="button" onClick={() => setConfirmItem(item)} className="cursor delete-action" title={`Remove ${resource.label.toLowerCase()}`} aria-label={`Remove ${resource.label.toLowerCase()}`}>
+                                        <FontAwesomeIcon icon={faTrash} className="pq-action-icon mastercrud-action-icon" />
+                                        <span className="mastercrud-action-text">Remove</span>
+                                    </button>
                                 </div>
                             </div>
                         ))
@@ -304,33 +374,46 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
             )}
 
             {modalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>{editingId ? `Edit ${resource.label}` : `Add ${resource.label}`}</h2>
-                        <form onSubmit={submit}>
-                            {groupFieldsBySection(resource.fields.filter(f =>
-                                (!f.showIf || f.showIf(form))
-                                && (editingId || !(f.key in presetValues))
-                                && (!f.onlyOnAdd || !editingId)
-                            )).map((group, gi) => (
-                                <React.Fragment key={gi}>
-                                    {group.section && <p className="wizard-section-label">{group.section}</p>}
-                                    <div className="wizard-field-grid">
-                                        {group.fields.map(f => (
-                                            <div key={f.key} className={`add-product-name flex-col${isFullWidthField(f, group) ? ' wizard-field-full' : ''}`}>
-                                                <p>{f.label}{f.required ? ' *' : ''}</p>
-                                                {renderMasterField(f, form, setField, { url, settingOptions })}
-                                                <FieldNote note={f.note} />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </React.Fragment>
-                            ))}
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                            </div>
-                        </form>
+                <div className="submit-loader-overlay mc-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal mc-modal">
+                        <div className="mc-modal-header">
+                            <h2>{editingId ? `Edit ${resource.label}` : `Add ${resource.label}`}</h2>
+                        </div>
+
+                        <div className="mc-modal-body">
+                            <form id="master-crud-form" onSubmit={submit}>
+                                {groupFieldsBySection(resource.fields.filter(f =>
+                                    (!f.showIf || f.showIf(form))
+                                    && (editingId || !(f.key in presetValues))
+                                    && (!f.onlyOnAdd || !editingId)
+                                )).map((group, gi) => (
+                                    <React.Fragment key={gi}>
+                                        {group.section && (
+                                            <p className="wizard-section-label mc-section-label">
+                                                <FontAwesomeIcon icon={SECTION_ICONS[group.section] || faCircleInfo} className="mc-section-icon" />
+                                                {group.section}
+                                            </p>
+                                        )}
+                                        <div className="wizard-field-grid">
+                                            {group.fields.map(f => (
+                                                <div key={f.key} className={`add-product-name flex-col${isFullWidthField(f, group) ? ' wizard-field-full' : ''}`}>
+                                                    <p>{f.label}{f.required && <span className="mc-required-mark"> *</span>}</p>
+                                                    {renderMasterField(f, form, setField, { url, settingOptions })}
+                                                    <FieldNote note={f.note} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </React.Fragment>
+                                ))}
+                            </form>
+                        </div>
+
+                        <div className="edit-modal-actions mc-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
+                            <button type="submit" form="master-crud-form" className="add-btn" disabled={saving}>
+                                {saving ? 'Saving…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Save</>}
+                            </button>
+                        </div>
                     </div>
                 </div>,
                 document.body

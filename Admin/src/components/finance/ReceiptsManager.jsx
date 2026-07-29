@@ -6,6 +6,8 @@ import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -129,7 +131,7 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                 <div className="admin-empty-state"><p>Select a project to record or view receipts.</p></div>
             ) : (
                 <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                    <div className="rcpt-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                         <div>
                             <h3 style={{ margin: '0 0 4px' }}>Receipts</h3>
                             <p className="admin-subtitle" style={{ margin: 0 }}>Money actually received from the client, optionally tied to one issued bill.</p>
@@ -138,66 +140,72 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                     </div>
 
                     {modalOpen && ReactDOM.createPortal(
-                        <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
-                            <div className="loader-modal-box edit-modal">
-                                <h2>Record Receipt</h2>
-                                <form onSubmit={submit}>
-                                    <div className="wizard-field-grid">
-                                        <div className="add-product-name flex-col">
-                                            <p>Amount (₹) *</p>
-                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                        <div className="submit-loader-overlay rcpt-overlay" style={{ zIndex: 100000 }}>
+                            <div className="loader-modal-box edit-modal rcpt-modal">
+                                <div className="rcpt-modal-header">
+                                    <h2>Record Receipt</h2>
+                                </div>
+
+                                <div className="rcpt-modal-body">
+                                    <form id="record-receipt-form" onSubmit={submit}>
+                                        <div className="wizard-field-grid">
+                                            <div className="add-product-name flex-col">
+                                                <p>Amount (₹) *</p>
+                                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>Receipt Date *</p>
+                                                <StyledDatePicker value={form.receiptDate} onChange={v => setField('receiptDate', v)} />
+                                            </div>
+                                            <div className="add-product-name flex-col wizard-field-full">
+                                                <p>Against Bill (optional)</p>
+                                                <StyledSelect
+                                                    value={form.runningBillId} onChange={v => setField('runningBillId', v)}
+                                                    placeholder="Not tied to a specific bill"
+                                                    options={issuedBills.map(b => ({ value: b._id, label: `#${b.billNumber} · ₹${(b.totalAmount + (b.gstAmount || 0)).toLocaleString('en-IN')}` }))}
+                                                />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>Payment Mode</p>
+                                                <SettingSelectField
+                                                    settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
+                                                    value={form.paymentMode} onChange={v => setField('paymentMode', v)} placeholder="e.g. Cash, Bank Transfer, UPI…"
+                                                />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>Bank Account (leave blank if cash)</p>
+                                                <StyledSelect
+                                                    value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
+                                                    options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                                                />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>UTR / Reference Number</p>
+                                                <input type="text" value={form.utrNumber} onChange={e => setField('utrNumber', e.target.value)} />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>Bank / Cash Label (legacy, optional)</p>
+                                                <input type="text" value={form.bankOrCashLabel} onChange={e => setField('bankOrCashLabel', e.target.value)} placeholder="e.g. HDFC Current A/c, or Cash" />
+                                            </div>
+                                            <div className="add-product-name flex-col wizard-field-full">
+                                                <p>Notes</p>
+                                                <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
+                                            </div>
                                         </div>
-                                        <div className="add-product-name flex-col">
-                                            <p>Receipt Date *</p>
-                                            <StyledDatePicker value={form.receiptDate} onChange={v => setField('receiptDate', v)} />
-                                        </div>
-                                        <div className="add-product-name flex-col wizard-field-full">
-                                            <p>Against Bill (optional)</p>
-                                            <StyledSelect
-                                                value={form.runningBillId} onChange={v => setField('runningBillId', v)}
-                                                placeholder="Not tied to a specific bill"
-                                                options={issuedBills.map(b => ({ value: b._id, label: `#${b.billNumber} · ₹${(b.totalAmount + (b.gstAmount || 0)).toLocaleString('en-IN')}` }))}
-                                            />
-                                        </div>
-                                        <div className="add-product-name flex-col">
-                                            <p>Payment Mode</p>
-                                            <SettingSelectField
-                                                settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
-                                                value={form.paymentMode} onChange={v => setField('paymentMode', v)} placeholder="e.g. Cash, Bank Transfer, UPI…"
-                                            />
-                                        </div>
-                                        <div className="add-product-name flex-col">
-                                            <p>Bank Account (leave blank if cash)</p>
-                                            <StyledSelect
-                                                value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
-                                                options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
-                                            />
-                                        </div>
-                                        <div className="add-product-name flex-col">
-                                            <p>UTR / Reference Number</p>
-                                            <input type="text" value={form.utrNumber} onChange={e => setField('utrNumber', e.target.value)} />
-                                        </div>
-                                        <div className="add-product-name flex-col">
-                                            <p>Bank / Cash Label (legacy, optional)</p>
-                                            <input type="text" value={form.bankOrCashLabel} onChange={e => setField('bankOrCashLabel', e.target.value)} placeholder="e.g. HDFC Current A/c, or Cash" />
-                                        </div>
-                                        <div className="add-product-name flex-col wizard-field-full">
-                                            <p>Notes</p>
-                                            <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
-                                        </div>
-                                    </div>
-                                    <div className="edit-modal-actions">
-                                        <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
-                                        <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Record Receipt'}</button>
-                                    </div>
-                                </form>
+                                    </form>
+                                </div>
+
+                                <div className="edit-modal-actions rcpt-modal-footer">
+                                    <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
+                                    <button type="submit" form="record-receipt-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Record Receipt'}</button>
+                                </div>
                             </div>
                         </div>,
                         document.body
                     )}
 
                     <div className="list-table finance-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1.2fr 1fr 90px' }}>
+                        <div className="list-table-format title rcpt-row rcpt-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1.2fr 1fr 90px' }}>
                             <b>Date</b><b>Amount</b><b>Bill</b><b>Mode</b><b>Account</b><b>Reference</b><b>Action</b>
                         </div>
                         {loading ? (
@@ -206,15 +214,17 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                             <div className="admin-empty-state"><p>No receipts recorded yet.</p></div>
                         ) : (
                             receipts.map(r => (
-                                <div key={r._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1.2fr 1fr 90px' }}>
-                                    <p>{new Date(r.receiptDate).toLocaleDateString()}</p>
-                                    <p>₹{r.amount.toLocaleString('en-IN')}</p>
-                                    <p>{r.runningBillId?.billNumber ? `#${r.runningBillId.billNumber}` : '-'}</p>
-                                    <p>{r.paymentMode || '-'}</p>
-                                    <p>{r.bankAccountId?.accountName || (r.paymentMode ? 'Cash' : '-')}</p>
-                                    <p>{r.utrNumber || r.bankOrCashLabel || '-'}</p>
-                                    <div className="action-buttons">
-                                        <p onClick={() => removeReceipt(r)} className="cursor delete-action">X</p>
+                                <div key={r._id} className="list-table-format row-item rcpt-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1.2fr 1fr 90px' }}>
+                                    <p className="rcpt-date">{new Date(r.receiptDate).toLocaleDateString()}</p>
+                                    <p className="rcpt-amount">₹{r.amount.toLocaleString('en-IN')}</p>
+                                    <p className="rcpt-bill"><span className="rcpt-field-label">Bill</span>{r.runningBillId?.billNumber ? `#${r.runningBillId.billNumber}` : '-'}</p>
+                                    <p className="rcpt-mode"><span className="rcpt-field-label">Mode</span>{r.paymentMode || '-'}</p>
+                                    <p className="rcpt-account"><span className="rcpt-field-label">Account</span>{r.bankAccountId?.accountName || (r.paymentMode ? 'Cash' : '-')}</p>
+                                    <p className="rcpt-reference"><span className="rcpt-field-label">Reference</span>{r.utrNumber || r.bankOrCashLabel || '-'}</p>
+                                    <div className="action-buttons rcpt-action">
+                                        <button type="button" onClick={() => removeReceipt(r)} className="pq-btn-ghost-danger" title="Remove receipt" aria-label="Remove receipt">
+                                            <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                        </button>
                                     </div>
                                 </div>
                             ))

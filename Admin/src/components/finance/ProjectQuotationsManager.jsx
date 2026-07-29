@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faBan, faRotateLeft, faTrash, faEye, faUpload } from '@fortawesome/free-solid-svg-icons';
 import AddQuotationModal from './AddQuotationModal';
+import ViewAttachmentLink from './ViewAttachmentLink';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -167,9 +168,9 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
                                     {doc && <span className="pq-uploaded-name" title={doc.name}>{doc.name}</span>}
                                     <div className="action-buttons pq-action-buttons">
                                         {doc && (
-                                            <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="cursor edit-action" style={{ textDecoration: 'none' }}>
+                                            <ViewAttachmentLink url={doc.fileUrl} name={doc.name} className="cursor edit-action" style={{ textDecoration: 'none' }}>
                                                 <FontAwesomeIcon icon={faEye} className="pq-action-icon" /> View
-                                            </a>
+                                            </ViewAttachmentLink>
                                         )}
                                         <p onClick={() => triggerUpload(q)} className="cursor edit-action">
                                             <FontAwesomeIcon icon={faUpload} className="pq-action-icon" /> {uploadingId === q._id ? 'Uploading…' : doc ? 'Replace' : 'Upload'}

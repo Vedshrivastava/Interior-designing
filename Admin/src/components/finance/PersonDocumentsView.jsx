@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import ViewAttachmentLink from './ViewAttachmentLink';
 import '../../styles/list.css';
 
 // resourceKey -> { apiBase, idField } — the three entity types that carry
@@ -90,9 +91,9 @@ const PersonDocumentsView = ({ url, resourceKey, entityId, entityLabel = 'person
                     </div>
                     {person.documents.map(d => (
                         <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 100px' }}>
-                            <a href={d.url} target="_blank" rel="noreferrer" className="item-name" style={{ textDecoration: 'none' }}>
+                            <ViewAttachmentLink url={d.url} name={d.note} className="item-name" style={{ textDecoration: 'none' }}>
                                 📄 {d.note || 'Untitled document'}
-                            </a>
+                            </ViewAttachmentLink>
                             <div className="action-buttons">
                                 <p onClick={() => removeDocument(d._id)} className="cursor delete-action">X</p>
                             </div>

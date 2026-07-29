@@ -23,6 +23,14 @@ const emptyForm = { materialId: '', quantity: '', date: '', notes: '', workId: '
  *   received from a vendor without ever billing that vendor for it.
  * Waste has no vendor (nothing to attribute a spoilage/loss to) and is
  * quantity-only, optionally tied to one Work.
+ *
+ * asm-overlay/asm-modal are scoping hooks only, same pattern as
+ * AddWorkModal's aw-overlay/aw-modal — mobile-only bottom-sheet rules
+ * target these classes specifically. Header/body/footer are split so the
+ * sheet can scroll its fields while Cancel/Save stay pinned at the
+ * bottom edge on mobile — Save is wired to the form via
+ * form="add-stock-movement-form" since it now lives outside the <form>
+ * itself.
  */
 const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
     const token = localStorage.getItem('token');
@@ -84,47 +92,53 @@ const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
     };
 
     return ReactDOM.createPortal(
-        <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
-            <div className="loader-modal-box edit-modal">
-                <h2>Record Waste</h2>
-                <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                    Spoilage or loss of material already accounted for elsewhere — receiving material from a vendor is recorded as a Purchase in Procurement instead, which handles cost and vendor payment.
-                </p>
-                <form onSubmit={submit}>
-                    <div className="wizard-field-grid">
-                        <div className="add-product-name flex-col">
-                            <p>Work (optional)</p>
-                            <StyledSelect
-                                value={form.workId} onChange={v => setField('workId', v)}
-                                placeholder="Not tied to one Work…"
-                                options={works.map(w => ({ value: w._id, label: `${w.workType}${w.workOrderNumber ? ` (${w.workOrderNumber})` : ''}` }))}
-                            />
-                        </div>
-                        <div className="add-product-name flex-col">
-                            <p>Material *</p>
-                            <QuickAddPicker url={url} resourceKey="materials" value={form.materialId} onChange={v => setField('materialId', v)} filter={materialFilter} />
-                        </div>
-                        <div className="add-product-name flex-col">
-                            <p>Quantity *</p>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.quantity} onChange={e => setField('quantity', e.target.value)} style={{ flex: 1 }} />
-                                {selectedMaterial?.unit && <span className="admin-subtitle" style={{ whiteSpace: 'nowrap' }}>{selectedMaterial.unit}</span>}
+        <div className="submit-loader-overlay asm-overlay" style={{ zIndex: 100000 }}>
+            <div className="loader-modal-box edit-modal asm-modal">
+                <div className="asm-modal-header">
+                    <h2>Record Waste</h2>
+                    <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
+                        Spoilage or loss of material already accounted for elsewhere — receiving material from a vendor is recorded as a Purchase in Procurement instead, which handles cost and vendor payment.
+                    </p>
+                </div>
+
+                <div className="asm-modal-body">
+                    <form id="add-stock-movement-form" onSubmit={submit}>
+                        <div className="wizard-field-grid">
+                            <div className="add-product-name flex-col">
+                                <p>Work (optional)</p>
+                                <StyledSelect
+                                    value={form.workId} onChange={v => setField('workId', v)}
+                                    placeholder="Not tied to one Work…"
+                                    options={works.map(w => ({ value: w._id, label: `${w.workType}${w.workOrderNumber ? ` (${w.workOrderNumber})` : ''}` }))}
+                                />
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>Material *</p>
+                                <QuickAddPicker url={url} resourceKey="materials" value={form.materialId} onChange={v => setField('materialId', v)} filter={materialFilter} />
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>Quantity *</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.quantity} onChange={e => setField('quantity', e.target.value)} style={{ flex: 1 }} />
+                                    {selectedMaterial?.unit && <span className="admin-subtitle" style={{ whiteSpace: 'nowrap' }}>{selectedMaterial.unit}</span>}
+                                </div>
+                            </div>
+                            <div className="add-product-name flex-col wizard-field-full">
+                                <p>Date *</p>
+                                <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
+                            </div>
+                            <div className="add-product-name flex-col wizard-field-full">
+                                <p>Notes</p>
+                                <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
                             </div>
                         </div>
-                        <div className="add-product-name flex-col wizard-field-full">
-                            <p>Date *</p>
-                            <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
-                        </div>
-                        <div className="add-product-name flex-col wizard-field-full">
-                            <p>Notes</p>
-                            <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
-                        </div>
-                    </div>
-                    <div className="edit-modal-actions">
-                        <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
-                        <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                    </div>
-                </form>
+                    </form>
+                </div>
+
+                <div className="edit-modal-actions asm-modal-footer">
+                    <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
+                    <button type="submit" form="add-stock-movement-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                </div>
             </div>
         </div>,
         document.body

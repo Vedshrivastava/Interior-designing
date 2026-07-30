@@ -1501,7 +1501,15 @@
 
 .projects-list-row.projects-list-header .pl-readiness { background: none; border: none; padding: 0; color: inherit; font: inherit; }
 
-.pl-actions { grid-area: action; justify-content: flex-end; }
+/* text-align:right is for the header's own <b>Action</b> — justify-content
+   only positions the data rows' real flex children (the View/X buttons),
+   it does nothing for a header cell that's just plain text, so "ACTION"
+   sat flush left while the buttons below it sat flush right. Harmless on
+   the data rows themselves (text-align has no effect on a flex
+   container's own child layout). Same latent bug on both this class's
+   consumers — All Projects' own Project Directory and Client Detail's
+   Projects tab — fixed for both by fixing it here once. */
+.pl-actions { grid-area: action; justify-content: flex-end; text-align: right; }
 
 @media (max-width: 640px) {
     .projects-list-card .dash-chart-title {
@@ -1566,6 +1574,69 @@
     .pl-actions .delete-action {
         flex: 1;
         text-align: center;
+    }
+}
+
+/* ── Client Detail's own Projects tab (ClientDetail.jsx) ── same shape as
+   Project Directory above, reusing its .pl-name/.pl-contract/.pl-status/
+   .pl-readiness/.pl-actions cells and their mobile treatment verbatim
+   (those rules aren't scoped to .projects-list-row, so they already apply
+   here too) — only the row container and its Client-column-turned-Work-
+   Types-column are new, since a client's own project list has no need for
+   a Client column at all. */
+.client-projects-row {
+    display: grid;
+    grid-template-columns: 1.8fr 1.8fr 1fr 1fr 1fr 100px;
+    grid-template-areas: "name worktypes contract status readiness action";
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.client-projects-row:last-child {
+    border-bottom: none;
+}
+
+.client-projects-row.projects-list-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-top: 0;
+    padding-bottom: 10px;
+}
+
+.client-projects-row.projects-list-header .pl-name { cursor: default; color: inherit; }
+.client-projects-row.projects-list-header .pl-readiness { background: none; border: none; padding: 0; color: inherit; font: inherit; }
+
+.pl-worktypes { grid-area: worktypes; margin: 0; }
+
+@media (max-width: 640px) {
+    .client-projects-row.projects-list-header {
+        display: none;
+    }
+
+    /* Same reflow as Project Directory's own mobile card — name+readiness
+       paired on top, Work Types as a quiet subtitle line (where Client sat
+       on the All Projects version), the two badges split evenly
+       underneath, then a full-width action row. */
+    .client-projects-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "name readiness"
+            "worktypes worktypes"
+            "contract status"
+            "action action";
+        row-gap: 10px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+
+    .pl-worktypes {
+        font-size: 0.82rem;
+        color: var(--text-lt, #9a8e84);
     }
 }
 
@@ -1795,6 +1866,15 @@
     padding: 0;
 }
 
+/* Only Client Detail's own Quotations tab puts a real title inside .pq-card
+   — ProjectQuotationsManager's own table relies on the page's existing h3
+   for that instead (see its own comment above), so this was never needed
+   there and is inert on that page. */
+.pq-card .dash-chart-title {
+    margin: 0;
+    padding: 18px 20px 14px;
+}
+
 .pq-row {
     display: grid;
     /* File and Actions are the same fixed width — both are "a small group
@@ -1992,6 +2072,521 @@
         flex: 1;
         justify-content: center;
         min-width: 90px;
+    }
+}
+
+/* ── Client Detail's own Quotations tab (ClientDetail.jsx) ── same row
+   shape as ProjectQuotationsManager's own table, reusing its .pq-num/
+   .pq-date/.pq-amount/.pq-status/.pq-file cells and their mobile treatment
+   verbatim (bare classes, not scoped to .pq-row, so they already apply
+   here) — only the row container and Project (replacing that table's own
+   Actions column, which has no place in a read-only rollup) are new. */
+.client-quotations-row {
+    display: grid;
+    grid-template-columns: 1.4fr 60px minmax(90px, 1fr) minmax(90px, 1fr) 120px 130px;
+    grid-template-areas: "project num date amount status file";
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.client-quotations-row:last-child {
+    border-bottom: none;
+}
+
+.client-quotations-row.pq-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-top: 0;
+    padding-bottom: 12px;
+}
+
+.pq-project { grid-area: project; margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); cursor: pointer; }
+.pq-project:hover { color: #8a6d3e; text-decoration: underline; }
+.client-quotations-row.pq-header .pq-project { cursor: default; color: inherit; }
+
+@media (max-width: 640px) {
+    .client-quotations-row.pq-header {
+        display: none;
+    }
+
+    /* Project as its own top line (the one thing this rollup adds over a
+       single-project view), then the same num+status / date+amount /
+       file layout as ProjectQuotationsManager's own mobile card. */
+    .client-quotations-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "project project"
+            "num status"
+            "date amount"
+            "file file";
+        row-gap: 14px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+
+    .pq-project {
+        font-size: 1rem;
+    }
+}
+
+/* ── Client Detail's own Receipts tab (ClientDetail.jsx) ── same
+   dash-chart-card row shape as its Projects/Quotations siblings and the
+   same column set as ReceiptsManager's own table (Project Detail's
+   Receipts tab), minus its delete action — read-only here, same reasoning
+   as Quotations: a receipt can only be recorded or removed from within a
+   project's own Receipts tab. */
+.client-receipts-card {
+    padding: 0;
+}
+
+.client-receipts-card .dash-chart-title {
+    margin: 0;
+    padding: 18px 20px 14px;
+}
+
+.client-receipts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 0.8fr 1fr 1.2fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.client-receipts-row:last-child {
+    border-bottom: none;
+}
+
+.client-receipts-row.cr-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-top: 0;
+    padding-bottom: 10px;
+}
+
+.cr-date, .cr-bill, .cr-mode, .cr-account, .cr-reference { margin: 0; }
+.cr-amount { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* Only shown on mobile, once the header row (which labels these columns
+   on desktop) is hidden — see the max-width:640px block below. */
+.cr-field-label {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    .client-receipts-row.cr-header {
+        display: none;
+    }
+
+    .client-receipts-row {
+        grid-template-columns: 1fr 1fr;
+        row-gap: 12px;
+        column-gap: 12px;
+        padding: 16px;
+    }
+
+    .cr-amount {
+        font-size: 1rem;
+    }
+
+    .cr-field-label {
+        display: block;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: var(--text-lt, #9a8e84);
+        margin-bottom: 2px;
+    }
+}
+
+/* ── Client Detail's own Bills tab (ClientDetail.jsx) ── same
+   dash-chart-card row shape as its Projects/Quotations/Receipts siblings.
+   Project replaces the Action-column-only shape Running Bills' own table
+   (Project Detail's Bills tab) uses, since that one is already scoped to a
+   single project and never needed a Project column; Statement/B&W download
+   actions are preserved here (existing capability, not new). */
+.client-bills-card {
+    padding: 0;
+}
+
+.client-bills-card .dash-chart-title {
+    margin: 0;
+    padding: 18px 20px 14px;
+}
+
+.client-bills-row {
+    display: grid;
+    grid-template-columns: 1.3fr 0.7fr 1fr 1.1fr 1fr 220px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.client-bills-row:last-child {
+    border-bottom: none;
+}
+
+.client-bills-row.cb-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-top: 0;
+    padding-bottom: 10px;
+}
+
+.cb-project { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); cursor: pointer; }
+.cb-project:hover { color: #8a6d3e; text-decoration: underline; }
+.client-bills-row.cb-header .cb-project { cursor: default; color: inherit; }
+
+.cb-num, .cb-date { margin: 0; }
+.cb-total { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.cb-status { margin: 0; }
+
+.cb-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    row-gap: 6px;
+}
+
+/* Project (first column) stays left-aligned — same reasoning as Client
+   Directory's own Name column: it's the row's identifier, reads naturally
+   flush with the card's left edge. Everything else defaulted to CSS
+   Grid's own stretch behavior, which left each header (a plain block of
+   text) sitting flush left inside its own full-width column while Action's
+   actual buttons centered themselves independently via flex — headers and
+   content didn't visually line up column-to-column. justify-self:center
+   centers both the header cell and its matching content cell together
+   (same class serves both, .cb-header b and the row's own p/div), fixing
+   that mismatch. Desktop/laptop only — mobile already has its own
+   deliberate reflow below and wasn't part of this ask. */
+@media (min-width: 641px) {
+    .cb-num,
+    .cb-date,
+    .cb-total,
+    .cb-status,
+    .cb-actions {
+        justify-self: center;
+    }
+}
+
+/* Same tan/moss language as Quotations' own pq-pill-pending/accepted —
+   Draft reads as "not final yet" (tan), Issued as "confirmed" (moss),
+   instead of both sharing the same flat .item-category tone. */
+.cb-pill-draft.item-category {
+    color: #8a6d3e;
+    background: rgba(201, 168, 124, 0.18);
+    border-color: rgba(201, 168, 124, 0.45);
+}
+
+.cb-pill-issued.item-category {
+    color: var(--moss, #2d4a35);
+    background: rgba(45, 74, 53, 0.1);
+    border-color: rgba(45, 74, 53, 0.3);
+}
+
+@media (max-width: 640px) {
+    .client-bills-card .dash-chart-title {
+        padding: 16px 16px 12px;
+    }
+
+    .client-bills-row.cb-header {
+        display: none;
+    }
+
+    /* Project on its own top line, Bill #+Status paired, Date+Total
+       paired, then a full-width action row — same reflow shape as every
+       other client rollup tab this pass. */
+    .client-bills-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "project project"
+            "num status"
+            "date total"
+            "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+
+    .cb-project { grid-area: project; font-size: 1rem; }
+    .cb-num { grid-area: num; }
+    .cb-status { grid-area: status; display: flex; justify-content: flex-end; }
+    .cb-date { grid-area: date; }
+    .cb-total { grid-area: total; text-align: right; font-size: 1rem; }
+    .cb-actions {
+        grid-area: actions;
+        justify-content: stretch;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+    .cb-actions .edit-action {
+        flex: 1;
+        text-align: center;
+    }
+}
+
+/* ── Client Detail's Contact Persons tab (ClientContactsTab) — same
+   dash-chart-card row shape as Bills/Quotations/Receipts above. Name
+   carries the .client-avatar-initials circle (same pattern as
+   MyAccount.jsx/Client Directory) instead of a clickable project link,
+   since a contact has nowhere else to navigate to. */
+.client-contacts-card {
+    padding: 0;
+}
+
+.client-contacts-row {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 0.9fr 1.2fr 160px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.client-contacts-row:last-child {
+    border-bottom: none;
+}
+
+.client-contacts-row.cc-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+
+.cc-name {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: var(--text-dark, #1a1208);
+}
+
+.cc-designation, .cc-phone, .cc-email {
+    margin: 0;
+    color: var(--text-lt, #6b5f55);
+}
+
+.cc-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    row-gap: 6px;
+}
+
+/* .edit-action (list.css) is a plain <p> — block by default, so its icon
+   +text children (copied from Client Directory's mastercrud-action-icon/
+   -text pair) had no flex context of their own and landed glued together
+   with no gap, unlike Client Directory's own Edit button which only gets
+   this treatment inside .mastercrud-actions specifically. Reproduced here
+   for .cc-actions the same way. */
+.cc-actions .edit-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+/* Name (first column) stays left-aligned — same reasoning as every other
+   rollup tab's identifier column this pass. Desktop/laptop only. */
+@media (min-width: 641px) {
+    .cc-designation,
+    .cc-phone,
+    .cc-email,
+    .cc-actions {
+        justify-self: center;
+    }
+    .cc-actions .edit-action {
+        min-width: 92px;
+    }
+    .cc-actions .edit-action:not(:hover) {
+        background: rgba(45, 74, 53, 0.06);
+    }
+}
+
+@media (max-width: 640px) {
+    .client-contacts-row.cc-header {
+        display: none;
+    }
+
+    .client-contacts-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "name name"
+            "desig phone"
+            "email email"
+            "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+
+    .cc-name { grid-area: name; font-size: 1rem; }
+    .cc-designation { grid-area: desig; }
+    .cc-phone { grid-area: phone; text-align: right; }
+    .cc-email { grid-area: email; }
+
+    /* Same "label appears only once the header row is hidden" pattern as
+       Quotations' own .pq-group-label — Designation/Phone/Email would
+       otherwise be unlabeled bare text on mobile with no header row to
+       explain what they are. */
+    .cc-designation .pq-group-label,
+    .cc-phone .pq-group-label,
+    .cc-email .pq-group-label {
+        display: block;
+    }
+
+    /* Edit drops to the same 32×32 icon-only square as the adjacent
+       .pq-btn-ghost-danger delete button instead of stretching into a
+       full-width text pill — matching Client Directory's own mobile
+       Edit/Remove pair (mastercrud-actions), which this row's markup was
+       already modeled on. */
+    .cc-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+    /* !important throughout — same reasoning as Client Directory's own
+       mastercrud-row .edit-action override above: list.css's generic
+       ≤480px hijack (`.edit-action, .delete-action { flex:1 !important;
+       padding:10px 0 !important; ... }`) otherwise wins at anything
+       ≤480px and stretches Edit back into a wide text-pill. */
+    .cc-actions .edit-action {
+        display: inline-flex !important;
+        flex: 0 0 auto !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 32px !important;
+        height: 32px !important;
+        padding: 0 !important;
+        text-align: center !important;
+        border: 1px solid transparent !important;
+    }
+}
+
+/* ── Client Detail's Payment History and Ledger tabs — same merged
+   bill+receipt feed (useMergedFeed), read-only, so no Actions column at
+   all: just Date/Event/(Amount[/Balance]). Amount's debit/credit coloring
+   moves from an inline style prop to these two shared classes since both
+   tabs need the same red/moss treatment. */
+.client-payments-card, .client-ledger-card {
+    padding: 0;
+}
+
+.client-payments-card .dash-chart-title, .client-ledger-card .dash-chart-title {
+    margin: 0;
+    padding: 18px 20px 14px;
+}
+
+.client-payments-row {
+    display: grid;
+    grid-template-columns: 1fr 2.2fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.client-ledger-row {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.client-payments-row:last-child, .client-ledger-row:last-child {
+    border-bottom: none;
+}
+
+.client-payments-row.cph-header, .client-ledger-row.ledg-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+
+.cph-date, .cph-event, .ledg-date, .ledg-event { margin: 0; }
+.cph-amount, .ledg-amount { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.ledg-balance { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.cph-amount-debit { color: #c0392b; }
+.cph-amount-credit { color: var(--moss, #2d4a35); }
+
+/* Date (first column) stays left-aligned — same reasoning as every other
+   rollup tab's identifier column this pass. Desktop/laptop only. */
+@media (min-width: 641px) {
+    .cph-event,
+    .cph-amount,
+    .ledg-event,
+    .ledg-amount,
+    .ledg-balance {
+        justify-self: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .client-payments-card .dash-chart-title, .client-ledger-card .dash-chart-title {
+        padding: 16px 16px 12px;
+    }
+
+    .client-payments-row.cph-header, .client-ledger-row.ledg-header {
+        display: none;
+    }
+
+    .client-payments-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "event event"
+            "date amount";
+        row-gap: 8px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .cph-event { grid-area: event; font-weight: 600; color: var(--text-dark, #1a1208); }
+    .cph-date { grid-area: date; }
+    .cph-amount { grid-area: amount; text-align: right; font-size: 1rem; }
+
+    .client-ledger-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "event event"
+            "date amount"
+            "balance balance";
+        row-gap: 8px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .ledg-event { grid-area: event; font-weight: 600; color: var(--text-dark, #1a1208); }
+    .ledg-date { grid-area: date; }
+    .ledg-amount { grid-area: amount; text-align: right; font-size: 1rem; }
+    .ledg-balance {
+        grid-area: balance;
+        text-align: right;
+        margin-top: 4px;
+        padding-top: 10px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
     }
 }
 
@@ -2225,7 +2820,8 @@
 .edit-modal.expv-modal,
 .edit-modal.doc-modal,
 .edit-modal.pt-modal,
-.edit-modal.mc-modal {
+.edit-modal.mc-modal,
+.edit-modal.cp-modal {
     text-align: left;
 }
 
@@ -2395,7 +2991,8 @@
 .edit-modal-actions.exps-modal-footer,
 .edit-modal-actions.doc-modal-footer,
 .edit-modal-actions.pt-modal-footer,
-.edit-modal-actions.mc-modal-footer {
+.edit-modal-actions.mc-modal-footer,
+.edit-modal-actions.cp-modal-footer {
     margin-top: 36px;
 }
 
@@ -3178,6 +3775,77 @@
     }
 }
 
+/* ── Add/Edit Contact modal (ClientContactsTab) — mobile bottom sheet,
+   mechanically identical to .doc-modal above: flat single-section field
+   list (Name/Designation/Phone/Email/Notes, all plain text inputs), so
+   no wizard-section-label handling is needed here either. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.cp-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+
+    .edit-modal.cp-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .cp-modal-header {
+        flex-shrink: 0;
+        padding: 26px 20px 0;
+    }
+
+    .cp-modal-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 0 20px 20px;
+    }
+
+    .edit-modal-actions.cp-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.cp-modal-footer button { width: 100% !important; }
+
+    .cp-modal-body p {
+        font-size: 0.64rem !important;
+        letter-spacing: 1.3px !important;
+        margin-bottom: 4px !important;
+    }
+    /* Slightly tighter than .doc-modal's own 13px vertical padding — that
+       modal has a single filename field, but this one stacks 5 short
+       fields (Name/Designation/Phone/Email/Notes), and the full 49px-tall
+       treatment made the sheet read as oversized, mostly-empty boxes and
+       forced extra scrolling. 16px font-size stays (prevents iOS auto-
+       zoom on focus) — only the padding/gap shrink. */
+    .cp-modal-body input[type="text"],
+    .cp-modal-body input[type="tel"],
+    .cp-modal-body input[type="email"] {
+        font-size: 16px !important;
+        padding: 10px 14px !important;
+        border-radius: 10px !important;
+    }
+    .cp-modal-body .wizard-field-grid {
+        gap: 10px !important;
+    }
+    .cp-modal-body .add-product-name {
+        gap: 5px !important;
+    }
+}
+
 /* ── Add Photos modal (PhotosTab) — mobile bottom sheet, mechanically
    identical to every modal above: same 540px breakpoint, corner radius,
    max-height, and aqSheetUp animation, plus the same align-items/
@@ -3260,12 +3928,12 @@
    layouts are deliberately not included here. */
 .aw-modal, .ac-modal, .al-modal, .qap-modal, .aq-modal, .amm-modal,
 .sdm-modal, .asm-modal, .rbg-modal, .rbgst-modal, .rcpt-modal,
-.exp-modal, .exps-modal, .doc-modal, .pt-modal, .mc-modal {
+.exp-modal, .exps-modal, .doc-modal, .pt-modal, .mc-modal, .cp-modal {
     padding: 36px !important;
 }
 .aw-modal h2, .ac-modal h2, .al-modal h2, .qap-modal h2, .aq-modal h2, .amm-modal h2,
 .sdm-modal h2, .asm-modal h2, .rbg-modal h2, .rbgst-modal h2, .rcpt-modal h2,
-.exp-modal h2, .exps-modal h2, .doc-modal h2, .pt-modal h2, .mc-modal h2 {
+.exp-modal h2, .exps-modal h2, .doc-modal h2, .pt-modal h2, .mc-modal h2, .cp-modal h2 {
     margin-bottom: 22px;
     padding-bottom: 14px;
 }
@@ -3273,7 +3941,7 @@
 .aq-modal form, .amm-modal-body form, .sdm-modal-body form, .asm-modal-body form,
 .rbg-modal-body form, .rbgst-modal-body form, .rcpt-modal-body form,
 .exp-modal-body form, .exps-modal-body form, .doc-modal-body form, .pt-modal-body form,
-.mc-modal-body form {
+.mc-modal-body form, .cp-modal-body form {
     gap: 16px !important;
 }
 /* Only the four modals whose field config actually carries multiple
@@ -3292,14 +3960,14 @@
 .qap-modal-body .wizard-field-grid, .aq-modal form .wizard-field-grid, .amm-modal-body .wizard-field-grid,
 .sdm-modal-body .wizard-field-grid, .asm-modal-body .wizard-field-grid, .rbg-modal-body .wizard-field-grid,
 .rcpt-modal-body .wizard-field-grid, .exp-modal-body .wizard-field-grid, .exps-modal-body .wizard-field-grid,
-.doc-modal-body .wizard-field-grid, .mc-modal-body .wizard-field-grid {
+.doc-modal-body .wizard-field-grid, .mc-modal-body .wizard-field-grid, .cp-modal-body .wizard-field-grid {
     gap: 14px;
     margin-bottom: 0;
 }
 .aw-modal-body p, .ac-modal-body p, .al-modal-body p, .qap-modal-body p, .aq-modal form p,
 .amm-modal-body p, .sdm-modal-body p, .asm-modal-body p, .rbg-modal-body p, .rbgst-modal-body p,
 .rcpt-modal-body p, .exp-modal-body p, .exps-modal-body p, .doc-modal-body p, .pt-modal-body p,
-.mc-modal-body p {
+.mc-modal-body p, .cp-modal-body p {
     font-size: 0.62rem;
     letter-spacing: 1.4px;
     margin-bottom: 6px;
@@ -3327,7 +3995,8 @@
 .doc-modal-body input[type="text"], .doc-modal-body input[type="file"],
 .pt-modal-body input[type="text"], .pt-modal-body input[type="file"],
 .mc-modal-body input[type="text"], .mc-modal-body input[type="tel"], .mc-modal-body input[type="email"],
-.mc-modal-body input[type="number"], .mc-modal-body input[type="date"], .mc-modal-body textarea, .mc-modal-body select {
+.mc-modal-body input[type="number"], .mc-modal-body input[type="date"], .mc-modal-body textarea, .mc-modal-body select,
+.cp-modal-body input[type="text"], .cp-modal-body input[type="tel"], .cp-modal-body input[type="email"] {
     padding: 11px 14px;
 }
 .aw-modal-body .add-cat-trigger, .ac-modal-body .add-cat-trigger, .al-modal-body .add-cat-trigger,
@@ -3341,7 +4010,7 @@
 .sdm-modal-footer button[type="submit"], .asm-modal-footer button[type="submit"], .rbg-modal-footer button[type="submit"],
 .rbgst-modal-footer button[type="submit"], .rcpt-modal-footer button[type="submit"], .exp-modal-footer button[type="submit"],
 .exps-modal-footer button[type="submit"], .doc-modal-footer button[type="submit"], .pt-modal-footer button[type="submit"],
-.mc-modal-footer button[type="submit"] {
+.mc-modal-footer button[type="submit"], .cp-modal-footer button[type="submit"] {
     display: inline-flex;
     align-items: center;
     justify-content: center;

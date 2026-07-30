@@ -4,6 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faArrowRight, faPen, faTrash, faCheck } from '@fortawesome/free-solid-svg-icons';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import DocumentsTab from '../../components/finance/DocumentsTab';
 import { useFileDownload } from '../../hooks/useFileDownload';
@@ -149,21 +151,40 @@ const ClientProjectsTab = ({ url, clientId }) => {
     if (projects.length === 0) return <div className="admin-empty-state"><p>No projects for this client yet.</p></div>;
 
     return (
-        <div>
-            <p className="admin-subtitle" style={{ marginBottom: '12px' }}>{projects.length} project{projects.length === 1 ? '' : 's'} given to us.</p>
-            <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 2fr' }}>
-                    <b>Name</b><b>Contract Type</b><b>Status</b><b>Work Types</b>
-                </div>
-                {projects.map(p => (
-                    <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 2fr' }}>
-                        <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${p._id}`)}>{p.name}</p>
-                        <p><span className="item-category">{CONTRACT_TYPE_LABEL[p.contractType]}</span></p>
-                        <p><span className="item-category">{STATUS_LABEL[p.status]}</span></p>
-                        <p>{p.workTypes.length > 0 ? p.workTypes.join(', ') : '-'}</p>
-                    </div>
-                ))}
+        // Same dash-chart-card/row-with-named-grid-areas shape as All
+        // Projects' own Project Directory (ProjectsList.jsx) — reuses its
+        // .pl-name/.pl-contract/.pl-status/.pl-readiness/.pl-actions cells
+        // and mobile reflow verbatim; Client here is dropped (redundant —
+        // already scoped to this one client) and replaced with Work Types
+        // (.pl-worktypes, .client-projects-row in dashboard.css), which is
+        // what this tab already computed but had nowhere polished to show.
+        <div className="dash-chart-card projects-list-card">
+            <p className="dash-chart-title">{projects.length} Project{projects.length === 1 ? '' : 's'} Given to Us</p>
+            <div className="client-projects-row projects-list-header">
+                <b className="pl-name">Name</b>
+                <b className="pl-worktypes">Work Types</b>
+                <b className="pl-contract">Contract Type</b>
+                <b className="pl-status">Status</b>
+                <b className="pl-readiness">Readiness</b>
+                <b className="pl-actions">Action</b>
             </div>
+            {projects.map(p => (
+                <div key={p._id} className="client-projects-row">
+                    <p className="pl-name" onClick={() => navigate(`/finance/projects/${p._id}`)}>{p.name}</p>
+                    <p className="pl-worktypes">{p.workTypes.length > 0 ? p.workTypes.join(', ') : '-'}</p>
+                    <span className="item-category pl-contract">{CONTRACT_TYPE_LABEL[p.contractType]}</span>
+                    <span className="item-category pl-status">{STATUS_LABEL[p.status]}</span>
+                    <span
+                        className={`pl-readiness ${p.readiness?.ready ? 'is-ready' : 'is-missing'}`}
+                        title={p.readiness?.ready ? undefined : p.readiness?.missing?.join(', ')}
+                    >
+                        {p.readiness?.ready ? '✓ Ready' : `⚠ Missing ${p.readiness?.missing?.length}`}
+                    </span>
+                    <div className="action-buttons pl-actions">
+                        <p onClick={() => navigate(`/finance/projects/${p._id}`)} className="cursor edit-action">View</p>
+                    </div>
+                </div>
+            ))}
         </div>
     );
 };
@@ -256,18 +277,30 @@ const ClientBillsTab = ({ url, clientId }) => {
     if (bills.length === 0) return <div className="admin-empty-state"><p>No bills raised for this client yet.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.6fr 1fr 1fr 1fr 160px' }}>
-                <b>Project</b><b>Bill #</b><b>Date</b><b>Total</b><b>Status</b><b>Action</b>
+        // Same dash-chart-card row shape as this client's own Projects/
+        // Quotations/Receipts tabs — Project takes the place Running Bills'
+        // own table (Project Detail's Bills tab) never needed, since that
+        // one is already scoped to a single project.
+        <div className="dash-chart-card client-bills-card">
+            <p className="dash-chart-title">Bills Across All Projects</p>
+            <div className="client-bills-row cb-header">
+                <b className="cb-project">Project</b>
+                <b className="cb-num">Bill #</b>
+                <b className="cb-date">Date</b>
+                <b className="cb-total">Total</b>
+                <b className="cb-status">Status</b>
+                <b className="cb-actions">Action</b>
             </div>
             {bills.map(b => (
-                <div key={b._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 0.6fr 1fr 1fr 1fr 160px' }}>
-                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${b.projectId}`)}>{b.projectName}</p>
-                    <p>#{b.billNumber}</p>
-                    <p>{new Date(b.billDate).toLocaleDateString()}</p>
-                    <p>₹{(b.totalAmount + (b.gstAmount || 0)).toLocaleString('en-IN')}</p>
-                    <p><span className="item-category">{BILL_STATUS_LABEL[b.status]}</span></p>
-                    <div className="action-buttons" style={{ flexWrap: 'wrap', rowGap: '6px' }}>
+                <div key={b._id} className="client-bills-row">
+                    <p className="cb-project" onClick={() => navigate(`/finance/projects/${b.projectId}`)}>{b.projectName}</p>
+                    <p className="cb-num">#{b.billNumber}</p>
+                    <p className="cb-date">{new Date(b.billDate).toLocaleDateString()}</p>
+                    <p className="cb-total">₹{(b.totalAmount + (b.gstAmount || 0)).toLocaleString('en-IN')}</p>
+                    <p className="cb-status">
+                        <span className={`item-category ${b.status === 'issued' ? 'cb-pill-issued' : 'cb-pill-draft'}`}>{BILL_STATUS_LABEL[b.status]}</span>
+                    </p>
+                    <div className="action-buttons cb-actions">
                         <DownloadButton
                             as="p" downloading={downloadingKey === `${b._id}:color`} progress={downloadingKey === `${b._id}:color` ? progress : null}
                             idleLabel="Statement" onClick={() => downloadStatement(b, 'color')} className="cursor edit-action"
@@ -283,6 +316,13 @@ const ClientBillsTab = ({ url, clientId }) => {
     );
 };
 
+// Same dash-chart-card row shape as this client's own Projects/Quotations
+// tabs, and the same column set as ReceiptsManager's own table (Project
+// Detail's Receipts tab) minus its delete action — read-only here, same
+// reasoning as Quotations: a receipt can only be recorded or removed from
+// within a project's own Receipts tab. Bill/Account are new (only Date/
+// Amount/Mode/Reference showed before); the data was already available
+// from the same /receipts/list response, just not surfaced.
 const ClientReceiptsTab = ({ url, clientId }) => {
     const { receipts, loading } = useClientBillsAndReceipts(url, clientId);
 
@@ -290,16 +330,24 @@ const ClientReceiptsTab = ({ url, clientId }) => {
     if (receipts.length === 0) return <div className="admin-empty-state"><p>No receipts recorded for this client yet.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
-                <b>Date</b><b>Amount</b><b>Mode</b><b>Reference</b>
+        <div className="dash-chart-card client-receipts-card">
+            <p className="dash-chart-title">Receipts Across All Projects</p>
+            <div className="client-receipts-row cr-header">
+                <b className="cr-date">Date</b>
+                <b className="cr-amount">Amount</b>
+                <b className="cr-bill">Bill</b>
+                <b className="cr-mode">Mode</b>
+                <b className="cr-account">Account</b>
+                <b className="cr-reference">Reference</b>
             </div>
             {receipts.map(r => (
-                <div key={r._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
-                    <p>{new Date(r.receiptDate).toLocaleDateString()}</p>
-                    <p>₹{r.amount.toLocaleString('en-IN')}</p>
-                    <p>{r.paymentMode || '-'}</p>
-                    <p>{r.utrNumber || r.bankOrCashLabel || '-'}</p>
+                <div key={r._id} className="client-receipts-row">
+                    <p className="cr-date"><span className="cr-field-label">Date</span>{new Date(r.receiptDate).toLocaleDateString()}</p>
+                    <p className="cr-amount"><span className="cr-field-label">Amount</span>₹{r.amount.toLocaleString('en-IN')}</p>
+                    <p className="cr-bill"><span className="cr-field-label">Bill</span>{r.runningBillId?.billNumber ? `#${r.runningBillId.billNumber}` : '-'}</p>
+                    <p className="cr-mode"><span className="cr-field-label">Mode</span>{r.paymentMode || '-'}</p>
+                    <p className="cr-account"><span className="cr-field-label">Account</span>{r.bankAccountId?.accountName || (r.paymentMode ? 'Cash' : '-')}</p>
+                    <p className="cr-reference"><span className="cr-field-label">Reference</span>{r.utrNumber || r.bankOrCashLabel || '-'}</p>
                 </div>
             ))}
         </div>
@@ -318,6 +366,9 @@ const useMergedFeed = (url, clientId) => {
     return { feed, loading };
 };
 
+// Same dash-chart-card row shape as Bills/Quotations above — this feed is
+// read-only (merged from issued bills + receipts, see useMergedFeed) so
+// there's no Actions column at all, just Date/Event/Amount.
 const ClientPaymentHistoryTab = ({ url, clientId }) => {
     const { feed, loading } = useMergedFeed(url, clientId);
     const sorted = [...feed].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -326,15 +377,18 @@ const ClientPaymentHistoryTab = ({ url, clientId }) => {
     if (sorted.length === 0) return <div className="admin-empty-state"><p>No billing activity for this client yet.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 2fr 1fr' }}>
-                <b>Date</b><b>Event</b><b>Amount</b>
+        <div className="dash-chart-card client-payments-card">
+            <p className="dash-chart-title">Payment History Across All Projects</p>
+            <div className="client-payments-row cph-header">
+                <b className="cph-date">Date</b>
+                <b className="cph-event">Event</b>
+                <b className="cph-amount">Amount</b>
             </div>
             {sorted.map((e, i) => (
-                <div key={i} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 2fr 1fr' }}>
-                    <p>{new Date(e.date).toLocaleDateString()}</p>
-                    <p>{e.label}</p>
-                    <p style={{ color: e.type === 'bill' ? '#c0392b' : 'var(--moss)' }}>{e.type === 'bill' ? '+' : '−'}₹{e.amount.toLocaleString('en-IN')}</p>
+                <div key={i} className="client-payments-row">
+                    <p className="cph-date">{new Date(e.date).toLocaleDateString()}</p>
+                    <p className="cph-event">{e.label}</p>
+                    <p className={`cph-amount ${e.type === 'bill' ? 'cph-amount-debit' : 'cph-amount-credit'}`}>{e.type === 'bill' ? '+' : '−'}₹{e.amount.toLocaleString('en-IN')}</p>
                 </div>
             ))}
         </div>
@@ -354,16 +408,20 @@ const ClientLedgerTab = ({ url, clientId }) => {
     if (withBalance.length === 0) return <div className="admin-empty-state"><p>No billing activity for this client yet.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 2fr 1fr 1fr' }}>
-                <b>Date</b><b>Event</b><b>Amount</b><b>Balance</b>
+        <div className="dash-chart-card client-ledger-card">
+            <p className="dash-chart-title">Running Ledger Across All Projects</p>
+            <div className="client-ledger-row ledg-header">
+                <b className="ledg-date">Date</b>
+                <b className="ledg-event">Event</b>
+                <b className="ledg-amount">Amount</b>
+                <b className="ledg-balance">Balance</b>
             </div>
             {withBalance.map((e, i) => (
-                <div key={i} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 2fr 1fr 1fr' }}>
-                    <p>{new Date(e.date).toLocaleDateString()}</p>
-                    <p>{e.label}</p>
-                    <p style={{ color: e.type === 'bill' ? '#c0392b' : 'var(--moss)' }}>{e.type === 'bill' ? '+' : '−'}₹{e.amount.toLocaleString('en-IN')}</p>
-                    <p style={{ fontWeight: 600 }}>₹{e.balance.toLocaleString('en-IN')}</p>
+                <div key={i} className="client-ledger-row">
+                    <p className="ledg-date">{new Date(e.date).toLocaleDateString()}</p>
+                    <p className="ledg-event">{e.label}</p>
+                    <p className={`ledg-amount ${e.type === 'bill' ? 'cph-amount-debit' : 'cph-amount-credit'}`}>{e.type === 'bill' ? '+' : '−'}₹{e.amount.toLocaleString('en-IN')}</p>
+                    <p className="ledg-balance">₹{e.balance.toLocaleString('en-IN')}</p>
                 </div>
             ))}
         </div>
@@ -371,12 +429,21 @@ const ClientLedgerTab = ({ url, clientId }) => {
 };
 
 const QUOTATION_STATUS_LABEL = { pending: 'Pending', accepted: 'Accepted', rejected: 'Rejected' };
+const QUOTATION_STATUS_PILL_CLASS = { pending: 'pq-pill-pending', accepted: 'pq-pill-accepted', rejected: 'pq-pill-rejected' };
 
 // Read-only rollup across this client's projects — quotations are owned by
 // a Project (see ProjectQuotationsManager, on the Project Detail page's
 // own Quotations tab), which is where they're added and have their status
 // changed. This tab exists so you don't have to open each project
 // separately just to see what's been quoted to this client overall.
+//
+// Same dash-chart-card/.pq-* cell shape as ProjectQuotationsManager's own
+// table — reuses .pq-num/.pq-date/.pq-amount/.pq-status/.pq-file and the
+// colored status pills verbatim. That table's Actions column (Accept/
+// Reject/Upload/Delete) has no place here — this view is read-only by
+// design — so Project takes its place instead (.pq-project,
+// .client-quotations-row in dashboard.css), the one column this rollup
+// needs that a single-project view never would.
 const ClientQuotationsTab = ({ url, clientId }) => {
     const navigate = useNavigate();
     const { quotations, loading } = useClientBillsAndReceipts(url, clientId);
@@ -386,22 +453,31 @@ const ClientQuotationsTab = ({ url, clientId }) => {
     if (sorted.length === 0) return <div className="admin-empty-state"><p>No quotations issued to this client yet.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 70px 1fr 1fr 110px 90px' }}>
-                <b>Project</b><b>#</b><b>Date</b><b>Amount</b><b>Status</b><b>File</b>
+        <div className="dash-chart-card pq-card">
+            <p className="dash-chart-title">Quotations Across All Projects</p>
+            <div className="client-quotations-row pq-header">
+                <b className="pq-project">Project</b>
+                <b className="pq-num">#</b>
+                <b className="pq-date">Date</b>
+                <b className="pq-amount">Amount</b>
+                <b className="pq-status">Status</b>
+                <b className="pq-file">File</b>
             </div>
             {sorted.map(q => (
-                <div key={q._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 70px 1fr 1fr 110px 90px' }}>
-                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${q.projectId}`)}>{q.projectName}</p>
-                    <p>#{q.quotationNumber}</p>
-                    <p>{new Date(q.date).toLocaleDateString()}</p>
-                    <p>₹{q.amount.toLocaleString('en-IN')}</p>
-                    <p><span className="item-category">{QUOTATION_STATUS_LABEL[q.status]}</span></p>
-                    <p>
+                <div key={q._id} className="client-quotations-row">
+                    <p className="pq-project" onClick={() => navigate(`/finance/projects/${q.projectId}`)}>{q.projectName}</p>
+                    <p className="pq-num">#{q.quotationNumber}</p>
+                    <p className="pq-date">{new Date(q.date).toLocaleDateString()}</p>
+                    <p className="pq-amount">₹{q.amount.toLocaleString('en-IN')}</p>
+                    <p className="pq-status">
+                        <span className={`item-category ${QUOTATION_STATUS_PILL_CLASS[q.status]}`}>{QUOTATION_STATUS_LABEL[q.status]}</span>
+                    </p>
+                    <div className="pq-file">
+                        <span className="pq-group-label">File</span>
                         {q.documents?.[0]
                             ? <ViewAttachmentLink url={q.documents[0].fileUrl} name={q.documents[0].name} className="cursor edit-action" style={{ textDecoration: 'none' }}>View</ViewAttachmentLink>
-                            : '-'}
-                    </p>
+                            : <p style={{ margin: 0 }}>-</p>}
+                    </div>
                 </div>
             ))}
         </div>
@@ -410,6 +486,18 @@ const ClientQuotationsTab = ({ url, clientId }) => {
 
 const emptyContactForm = { name: '', designation: '', phone: '', email: '', notes: '' };
 
+const getInitials = (name = '') =>
+    name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
+
+// Same dash-chart-card/avatar row shape as Clients page's own Client
+// Directory (ClientsPage.jsx via MasterCrudTable) — this is genuinely the
+// same kind of data (a directory of people), so it gets the same visual
+// language: initial avatars, icon+text actions. The Add/Edit modal is
+// upgraded to the same bottom-sheet shape (cp-overlay/cp-modal) every
+// other dialog in the app already uses; delete now confirms first
+// (bin-confirm-modal, same as every other destructive action in this app)
+// instead of firing immediately on click, which is what every other
+// "remove" action here already does — this one just hadn't caught up yet.
 const ClientContactsTab = ({ url, clientId }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -419,6 +507,8 @@ const ClientContactsTab = ({ url, clientId }) => {
     const [editingId, setEditingId] = useState(null);
     const [saving, setSaving] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
+    const [confirmItem, setConfirmItem] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchList = () => {
         setLoading(true);
@@ -460,17 +550,20 @@ const ClientContactsTab = ({ url, clientId }) => {
         } finally { setSaving(false); }
     };
 
-    const remove = async (_id) => {
+    const confirmDelete = async () => {
+        if (!confirmItem) return;
+        setDeleting(true);
         try {
-            const res = await axios.post(`${url}/api/finance/client-contacts/remove`, { _id }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); fetchList(); }
+            const res = await axios.post(`${url}/api/finance/client-contacts/remove`, { _id: confirmItem._id }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); setConfirmItem(null); fetchList(); }
             else toast.error(res.data.message);
         } catch { toast.error('Error removing contact'); }
+        finally { setDeleting(false); }
     };
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div className="pq-section-header">
                 <h3 style={{ margin: 0 }}>Contacts</h3>
                 <button type="button" className="add-btn" onClick={openAdd}>+ Add Contact</button>
             </div>
@@ -480,19 +573,31 @@ const ClientContactsTab = ({ url, clientId }) => {
             ) : contacts.length === 0 ? (
                 <div className="admin-empty-state"><p>No additional contact persons for this client yet.</p></div>
             ) : (
-                <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1.3fr 120px' }}>
-                        <b>Name</b><b>Designation</b><b>Phone</b><b>Email</b><b>Action</b>
+                <div className="dash-chart-card client-contacts-card">
+                    <div className="client-contacts-row cc-header">
+                        <b className="cc-name">Name</b>
+                        <b className="cc-designation">Designation</b>
+                        <b className="cc-phone">Phone</b>
+                        <b className="cc-email">Email</b>
+                        <b className="cc-actions">Action</b>
                     </div>
                     {contacts.map(c => (
-                        <div key={c._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1.3fr 120px' }}>
-                            <p>{c.name}</p>
-                            <p>{c.designation || '-'}</p>
-                            <p>{c.phone || '-'}</p>
-                            <p>{c.email || '-'}</p>
-                            <div className="action-buttons">
-                                <p onClick={() => openEdit(c)} className="cursor edit-action">Edit</p>
-                                <p onClick={() => remove(c._id)} className="cursor delete-action">X</p>
+                        <div key={c._id} className="client-contacts-row">
+                            <div className="cc-name">
+                                <span className="client-avatar"><span className="client-avatar-initials">{getInitials(c.name)}</span></span>
+                                {c.name}
+                            </div>
+                            <p className="cc-designation"><span className="pq-group-label">Designation</span>{c.designation || '-'}</p>
+                            <p className="cc-phone"><span className="pq-group-label">Phone</span>{c.phone || '-'}</p>
+                            <p className="cc-email"><span className="pq-group-label">Email</span>{c.email || '-'}</p>
+                            <div className="action-buttons cc-actions">
+                                <p onClick={() => openEdit(c)} className="cursor edit-action">
+                                    <FontAwesomeIcon icon={faPen} className="pq-action-icon mastercrud-action-icon" />
+                                    <span className="mastercrud-action-text">Edit</span>
+                                </p>
+                                <button type="button" onClick={() => setConfirmItem(c)} className="pq-btn-ghost-danger" title="Remove contact" aria-label="Remove contact">
+                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -500,37 +605,57 @@ const ClientContactsTab = ({ url, clientId }) => {
             )}
 
             {modalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>{editingId ? 'Edit Contact' : 'Add Contact'}</h2>
-                        <form onSubmit={submit}>
-                            <div className="wizard-field-grid">
-                                <div className="add-product-name flex-col">
-                                    <p>Name *</p>
-                                    <input type="text" value={form.name} onChange={e => setField('name', e.target.value)} />
+                <div className="submit-loader-overlay cp-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal cp-modal">
+                        <div className="cp-modal-header">
+                            <h2>{editingId ? 'Edit Contact' : 'Add Contact'}</h2>
+                        </div>
+                        <div className="cp-modal-body">
+                            <form id="client-contact-form" onSubmit={submit}>
+                                <div className="wizard-field-grid">
+                                    <div className="add-product-name flex-col">
+                                        <p>Name<span className="wizard-required-mark"> *</span></p>
+                                        <input type="text" value={form.name} onChange={e => setField('name', e.target.value)} />
+                                    </div>
+                                    <div className="add-product-name flex-col">
+                                        <p>Designation</p>
+                                        <input type="text" value={form.designation} onChange={e => setField('designation', e.target.value)} placeholder="e.g. Site Engineer" />
+                                    </div>
+                                    <div className="add-product-name flex-col">
+                                        <p>Phone</p>
+                                        <input type="text" value={form.phone} onChange={e => setField('phone', e.target.value)} placeholder="10-digit mobile number" />
+                                    </div>
+                                    <div className="add-product-name flex-col">
+                                        <p>Email</p>
+                                        <input type="text" value={form.email} onChange={e => setField('email', e.target.value)} placeholder="name@example.com" />
+                                    </div>
+                                    <div className="add-product-name flex-col wizard-field-full">
+                                        <p>Notes</p>
+                                        <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} placeholder="Optional" />
+                                    </div>
                                 </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Designation</p>
-                                    <input type="text" value={form.designation} onChange={e => setField('designation', e.target.value)} placeholder="e.g. Site Engineer" />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Phone</p>
-                                    <input type="text" value={form.phone} onChange={e => setField('phone', e.target.value)} />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Email</p>
-                                    <input type="text" value={form.email} onChange={e => setField('email', e.target.value)} />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Notes</p>
-                                    <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
-                                </div>
-                            </div>
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
+                        <div className="edit-modal-actions cp-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
+                            <button type="submit" form="client-contact-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Save</>}</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {confirmItem && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmItem(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>Remove Contact?</h3>
+                        <p className="bin-confirm-name">{confirmItem.name}</p>
+                        <p className="bin-confirm-warning">Moved to Recovery Bin.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={confirmDelete} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body
@@ -583,16 +708,32 @@ const ClientDetail = ({ url }) => {
         >
             {activeTab === 'details' && (
                 <div>
-                <ClientDashboardSummary url={url} clientId={client._id} />
-                <div className="list-table finance-table">
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Name</b></p><p>{client.name}</p></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Phone</b></p><p>{client.phone || '-'}</p></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Email</b></p><p>{client.email || '-'}</p></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Address</b></p><p>{client.address || '-'}</p></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>GST Number</b></p><p>{client.gstNumber || '-'}</p></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Total Projects</b></p><p style={{ cursor: 'pointer' }} onClick={() => setActiveTab('projects')}>{projectCount ?? '-'}</p></div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}><p><b>Notes</b></p><p>{client.notes || '-'}</p></div>
-                </div>
+                    {/* Same shape as Project Detail's own "Project Details" card
+                        (dash-chart-card/project-info-card/project-info-row) —
+                        this used to be a plain .list-table-format 2-column
+                        table, the same generic row shape that mangled every
+                        other label/value list on this page's counterparts
+                        before this pass. Card-first, then the KPI/chart
+                        summary below it, mirrors Project Detail's own
+                        Overview tab order exactly. */}
+                    <div className="dash-chart-card project-info-card" style={{ marginBottom: '24px' }}>
+                        <p className="dash-chart-title">Client Details</p>
+                        <div className="project-info-row"><b>Name</b><p>{client.name}</p></div>
+                        <div className="project-info-row"><b>Phone</b><p>{client.phone || '-'}</p></div>
+                        <div className="project-info-row"><b>Email</b><p>{client.email || '-'}</p></div>
+                        <div className="project-info-row"><b>Address</b><p>{client.address || '-'}</p></div>
+                        <div className="project-info-row"><b>GST Number</b><p>{client.gstNumber || '-'}</p></div>
+                        <div className="project-info-row"><b>Total Projects</b><p>{projectCount ?? '-'}</p></div>
+                        <div className="project-info-row"><b>Notes</b><p>{client.notes || '-'}</p></div>
+                    </div>
+                    <ClientDashboardSummary url={url} clientId={client._id} />
+                    {/* Same full-width pill as ProjectOverviewTab's own "View
+                        all Works" — Total Projects above already shows the
+                        count, this is the actual way to get there. */}
+                    <button type="button" className="dash-activity-viewall" onClick={() => setActiveTab('projects')}>
+                        View all Projects
+                        <FontAwesomeIcon icon={faArrowRight} />
+                    </button>
                 </div>
             )}
             {activeTab === 'projects' && <ClientProjectsTab url={url} clientId={client._id} />}

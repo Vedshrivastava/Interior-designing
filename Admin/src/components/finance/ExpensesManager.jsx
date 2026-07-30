@@ -10,7 +10,7 @@ import QuickAddPicker from './QuickAddPicker';
 import { RELATED_TO_UI_OPTIONS, relatedToUiConfig } from '../../config/relatedToTypes';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faCheck } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -401,7 +401,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
 
                         <div className="edit-modal-actions exp-modal-footer">
                             <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
-                            <button type="submit" form="record-expense-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Record Expense'}</button>
+                            <button type="submit" form="record-expense-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Record Expense</>}</button>
                         </div>
                     </div>
                 </div>,
@@ -516,7 +516,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
 
                         <div className="edit-modal-actions exps-modal-footer">
                             <button type="button" className="add-btn cancel-btn" onClick={closeSettle}>Close</button>
-                            <button type="submit" form="settle-expense-form" className="add-btn" disabled={settling}>{settling ? 'Saving…' : '+ Add Payment'}</button>
+                            <button type="submit" form="settle-expense-form" className="add-btn" disabled={settling}>{settling ? 'Saving…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Add Payment</>}</button>
                         </div>
                     </div>
                 </div>,

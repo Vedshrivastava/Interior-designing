@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheck } from '@fortawesome/free-solid-svg-icons';
 import ContractorOrLabourPicker from './ContractorOrLabourPicker';
 import LabourMultiSelect from './LabourMultiSelect';
 import QuickAddPicker from './QuickAddPicker';
@@ -214,7 +216,7 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
 
                         <div className="edit-modal-actions aw-modal-footer">
                             <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
-                            <button type="submit" form="add-work-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                            <button type="submit" form="add-work-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Save</>}</button>
                         </div>
                     </div>
                 </div>,

@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheck } from '@fortawesome/free-solid-svg-icons';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
-import { emptyFormFromFields, renderMasterField, groupFieldsBySection, FieldNote } from './masterFieldRenderer';
+import { emptyFormFromFields, renderMasterField, groupFieldsBySection, FieldNote, SectionLabel, RequiredMark } from './masterFieldRenderer';
 import DocumentUploadList from './DocumentUploadList';
 import '../../styles/wizard.css';
 
@@ -88,11 +90,11 @@ const AddLabourModal = ({ url, onClose, onLabourerCreated }) => {
                     <form id="add-labour-form" onSubmit={submit}>
                         {groupFieldsBySection(labourerResource.fields.filter(f => !f.showIf || f.showIf(form))).map((group, gi) => (
                             <React.Fragment key={gi}>
-                                {group.section && <p className="wizard-section-label">{group.section}</p>}
+                                {group.section && <SectionLabel section={group.section} />}
                                 <div className="wizard-field-grid">
                                     {group.fields.map(f => (
                                         <div key={f.key} className={`add-product-name flex-col${f.type === 'textarea' ? ' wizard-field-full' : ''}`}>
-                                            <p>{f.label}{f.required ? ' *' : ''}</p>
+                                            <p>{f.label}{f.required && <RequiredMark />}</p>
                                             {renderMasterField(f, form, setField, { url })}
                                             <FieldNote note={f.note} />
                                         </div>
@@ -108,7 +110,7 @@ const AddLabourModal = ({ url, onClose, onLabourerCreated }) => {
 
                 <div className="edit-modal-actions al-modal-footer">
                     <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
-                    <button type="submit" form="add-labour-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                    <button type="submit" form="add-labour-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Save</>}</button>
                 </div>
             </div>
         </div>,

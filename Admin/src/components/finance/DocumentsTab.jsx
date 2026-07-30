@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faCheck } from '@fortawesome/free-solid-svg-icons';
 import ViewAttachmentLink from './ViewAttachmentLink';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
@@ -120,7 +120,7 @@ const DocumentsTab = ({ url, apiBase, scopeParam, scopeId, title = 'Documents', 
 
                         <div className="edit-modal-actions doc-modal-footer">
                             <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
-                            <button type="submit" form="upload-document-form" className="add-btn" disabled={saving}>{saving ? 'Uploading…' : 'Upload Document'}</button>
+                            <button type="submit" form="upload-document-form" className="add-btn" disabled={saving}>{saving ? 'Uploading…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Upload Document</>}</button>
                         </div>
                     </div>
                 </div>,

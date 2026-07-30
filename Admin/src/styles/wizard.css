@@ -181,6 +181,28 @@
 }
 .wizard-section-label:not(:first-child) { margin-top: 24px; }
 
+/* Section icon (SectionLabel, masterFieldRenderer.jsx) — a small glyph
+   before each group label (Contact/Bank Details/Compliance/Other) so a
+   long multi-section form has a visual anchor to scan by instead of every
+   divider reading as the same plain uppercase strip — inspired by the
+   frontend's Consult form, which uses an icon-led notice callout the same
+   way. Shared by every config-driven modal (MasterCrudTable's Add/Edit,
+   AddContractorModal, AddLabourModal, QuickAddPicker), not just one. */
+.wizard-section-icon {
+    margin-right: 8px;
+    font-size: 0.7rem;
+    opacity: 0.75;
+}
+
+/* Required-field asterisk (RequiredMark, masterFieldRenderer.jsx) gets its
+   own color instead of blending into the label's own muted tone —
+   otherwise the ONLY thing distinguishing a required field from an
+   optional one is a single un-emphasized character. */
+.wizard-required-mark {
+    color: var(--gold, #c9a87c);
+    font-weight: 700;
+}
+
 /* ── Form grid ── */
 .wizard-field-grid {
     display: grid;

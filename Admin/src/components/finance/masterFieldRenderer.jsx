@@ -1,4 +1,6 @@
 import React from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faAddressCard, faBuildingColumns, faFileInvoice, faUserGroup, faNoteSticky, faCircleInfo } from '@fortawesome/free-solid-svg-icons';
 import SettingSelectField from './SettingSelectField';
 import QuickAddPicker from './QuickAddPicker';
 import StyledSelect from './StyledSelect';
@@ -6,6 +8,37 @@ import StyledDatePicker from './StyledDatePicker';
 
 /* Shared by MasterCrudTable and QuickAddPicker so the field-rendering logic
    for a FINANCE_MASTERS config only exists in one place. */
+
+// Every section name any FINANCE_MASTERS resource (or a bespoke quick-add
+// modal built on the same groupFieldsBySection shape — AddContractorModal,
+// AddLabourModal, QuickAddPicker) actually uses. Falls back to a generic
+// info icon for any section name not in this list, since the config can
+// grow without this list keeping up.
+const SECTION_ICONS = {
+    'Contact': faAddressCard,
+    'Bank Details': faBuildingColumns,
+    'Compliance': faFileInvoice,
+    'Details': faCircleInfo,
+    'Labour Provider': faUserGroup,
+    'Other': faNoteSticky,
+};
+
+// A section divider with its own icon (Contact/Bank Details/Compliance/…)
+// instead of every one reading as the same plain uppercase strip — one
+// definition shared by every config-driven form (MasterCrudTable,
+// AddContractorModal, AddLabourModal, QuickAddPicker) instead of four
+// near-identical copies.
+export const SectionLabel = ({ section }) => (
+    <p className="wizard-section-label">
+        <FontAwesomeIcon icon={SECTION_ICONS[section] || faCircleInfo} className="wizard-section-icon" />
+        {section}
+    </p>
+);
+
+// A required field's asterisk gets its own color instead of blending into
+// the label's own muted tone — same reasoning, one definition shared the
+// same way as SectionLabel above.
+export const RequiredMark = () => <span className="wizard-required-mark"> *</span>;
 
 // A field's optional `note` — was only ever shown for settingSelect fields;
 // pulled out here so any field type can carry one (e.g. a number field

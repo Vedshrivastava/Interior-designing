@@ -2516,9 +2516,9 @@
     .al-modal-body p,
     .qap-modal-body p,
     .aq-modal form p {
-        font-size: 0.7rem !important;
-        letter-spacing: 1.2px !important;
-        margin-bottom: 8px !important;
+        font-size: 0.64rem !important;
+        letter-spacing: 1.3px !important;
+        margin-bottom: 6px !important;
     }
 
     .aw-modal-body .wizard-field-grid,
@@ -2526,13 +2526,13 @@
     .al-modal-body .wizard-field-grid,
     .qap-modal-body .wizard-field-grid,
     .aq-modal form .wizard-field-grid {
-        gap: 20px;
+        gap: 14px;
     }
 
     /* 16px is the minimum font-size that avoids iOS Safari's automatic
-       zoom-on-focus for text inputs. Padding is increased well past
-       desktop's 13px to give each field a taller, easier-to-tap touch
-       target — comfortable finger-sized hit area, not just zoom-safe. */
+       zoom-on-focus for text inputs. Padding stays well past desktop's
+       11px to give each field a taller, easier-to-tap touch target —
+       comfortable finger-sized hit area, not just zoom-safe. */
     .aw-modal-body input[type="text"],
     .aw-modal-body input[type="number"],
     .aw-modal-body input[type="tel"],
@@ -2569,7 +2569,7 @@
     .aq-modal form textarea,
     .aq-modal form select {
         font-size: 16px !important;
-        padding: 15px 16px !important;
+        padding: 13px 14px !important;
         border-radius: 10px !important;
     }
 
@@ -2584,7 +2584,7 @@
     .al-modal-body .add-cat-trigger,
     .qap-modal-body .add-cat-trigger,
     .aq-modal form .add-cat-trigger {
-        padding: 15px 16px;
+        padding: 13px 14px;
         font-size: 16px;
         border-radius: 10px;
     }
@@ -2652,7 +2652,7 @@
     .amm-modal-body form {
         display: flex !important;
         flex-direction: column !important;
-        gap: 20px !important;
+        gap: 16px !important;
     }
 
     .edit-modal-actions.amm-modal-footer {
@@ -2673,12 +2673,12 @@
        otherwise, so needs !important to reliably win regardless of
        stylesheet import order. */
     .amm-modal-body p {
-        font-size: 0.7rem !important;
-        letter-spacing: 1.2px !important;
-        margin-bottom: 8px !important;
+        font-size: 0.64rem !important;
+        letter-spacing: 1.3px !important;
+        margin-bottom: 6px !important;
     }
     .amm-modal-body .wizard-field-grid {
-        gap: 20px;
+        gap: 14px;
     }
     .amm-modal-body input[type="text"],
     .amm-modal-body input[type="number"],
@@ -2688,14 +2688,14 @@
     .amm-modal-body textarea,
     .amm-modal-body select {
         font-size: 16px !important;
-        padding: 15px 16px !important;
+        padding: 13px 14px !important;
         border-radius: 10px !important;
     }
     /* StyledSelect/StyledDatePicker's trigger button isn't a real
        <input> — already higher specificity than .add-cat-trigger's own
        base rule (add.css), so no !important needed here. */
     .amm-modal-body .add-cat-trigger {
-        padding: 15px 16px;
+        padding: 13px 14px;
         font-size: 16px;
         border-radius: 10px;
     }
@@ -2768,7 +2768,7 @@
     .asm-modal-body form {
         display: flex !important;
         flex-direction: column !important;
-        gap: 20px !important;
+        gap: 16px !important;
     }
 
     .edit-modal-actions.sdm-modal-footer,
@@ -2791,13 +2791,13 @@
        !important to reliably win regardless of stylesheet import order. */
     .sdm-modal-body p,
     .asm-modal-body p {
-        font-size: 0.7rem !important;
-        letter-spacing: 1.2px !important;
-        margin-bottom: 8px !important;
+        font-size: 0.64rem !important;
+        letter-spacing: 1.3px !important;
+        margin-bottom: 6px !important;
     }
     .sdm-modal-body .wizard-field-grid,
     .asm-modal-body .wizard-field-grid {
-        gap: 20px;
+        gap: 14px;
     }
     .sdm-modal-body input[type="text"],
     .sdm-modal-body input[type="date"],
@@ -2808,7 +2808,7 @@
     .asm-modal-body input[type="date"],
     .asm-modal-body select {
         font-size: 16px !important;
-        padding: 15px 16px !important;
+        padding: 13px 14px !important;
         border-radius: 10px !important;
     }
     /* StyledSelect/StyledDatePicker's trigger button isn't a real
@@ -2816,7 +2816,7 @@
        base rule (add.css), so no !important needed here. */
     .sdm-modal-body .add-cat-trigger,
     .asm-modal-body .add-cat-trigger {
-        padding: 15px 16px;
+        padding: 13px 14px;
         font-size: 16px;
         border-radius: 10px;
     }
@@ -2876,7 +2876,7 @@
     .edit-modal.rbgst-modal .rbgst-modal-body form {
         display: flex !important;
         flex-direction: column !important;
-        gap: 20px !important;
+        gap: 16px !important;
     }
 
     .edit-modal-actions.rbg-modal-footer,
@@ -2895,14 +2895,14 @@
 
     .rbg-modal-body p,
     .rbgst-modal-body p {
-        font-size: 0.7rem !important;
-        letter-spacing: 1.2px !important;
-        margin-bottom: 8px !important;
+        font-size: 0.64rem !important;
+        letter-spacing: 1.3px !important;
+        margin-bottom: 6px !important;
     }
     .rbg-modal-body input[type="number"],
     .rbgst-modal-body input[type="number"] {
         font-size: 16px !important;
-        padding: 15px 16px !important;
+        padding: 13px 14px !important;
         border-radius: 10px !important;
     }
     /* Period From's chip buttons wrap fine as-is (flex-wrap already
@@ -2912,7 +2912,7 @@
         font-size: 0.78rem !important;
     }
     .rbg-modal-body .add-cat-trigger {
-        padding: 15px 16px;
+        padding: 13px 14px;
         font-size: 16px;
         border-radius: 10px;
     }
@@ -2969,7 +2969,7 @@
         padding: 0 20px 20px;
     }
     .rcpt-modal-body .wizard-field-grid {
-        gap: 20px;
+        gap: 14px;
     }
 
     .edit-modal-actions.rcpt-modal-footer {
@@ -2983,20 +2983,20 @@
     .edit-modal-actions.rcpt-modal-footer button { width: 100% !important; }
 
     .rcpt-modal-body p {
-        font-size: 0.7rem !important;
-        letter-spacing: 1.2px !important;
-        margin-bottom: 8px !important;
+        font-size: 0.64rem !important;
+        letter-spacing: 1.3px !important;
+        margin-bottom: 6px !important;
     }
     .rcpt-modal-body input[type="text"],
     .rcpt-modal-body input[type="number"],
     .rcpt-modal-body textarea,
     .rcpt-modal-body select {
         font-size: 16px !important;
-        padding: 15px 16px !important;
+        padding: 13px 14px !important;
         border-radius: 10px !important;
     }
     .rcpt-modal-body .add-cat-trigger {
-        padding: 15px 16px;
+        padding: 13px 14px;
         font-size: 16px;
         border-radius: 10px;
     }
@@ -3062,7 +3062,7 @@
     }
     .exp-modal-body .wizard-field-grid,
     .exps-modal-body .wizard-field-grid {
-        gap: 20px;
+        gap: 14px;
     }
 
     .edit-modal-actions.exp-modal-footer,
@@ -3091,9 +3091,9 @@
 
     .exp-modal-body p,
     .exps-modal-body p {
-        font-size: 0.7rem !important;
-        letter-spacing: 1.2px !important;
-        margin-bottom: 8px !important;
+        font-size: 0.64rem !important;
+        letter-spacing: 1.3px !important;
+        margin-bottom: 6px !important;
     }
     .exp-modal-body input[type="text"],
     .exp-modal-body input[type="number"],
@@ -3102,12 +3102,12 @@
     .exps-modal-body input[type="number"],
     .exps-modal-body select {
         font-size: 16px !important;
-        padding: 15px 16px !important;
+        padding: 13px 14px !important;
         border-radius: 10px !important;
     }
     .exp-modal-body .add-cat-trigger,
     .exps-modal-body .add-cat-trigger {
-        padding: 15px 16px;
+        padding: 13px 14px;
         font-size: 16px;
         border-radius: 10px;
     }
@@ -3166,14 +3166,14 @@
     .edit-modal-actions.doc-modal-footer button { width: 100% !important; }
 
     .doc-modal-body p {
-        font-size: 0.7rem !important;
-        letter-spacing: 1.2px !important;
-        margin-bottom: 8px !important;
+        font-size: 0.64rem !important;
+        letter-spacing: 1.3px !important;
+        margin-bottom: 6px !important;
     }
     .doc-modal-body input[type="text"],
     .doc-modal-body input[type="file"] {
         font-size: 16px !important;
-        padding: 15px 16px !important;
+        padding: 13px 14px !important;
         border-radius: 10px !important;
     }
 }
@@ -3217,7 +3217,7 @@
     .pt-modal-body form {
         display: flex !important;
         flex-direction: column !important;
-        gap: 20px !important;
+        gap: 16px !important;
     }
 
     .edit-modal-actions.pt-modal-footer {
@@ -3231,92 +3231,121 @@
     .edit-modal-actions.pt-modal-footer button { width: 100% !important; }
 
     .pt-modal-body p {
-        font-size: 0.7rem !important;
-        letter-spacing: 1.2px !important;
-        margin-bottom: 8px !important;
+        font-size: 0.64rem !important;
+        letter-spacing: 1.3px !important;
+        margin-bottom: 6px !important;
     }
     .pt-modal-body input[type="text"],
     .pt-modal-body input[type="file"] {
         font-size: 16px !important;
-        padding: 15px 16px !important;
+        padding: 13px 14px !important;
         border-radius: 10px !important;
     }
 }
 
-/* ── Add/Edit modal design pass (MasterCrudTable) — all widths ──
-   Section icon: a small glyph before each group label (Contact/Bank
-   Details/Compliance/Other) so a long multi-section form has a visual
-   anchor to scan by instead of every divider reading as the same plain
-   uppercase strip — inspired by the Frontend's Consult form, which uses
-   an icon-led notice callout the same way. Required-field asterisk gets
-   its own color instead of blending into the label's own muted tone —
-   currently the ONLY thing distinguishing a required field from an
-   optional one is a single un-emphasized character. Save gets an icon
-   to match Consult's own icon-led submit button. */
-.mc-section-icon {
-    margin-right: 8px;
-    font-size: 0.7rem;
-    opacity: 0.75;
-}
-
-.mc-required-mark {
-    color: var(--gold, #c9a87c);
-    font-weight: 700;
-}
-
-.mc-modal-footer button[type="submit"] {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-/* ── Add/Edit modal (MasterCrudTable) — compact rhythm, all widths ──
-   Side-by-side against the frontend's Consult form (the explicit design
-   reference for this pass), the stock .edit-modal/.wizard-field-grid
-   defaults read as needlessly roomy: .edit-modal form's 28px flex `gap`
-   (list.css) stacks with .wizard-section-label's own 24px margin-top and
-   .wizard-field-grid's 20px margin-bottom, so a section boundary can carry
-   50px+ of dead space where Consult's equivalent (.cm-form gap, consult.css)
-   is 14px flat. !important is required to beat list.css's own !important
-   on the form gap. Scoped to .mc-modal only — every other .edit-modal
-   (Add Work, Add Vendor, etc.) keeps its original spacing. */
-.mc-modal {
+/* ── Every Project Details / Clients dialog modal — compact rhythm, all
+   widths ── Side-by-side against the frontend's Consult form (the explicit
+   design reference for this pass, first applied to MasterCrudTable's own
+   Add/Edit modal, now generalized to every other bottom-sheet form in the
+   app), the stock .edit-modal/.wizard-field-grid defaults read as
+   needlessly roomy: .edit-modal form's 28px flex `gap` (list.css) stacks
+   with .wizard-section-label's own 24px margin-top and .wizard-field-grid's
+   20px margin-bottom, so a section boundary can carry 50px+ of dead space
+   where Consult's equivalent (.cm-form gap, consult.css) is 14px flat.
+   !important is required to beat list.css's own !important on the form
+   gap. Every modal class below is a bottom-sheet dialog with a real <form>
+   (or, for .aq-modal, a form as .edit-modal's only content — it has no
+   separate header/body split) — view-only detail modals (.expv-modal) and
+   the Generate Bill/GST-edit pair's already-bespoke, non-.wizard-field-grid
+   layouts are deliberately not included here. */
+.aw-modal, .ac-modal, .al-modal, .qap-modal, .aq-modal, .amm-modal,
+.sdm-modal, .asm-modal, .rbg-modal, .rbgst-modal, .rcpt-modal,
+.exp-modal, .exps-modal, .doc-modal, .pt-modal, .mc-modal {
     padding: 36px !important;
 }
-.mc-modal h2 {
+.aw-modal h2, .ac-modal h2, .al-modal h2, .qap-modal h2, .aq-modal h2, .amm-modal h2,
+.sdm-modal h2, .asm-modal h2, .rbg-modal h2, .rbgst-modal h2, .rcpt-modal h2,
+.exp-modal h2, .exps-modal h2, .doc-modal h2, .pt-modal h2, .mc-modal h2 {
     margin-bottom: 22px;
     padding-bottom: 14px;
 }
+.aw-modal-body form, .ac-modal-body form, .al-modal-body form, .qap-modal-body form,
+.aq-modal form, .amm-modal-body form, .sdm-modal-body form, .asm-modal-body form,
+.rbg-modal-body form, .rbgst-modal-body form, .rcpt-modal-body form,
+.exp-modal-body form, .exps-modal-body form, .doc-modal-body form, .pt-modal-body form,
 .mc-modal-body form {
     gap: 16px !important;
 }
-.mc-modal-body .wizard-section-label {
+/* Only the four modals whose field config actually carries multiple
+   sections (SectionLabel, masterFieldRenderer.jsx) need this — every other
+   modal below has one flat field list and never renders a
+   .wizard-section-label at all. */
+.ac-modal-body .wizard-section-label, .al-modal-body .wizard-section-label,
+.qap-modal-body .wizard-section-label, .mc-modal-body .wizard-section-label {
     margin-bottom: 10px;
 }
-.mc-modal-body .wizard-section-label:not(:first-child) {
+.ac-modal-body .wizard-section-label:not(:first-child), .al-modal-body .wizard-section-label:not(:first-child),
+.qap-modal-body .wizard-section-label:not(:first-child), .mc-modal-body .wizard-section-label:not(:first-child) {
     margin-top: 4px;
 }
-.mc-modal-body .wizard-field-grid {
+.aw-modal-body .wizard-field-grid, .ac-modal-body .wizard-field-grid, .al-modal-body .wizard-field-grid,
+.qap-modal-body .wizard-field-grid, .aq-modal form .wizard-field-grid, .amm-modal-body .wizard-field-grid,
+.sdm-modal-body .wizard-field-grid, .asm-modal-body .wizard-field-grid, .rbg-modal-body .wizard-field-grid,
+.rcpt-modal-body .wizard-field-grid, .exp-modal-body .wizard-field-grid, .exps-modal-body .wizard-field-grid,
+.doc-modal-body .wizard-field-grid, .mc-modal-body .wizard-field-grid {
     gap: 14px;
     margin-bottom: 0;
 }
+.aw-modal-body p, .ac-modal-body p, .al-modal-body p, .qap-modal-body p, .aq-modal form p,
+.amm-modal-body p, .sdm-modal-body p, .asm-modal-body p, .rbg-modal-body p, .rbgst-modal-body p,
+.rcpt-modal-body p, .exp-modal-body p, .exps-modal-body p, .doc-modal-body p, .pt-modal-body p,
 .mc-modal-body p {
     font-size: 0.62rem;
     letter-spacing: 1.4px;
     margin-bottom: 6px;
 }
-.mc-modal-body input[type="text"],
-.mc-modal-body input[type="tel"],
-.mc-modal-body input[type="email"],
-.mc-modal-body input[type="number"],
-.mc-modal-body input[type="date"],
-.mc-modal-body textarea,
-.mc-modal-body select {
+.aw-modal-body input[type="text"], .aw-modal-body input[type="tel"], .aw-modal-body input[type="email"],
+.aw-modal-body input[type="number"], .aw-modal-body input[type="date"], .aw-modal-body textarea, .aw-modal-body select,
+.ac-modal-body input[type="text"], .ac-modal-body input[type="tel"], .ac-modal-body input[type="email"],
+.ac-modal-body input[type="number"], .ac-modal-body input[type="date"], .ac-modal-body textarea, .ac-modal-body select,
+.al-modal-body input[type="text"], .al-modal-body input[type="tel"], .al-modal-body input[type="email"],
+.al-modal-body input[type="number"], .al-modal-body input[type="date"], .al-modal-body textarea, .al-modal-body select,
+.qap-modal-body input[type="text"], .qap-modal-body input[type="tel"], .qap-modal-body input[type="email"],
+.qap-modal-body input[type="number"], .qap-modal-body input[type="date"], .qap-modal-body textarea, .qap-modal-body select,
+.aq-modal form input[type="text"], .aq-modal form input[type="number"],
+.amm-modal-body input[type="text"], .amm-modal-body input[type="tel"], .amm-modal-body input[type="email"],
+.amm-modal-body input[type="number"], .amm-modal-body input[type="date"], .amm-modal-body textarea, .amm-modal-body select,
+.sdm-modal-body input[type="text"], .sdm-modal-body input[type="tel"], .sdm-modal-body input[type="email"],
+.sdm-modal-body input[type="number"], .sdm-modal-body input[type="date"], .sdm-modal-body textarea, .sdm-modal-body select,
+.asm-modal-body input[type="text"], .asm-modal-body input[type="tel"], .asm-modal-body input[type="email"],
+.asm-modal-body input[type="number"], .asm-modal-body input[type="date"], .asm-modal-body textarea, .asm-modal-body select,
+.rbg-modal-body input[type="number"], .rbgst-modal-body input[type="number"],
+.rcpt-modal-body input[type="text"], .rcpt-modal-body input[type="number"], .rcpt-modal-body textarea, .rcpt-modal-body select,
+.exp-modal-body input[type="text"], .exp-modal-body input[type="tel"], .exp-modal-body input[type="email"],
+.exp-modal-body input[type="number"], .exp-modal-body input[type="date"], .exp-modal-body textarea, .exp-modal-body select,
+.exps-modal-body input[type="text"], .exps-modal-body input[type="number"], .exps-modal-body textarea, .exps-modal-body select,
+.doc-modal-body input[type="text"], .doc-modal-body input[type="file"],
+.pt-modal-body input[type="text"], .pt-modal-body input[type="file"],
+.mc-modal-body input[type="text"], .mc-modal-body input[type="tel"], .mc-modal-body input[type="email"],
+.mc-modal-body input[type="number"], .mc-modal-body input[type="date"], .mc-modal-body textarea, .mc-modal-body select {
     padding: 11px 14px;
 }
-.mc-modal-body .add-cat-trigger {
+.aw-modal-body .add-cat-trigger, .ac-modal-body .add-cat-trigger, .al-modal-body .add-cat-trigger,
+.qap-modal-body .add-cat-trigger, .amm-modal-body .add-cat-trigger, .sdm-modal-body .add-cat-trigger,
+.asm-modal-body .add-cat-trigger, .rbg-modal-body .add-cat-trigger, .rcpt-modal-body .add-cat-trigger,
+.exp-modal-body .add-cat-trigger, .exps-modal-body .add-cat-trigger, .mc-modal-body .add-cat-trigger {
     padding: 11px 14px;
+}
+.aw-modal-footer button[type="submit"], .ac-modal-footer button[type="submit"], .al-modal-footer button[type="submit"],
+.qap-modal-footer button[type="submit"], .aq-modal .edit-modal-actions button[type="submit"], .amm-modal-footer button[type="submit"],
+.sdm-modal-footer button[type="submit"], .asm-modal-footer button[type="submit"], .rbg-modal-footer button[type="submit"],
+.rbgst-modal-footer button[type="submit"], .rcpt-modal-footer button[type="submit"], .exp-modal-footer button[type="submit"],
+.exps-modal-footer button[type="submit"], .doc-modal-footer button[type="submit"], .pt-modal-footer button[type="submit"],
+.mc-modal-footer button[type="submit"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 /* ── Add/Edit modal (MasterCrudTable) — mobile bottom sheet, mechanically

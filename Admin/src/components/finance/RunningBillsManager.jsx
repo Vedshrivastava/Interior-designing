@@ -426,7 +426,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                         <div className="edit-modal-actions rbg-modal-footer">
                             <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
                             <button type="submit" form="generate-bill-form" className="add-btn" disabled={!available || available.length === 0 || generating}>
-                                {generating ? 'Generating…' : 'Confirm & Generate'}
+                                {generating ? 'Generating…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Confirm & Generate</>}
                             </button>
                         </div>
                     </div>
@@ -465,7 +465,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                         <div className="edit-modal-actions rbgst-modal-footer">
                             <button type="button" className="add-btn cancel-btn" onClick={() => setGstEditItem(null)}>Cancel</button>
                             <button type="submit" form="gst-edit-form" className="add-btn" disabled={savingGst}>
-                                {savingGst ? 'Saving…' : 'Save'}
+                                {savingGst ? 'Saving…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Save</>}
                             </button>
                         </div>
                     </div>

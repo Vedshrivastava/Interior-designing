@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheck } from '@fortawesome/free-solid-svg-icons';
 import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
@@ -201,7 +203,7 @@ const SiteDiaryManager = ({ url, projectId: fixedProjectId }) => {
 
                         <div className="edit-modal-actions sdm-modal-footer">
                             <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
-                            <button type="submit" form="site-diary-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Log Entry'}</button>
+                            <button type="submit" form="site-diary-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Log Entry</>}</button>
                         </div>
                     </div>
                 </div>,

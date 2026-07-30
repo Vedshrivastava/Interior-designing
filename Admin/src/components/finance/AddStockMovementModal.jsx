@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheck } from '@fortawesome/free-solid-svg-icons';
 import QuickAddPicker from './QuickAddPicker';
 import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
@@ -137,7 +139,7 @@ const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
 
                 <div className="edit-modal-actions asm-modal-footer">
                     <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
-                    <button type="submit" form="add-stock-movement-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                    <button type="submit" form="add-stock-movement-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Save</>}</button>
                 </div>
             </div>
         </div>,

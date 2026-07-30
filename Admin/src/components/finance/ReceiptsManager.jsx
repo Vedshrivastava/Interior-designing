@@ -7,7 +7,7 @@ import StyledDatePicker from './StyledDatePicker';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faCheck } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -197,7 +197,7 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
 
                                 <div className="edit-modal-actions rcpt-modal-footer">
                                     <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
-                                    <button type="submit" form="record-receipt-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Record Receipt'}</button>
+                                    <button type="submit" form="record-receipt-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Record Receipt</>}</button>
                                 </div>
                             </div>
                         </div>,

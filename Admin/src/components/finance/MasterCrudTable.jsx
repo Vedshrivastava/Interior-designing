@@ -4,30 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPen, faTrash, faCheck, faAddressCard, faBuildingColumns, faFileInvoice, faUserGroup, faNoteSticky, faCircleInfo, faPhone, faEnvelope } from '@fortawesome/free-solid-svg-icons';
+import { faPen, faTrash, faCheck, faPhone, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import { FINANCE_MASTERS } from '../../config/financeMasters';
 import { registerSettingIfNew } from './SettingSelectField';
-import { emptyFormFromFields, renderMasterField, groupFieldsBySection, FieldNote, isFullWidthField } from './masterFieldRenderer';
+import { emptyFormFromFields, renderMasterField, groupFieldsBySection, FieldNote, isFullWidthField, SectionLabel, RequiredMark } from './masterFieldRenderer';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/add.css';
 import '../../styles/wizard.css';
-
-// Every section name any FINANCE_MASTERS resource actually uses (a quick
-// grep across financeMasters.js) — a small icon next to each label gives
-// a long, multi-section form (Clients' Contact/Compliance/Bank Details/
-// Other, four groups deep) a visual anchor to scan by by instead of
-// every section reading as the same plain uppercase strip. Falls back to
-// a generic info icon for any section name not in this list, since the
-// config can grow without this list keeping up.
-const SECTION_ICONS = {
-    'Contact': faAddressCard,
-    'Bank Details': faBuildingColumns,
-    'Compliance': faFileInvoice,
-    'Details': faCircleInfo,
-    'Labour Provider': faUserGroup,
-    'Other': faNoteSticky,
-};
 
 // cardTitle-only (Clients' own Directory list) — a small initial avatar
 // next to the name gives that table the same visual anchor as its Client
@@ -388,16 +372,11 @@ const MasterCrudTable = forwardRef(({ url, resourceKey, filter, getDetailLink, h
                                     && (!f.onlyOnAdd || !editingId)
                                 )).map((group, gi) => (
                                     <React.Fragment key={gi}>
-                                        {group.section && (
-                                            <p className="wizard-section-label mc-section-label">
-                                                <FontAwesomeIcon icon={SECTION_ICONS[group.section] || faCircleInfo} className="mc-section-icon" />
-                                                {group.section}
-                                            </p>
-                                        )}
+                                        {group.section && <SectionLabel section={group.section} />}
                                         <div className="wizard-field-grid">
                                             {group.fields.map(f => (
                                                 <div key={f.key} className={`add-product-name flex-col${isFullWidthField(f, group) ? ' wizard-field-full' : ''}`}>
-                                                    <p>{f.label}{f.required && <span className="mc-required-mark"> *</span>}</p>
+                                                    <p>{f.label}{f.required && <RequiredMark />}</p>
                                                     {renderMasterField(f, form, setField, { url, settingOptions })}
                                                     <FieldNote note={f.note} />
                                                 </div>

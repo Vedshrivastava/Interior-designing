@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheck } from '@fortawesome/free-solid-svg-icons';
 import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import { useSupervisorConflictCheck } from './useSupervisorConflictCheck';
@@ -320,7 +322,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
 
                 <div className="edit-modal-actions amm-modal-footer">
                     <button type="button" className="add-btn cancel-btn" onClick={onClose}>Cancel</button>
-                    <button type="submit" form="add-measurement-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save Measurement'}</button>
+                    <button type="submit" form="add-measurement-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Save Measurement</>}</button>
                 </div>
             </div>
         </div>,

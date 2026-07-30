@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
@@ -148,7 +148,7 @@ const PhotosTab = ({ url, projectId }) => {
 
                         <div className="edit-modal-actions pt-modal-footer">
                             <button type="button" className="add-btn cancel-btn" onClick={closeUpload}>Cancel</button>
-                            <button type="submit" form="add-photos-form" className="add-btn" disabled={uploading}>{uploading ? 'Uploading…' : 'Upload'}</button>
+                            <button type="submit" form="add-photos-form" className="add-btn" disabled={uploading}>{uploading ? 'Uploading…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Upload</>}</button>
                         </div>
                     </div>
                 </div>,

@@ -1,4 +1,3 @@
-import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import FinanceVendorPayment from '../models/financeVendorPayment.js';
@@ -6,14 +5,9 @@ import FinanceCashEntry from '../models/financeCashEntry.js';
 import FinanceVendor from '../models/financeVendor.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
+import { uploadRawFile, resolveDeliveryUrl } from '../utils/uploadDocuments.js';
 
 dotenv.config();
-
-cloudinary.config({
-    cloud_name: process.env.CLOUD_NAME,
-    api_key: process.env.CLOUD_API_KEY,
-    api_secret: process.env.CLOUD_API_SECRET,
-});
 
 const listVendorPayments = async (req, res) => {
     try {
@@ -22,8 +16,9 @@ const listVendorPayments = async (req, res) => {
         const filter = { deleted: { $ne: true } };
         if (vendorId) filter.vendorId = vendorId;
         if (projectId) filter.projectId = projectId;
-        const items = await FinanceVendorPayment.find(filter).populate('bankAccountId', 'accountName').populate('tdsSectionId', 'name code').sort({ date: -1, createdAt: -1 });
-        res.json({ success: true, data: items });
+        const items = await FinanceVendorPayment.find(filter).populate('bankAccountId', 'accountName').populate('tdsSectionId', 'name code').sort({ date: -1, createdAt: -1 }).lean();
+        const data = items.map(item => ({ ...item, attachmentUrl: resolveDeliveryUrl(item.attachmentUrl) }));
+        res.json({ success: true, data });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error fetching payments' });
@@ -33,14 +28,9 @@ const listVendorPayments = async (req, res) => {
 const uploadAttachment = async (file) => {
     if (!file) return '';
     try {
-        // resource_type 'raw' — Cloudinary blocks public delivery of PDF/ZIP
-        // files uploaded as image/video by default; raw delivery serves the
-        // file as-is and isn't subject to that ACL block (same fix already
-        // applied to every other document-attachment upload in this app —
-        // see uploadDocuments.js's header comment).
-        const result = await cloudinary.uploader.upload(file.path, { folder: 'vendor_payment_attachments', resource_type: 'raw' });
+        const url = await uploadRawFile(file.path, 'vendor_payment_attachments');
         fs.unlinkSync(file.path);
-        return result.secure_url;
+        return url;
     } catch (uploadError) {
         console.error(`Error uploading attachment ${file.path}:`, uploadError);
         return '';

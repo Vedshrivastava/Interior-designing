@@ -3,6 +3,7 @@ import FinanceProject from '../models/financeProject.js';
 import FinanceProjectDocument from '../models/financeProjectDocument.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
+import { resolveDeliveryUrl } from '../utils/uploadDocuments.js';
 
 const STATUS_LABEL = { pending: 'Pending', accepted: 'Accepted', rejected: 'Rejected' };
 
@@ -30,7 +31,7 @@ const listClientQuotations = async (req, res) => {
         for (const d of docs) {
             const key = d.quotationId.toString();
             if (!docsByQuotation.has(key)) docsByQuotation.set(key, []);
-            docsByQuotation.get(key).push(d);
+            docsByQuotation.get(key).push({ ...d, fileUrl: resolveDeliveryUrl(d.fileUrl) });
         }
 
         const data = items.map(q => ({ ...q, documents: docsByQuotation.get(q._id.toString()) || [] }));

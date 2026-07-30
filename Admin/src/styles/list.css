@@ -1555,6 +1555,50 @@
     background: var(--obsidian, #0b1a1a);
 }
 
+/* PDF preview (ViewAttachmentLink.jsx) — an <iframe> has no natural size
+   the way an <img> does, so this needs explicit dimensions rather than
+   .lb-img's max-width/max-height-on-intrinsic-size approach. Sized for a
+   comfortable read of a portrait document rather than image's wider
+   min(88vw,1000px), since a full-width iframe just leaves a document's
+   own text looking tiny and centered in a mostly-empty frame. */
+.lb-pdf-wrap {
+    width: min(88vw, 760px);
+    height: 88vh;
+}
+
+.lb-pdf {
+    display: block;
+    width: 100%;
+    height: calc(88vh - 52px);
+    border: none;
+    background: var(--obsidian, #0b1a1a);
+}
+
+/* Shown in place of .lb-pdf while the blob fetch is in flight, or if it
+   fails outright (network error, file genuinely missing) — a graceful
+   fallback rather than a silent blank box. */
+.lb-pdf-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    height: calc(88vh - 52px);
+    background: var(--obsidian, #0b1a1a);
+    color: rgba(232, 208, 168, 0.7);
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 24px;
+}
+
+.lb-pdf-status a {
+    color: var(--gold-lt, #e8d0a8);
+    font-weight: 600;
+    text-decoration: underline;
+}
+
 /* Caption bar */
 .lb-caption {
     width: 100%;

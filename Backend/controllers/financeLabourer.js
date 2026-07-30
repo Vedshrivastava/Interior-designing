@@ -2,7 +2,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import FinanceLabourer from '../models/financeLabourer.js';
 import FinanceLabourMeasurement from '../models/financeLabourMeasurement.js';
 import { broadcast } from '../middlewares/webSocket.js';
-import { uploadDocumentsWithNotes, addDocumentToRecord, removeDocumentFromRecord } from '../utils/uploadDocuments.js';
+import { uploadDocumentsWithNotes, addDocumentToRecord, removeDocumentFromRecord, resolveDocumentUrls } from '../utils/uploadDocuments.js';
 import { assertLabourProviderVendor } from '../utils/contractorVendor.js';
 
 cloudinary.config({
@@ -13,8 +13,9 @@ cloudinary.config({
 
 const listLabourers = async (req, res) => {
     try {
-        const items = await FinanceLabourer.find({ deleted: { $ne: true } }).sort({ name: 1 });
-        res.json({ success: true, data: items });
+        const items = await FinanceLabourer.find({ deleted: { $ne: true } }).sort({ name: 1 }).lean();
+        const data = items.map(item => ({ ...item, documents: resolveDocumentUrls(item.documents) }));
+        res.json({ success: true, data });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error fetching labourers' });

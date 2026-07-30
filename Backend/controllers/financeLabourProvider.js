@@ -1,7 +1,7 @@
 import { v2 as cloudinary } from 'cloudinary';
 import FinanceLabourProvider from '../models/financeLabourProvider.js';
 import { broadcast } from '../middlewares/webSocket.js';
-import { uploadDocumentsWithNotes, addDocumentToRecord, removeDocumentFromRecord } from '../utils/uploadDocuments.js';
+import { uploadDocumentsWithNotes, addDocumentToRecord, removeDocumentFromRecord, resolveDocumentUrls } from '../utils/uploadDocuments.js';
 
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,
@@ -11,8 +11,9 @@ cloudinary.config({
 
 const listFinanceLabourProviders = async (req, res) => {
     try {
-        const items = await FinanceLabourProvider.find({ deleted: { $ne: true } }).sort({ createdAt: -1 });
-        res.json({ success: true, data: items });
+        const items = await FinanceLabourProvider.find({ deleted: { $ne: true } }).sort({ createdAt: -1 }).lean();
+        const data = items.map(item => ({ ...item, documents: resolveDocumentUrls(item.documents) }));
+        res.json({ success: true, data });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error fetching labour providers' });

@@ -1,21 +1,18 @@
-import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import FinanceProjectDocument from '../models/financeProjectDocument.js';
 import { broadcast } from '../middlewares/webSocket.js';
-
-cloudinary.config({
-    cloud_name: process.env.CLOUD_NAME,
-    api_key: process.env.CLOUD_API_KEY,
-    api_secret: process.env.CLOUD_API_SECRET,
-});
+import { uploadRawFile, resolveDeliveryUrl } from '../utils/uploadDocuments.js';
 
 const listProjectDocuments = async (req, res) => {
     try {
         const { projectId } = req.query;
         const filter = { deleted: { $ne: true } };
         if (projectId) filter.projectId = projectId;
-        const items = await FinanceProjectDocument.find(filter).sort({ createdAt: -1 });
-        res.json({ success: true, data: items });
+        const items = await FinanceProjectDocument.find(filter).sort({ createdAt: -1 }).lean();
+        // PDFs are re-signed fresh here (resolveDeliveryUrl) rather than
+        // once at upload time — see its own comment in uploadDocuments.js.
+        const data = items.map(item => ({ ...item, fileUrl: resolveDeliveryUrl(item.fileUrl) }));
+        res.json({ success: true, data });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error fetching documents' });
@@ -28,22 +25,15 @@ const addProjectDocument = async (req, res) => {
         if (!projectId) return res.status(400).json({ success: false, message: 'Project is required' });
         if (!req.file) return res.status(400).json({ success: false, message: 'A file is required' });
 
-        let result;
+        let fileUrl;
         try {
-            // resource_type 'raw' — Cloudinary blocks public delivery of
-            // PDF/ZIP files uploaded as image/video by default (account-level
-            // security policy); raw delivery serves the file as-is and isn't
-            // subject to that ACL block.
-            result = await cloudinary.uploader.upload(req.file.path, {
-                folder: 'project_documents',
-                resource_type: 'raw',
-            });
+            fileUrl = await uploadRawFile(req.file.path, 'project_documents');
         } finally {
             fs.unlinkSync(req.file.path);
         }
 
         const item = new FinanceProjectDocument({
-            projectId, name: (name || req.file.originalname).trim(), fileUrl: result.secure_url, notes,
+            projectId, name: (name || req.file.originalname).trim(), fileUrl, notes,
             quotationId: quotationId || null,
         });
         await item.save();

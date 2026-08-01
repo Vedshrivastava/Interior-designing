@@ -212,7 +212,7 @@ const NewProjectWizard = ({ url }) => {
                                 : 'A guided setup: rates and teams get configured before this project can go live.'}
                         </p>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                    <div className="wizard-header-actions">
                         {projectId && (
                             <button type="button" className="add-btn cancel-btn" onClick={() => navigate('/finance/projects')}>Save & Exit</button>
                         )}

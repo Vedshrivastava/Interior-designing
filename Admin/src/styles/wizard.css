@@ -1,3 +1,26 @@
+/* Save & Exit / Back / Next — up to 3 buttons, previously an inline
+   style with no class, so it was invisible to .admin-header-split's own
+   768px stacking rule (list.css) and never wrapped: 3 full-size buttons
+   in one unbroken row forced the whole page wider than the viewport on
+   mobile, dragging the fixed sidebar into view through the resulting
+   horizontal scroll. */
+.wizard-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+@media (max-width: 640px) {
+    .wizard-header-actions {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+    .wizard-header-actions button {
+        width: 100%;
+    }
+}
+
 /* ── Minimal stepper header for the New Project wizard ── */
 .wizard-steps {
     display: flex;
@@ -5,6 +28,22 @@
     gap: 6px;
     flex-wrap: wrap;
     margin-bottom: 28px;
+}
+/* Wrapping onto multiple lines left .wizard-step-sep dashes dangling at
+   the end of a row with nothing after them (the next step had wrapped
+   down to the next line instead). A horizontal-scrolling strip — same
+   pattern as Client Detail's own .admin-category-scroll tab pills —
+   keeps every step + separator in one continuous row instead. */
+@media (max-width: 640px) {
+    .wizard-steps {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding-bottom: 4px;
+    }
+    .wizard-steps::-webkit-scrollbar { display: none; }
+    .wizard-step { white-space: nowrap; }
 }
 
 .wizard-step {
@@ -155,6 +194,21 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
+}
+/* "Work Type Rates" wrapped onto 2 lines with "+ Add Work" crammed
+   against its second line instead of stacking below it — same fix as
+   every other heading+button row this app already stacks on mobile
+   (.pq-section-header). */
+@media (max-width: 640px) {
+    .wt-rates-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .wt-rates-header .add-btn {
+        width: 100%;
+    }
 }
 
 .wizard-step-body .add-product-name > p {

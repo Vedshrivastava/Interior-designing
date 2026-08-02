@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
+import { KpiCard, KpiGrid } from './DashboardWidgets';
 import '../../styles/list.css';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -44,17 +45,12 @@ const CashBookSummaryView = ({ url }) => {
             </div>
 
             {summary && (
-                <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                        <b>Opening Balance</b><b>Cash In</b><b>Cash Out</b><b>Closing Balance</b>
-                    </div>
-                    <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                        <p>₹{summary.openingBalance.toLocaleString('en-IN')}</p>
-                        <p style={{ color: 'var(--moss)' }}>₹{summary.inTotal.toLocaleString('en-IN')}</p>
-                        <p style={{ color: '#c0392b' }}>₹{summary.outTotal.toLocaleString('en-IN')}</p>
-                        <p style={{ fontWeight: 700 }}>₹{summary.closingBalance.toLocaleString('en-IN')}</p>
-                    </div>
-                </div>
+                <KpiGrid>
+                    <KpiCard label="Opening Balance" value={`₹${summary.openingBalance.toLocaleString('en-IN')}`} />
+                    <KpiCard label="Cash In" value={`₹${summary.inTotal.toLocaleString('en-IN')}`} tone="good" />
+                    <KpiCard label="Cash Out" value={`₹${summary.outTotal.toLocaleString('en-IN')}`} tone="danger" />
+                    <KpiCard label="Closing Balance" value={`₹${summary.closingBalance.toLocaleString('en-IN')}`} />
+                </KpiGrid>
             )}
         </div>
     );

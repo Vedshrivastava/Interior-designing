@@ -3817,16 +3817,16 @@
 }
 
 /* ── Simple "Name + Amount" 2-column tables scattered across Reports —
-   CA Monthly Package's TDS Summary (camp-tds-) and Bank & Cash Position
-   (camp-bank-), and every Profit view's own Direct Payments breakout
-   (rpp-dp- Project, rcp-dp- Client, rwp-dp- Work). All five share one
-   shape (own prefix per component per this session's convention, but
-   one shared ruleset since the shape is identical). Stay plain 2-column
-   grids even on mobile — two short cells, no stacking needed. */
-.camp-tds-card, .camp-bank-card, .rpp-dp-card, .rcp-dp-card, .rwp-dp-card {
+   CA Monthly Package's TDS Summary (camp-tds-), and every Profit view's
+   own Direct Payments breakout (rpp-dp- Project, rcp-dp- Client, rwp-dp-
+   Work). All four share one shape (own prefix per component per this
+   session's convention, but one shared ruleset since the shape is
+   identical). Stay plain 2-column grids even on mobile — two short
+   cells, no stacking needed. */
+.camp-tds-card, .rpp-dp-card, .rcp-dp-card, .rwp-dp-card {
     padding: 0;
 }
-.camp-tds-row, .camp-bank-row, .rpp-dp-row, .rcp-dp-row, .rwp-dp-row {
+.camp-tds-row, .rpp-dp-row, .rcp-dp-row, .rwp-dp-row {
     display: grid;
     grid-template-columns: 2fr 1fr;
     align-items: center;
@@ -3834,10 +3834,10 @@
     padding: 12px 20px;
     border-bottom: 1px solid rgba(201, 168, 124, 0.12);
 }
-.camp-tds-row:last-child, .camp-bank-row:last-child, .rpp-dp-row:last-child, .rcp-dp-row:last-child, .rwp-dp-row:last-child {
+.camp-tds-row:last-child, .rpp-dp-row:last-child, .rcp-dp-row:last-child, .rwp-dp-row:last-child {
     border-bottom: none;
 }
-.camp-tds-row.camp-tds-header, .camp-bank-row.camp-bank-header,
+.camp-tds-row.camp-tds-header,
 .rpp-dp-row.rpp-dp-header, .rcp-dp-row.rcp-dp-header, .rwp-dp-row.rwp-dp-header {
     color: var(--text-lt, #9a8e84);
     font-size: 0.7rem;
@@ -3846,31 +3846,79 @@
     text-transform: uppercase;
     padding-bottom: 8px;
 }
-.camp-tds-section, .camp-bank-account, .rpp-dp-party, .rcp-dp-party, .rwp-dp-party {
+.camp-tds-section, .rpp-dp-party, .rcp-dp-party, .rwp-dp-party {
     margin: 0;
     font-weight: 600;
     color: var(--text-dark, #1a1208);
 }
-.camp-tds-amount, .camp-bank-balance, .rpp-dp-total, .rcp-dp-total, .rwp-dp-total {
+.camp-tds-amount, .rpp-dp-total, .rcp-dp-total, .rwp-dp-total {
     margin: 0;
     font-variant-numeric: tabular-nums;
 }
 @media (min-width: 641px) {
-    .camp-tds-amount, .camp-bank-balance, .rpp-dp-total, .rcp-dp-total, .rwp-dp-total {
+    .camp-tds-amount, .rpp-dp-total, .rcp-dp-total, .rwp-dp-total {
         justify-self: end;
     }
 }
 @media (max-width: 640px) {
-    .camp-tds-row.camp-tds-header, .camp-bank-row.camp-bank-header,
+    .camp-tds-row.camp-tds-header,
     .rpp-dp-row.rpp-dp-header, .rcp-dp-row.rcp-dp-header, .rwp-dp-row.rwp-dp-header {
         display: none;
     }
-    .camp-tds-row, .camp-bank-row, .rpp-dp-row, .rcp-dp-row, .rwp-dp-row {
+    .camp-tds-row, .rpp-dp-row, .rcp-dp-row, .rwp-dp-row {
         padding: 12px 16px;
     }
-    .camp-tds-amount, .camp-bank-balance, .rpp-dp-total, .rcp-dp-total, .rwp-dp-total {
+    .camp-tds-amount, .rpp-dp-total, .rcp-dp-total, .rwp-dp-total {
         text-align: right;
     }
+}
+
+/* ── CA Monthly Package's Bank & Cash Movement (camp-bank-, 5 cols) —
+   opening/credits/debits/closing per account so a CA can actually
+   reconcile against the real bank statement, not just see one ending
+   number. The Total Position summary row leaves opening/in/out blank
+   (it's a month-end snapshot, not its own movement). */
+.camp-bank-card {
+    padding: 0;
+}
+.camp-bank-row {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.camp-bank-row:last-child {
+    border-bottom: none;
+}
+.camp-bank-row.camp-bank-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.camp-bank-account { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.camp-bank-opening, .camp-bank-in, .camp-bank-out, .camp-bank-balance {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+.camp-bank-balance { font-weight: 600; }
+@media (min-width: 641px) {
+    .camp-bank-opening, .camp-bank-in, .camp-bank-out, .camp-bank-balance { justify-self: end; }
+}
+@media (max-width: 640px) {
+    .camp-bank-row.camp-bank-header {
+        display: none;
+    }
+    .camp-bank-row {
+        grid-template-columns: 1fr 1fr;
+        row-gap: 10px;
+        padding: 16px;
+    }
+    .camp-bank-opening, .camp-bank-in, .camp-bank-out, .camp-bank-balance { text-align: right; }
 }
 
 /* ── Profit views' own "drill-down" tables with an Action link: Project

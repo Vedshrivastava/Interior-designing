@@ -90,25 +90,37 @@ const CaMonthlyPackageView = ({ url }) => {
                         <KpiCard label="Expenses" value={`₹${data.expenses.totalExpenses.toLocaleString('en-IN')}`} sub={`${data.expenses.expenseCount} expense${data.expenses.expenseCount === 1 ? '' : 's'}`} />
                     </KpiGrid>
 
-                    <p className="admin-subtitle" style={{ margin: '24px 0 10px' }}>Bank & Cash Position (as of month end)</p>
+                    <p className="admin-subtitle" style={{ margin: '24px 0 10px' }}>Bank & Cash Movement</p>
                     <div className="dash-chart-card camp-bank-card">
                         <div className="camp-bank-row camp-bank-header">
                             <b className="camp-bank-account">Account</b>
-                            <b className="camp-bank-balance">Closing Balance</b>
+                            <b className="camp-bank-opening">Opening</b>
+                            <b className="camp-bank-in">Credits</b>
+                            <b className="camp-bank-out">Debits</b>
+                            <b className="camp-bank-balance">Closing</b>
                         </div>
                         {data.bankAndCash.bankAccounts.map(a => (
                             <div key={a.accountId} className="camp-bank-row">
-                                <p className="camp-bank-account">{a.accountName}</p>
-                                <p className="camp-bank-balance">₹{a.closingBalance.toLocaleString('en-IN')}</p>
+                                <p className="camp-bank-account"><span className="pq-group-label">Account</span>{a.accountName}</p>
+                                <p className="camp-bank-opening"><span className="pq-group-label">Opening</span>₹{a.openingBalance.toLocaleString('en-IN')}</p>
+                                <p className="camp-bank-in"><span className="pq-group-label">Credits</span>₹{a.creditTotal.toLocaleString('en-IN')}</p>
+                                <p className="camp-bank-out"><span className="pq-group-label">Debits</span>₹{a.debitTotal.toLocaleString('en-IN')}</p>
+                                <p className="camp-bank-balance"><span className="pq-group-label">Closing</span>₹{a.closingBalance.toLocaleString('en-IN')}</p>
                             </div>
                         ))}
                         <div className="camp-bank-row">
-                            <p className="camp-bank-account">Cash</p>
-                            <p className="camp-bank-balance">₹{data.bankAndCash.cashClosingBalance.toLocaleString('en-IN')}</p>
+                            <p className="camp-bank-account"><span className="pq-group-label">Account</span>Cash</p>
+                            <p className="camp-bank-opening"><span className="pq-group-label">Opening</span>₹{data.bankAndCash.cashOpeningBalance.toLocaleString('en-IN')}</p>
+                            <p className="camp-bank-in"><span className="pq-group-label">Credits</span>₹{data.bankAndCash.cashInTotal.toLocaleString('en-IN')}</p>
+                            <p className="camp-bank-out"><span className="pq-group-label">Debits</span>₹{data.bankAndCash.cashOutTotal.toLocaleString('en-IN')}</p>
+                            <p className="camp-bank-balance"><span className="pq-group-label">Closing</span>₹{data.bankAndCash.cashClosingBalance.toLocaleString('en-IN')}</p>
                         </div>
                         <div className="camp-bank-row" style={{ fontWeight: 700 }}>
-                            <p className="camp-bank-account">Total Position</p>
-                            <p className="camp-bank-balance">₹{data.bankAndCash.totalPosition.toLocaleString('en-IN')}</p>
+                            <p className="camp-bank-account">Total Position (month end)</p>
+                            <p className="camp-bank-opening" />
+                            <p className="camp-bank-in" />
+                            <p className="camp-bank-out" />
+                            <p className="camp-bank-balance"><span className="pq-group-label">Total</span>₹{data.bankAndCash.totalPosition.toLocaleString('en-IN')}</p>
                         </div>
                     </div>
                 </>

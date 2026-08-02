@@ -4072,16 +4072,29 @@ const computeCaMonthlyPackage = async (month) => {
     // gstAmount, just on the Expenses side instead of Purchases.
     const expenseGst = expenses.reduce((sum, e) => sum + (e.gstAmount || 0), 0);
 
+    // Opening/credits/debits/closing per account, same shape as
+    // getCashBookSummary's own opening-before/in-range split below — a CA
+    // reconciling against the real bank statement needs the month's
+    // movement, not just a single ending number with no way to verify it.
     const bankAccounts = await FinanceBankAccount.find({ deleted: { $ne: true } });
     const bankPositions = await Promise.all(bankAccounts.map(async (a) => {
         const activity = await getAccountActivity(a._id);
-        const net = activity.filter(t => new Date(t.date) <= end).reduce((sum, t) => sum + (t.direction === 'credit' ? t.amount : -t.amount), 0);
-        return { accountId: a._id, accountName: a.accountName, closingBalance: a.openingBalance + net };
+        const netBefore = activity.filter(t => new Date(t.date) < start).reduce((sum, t) => sum + (t.direction === 'credit' ? t.amount : -t.amount), 0);
+        const duringMonth = activity.filter(t => new Date(t.date) >= start && new Date(t.date) <= end);
+        const creditTotal = duringMonth.filter(t => t.direction === 'credit').reduce((sum, t) => sum + t.amount, 0);
+        const debitTotal = duringMonth.filter(t => t.direction === 'debit').reduce((sum, t) => sum + t.amount, 0);
+        const openingBalance = a.openingBalance + netBefore;
+        const closingBalance = openingBalance + creditTotal - debitTotal;
+        return { accountId: a._id, accountName: a.accountName, openingBalance, creditTotal, debitTotal, closingBalance };
     }));
     const totalBankBalance = bankPositions.reduce((sum, b) => sum + b.closingBalance, 0);
 
-    const cashEntries = await FinanceCashEntry.find({ deleted: { $ne: true }, date: { $lte: end } });
-    const cashClosingBalance = cashEntries.reduce((sum, e) => sum + (e.type === 'in' ? e.amount : -e.amount), 0);
+    const cashBefore = await FinanceCashEntry.find({ deleted: { $ne: true }, date: { $lt: start } });
+    const cashOpeningBalance = cashBefore.reduce((sum, e) => sum + (e.type === 'in' ? e.amount : -e.amount), 0);
+    const cashDuring = await FinanceCashEntry.find({ deleted: { $ne: true }, date: { $gte: start, $lte: end } });
+    const cashInTotal = cashDuring.filter(e => e.type === 'in').reduce((sum, e) => sum + e.amount, 0);
+    const cashOutTotal = cashDuring.filter(e => e.type === 'out').reduce((sum, e) => sum + e.amount, 0);
+    const cashClosingBalance = cashOpeningBalance + cashInTotal - cashOutTotal;
 
     // Input GST is claimable from both Purchases (material) and Expenses
     // (GST-invoiced overhead) — purchaseGst/expenseGst broken out
@@ -4096,7 +4109,11 @@ const computeCaMonthlyPackage = async (month) => {
         sales: { totalBilled: salesTotal, billCount: issuedBills.length },
         purchases: { totalPurchased, totalReturned, netPurchases: totalPurchased - totalReturned, purchaseCount: purchaseRows.length },
         expenses: { totalExpenses, expenseCount: expenses.length, expenseGst },
-        bankAndCash: { bankAccounts: bankPositions, totalBankBalance, cashClosingBalance, totalPosition: totalBankBalance + cashClosingBalance },
+        bankAndCash: {
+            bankAccounts: bankPositions, totalBankBalance,
+            cashOpeningBalance, cashInTotal, cashOutTotal, cashClosingBalance,
+            totalPosition: totalBankBalance + cashClosingBalance,
+        },
     };
 };
 
@@ -4235,10 +4252,20 @@ const downloadCaMonthlyPackage = async (req, res) => {
         doc.text(`Total Expenses: ${formatCurrency(data.expenses.totalExpenses)}`);
         doc.text(`Expense Count: ${data.expenses.expenseCount}`);
 
-        writeSectionHeading(doc, 'Bank & Cash Position (as of month end)');
-        data.bankAndCash.bankAccounts.forEach(a => doc.text(`${a.accountName}: ${formatCurrency(a.closingBalance)}`));
-        doc.text(`Cash: ${formatCurrency(data.bankAndCash.cashClosingBalance)}`);
-        doc.font('Helvetica-Bold').text(`Total Position: ${formatCurrency(data.bankAndCash.totalPosition)}`).font('Helvetica');
+        writeSectionHeading(doc, 'Bank & Cash Movement');
+        data.bankAndCash.bankAccounts.forEach(a => {
+            doc.font('Helvetica-Bold').text(a.accountName).font('Helvetica');
+            doc.text(`  Opening Balance: ${formatCurrency(a.openingBalance)}`);
+            doc.text(`  Credits (In): ${formatCurrency(a.creditTotal)}`);
+            doc.text(`  Debits (Out): ${formatCurrency(a.debitTotal)}`);
+            doc.text(`  Closing Balance: ${formatCurrency(a.closingBalance)}`);
+        });
+        doc.font('Helvetica-Bold').text('Cash').font('Helvetica');
+        doc.text(`  Opening Balance: ${formatCurrency(data.bankAndCash.cashOpeningBalance)}`);
+        doc.text(`  Cash In: ${formatCurrency(data.bankAndCash.cashInTotal)}`);
+        doc.text(`  Cash Out: ${formatCurrency(data.bankAndCash.cashOutTotal)}`);
+        doc.text(`  Closing Balance: ${formatCurrency(data.bankAndCash.cashClosingBalance)}`);
+        doc.font('Helvetica-Bold').text(`Total Position (bank + cash, month end): ${formatCurrency(data.bankAndCash.totalPosition)}`).font('Helvetica');
 
         writeFooter(doc, company);
         doc.end();

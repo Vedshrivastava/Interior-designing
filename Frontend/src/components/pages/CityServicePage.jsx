@@ -2,6 +2,7 @@
 import '@/styles/cityService.css';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Footer from '@/components/Footer';
 import { useModal } from '@/context/ModalContext';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -201,8 +202,7 @@ export default function CityServicePage({ cityName, stateName, citySlug, project
           HERO — homepage-identical design
       ══════════════════════════════ */}
       <section className="cs-hero">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={bgimg.src} alt="" className="cs-hero-bg" fetchPriority="high" loading="eager" />
+        <Image src={bgimg} alt="" fill priority sizes="100vw" className="cs-hero-bg" style={{ objectFit: 'cover' }} />
         <div className="cs-hero-overlay" />
         <div className="cs-hero-inner">
           <div className="cs-hero-eyebrow">

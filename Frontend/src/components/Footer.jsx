@@ -1,6 +1,7 @@
 'use client';
 import '@/styles/footer.css';
 import Link from 'next/link';
+import Image from 'next/image';
 import { toast } from 'react-toastify';
 import { useState, useEffect, useCallback } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -57,8 +58,7 @@ export default function Footer() {
 
       <div className="footer-content">
         <div className="footer-content-left">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={logo.src} alt="Shrivastava's Elevate Logo" className="footer-logo" />
+          <Image src={logo} alt="Shrivastava's Elevate Logo" className="footer-logo" width={130} height={100} />
           <p className="footer-brand-name">Shrivastava&apos;s Elevate</p>
           <p>
             Transforming residential and commercial spaces into elegant, functional

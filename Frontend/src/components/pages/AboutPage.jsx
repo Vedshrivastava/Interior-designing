@@ -378,7 +378,7 @@ export default function AboutPage({ initialTestimonials = null }) {
             <div className="t-modal-stars">{Array.from({ length: activeTCard.rating }).map((_, i) => <IconStarFilled key={i} />)}</div>
             <p className="t-modal-text">{activeTCard.text}</p>
             <div className="t-modal-author">
-              <div className="t-modal-avatar">{activeTCard.image ? <img src={activeTCard.image.src} alt={activeTCard.name} /> : activeTCard.name.charAt(0)}</div>
+              <div className="t-modal-avatar">{activeTCard.image ? <Image src={activeTCard.image} alt={activeTCard.name} width={46} height={46} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : activeTCard.name.charAt(0)}</div>
               <div className="t-modal-author-info"><strong>{activeTCard.name}</strong><span>{activeTCard.location}</span></div>
             </div>
           </div>
@@ -399,7 +399,7 @@ export default function AboutPage({ initialTestimonials = null }) {
                   <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
                   <p className="t-card-text">{truncate(t.text)}</p>
                   <div className="t-card-author">
-                    <div className="t-card-avatar">{t.image ? <img src={t.image.src} alt={t.name} /> : t.name.charAt(0)}</div>
+                    <div className="t-card-avatar">{t.image ? <Image src={t.image} alt={t.name} width={42} height={42} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : t.name.charAt(0)}</div>
                     <div className="t-card-author-info"><strong>{t.name}</strong><span>{t.location}</span></div>
                   </div>
                 </div>
@@ -413,7 +413,7 @@ export default function AboutPage({ initialTestimonials = null }) {
                   <div className="t-card-stars">{Array.from({ length: t.rating }).map((_, s) => <IconStarFilled key={s} />)}</div>
                   <p className="t-card-text">{truncate(t.text)}</p>
                   <div className="t-card-author">
-                    <div className="t-card-avatar">{t.image ? <img src={t.image.src} alt={t.name} /> : t.name.charAt(0)}</div>
+                    <div className="t-card-avatar">{t.image ? <Image src={t.image} alt={t.name} width={42} height={42} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : t.name.charAt(0)}</div>
                     <div className="t-card-author-info"><strong>{t.name}</strong><span>{t.location}</span></div>
                   </div>
                 </div>

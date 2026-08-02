@@ -17,6 +17,12 @@ const financeWorkLabourAssignmentSchema = new mongoose.Schema({
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },
     deletedBy: { type: String },
+    // Set only when `deleted` was flipped by the project-completion cascade
+    // (see completeFinanceProject) rather than a direct user removal — lets
+    // reopenFinanceProject tell "released because the project finished" apart
+    // from "the owner deliberately took this labourer off the job" and
+    // restore only the former.
+    deletedReason: { type: String, default: '' },
 }, { timestamps: true });
 
 // Partial index — see financeWorkTypeRate.js for why `deleted: false` (not $ne).

@@ -1768,3 +1768,11 @@
 .bin-btn-delete { background: #c0392b; border-color: #c0392b; color: #fff; min-width: 160px; }
 .bin-btn-delete:hover:not(:disabled) { background: #a93226; border-color: #a93226; }
 .bin-btn-cancel:disabled, .bin-btn-delete:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Non-destructive variant of the confirm modal above (e.g. "Reopen Project")
+   — same shell, but green/gold instead of the delete-flow's red so an
+   affirmative, reversible action doesn't read as dangerous. */
+.bin-confirm-icon-neutral { background: rgba(201,168,124,0.15); color: var(--gold); }
+.bin-btn-confirm { background: var(--green); border-color: var(--green); color: #fff; min-width: 160px; }
+.bin-btn-confirm:hover:not(:disabled) { background: #1c3f3a; border-color: #1c3f3a; }
+.bin-btn-confirm:disabled { opacity: 0.55; cursor: not-allowed; }

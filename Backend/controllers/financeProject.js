@@ -460,7 +460,7 @@ const completeFinanceProject = async (req, res) => {
             await Promise.all([
                 FinanceWorkLabourAssignment.updateMany(
                     { workId: { $in: workIds }, deleted: { $ne: true } },
-                    { deleted: true, deletedAt: new Date(), deletedBy }
+                    { deleted: true, deletedAt: new Date(), deletedBy, deletedReason: 'project_completed' }
                 ),
                 // Contractor assignments get the same release for data
                 // hygiene/consistency, even though no contractor-side
@@ -469,7 +469,7 @@ const completeFinanceProject = async (req, res) => {
                 // was blocking reassignment for them in the first place.
                 FinanceWorkContractorAssignment.updateMany(
                     { workId: { $in: workIds }, deleted: { $ne: true } },
-                    { deleted: true, deletedAt: new Date(), deletedBy }
+                    { deleted: true, deletedAt: new Date(), deletedBy, deletedReason: 'project_completed' }
                 ),
             ]);
         }
@@ -494,6 +494,89 @@ const completeFinanceProject = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error completing project' });
+    }
+};
+
+// Undoes an accidental "Mark Completed" — reverses the cascade above.
+// Work status is a clean flip back to 'active' (nothing else ever sets a
+// Work to 'completed', so every completed Work under this project was put
+// there by that cascade). Contractor assignments are restored unconditionally
+// for the same reason completeFinanceProject released them without a
+// conflict check — no exclusivity rule applies to them. Labour assignments
+// are different: assertLabourersAvailable (utils/labourAvailability.js)
+// enforces one labourer on one Work at a time, and a labourer freed by this
+// project's completion may have already been staffed onto a different
+// active Work since. Restoring that row blind would put them on two Works
+// at once, so each candidate is checked and left released (not restored)
+// on conflict — warn-don't-block, surfaced back to the caller by name.
+const reopenFinanceProject = async (req, res) => {
+    try {
+        const { _id } = req.body;
+        const project = await FinanceProject.findById(_id);
+        if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+        if (project.status !== 'completed') {
+            return res.status(400).json({ success: false, message: 'Only a completed project can be reopened' });
+        }
+
+        project.status = 'active';
+        await project.save();
+
+        const works = await FinanceWork.find({ projectId: _id, deleted: { $ne: true } }, '_id');
+        const workIds = works.map(w => w._id);
+        const skippedLabourers = [];
+
+        if (workIds.length) {
+            await FinanceWork.updateMany({ _id: { $in: workIds }, status: 'completed' }, { status: 'active' });
+
+            await FinanceWorkContractorAssignment.updateMany(
+                { workId: { $in: workIds }, deleted: true, deletedReason: 'project_completed' },
+                { deleted: false, deletedAt: null, deletedBy: null, deletedReason: '' }
+            );
+
+            const candidates = await FinanceWorkLabourAssignment.find({
+                workId: { $in: workIds }, deleted: true, deletedReason: 'project_completed',
+            }).populate('labourerId', 'name');
+
+            for (const row of candidates) {
+                const conflict = await FinanceWorkLabourAssignment.findOne({
+                    labourerId: row.labourerId?._id, deleted: { $ne: true },
+                });
+                if (conflict) {
+                    skippedLabourers.push(row.labourerId?.name || 'A labourer');
+                    continue;
+                }
+                row.deleted = false; row.deletedAt = null; row.deletedBy = null; row.deletedReason = '';
+                await row.save();
+            }
+        }
+
+        broadcast({ type: 'financeProjectsChanged' });
+        broadcast({ type: 'financeWorksChanged', projectId: project._id });
+        broadcast({ type: 'financeWorkLabourAssignmentsChanged', projectId: project._id });
+        broadcast({ type: 'financeWorkContractorAssignmentsChanged', projectId: project._id });
+
+        const uniqueSkipped = [...new Set(skippedLabourers)];
+        await logActivity({
+            eventType: 'project_reopened',
+            entityType: 'financeProject',
+            entityId: project._id,
+            projectId: project._id,
+            summary: uniqueSkipped.length
+                ? `Project '${project.name}' reopened (${uniqueSkipped.join(', ')} already reassigned elsewhere, not auto-restored)`
+                : `Project '${project.name}' reopened`,
+            req,
+        });
+
+        res.json({
+            success: true,
+            message: uniqueSkipped.length
+                ? `Project reopened. ${uniqueSkipped.join(', ')} ${uniqueSkipped.length === 1 ? 'is' : 'are'} already on another Work and needs to be re-added manually.`
+                : 'Project reopened',
+            data: project,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error reopening project' });
     }
 };
 
@@ -541,5 +624,5 @@ const getSupervisorProjectConflicts = async (req, res) => {
 export {
     listFinanceProjects, getFinanceProject, addFinanceProject, updateFinanceProject,
     recordAdvanceInvoiced, recordAdvanceReceived, downloadAdvanceReceipt, updateReferralCommission, activateFinanceProject,
-    getCompletionReadiness, completeFinanceProject, removeFinanceProject, getSupervisorProjectConflicts,
+    getCompletionReadiness, completeFinanceProject, reopenFinanceProject, removeFinanceProject, getSupervisorProjectConflicts,
 };

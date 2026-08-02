@@ -3,7 +3,7 @@ import { adminAuthMiddleware } from '../middlewares/auth.js';
 import {
     listFinanceProjects, getFinanceProject, addFinanceProject, updateFinanceProject,
     recordAdvanceInvoiced, recordAdvanceReceived, downloadAdvanceReceipt, updateReferralCommission, activateFinanceProject,
-    getCompletionReadiness, completeFinanceProject, removeFinanceProject, getSupervisorProjectConflicts,
+    getCompletionReadiness, completeFinanceProject, reopenFinanceProject, removeFinanceProject, getSupervisorProjectConflicts,
 } from '../controllers/financeProject.js';
 
 const router = express.Router();
@@ -20,6 +20,7 @@ router.post('/advance-received', adminAuthMiddleware, recordAdvanceReceived);
 router.post('/referral-commission', adminAuthMiddleware, updateReferralCommission);
 router.post('/activate',         adminAuthMiddleware, activateFinanceProject);
 router.post('/complete',         adminAuthMiddleware, completeFinanceProject);
+router.post('/reopen',           adminAuthMiddleware, reopenFinanceProject);
 router.post('/remove',           adminAuthMiddleware, removeFinanceProject);
 
 export default router;

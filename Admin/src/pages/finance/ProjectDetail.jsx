@@ -489,6 +489,8 @@ const ProjectDetail = ({ url }) => {
     const [activating, setActivating] = useState(false);
     const [completing, setCompleting] = useState(false);
     const [completionBlockers, setCompletionBlockers] = useState(null); // [{category,label,amount}] | null
+    const [reopening, setReopening] = useState(false);
+    const [reopenConfirmOpen, setReopenConfirmOpen] = useState(false);
     const [advanceNotes, setAdvanceNotes] = useState('');
     const [advancePaymentMode, setAdvancePaymentMode] = useState('');
     const [advanceBankAccountId, setAdvanceBankAccountId] = useState('');
@@ -642,6 +644,19 @@ const ProjectDetail = ({ url }) => {
         } finally { setCompleting(false); }
     };
 
+    const reopenProject = async () => {
+        setReopening(true);
+        try {
+            const res = await axios.post(`${url}/api/finance/projects/reopen`, { _id: id }, authHeader);
+            if (res.data.success) {
+                toast.success(res.data.message);
+                setReopenConfirmOpen(false);
+                await fetchProject();
+            } else toast.error(res.data.message);
+        } catch (err) { toast.error(err.response?.data?.message || 'Error reopening project'); }
+        finally { setReopening(false); }
+    };
+
     const saveCommission = async () => {
         setSavingCommission(true);
         try {
@@ -738,6 +753,11 @@ const ProjectDetail = ({ url }) => {
                     {project.status === 'active' && (
                         <button type="button" className="add-point-btn" disabled={completing} onClick={handleMarkCompletedClick}>
                             {completing ? 'Checking…' : 'Mark Completed'}
+                        </button>
+                    )}
+                    {project.status === 'completed' && (
+                        <button type="button" className="add-point-btn" disabled={reopening} onClick={() => setReopenConfirmOpen(true)}>
+                            {reopening ? 'Reopening…' : 'Reopen Project'}
                         </button>
                     )}
                 </div>
@@ -994,6 +1014,27 @@ const ProjectDetail = ({ url }) => {
                             <button className="bin-btn-cancel" onClick={() => setCompletionBlockers(null)} disabled={completing}>Cancel</button>
                             <button className="bin-btn-delete" onClick={() => completeProject(true)} disabled={completing}>
                                 {completing ? 'Completing…' : 'Complete Anyway'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {reopenConfirmOpen && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !reopening && setReopenConfirmOpen(false)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon bin-confirm-icon-neutral"><i className="fa-solid fa-rotate-left" /></div>
+                        <h3>Reopen "{project.name}"?</h3>
+                        <p className="bin-confirm-warning">
+                            This sets the project back to Active and restores its Works and team assignments.
+                            Any labourer already staffed onto another Work in the meantime won't be re-added automatically
+                            — you'll need to reassign them by hand.
+                        </p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setReopenConfirmOpen(false)} disabled={reopening}>Cancel</button>
+                            <button className="bin-btn-confirm" onClick={reopenProject} disabled={reopening}>
+                                {reopening ? 'Reopening…' : 'Reopen Project'}
                             </button>
                         </div>
                     </div>

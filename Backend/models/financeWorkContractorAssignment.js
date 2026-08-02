@@ -13,6 +13,8 @@ const financeWorkContractorAssignmentSchema = new mongoose.Schema({
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },
     deletedBy: { type: String },
+    // See financeWorkLabourAssignment.js's deletedReason for why this exists.
+    deletedReason: { type: String, default: '' },
 }, { timestamps: true });
 
 // Partial index — see financeWorkTypeRate.js for why `deleted: false` (not $ne).

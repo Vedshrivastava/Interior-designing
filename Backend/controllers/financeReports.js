@@ -789,6 +789,28 @@ const getProjectProfit = async (req, res) => {
     }
 };
 
+/*
+ * Same `profit` figure getProjectProfit returns per project (minus the
+ * progressOverTime series, which nothing batch-scoped needs), but for
+ * every active project in one request instead of the Dashboard firing
+ * one /project-profit call per active project (the N+1 fan-out this
+ * replaces — see FinanceHome.jsx's fetchDashboard). Reuses
+ * computeProjectProfit unchanged, same Promise.all-over-projects pattern
+ * getClientProfit already uses.
+ */
+const getProjectProfitsBatch = async (req, res) => {
+    try {
+        const projects = await FinanceProject.find({ deleted: { $ne: true }, status: 'active' }, '_id name');
+        const data = (await Promise.all(projects.map(p => computeProjectProfit(p._id)
+            .then(d => (d ? { projectId: p._id, projectName: p.name, profit: d.profit } : null))
+            .catch(() => null)))).filter(Boolean);
+        res.json({ success: true, data });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing project profits' });
+    }
+};
+
 const getClientProfit = async (req, res) => {
     try {
         const { clientId } = req.query;
@@ -4400,7 +4422,7 @@ const getReconciliation = async (req, res) => {
 };
 
 export {
-    getProjectProfit, getClientProfit, getWorkProfit, getWorkDetail,
+    getProjectProfit, getProjectProfitsBatch, getClientProfit, getWorkProfit, getWorkDetail,
     getContractorAnalysis, getContractorsSummary, getLabourAnalysis, getSupervisorAnalysis,
     getVendorAnalysis, getVendorsSummary,
     getMaterialAnalysis, getInventorySummary,

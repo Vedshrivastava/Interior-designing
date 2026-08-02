@@ -2,6 +2,7 @@ import FinanceProject from '../models/financeProject.js';
 import FinanceWork from '../models/financeWork.js';
 import FinanceWorkTypeRate from '../models/financeWorkTypeRate.js';
 import FinanceCommissionPayment from '../models/financeCommissionPayment.js';
+import FinanceReferral from '../models/financeReferral.js';
 import { assertReferralVendor } from '../utils/contractorVendor.js';
 import { getApprovedBillingByWorkId, splitApprovedAreaByShare } from './financeReports.js';
 
@@ -25,11 +26,7 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
  * referralRatePerSqft. Commission Payable = Approved Earned −
  * SUM(commissionPayment.amount).
  */
-const getCommissionLedger = async (req, res) => {
-    try {
-        const { referralId } = req.params;
-        const { projectId } = req.query;
-
+const computeCommissionLedger = async (referralId, projectId) => {
         const referral = await assertReferralVendor(referralId);
 
         const projectFilter = { referralId, deleted: { $ne: true } };
@@ -86,20 +83,46 @@ const getCommissionLedger = async (req, res) => {
         earningsTotal = round2(earningsTotal);
         const commissionPayable = round2(earningsTotal - paymentsTotal);
 
-        res.json({
-            success: true,
-            data: {
-                referralId: referral._id, referralName: referral.name,
-                works: worksOut, payments,
-                totals: {
-                    totalAmount: round2(totalAmountTotal), earnings: earningsTotal, unapprovedAmount: round2(unapprovedAmountTotal),
-                    payments: paymentsTotal, commissionPayable,
-                },
+        return {
+            referralId: referral._id, referralName: referral.name,
+            works: worksOut, payments,
+            totals: {
+                totalAmount: round2(totalAmountTotal), earnings: earningsTotal, unapprovedAmount: round2(unapprovedAmountTotal),
+                payments: paymentsTotal, commissionPayable,
             },
-        });
+        };
+};
+
+const getCommissionLedger = async (req, res) => {
+    try {
+        const { referralId } = req.params;
+        const { projectId } = req.query;
+        const data = await computeCommissionLedger(referralId, projectId);
+        res.json({ success: true, data });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message || 'Error computing commission ledger' });
     }
 };
 
-export { getCommissionLedger };
+/*
+ * Same commissionPayable figure getCommissionLedger returns per referral,
+ * but for every referral in one request instead of the Dashboard firing
+ * one /commission-ledger call per referral (the N+1 fan-out this
+ * replaces — see FinanceHome.jsx's fetchDashboard). Reuses
+ * computeCommissionLedger unchanged so the numbers can never drift from
+ * the single-referral endpoint's own.
+ */
+const getCommissionLedgersBatch = async (req, res) => {
+    try {
+        const referrals = await FinanceReferral.find({ deleted: { $ne: true } }, '_id');
+        const data = (await Promise.all(referrals.map(r => computeCommissionLedger(r._id.toString())
+            .then(l => ({ referralId: l.referralId, commissionPayable: l.totals.commissionPayable }))
+            .catch(() => null)))).filter(Boolean);
+        res.json({ success: true, data });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing commission ledgers' });
+    }
+};
+
+export { getCommissionLedger, getCommissionLedgersBatch };

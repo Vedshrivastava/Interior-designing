@@ -109,16 +109,13 @@ const FinanceHome = ({ url }) => {
     const fetchDashboard = async () => {
         const myRequestId = ++requestIdRef.current;
         try {
-            // Root requests fired together — employees/vendors/projects
-            // don't depend on summary/trends (or each other), so there's
-            // no reason to wait for one batch before starting the next.
+            // Root requests fired together — summary and trends don't
+            // depend on each other, so there's no reason to wait for one
+            // before starting the other.
             const month = lastCompletedMonth();
-            const [summaryRes, trendsRes, employeesRes, referralsRes, projectsRes] = await Promise.all([
+            const [summaryRes, trendsRes] = await Promise.all([
                 axios.get(`${url}/api/finance/reports/dashboard-summary`, authHeader),
                 axios.get(`${url}/api/finance/reports/dashboard-trends`, { ...authHeader, params: { months: 6 } }),
-                axios.get(`${url}/api/finance/employees/list`, authHeader),
-                axios.get(`${url}/api/finance/referrals/list`, authHeader),
-                axios.get(`${url}/api/finance/projects/list`, authHeader),
             ]);
             if (!aliveRef.current || requestIdRef.current !== myRequestId) return;
 
@@ -129,33 +126,31 @@ const FinanceHome = ({ url }) => {
             setPhase1Loading(false);
 
             // Payables breakdown donut — vendor/contractor come straight off
-            // the summary; salary/commission need the same N+1 ledger
-            // fan-out PayablesPage.jsx already does (no aggregate endpoint
-            // exists for either), scoped to this month. Project Profitability
-            // needs one profit call per active project — both fan-outs run
-            // together since neither depends on the other.
-            const employees = employeesRes.data.success ? employeesRes.data.data : [];
-            const referrals = referralsRes.data.success ? referralsRes.data.data : [];
-            const activeProjects = (projectsRes.data.success ? projectsRes.data.data : []).filter(p => p.status === 'active');
-
-            const [salaryLedgers, commissionLedgers, profits] = await Promise.all([
-                Promise.all(employees.map(e => axios.get(`${url}/api/finance/employees/${e._id}/salary-ledger`, { ...authHeader, params: { month } }).then(r => r.data.success ? r.data.data : null).catch(() => null))),
-                Promise.all(referrals.map(r => axios.get(`${url}/api/finance/referrals/${r._id}/commission-ledger`, authHeader).then(res => res.data.success ? res.data.data : null).catch(() => null))),
-                Promise.all(activeProjects.map(p => axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId: p._id } })
-                    .then(r => (r.data.success ? { projectId: p._id, projectName: p.name, profit: r.data.data.profit } : null))
-                    .catch(() => null))),
+            // the summary; salary/commission/project-profit each have their
+            // own batch endpoint (one request computing every employee/
+            // referral/active-project's figure server-side, instead of the
+            // Dashboard firing one request per row) — all three run
+            // together since none depends on another.
+            const [salaryRes, commissionRes, profitsRes] = await Promise.all([
+                axios.get(`${url}/api/finance/employees/salary-ledgers-batch`, { ...authHeader, params: { month } }).catch(() => null),
+                axios.get(`${url}/api/finance/referrals/commission-ledgers-batch`, authHeader).catch(() => null),
+                axios.get(`${url}/api/finance/reports/project-profits-batch`, authHeader).catch(() => null),
             ]);
             if (!aliveRef.current || requestIdRef.current !== myRequestId) return;
 
-            const salaryPayable = salaryLedgers.filter(Boolean).reduce((s, l) => s + (l.balanceDue || 0), 0);
-            const commissionPayable = commissionLedgers.filter(Boolean).reduce((s, l) => s + (l.commissionPayable || 0), 0);
+            const salaryLedgers = salaryRes?.data?.success ? salaryRes.data.data : [];
+            const commissionLedgers = commissionRes?.data?.success ? commissionRes.data.data : [];
+            const profits = profitsRes?.data?.success ? profitsRes.data.data : [];
+
+            const salaryPayable = salaryLedgers.reduce((s, l) => s + (l.balanceDue || 0), 0);
+            const commissionPayable = commissionLedgers.reduce((s, l) => s + (l.commissionPayable || 0), 0);
             const nextPayablesBreakdown = {
                 vendor: nextSummary?.vendorPayables || 0,
                 contractor: nextSummary?.contractorPayables || 0,
                 salary: salaryPayable,
                 commission: commissionPayable,
             };
-            const nextProjectProfits = profits.filter(Boolean);
+            const nextProjectProfits = profits;
 
             setPayablesBreakdown(nextPayablesBreakdown);
             setProjectProfits(nextProjectProfits);

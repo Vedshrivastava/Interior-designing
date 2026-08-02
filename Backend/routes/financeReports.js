@@ -1,7 +1,7 @@
 import express from 'express';
 import { adminAuthMiddleware } from '../middlewares/auth.js';
 import {
-    getProjectProfit, getClientProfit, getWorkProfit, getWorkDetail,
+    getProjectProfit, getProjectProfitsBatch, getClientProfit, getWorkProfit, getWorkDetail,
     getContractorAnalysis, getContractorsSummary, getLabourAnalysis, getSupervisorAnalysis,
     getVendorAnalysis, getVendorsSummary,
     getMaterialAnalysis, getInventorySummary,
@@ -19,7 +19,8 @@ const router = express.Router();
 // data every other finance module already writes; nothing is created,
 // updated, or removed from this router. The two /download routes stream a
 // PDF instead of JSON but are still GET, same read-only rule.
-router.get('/project-profit',      adminAuthMiddleware, getProjectProfit);
+router.get('/project-profit',       adminAuthMiddleware, getProjectProfit);
+router.get('/project-profits-batch', adminAuthMiddleware, getProjectProfitsBatch);
 router.get('/client-profit',       adminAuthMiddleware, getClientProfit);
 router.get('/work-profit',         adminAuthMiddleware, getWorkProfit);
 router.get('/work-detail',         adminAuthMiddleware, getWorkDetail);

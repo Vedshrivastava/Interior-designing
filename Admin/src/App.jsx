@@ -1,59 +1,85 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import axios from 'axios';
 import Navbar from './components/Navbar';
 import Sidebar from './components/sidebar';
 import { Routes, Route } from 'react-router-dom';
-import AddDesign    from './pages/AddDesign';
-import ListDesigns  from './pages/ListDesigns';
-import Appointments from './pages/Appointments';
-import Quotes from './pages/Quotes';
-import AddProject from './pages/AddProject';
-import ListProjects from './pages/ListProjects';
-import MyAccount      from './pages/MyAccount';
-import AdminRequests  from './pages/AdminRequests';
-import RecoveryBin    from './pages/RecoveryBin';
-import AddProduct from './pages/AddProduct';
-import ListProducts from './pages/ListProducts';
-import AddTestimonial   from './pages/AddTestimonial';
-import ListTestimonials from './pages/ListTestimonials';
 import './index.css';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';
-import Email_verification from './pages/Email_verification';
-import ResetPassword from './pages/ResetPassword';
-import PendingApproval from './pages/PendingApproval';
-import WelcomeScreen from './pages/Welcome';
-import FinanceHome from './pages/FinanceHome';
-import FinancePage from './pages/finance/FinancePage';
-import MasterData from './pages/finance/MasterData';
-import ProjectsList from './pages/finance/ProjectsList';
-import NewProjectWizard from './pages/finance/NewProjectWizard';
-import ProjectDetail from './pages/finance/ProjectDetail';
-import WorkDetail from './pages/finance/WorkDetail';
-import ClientsPage from './pages/finance/ClientsPage';
-import ClientDetail from './pages/finance/ClientDetail';
-import ProcurementPage from './pages/finance/ProcurementPage';
-import ContractorsPage from './pages/finance/ContractorsPage';
-import SiteOperationsPage from './pages/finance/SiteOperationsPage';
-import SiteInventoryPage from './pages/finance/SiteInventoryPage';
-import ReceivablesPage from './pages/finance/ReceivablesPage';
-import ReceiptsPage from './pages/finance/ReceiptsPage';
-import PayablesPage from './pages/finance/PayablesPage';
-import PaymentsPage from './pages/finance/PaymentsPage';
-import BankPage from './pages/finance/BankPage';
-import CashBookPage from './pages/finance/CashBookPage';
-import ReportsPage from './pages/finance/ReportsPage';
-import EmployeesPage from './pages/finance/EmployeesPage';
-import SettingsPage from './pages/finance/SettingsPage';
-import FinanceRecoveryBin from './pages/finance/FinanceRecoveryBin';
-import DailyLabourPage from './pages/finance/DailyLabourPage';
-import ReferralsPage from './pages/finance/ReferralsPage';
-import ActivityTimelinePage from './pages/finance/ActivityTimelinePage';
 import { FINANCE_ROUTES } from './config/financeNav';
-import Guest from './pages/guest';
 import { Navigate } from "react-router-dom";
+
+// Every routed page is lazy — each one only ships the JS it actually
+// needs when its route is visited, instead of the whole Finance ERP
+// (~45 page components) loading upfront on every visit, including the
+// login screen. Navbar/Sidebar/Login/ProtectedRoute stay eager since
+// they're part of the persistent app shell, not a route.
+const AddDesign    = lazy(() => import('./pages/AddDesign'));
+const ListDesigns  = lazy(() => import('./pages/ListDesigns'));
+const Appointments = lazy(() => import('./pages/Appointments'));
+const Quotes = lazy(() => import('./pages/Quotes'));
+const AddProject = lazy(() => import('./pages/AddProject'));
+const ListProjects = lazy(() => import('./pages/ListProjects'));
+const MyAccount      = lazy(() => import('./pages/MyAccount'));
+const AdminRequests  = lazy(() => import('./pages/AdminRequests'));
+const RecoveryBin    = lazy(() => import('./pages/RecoveryBin'));
+const AddProduct = lazy(() => import('./pages/AddProduct'));
+const ListProducts = lazy(() => import('./pages/ListProducts'));
+const AddTestimonial   = lazy(() => import('./pages/AddTestimonial'));
+const ListTestimonials = lazy(() => import('./pages/ListTestimonials'));
+const Email_verification = lazy(() => import('./pages/Email_verification'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const PendingApproval = lazy(() => import('./pages/PendingApproval'));
+const WelcomeScreen = lazy(() => import('./pages/Welcome'));
+const FinanceHome = lazy(() => import('./pages/FinanceHome'));
+const FinancePage = lazy(() => import('./pages/finance/FinancePage'));
+const MasterData = lazy(() => import('./pages/finance/MasterData'));
+const ProjectsList = lazy(() => import('./pages/finance/ProjectsList'));
+const NewProjectWizard = lazy(() => import('./pages/finance/NewProjectWizard'));
+const ProjectDetail = lazy(() => import('./pages/finance/ProjectDetail'));
+const WorkDetail = lazy(() => import('./pages/finance/WorkDetail'));
+const ClientsPage = lazy(() => import('./pages/finance/ClientsPage'));
+const ClientDetail = lazy(() => import('./pages/finance/ClientDetail'));
+const ProcurementPage = lazy(() => import('./pages/finance/ProcurementPage'));
+const ContractorsPage = lazy(() => import('./pages/finance/ContractorsPage'));
+const SiteOperationsPage = lazy(() => import('./pages/finance/SiteOperationsPage'));
+const SiteInventoryPage = lazy(() => import('./pages/finance/SiteInventoryPage'));
+const ReceivablesPage = lazy(() => import('./pages/finance/ReceivablesPage'));
+const ReceiptsPage = lazy(() => import('./pages/finance/ReceiptsPage'));
+const PayablesPage = lazy(() => import('./pages/finance/PayablesPage'));
+const PaymentsPage = lazy(() => import('./pages/finance/PaymentsPage'));
+const BankPage = lazy(() => import('./pages/finance/BankPage'));
+const CashBookPage = lazy(() => import('./pages/finance/CashBookPage'));
+const ReportsPage = lazy(() => import('./pages/finance/ReportsPage'));
+const EmployeesPage = lazy(() => import('./pages/finance/EmployeesPage'));
+const SettingsPage = lazy(() => import('./pages/finance/SettingsPage'));
+const FinanceRecoveryBin = lazy(() => import('./pages/finance/FinanceRecoveryBin'));
+const DailyLabourPage = lazy(() => import('./pages/finance/DailyLabourPage'));
+const ReferralsPage = lazy(() => import('./pages/finance/ReferralsPage'));
+const ActivityTimelinePage = lazy(() => import('./pages/finance/ActivityTimelinePage'));
+const Guest = lazy(() => import('./pages/guest'));
+
+// Reuses the same loader chrome as the app's existing global isLoading
+// overlay, so a lazy route boundary doesn't introduce a visually
+// different loading state from the one already used everywhere else.
+const RouteLoader = () => (
+  <div className="submit-loader-overlay">
+    <div className="loader-modal-box">
+      <div className="loader-ring"></div>
+      <div className="loader-brand">
+        <strong>Loading</strong>
+        <span>Please wait</span>
+      </div>
+      <div className="loader-dots">
+        <div className="loader-dot"></div>
+        <div className="loader-dot"></div>
+        <div className="loader-dot"></div>
+      </div>
+    </div>
+  </div>
+);
 
 const App = () => {
   const [showLogin, setShowLogin] = useState(false);
@@ -131,6 +157,7 @@ const App = () => {
       <div className="app-contents">
         <Sidebar />
         <div className="main-content">
+          <Suspense fallback={<RouteLoader />}>
           <Routes>
             <Route
               path="/"
@@ -499,6 +526,7 @@ const App = () => {
               element={<ResetPassword setShowLogin={setShowLogin} />}
             />
           </Routes>
+          </Suspense>
         </div>
       </div>
     </div>

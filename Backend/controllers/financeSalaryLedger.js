@@ -83,4 +83,37 @@ const getSalaryLedger = async (req, res) => {
     }
 };
 
-export { getSalaryLedger, expectedSalaryForMonth };
+/*
+ * Same balanceDue figure getSalaryLedger returns per employee for a given
+ * month, but for every employee in one request/two queries instead of the
+ * Dashboard firing one /salary-ledger call per employee (the N+1 fan-out
+ * this replaces — see FinanceHome.jsx's fetchDashboard).
+ */
+const getSalaryLedgersBatch = async (req, res) => {
+    try {
+        const { month } = req.query;
+        if (!month) return res.status(400).json({ success: false, message: 'month is required' });
+
+        const employees = await FinanceEmployee.find({ deleted: { $ne: true } });
+        const employeeIds = employees.map(e => e._id);
+        const payments = employeeIds.length
+            ? await FinanceSalaryPayment.find({ employeeId: { $in: employeeIds }, month, deleted: { $ne: true } })
+            : [];
+        const paidByEmployee = new Map();
+        for (const p of payments) {
+            const key = p.employeeId.toString();
+            paidByEmployee.set(key, (paidByEmployee.get(key) || 0) + p.amount);
+        }
+        const data = employees.map(e => {
+            const expectedSalary = expectedSalaryForMonth(e, month);
+            const paid = paidByEmployee.get(e._id.toString()) || 0;
+            return { employeeId: e._id, balanceDue: round2(expectedSalary - paid) };
+        });
+        res.json({ success: true, data });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing salary ledgers' });
+    }
+};
+
+export { getSalaryLedger, getSalaryLedgersBatch, expectedSalaryForMonth };

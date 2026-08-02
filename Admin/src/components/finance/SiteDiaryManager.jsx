@@ -58,6 +58,7 @@ const SiteDiaryManager = ({ url, projectId: fixedProjectId }) => {
     const crossProject = !fixedProjectId;
 
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(crossProject);
     const [selectedProject, setSelectedProject] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [entries, setEntries] = useState([]);
@@ -71,7 +72,7 @@ const SiteDiaryManager = ({ url, projectId: fixedProjectId }) => {
     const fetchProjects = () => {
         if (!crossProject) return;
         axios.get(`${url}/api/finance/projects/list`, authHeader)
-            .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+            .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
     };
     useEffect(fetchProjects, [url, crossProject]); // eslint-disable-line react-hooks/exhaustive-deps
     useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
@@ -148,6 +149,7 @@ const SiteDiaryManager = ({ url, projectId: fixedProjectId }) => {
                             <p>Project</p>
                             <StyledSelect
                                 value={selectedProject} onChange={setSelectedProject} placeholder="All Projects"
+                                loading={projectsLoading}
                                 options={projects.map(p => ({ value: p._id, label: p.name }))}
                             />
                         </div>
@@ -177,7 +179,8 @@ const SiteDiaryManager = ({ url, projectId: fixedProjectId }) => {
                                             <p>Project *</p>
                                             <StyledSelect
                                                 value={form.projectId} onChange={v => setField('projectId', v)} placeholder="Select project…"
-                                                options={projects.map(p => ({ value: p._id, label: p.name }))}
+                                                loading={projectsLoading}
+                                options={projects.map(p => ({ value: p._id, label: p.name }))}
                                             />
                                         </div>
                                     )}

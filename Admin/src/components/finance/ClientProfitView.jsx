@@ -15,11 +15,12 @@ const ClientProfitView = ({ url, clientId, onSelectClient, onViewProjectProfit }
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [clients, setClients] = useState([]);
+    const [clientsLoading, setClientsLoading] = useState(true);
     const [data, setData] = useState(clientProfitCache.get(clientId) || null);
     const [loading, setLoading] = useState(!!clientId && !clientProfitCache.has(clientId));
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/clients/list`, authHeader).then(res => { if (res.data.success) setClients(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/clients/list`, authHeader).then(res => { if (res.data.success) setClients(res.data.data); }).catch(() => {}).finally(() => setClientsLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchData = () => {
@@ -46,7 +47,7 @@ const ClientProfitView = ({ url, clientId, onSelectClient, onViewProjectProfit }
         <div>
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                 <p>Client</p>
-                <StyledSelect value={clientId} onChange={onSelectClient} placeholder="Select client…" options={clients.map(c => ({ value: c._id, label: c.name }))} />
+                <StyledSelect value={clientId} onChange={onSelectClient} placeholder="Select client…" loading={clientsLoading} options={clients.map(c => ({ value: c._id, label: c.name }))} />
             </div>
 
             {loading && <div className="admin-empty-state"><p>Loading…</p></div>}

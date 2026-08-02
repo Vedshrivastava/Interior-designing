@@ -19,13 +19,14 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(true);
     const cached = projectProfitCache.get(projectId);
     const [data, setData] = useState(cached?.data || null);
     const [works, setWorks] = useState(cached?.works || []);
     const [loading, setLoading] = useState(!!projectId && !cached);
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchData = () => {
@@ -60,7 +61,7 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
         <div>
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                 <p>Project</p>
-                <StyledSelect value={projectId} onChange={onSelectProject} placeholder="Select project…" options={projects.map(p => ({ value: p._id, label: p.name }))} />
+                <StyledSelect value={projectId} onChange={onSelectProject} placeholder="Select project…" loading={projectsLoading} options={projects.map(p => ({ value: p._id, label: p.name }))} />
             </div>
 
             {loading && <div className="admin-empty-state"><p>Loading…</p></div>}

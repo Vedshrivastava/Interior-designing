@@ -16,12 +16,14 @@ const LabourMultiSelect = ({ url, selectedIds, onChange, excludeIds = [] }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [labourers, setLabourers] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
 
     const fetchLabourers = () => {
         axios.get(`${url}/api/finance/labourers/list`, authHeader)
             .then(res => { if (res.data.success) setLabourers(res.data.data); })
-            .catch(() => {});
+            .catch(() => {})
+            .finally(() => setLoading(false));
     };
 
     useEffect(() => { fetchLabourers(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -38,7 +40,13 @@ const LabourMultiSelect = ({ url, selectedIds, onChange, excludeIds = [] }) => {
         <div>
             <div className="labour-select-box">
                 <div className="labour-select-list">
-                    {visible.length === 0 ? (
+                    {loading ? (
+                        <>
+                            <span className="labour-chip-skeleton" />
+                            <span className="labour-chip-skeleton" />
+                            <span className="labour-chip-skeleton" />
+                        </>
+                    ) : visible.length === 0 ? (
                         <p className="labour-select-empty">No labourers available; add one below.</p>
                     ) : visible.map(l => {
                         const active = selectedIds.includes(l._id);

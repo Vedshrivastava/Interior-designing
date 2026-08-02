@@ -45,10 +45,14 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
         workId: defaultWorkId || '',
     });
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(!fixedProjectId);
     const [works, setWorks] = useState([]);
+    const [worksLoading, setWorksLoading] = useState(false);
     const [workContractors, setWorkContractors] = useState([]);
     const [workLabourers, setWorkLabourers] = useState([]);
+    const [partiesLoading, setPartiesLoading] = useState(false);
     const [employees, setEmployees] = useState([]);
+    const [employeesLoading, setEmployeesLoading] = useState(true);
     const [materialTrackingEnabled, setMaterialTrackingEnabled] = useState(false);
     const [materials, setMaterials] = useState([]);
     const [materialLines, setMaterialLines] = useState([]);
@@ -58,7 +62,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
     const fetchProjects = () => {
         if (fixedProjectId) return;
         axios.get(`${url}/api/finance/projects/list`, authHeader)
-            .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+            .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
     };
     useEffect(fetchProjects, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
     useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
@@ -67,15 +71,16 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
         axios.get(`${url}/api/finance/materials/list`, authHeader)
             .then(res => { if (res.data.success) setMaterials(res.data.data); }).catch(() => {});
         axios.get(`${url}/api/finance/employees/list`, authHeader)
-            .then(res => { if (res.data.success) setEmployees(res.data.data); }).catch(() => {});
+            .then(res => { if (res.data.success) setEmployees(res.data.data); }).catch(() => {}).finally(() => setEmployeesLoading(false));
     };
     useEffect(fetchMaterialsAndEmployees, [url]); // eslint-disable-line react-hooks/exhaustive-deps
     useFinanceWsRefresh(['financeMaterialsChanged', 'financeEmployeesChanged'], fetchMaterialsAndEmployees);
 
     const fetchWorksAndTracking = () => {
         if (!form.projectId) { setWorks([]); setMaterialTrackingEnabled(false); return; }
+        setWorksLoading(true);
         axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: form.projectId } })
-            .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => setWorks([]));
+            .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => setWorks([])).finally(() => setWorksLoading(false));
         axios.get(`${url}/api/finance/projects/${form.projectId}`, authHeader)
             .then(res => { if (res.data.success) setMaterialTrackingEnabled(!!res.data.data.project?.materialTrackingEnabled); }).catch(() => {});
     };
@@ -84,10 +89,13 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
 
     useEffect(() => {
         if (!form.workId) { setWorkContractors([]); setWorkLabourers([]); return; }
-        axios.get(`${url}/api/finance/work-contractor-assignments/list`, { ...authHeader, params: { workId: form.workId } })
-            .then(res => { if (res.data.success) setWorkContractors(res.data.data); }).catch(() => setWorkContractors([]));
-        axios.get(`${url}/api/finance/work-labour-assignments/list`, { ...authHeader, params: { workId: form.workId } })
-            .then(res => { if (res.data.success) setWorkLabourers(res.data.data); }).catch(() => setWorkLabourers([]));
+        setPartiesLoading(true);
+        Promise.all([
+            axios.get(`${url}/api/finance/work-contractor-assignments/list`, { ...authHeader, params: { workId: form.workId } })
+                .then(res => { if (res.data.success) setWorkContractors(res.data.data); }).catch(() => setWorkContractors([])),
+            axios.get(`${url}/api/finance/work-labour-assignments/list`, { ...authHeader, params: { workId: form.workId } })
+                .then(res => { if (res.data.success) setWorkLabourers(res.data.data); }).catch(() => setWorkLabourers([])),
+        ]).finally(() => setPartiesLoading(false));
     }, [url, form.workId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // A labourer picked here is always already on this Work's roster (the
@@ -224,7 +232,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                         {!fixedProjectId && (
                             <div className="add-product-name flex-col wizard-field-full">
                                 <p>Project *</p>
-                                <StyledSelect value={form.projectId} onChange={v => setField('projectId', v)} placeholder="Select project…" options={projectOptions} />
+                                <StyledSelect value={form.projectId} onChange={v => setField('projectId', v)} placeholder="Select project…" loading={projectsLoading} options={projectOptions} />
                             </div>
                         )}
                         <div className="add-product-name flex-col wizard-field-full">
@@ -232,7 +240,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                             <StyledSelect
                                 value={form.workId} onChange={v => setField('workId', v)}
                                 placeholder={form.projectId ? 'Select work…' : 'Select a project first'}
-                                options={workOptions} disabled={!form.projectId}
+                                options={workOptions} disabled={!form.projectId} loading={worksLoading}
                             />
                         </div>
 
@@ -247,7 +255,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                                                 : 'Select contractor…'
                                     }
                                     options={contractorOptions}
-                                    disabled={!form.workId || contractorOptions.length === 0}
+                                    disabled={!form.workId || contractorOptions.length === 0} loading={partiesLoading}
                                 />
                             </div>
                         ) : (
@@ -261,7 +269,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                                                 : 'Select labourer…'
                                     }
                                     options={labourerOptions}
-                                    disabled={!form.workId || labourerOptions.length === 0}
+                                    disabled={!form.workId || labourerOptions.length === 0} loading={partiesLoading}
                                 />
                             </div>
                         )}
@@ -281,7 +289,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                                     value={form.supervisorId} onChange={pickSupervisor}
                                     placeholder={!form.labourerId ? 'Select a labourer first' : 'Select supervisor…'}
                                     options={employeeOptions}
-                                    disabled={!form.labourerId}
+                                    disabled={!form.labourerId} loading={employeesLoading}
                                 />
                             </div>
                         )}

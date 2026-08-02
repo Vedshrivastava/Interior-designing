@@ -29,6 +29,7 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(!fixedProjectId);
     const [selectedProjectId, setSelectedProjectId] = useState(fixedProjectId || '');
     const [works, setWorks] = useState([]);
     const [workLabourers, setWorkLabourers] = useState([]);
@@ -46,7 +47,7 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
 
     const fetchProjects = () => {
         if (fixedProjectId) return;
-        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
     };
     useEffect(fetchProjects, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
     useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
@@ -182,6 +183,7 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                         value={selectedProjectId}
                         onChange={setSelectedProjectId}
                         placeholder="Select project…"
+                        loading={projectsLoading}
                         options={projects.map(p => ({ value: p._id, label: p.name }))}
                     />
                 </div>

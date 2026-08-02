@@ -16,7 +16,7 @@ import StyledSelect from './StyledSelect';
  * was the actual complaint, not a data problem. Manage the shared list
  * itself from Masters → Payment Modes; this just picks from it.
  */
-const SettingPicker = ({ url, settingType, options, onAdded, value, onChange, placeholder, disabled }) => {
+const SettingPicker = ({ url, settingType, options, onAdded, value, onChange, placeholder, disabled, loading }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -46,7 +46,7 @@ const SettingPicker = ({ url, settingType, options, onAdded, value, onChange, pl
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <div style={{ flex: 1 }}>
                 <StyledSelect
-                    value={value} onChange={onChange} disabled={disabled}
+                    value={value} onChange={onChange} disabled={disabled} loading={loading}
                     placeholder={placeholder || 'Select…'}
                     options={options.map(o => ({ value: o, label: o }))}
                 />

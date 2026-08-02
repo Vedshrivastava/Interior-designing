@@ -36,7 +36,9 @@ const LabourPaymentsManager = ({ url }) => {
     const [bankAccounts, setBankAccounts] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
     const [workTypeSettings, setWorkTypeSettings] = useState([]);
+    const [refDataLoading, setRefDataLoading] = useState(true);
     const [works, setWorks] = useState([]);
+    const [worksLoading, setWorksLoading] = useState(false);
     const [paymentModes, setPaymentModes] = useState([]);
     const [payments, setPayments] = useState([]);
     const [balancePayable, setBalancePayable] = useState(null);
@@ -49,14 +51,16 @@ const LabourPaymentsManager = ({ url }) => {
     const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
-            .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
-            .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
-            .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } })
-            .then(res => { if (res.data.success) setWorkTypeSettings(res.data.data); }).catch(() => {});
+        Promise.all([
+            axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
+                .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {}),
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
+                .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {}),
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
+                .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {}),
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } })
+                .then(res => { if (res.data.success) setWorkTypeSettings(res.data.data); }).catch(() => {}),
+        ]).finally(() => setRefDataLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // This picker has no ledger loaded (unlike LabourLedgerView), so the
@@ -64,8 +68,9 @@ const LabourPaymentsManager = ({ url }) => {
     // directly — see ContractorPaymentsManager.jsx's identical comment.
     useEffect(() => {
         if (!labourerId) { setWorks([]); return; }
+        setWorksLoading(true);
         axios.get(`${url}/api/finance/work-labour-assignments/list`, { ...authHeader, params: { labourerId } })
-            .then(res => { if (res.data.success) setWorks(res.data.data.filter(a => a.workId)); }).catch(() => {});
+            .then(res => { if (res.data.success) setWorks(res.data.data.filter(a => a.workId)); }).catch(() => {}).finally(() => setWorksLoading(false));
     }, [url, labourerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchPayments = async () => {
@@ -228,7 +233,7 @@ const LabourPaymentsManager = ({ url }) => {
                                             <div className="add-product-name flex-col">
                                                 <p>Work (optional — resolves TDS from its type)</p>
                                                 <StyledSelect
-                                                    value={form.workId} onChange={onSelectWork} placeholder="Not tied to a Work"
+                                                    value={form.workId} onChange={onSelectWork} placeholder="Not tied to a Work" loading={worksLoading}
                                                     options={works.map(a => ({ value: a.workId._id, label: `${a.workId.workType} — ${a.workId.projectId?.name || '—'}` }))}
                                                 />
                                             </div>
@@ -240,14 +245,14 @@ const LabourPaymentsManager = ({ url }) => {
                                             <div className="add-product-name flex-col">
                                                 <p>Bank Account</p>
                                                 <StyledSelect
-                                                    value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
+                                                    value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash" loading={refDataLoading}
                                                     options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                                 />
                                             </div>
                                             <div className="add-product-name flex-col">
                                                 <p>TDS Section</p>
                                                 <StyledSelect
-                                                    value={form.tdsSectionId} onChange={onChangeTdsSection} placeholder="No TDS"
+                                                    value={form.tdsSectionId} onChange={onChangeTdsSection} placeholder="No TDS" loading={refDataLoading}
                                                     options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.rate != null ? ` (${s.rate}%)` : ''}` }))}
                                                 />
                                             </div>

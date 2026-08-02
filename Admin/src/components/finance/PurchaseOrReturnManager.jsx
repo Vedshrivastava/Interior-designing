@@ -26,6 +26,7 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
     const [vendors, setVendors] = useState([]);
     const [projects, setProjects] = useState([]);
     const [materials, setMaterials] = useState([]);
+    const [pickerDataLoading, setPickerDataLoading] = useState(true);
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -47,9 +48,11 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
     useEffect(() => { fetchItems(); }, [transactionType]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchPickerData = () => {
-        axios.get(`${url}/api/finance/vendors/list`, authHeader).then(res => { if (res.data.success) setVendors(res.data.data.filter(v => v.vendorType !== 'labour_contractor')); }).catch(() => {});
-        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/materials/list`, authHeader).then(res => { if (res.data.success) setMaterials(res.data.data); }).catch(() => {});
+        Promise.all([
+            axios.get(`${url}/api/finance/vendors/list`, authHeader).then(res => { if (res.data.success) setVendors(res.data.data.filter(v => v.vendorType !== 'labour_contractor')); }).catch(() => {}),
+            axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}),
+            axios.get(`${url}/api/finance/materials/list`, authHeader).then(res => { if (res.data.success) setMaterials(res.data.data); }).catch(() => {}),
+        ]).finally(() => setPickerDataLoading(false));
     };
     useEffect(() => {
         fetchPickerData();
@@ -150,17 +153,17 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Vendor *</p>
-                                    <StyledSelect value={form.vendorId} onChange={v => setField('vendorId', v)} placeholder="Select vendor…"
+                                    <StyledSelect value={form.vendorId} onChange={v => setField('vendorId', v)} placeholder="Select vendor…" loading={pickerDataLoading}
                                         options={vendors.map(v => ({ value: v._id, label: v.name }))} />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Project *</p>
-                                    <StyledSelect value={form.projectId} onChange={v => setField('projectId', v)} placeholder="Select project…"
+                                    <StyledSelect value={form.projectId} onChange={v => setField('projectId', v)} placeholder="Select project…" loading={pickerDataLoading}
                                         options={projects.map(p => ({ value: p._id, label: p.name }))} />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Material *</p>
-                                    <StyledSelect value={form.materialId} onChange={v => setField('materialId', v)} placeholder="Select material…"
+                                    <StyledSelect value={form.materialId} onChange={v => setField('materialId', v)} placeholder="Select material…" loading={pickerDataLoading}
                                         options={materials.map(m => ({ value: m._id, label: m.unit ? `${m.name} (${m.unit})` : m.name }))} />
                                 </div>
                                 <div className="add-product-name flex-col">

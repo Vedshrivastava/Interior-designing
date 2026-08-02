@@ -40,12 +40,13 @@ const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
 
     const [form, setForm] = useState(emptyForm);
     const [works, setWorks] = useState([]);
+    const [worksLoading, setWorksLoading] = useState(true);
     const [materials, setMaterials] = useState([]);
     const [saving, setSaving] = useState(false);
 
     const fetchWorks = () => {
         axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } })
-            .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => {});
+            .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => {}).finally(() => setWorksLoading(false));
     };
     useEffect(fetchWorks, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
     useFinanceWsRefresh(['financeWorksChanged'], fetchWorks);
@@ -110,7 +111,7 @@ const AddStockMovementModal = ({ url, projectId, onClose, onSaved }) => {
                                 <p>Work (optional)</p>
                                 <StyledSelect
                                     value={form.workId} onChange={v => setField('workId', v)}
-                                    placeholder="Not tied to one Work…"
+                                    placeholder="Not tied to one Work…" loading={worksLoading}
                                     options={works.map(w => ({ value: w._id, label: `${w.workType}${w.workOrderNumber ? ` (${w.workOrderNumber})` : ''}` }))}
                                 />
                             </div>

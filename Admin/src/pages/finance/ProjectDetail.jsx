@@ -498,6 +498,7 @@ const ProjectDetail = ({ url }) => {
     const [advanceModalOpen, setAdvanceModalOpen] = useState(false);
     const [paymentModes, setPaymentModes] = useState([]);
     const [bankAccounts, setBankAccounts] = useState([]);
+    const [refDataLoading, setRefDataLoading] = useState(true);
     const [markingInvoiced, setMarkingInvoiced] = useState(false);
     const [markingReceived, setMarkingReceived] = useState(false);
     const { downloading: downloadingReceipt, progress: receiptProgress, run: runReceiptDownload } = useFileDownload(authHeader);
@@ -537,9 +538,11 @@ const ProjectDetail = ({ url }) => {
             .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
 
     useEffect(() => {
-        fetchPaymentModes();
-        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
-            .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
+        Promise.all([
+            fetchPaymentModes(),
+            axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
+                .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {}),
+        ]).finally(() => setRefDataLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Same fetch as fetchProject, minus the loading flag — used for live
@@ -851,13 +854,14 @@ const ProjectDetail = ({ url }) => {
                                 <SettingPicker
                                     url={url} settingType="payment_mode" options={paymentModes} onAdded={fetchPaymentModes}
                                     value={advancePaymentMode} onChange={setAdvancePaymentMode} placeholder="Cash, Bank Transfer, Cheque…"
+                                    loading={refDataLoading}
                                 />
                             </div>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Received Into (Your Bank Account)</p>
                                     <StyledSelect
-                                        value={advanceBankAccountId} onChange={setAdvanceBankAccountId} placeholder="Cash, no bank account"
+                                        value={advanceBankAccountId} onChange={setAdvanceBankAccountId} placeholder="Cash, no bank account" loading={refDataLoading}
                                         options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                     />
                                 </div>

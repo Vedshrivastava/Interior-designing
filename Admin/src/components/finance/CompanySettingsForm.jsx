@@ -26,6 +26,7 @@ const CompanySettingsForm = ({ url }) => {
 
     const [form, setForm] = useState(emptyForm);
     const [bankAccounts, setBankAccounts] = useState([]);
+    const [bankAccountsLoading, setBankAccountsLoading] = useState(true);
     const [logoFile, setLogoFile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -51,7 +52,7 @@ const CompanySettingsForm = ({ url }) => {
     useEffect(() => { fetchSettings(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
     useEffect(() => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
-            .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
+            .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {}).finally(() => setBankAccountsLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
@@ -122,7 +123,7 @@ const CompanySettingsForm = ({ url }) => {
                 <div className="add-product-name flex-col">
                     <p>Payment Account (shown as "Pay To" on Bills &amp; Receipts)</p>
                     <StyledSelect
-                        value={form.primaryBankAccountId} onChange={v => setField('primaryBankAccountId', v)} placeholder="None"
+                        value={form.primaryBankAccountId} onChange={v => setField('primaryBankAccountId', v)} placeholder="None" loading={bankAccountsLoading}
                         options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                     />
                 </div>

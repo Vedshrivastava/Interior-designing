@@ -27,6 +27,7 @@ const SiteInventoryPage = ({ url }) => {
     const lowStockOnly = searchParams.get('filter') === 'low-stock';
 
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(true);
     // Pre-selects the project when arriving via `?projectId=` — e.g. the
     // "Open Site Inventory" link on a measurement's insufficient-stock
     // toast, so recording the Dump lands directly on the right project
@@ -36,7 +37,7 @@ const SiteInventoryPage = ({ url }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchSummary = () => {
@@ -146,7 +147,7 @@ const SiteInventoryPage = ({ url }) => {
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                 <p>Project (for manual entry / movement history)</p>
                 <StyledSelect
-                    value={selectedProjectId} onChange={setSelectedProjectId} placeholder="Select project…"
+                    value={selectedProjectId} onChange={setSelectedProjectId} placeholder="Select project…" loading={projectsLoading}
                     options={projects.map(p => ({ value: p._id, label: p.name }))}
                 />
             </div>

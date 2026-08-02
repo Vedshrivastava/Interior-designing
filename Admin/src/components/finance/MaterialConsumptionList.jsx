@@ -14,12 +14,13 @@ const MaterialConsumptionList = ({ url }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(true);
     const [selectedProjectId, setSelectedProjectId] = useState('');
     const [movements, setMovements] = useState([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchMovements = useCallback(() => {
@@ -42,7 +43,7 @@ const MaterialConsumptionList = ({ url }) => {
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                 <p>Project</p>
                 <StyledSelect
-                    value={selectedProjectId} onChange={setSelectedProjectId} placeholder="Select project…"
+                    value={selectedProjectId} onChange={setSelectedProjectId} placeholder="Select project…" loading={projectsLoading}
                     options={projects.map(p => ({ value: p._id, label: p.name }))}
                 />
             </div>

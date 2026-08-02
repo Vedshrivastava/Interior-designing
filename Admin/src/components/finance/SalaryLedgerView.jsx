@@ -34,6 +34,7 @@ const SalaryLedgerView = ({ url, employeeId }) => {
     const [loading, setLoading] = useState(true);
     const [bankAccounts, setBankAccounts] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
+    const [refDataLoading, setRefDataLoading] = useState(true);
     const [form, setForm] = useState({ ...emptyForm, month: thisMonth() });
     const [saving, setSaving] = useState(false);
     const [confirmItem, setConfirmItem] = useState(null);
@@ -55,10 +56,12 @@ const SalaryLedgerView = ({ url, employeeId }) => {
     // Salary Payment tab) wouldn't otherwise show up here until reselected.
     useFinanceWsRefresh(['financeSalaryPaymentsChanged'], (msg) => { if (employeeId && (!msg.employeeId || msg.employeeId === employeeId)) fetchLedger(); });
     useEffect(() => {
-        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
-            .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
-            .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
+        Promise.all([
+            axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
+                .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {}),
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
+                .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {}),
+        ]).finally(() => setRefDataLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
@@ -127,14 +130,14 @@ const SalaryLedgerView = ({ url, employeeId }) => {
                     <div className="add-product-name flex-col">
                         <p>Bank Account</p>
                         <StyledSelect
-                            value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
+                            value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash" loading={refDataLoading}
                             options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                         />
                     </div>
                     <div className="add-product-name flex-col">
                         <p>TDS Section</p>
                         <StyledSelect
-                            value={form.tdsSectionId} onChange={onChangeTdsSection} placeholder="No TDS"
+                            value={form.tdsSectionId} onChange={onChangeTdsSection} placeholder="No TDS" loading={refDataLoading}
                             options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.rate != null ? ` (${s.rate}%)` : ''}` }))}
                         />
                     </div>

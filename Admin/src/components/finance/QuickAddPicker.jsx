@@ -56,6 +56,10 @@ const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValue
     const formId = `qap-form-${resourceKey}`;
 
     const [list, setList] = useState(() => listCache.get(cacheKey) || []);
+    // Only the true first-ever fetch of a resource shows the shimmer — a
+    // cached remount (see listCache above) already has real options to
+    // show immediately, so there's nothing to signal as "still loading".
+    const [listLoading, setListLoading] = useState(() => !listCache.has(cacheKey));
     const [modalOpen, setModalOpen] = useState(false);
     const [form, setForm] = useState({ ...emptyFormFromFields(resource.fields), ...presetValues });
     const [settingOptions, setSettingOptions] = useState({});
@@ -72,6 +76,7 @@ const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValue
             const res = await axios.get(`${url}${resource.apiBase}/list`, authHeader);
             if (res.data.success) { listCache.set(cacheKey, res.data.data); setList(res.data.data); }
         } catch { /* dropdown just stays with whatever it already had */ }
+        finally { setListLoading(false); }
     };
 
     useEffect(() => { fetchList(); }, [url, resourceKey]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -125,7 +130,7 @@ const QuickAddPicker = ({ url, resourceKey, value, onChange, filter, presetValue
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <div style={{ flex: 1 }}>
                     <StyledSelect
-                        value={value} onChange={onChange} disabled={disabled}
+                        value={value} onChange={onChange} disabled={disabled} loading={listLoading}
                         placeholder={placeholder || `Select ${resource.label.toLowerCase()}…`}
                         options={displayList.map(item => ({ value: item._id, label: item.name }))}
                     />

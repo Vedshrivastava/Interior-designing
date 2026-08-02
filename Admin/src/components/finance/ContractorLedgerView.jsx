@@ -63,6 +63,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
     const [bankAccounts, setBankAccounts] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
     const [workTypeSettings, setWorkTypeSettings] = useState([]);
+    const [refDataLoading, setRefDataLoading] = useState(true);
     const [billProjectId, setBillProjectId] = useState('');
     const { downloading: downloadingBill, progress: billProgress, run: runBillDownload } = useFileDownload(authHeader);
 
@@ -101,16 +102,18 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
         fetchLedger();
     });
     useEffect(() => {
-        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
-            .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
-            .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
-        // Work Types carry their own tdsSectionId (populated with rate) —
-        // resolved by matching a picked Work's `workType` string against
-        // this list's `name`, same string-match convention every other
-        // work-type lookup in this codebase already uses.
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } })
-            .then(res => { if (res.data.success) setWorkTypeSettings(res.data.data); }).catch(() => {});
+        Promise.all([
+            axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
+                .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {}),
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
+                .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {}),
+            // Work Types carry their own tdsSectionId (populated with rate) —
+            // resolved by matching a picked Work's `workType` string against
+            // this list's `name`, same string-match convention every other
+            // work-type lookup in this codebase already uses.
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } })
+                .then(res => { if (res.data.success) setWorkTypeSettings(res.data.data); }).catch(() => {}),
+        ]).finally(() => setRefDataLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const submitAdvance = async (e) => {
@@ -229,7 +232,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                 <div className="add-product-name flex-col" style={{ minWidth: '220px' }}>
                     <p>Download Payment Statement For</p>
                     <StyledSelect
-                        value={billProjectId} onChange={setBillProjectId} placeholder="Select project…"
+                        value={billProjectId} onChange={setBillProjectId} placeholder="Select project…" loading={loading}
                         options={billProjectOptions}
                     />
                 </div>
@@ -404,7 +407,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                 <div className="add-product-name flex-col">
                                     <p>Bank Account</p>
                                     <StyledSelect
-                                        value={advanceForm.bankAccountId} onChange={v => setAdvanceForm(p => ({ ...p, bankAccountId: v }))} placeholder="Cash"
+                                        value={advanceForm.bankAccountId} onChange={v => setAdvanceForm(p => ({ ...p, bankAccountId: v }))} placeholder="Cash" loading={refDataLoading}
                                         options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                     />
                                 </div>
@@ -584,7 +587,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                 <div className="add-product-name flex-col">
                                     <p>Work (optional — resolves TDS from its type)</p>
                                     <StyledSelect
-                                        value={paymentForm.workId} onChange={onSelectPaymentWork} placeholder="Not tied to a Work"
+                                        value={paymentForm.workId} onChange={onSelectPaymentWork} placeholder="Not tied to a Work" loading={loading}
                                         options={ledger.works.map(w => ({ value: w._id, label: `${w.workType} — ${w.projectName}` }))}
                                     />
                                 </div>
@@ -595,14 +598,14 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                 <div className="add-product-name flex-col">
                                     <p>Bank Account</p>
                                     <StyledSelect
-                                        value={paymentForm.bankAccountId} onChange={v => setPaymentForm(p => ({ ...p, bankAccountId: v }))} placeholder="Cash"
+                                        value={paymentForm.bankAccountId} onChange={v => setPaymentForm(p => ({ ...p, bankAccountId: v }))} placeholder="Cash" loading={refDataLoading}
                                         options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                     />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>TDS Section</p>
                                     <StyledSelect
-                                        value={paymentForm.tdsSectionId} onChange={onChangePaymentTdsSection} placeholder="No TDS"
+                                        value={paymentForm.tdsSectionId} onChange={onChangePaymentTdsSection} placeholder="No TDS" loading={refDataLoading}
                                         options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.rate != null ? ` (${s.rate}%)` : ''}` }))}
                                     />
                                 </div>

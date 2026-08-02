@@ -16,12 +16,14 @@ const LabourPicker = ({ url, value, onChange, placeholder }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [labourers, setLabourers] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
 
     const fetchLabourers = () => {
         axios.get(`${url}/api/finance/labourers/list`, authHeader)
             .then(res => { if (res.data.success) setLabourers(res.data.data); })
-            .catch(() => {});
+            .catch(() => {})
+            .finally(() => setLoading(false));
     };
 
     useEffect(() => { fetchLabourers(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -32,7 +34,7 @@ const LabourPicker = ({ url, value, onChange, placeholder }) => {
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <div style={{ flex: 1 }}>
                     <StyledSelect
-                        value={value} onChange={onChange} placeholder={placeholder || 'Select labourer…'}
+                        value={value} onChange={onChange} placeholder={placeholder || 'Select labourer…'} loading={loading}
                         options={labourers.map(l => ({ value: l._id, label: l.name }))}
                     />
                 </div>

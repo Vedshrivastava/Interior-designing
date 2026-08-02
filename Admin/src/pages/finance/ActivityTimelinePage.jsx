@@ -58,6 +58,7 @@ const ActivityTimelinePage = ({ url }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(true);
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
@@ -100,7 +101,7 @@ const ActivityTimelinePage = ({ url }) => {
     }, [filters.projectId, filters.eventType, filters.dateFrom, filters.dateTo]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useWebSocket(useCallback((msg) => {
@@ -169,6 +170,7 @@ const ActivityTimelinePage = ({ url }) => {
                                 value={filters.projectId}
                                 onChange={v => setField('projectId', v)}
                                 placeholder="All Projects"
+                                loading={projectsLoading}
                                 options={[{ value: '', label: 'All Projects' }, ...projects.map(p => ({ value: p._id, label: p.name }))]}
                             />
                         </div>

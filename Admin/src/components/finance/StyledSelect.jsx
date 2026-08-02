@@ -5,7 +5,14 @@ import React, { useState, useRef, useEffect } from 'react';
 // Re-clicking the already-selected option clears it back to the placeholder
 // — the one reset affordance every consumer gets for free, app-wide,
 // without each caller having to remember to seed an empty option itself.
-const StyledSelect = ({ value, onChange, options, placeholder = 'Select…', disabled = false }) => {
+//
+// `loading` (optional): while the options list is still being fetched, the
+// trigger shows a shimmer bar instead of the placeholder — same "this piece
+// specifically is still loading" idea as KpiCard's own `loading` prop
+// (dashboard.css's .kpi-skeleton-bar), so an empty-looking picker doesn't
+// read as "there's nothing to select" while its data is still in flight.
+// Not openable while loading, same as `disabled`.
+const StyledSelect = ({ value, onChange, options, placeholder = 'Select…', disabled = false, loading = false }) => {
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
 
@@ -16,20 +23,23 @@ const StyledSelect = ({ value, onChange, options, placeholder = 'Select…', dis
     }, []);
 
     const selected = options.find(o => o.value === value);
+    const inert = disabled || loading;
 
     return (
         <div className="add-cat-dropdown" ref={ref}>
             <button
                 type="button"
-                className={`add-cat-trigger${open ? ' open' : ''}${disabled ? ' disabled' : ''}`}
-                onClick={() => !disabled && setOpen(o => !o)}
-                disabled={disabled}
+                className={`add-cat-trigger${open ? ' open' : ''}${disabled ? ' disabled' : ''}${loading ? ' loading' : ''}`}
+                onClick={() => !inert && setOpen(o => !o)}
+                disabled={inert}
             >
-                <span className={selected ? '' : 'trigger-placeholder'}>{selected ? selected.label : placeholder}</span>
-                <i className="fa fa-chevron-down" />
+                {loading ? <span className="select-skeleton-bar" /> : (
+                    <span className={selected ? '' : 'trigger-placeholder'}>{selected ? selected.label : placeholder}</span>
+                )}
+                {!loading && <i className="fa fa-chevron-down" />}
             </button>
 
-            {open && !disabled && (
+            {open && !inert && (
                 <ul className="add-cat-list">
                     {options.map(opt => (
                         <li

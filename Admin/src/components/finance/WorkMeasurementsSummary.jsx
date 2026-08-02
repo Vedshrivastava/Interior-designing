@@ -37,6 +37,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
 
     const [works, setWorks] = useState([]);
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(crossProject);
     const [contractorMeasurements, setContractorMeasurements] = useState([]);
     const [labourMeasurements, setLabourMeasurements] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -50,7 +51,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
     const fetchProjects = () => {
         if (!crossProject) return;
         axios.get(`${url}/api/finance/projects/list`, authHeader)
-            .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+            .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
     };
     useEffect(fetchProjects, [url, crossProject]); // eslint-disable-line react-hooks/exhaustive-deps
     useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
@@ -204,7 +205,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
                     <div className="add-product-name flex-col">
                         <p>Project</p>
                         <StyledSelect
-                            value={selectedProject} onChange={setProjectFilter} placeholder="All Projects"
+                            value={selectedProject} onChange={setProjectFilter} placeholder="All Projects" loading={projectsLoading}
                             options={projects.map(p => ({ value: p._id, label: p.name }))}
                         />
                     </div>
@@ -212,7 +213,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
                 <div className="add-product-name flex-col">
                     <p>Work Type</p>
                     <StyledSelect
-                        value={workType} onChange={setWorkType} placeholder="Select work type…"
+                        value={workType} onChange={setWorkType} placeholder="Select work type…" loading={loading}
                         options={workTypeOptions.map(w => ({ value: w, label: w }))}
                     />
                 </div>

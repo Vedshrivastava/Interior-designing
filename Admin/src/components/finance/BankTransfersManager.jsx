@@ -17,6 +17,7 @@ const BankTransfersManager = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [accounts, setAccounts] = useState([]);
+    const [accountsLoading, setAccountsLoading] = useState(true);
     const [transfers, setTransfers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState(emptyForm);
@@ -36,7 +37,7 @@ const BankTransfersManager = ({ url }) => {
 
     useEffect(() => { fetchTransfers(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
     const fetchAccounts = () => {
-        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setAccounts(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setAccounts(res.data.data); }).catch(() => {}).finally(() => setAccountsLoading(false));
     };
     useEffect(fetchAccounts, [url]); // eslint-disable-line react-hooks/exhaustive-deps
     // financeBankTransfer.js's own add/remove only ever broadcasts this one
@@ -120,14 +121,14 @@ const BankTransfersManager = ({ url }) => {
                                     <div className="add-product-name flex-col">
                                         <p>From Account *</p>
                                         <StyledSelect
-                                            value={form.fromAccountId} onChange={v => setField('fromAccountId', v)} placeholder="From account…"
+                                            value={form.fromAccountId} onChange={v => setField('fromAccountId', v)} placeholder="From account…" loading={accountsLoading}
                                             options={accounts.map(a => ({ value: a._id, label: a.accountName }))}
                                         />
                                     </div>
                                     <div className="add-product-name flex-col">
                                         <p>To Account *</p>
                                         <StyledSelect
-                                            value={form.toAccountId} onChange={v => setField('toAccountId', v)} placeholder="To account…"
+                                            value={form.toAccountId} onChange={v => setField('toAccountId', v)} placeholder="To account…" loading={accountsLoading}
                                             options={accounts.map(a => ({ value: a._id, label: a.accountName }))}
                                         />
                                     </div>

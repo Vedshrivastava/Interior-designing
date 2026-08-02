@@ -18,12 +18,14 @@ const ContractorOrLabourPicker = ({ url, value, onChange, placeholder }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [contractors, setContractors] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
 
     const fetchContractors = () => {
         axios.get(`${url}/api/finance/vendors/list`, authHeader)
             .then(res => { if (res.data.success) setContractors(res.data.data.filter(v => v.vendorType === 'labour_contractor')); })
-            .catch(() => {});
+            .catch(() => {})
+            .finally(() => setLoading(false));
     };
 
     useEffect(() => { fetchContractors(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -34,7 +36,7 @@ const ContractorOrLabourPicker = ({ url, value, onChange, placeholder }) => {
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <div style={{ flex: 1 }}>
                     <StyledSelect
-                        value={value} onChange={onChange} placeholder={placeholder || 'Select contractor…'}
+                        value={value} onChange={onChange} placeholder={placeholder || 'Select contractor…'} loading={loading}
                         options={contractors.map(c => ({ value: c._id, label: c.name }))}
                     />
                 </div>

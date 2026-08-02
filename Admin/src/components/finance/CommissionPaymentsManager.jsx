@@ -29,6 +29,7 @@ const CommissionPaymentsManager = ({ url }) => {
     const [bankAccounts, setBankAccounts] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
     const [paymentModes, setPaymentModes] = useState([]);
+    const [refDataLoading, setRefDataLoading] = useState(true);
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -39,12 +40,14 @@ const CommissionPaymentsManager = ({ url }) => {
     const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
-            .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
-            .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
-            .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
+        Promise.all([
+            axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
+                .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {}),
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
+                .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {}),
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
+                .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {}),
+        ]).finally(() => setRefDataLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchPayments = async () => {
@@ -164,14 +167,14 @@ const CommissionPaymentsManager = ({ url }) => {
                                             <div className="add-product-name flex-col">
                                                 <p>Bank Account</p>
                                                 <StyledSelect
-                                                    value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
+                                                    value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash" loading={refDataLoading}
                                                     options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                                 />
                                             </div>
                                             <div className="add-product-name flex-col">
                                                 <p>TDS Section</p>
                                                 <StyledSelect
-                                                    value={form.tdsSectionId} onChange={v => setField('tdsSectionId', v)} placeholder="No TDS"
+                                                    value={form.tdsSectionId} onChange={v => setField('tdsSectionId', v)} placeholder="No TDS" loading={refDataLoading}
                                                     options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.code ? ` (${s.code})` : ''}` }))}
                                                 />
                                             </div>

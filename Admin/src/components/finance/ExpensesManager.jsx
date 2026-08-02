@@ -89,8 +89,10 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(!fixedProjectId);
     const [categories, setCategories] = useState([]);
     const [bankAccounts, setBankAccounts] = useState([]);
+    const [refDataLoading, setRefDataLoading] = useState(true);
     const [expenses, setExpenses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [flashId, setFlashId] = useState(highlightId || null);
@@ -104,6 +106,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     const [modalOpen, setModalOpen] = useState(false);
     const [form, setForm] = useState(emptyForm);
     const [worksForProject, setWorksForProject] = useState([]);
+    const [worksLoading, setWorksLoading] = useState(false);
     const [paidNow, setPaidNow] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -142,14 +145,16 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     useEffect(() => { fetchExpenses(); }, [fixedProjectId, fixedCategory, fixedRelatedTo?.id]); // eslint-disable-line react-hooks/exhaustive-deps
     const fetchProjects = () => {
         if (!fixedProjectId) {
-            axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+            axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
         }
     };
     useEffect(() => {
         fetchProjects();
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'expense_category' } })
-            .then(res => { if (res.data.success) setCategories(res.data.data.map(s => s.name)); }).catch(() => {});
-        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
+        Promise.all([
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'expense_category' } })
+                .then(res => { if (res.data.success) setCategories(res.data.data.map(s => s.name)); }).catch(() => {}),
+            axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {}),
+        ]).finally(() => setRefDataLoading(false));
     }, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
     useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
 
@@ -158,8 +163,9 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     const effectiveProjectId = fixedProjectId || form.projectId;
     const fetchWorksForProject = () => {
         if (!effectiveProjectId) { setWorksForProject([]); return; }
+        setWorksLoading(true);
         axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: effectiveProjectId } })
-            .then(res => { if (res.data.success) setWorksForProject(res.data.data); }).catch(() => {});
+            .then(res => { if (res.data.success) setWorksForProject(res.data.data); }).catch(() => {}).finally(() => setWorksLoading(false));
     };
     useEffect(fetchWorksForProject, [url, effectiveProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
     useFinanceWsRefresh(['financeWorksChanged'], fetchWorksForProject);
@@ -337,7 +343,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                         <div className="add-product-name flex-col">
                                             <p>Project (optional, general overhead if blank)</p>
                                             <StyledSelect
-                                                value={form.projectId} onChange={setProjectField} placeholder="General / overhead"
+                                                value={form.projectId} onChange={setProjectField} placeholder="General / overhead" loading={projectsLoading}
                                                 options={projects.map(p => ({ value: p._id, label: p.name }))}
                                             />
                                         </div>
@@ -347,7 +353,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                             <p>Work (optional{effectiveProjectId ? '' : ', pick a project first'})</p>
                                             <StyledSelect
                                                 value={form.workId} onChange={v => setField('workId', v)} placeholder="Not tied to a Work"
-                                                disabled={!effectiveProjectId} options={worksForProject.map(w => ({ value: w._id, label: workLabel(w) }))}
+                                                disabled={!effectiveProjectId} loading={worksLoading} options={worksForProject.map(w => ({ value: w._id, label: workLabel(w) }))}
                                             />
                                         </div>
                                     )}
@@ -391,7 +397,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                         <div className="add-product-name flex-col">
                                             <p>Bank Account (leave blank if cash)</p>
                                             <StyledSelect
-                                                value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
+                                                value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash" loading={refDataLoading}
                                                 options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                             />
                                         </div>
@@ -511,7 +517,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                     <div className="add-product-name flex-col wizard-field-full">
                                         <p>Bank Account (leave blank if cash)</p>
                                         <StyledSelect
-                                            value={settleForm.bankAccountId} onChange={v => setSettleField('bankAccountId', v)} placeholder="Cash"
+                                            value={settleForm.bankAccountId} onChange={v => setSettleField('bankAccountId', v)} placeholder="Cash" loading={refDataLoading}
                                             options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                         />
                                     </div>

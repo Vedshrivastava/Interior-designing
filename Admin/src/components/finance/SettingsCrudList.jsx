@@ -44,6 +44,7 @@ const SettingsCrudList = ({ url, lockedType }) => {
     const [deleting, setDeleting] = useState(false);
     // work_type only — the TDS Section picker's own options list.
     const [tdsSections, setTdsSections] = useState([]);
+    const [tdsSectionsLoading, setTdsSectionsLoading] = useState(false);
 
     const typeConfig = FINANCE_SETTING_TYPES.find(t => t.key === activeType);
     const typeLabelSingular = singularize(typeConfig.label);
@@ -63,8 +64,9 @@ const SettingsCrudList = ({ url, lockedType }) => {
     useEffect(() => { fetchList(); }, [activeType]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchTdsSections = () => {
+        setTdsSectionsLoading(true);
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
-            .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
+            .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {}).finally(() => setTdsSectionsLoading(false));
     };
     useEffect(() => {
         if (!typeConfig.hasTdsSection) return;
@@ -259,7 +261,7 @@ const SettingsCrudList = ({ url, lockedType }) => {
                                         <div className="add-product-name flex-col wizard-field-full">
                                             <p>TDS Section</p>
                                             <StyledSelect
-                                                value={form.tdsSectionId} onChange={v => setField('tdsSectionId', v)} placeholder="No TDS"
+                                                value={form.tdsSectionId} onChange={v => setField('tdsSectionId', v)} placeholder="No TDS" loading={tdsSectionsLoading}
                                                 options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.rate != null ? ` (${s.rate}%)` : ''}` }))}
                                             />
                                         </div>

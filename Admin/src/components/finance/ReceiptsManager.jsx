@@ -32,11 +32,14 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(!fixedProjectId);
     const [selectedProjectId, setSelectedProjectId] = useState(fixedProjectId || '');
     const [projectDetail, setProjectDetail] = useState(null);
     const [issuedBills, setIssuedBills] = useState([]);
+    const [issuedBillsLoading, setIssuedBillsLoading] = useState(false);
     const [paymentModes, setPaymentModes] = useState([]);
     const [bankAccounts, setBankAccounts] = useState([]);
+    const [refDataLoading, setRefDataLoading] = useState(true);
     const [receipts, setReceipts] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -46,16 +49,18 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
 
     const fetchProjects = () => {
         if (fixedProjectId) return;
-        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
     };
     useEffect(fetchProjects, [url, fixedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
     useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
-            .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
-        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
-            .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
+        Promise.all([
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
+                .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {}),
+            axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
+                .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {}),
+        ]).finally(() => setRefDataLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchReceipts = async (pid) => {
@@ -69,10 +74,11 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
 
     useEffect(() => {
         if (!selectedProjectId) { setProjectDetail(null); setIssuedBills([]); setReceipts([]); return; }
+        setIssuedBillsLoading(true);
         axios.get(`${url}/api/finance/projects/${selectedProjectId}`, authHeader)
             .then(res => { if (res.data.success) setProjectDetail(res.data.data.project); }).catch(() => {});
         axios.get(`${url}/api/finance/running-bills/list`, { ...authHeader, params: { projectId: selectedProjectId, status: 'issued' } })
-            .then(res => { if (res.data.success) setIssuedBills(res.data.data); }).catch(() => {});
+            .then(res => { if (res.data.success) setIssuedBills(res.data.data); }).catch(() => {}).finally(() => setIssuedBillsLoading(false));
         fetchReceipts(selectedProjectId);
     }, [url, selectedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -121,7 +127,7 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                 <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                     <p>Project</p>
                     <StyledSelect
-                        value={selectedProjectId} onChange={setSelectedProjectId} placeholder="Select project…"
+                        value={selectedProjectId} onChange={setSelectedProjectId} placeholder="Select project…" loading={projectsLoading}
                         options={projects.map(p => ({ value: p._id, label: p.name }))}
                     />
                 </div>
@@ -161,7 +167,7 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                                                 <p>Against Bill (optional)</p>
                                                 <StyledSelect
                                                     value={form.runningBillId} onChange={v => setField('runningBillId', v)}
-                                                    placeholder="Not tied to a specific bill"
+                                                    placeholder="Not tied to a specific bill" loading={issuedBillsLoading}
                                                     options={issuedBills.map(b => ({ value: b._id, label: `#${b.billNumber} · ₹${(b.totalAmount + (b.gstAmount || 0)).toLocaleString('en-IN')}` }))}
                                                 />
                                             </div>
@@ -175,7 +181,7 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                                             <div className="add-product-name flex-col">
                                                 <p>Bank Account (leave blank if cash)</p>
                                                 <StyledSelect
-                                                    value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
+                                                    value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash" loading={refDataLoading}
                                                     options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                                 />
                                             </div>

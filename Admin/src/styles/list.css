@@ -729,6 +729,24 @@
     user-select: none;
     transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
 }
+/* Labourer list still loading — see LabourMultiSelect's `loading` state.
+   Same chip footprint as a real .labour-chip so the grid doesn't jump
+   once real chips replace these. */
+.labour-chip-skeleton {
+    display: inline-block;
+    width: 92px;
+    height: 33px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(201, 168, 124, 0.14) 25%, rgba(201, 168, 124, 0.3) 37%, rgba(201, 168, 124, 0.14) 63%);
+    background-size: 400% 100%;
+    animation: list-skeleton-shimmer 1.6s ease-in-out infinite;
+}
+/* Same keyframe as add.css's select-skeleton-shimmer, redefined here —
+   list.css doesn't otherwise share a base with add.css's shimmer. */
+@keyframes list-skeleton-shimmer {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+}
 .labour-chip:hover {
     border-color: var(--gold);
     background-color: var(--gold-dim);

@@ -24,11 +24,13 @@ const WorkProfitView = ({ url, workId, onSelectWork }) => {
     const [loading, setLoading] = useState(!!workId && !workProfitCache.has(workId));
 
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(true);
     const [pickerProjectId, setPickerProjectId] = useState('');
     const [works, setWorks] = useState([]);
+    const [worksLoading, setWorksLoading] = useState(false);
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Keeps the Project dropdown in sync when a work arrives via drill-in
@@ -41,8 +43,9 @@ const WorkProfitView = ({ url, workId, onSelectWork }) => {
 
     useEffect(() => {
         if (!pickerProjectId) { setWorks([]); return; }
+        setWorksLoading(true);
         axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: pickerProjectId } })
-            .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => {});
+            .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => {}).finally(() => setWorksLoading(false));
     }, [url, pickerProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const onPickProject = (id) => {
@@ -75,13 +78,13 @@ const WorkProfitView = ({ url, workId, onSelectWork }) => {
         <div className="wizard-field-grid" style={{ marginBottom: '20px' }}>
             <div className="add-product-name flex-col">
                 <p>Project</p>
-                <StyledSelect value={pickerProjectId} onChange={onPickProject} placeholder="Select project…" options={projects.map(p => ({ value: p._id, label: p.name }))} />
+                <StyledSelect value={pickerProjectId} onChange={onPickProject} placeholder="Select project…" loading={projectsLoading} options={projects.map(p => ({ value: p._id, label: p.name }))} />
             </div>
             <div className="add-product-name flex-col">
                 <p>Work</p>
                 <StyledSelect
                     value={workId} onChange={onSelectWork} placeholder={pickerProjectId ? 'Select work…' : 'Pick a project first'}
-                    disabled={!pickerProjectId} options={works.map(w => ({ value: w._id, label: w.workType }))}
+                    disabled={!pickerProjectId} loading={worksLoading} options={works.map(w => ({ value: w._id, label: w.workType }))}
                 />
             </div>
         </div>

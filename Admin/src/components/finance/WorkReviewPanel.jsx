@@ -47,6 +47,7 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
     const crossProject = !fixedProjectId;
 
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(crossProject);
     const [internalProjectId, setInternalProjectId] = useState('');
     const projectId = fixedProjectId || internalProjectId;
 
@@ -79,7 +80,7 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
     const fetchProjects = () => {
         if (!crossProject) return;
         axios.get(`${url}/api/finance/projects/list`, authHeader)
-            .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+            .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
     };
     useEffect(fetchProjects, [url, crossProject]); // eslint-disable-line react-hooks/exhaustive-deps
     useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
@@ -206,7 +207,7 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
                 <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                     <p>Project</p>
                     <StyledSelect
-                        value={internalProjectId} onChange={setInternalProjectId} placeholder="Select project…"
+                        value={internalProjectId} onChange={setInternalProjectId} placeholder="Select project…" loading={projectsLoading}
                         options={projects.map(p => ({ value: p._id, label: p.name }))}
                     />
                 </div>

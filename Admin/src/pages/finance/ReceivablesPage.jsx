@@ -26,9 +26,10 @@ const ProjectPicker = ({ url, selectedProjectId, onChange }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(true);
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
@@ -38,6 +39,7 @@ const ProjectPicker = ({ url, selectedProjectId, onChange }) => {
                 value={selectedProjectId}
                 onChange={onChange}
                 placeholder="Select project…"
+                loading={projectsLoading}
                 options={projects.map(p => ({ value: p._id, label: p.name }))}
             />
         </div>

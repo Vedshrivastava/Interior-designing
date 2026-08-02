@@ -28,10 +28,14 @@ const ClientDirectPaymentsManager = ({ url }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(true);
     const [works, setWorks] = useState([]);
+    const [worksLoading, setWorksLoading] = useState(false);
     const [contractors, setContractors] = useState([]);
     const [labourers, setLabourers] = useState([]);
+    const [partiesLoading, setPartiesLoading] = useState(false);
     const [categories, setCategories] = useState([]);
+    const [categoriesLoading, setCategoriesLoading] = useState(true);
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState(emptyForm);
@@ -41,14 +45,14 @@ const ClientDirectPaymentsManager = ({ url }) => {
     const [deleting, setDeleting] = useState(false);
 
     const fetchProjects = () => {
-        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
     };
     useEffect(fetchProjects, [url]); // eslint-disable-line react-hooks/exhaustive-deps
     useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
 
     const fetchCategories = () => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'direct_payment_category' } })
-            .then(res => { if (res.data.success) setCategories(res.data.data); }).catch(() => {});
+            .then(res => { if (res.data.success) setCategories(res.data.data); }).catch(() => {}).finally(() => setCategoriesLoading(false));
     };
     useEffect(fetchCategories, [url]); // eslint-disable-line react-hooks/exhaustive-deps
     useFinanceWsRefresh(['financeSettingsChanged'], fetchCategories);
@@ -69,8 +73,9 @@ const ClientDirectPaymentsManager = ({ url }) => {
     // ever makes sense pinned to a work within that same project.
     const fetchWorksForProject = () => {
         if (!form.projectId) { setWorks([]); return; }
+        setWorksLoading(true);
         axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: form.projectId } })
-            .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => {});
+            .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => {}).finally(() => setWorksLoading(false));
     };
     useEffect(fetchWorksForProject, [url, form.projectId]); // eslint-disable-line react-hooks/exhaustive-deps
     useFinanceWsRefresh(['financeWorksChanged'], fetchWorksForProject);
@@ -80,13 +85,14 @@ const ClientDirectPaymentsManager = ({ url }) => {
     // uses for the identical "who's really on this work" question.
     const fetchPartiesForWork = () => {
         if (!form.workId) { setContractors([]); setLabourers([]); return; }
+        setPartiesLoading(true);
         Promise.all([
             axios.get(`${url}/api/finance/work-contractor-assignments/list`, { ...authHeader, params: { workId: form.workId } }),
             axios.get(`${url}/api/finance/work-labour-assignments/list`, { ...authHeader, params: { workId: form.workId } }),
         ]).then(([cRes, lRes]) => {
             setContractors(cRes.data.success ? cRes.data.data : []);
             setLabourers(lRes.data.success ? lRes.data.data : []);
-        }).catch(() => {});
+        }).catch(() => {}).finally(() => setPartiesLoading(false));
     };
     useEffect(fetchPartiesForWork, [url, form.workId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -147,7 +153,7 @@ const ClientDirectPaymentsManager = ({ url }) => {
         <div>
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '480px' }}>
                 <p>Project</p>
-                <StyledSelect value={form.projectId} onChange={v => setField('projectId', v)} options={projectOptions} placeholder="Select project…" />
+                <StyledSelect value={form.projectId} onChange={v => setField('projectId', v)} options={projectOptions} placeholder="Select project…" loading={projectsLoading} />
             </div>
 
             {!form.projectId ? (
@@ -207,7 +213,7 @@ const ClientDirectPaymentsManager = ({ url }) => {
                                 <div className="wizard-field-grid">
                                     <div className="add-product-name flex-col">
                                         <p>Work *</p>
-                                        <StyledSelect value={form.workId} onChange={v => setField('workId', v)} options={workOptions} placeholder="Select work…" />
+                                        <StyledSelect value={form.workId} onChange={v => setField('workId', v)} options={workOptions} placeholder="Select work…" loading={worksLoading} />
                                     </div>
                                     <div className="add-product-name flex-col">
                                         <p>Party Type *</p>
@@ -218,7 +224,7 @@ const ClientDirectPaymentsManager = ({ url }) => {
                                     <div className="add-product-name flex-col wizard-field-full">
                                         <p>{form.partyType === 'labour' ? 'Labourer *' : form.partyType === 'contractor' ? 'Contractor *' : 'Contractor/Labourer *'}</p>
                                         <StyledSelect value={form.partyId} onChange={v => setField('partyId', v)} options={partyOptions}
-                                            placeholder="Select…" disabled={!form.partyType} />
+                                            placeholder="Select…" disabled={!form.partyType} loading={partiesLoading} />
                                     </div>
                                 </div>
 
@@ -226,7 +232,7 @@ const ClientDirectPaymentsManager = ({ url }) => {
                                 <div className="wizard-field-grid">
                                     <div className="add-product-name flex-col">
                                         <p>Category *</p>
-                                        <StyledSelect value={form.categoryId} onChange={v => setField('categoryId', v)} options={categoryOptions} placeholder="Select category…" />
+                                        <StyledSelect value={form.categoryId} onChange={v => setField('categoryId', v)} options={categoryOptions} placeholder="Select category…" loading={categoriesLoading} />
                                     </div>
                                     <div className="add-product-name flex-col">
                                         <p>Amount (₹) *</p>

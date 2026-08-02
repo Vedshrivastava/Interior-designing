@@ -16,6 +16,7 @@ const MaterialAnalysisView = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(true);
     const [projectId, setProjectId] = useState('');
     const [rows, setRows] = useState(materialAnalysisCache.get('') || []);
     const [loading, setLoading] = useState(!materialAnalysisCache.has(''));
@@ -29,7 +30,7 @@ const MaterialAnalysisView = ({ url }) => {
             // state where that column can never show anything. Auto-pick the
             // first project instead, same as a real visit would look for.
             setProjectId(prev => prev || res.data.data[0]?._id || '');
-        }).catch(() => {});
+        }).catch(() => {}).finally(() => setProjectsLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchRows = () => {
@@ -53,7 +54,7 @@ const MaterialAnalysisView = ({ url }) => {
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                 <p>Project</p>
                 <StyledSelect
-                    value={projectId} onChange={setProjectId} placeholder="All projects"
+                    value={projectId} onChange={setProjectId} placeholder="All projects" loading={projectsLoading}
                     options={projects.map(p => ({ value: p._id, label: p.name }))}
                 />
             </div>

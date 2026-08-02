@@ -46,6 +46,7 @@ const NewProjectWizard = ({ url }) => {
     const [advanceUtrNumber, setAdvanceUtrNumber] = useState('');
     const [paymentModes, setPaymentModes] = useState([]);
     const [bankAccounts, setBankAccounts] = useState([]);
+    const [refDataLoading, setRefDataLoading] = useState(true);
 
     const { checkProjectSupervisor, modal: supervisorConflictModal } = useProjectSupervisorConflictCheck(url);
 
@@ -76,9 +77,11 @@ const NewProjectWizard = ({ url }) => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } }).then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {});
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'city' } }).then(res => { if (res.data.success) setCityOptions(res.data.data); }).catch(() => {});
-        fetchPaymentModes();
-        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
+        Promise.all([
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'city' } }).then(res => { if (res.data.success) setCityOptions(res.data.data); }).catch(() => {}),
+            fetchPaymentModes(),
+            axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {}),
+        ]).finally(() => setRefDataLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const steps = ['basic', 'type', 'setup', 'contractors', ...(contractType === 'advance' ? ['advance'] : []), 'activate'];
@@ -408,13 +411,14 @@ const NewProjectWizard = ({ url }) => {
                                 <SettingPicker
                                     url={url} settingType="payment_mode" options={paymentModes} onAdded={fetchPaymentModes}
                                     value={advancePaymentMode} onChange={setAdvancePaymentMode} placeholder="Cash, Bank Transfer, Cheque…"
+                                    loading={refDataLoading}
                                 />
                             </div>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Received Into (Your Bank Account)</p>
                                     <StyledSelect
-                                        value={advanceBankAccountId} onChange={setAdvanceBankAccountId} placeholder="Cash, no bank account"
+                                        value={advanceBankAccountId} onChange={setAdvanceBankAccountId} placeholder="Cash, no bank account" loading={refDataLoading}
                                         options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                     />
                                 </div>

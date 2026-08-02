@@ -15,12 +15,13 @@ const BankStatementView = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [accounts, setAccounts] = useState([]);
+    const [accountsLoading, setAccountsLoading] = useState(true);
     const [selectedAccountId, setSelectedAccountId] = useState('');
     const [statement, setStatement] = useState(null);
     const [loading, setLoading] = useState(false);
 
     const fetchAccounts = () => {
-        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setAccounts(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader).then(res => { if (res.data.success) setAccounts(res.data.data); }).catch(() => {}).finally(() => setAccountsLoading(false));
     };
     useEffect(fetchAccounts, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -42,7 +43,7 @@ const BankStatementView = ({ url }) => {
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                 <p>Account</p>
                 <StyledSelect
-                    value={selectedAccountId} onChange={setSelectedAccountId} placeholder="Select account…"
+                    value={selectedAccountId} onChange={setSelectedAccountId} placeholder="Select account…" loading={accountsLoading}
                     options={accounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                 />
             </div>

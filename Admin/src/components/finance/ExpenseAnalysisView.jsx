@@ -24,11 +24,13 @@ const ExpenseAnalysisView = ({ url }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [projects, setProjects] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [filtersLoading, setFiltersLoading] = useState(true);
     const [projectId, setProjectId] = useState('');
     const [category, setCategory] = useState('');
     const [relatedToUiType, setRelatedToUiType] = useState('');
     const [relatedToId, setRelatedToId] = useState('');
     const [relatedToOptions, setRelatedToOptions] = useState([]);
+    const [relatedToLoading, setRelatedToLoading] = useState(false);
     const [from, setFrom] = useState('');
     const [to, setTo] = useState('');
     const [groupBy, setGroupBy] = useState('category');
@@ -36,9 +38,11 @@ const ExpenseAnalysisView = ({ url }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'expense_category' } })
-            .then(res => { if (res.data.success) setCategories(res.data.data.map(s => s.name)); }).catch(() => {});
+        Promise.all([
+            axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}),
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'expense_category' } })
+                .then(res => { if (res.data.success) setCategories(res.data.data.map(s => s.name)); }).catch(() => {}),
+        ]).finally(() => setFiltersLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // "Related To" is a two-step filter — pick the category (Employee/
@@ -48,12 +52,13 @@ const ExpenseAnalysisView = ({ url }) => {
         setRelatedToId('');
         const config = relatedToUiConfig(relatedToUiType);
         if (!config) { setRelatedToOptions([]); return; }
+        setRelatedToLoading(true);
         axios.get(`${url}/api/finance/${config.resourceKey}/list`, authHeader)
             .then(res => {
                 if (!res.data.success) return;
                 const list = config.filter ? res.data.data.filter(config.filter) : res.data.data;
                 setRelatedToOptions(list);
-            }).catch(() => {});
+            }).catch(() => {}).finally(() => setRelatedToLoading(false));
     }, [url, relatedToUiType]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
@@ -77,11 +82,11 @@ const ExpenseAnalysisView = ({ url }) => {
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '20px' }}>
                 <div className="add-product-name flex-col" style={{ maxWidth: '260px' }}>
                     <p>Project</p>
-                    <StyledSelect value={projectId} onChange={setProjectId} placeholder="All projects" options={projects.map(p => ({ value: p._id, label: p.name }))} />
+                    <StyledSelect value={projectId} onChange={setProjectId} placeholder="All projects" loading={filtersLoading} options={projects.map(p => ({ value: p._id, label: p.name }))} />
                 </div>
                 <div className="add-product-name flex-col" style={{ maxWidth: '220px' }}>
                     <p>Category</p>
-                    <StyledSelect value={category} onChange={setCategory} placeholder="All categories" options={categories.map(c => ({ value: c, label: c }))} />
+                    <StyledSelect value={category} onChange={setCategory} placeholder="All categories" loading={filtersLoading} options={categories.map(c => ({ value: c, label: c }))} />
                 </div>
                 <div className="add-product-name flex-col" style={{ maxWidth: '200px' }}>
                     <p>Related To</p>
@@ -92,6 +97,7 @@ const ExpenseAnalysisView = ({ url }) => {
                         <p>{relatedToUiConfig(relatedToUiType).label}</p>
                         <StyledSelect
                             value={relatedToId} onChange={setRelatedToId} placeholder={`All ${relatedToUiConfig(relatedToUiType).label.toLowerCase()}s`}
+                            loading={relatedToLoading}
                             options={relatedToOptions.map(o => ({ value: o._id, label: o.name }))}
                         />
                     </div>

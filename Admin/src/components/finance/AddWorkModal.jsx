@@ -44,6 +44,7 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
     const editingId = editingWork?._id || null;
 
     const [workTypeOptions, setWorkTypeOptions] = useState([]);
+    const [workTypeLoading, setWorkTypeLoading] = useState(true);
     const [form, setForm] = useState(() => editingWork ? {
         workType: editingWork.workType,
         workOrderNumber: editingWork.workOrderNumber || '',
@@ -59,7 +60,7 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
 
     useEffect(() => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } })
-            .then(res => { if (res.data.success) setWorkTypeOptions(res.data.data.map(s => s.name)); }).catch(() => {});
+            .then(res => { if (res.data.success) setWorkTypeOptions(res.data.data.map(s => s.name)); }).catch(() => {}).finally(() => setWorkTypeLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
@@ -128,7 +129,7 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
                                         <p>Work Type *</p>
                                         <StyledSelect
                                             value={form.workType} onChange={v => setField('workType', v)}
-                                            placeholder="Select work type…"
+                                            placeholder="Select work type…" loading={workTypeLoading}
                                             options={workTypeOptions.map(w => ({ value: w, label: w }))}
                                         />
                                     </div>

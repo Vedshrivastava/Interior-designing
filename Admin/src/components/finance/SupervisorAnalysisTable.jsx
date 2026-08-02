@@ -16,12 +16,13 @@ const SupervisorAnalysisTable = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(true);
     const [projectId, setProjectId] = useState('');
     const [rows, setRows] = useState(supervisorAnalysisCache.get('') || []);
     const [loading, setLoading] = useState(!supervisorAnalysisCache.has(''));
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {});
+        axios.get(`${url}/api/finance/projects/list`, authHeader).then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchRows = () => {
@@ -47,7 +48,7 @@ const SupervisorAnalysisTable = ({ url }) => {
         <div>
             <div className="add-product-name flex-col" style={{ marginBottom: '20px', maxWidth: '360px' }}>
                 <p>Project (optional)</p>
-                <StyledSelect value={projectId} onChange={setProjectId} placeholder="All projects" options={projects.map(p => ({ value: p._id, label: p.name }))} />
+                <StyledSelect value={projectId} onChange={setProjectId} placeholder="All projects" loading={projectsLoading} options={projects.map(p => ({ value: p._id, label: p.name }))} />
             </div>
             {projectId && (
                 <p className="admin-subtitle" style={{ marginBottom: '12px' }}>

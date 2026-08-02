@@ -30,6 +30,7 @@ const TdsPayableManager = ({ url }) => {
     const [deposits, setDeposits] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
     const [bankAccounts, setBankAccounts] = useState([]);
+    const [refDataLoading, setRefDataLoading] = useState(true);
     const [loading, setLoading] = useState(true);
 
     const [form, setForm] = useState(emptyForm);
@@ -54,10 +55,12 @@ const TdsPayableManager = ({ url }) => {
     useEffect(() => { fetchAll(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
-            .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
-            .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
+        Promise.all([
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
+                .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {}),
+            axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
+                .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {}),
+        ]).finally(() => setRefDataLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Any payment carrying TDS (recorded from any Payments tab) or a
@@ -186,14 +189,14 @@ const TdsPayableManager = ({ url }) => {
                                     <div className="add-product-name flex-col">
                                         <p>TDS Section (optional)</p>
                                         <StyledSelect
-                                            value={form.tdsSectionId} onChange={v => setField('tdsSectionId', v)} placeholder="All sections (lump sum)"
+                                            value={form.tdsSectionId} onChange={v => setField('tdsSectionId', v)} placeholder="All sections (lump sum)" loading={refDataLoading}
                                             options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.code ? ` (${s.code})` : ''}` }))}
                                         />
                                     </div>
                                     <div className="add-product-name flex-col">
                                         <p>Bank Account</p>
                                         <StyledSelect
-                                            value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
+                                            value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash" loading={refDataLoading}
                                             options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                         />
                                     </div>

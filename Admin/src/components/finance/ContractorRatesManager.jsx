@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faTrash, faPen } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -13,8 +13,9 @@ const pairKey = (workType, vendorId) => `${workType}::${vendorId}`;
    WorkersManager's grid exactly. Every (work type, contractor) pair is
    already fully determined by those Works' contractor assignments — there
    is nothing to freely "select", so this renders one row per real pair,
-   grouped by work type: a saved rate shows read-only + Remove, an unset
-   one shows an inline rate input. No fallback add-your-own form here (this
+   grouped by work type: a saved rate shows read-only + Edit/Remove, an
+   unset (or currently-being-edited) one shows an inline rate input. No
+   fallback add-your-own form here (this
    used to have one, before this project had any real Work) — a contractor
    is only ever "on" a work type via a real assignment now, made from the
    Works table's "Contractors" action, exactly like labour already works;
@@ -37,6 +38,9 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
     // and which key is currently being saved.
     const [pending, setPending] = useState({});
     const [savingKey, setSavingKey] = useState(null);
+    // Which already-saved pair is currently reopened for editing — see
+    // WorkTypeRatesManager's identical comment.
+    const [editingKey, setEditingKey] = useState(null);
 
     const fetchList = async () => {
         try {
@@ -76,16 +80,28 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
     const setPendingField = (key, field, value) =>
         setPending(prev => ({ ...prev, [key]: { ...(prev[key] || { rate: '' }), [field]: value } }));
 
-    const saveGridRate = async (workType, contractorVendorId, key) => {
+    const openEdit = (existing, key) => {
+        setPending(prev => ({ ...prev, [key]: { rate: String(existing.ratePerSqft) } }));
+        setEditingKey(key);
+    };
+    const cancelEdit = (key) => {
+        setEditingKey(null);
+        setPending(prev => { const next = { ...prev }; delete next[key]; return next; });
+    };
+
+    const saveGridRate = async (workType, contractorVendorId, key, existingId) => {
         const entry = pending[key] || { rate: '' };
         if (entry.rate === '') { toast.error('Rate is required'); return; }
         setSavingKey(key);
         try {
             const payload = { projectId, contractorVendorId, workType, ratePerSqft: entry.rate };
-            const res = await axios.post(`${url}/api/finance/contractor-rates/add`, payload, authHeader);
+            const res = existingId
+                ? await axios.post(`${url}/api/finance/contractor-rates/update`, { _id: existingId, ratePerSqft: entry.rate }, authHeader)
+                : await axios.post(`${url}/api/finance/contractor-rates/add`, payload, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message || 'Rate saved');
                 setPending(prev => { const next = { ...prev }; delete next[key]; return next; });
+                setEditingKey(null);
                 await fetchList();
             } else toast.error(res.data.message);
         } catch (err) {
@@ -127,7 +143,7 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
                                         <p className="cr-name">{c.vendorName}</p>
                                         <div className="cr-field">
                                             <span className="wt-field-label">Rate</span>
-                                            {existing ? (
+                                            {existing && editingKey !== key ? (
                                                 <span className="rate-entry-saved">₹{existing.ratePerSqft} / sqft</span>
                                             ) : (
                                                 <input
@@ -137,17 +153,27 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
                                             )}
                                         </div>
                                         <div className="rate-entry-action cr-action">
-                                            {existing ? (
-                                                <button type="button" onClick={() => removeRate(existing._id)} className="pq-btn-ghost-danger" title="Remove rate" aria-label="Remove rate">
-                                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
-                                                </button>
+                                            {existing && editingKey !== key ? (
+                                                <>
+                                                    <button type="button" onClick={() => openEdit(existing, key)} className="pq-btn-ghost-edit" title="Edit rate" aria-label="Edit rate">
+                                                        <FontAwesomeIcon icon={faPen} className="pq-action-icon" />
+                                                    </button>
+                                                    <button type="button" onClick={() => removeRate(existing._id)} className="pq-btn-ghost-danger" title="Remove rate" aria-label="Remove rate">
+                                                        <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                                    </button>
+                                                </>
                                             ) : (
-                                                <button
-                                                    type="button" className="pq-btn-accept" disabled={savingKey === key}
-                                                    onClick={() => saveGridRate(workType, c.vendorId, key)}
-                                                >
-                                                    <FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> {savingKey === key ? 'Saving…' : 'Save'}
-                                                </button>
+                                                <>
+                                                    <button
+                                                        type="button" className="pq-btn-accept" disabled={savingKey === key}
+                                                        onClick={() => saveGridRate(workType, c.vendorId, key, existing?._id)}
+                                                    >
+                                                        <FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> {savingKey === key ? 'Saving…' : 'Save'}
+                                                    </button>
+                                                    {existing && (
+                                                        <p className="cursor delete-action" onClick={() => cancelEdit(key)}>Cancel</p>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     </div>

@@ -667,7 +667,7 @@
 /* Right-aligned to match Work Type Rates' own action column (that one's
    plain .action-buttons already defaults to justify-content:flex-end) —
    this was left-aligned by default, reading inconsistent next to it. */
-.rate-entry-action { display: flex; align-items: center; justify-content: flex-end; }
+.rate-entry-action { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 
 /* StockMovementsManager's Current Stock table used to set this red
    inline (style={{color: negative ? '#c0392b' : undefined}}) — moved to

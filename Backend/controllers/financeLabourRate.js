@@ -51,6 +51,25 @@ const addLabourRate = async (req, res) => {
     }
 };
 
+const updateLabourRate = async (req, res) => {
+    try {
+        const { _id, ratePerSqft } = req.body;
+        if (!ratePerSqft || Number(ratePerSqft) <= 0) {
+            return res.status(400).json({ success: false, message: 'Rate must be greater than zero' });
+        }
+        const item = await FinanceLabourRate.findOne({ _id, deleted: { $ne: true } });
+        if (!item) return res.status(404).json({ success: false, message: 'Not found' });
+
+        item.ratePerSqft = Number(ratePerSqft);
+        await item.save();
+        broadcast({ type: 'financeLabourRatesChanged', projectId: item.projectId });
+        res.json({ success: true, message: 'Labour rate updated', data: item });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error updating labour rate' });
+    }
+};
+
 const removeLabourRate = async (req, res) => {
     try {
         const { _id } = req.body;
@@ -66,4 +85,4 @@ const removeLabourRate = async (req, res) => {
     }
 };
 
-export { listLabourRates, addLabourRate, removeLabourRate };
+export { listLabourRates, addLabourRate, updateLabourRate, removeLabourRate };

@@ -54,6 +54,25 @@ const addContractorRate = async (req, res) => {
     }
 };
 
+const updateContractorRate = async (req, res) => {
+    try {
+        const { _id, ratePerSqft } = req.body;
+        if (!ratePerSqft || Number(ratePerSqft) <= 0) {
+            return res.status(400).json({ success: false, message: 'Rate must be greater than zero' });
+        }
+        const item = await FinanceContractorRate.findOne({ _id, deleted: { $ne: true } });
+        if (!item) return res.status(404).json({ success: false, message: 'Not found' });
+
+        item.ratePerSqft = Number(ratePerSqft);
+        await item.save();
+        broadcast({ type: 'financeContractorRatesChanged', projectId: item.projectId });
+        res.json({ success: true, message: 'Contractor rate updated', data: item });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error updating contractor rate' });
+    }
+};
+
 const removeContractorRate = async (req, res) => {
     try {
         const { _id } = req.body;
@@ -69,4 +88,4 @@ const removeContractorRate = async (req, res) => {
     }
 };
 
-export { listContractorRates, addContractorRate, removeContractorRate };
+export { listContractorRates, addContractorRate, updateContractorRate, removeContractorRate };

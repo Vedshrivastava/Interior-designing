@@ -50,6 +50,27 @@ const addWorkTypeRate = async (req, res) => {
     }
 };
 
+const updateWorkTypeRate = async (req, res) => {
+    try {
+        const { _id, clientRatePerSqft, referralRatePerSqft, gstRatePercent } = req.body;
+        if (clientRatePerSqft === undefined || clientRatePerSqft === null || clientRatePerSqft === '') {
+            return res.status(400).json({ success: false, message: 'Client rate is required' });
+        }
+        const item = await FinanceWorkTypeRate.findOne({ _id, deleted: { $ne: true } });
+        if (!item) return res.status(404).json({ success: false, message: 'Not found' });
+
+        item.clientRatePerSqft = Number(clientRatePerSqft);
+        item.referralRatePerSqft = Number(referralRatePerSqft) || 0;
+        item.gstRatePercent = (gstRatePercent !== undefined && gstRatePercent !== null && gstRatePercent !== '') ? Number(gstRatePercent) : null;
+        await item.save();
+        broadcast({ type: 'financeWorkTypeRatesChanged', projectId: item.projectId });
+        res.json({ success: true, message: 'Work type rate updated', data: item });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error updating work type rate' });
+    }
+};
+
 const removeWorkTypeRate = async (req, res) => {
     try {
         const { _id } = req.body;
@@ -65,4 +86,4 @@ const removeWorkTypeRate = async (req, res) => {
     }
 };
 
-export { listWorkTypeRates, addWorkTypeRate, removeWorkTypeRate };
+export { listWorkTypeRates, addWorkTypeRate, updateWorkTypeRate, removeWorkTypeRate };

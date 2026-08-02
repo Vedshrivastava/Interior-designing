@@ -5917,6 +5917,33 @@
     border-color: rgba(192, 57, 43, 0.25);
 }
 
+/* Same 32×32 ghost icon-button shape as pq-btn-ghost-danger, moss/gold
+   toned instead of danger-red — for a non-destructive "reopen this row
+   for editing" action sitting right next to a pq-btn-ghost-danger
+   delete, e.g. a rate grid's saved row (WorkTypeRatesManager/
+   ContractorRatesManager/WorkersManager). */
+.pq-btn-ghost-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    color: var(--text-lt, #9a8e84);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm, 8px);
+    cursor: pointer;
+    transition: all 0.22s ease;
+}
+
+.pq-btn-ghost-edit:hover {
+    color: var(--moss, #2d4a35);
+    background: rgba(45, 74, 53, 0.08);
+    border-color: rgba(45, 74, 53, 0.25);
+}
+
 /* ── Receipts / Expenses — action row polish (all widths) ──
    These two tables' actions inherit list.css's base .action-buttons/
    .edit-action styling (bordered pill buttons, right-aligned, 10px gap)

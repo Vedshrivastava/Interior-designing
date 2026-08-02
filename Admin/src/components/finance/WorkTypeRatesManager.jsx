@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faTrash, faPen } from '@fortawesome/free-solid-svg-icons';
 import AddWorkModal from './AddWorkModal';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
@@ -21,9 +21,9 @@ import '../../styles/add.css';
    dead code, not an actual fallback). So before any real Work exists, this
    is just a nudge to add one (opens the same AddWorkModal every other
    "Add Work" trigger uses); once real Works exist, one row per real work
-   type: a saved rate shows read-only + Remove, an unset one shows inline
-   Client/Referral inputs + Save — mirroring ContractorRatesManager/
-   WorkersManager's own grids exactly. */
+   type: a saved rate shows read-only + Edit/Remove, an unset (or
+   currently-being-edited) one shows inline Client/Referral inputs + Save
+   — mirroring ContractorRatesManager/WorkersManager's own grids exactly. */
 const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -41,6 +41,11 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
     // is currently being saved.
     const [pending, setPending] = useState({});
     const [savingKey, setSavingKey] = useState(null);
+    // Which already-saved work type is currently reopened for editing —
+    // distinct from "unset" (no existing record yet): editing re-shows the
+    // same inline inputs, just pre-filled and saving via /update instead
+    // of /add.
+    const [editingKey, setEditingKey] = useState(null);
 
     const fetchList = async () => {
         try {
@@ -69,7 +74,23 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
     const setPendingField = (workType, field, value) =>
         setPending(prev => ({ ...prev, [workType]: { ...(prev[workType] || { clientRate: '', referralRate: '', gstRate: '' }), [field]: value } }));
 
-    const saveGridRate = async (workType) => {
+    const openEdit = (existing) => {
+        setPending(prev => ({
+            ...prev,
+            [existing.workType]: {
+                clientRate: String(existing.clientRatePerSqft),
+                referralRate: existing.referralRatePerSqft ? String(existing.referralRatePerSqft) : '',
+                gstRate: existing.gstRatePercent != null ? String(existing.gstRatePercent) : '',
+            },
+        }));
+        setEditingKey(existing.workType);
+    };
+    const cancelEdit = (workType) => {
+        setEditingKey(null);
+        setPending(prev => { const next = { ...prev }; delete next[workType]; return next; });
+    };
+
+    const saveGridRate = async (workType, existingId) => {
         const entry = pending[workType] || { clientRate: '', referralRate: '', gstRate: '' };
         if (entry.clientRate === '') { toast.error('Client rate is required'); return; }
         setSavingKey(workType);
@@ -78,10 +99,13 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                 projectId, workType, clientRatePerSqft: entry.clientRate, referralRatePerSqft: entry.referralRate || 0,
                 gstRatePercent: entry.gstRate === '' ? null : entry.gstRate,
             };
-            const res = await axios.post(`${url}/api/finance/work-type-rates/add`, payload, authHeader);
+            const res = existingId
+                ? await axios.post(`${url}/api/finance/work-type-rates/update`, { _id: existingId, ...payload }, authHeader)
+                : await axios.post(`${url}/api/finance/work-type-rates/add`, payload, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message || 'Rate saved');
                 setPending(prev => { const next = { ...prev }; delete next[workType]; return next; });
+                setEditingKey(null);
                 await fetchList();
             } else toast.error(res.data.message);
         } catch (err) {
@@ -133,7 +157,7 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                                     style={{ gridTemplateColumns: '1.1fr 1.1fr 1.1fr 0.9fr 1fr', alignItems: 'start' }}
                                 >
                                     <p className="wt-name">{workType}</p>
-                                    {existing ? (
+                                    {existing && editingKey !== workType ? (
                                         <>
                                             <div className="wt-field wt-client">
                                                 <span className="wt-field-label">Client Rate</span>
@@ -150,6 +174,9 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                                                 </p>
                                             </div>
                                             <div className="action-buttons wt-action">
+                                                <button type="button" onClick={() => openEdit(existing)} className="pq-btn-ghost-edit" title="Edit rate" aria-label="Edit rate">
+                                                    <FontAwesomeIcon icon={faPen} className="pq-action-icon" />
+                                                </button>
                                                 <button type="button" onClick={() => removeRate(existing._id)} className="pq-btn-ghost-danger" title="Remove rate" aria-label="Remove rate">
                                                     <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
                                                 </button>
@@ -181,10 +208,13 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                                             <div className="action-buttons wt-action">
                                                 <button
                                                     type="button" className="pq-btn-accept" disabled={savingKey === workType}
-                                                    onClick={() => saveGridRate(workType)}
+                                                    onClick={() => saveGridRate(workType, existing?._id)}
                                                 >
                                                     <FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> {savingKey === workType ? 'Saving…' : 'Save'}
                                                 </button>
+                                                {existing && (
+                                                    <p className="cursor delete-action" onClick={() => cancelEdit(workType)}>Cancel</p>
+                                                )}
                                             </div>
                                         </>
                                     )}

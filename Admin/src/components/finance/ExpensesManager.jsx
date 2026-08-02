@@ -114,6 +114,8 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     const [paymentsLoading, setPaymentsLoading] = useState(false);
 
     const [viewTarget, setViewTarget] = useState(null);
+    const [confirmItem, setConfirmItem] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     // The four scoping props are independent — a caller can combine them
     // (though today only one is ever set at a time) — so the fetch/columns/
@@ -207,12 +209,15 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
         finally { setSaving(false); }
     };
 
-    const remove = async (id) => {
+    const confirmDelete = async () => {
+        if (!confirmItem) return;
+        setDeleting(true);
         try {
-            const res = await axios.delete(`${url}/api/finance/expenses/remove`, { ...authHeader, data: { _id: id } });
-            if (res.data.success) { toast.success(res.data.message); await fetchExpenses(); }
+            const res = await axios.delete(`${url}/api/finance/expenses/remove`, { ...authHeader, data: { _id: confirmItem._id } });
+            if (res.data.success) { toast.success(res.data.message); setConfirmItem(null); await fetchExpenses(); }
             else toast.error(res.data.message || 'Error removing expense');
         } catch (err) { toast.error(err.response?.data?.message || 'Error removing expense'); }
+        finally { setDeleting(false); }
     };
 
     const openSettle = async (expense) => {
@@ -455,7 +460,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                             <p onClick={() => navigate(`/finance/payables?tab=expenses&expenseId=${e._id}`)} className="cursor edit-action">Details</p>
                                         )}
                                         {e.balance > 0 && <p onClick={() => openSettle(e)} className="cursor edit-action">Settle</p>}
-                                        <button type="button" onClick={() => remove(e._id)} className="pq-btn-ghost-danger" title="Remove expense" aria-label="Remove expense">
+                                        <button type="button" onClick={() => setConfirmItem(e)} className="pq-btn-ghost-danger" title="Remove expense" aria-label="Remove expense">
                                             <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
                                         </button>
                                     </div>
@@ -579,6 +584,21 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
 
                         <div className="edit-modal-actions expv-modal-footer">
                             <button type="button" className="add-btn cancel-btn" onClick={() => setViewTarget(null)}>Close</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {confirmItem && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmItem(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>Remove this expense?</h3>
+                        <p className="bin-confirm-warning">Moved to Recovery Bin.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={confirmDelete} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>
                         </div>
                     </div>
                 </div>,

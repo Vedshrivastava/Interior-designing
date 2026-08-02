@@ -2848,6 +2848,282 @@
     .wrd-value { grid-area: value; }
 }
 
+/* ── Payables' five N+1 summary tabs (PayablesPage.jsx) — same
+   dash-chart-card row shape as Procurement's Vendors summary. All five
+   are read-only, no Actions column: each identifier navigates to that
+   record's own page (Contractors/Procurement/Daily Labour) instead of
+   being acted on in place, same as Receivables' Pending Receipts tab. */
+.pyv-card, .pyc-card, .pys-card, .pycm-card, .pylp-card {
+    padding: 0;
+}
+
+.pyv-row, .pyc-row, .pys-row, .pycm-row, .pylp-row {
+    display: grid;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.pyv-row { grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr; }
+.pyc-row { grid-template-columns: 1.1fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.8fr 0.7fr 0.9fr; }
+.pys-row { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+.pycm-row { grid-template-columns: 1.2fr 0.9fr 0.9fr 0.9fr 1fr; }
+.pylp-row { grid-template-columns: 1.2fr 0.9fr 0.9fr 0.9fr 1fr; }
+
+.pyv-row:last-child, .pyc-row:last-child, .pys-row:last-child,
+.pycm-row:last-child, .pylp-row:last-child {
+    border-bottom: none;
+}
+
+.pyv-row.pyv-header, .pyc-row.pyc-header, .pys-row.pys-header,
+.pycm-row.pycm-header, .pylp-row.pylp-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+
+.pyv-vendor, .pyc-contractor, .pys-employee, .pycm-referral, .pylp-provider {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-dark, #1a1208);
+    cursor: pointer;
+}
+
+.pyv-purchases, .pyv-returns, .pyv-payments, .pyv-owed,
+.pyc-total, .pyc-approved, .pyc-unapproved, .pyc-advances, .pyc-deductions, .pyc-directpay, .pyc-payments, .pyc-balance,
+.pys-expected, .pys-paid, .pys-balance,
+.pycm-approved, .pycm-unapproved, .pycm-payments, .pycm-balance,
+.pylp-approved, .pylp-pending, .pylp-payments, .pylp-balance {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.pyv-owed, .pyc-balance, .pys-balance, .pycm-balance, .pylp-balance {
+    font-weight: 600;
+}
+
+@media (min-width: 641px) {
+    .pyv-purchases, .pyv-returns, .pyv-payments, .pyv-owed,
+    .pyc-total, .pyc-approved, .pyc-unapproved, .pyc-advances, .pyc-deductions, .pyc-directpay, .pyc-payments, .pyc-balance,
+    .pys-expected, .pys-paid, .pys-balance,
+    .pycm-approved, .pycm-unapproved, .pycm-payments, .pycm-balance,
+    .pylp-approved, .pylp-pending, .pylp-payments, .pylp-balance {
+        justify-self: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .pyv-row.pyv-header, .pyc-row.pyc-header, .pys-row.pys-header,
+    .pycm-row.pycm-header, .pylp-row.pylp-header {
+        display: none;
+    }
+
+    .pyv-row, .pyc-row, .pys-row, .pycm-row, .pylp-row {
+        grid-template-columns: 1fr 1fr;
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+
+    .pyv-row {
+        grid-template-areas: "vendor vendor" "purchases returns" "payments owed";
+    }
+    .pyv-vendor { grid-area: vendor; font-size: 1rem; }
+    .pyv-purchases { grid-area: purchases; }
+    .pyv-returns { grid-area: returns; text-align: right; }
+    .pyv-payments { grid-area: payments; }
+    .pyv-owed { grid-area: owed; text-align: right; }
+
+    .pyc-row {
+        grid-template-areas: "contractor contractor" "total approved" "unapproved advances" "deductions directpay" "payments balance";
+    }
+    .pyc-contractor { grid-area: contractor; font-size: 1rem; }
+    .pyc-total { grid-area: total; }
+    .pyc-approved { grid-area: approved; text-align: right; }
+    .pyc-unapproved { grid-area: unapproved; }
+    .pyc-advances { grid-area: advances; text-align: right; }
+    .pyc-deductions { grid-area: deductions; }
+    .pyc-directpay { grid-area: directpay; text-align: right; }
+    .pyc-payments { grid-area: payments; }
+    .pyc-balance { grid-area: balance; text-align: right; }
+
+    .pys-row {
+        grid-template-areas: "employee employee" "expected paid" "balance balance";
+    }
+    .pys-employee { grid-area: employee; font-size: 1rem; }
+    .pys-expected { grid-area: expected; }
+    .pys-paid { grid-area: paid; text-align: right; }
+    .pys-balance { grid-area: balance; text-align: right; margin-top: 4px; padding-top: 10px; border-top: 1px dashed rgba(201, 168, 124, 0.25); }
+
+    .pycm-row {
+        grid-template-areas: "referral referral" "approved unapproved" "payments balance";
+    }
+    .pycm-referral { grid-area: referral; font-size: 1rem; }
+    .pycm-approved { grid-area: approved; }
+    .pycm-unapproved { grid-area: unapproved; text-align: right; }
+    .pycm-payments { grid-area: payments; }
+    .pycm-balance { grid-area: balance; text-align: right; }
+
+    .pylp-row {
+        grid-template-areas: "provider provider" "approved pending" "payments balance";
+    }
+    .pylp-provider { grid-area: provider; font-size: 1rem; }
+    .pylp-approved { grid-area: approved; }
+    .pylp-pending { grid-area: pending; text-align: right; }
+    .pylp-payments { grid-area: payments; }
+    .pylp-balance { grid-area: balance; text-align: right; }
+}
+
+/* ── Client Direct Payments table (ClientDirectPaymentsManager, Payables'
+   own tab) — same dash-chart-card row shape. No name/vendor field exists
+   on this record, so Date (first column, matches the original order)
+   stays the bold identifier by default. */
+.cdp-card {
+    padding: 0;
+}
+
+.cdp-row {
+    display: grid;
+    grid-template-columns: 0.9fr 1fr 1fr 1fr 1fr 0.8fr 0.8fr 90px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.cdp-row:last-child {
+    border-bottom: none;
+}
+
+.cdp-row.cdp-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+
+.cdp-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.cdp-work, .cdp-party, .cdp-category, .cdp-amount, .cdp-client, .cdp-worker { margin: 0; }
+.cdp-amount { font-variant-numeric: tabular-nums; }
+.cdp-action { display: flex; justify-content: center; }
+
+@media (min-width: 641px) {
+    .cdp-work, .cdp-party, .cdp-category, .cdp-amount, .cdp-client, .cdp-worker {
+        justify-self: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .cdp-row.cdp-header {
+        display: none;
+    }
+
+    .cdp-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "date date"
+            "work party"
+            "category amount"
+            "client worker"
+            "action action";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+
+    .cdp-date { grid-area: date; font-size: 1rem; }
+    .cdp-work { grid-area: work; }
+    .cdp-party { grid-area: party; text-align: right; }
+    .cdp-category { grid-area: category; }
+    .cdp-amount { grid-area: amount; text-align: right; }
+    .cdp-client { grid-area: client; }
+    .cdp-worker { grid-area: worker; text-align: right; }
+    .cdp-action { grid-area: action; justify-content: flex-end; margin-top: 4px; }
+}
+
+/* ── Expense Analysis (ExpenseAnalysisView, Payables' own tab) — four
+   read-only breakdown tables. Category/Project/Work share one shape
+   (Name, Amount) since they're identical two-column rollups; By Person/
+   Entity gets its own three-column shape (Name, Type, Amount). Both stay
+   as plain grid rows even on mobile — only two or three short cells, not
+   enough content to warrant full stacking. */
+.exa-pair-card, .exa-rel-card {
+    padding: 0;
+}
+
+.exa-pair-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.exa-rel-row {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.exa-pair-row:last-child, .exa-rel-row:last-child {
+    border-bottom: none;
+}
+
+.exa-pair-row.exa-pair-header, .exa-rel-row.exa-rel-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+}
+
+.exa-pair-name, .exa-rel-name { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.exa-pair-amount, .exa-rel-amount { margin: 0; font-variant-numeric: tabular-nums; }
+.exa-rel-type { margin: 0; }
+
+@media (min-width: 641px) {
+    .exa-pair-amount, .exa-rel-type, .exa-rel-amount {
+        justify-self: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .exa-pair-row.exa-pair-header, .exa-rel-row.exa-rel-header {
+        display: none;
+    }
+
+    .exa-pair-row {
+        padding: 12px 16px;
+    }
+    .exa-pair-amount {
+        text-align: right;
+        justify-self: end;
+    }
+
+    .exa-rel-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "name name"
+            "type amount";
+        row-gap: 8px;
+        column-gap: 10px;
+        padding: 14px 16px;
+    }
+    .exa-rel-name { grid-area: name; font-size: 1rem; }
+    .exa-rel-type { grid-area: type; }
+    .exa-rel-amount { grid-area: amount; text-align: right; }
+}
+
 /* ── PurchaseOrReturnManager's own table (Procurement's Purchases/Returns
    tabs) — same dash-chart-card row shape as everywhere else. Vendor is
    the identifier column (bold, left-aligned) even though Date sits
@@ -4699,7 +4975,8 @@
 .edit-modal.lmm-modal,
 .edit-modal.lpp-modal,
 .edit-modal.cmp-modal,
-.edit-modal.wr-modal {
+.edit-modal.wr-modal,
+.edit-modal.cdp-modal {
     text-align: left;
 }
 
@@ -4885,7 +5162,8 @@
 .edit-modal-actions.lmm-modal-footer,
 .edit-modal-actions.lpp-modal-footer,
 .edit-modal-actions.cmp-modal-footer,
-.edit-modal-actions.wr-modal-footer {
+.edit-modal-actions.wr-modal-footer,
+.edit-modal-actions.cdp-modal-footer {
     margin-top: 36px;
 }
 
@@ -6283,6 +6561,32 @@
     }
 }
 
+/* ── Add Entry modal (ClientDirectPaymentsManager, Payables' own tab) —
+   mobile bottom sheet, mechanically identical to every modal above. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.cdp-overlay { padding: 0 !important; align-items: flex-end !important; }
+    .edit-modal.cdp-modal {
+        width: 100% !important; max-width: 100% !important; max-height: 92dvh !important;
+        margin: 0 !important; padding: 0 !important; border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important; display: flex !important; flex-direction: column !important;
+        align-items: stretch !important; animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    .cdp-modal-header { flex-shrink: 0; padding: 26px 20px 0; }
+    .cdp-modal-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 20px; }
+    .edit-modal-actions.cdp-modal-footer {
+        flex-shrink: 0; margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important; gap: 10px !important;
+    }
+    .edit-modal-actions.cdp-modal-footer button { width: 100% !important; }
+    .cdp-modal-body p { font-size: 0.64rem !important; letter-spacing: 1.3px !important; margin-bottom: 6px !important; }
+    .cdp-modal-body input[type="text"], .cdp-modal-body input[type="number"], .cdp-modal-body .add-cat-trigger {
+        font-size: 16px !important; padding: 12px 14px !important; border-radius: 10px !important;
+    }
+    .cdp-modal-body .wizard-field-grid { gap: 12px !important; }
+}
+
 /* ── Add Photos modal (PhotosTab) — mobile bottom sheet, mechanically
    identical to every modal above: same 540px breakpoint, corner radius,
    max-height, and aqSheetUp animation, plus the same align-items/
@@ -6386,19 +6690,22 @@
 .cla-modal-body form, .cld-modal-body form, .clp-modal-body form,
 .saa-modal-body form, .sin-modal-body form, .sde-modal-body form,
 .lla-modal-body form, .lld-modal-body form, .llp-modal-body form,
-.lmm-modal-body form, .lpp-modal-body form, .cmp-modal-body form {
+.lmm-modal-body form, .lpp-modal-body form, .cmp-modal-body form, .cdp-modal-body form {
     gap: 16px !important;
 }
-/* Only the four modals whose field config actually carries multiple
-   sections (SectionLabel, masterFieldRenderer.jsx) need this — every other
-   modal below has one flat field list and never renders a
+/* Only the five modals whose field config actually carries multiple
+   sections (SectionLabel, masterFieldRenderer.jsx, or Client Direct
+   Payment's own Who/What/When groups) need this — every other modal
+   below has one flat field list and never renders a
    .wizard-section-label at all. */
 .ac-modal-body .wizard-section-label, .al-modal-body .wizard-section-label,
-.qap-modal-body .wizard-section-label, .mc-modal-body .wizard-section-label {
+.qap-modal-body .wizard-section-label, .mc-modal-body .wizard-section-label,
+.cdp-modal-body .wizard-section-label {
     margin-bottom: 10px;
 }
 .ac-modal-body .wizard-section-label:not(:first-child), .al-modal-body .wizard-section-label:not(:first-child),
-.qap-modal-body .wizard-section-label:not(:first-child), .mc-modal-body .wizard-section-label:not(:first-child) {
+.qap-modal-body .wizard-section-label:not(:first-child), .mc-modal-body .wizard-section-label:not(:first-child),
+.cdp-modal-body .wizard-section-label:not(:first-child) {
     margin-top: 4px;
 }
 .aw-modal-body .wizard-field-grid, .ac-modal-body .wizard-field-grid, .al-modal-body .wizard-field-grid,
@@ -6410,7 +6717,8 @@
 .cla-modal-body .wizard-field-grid, .cld-modal-body .wizard-field-grid, .clp-modal-body .wizard-field-grid,
 .saa-modal-body .wizard-field-grid, .sin-modal-body .wizard-field-grid, .sde-modal-body .wizard-field-grid,
 .lla-modal-body .wizard-field-grid, .lld-modal-body .wizard-field-grid, .llp-modal-body .wizard-field-grid,
-.lmm-modal-body .wizard-field-grid, .lpp-modal-body .wizard-field-grid, .cmp-modal-body .wizard-field-grid {
+.lmm-modal-body .wizard-field-grid, .lpp-modal-body .wizard-field-grid, .cmp-modal-body .wizard-field-grid,
+.cdp-modal-body .wizard-field-grid {
     gap: 14px;
     margin-bottom: 0;
 }
@@ -6421,7 +6729,7 @@
 .cla-modal-body p, .cld-modal-body p, .clp-modal-body p,
 .saa-modal-body p, .sin-modal-body p, .sde-modal-body p,
 .lla-modal-body p, .lld-modal-body p, .llp-modal-body p,
-.lmm-modal-body p, .lpp-modal-body p, .cmp-modal-body p {
+.lmm-modal-body p, .lpp-modal-body p, .cmp-modal-body p, .cdp-modal-body p {
     font-size: 0.62rem;
     letter-spacing: 1.4px;
     margin-bottom: 6px;
@@ -6464,7 +6772,8 @@
 .llp-modal-body input[type="text"], .llp-modal-body input[type="number"],
 .lmm-modal-body input[type="number"], .lmm-modal-body textarea, .lmm-modal-body select,
 .lpp-modal-body input[type="text"], .lpp-modal-body input[type="number"], .lpp-modal-body select,
-.cmp-modal-body input[type="text"], .cmp-modal-body input[type="number"], .cmp-modal-body select {
+.cmp-modal-body input[type="text"], .cmp-modal-body input[type="number"], .cmp-modal-body select,
+.cdp-modal-body input[type="text"], .cdp-modal-body input[type="number"] {
     padding: 11px 14px;
 }
 .aw-modal-body .add-cat-trigger, .ac-modal-body .add-cat-trigger, .al-modal-body .add-cat-trigger,
@@ -6475,7 +6784,8 @@
 .cla-modal-body .add-cat-trigger, .cld-modal-body .add-cat-trigger, .clp-modal-body .add-cat-trigger,
 .saa-modal-body .add-cat-trigger, .sin-modal-body .add-cat-trigger, .sde-modal-body .add-cat-trigger,
 .lla-modal-body .add-cat-trigger, .lld-modal-body .add-cat-trigger, .llp-modal-body .add-cat-trigger,
-.lmm-modal-body .add-cat-trigger, .lpp-modal-body .add-cat-trigger, .cmp-modal-body .add-cat-trigger {
+.lmm-modal-body .add-cat-trigger, .lpp-modal-body .add-cat-trigger, .cmp-modal-body .add-cat-trigger,
+.cdp-modal-body .add-cat-trigger {
     padding: 11px 14px;
 }
 .aw-modal-footer button[type="submit"], .ac-modal-footer button[type="submit"], .al-modal-footer button[type="submit"],
@@ -6488,7 +6798,8 @@
 .cld-modal-footer button[type="submit"], .clp-modal-footer button[type="submit"],
 .saa-modal-footer button[type="submit"], .sin-modal-footer button[type="submit"], .sde-modal-footer button[type="submit"],
 .lla-modal-footer button[type="submit"], .lld-modal-footer button[type="submit"], .llp-modal-footer button[type="submit"],
-.lmm-modal-footer button[type="submit"], .lpp-modal-footer button[type="submit"], .cmp-modal-footer button[type="submit"] {
+.lmm-modal-footer button[type="submit"], .lpp-modal-footer button[type="submit"], .cmp-modal-footer button[type="submit"],
+.cdp-modal-footer button[type="submit"] {
     display: inline-flex;
     align-items: center;
     justify-content: center;

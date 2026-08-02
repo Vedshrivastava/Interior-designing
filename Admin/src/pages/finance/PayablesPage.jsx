@@ -105,25 +105,33 @@ const PayablesContractorTab = ({ url }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>No labour contractors yet.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.8fr 0.7fr 0.9fr' }}>
-                <b>Contractor</b><b>Total</b><b>Approved</b><b>Unapproved</b><b>Advances</b><b>Deductions</b><b>Direct Pay</b><b>Payments</b><b>Balance Payable</b>
+        <div className="dash-chart-card pyc-card">
+            <div className="pyc-row pyc-header">
+                <b className="pyc-contractor">Contractor</b>
+                <b className="pyc-total">Total</b>
+                <b className="pyc-approved">Approved</b>
+                <b className="pyc-unapproved">Unapproved</b>
+                <b className="pyc-advances">Advances</b>
+                <b className="pyc-deductions">Deductions</b>
+                <b className="pyc-directpay">Direct Pay</b>
+                <b className="pyc-payments">Payments</b>
+                <b className="pyc-balance">Balance Payable</b>
             </div>
             {rows.map(r => (
-                <div key={r.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.1fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.8fr 0.7fr 0.9fr' }}>
-                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/contractors')}>{r.vendorName}</p>
-                    <p>₹{r.totalAmount.toLocaleString('en-IN')}</p>
-                    <p style={{ color: r.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{r.earnings > 0 ? `₹${r.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
-                    <p style={{ color: r.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>₹{r.unapprovedAmount.toLocaleString('en-IN')}</p>
-                    <p>₹{r.advances.toLocaleString('en-IN')}</p>
-                    <p>₹{r.deductions.toLocaleString('en-IN')}</p>
+                <div key={r.vendorId} className="pyc-row">
+                    <p className="pyc-contractor" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/contractors')}>{r.vendorName}</p>
+                    <p className="pyc-total"><span className="pq-group-label">Total</span>₹{r.totalAmount.toLocaleString('en-IN')}</p>
+                    <p className="pyc-approved" style={{ color: r.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}><span className="pq-group-label">Approved</span>{r.earnings > 0 ? `₹${r.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
+                    <p className="pyc-unapproved" style={{ color: r.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}><span className="pq-group-label">Unapproved</span>₹{r.unapprovedAmount.toLocaleString('en-IN')}</p>
+                    <p className="pyc-advances"><span className="pq-group-label">Advances</span>₹{r.advances.toLocaleString('en-IN')}</p>
+                    <p className="pyc-deductions"><span className="pq-group-label">Deductions</span>₹{r.deductions.toLocaleString('en-IN')}</p>
                     {/* Client-paid-directly amounts (Payables → Client Direct
                         Payments) — an advance against this contractor's own
                         Balance Payable, not netted against Unapproved/Approved.
                         See financeClientDirectPayment.js's getWorkerPayoutTotal. */}
-                    <p>₹{(r.directPaymentTotal || 0).toLocaleString('en-IN')}</p>
-                    <p>₹{r.payments.toLocaleString('en-IN')}</p>
-                    <p style={{ fontWeight: 600, color: r.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{r.balancePayable.toLocaleString('en-IN')}</p>
+                    <p className="pyc-directpay"><span className="pq-group-label">Direct Pay</span>₹{(r.directPaymentTotal || 0).toLocaleString('en-IN')}</p>
+                    <p className="pyc-payments"><span className="pq-group-label">Payments</span>₹{r.payments.toLocaleString('en-IN')}</p>
+                    <p className="pyc-balance" style={{ fontWeight: 600, color: r.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}><span className="pq-group-label">Balance Payable</span>₹{r.balancePayable.toLocaleString('en-IN')}</p>
                 </div>
             ))}
         </div>
@@ -172,17 +180,21 @@ const PayablesVendorTab = ({ url }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>No vendors yet.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr' }}>
-                <b>Vendor</b><b>Purchases</b><b>Returns</b><b>Payments</b><b>Amount Owed</b>
+        <div className="dash-chart-card pyv-card">
+            <div className="pyv-row pyv-header">
+                <b className="pyv-vendor">Vendor</b>
+                <b className="pyv-purchases">Purchases</b>
+                <b className="pyv-returns">Returns</b>
+                <b className="pyv-payments">Payments</b>
+                <b className="pyv-owed">Amount Owed</b>
             </div>
             {rows.map(r => (
-                <div key={r.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr' }}>
-                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/procurement')}>{r.vendorName}</p>
-                    <p>₹{r.purchases.toLocaleString('en-IN')}</p>
-                    <p>₹{r.returns.toLocaleString('en-IN')}</p>
-                    <p>₹{r.payments.toLocaleString('en-IN')}</p>
-                    <p style={{ fontWeight: 600, color: r.amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}>₹{r.amountOwed.toLocaleString('en-IN')}</p>
+                <div key={r.vendorId} className="pyv-row">
+                    <p className="pyv-vendor" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/procurement')}>{r.vendorName}</p>
+                    <p className="pyv-purchases"><span className="pq-group-label">Purchases</span>₹{r.purchases.toLocaleString('en-IN')}</p>
+                    <p className="pyv-returns"><span className="pq-group-label">Returns</span>₹{r.returns.toLocaleString('en-IN')}</p>
+                    <p className="pyv-payments"><span className="pq-group-label">Payments</span>₹{r.payments.toLocaleString('en-IN')}</p>
+                    <p className="pyv-owed" style={{ fontWeight: 600, color: r.amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}><span className="pq-group-label">Amount Owed</span>₹{r.amountOwed.toLocaleString('en-IN')}</p>
                 </div>
             ))}
         </div>
@@ -238,16 +250,19 @@ const PayablesSalaryTab = ({ url }) => {
     return (
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>For {month}</p>
-            <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
-                    <b>Employee</b><b>Expected</b><b>Paid</b><b>Balance Due</b>
+            <div className="dash-chart-card pys-card">
+                <div className="pys-row pys-header">
+                    <b className="pys-employee">Employee</b>
+                    <b className="pys-expected">Expected</b>
+                    <b className="pys-paid">Paid</b>
+                    <b className="pys-balance">Balance Due</b>
                 </div>
                 {rows.map(r => (
-                    <div key={r.employeeId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
-                        <p>{r.employeeName}</p>
-                        <p>₹{r.expectedSalary.toLocaleString('en-IN')}</p>
-                        <p>₹{r.paid.toLocaleString('en-IN')}</p>
-                        <p style={{ fontWeight: 600, color: r.balanceDue > 0 ? '#c0392b' : 'var(--moss)' }}>₹{r.balanceDue.toLocaleString('en-IN')}</p>
+                    <div key={r.employeeId} className="pys-row">
+                        <p className="pys-employee">{r.employeeName}</p>
+                        <p className="pys-expected"><span className="pq-group-label">Expected</span>₹{r.expectedSalary.toLocaleString('en-IN')}</p>
+                        <p className="pys-paid"><span className="pq-group-label">Paid</span>₹{r.paid.toLocaleString('en-IN')}</p>
+                        <p className="pys-balance" style={{ fontWeight: 600, color: r.balanceDue > 0 ? '#c0392b' : 'var(--moss)' }}><span className="pq-group-label">Balance Due</span>₹{r.balanceDue.toLocaleString('en-IN')}</p>
                     </div>
                 ))}
             </div>
@@ -296,17 +311,21 @@ const PayablesCommissionTab = ({ url }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>No referrals yet.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.9fr 0.9fr 0.9fr 1fr' }}>
-                <b>Referral</b><b>Approved</b><b>Unapproved</b><b>Payments</b><b>Commission Payable</b>
+        <div className="dash-chart-card pycm-card">
+            <div className="pycm-row pycm-header">
+                <b className="pycm-referral">Referral</b>
+                <b className="pycm-approved">Approved</b>
+                <b className="pycm-unapproved">Unapproved</b>
+                <b className="pycm-payments">Payments</b>
+                <b className="pycm-balance">Commission Payable</b>
             </div>
             {rows.map(r => (
-                <div key={r.referralId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 0.9fr 0.9fr 0.9fr 1fr' }}>
-                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/procurement')}>{r.referralName}</p>
-                    <p style={{ color: r.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{r.earnings > 0 ? `₹${r.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
-                    <p style={{ color: r.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>₹{r.unapprovedAmount.toLocaleString('en-IN')}</p>
-                    <p>₹{r.payments.toLocaleString('en-IN')}</p>
-                    <p style={{ fontWeight: 600, color: r.commissionPayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{r.commissionPayable.toLocaleString('en-IN')}</p>
+                <div key={r.referralId} className="pycm-row">
+                    <p className="pycm-referral" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/procurement')}>{r.referralName}</p>
+                    <p className="pycm-approved" style={{ color: r.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}><span className="pq-group-label">Approved</span>{r.earnings > 0 ? `₹${r.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
+                    <p className="pycm-unapproved" style={{ color: r.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}><span className="pq-group-label">Unapproved</span>₹{r.unapprovedAmount.toLocaleString('en-IN')}</p>
+                    <p className="pycm-payments"><span className="pq-group-label">Payments</span>₹{r.payments.toLocaleString('en-IN')}</p>
+                    <p className="pycm-balance" style={{ fontWeight: 600, color: r.commissionPayable > 0 ? '#c0392b' : 'var(--moss)' }}><span className="pq-group-label">Commission Payable</span>₹{r.commissionPayable.toLocaleString('en-IN')}</p>
                 </div>
             ))}
         </div>
@@ -356,17 +375,21 @@ const PayablesLabourProviderTab = ({ url }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>No labour providers yet.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.9fr 0.9fr 0.9fr 1fr' }}>
-                <b>Labour Provider</b><b>Approved Pay</b><b>Pay Left to Approve</b><b>Payments</b><b>Balance Payable</b>
+        <div className="dash-chart-card pylp-card">
+            <div className="pylp-row pylp-header">
+                <b className="pylp-provider">Labour Provider</b>
+                <b className="pylp-approved">Approved Pay</b>
+                <b className="pylp-pending">Pay Left to Approve</b>
+                <b className="pylp-payments">Payments</b>
+                <b className="pylp-balance">Balance Payable</b>
             </div>
             {rows.map(r => (
-                <div key={r.labourProviderId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 0.9fr 0.9fr 0.9fr 1fr' }}>
-                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/daily-labour')}>{r.labourProviderName}</p>
-                    <p>₹{r.approvedPay.toLocaleString('en-IN')}</p>
-                    <p style={{ color: r.pendingApprovalPay > 0 ? '#c0392b' : 'var(--text-lt)' }}>₹{r.pendingApprovalPay.toLocaleString('en-IN')}</p>
-                    <p>₹{r.paymentsTotal.toLocaleString('en-IN')}</p>
-                    <p style={{ fontWeight: 600, color: r.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{r.balancePayable.toLocaleString('en-IN')}</p>
+                <div key={r.labourProviderId} className="pylp-row">
+                    <p className="pylp-provider" style={{ cursor: 'pointer' }} onClick={() => navigate('/finance/daily-labour')}>{r.labourProviderName}</p>
+                    <p className="pylp-approved"><span className="pq-group-label">Approved Pay</span>₹{r.approvedPay.toLocaleString('en-IN')}</p>
+                    <p className="pylp-pending" style={{ color: r.pendingApprovalPay > 0 ? '#c0392b' : 'var(--text-lt)' }}><span className="pq-group-label">Pay Left to Approve</span>₹{r.pendingApprovalPay.toLocaleString('en-IN')}</p>
+                    <p className="pylp-payments"><span className="pq-group-label">Payments</span>₹{r.paymentsTotal.toLocaleString('en-IN')}</p>
+                    <p className="pylp-balance" style={{ fontWeight: 600, color: r.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}><span className="pq-group-label">Balance Payable</span>₹{r.balancePayable.toLocaleString('en-IN')}</p>
                 </div>
             ))}
         </div>

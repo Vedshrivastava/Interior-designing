@@ -121,13 +121,15 @@ const ExpenseAnalysisView = ({ url }) => {
                     {(groupBy === 'all' || groupBy === 'category') && (
                         <>
                             <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By category</p>
-                            <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                                <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                                    <b>Category</b><b>Amount</b>
+                            <div className="dash-chart-card exa-pair-card" style={{ marginBottom: '24px' }}>
+                                <div className="exa-pair-row exa-pair-header">
+                                    <b className="exa-pair-name">Category</b>
+                                    <b className="exa-pair-amount">Amount</b>
                                 </div>
                                 {data.byCategory.map(c => (
-                                    <div key={c.category} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                                        <p>{c.category}</p><p>₹{c.amount.toLocaleString('en-IN')}</p>
+                                    <div key={c.category} className="exa-pair-row">
+                                        <p className="exa-pair-name">{c.category}</p>
+                                        <p className="exa-pair-amount">₹{c.amount.toLocaleString('en-IN')}</p>
                                     </div>
                                 ))}
                             </div>
@@ -137,13 +139,15 @@ const ExpenseAnalysisView = ({ url }) => {
                     {(groupBy === 'all' || groupBy === 'project') && (
                         <>
                             <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By project</p>
-                            <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                                <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                                    <b>Project</b><b>Amount</b>
+                            <div className="dash-chart-card exa-pair-card" style={{ marginBottom: '24px' }}>
+                                <div className="exa-pair-row exa-pair-header">
+                                    <b className="exa-pair-name">Project</b>
+                                    <b className="exa-pair-amount">Amount</b>
                                 </div>
                                 {data.byProject.map(p => (
-                                    <div key={p.projectId || 'general'} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                                        <p>{p.projectName}</p><p>₹{p.amount.toLocaleString('en-IN')}</p>
+                                    <div key={p.projectId || 'general'} className="exa-pair-row">
+                                        <p className="exa-pair-name">{p.projectName}</p>
+                                        <p className="exa-pair-amount">₹{p.amount.toLocaleString('en-IN')}</p>
                                     </div>
                                 ))}
                             </div>
@@ -154,13 +158,15 @@ const ExpenseAnalysisView = ({ url }) => {
                         data.byWork.length > 0 ? (
                             <>
                                 <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By work</p>
-                                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                                    <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                                        <b>Work</b><b>Amount</b>
+                                <div className="dash-chart-card exa-pair-card" style={{ marginBottom: '24px' }}>
+                                    <div className="exa-pair-row exa-pair-header">
+                                        <b className="exa-pair-name">Work</b>
+                                        <b className="exa-pair-amount">Amount</b>
                                     </div>
                                     {data.byWork.map(w => (
-                                        <div key={w.workId} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                                            <p>{w.workType}</p><p>₹{w.amount.toLocaleString('en-IN')}</p>
+                                        <div key={w.workId} className="exa-pair-row">
+                                            <p className="exa-pair-name">{w.workType}</p>
+                                            <p className="exa-pair-amount">₹{w.amount.toLocaleString('en-IN')}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -174,13 +180,17 @@ const ExpenseAnalysisView = ({ url }) => {
                         data.byRelatedTo.length > 0 ? (
                             <>
                                 <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By person / entity</p>
-                                <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                                    <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr' }}>
-                                        <b>Name</b><b>Type</b><b>Amount</b>
+                                <div className="dash-chart-card exa-rel-card" style={{ marginBottom: '24px' }}>
+                                    <div className="exa-rel-row exa-rel-header">
+                                        <b className="exa-rel-name">Name</b>
+                                        <b className="exa-rel-type">Type</b>
+                                        <b className="exa-rel-amount">Amount</b>
                                     </div>
                                     {data.byRelatedTo.map(r => (
-                                        <div key={r.relatedToId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.6fr 1fr 1fr' }}>
-                                            <p>{r.name}</p><p><span className="item-category">{r.relatedToType}</span></p><p>₹{r.amount.toLocaleString('en-IN')}</p>
+                                        <div key={r.relatedToId} className="exa-rel-row">
+                                            <p className="exa-rel-name">{r.name}</p>
+                                            <p className="exa-rel-type"><span className="item-category">{r.relatedToType}</span></p>
+                                            <p className="exa-rel-amount"><span className="pq-group-label">Amount</span>₹{r.amount.toLocaleString('en-IN')}</p>
                                         </div>
                                     ))}
                                 </div>

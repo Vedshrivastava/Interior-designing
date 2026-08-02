@@ -6,6 +6,8 @@ import StyledDatePicker from './StyledDatePicker';
 import StyledSelect from './StyledSelect';
 import { KpiCard, KpiGrid, formatINR } from './DashboardWidgets';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -33,6 +35,8 @@ const TdsPayableManager = ({ url }) => {
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
+    const [confirmItem, setConfirmItem] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchAll = async () => {
         setLoading(true);
@@ -79,12 +83,15 @@ const TdsPayableManager = ({ url }) => {
         finally { setSaving(false); }
     };
 
-    const remove = async (id) => {
+    const confirmDelete = async () => {
+        if (!confirmItem) return;
+        setDeleting(true);
         try {
-            const res = await axios.delete(`${url}/api/finance/tds-deposits/remove`, { ...authHeader, data: { _id: id } });
-            if (res.data.success) { toast.success(res.data.message); await fetchAll(); }
+            const res = await axios.delete(`${url}/api/finance/tds-deposits/remove`, { ...authHeader, data: { _id: confirmItem._id } });
+            if (res.data.success) { toast.success(res.data.message); setConfirmItem(null); await fetchAll(); }
             else toast.error(res.data.message);
         } catch { toast.error('Error removing TDS deposit'); }
+        finally { setDeleting(false); }
     };
 
     if (loading && !summary) return <div className="admin-empty-state"><p>Loading…</p></div>;
@@ -103,91 +110,123 @@ const TdsPayableManager = ({ url }) => {
             </KpiGrid>
 
             {summary?.bySection.length > 0 && (
-                <div className="list-table finance-table" style={{ margin: '24px 0' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
-                        <b>Section</b><b>Withheld</b><b>Deposited</b><b>Payable</b>
+                <div className="dash-chart-card tdsm-sec-card" style={{ margin: '24px 0' }}>
+                    <div className="tdsm-sec-row tdsm-sec-header">
+                        <b className="tdsm-sec-name">Section</b>
+                        <b className="tdsm-sec-withheld">Withheld</b>
+                        <b className="tdsm-sec-deposited">Deposited</b>
+                        <b className="tdsm-sec-payable">Payable</b>
                     </div>
                     {summary.bySection.map(s => (
-                        <div key={s.tdsSectionId || 'unspecified'} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
-                            <p>{s.tdsSectionName}{s.tdsSectionCode ? ` (${s.tdsSectionCode})` : ''}</p>
-                            <p>{formatINR(s.withheld)}</p>
-                            <p>{formatINR(s.deposited)}</p>
-                            <p style={{ color: s.payable > 0 ? '#c0392b' : 'var(--moss)', fontWeight: 600 }}>{formatINR(s.payable)}</p>
+                        <div key={s.tdsSectionId || 'unspecified'} className="tdsm-sec-row">
+                            <p className="tdsm-sec-name">{s.tdsSectionName}{s.tdsSectionCode ? ` (${s.tdsSectionCode})` : ''}</p>
+                            <p className="tdsm-sec-withheld"><span className="pq-group-label">Withheld</span>{formatINR(s.withheld)}</p>
+                            <p className="tdsm-sec-deposited"><span className="pq-group-label">Deposited</span>{formatINR(s.deposited)}</p>
+                            <p className="tdsm-sec-payable" style={{ color: s.payable > 0 ? '#c0392b' : 'var(--moss)', fontWeight: 600 }}><span className="pq-group-label">Payable</span>{formatINR(s.payable)}</p>
                         </div>
                     ))}
                 </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '24px 0 8px' }}>
+            <div className="pq-section-header" style={{ margin: '24px 0 8px' }}>
                 <h3 style={{ margin: 0 }}>Deposits Made</h3>
                 <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>+ Add Deposit</button>
             </div>
             {deposits.length === 0 ? (
                 <div className="admin-empty-state"><p>No TDS deposits recorded yet.</p></div>
             ) : (
-                <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1.2fr 1fr 1fr 1fr 100px' }}>
-                        <b>Date</b><b>Amount</b><b>Section</b><b>Challan #</b><b>Account</b><b>Notes</b><b>Action</b>
+                <div className="dash-chart-card tdsm-card">
+                    <div className="tdsm-row tdsm-header">
+                        <b className="tdsm-date">Date</b>
+                        <b className="tdsm-amount">Amount</b>
+                        <b className="tdsm-section">Section</b>
+                        <b className="tdsm-challan">Challan #</b>
+                        <b className="tdsm-account">Account</b>
+                        <b className="tdsm-notes">Notes</b>
+                        <b className="tdsm-action">Action</b>
                     </div>
                     {deposits.map(d => (
-                        <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1.2fr 1fr 1fr 1fr 100px' }}>
-                            <p>{new Date(d.date).toLocaleDateString()}</p>
-                            <p>₹{d.amount.toLocaleString('en-IN')}</p>
-                            <p>{d.tdsSectionId ? `${d.tdsSectionId.name}${d.tdsSectionId.code ? ` (${d.tdsSectionId.code})` : ''}` : 'All sections'}</p>
-                            <p>{d.challanNumber || '-'}</p>
-                            <p>{d.bankAccountId?.accountName || 'Cash'}</p>
-                            <p>{d.notes || '-'}</p>
-                            <div className="action-buttons"><p onClick={() => remove(d._id)} className="cursor delete-action">X</p></div>
+                        <div key={d._id} className="tdsm-row">
+                            <p className="tdsm-date">{new Date(d.date).toLocaleDateString()}</p>
+                            <p className="tdsm-amount"><span className="pq-group-label">Amount</span>₹{d.amount.toLocaleString('en-IN')}</p>
+                            <p className="tdsm-section"><span className="pq-group-label">Section</span>{d.tdsSectionId ? `${d.tdsSectionId.name}${d.tdsSectionId.code ? ` (${d.tdsSectionId.code})` : ''}` : 'All sections'}</p>
+                            <p className="tdsm-challan"><span className="pq-group-label">Challan #</span>{d.challanNumber || '-'}</p>
+                            <p className="tdsm-account"><span className="pq-group-label">Account</span>{d.bankAccountId?.accountName || 'Cash'}</p>
+                            <p className="tdsm-notes"><span className="pq-group-label">Notes</span>{d.notes || '-'}</p>
+                            <div className="tdsm-action">
+                                <button type="button" className="pq-btn-ghost-danger" onClick={() => setConfirmItem(d)} title="Remove deposit" aria-label="Remove deposit">
+                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
             )}
 
             {modalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>Add TDS Deposit</h2>
-                        <p className="admin-subtitle" style={{ marginTop: '-20px', marginBottom: '20px' }}>
-                            TDS Payable: <span style={{ fontWeight: 700, color: summary?.payable > 0 ? '#c0392b' : 'var(--moss)' }}>{formatINR(summary?.payable)}</span>
-                        </p>
-                        <form onSubmit={submit}>
-                            <div className="wizard-field-grid">
-                                <div className="add-product-name flex-col">
-                                    <p>Amount (₹) *</p>
-                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                <div className="submit-loader-overlay tdsm-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal tdsm-modal">
+                        <div className="tdsm-modal-header">
+                            <h2>Add TDS Deposit</h2>
+                            <p className="admin-subtitle" style={{ margin: '4px 0 0' }}>
+                                TDS Payable: <span style={{ fontWeight: 700, color: summary?.payable > 0 ? '#c0392b' : 'var(--moss)' }}>{formatINR(summary?.payable)}</span>
+                            </p>
+                        </div>
+                        <div className="tdsm-modal-body">
+                            <form id="tdsm-form" onSubmit={submit}>
+                                <div className="wizard-field-grid">
+                                    <div className="add-product-name flex-col">
+                                        <p>Amount (₹) *</p>
+                                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => setField('amount', e.target.value)} />
+                                    </div>
+                                    <div className="add-product-name flex-col">
+                                        <p>Date *</p>
+                                        <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
+                                    </div>
+                                    <div className="add-product-name flex-col">
+                                        <p>TDS Section (optional)</p>
+                                        <StyledSelect
+                                            value={form.tdsSectionId} onChange={v => setField('tdsSectionId', v)} placeholder="All sections (lump sum)"
+                                            options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.code ? ` (${s.code})` : ''}` }))}
+                                        />
+                                    </div>
+                                    <div className="add-product-name flex-col">
+                                        <p>Bank Account</p>
+                                        <StyledSelect
+                                            value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
+                                            options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                                        />
+                                    </div>
+                                    <div className="add-product-name flex-col">
+                                        <p>Challan Number</p>
+                                        <input type="text" value={form.challanNumber} onChange={e => setField('challanNumber', e.target.value)} />
+                                    </div>
+                                    <div className="add-product-name flex-col wizard-field-full">
+                                        <p>Notes</p>
+                                        <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
+                                    </div>
                                 </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Date *</p>
-                                    <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>TDS Section (optional)</p>
-                                    <StyledSelect
-                                        value={form.tdsSectionId} onChange={v => setField('tdsSectionId', v)} placeholder="All sections (lump sum)"
-                                        options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.code ? ` (${s.code})` : ''}` }))}
-                                    />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Bank Account</p>
-                                    <StyledSelect
-                                        value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
-                                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
-                                    />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Challan Number</p>
-                                    <input type="text" value={form.challanNumber} onChange={e => setField('challanNumber', e.target.value)} />
-                                </div>
-                                <div className="add-product-name flex-col wizard-field-full">
-                                    <p>Notes</p>
-                                    <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
-                                </div>
-                            </div>
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
+                        <div className="edit-modal-actions tdsm-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+                            <button type="submit" form="tdsm-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {confirmItem && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmItem(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>Remove this deposit?</h3>
+                        <p className="bin-confirm-warning">Moved to Recovery Bin.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={confirmDelete} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body

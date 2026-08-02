@@ -8,6 +8,8 @@ import StyledSelect from './StyledSelect';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import ViewAttachmentLink from './ViewAttachmentLink';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -43,6 +45,8 @@ const ContractorPaymentsManager = ({ url }) => {
     const [file, setFile] = useState(null);
     const [saving, setSaving] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
+    const [confirmItem, setConfirmItem] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
@@ -145,12 +149,15 @@ const ContractorPaymentsManager = ({ url }) => {
         finally { setSaving(false); }
     };
 
-    const remove = async (id) => {
+    const confirmDelete = async () => {
+        if (!confirmItem) return;
+        setDeleting(true);
         try {
-            const res = await axios.delete(`${url}/api/finance/contractor-payments/remove`, { ...authHeader, data: { _id: id } });
-            if (res.data.success) { toast.success(res.data.message); await fetchPayments(); await fetchBalancePayable(); }
+            const res = await axios.delete(`${url}/api/finance/contractor-payments/remove`, { ...authHeader, data: { _id: confirmItem._id } });
+            if (res.data.success) { toast.success(res.data.message); setConfirmItem(null); await fetchPayments(); await fetchBalancePayable(); }
             else toast.error(res.data.message);
         } catch { toast.error('Error removing payment'); }
+        finally { setDeleting(false); }
     };
 
     return (
@@ -165,7 +172,7 @@ const ContractorPaymentsManager = ({ url }) => {
                 <div className="admin-empty-state"><p>Select a contractor to record or view payments.</p></div>
             ) : (
                 <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div className="pq-section-header" style={{ marginBottom: '8px' }}>
                         <h3 style={{ margin: 0 }}>Payments</h3>
                         <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>+ Add Payment</button>
                     </div>
@@ -179,106 +186,135 @@ const ContractorPaymentsManager = ({ url }) => {
                     ) : payments.length === 0 ? (
                         <div className="admin-empty-state"><p>No payments recorded yet.</p></div>
                     ) : (
-                        <div className="list-table finance-table">
-                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
-                                <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>TDS</b><b>Attachment</b><b>Action</b>
+                        <div className="dash-chart-card cpm-card">
+                            <div className="cpm-row cpm-header">
+                                <b className="cpm-date">Date</b>
+                                <b className="cpm-amount">Amount</b>
+                                <b className="cpm-mode">Mode</b>
+                                <b className="cpm-account">Account</b>
+                                <b className="cpm-tds">TDS</b>
+                                <b className="cpm-attachment">Attachment</b>
+                                <b className="cpm-action">Action</b>
                             </div>
                             {payments.map(p => (
-                                <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
-                                    <p>{new Date(p.date).toLocaleDateString()}</p>
-                                    <p>₹{p.amount.toLocaleString('en-IN')}</p>
-                                    <p>{p.paymentMode || '-'}</p>
-                                    <p>{p.bankAccountId?.accountName || 'Cash'}</p>
-                                    <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
-                                    <p>{p.attachmentUrl ? <ViewAttachmentLink url={p.attachmentUrl}>View</ViewAttachmentLink> : '-'}</p>
-                                    <div className="action-buttons"><p onClick={() => remove(p._id)} className="cursor delete-action">X</p></div>
+                                <div key={p._id} className="cpm-row">
+                                    <p className="cpm-date">{new Date(p.date).toLocaleDateString()}</p>
+                                    <p className="cpm-amount"><span className="pq-group-label">Amount</span>₹{p.amount.toLocaleString('en-IN')}</p>
+                                    <p className="cpm-mode"><span className="pq-group-label">Mode</span>{p.paymentMode || '-'}</p>
+                                    <p className="cpm-account"><span className="pq-group-label">Account</span>{p.bankAccountId?.accountName || 'Cash'}</p>
+                                    <p className="cpm-tds"><span className="pq-group-label">TDS</span>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
+                                    <p className="cpm-attachment"><span className="pq-group-label">Attachment</span>{p.attachmentUrl ? <ViewAttachmentLink url={p.attachmentUrl}>View</ViewAttachmentLink> : '-'}</p>
+                                    <div className="cpm-action">
+                                        <button type="button" className="pq-btn-ghost-danger" onClick={() => setConfirmItem(p)} title="Remove payment" aria-label="Remove payment">
+                                            <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     )}
 
                     {modalOpen && ReactDOM.createPortal(
-                        <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                            <div className="loader-modal-box edit-modal">
-                                <h2>Add Payment</h2>
-                                {balancePayable !== null && (
-                                    <p className="admin-subtitle" style={{ marginTop: '-20px', marginBottom: '20px' }}>
-                                        {balancePayable < 0 ? 'Extra Paid' : 'Payment Left'}: <span style={{ fontWeight: 700, color: balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(balancePayable).toLocaleString('en-IN')}</span>
-                                    </p>
-                                )}
-                                <form onSubmit={submit}>
-                                    <div className="wizard-field-grid">
-                                        <div className="add-product-name flex-col">
-                                            <p>Amount (₹) *</p>
-                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => onChangeAmount(e.target.value)} />
-                                        </div>
-                                        <div className="add-product-name flex-col">
-                                            <p>Date *</p>
-                                            <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
-                                        </div>
-                                        <div className="add-product-name flex-col">
-                                            <p>Work (optional — resolves TDS from its type)</p>
-                                            <StyledSelect
-                                                value={form.workId} onChange={onSelectWork} placeholder="Not tied to a Work"
-                                                options={works.map(a => ({ value: a.workId._id, label: `${a.workId.workType} — ${a.workId.projectId?.name || '—'}` }))}
-                                            />
-                                        </div>
-                                        <div className="add-product-name flex-col">
-                                            <p>Payment Mode</p>
-                                            <SettingSelectField settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
-                                                value={form.paymentMode} onChange={v => setField('paymentMode', v)} placeholder="e.g. Cash, Bank Transfer, UPI…" />
-                                        </div>
-                                        <div className="add-product-name flex-col">
-                                            <p>Bank Account</p>
-                                            <StyledSelect
-                                                value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
-                                                options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
-                                            />
-                                        </div>
-                                        <div className="add-product-name flex-col">
-                                            <p>TDS Section</p>
-                                            <StyledSelect
-                                                value={form.tdsSectionId} onChange={onChangeTdsSection} placeholder="No TDS"
-                                                options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.rate != null ? ` (${s.rate}%)` : ''}` }))}
-                                            />
-                                        </div>
-                                        <div className="add-product-name flex-col">
-                                            <p>TDS Amount</p>
-                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} />
-                                        </div>
-                                        <div className="add-product-name flex-col">
-                                            <p>UTR / Reference Number</p>
-                                            <input type="text" value={form.utrNumber} onChange={e => setField('utrNumber', e.target.value)} />
-                                        </div>
-                                        <div className="add-product-name flex-col">
-                                            <p>Attachment</p>
-                                            <input type="file" onChange={e => setFile(e.target.files[0] || null)} />
-                                        </div>
-                                        <div className="add-product-name flex-col wizard-field-full">
-                                            <p>Notes</p>
-                                            <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
-                                        </div>
-                                        <div className="add-product-name flex-col wizard-field-full">
-                                            <p>Bank / Cash Label (legacy, optional)</p>
-                                            <input type="text" value={form.bankOrCashLabel} onChange={e => setField('bankOrCashLabel', e.target.value)} />
-                                        </div>
-                                    </div>
-                                    {form.amount > 0 && (
-                                        <p className="admin-subtitle" style={{ margin: '-8px 0 12px' }}>
-                                            Gross: ₹{Number(form.amount).toLocaleString('en-IN')}
-                                            {form.tdsAmount > 0 && ` · TDS: ₹${Number(form.tdsAmount).toLocaleString('en-IN')} · Net Payable: ₹${(Number(form.amount) - Number(form.tdsAmount)).toLocaleString('en-IN')}`}
+                        <div className="submit-loader-overlay cpm-overlay" style={{ zIndex: 99999 }}>
+                            <div className="loader-modal-box edit-modal cpm-modal">
+                                <div className="cpm-modal-header">
+                                    <h2>Add Payment</h2>
+                                    {balancePayable !== null && (
+                                        <p className="admin-subtitle" style={{ margin: '4px 0 0' }}>
+                                            {balancePayable < 0 ? 'Extra Paid' : 'Payment Left'}: <span style={{ fontWeight: 700, color: balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(balancePayable).toLocaleString('en-IN')}</span>
                                         </p>
                                     )}
-                                    <div className="edit-modal-actions">
-                                        <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
-                                        <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                                    </div>
-                                </form>
+                                </div>
+                                <div className="cpm-modal-body">
+                                    <form id="cpm-form" onSubmit={submit}>
+                                        <div className="wizard-field-grid">
+                                            <div className="add-product-name flex-col">
+                                                <p>Amount (₹) *</p>
+                                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => onChangeAmount(e.target.value)} />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>Date *</p>
+                                                <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>Work (optional — resolves TDS from its type)</p>
+                                                <StyledSelect
+                                                    value={form.workId} onChange={onSelectWork} placeholder="Not tied to a Work"
+                                                    options={works.map(a => ({ value: a.workId._id, label: `${a.workId.workType} — ${a.workId.projectId?.name || '—'}` }))}
+                                                />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>Payment Mode</p>
+                                                <SettingSelectField settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
+                                                    value={form.paymentMode} onChange={v => setField('paymentMode', v)} placeholder="e.g. Cash, Bank Transfer, UPI…" />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>Bank Account</p>
+                                                <StyledSelect
+                                                    value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash"
+                                                    options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                                                />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>TDS Section</p>
+                                                <StyledSelect
+                                                    value={form.tdsSectionId} onChange={onChangeTdsSection} placeholder="No TDS"
+                                                    options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.rate != null ? ` (${s.rate}%)` : ''}` }))}
+                                                />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>TDS Amount</p>
+                                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>UTR / Reference Number</p>
+                                                <input type="text" value={form.utrNumber} onChange={e => setField('utrNumber', e.target.value)} />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>Attachment</p>
+                                                <input type="file" onChange={e => setFile(e.target.files[0] || null)} />
+                                            </div>
+                                            <div className="add-product-name flex-col wizard-field-full">
+                                                <p>Notes</p>
+                                                <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
+                                            </div>
+                                            <div className="add-product-name flex-col wizard-field-full">
+                                                <p>Bank / Cash Label (legacy, optional)</p>
+                                                <input type="text" value={form.bankOrCashLabel} onChange={e => setField('bankOrCashLabel', e.target.value)} />
+                                            </div>
+                                        </div>
+                                        {form.amount > 0 && (
+                                            <p className="admin-subtitle" style={{ margin: '12px 0 0' }}>
+                                                Gross: ₹{Number(form.amount).toLocaleString('en-IN')}
+                                                {form.tdsAmount > 0 && ` · TDS: ₹${Number(form.tdsAmount).toLocaleString('en-IN')} · Net Payable: ₹${(Number(form.amount) - Number(form.tdsAmount)).toLocaleString('en-IN')}`}
+                                            </p>
+                                        )}
+                                    </form>
+                                </div>
+                                <div className="edit-modal-actions cpm-modal-footer">
+                                    <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+                                    <button type="submit" form="cpm-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                                </div>
                             </div>
                         </div>,
                         document.body
                     )}
                 </>
+            )}
+
+            {confirmItem && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmItem(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>Remove this payment?</h3>
+                        <p className="bin-confirm-warning">Moved to Recovery Bin.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={confirmDelete} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );

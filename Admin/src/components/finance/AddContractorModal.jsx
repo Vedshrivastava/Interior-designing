@@ -58,7 +58,15 @@ const AddContractorModal = ({ url, onClose, onContractorCreated }) => {
     const submit = async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!String(vendorForm.name || '').trim()) return toast.error('Name is required');
+        // Mirrors AddLabourModal's own validation exactly — this modal had
+        // fallen out of sync with it (and with every other form driven off
+        // FINANCE_MASTERS: MasterCrudTable, QuickAddPicker), only ever
+        // checking Name. A mismatched "Re-enter Account Number" was being
+        // silently accepted and saved as-is.
+        const requiredField = vendorResource.fields.find(f => f.required && !String(vendorForm[f.key] || '').trim());
+        if (requiredField) return toast.error(`${requiredField.label} is required`);
+        const mismatchField = vendorResource.fields.find(f => f.type === 'confirmText' && vendorForm[f.key] !== vendorForm[f.matchKey]);
+        if (mismatchField) return toast.error(`${mismatchField.label} doesn't match`);
         setSaving(true);
         try {
             const validDocs = documentLines.filter(l => l.file);

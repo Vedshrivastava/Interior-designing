@@ -202,7 +202,8 @@ export const FINANCE_MASTERS = {
         fields: [
             { key: 'accountName', label: 'Account Name', type: 'text', required: true },
             { key: 'bankName', label: 'Bank Name', type: 'text', required: true },
-            { key: 'accountNumber', label: 'Account Number', type: 'text' },
+            { key: 'accountNumber', label: 'Account Number', type: 'text', required: true },
+            { key: 'confirmAccountNumber', label: 'Re-enter Account Number', type: 'confirmText', matchKey: 'accountNumber', required: true, placeholder: 'Retype to confirm' },
             { key: 'ifscCode', label: 'IFSC Code', type: 'text' },
             { key: 'accountType', label: 'Account Type', type: 'text', placeholder: 'Current, Savings…' },
             { key: 'openingBalance', label: 'Opening Balance (₹)', type: 'number', required: true },

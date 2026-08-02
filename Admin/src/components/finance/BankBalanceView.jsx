@@ -35,16 +35,19 @@ const BankBalanceView = ({ url }) => {
     return (
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>Total across all accounts: ₹{totalBalance.toLocaleString('en-IN')}</p>
-            <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
-                    <b>Account</b><b>Bank</b><b>Opening Balance</b><b>Current Balance</b>
+            <div className="dash-chart-card bkb-card">
+                <div className="bkb-row bkb-header">
+                    <b className="bkb-account">Account</b>
+                    <b className="bkb-bank">Bank</b>
+                    <b className="bkb-opening">Opening Balance</b>
+                    <b className="bkb-current">Current Balance</b>
                 </div>
                 {accounts.map(a => (
-                    <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr' }}>
-                        <p>{a.accountName}</p>
-                        <p>{a.bankName}</p>
-                        <p>₹{a.openingBalance.toLocaleString('en-IN')}</p>
-                        <p style={{ fontWeight: 600, color: a.currentBalance < 0 ? '#c0392b' : 'var(--moss)' }}>₹{a.currentBalance.toLocaleString('en-IN')}</p>
+                    <div key={a._id} className="bkb-row">
+                        <p className="bkb-account">{a.accountName}</p>
+                        <p className="bkb-bank"><span className="pq-group-label">Bank</span>{a.bankName}</p>
+                        <p className="bkb-opening"><span className="pq-group-label">Opening Balance</span>₹{a.openingBalance.toLocaleString('en-IN')}</p>
+                        <p className="bkb-current" style={{ fontWeight: 600, color: a.currentBalance < 0 ? '#c0392b' : 'var(--moss)' }}><span className="pq-group-label">Current Balance</span>₹{a.currentBalance.toLocaleString('en-IN')}</p>
                     </div>
                 ))}
             </div>

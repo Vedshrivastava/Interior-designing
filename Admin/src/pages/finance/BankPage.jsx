@@ -28,7 +28,7 @@ const BankPage = ({ url }) => {
             activeKey={activeTab}
             onTabChange={setActiveTab}
         >
-            {activeTab === 'accounts' && <MasterCrudTable url={url} resourceKey="bankAccounts" />}
+            {activeTab === 'accounts' && <MasterCrudTable url={url} resourceKey="bankAccounts" cardTitle="Bank Accounts" />}
             {activeTab === 'balance' && <BankBalanceView url={url} />}
             {activeTab === 'transactions' && <BankStatementView url={url} />}
             {activeTab === 'transfers' && <BankTransfersManager url={url} />}

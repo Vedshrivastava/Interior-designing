@@ -3340,6 +3340,143 @@
     .tdsm-action { grid-area: action; justify-content: flex-end; margin-top: 4px; }
 }
 
+/* ── Bank page — Balance tab (BankBalanceView, 4 cols, read-only) and
+   Transactions/Statements tab (BankStatementView, 5 cols, read-only). */
+.bkb-card, .bks-card {
+    padding: 0;
+}
+.bkb-row {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.bks-row {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.bkb-row:last-child, .bks-row:last-child {
+    border-bottom: none;
+}
+.bkb-row.bkb-header, .bks-row.bks-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.bkb-account { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.bkb-bank, .bkb-opening, .bkb-current { margin: 0; font-variant-numeric: tabular-nums; }
+.bkb-current { font-weight: 600; }
+.bks-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.bks-description, .bks-credit, .bks-debit, .bks-balance { margin: 0; font-variant-numeric: tabular-nums; }
+.bks-balance { font-weight: 600; }
+@media (min-width: 641px) {
+    .bkb-bank, .bkb-opening, .bkb-current { justify-self: center; }
+    .bks-description, .bks-credit, .bks-debit, .bks-balance { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .bkb-row.bkb-header, .bks-row.bks-header {
+        display: none;
+    }
+    .bkb-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "account account"
+            "bank bank"
+            "opening current";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .bkb-account { grid-area: account; font-size: 1rem; }
+    .bkb-bank { grid-area: bank; }
+    .bkb-opening { grid-area: opening; }
+    .bkb-current { grid-area: current; text-align: right; }
+
+    .bks-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "date date"
+            "description description"
+            "credit debit"
+            "balance balance";
+        row-gap: 10px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .bks-date { grid-area: date; font-size: 1rem; }
+    .bks-description { grid-area: description; }
+    .bks-credit { grid-area: credit; }
+    .bks-debit { grid-area: debit; text-align: right; }
+    .bks-balance {
+        grid-area: balance;
+        text-align: right;
+        margin-top: 4px;
+        padding-top: 10px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+}
+
+/* ── Transfers tab (BankTransfersManager) — same dash-chart-card row
+   shape, plus its Add Transfer bottom-sheet modal. */
+.bkt-card {
+    padding: 0;
+}
+.bkt-row {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1.2fr 1fr 90px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.bkt-row:last-child {
+    border-bottom: none;
+}
+.bkt-row.bkt-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.bkt-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.bkt-from, .bkt-to, .bkt-amount { margin: 0; }
+.bkt-amount { font-variant-numeric: tabular-nums; font-weight: 600; }
+.bkt-action { display: flex; justify-content: center; }
+@media (min-width: 641px) {
+    .bkt-from, .bkt-to, .bkt-amount { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .bkt-row.bkt-header {
+        display: none;
+    }
+    .bkt-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "date amount"
+            "from to"
+            "action action";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .bkt-date { grid-area: date; font-size: 1rem; }
+    .bkt-amount { grid-area: amount; text-align: right; font-size: 1rem; }
+    .bkt-from { grid-area: from; }
+    .bkt-to { grid-area: to; text-align: right; }
+    .bkt-action { grid-area: action; justify-content: flex-end; margin-top: 4px; }
+}
+
 /* ── PurchaseOrReturnManager's own table (Procurement's Purchases/Returns
    tabs) — same dash-chart-card row shape as everywhere else. Vendor is
    the identifier column (bold, left-aligned) even though Date sits
@@ -5199,7 +5336,8 @@
 .edit-modal.spm-modal,
 .edit-modal.cmpm-modal,
 .edit-modal.lppm-modal,
-.edit-modal.tdsm-modal {
+.edit-modal.tdsm-modal,
+.edit-modal.bkt-modal {
     text-align: left;
 }
 
@@ -5393,7 +5531,8 @@
 .edit-modal-actions.spm-modal-footer,
 .edit-modal-actions.cmpm-modal-footer,
 .edit-modal-actions.lppm-modal-footer,
-.edit-modal-actions.tdsm-modal-footer {
+.edit-modal-actions.tdsm-modal-footer,
+.edit-modal-actions.bkt-modal-footer {
     margin-top: 36px;
 }
 
@@ -6982,6 +7121,32 @@
     .tdsm-modal-body .wizard-field-grid { gap: 12px !important; }
 }
 
+/* ── Add Transfer modal (BankTransfersManager) — mobile bottom sheet,
+   mechanically identical to every modal above. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.bkt-overlay { padding: 0 !important; align-items: flex-end !important; }
+    .edit-modal.bkt-modal {
+        width: 100% !important; max-width: 100% !important; max-height: 92dvh !important;
+        margin: 0 !important; padding: 0 !important; border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important; display: flex !important; flex-direction: column !important;
+        align-items: stretch !important; animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    .bkt-modal-header { flex-shrink: 0; padding: 26px 20px 0; }
+    .bkt-modal-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 20px; }
+    .edit-modal-actions.bkt-modal-footer {
+        flex-shrink: 0; margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important; gap: 10px !important;
+    }
+    .edit-modal-actions.bkt-modal-footer button { width: 100% !important; }
+    .bkt-modal-body p { font-size: 0.64rem !important; letter-spacing: 1.3px !important; margin-bottom: 6px !important; }
+    .bkt-modal-body input[type="text"], .bkt-modal-body input[type="number"], .bkt-modal-body .add-cat-trigger {
+        font-size: 16px !important; padding: 12px 14px !important; border-radius: 10px !important;
+    }
+    .bkt-modal-body .wizard-field-grid { gap: 12px !important; }
+}
+
 /* ── Add Photos modal (PhotosTab) — mobile bottom sheet, mechanically
    identical to every modal above: same 540px breakpoint, corner radius,
    max-height, and aqSheetUp animation, plus the same align-items/
@@ -7087,7 +7252,7 @@
 .lla-modal-body form, .lld-modal-body form, .llp-modal-body form,
 .lmm-modal-body form, .lpp-modal-body form, .cmp-modal-body form, .cdp-modal-body form,
 .cpm-modal-body form, .vpm-modal-body form, .lpm-modal-body form, .spm-modal-body form,
-.cmpm-modal-body form, .lppm-modal-body form, .tdsm-modal-body form {
+.cmpm-modal-body form, .lppm-modal-body form, .tdsm-modal-body form, .bkt-modal-body form {
     gap: 16px !important;
 }
 /* Only the five modals whose field config actually carries multiple
@@ -7118,7 +7283,7 @@
 .cdp-modal-body .wizard-field-grid,
 .cpm-modal-body .wizard-field-grid, .vpm-modal-body .wizard-field-grid, .lpm-modal-body .wizard-field-grid,
 .spm-modal-body .wizard-field-grid, .cmpm-modal-body .wizard-field-grid, .lppm-modal-body .wizard-field-grid,
-.tdsm-modal-body .wizard-field-grid {
+.tdsm-modal-body .wizard-field-grid, .bkt-modal-body .wizard-field-grid {
     gap: 14px;
     margin-bottom: 0;
 }
@@ -7131,7 +7296,7 @@
 .lla-modal-body p, .lld-modal-body p, .llp-modal-body p,
 .lmm-modal-body p, .lpp-modal-body p, .cmp-modal-body p, .cdp-modal-body p,
 .cpm-modal-body p, .vpm-modal-body p, .lpm-modal-body p, .spm-modal-body p,
-.cmpm-modal-body p, .lppm-modal-body p, .tdsm-modal-body p {
+.cmpm-modal-body p, .lppm-modal-body p, .tdsm-modal-body p, .bkt-modal-body p {
     font-size: 0.62rem;
     letter-spacing: 1.4px;
     margin-bottom: 6px;
@@ -7182,7 +7347,8 @@
 .spm-modal-body input[type="text"], .spm-modal-body input[type="number"], .spm-modal-body textarea,
 .cmpm-modal-body input[type="text"], .cmpm-modal-body input[type="number"], .cmpm-modal-body textarea,
 .lppm-modal-body input[type="text"], .lppm-modal-body input[type="number"], .lppm-modal-body textarea,
-.tdsm-modal-body input[type="text"], .tdsm-modal-body input[type="number"], .tdsm-modal-body textarea {
+.tdsm-modal-body input[type="text"], .tdsm-modal-body input[type="number"], .tdsm-modal-body textarea,
+.bkt-modal-body input[type="text"], .bkt-modal-body input[type="number"] {
     padding: 11px 14px;
 }
 .aw-modal-body .add-cat-trigger, .ac-modal-body .add-cat-trigger, .al-modal-body .add-cat-trigger,
@@ -7197,7 +7363,7 @@
 .cdp-modal-body .add-cat-trigger,
 .cpm-modal-body .add-cat-trigger, .vpm-modal-body .add-cat-trigger, .lpm-modal-body .add-cat-trigger,
 .spm-modal-body .add-cat-trigger, .cmpm-modal-body .add-cat-trigger, .lppm-modal-body .add-cat-trigger,
-.tdsm-modal-body .add-cat-trigger {
+.tdsm-modal-body .add-cat-trigger, .bkt-modal-body .add-cat-trigger {
     padding: 11px 14px;
 }
 .aw-modal-footer button[type="submit"], .ac-modal-footer button[type="submit"], .al-modal-footer button[type="submit"],

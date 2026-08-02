@@ -58,20 +58,24 @@ const BankStatementView = ({ url }) => {
                     <p className="admin-subtitle" style={{ marginBottom: '12px' }}>
                         Opening ₹{statement.openingBalance.toLocaleString('en-IN')} (as of {new Date(statement.openingBalanceDate).toLocaleDateString()}) · Current ₹{statement.currentBalance.toLocaleString('en-IN')}
                     </p>
-                    <div className="list-table finance-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr' }}>
-                            <b>Date</b><b>Description</b><b>Credit</b><b>Debit</b><b>Balance</b>
+                    <div className="dash-chart-card bks-card">
+                        <div className="bks-row bks-header">
+                            <b className="bks-date">Date</b>
+                            <b className="bks-description">Description</b>
+                            <b className="bks-credit">Credit</b>
+                            <b className="bks-debit">Debit</b>
+                            <b className="bks-balance">Balance</b>
                         </div>
                         {statement.transactions.length === 0 ? (
                             <div className="admin-empty-state"><p>No transactions yet.</p></div>
                         ) : (
                             statement.transactions.map((t, i) => (
-                                <div key={i} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1fr 1fr 1fr' }}>
-                                    <p>{new Date(t.date).toLocaleDateString()}</p>
-                                    <p>{DESCRIPTION_LABEL[t.sourceType] || t.description}</p>
-                                    <p style={{ color: 'var(--moss)' }}>{t.direction === 'credit' ? `₹${t.amount.toLocaleString('en-IN')}` : '-'}</p>
-                                    <p style={{ color: '#c0392b' }}>{t.direction === 'debit' ? `₹${t.amount.toLocaleString('en-IN')}` : '-'}</p>
-                                    <p style={{ fontWeight: 600 }}>₹{t.runningBalance.toLocaleString('en-IN')}</p>
+                                <div key={i} className="bks-row">
+                                    <p className="bks-date">{new Date(t.date).toLocaleDateString()}</p>
+                                    <p className="bks-description"><span className="pq-group-label">Description</span>{DESCRIPTION_LABEL[t.sourceType] || t.description}</p>
+                                    <p className="bks-credit" style={{ color: 'var(--moss)' }}><span className="pq-group-label">Credit</span>{t.direction === 'credit' ? `₹${t.amount.toLocaleString('en-IN')}` : '-'}</p>
+                                    <p className="bks-debit" style={{ color: '#c0392b' }}><span className="pq-group-label">Debit</span>{t.direction === 'debit' ? `₹${t.amount.toLocaleString('en-IN')}` : '-'}</p>
+                                    <p className="bks-balance" style={{ fontWeight: 600 }}><span className="pq-group-label">Balance</span>₹{t.runningBalance.toLocaleString('en-IN')}</p>
                                 </div>
                             ))
                         )}

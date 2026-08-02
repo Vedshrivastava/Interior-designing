@@ -125,9 +125,13 @@ const FinanceRecoveryBin = ({ url }) => {
                 </div>
             }
         >
-            <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1.2fr 1fr 1fr 190px' }}>
-                    <b>Name</b><b>Context</b><b>Deleted By</b><b>When</b><b>Actions</b>
+            <div className="dash-chart-card rcb-card">
+                <div className="rcb-row rcb-header">
+                    <b className="rcb-name">Name</b>
+                    <b className="rcb-context">Context</b>
+                    <b className="rcb-deletedby">Deleted By</b>
+                    <b className="rcb-when">When</b>
+                    <b className="rcb-action">Actions</b>
                 </div>
 
                 {loading ? (
@@ -135,14 +139,14 @@ const FinanceRecoveryBin = ({ url }) => {
                 ) : items.length === 0 ? (
                     <div className="admin-empty-state"><p>Nothing here — all clear.</p></div>
                 ) : items.map(item => (
-                    <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1.2fr 1fr 1fr 190px' }}>
-                        <p style={{ opacity: 0.85 }}>{item._displayName}</p>
-                        <span className="item-category">{contextOf(item)}</span>
-                        <p>{item.deletedBy || '—'}</p>
-                        <p title={item.deletedAt ? moment(item.deletedAt).format('DD MMM YYYY, HH:mm') : ''}>
-                            {item.deletedAt ? moment(item.deletedAt).fromNow() : '—'}
+                    <div key={item._id} className="rcb-row">
+                        <p className="rcb-name" style={{ opacity: 0.85 }}>{item._displayName}</p>
+                        <p className="rcb-context"><span className="pq-group-label">Context</span><span className="item-category">{contextOf(item)}</span></p>
+                        <p className="rcb-deletedby"><span className="pq-group-label">Deleted By</span>{item.deletedBy || '—'}</p>
+                        <p className="rcb-when" title={item.deletedAt ? moment(item.deletedAt).format('DD MMM YYYY, HH:mm') : ''}>
+                            <span className="pq-group-label">When</span>{item.deletedAt ? moment(item.deletedAt).fromNow() : '—'}
                         </p>
-                        <div className="action-buttons">
+                        <div className="rcb-action">
                             <p className="cursor edit-action" style={{ color: '#16a34a', borderColor: 'rgba(34,197,94,0.3)' }} onClick={() => restore(item)}>Restore</p>
                             <p className="cursor delete-action" onClick={() => setConfirmItem(item)} title="This cannot be undone">Delete Forever</p>
                         </div>

@@ -4085,6 +4085,62 @@
     }
 }
 
+/* ── Finance Recovery Bin (rcb-, 5 cols) — same dash-chart-card row shape
+   as everywhere else. The Restore/Delete Forever actions stay text pills
+   (not icon-only) since this is the app's highest-stakes destructive
+   action — legible words matter more here than visual consistency with
+   the icon-only delete used on ordinary tables. The existing bin-confirm-*
+   permanent-delete dialog is untouched, already correctly worded. */
+.rcb-card {
+    padding: 0;
+}
+.rcb-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1.2fr 1fr 1fr 190px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.rcb-row:last-child {
+    border-bottom: none;
+}
+.rcb-row.rcb-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.rcb-name { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.rcb-deletedby, .rcb-when { margin: 0; }
+.rcb-action { display: flex; justify-content: center; gap: 10px; }
+@media (min-width: 641px) {
+    .rcb-context, .rcb-deletedby, .rcb-when { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .rcb-row.rcb-header {
+        display: none;
+    }
+    .rcb-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "name name"
+            "context context"
+            "deletedby when"
+            "action action";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .rcb-name { grid-area: name; font-size: 1rem; }
+    .rcb-context { grid-area: context; }
+    .rcb-deletedby { grid-area: deletedby; }
+    .rcb-when { grid-area: when; }
+    .rcb-action { grid-area: action; justify-content: flex-start; margin-top: 4px; }
+}
+
 /* ── PurchaseOrReturnManager's own table (Procurement's Purchases/Returns
    tabs) — same dash-chart-card row shape as everywhere else. Vendor is
    the identifier column (bold, left-aligned) even though Date sits

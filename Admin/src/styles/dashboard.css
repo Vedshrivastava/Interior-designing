@@ -4003,6 +4003,88 @@
     }
 }
 
+/* ── Settings → Permissions (prm-, 3 cols) — the row currently being
+   edited swaps this grid for .permissions-edit-row's own full-width
+   flex card instead (add.css), already fluid at every width; only the
+   plain display rows below need the responsive treatment here. */
+.prm-card {
+    padding: 0;
+}
+.prm-row {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 220px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.prm-row:last-child {
+    border-bottom: none;
+}
+.prm-row.prm-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.prm-admin { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.prm-access { margin: 0; }
+.prm-action { display: flex; justify-content: center; gap: 10px; }
+@media (min-width: 641px) {
+    .prm-access { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .prm-row.prm-header {
+        display: none;
+    }
+    .prm-row {
+        grid-template-columns: 1fr;
+        row-gap: 10px;
+        padding: 16px;
+    }
+    .prm-action { justify-content: flex-start; margin-top: 4px; }
+}
+
+/* ── Settings → Notifications' email list (ntf-, 2 cols). Removing a
+   row here just edits local form state (not saved until the page's own
+   Save button is clicked), same as removing a chip from a multi-select
+   — no delete confirmation needed, unlike every persisted-record table
+   elsewhere in this app. */
+.ntf-card {
+    padding: 0;
+}
+.ntf-row {
+    display: grid;
+    grid-template-columns: 1fr 90px;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.ntf-row:last-child {
+    border-bottom: none;
+}
+.ntf-row.ntf-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+}
+.ntf-email { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.ntf-action { display: flex; justify-content: center; }
+@media (max-width: 640px) {
+    .ntf-row.ntf-header {
+        display: none;
+    }
+    .ntf-row {
+        padding: 12px 16px;
+    }
+}
+
 /* ── PurchaseOrReturnManager's own table (Procurement's Purchases/Returns
    tabs) — same dash-chart-card row shape as everywhere else. Vendor is
    the identifier column (bold, left-aligned) even though Date sits

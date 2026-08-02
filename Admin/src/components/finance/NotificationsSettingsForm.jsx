@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 
@@ -76,15 +78,18 @@ const NotificationsSettingsForm = ({ url }) => {
             {emails.length === 0 ? (
                 <div className="admin-empty-state" style={{ marginBottom: '20px' }}><p>No notification emails yet.</p></div>
             ) : (
-                <div className="list-table finance-table" style={{ marginBottom: '20px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 100px' }}>
-                        <b>Email</b><b>Action</b>
+                <div className="dash-chart-card ntf-card" style={{ marginBottom: '20px' }}>
+                    <div className="ntf-row ntf-header">
+                        <b className="ntf-email">Email</b>
+                        <b className="ntf-action">Action</b>
                     </div>
                     {emails.map(email => (
-                        <div key={email} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 100px' }}>
-                            <p>{email}</p>
-                            <div className="action-buttons">
-                                <p onClick={() => removeEmail(email)} className="cursor delete-action">Remove</p>
+                        <div key={email} className="ntf-row">
+                            <p className="ntf-email">{email}</p>
+                            <div className="ntf-action">
+                                <button type="button" onClick={() => removeEmail(email)} className="pq-btn-ghost-danger" title="Remove email" aria-label="Remove email">
+                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                </button>
                             </div>
                         </div>
                     ))}

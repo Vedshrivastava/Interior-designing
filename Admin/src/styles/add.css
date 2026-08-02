@@ -1197,11 +1197,12 @@
    card, since a ~20-chip module grid doesn't fit a fixed column. Compound
    selector (not !important) so it reliably outranks .list-table-format's
    own display:grid regardless of CSS import order between files. ── */
-.list-table-format.permissions-edit-row {
+.prm-row.permissions-edit-row {
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 14px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
 }
 .permissions-edit-header {
     display: flex;

@@ -60,9 +60,11 @@ const PermissionsManager = ({ url }) => {
     if (admins.length === 0) return <div className="admin-empty-state"><p>No ADMIN users yet.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1fr 220px' }}>
-                <b>Admin</b><b>Access</b><b>Action</b>
+        <div className="dash-chart-card prm-card">
+            <div className="prm-row prm-header">
+                <b className="prm-admin">Admin</b>
+                <b className="prm-access">Access</b>
+                <b className="prm-action">Action</b>
             </div>
             {admins.map(a => {
                 const isRestricted = Array.isArray(a.allowedFinanceModules);
@@ -70,8 +72,8 @@ const PermissionsManager = ({ url }) => {
 
                 if (isEditing) {
                     return (
-                        <div key={a._id} className="list-table-format row-item permissions-edit-row">
-                            <div className="permissions-edit-header">
+                        <div key={a._id} className="prm-row permissions-edit-row">
+                            <div className="permissions-edit-header pq-section-header">
                                 <p>{a.name}<br /><span style={{ fontSize: '0.8rem', color: 'var(--text-lt)' }}>{a.email}</span></p>
                                 <div className="action-buttons">
                                     <p onClick={() => saveRestricted(a._id)} className="cursor edit-action">{saving ? 'Saving…' : 'Save'}</p>
@@ -98,10 +100,10 @@ const PermissionsManager = ({ url }) => {
                 }
 
                 return (
-                    <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1fr 220px' }}>
-                        <p>{a.name}<br /><span style={{ fontSize: '0.8rem', color: 'var(--text-lt)' }}>{a.email}</span></p>
-                        <p>{isRestricted ? `${a.allowedFinanceModules.length} module(s)` : 'Full access'}</p>
-                        <div className="action-buttons">
+                    <div key={a._id} className="prm-row">
+                        <p className="prm-admin">{a.name}<br /><span style={{ fontSize: '0.8rem', color: 'var(--text-lt)' }}>{a.email}</span></p>
+                        <p className="prm-access"><span className="pq-group-label">Access</span>{isRestricted ? `${a.allowedFinanceModules.length} module(s)` : 'Full access'}</p>
+                        <div className="prm-action">
                             <p onClick={() => startEdit(a)} className="cursor edit-action">Edit</p>
                             {isRestricted && <p onClick={() => clearRestriction(a._id)} className="cursor delete-action">Clear</p>}
                         </div>

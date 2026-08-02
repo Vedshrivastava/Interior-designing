@@ -303,6 +303,15 @@
     animation: catDropIn 0.18s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
+/* Flipped variant — opens above the trigger instead of below, when
+   StyledDatePicker measured too little room underneath (see
+   openPicker's spaceBelow check). Same panel, anchored from the
+   opposite edge. */
+.date-picker-panel.date-picker-panel-up {
+    top: auto;
+    bottom: calc(100% + 6px);
+}
+
 .date-picker-nav {
     display: flex;
     align-items: center;

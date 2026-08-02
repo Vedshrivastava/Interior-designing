@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 
 /* Read-only — every measurement logged against this contractor's works,
    across every project. Entry happens on Site Operations or a project's
@@ -25,18 +26,20 @@ const ContractorMeasurementsView = ({ url, vendorId }) => {
     if (measurements.length === 0) return <div className="admin-empty-state"><p>No measurements logged against this contractor's works yet.</p></div>;
 
     return (
-        <div className="list-table finance-table">
+        <div className="dash-chart-card con-meas-card">
             {/* No "Approved" column — that's decided per work type at bill
                 generation now (RunningBillsManager.jsx), not per daily
                 entry. This stays a pure log of what was done. */}
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1fr' }}>
-                <b>Date</b><b>Work</b><b>Area Covered</b>
+            <div className="con-meas-row con-meas-header">
+                <b className="con-meas-date">Date</b>
+                <b className="con-meas-work">Work</b>
+                <b className="con-meas-area">Area Covered</b>
             </div>
             {measurements.map(m => (
-                <div key={m._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1fr' }}>
-                    <p>{new Date(m.date).toLocaleDateString()}</p>
-                    <p>{m.workId?.workType || '-'}</p>
-                    <p>{m.areaCoveredSqft} sqft</p>
+                <div key={m._id} className="con-meas-row">
+                    <p className="con-meas-date"><span className="pq-group-label">Date</span>{new Date(m.date).toLocaleDateString()}</p>
+                    <p className="con-meas-work">{m.workId?.workType || '-'}</p>
+                    <p className="con-meas-area"><span className="pq-group-label">Area Covered</span>{m.areaCoveredSqft} sqft</p>
                 </div>
             ))}
         </div>

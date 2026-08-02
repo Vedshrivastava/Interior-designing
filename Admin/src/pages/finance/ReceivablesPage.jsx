@@ -70,17 +70,21 @@ const PendingReceiptsTab = ({ url }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>Nothing outstanding: every issued bill is fully received.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1fr 1fr' }}>
-                <b>Project</b><b>Client</b><b>Issued</b><b>Received</b><b>Outstanding</b>
+        <div className="dash-chart-card prt-card">
+            <div className="prt-row prt-header">
+                <b className="prt-project">Project</b>
+                <b className="prt-client">Client</b>
+                <b className="prt-issued">Issued</b>
+                <b className="prt-received">Received</b>
+                <b className="prt-outstanding">Outstanding</b>
             </div>
             {rows.map(r => (
-                <div key={r.projectId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1fr 1fr' }}>
-                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${r.projectId}`)}>{r.projectName}</p>
-                    <p>{r.clientName || '-'}</p>
-                    <p>₹{r.issuedTotal.toLocaleString('en-IN')}</p>
-                    <p>₹{r.receivedTotal.toLocaleString('en-IN')}</p>
-                    <p style={{ color: '#c0392b', fontWeight: 600 }}>₹{r.balance.toLocaleString('en-IN')}</p>
+                <div key={r.projectId} className="prt-row">
+                    <p className="prt-project" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${r.projectId}`)}>{r.projectName}</p>
+                    <p className="prt-client"><span className="pq-group-label">Client</span>{r.clientName || '-'}</p>
+                    <p className="prt-issued"><span className="pq-group-label">Issued</span>₹{r.issuedTotal.toLocaleString('en-IN')}</p>
+                    <p className="prt-received"><span className="pq-group-label">Received</span>₹{r.receivedTotal.toLocaleString('en-IN')}</p>
+                    <p className="prt-outstanding" style={{ color: '#c0392b', fontWeight: 600 }}><span className="pq-group-label">Outstanding</span>₹{r.balance.toLocaleString('en-IN')}</p>
                 </div>
             ))}
         </div>

@@ -2,9 +2,13 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import StyledDatePicker from './StyledDatePicker';
+import { KpiCard, KpiGrid, formatINR } from './DashboardWidgets';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
@@ -34,6 +38,8 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
+    const [confirmItem, setConfirmItem] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchLedger = async () => {
         setLoading(true);
@@ -73,12 +79,15 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
         finally { setSaving(false); }
     };
 
-    const remove = async (id) => {
+    const confirmRemove = async () => {
+        if (!confirmItem) return;
+        setDeleting(true);
         try {
-            const res = await axios.delete(`${url}/api/finance/labour-provider-payments/remove`, { ...authHeader, data: { _id: id } });
-            if (res.data.success) { toast.success(res.data.message); await fetchLedger(); }
+            const res = await axios.delete(`${url}/api/finance/labour-provider-payments/remove`, { ...authHeader, data: { _id: confirmItem._id } });
+            if (res.data.success) { toast.success(res.data.message); setConfirmItem(null); await fetchLedger(); }
             else toast.error(res.data.message);
         } catch { toast.error('Error removing labour provider payment'); }
+        finally { setDeleting(false); }
     };
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
@@ -88,69 +97,86 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
 
     return (
         <div>
-            <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                    <b>Approved Pay</b><b>Pay Left to Approve</b><b>Total Pay Done</b><b>Total Pay Left</b>
-                </div>
-                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                    <p>₹{totals.approvedPay.toLocaleString('en-IN')}</p>
-                    <p>₹{totals.pendingApprovalPay.toLocaleString('en-IN')}</p>
-                    <p>₹{totals.paymentsTotal.toLocaleString('en-IN')}</p>
-                    <p style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{totals.balancePayable.toLocaleString('en-IN')}</p>
-                </div>
-            </div>
+            <KpiGrid>
+                <KpiCard label="Approved Pay" value={formatINR(totals.approvedPay)} tone="good" />
+                <KpiCard label="Pay Left to Approve" value={formatINR(totals.pendingApprovalPay)} />
+                <KpiCard label="Total Pay Done" value={formatINR(totals.paymentsTotal)} />
+                <KpiCard label="Total Pay Left" value={formatINR(totals.balancePayable)} tone={totals.balancePayable > 0 ? 'danger' : 'good'} />
+            </KpiGrid>
 
-            <h3 style={{ marginBottom: '8px' }}>Earnings by Labourer &amp; Work</h3>
-            <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 1.1fr 0.9fr 0.8fr 0.8fr 0.8fr 0.7fr 0.9fr 0.9fr' }}>
-                    <b>Labourer</b><b>Project</b><b>Work Type</b><b>Total Area</b><b>Approved</b><b>Pending</b><b>Rate</b><b>Approved Pay</b><b>Pending Pay</b>
-                </div>
-                {ledger.rows.length === 0 ? (
-                    <div className="admin-empty-state"><p>No work logged by this provider's labourers yet.</p></div>
-                ) : ledger.rows.map((r, i) => (
-                    <div key={i} className="list-table-format row-item" style={{ gridTemplateColumns: '1.1fr 1.1fr 0.9fr 0.8fr 0.8fr 0.8fr 0.7fr 0.9fr 0.9fr' }}>
-                        <p>{r.labourerName}</p>
-                        <p>{r.projectName}</p>
-                        <p>{r.workType}</p>
-                        <p>{r.totalAreaSqft} sqft</p>
-                        <p>{r.approvedAreaSqft} sqft</p>
-                        <p>{r.unapprovedAreaSqft} sqft</p>
-                        <p>₹{r.rate}/sqft</p>
-                        <p>₹{r.approvedPay.toLocaleString('en-IN')}</p>
-                        <p>₹{r.pendingPay.toLocaleString('en-IN')}</p>
+            <h3 style={{ margin: '20px 0 8px' }}>Earnings by Labourer &amp; Work</h3>
+            {ledger.rows.length === 0 ? (
+                <div className="admin-empty-state" style={{ marginBottom: '28px' }}><p>No work logged by this provider's labourers yet.</p></div>
+            ) : (
+                <div className="dash-chart-card lpe-card" style={{ marginBottom: '28px' }}>
+                    <div className="lpe-row lpe-header">
+                        <b className="lpe-labourer">Labourer</b>
+                        <b className="lpe-project">Project</b>
+                        <b className="lpe-type">Work Type</b>
+                        <b className="lpe-total">Total Area</b>
+                        <b className="lpe-approved">Approved</b>
+                        <b className="lpe-pending">Pending</b>
+                        <b className="lpe-rate">Rate</b>
+                        <b className="lpe-approvedpay">Approved Pay</b>
+                        <b className="lpe-pendingpay">Pending Pay</b>
                     </div>
-                ))}
-            </div>
+                    {ledger.rows.map((r, i) => (
+                        <div key={i} className="lpe-row">
+                            <p className="lpe-labourer">{r.labourerName}</p>
+                            <p className="lpe-project"><span className="pq-group-label">Project</span>{r.projectName}</p>
+                            <p className="lpe-type"><span className="pq-group-label">Work Type</span>{r.workType}</p>
+                            <p className="lpe-total"><span className="pq-group-label">Total Area</span>{r.totalAreaSqft} sqft</p>
+                            <p className="lpe-approved"><span className="pq-group-label">Approved</span>{r.approvedAreaSqft} sqft</p>
+                            <p className="lpe-pending"><span className="pq-group-label">Pending</span>{r.unapprovedAreaSqft} sqft</p>
+                            <p className="lpe-rate"><span className="pq-group-label">Rate</span>₹{r.rate}/sqft</p>
+                            <p className="lpe-approvedpay"><span className="pq-group-label">Approved Pay</span>₹{r.approvedPay.toLocaleString('en-IN')}</p>
+                            <p className="lpe-pendingpay"><span className="pq-group-label">Pending Pay</span>₹{r.pendingPay.toLocaleString('en-IN')}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div className="pq-section-header">
                 <h3 style={{ margin: 0 }}>Payments</h3>
                 <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>+ Add Payment</button>
             </div>
             {ledger.payments.length === 0 ? (
                 <div className="admin-empty-state"><p>No payments yet.</p></div>
             ) : (
-                <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
-                        <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>TDS</b><b>Action</b>
+                <div className="dash-chart-card lpp-card">
+                    <div className="lpp-row lpp-header">
+                        <b className="lpp-date">Date</b>
+                        <b className="lpp-amount">Amount</b>
+                        <b className="lpp-mode">Mode</b>
+                        <b className="lpp-account">Account</b>
+                        <b className="lpp-tds">TDS</b>
+                        <b className="lpp-actions">Action</b>
                     </div>
                     {ledger.payments.map(p => (
-                        <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
-                            <p>{new Date(p.date).toLocaleDateString()}</p>
-                            <p>₹{p.amount.toLocaleString('en-IN')}</p>
-                            <p>{p.paymentMode || '-'}</p>
-                            <p>{p.bankAccountId?.accountName || 'Cash'}</p>
-                            <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
-                            <div className="action-buttons"><p onClick={() => remove(p._id)} className="cursor delete-action">X</p></div>
+                        <div key={p._id} className="lpp-row">
+                            <p className="lpp-date"><span className="pq-group-label">Date</span>{new Date(p.date).toLocaleDateString()}</p>
+                            <p className="lpp-amount"><span className="pq-group-label">Amount</span>₹{p.amount.toLocaleString('en-IN')}</p>
+                            <p className="lpp-mode"><span className="pq-group-label">Mode</span>{p.paymentMode || '-'}</p>
+                            <p className="lpp-account"><span className="pq-group-label">Account</span>{p.bankAccountId?.accountName || 'Cash'}</p>
+                            <p className="lpp-tds"><span className="pq-group-label">TDS</span>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
+                            <div className="action-buttons lpp-actions">
+                                <button type="button" onClick={() => setConfirmItem(p)} className="pq-btn-ghost-danger" title="Remove payment" aria-label="Remove payment">
+                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
             )}
 
             {modalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>Add Payment</h2>
-                        <form onSubmit={submit}>
+                <div className="submit-loader-overlay lpp-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal lpp-modal">
+                        <div className="lpp-modal-header">
+                            <h2>Add Payment</h2>
+                        </div>
+                        <div className="lpp-modal-body">
+                        <form id="labour-provider-payment-form" onSubmit={submit}>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Amount (₹) *</p>
@@ -183,11 +209,28 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
                                     <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} />
                                 </div>
                             </div>
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                            </div>
                         </form>
+                        </div>
+                        <div className="edit-modal-actions lpp-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+                            <button type="submit" form="labour-provider-payment-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {confirmItem && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmItem(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>Remove this payment?</h3>
+                        <p className="bin-confirm-name">₹{confirmItem.amount.toLocaleString('en-IN')}</p>
+                        <p className="bin-confirm-warning">Moved to Recovery Bin.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={confirmRemove} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body

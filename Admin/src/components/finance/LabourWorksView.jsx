@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 
 const STATUS_LABEL = { active: 'Active', completed: 'Completed' };
 
@@ -28,21 +29,25 @@ const LabourWorksView = ({ url, labourerId }) => {
     if (works.length === 0) return <div className="admin-empty-state"><p>No works for this labourer yet.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1.3fr 1fr 1fr' }}>
-                <b>Project</b><b>Work Type</b><b>Area Covered</b><b>Material Cost/Sqft</b><b>Status</b>
+        <div className="dash-chart-card law-card">
+            <div className="law-row law-header">
+                <b className="law-project">Project</b>
+                <b className="law-type">Work Type</b>
+                <b className="law-area">Area Covered</b>
+                <b className="law-cost">Material Cost/Sqft</b>
+                <b className="law-status">Status</b>
             </div>
             {works.map(w => (
-                <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1.3fr 1fr 1fr' }}>
-                    <p>{w.projectName}</p>
-                    <p>{w.workType}</p>
+                <div key={w._id} className="law-row">
+                    <p className="law-project">{w.projectName}</p>
+                    <p className="law-type"><span className="pq-group-label">Work Type</span>{w.workType}</p>
                     {/* This labourer's own logged area on this Work — not
                         compared against estimatedAreaSqft, which is the
                         whole Work's target, not this labourer's share of
                         it (a Work can have more than one contributor). */}
-                    <p>{w.completedAreaSqft} sqft</p>
-                    <p>{w.materialCostPerSqft != null ? `₹${w.materialCostPerSqft.toFixed(2)}` : '—'}</p>
-                    <p><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
+                    <p className="law-area"><span className="pq-group-label">Area Covered</span>{w.completedAreaSqft} sqft</p>
+                    <p className="law-cost"><span className="pq-group-label">Material Cost/Sqft</span>{w.materialCostPerSqft != null ? `₹${w.materialCostPerSqft.toFixed(2)}` : '—'}</p>
+                    <p className="law-status"><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
                 </div>
             ))}
         </div>

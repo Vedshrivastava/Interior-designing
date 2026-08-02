@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import StyledDatePicker from './StyledDatePicker';
 import StyledSelect from './StyledSelect';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
@@ -32,6 +36,8 @@ const SalaryLedgerView = ({ url, employeeId }) => {
     const [tdsSections, setTdsSections] = useState([]);
     const [form, setForm] = useState({ ...emptyForm, month: thisMonth() });
     const [saving, setSaving] = useState(false);
+    const [confirmItem, setConfirmItem] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchLedger = async () => {
         setLoading(true);
@@ -82,12 +88,15 @@ const SalaryLedgerView = ({ url, employeeId }) => {
         finally { setSaving(false); }
     };
 
-    const remove = async (id) => {
+    const confirmRemove = async () => {
+        if (!confirmItem) return;
+        setDeleting(true);
         try {
-            const res = await axios.delete(`${url}/api/finance/salary-payments/remove`, { ...authHeader, data: { _id: id } });
-            if (res.data.success) { toast.success(res.data.message); await fetchLedger(); }
+            const res = await axios.delete(`${url}/api/finance/salary-payments/remove`, { ...authHeader, data: { _id: confirmItem._id } });
+            if (res.data.success) { toast.success(res.data.message); setConfirmItem(null); await fetchLedger(); }
             else toast.error(res.data.message);
         } catch { toast.error('Error removing salary payment'); }
+        finally { setDeleting(false); }
     };
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
@@ -147,40 +156,72 @@ const SalaryLedgerView = ({ url, employeeId }) => {
             </div>
 
             <h3 style={{ margin: '20px 0 8px' }}>By Month</h3>
-            <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                    <b>Month</b><b>Expected</b><b>Paid</b><b>Balance Due</b>
-                </div>
-                {ledger.months.length === 0 ? (
-                    <div className="admin-empty-state"><p>No salary payments yet.</p></div>
-                ) : ledger.months.map(m => (
-                    <div key={m.month} className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                        <p>{m.month}</p>
-                        <p>₹{m.expectedSalary.toLocaleString('en-IN')}</p>
-                        <p>₹{m.paid.toLocaleString('en-IN')}</p>
-                        <p style={{ fontWeight: 600, color: m.balanceDue > 0 ? '#c0392b' : 'var(--moss)' }}>₹{m.balanceDue.toLocaleString('en-IN')}</p>
+            {ledger.months.length === 0 ? (
+                <div className="admin-empty-state" style={{ marginBottom: '24px' }}><p>No salary payments yet.</p></div>
+            ) : (
+                <div className="dash-chart-card sal-card" style={{ marginBottom: '24px' }}>
+                    <div className="sal-row sal-header">
+                        <b className="sal-month">Month</b>
+                        <b className="sal-expected">Expected</b>
+                        <b className="sal-paid">Paid</b>
+                        <b className="sal-balance">Balance Due</b>
                     </div>
-                ))}
-            </div>
+                    {ledger.months.map(m => (
+                        <div key={m.month} className="sal-row">
+                            <p className="sal-month">{m.month}</p>
+                            <p className="sal-expected"><span className="pq-group-label">Expected</span>₹{m.expectedSalary.toLocaleString('en-IN')}</p>
+                            <p className="sal-paid"><span className="pq-group-label">Paid</span>₹{m.paid.toLocaleString('en-IN')}</p>
+                            <p className="sal-balance" style={{ color: m.balanceDue > 0 ? '#c0392b' : 'var(--moss)' }}><span className="pq-group-label">Balance Due</span>₹{m.balanceDue.toLocaleString('en-IN')}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             <h3 style={{ marginBottom: '8px' }}>Payment History</h3>
-            <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
-                    <b>Month</b><b>Date</b><b>Amount</b><b>Account</b><b>TDS</b><b>Action</b>
-                </div>
-                {ledger.payments.length === 0 ? (
-                    <div className="admin-empty-state"><p>No payments recorded yet.</p></div>
-                ) : ledger.payments.map(p => (
-                    <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
-                        <p>{p.month}</p>
-                        <p>{new Date(p.date).toLocaleDateString()}</p>
-                        <p>₹{p.amount.toLocaleString('en-IN')}</p>
-                        <p>{p.bankAccountId?.accountName || 'Cash'}</p>
-                        <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
-                        <div className="action-buttons"><p onClick={() => remove(p._id)} className="cursor delete-action">X</p></div>
+            {ledger.payments.length === 0 ? (
+                <div className="admin-empty-state"><p>No payments recorded yet.</p></div>
+            ) : (
+                <div className="dash-chart-card salp-card">
+                    <div className="salp-row salp-header">
+                        <b className="salp-month">Month</b>
+                        <b className="salp-date">Date</b>
+                        <b className="salp-amount">Amount</b>
+                        <b className="salp-account">Account</b>
+                        <b className="salp-tds">TDS</b>
+                        <b className="salp-actions">Action</b>
                     </div>
-                ))}
-            </div>
+                    {ledger.payments.map(p => (
+                        <div key={p._id} className="salp-row">
+                            <p className="salp-month">{p.month}</p>
+                            <p className="salp-date"><span className="pq-group-label">Date</span>{new Date(p.date).toLocaleDateString()}</p>
+                            <p className="salp-amount"><span className="pq-group-label">Amount</span>₹{p.amount.toLocaleString('en-IN')}</p>
+                            <p className="salp-account"><span className="pq-group-label">Account</span>{p.bankAccountId?.accountName || 'Cash'}</p>
+                            <p className="salp-tds"><span className="pq-group-label">TDS</span>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
+                            <div className="action-buttons salp-actions">
+                                <button type="button" onClick={() => setConfirmItem(p)} className="pq-btn-ghost-danger" title="Remove payment" aria-label="Remove payment">
+                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {confirmItem && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmItem(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>Remove this salary payment?</h3>
+                        <p className="bin-confirm-name">{confirmItem.month} — ₹{confirmItem.amount.toLocaleString('en-IN')}</p>
+                        <p className="bin-confirm-warning">Moved to Recovery Bin.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={confirmRemove} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };

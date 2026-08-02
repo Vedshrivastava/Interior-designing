@@ -12,6 +12,7 @@ import LabourLedgerView from '../../components/finance/LabourLedgerView';
 import LabourProviderLedgerView from '../../components/finance/LabourProviderLedgerView';
 import PersonDocumentsView from '../../components/finance/PersonDocumentsView';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 
 const TABS = [
     { key: 'entries',      label: 'All Entries' },
@@ -79,14 +80,15 @@ const LabourerProjectsTab = ({ url, labourerId }) => {
     if (projects.length === 0) return <div className="admin-empty-state"><p>No projects for this labourer yet.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 2fr' }}>
-                <b>Project</b><b>Work Types</b>
+        <div className="dash-chart-card lap-card">
+            <div className="lap-row lap-header">
+                <b className="lap-name">Project</b>
+                <b className="lap-types">Work Types</b>
             </div>
             {projects.map(p => (
-                <div key={p.projectId} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 2fr' }}>
-                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${p.projectId}`)}>{p.projectName}</p>
-                    <p>{p.workTypes.join(', ')}</p>
+                <div key={p.projectId} className="lap-row">
+                    <p className="lap-name cursor" onClick={() => navigate(`/finance/projects/${p.projectId}`)}>{p.projectName}</p>
+                    <p className="lap-types">{p.workTypes.join(', ')}</p>
                 </div>
             ))}
         </div>
@@ -116,7 +118,7 @@ const DailyLabourPage = ({ url }) => {
             onTabChange={setActiveTab}
         >
             {activeTab === 'entries' && <LabourMeasurementsManager url={url} />}
-            {activeTab === 'overview' && <MasterCrudTable url={url} resourceKey="labourers" />}
+            {activeTab === 'overview' && <MasterCrudTable url={url} resourceKey="labourers" cardTitle="Labourers" />}
 
             {LABOURER_SCOPED_TABS.includes(activeTab) && (
                 <LabourerPicker url={url} selectedLabourerId={selectedLabourerId} onChange={setSelectedLabourerId} />
@@ -131,7 +133,7 @@ const DailyLabourPage = ({ url }) => {
             {activeTab === 'ledger' && (
                 selectedLabourerId ? <LabourLedgerView url={url} labourerId={selectedLabourerId} /> : <div className="admin-empty-state"><p>Select a labourer to view their ledger.</p></div>
             )}
-            {activeTab === 'labourProviders' && <MasterCrudTable url={url} resourceKey="labourProviders" />}
+            {activeTab === 'labourProviders' && <MasterCrudTable url={url} resourceKey="labourProviders" cardTitle="Labour Providers" />}
             {activeTab === 'providerLedger' && (
                 <>
                     <LabourProviderPicker url={url} selectedProviderId={selectedProviderId} onChange={setSelectedProviderId} />

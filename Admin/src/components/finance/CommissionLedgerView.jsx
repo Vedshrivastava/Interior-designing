@@ -2,9 +2,13 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import StyledDatePicker from './StyledDatePicker';
+import { KpiCard, KpiGrid, formatINR } from './DashboardWidgets';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
@@ -28,6 +32,8 @@ const CommissionLedgerView = ({ url, referralId }) => {
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
+    const [confirmItem, setConfirmItem] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchLedger = async () => {
         setLoading(true);
@@ -66,12 +72,15 @@ const CommissionLedgerView = ({ url, referralId }) => {
         finally { setSaving(false); }
     };
 
-    const remove = async (id) => {
+    const confirmRemove = async () => {
+        if (!confirmItem) return;
+        setDeleting(true);
         try {
-            const res = await axios.delete(`${url}/api/finance/commission-payments/remove`, { ...authHeader, data: { _id: id } });
-            if (res.data.success) { toast.success(res.data.message); await fetchLedger(); }
+            const res = await axios.delete(`${url}/api/finance/commission-payments/remove`, { ...authHeader, data: { _id: confirmItem._id } });
+            if (res.data.success) { toast.success(res.data.message); setConfirmItem(null); await fetchLedger(); }
             else toast.error(res.data.message);
         } catch { toast.error('Error removing commission payment'); }
+        finally { setDeleting(false); }
     };
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
@@ -81,18 +90,13 @@ const CommissionLedgerView = ({ url, referralId }) => {
 
     return (
         <div>
-            <div className="list-table finance-table" style={{ marginBottom: '8px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-                    <b>Total (All Logged)</b><b>Approved (Reviewed)</b><b>Unapproved</b><b>Payments</b><b>Commission Payable</b>
-                </div>
-                <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-                    <p>₹{totals.totalAmount.toLocaleString('en-IN')}</p>
-                    <p style={{ color: totals.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{totals.earnings > 0 ? `₹${totals.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
-                    <p style={{ color: totals.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>₹{totals.unapprovedAmount.toLocaleString('en-IN')}</p>
-                    <p>₹{totals.payments.toLocaleString('en-IN')}</p>
-                    <p style={{ fontWeight: 700, color: totals.commissionPayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{totals.commissionPayable.toLocaleString('en-IN')}</p>
-                </div>
-            </div>
+            <KpiGrid>
+                <KpiCard label="Total (All Logged)" value={formatINR(totals.totalAmount)} />
+                <KpiCard label="Approved (Reviewed)" value={totals.earnings > 0 ? formatINR(totals.earnings) : 'Unapproved'} tone={totals.earnings > 0 ? 'good' : undefined} />
+                <KpiCard label="Unapproved" value={formatINR(totals.unapprovedAmount)} tone={totals.unapprovedAmount > 0 ? 'danger' : undefined} />
+                <KpiCard label="Payments" value={formatINR(totals.payments)} />
+                <KpiCard label="Commission Payable" value={formatINR(totals.commissionPayable)} tone={totals.commissionPayable > 0 ? 'danger' : 'good'} />
+            </KpiGrid>
             {totals.unapprovedAmount > 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
                     ₹{totals.unapprovedAmount.toLocaleString('en-IN')} worth of referred work hasn't been reviewed yet; it isn't counted as Approved commission until it's reviewed (Payables/Receivables → Deductions).
@@ -100,57 +104,77 @@ const CommissionLedgerView = ({ url, referralId }) => {
             )}
 
             <h3 style={{ marginBottom: '8px' }}>Earnings by Work</h3>
-            <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 0.9fr 1fr 0.9fr 1fr 0.9fr' }}>
-                    <b>Project</b><b>Work Type</b><b>Completed Area</b><b>Referral Cut</b><b>Approved</b><b>Unapproved</b>
-                </div>
-                {ledger.works.length === 0 ? (
-                    <div className="admin-empty-state"><p>No referred works yet.</p></div>
-                ) : ledger.works.map(w => (
-                    <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 0.9fr 1fr 0.9fr 1fr 0.9fr' }}>
-                        <p>{w.projectName}</p>
-                        <p>{w.workType}</p>
-                        <p>{w.completedAreaSqft} sqft</p>
-                        <p>{w.referralRatePerSqft != null ? `₹${w.referralRatePerSqft}/sqft` : <span title="No matching work type rate configured">(no rate)</span>}</p>
-                        <p style={{ color: w.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>
-                            {w.earnings > 0
-                                ? <>₹{w.earnings.toLocaleString('en-IN')} <span style={{ fontWeight: 400, fontSize: '0.75rem' }}>({w.approvedAreaSqft} sqft{w.approvedDate ? `, ${new Date(w.approvedDate).toLocaleDateString()}` : ''})</span></>
-                                : 'Unapproved'}
-                        </p>
-                        <p style={{ color: w.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>{w.referralRatePerSqft != null ? `₹${w.unapprovedAmount.toLocaleString('en-IN')}` : '-'}</p>
+            {ledger.works.length === 0 ? (
+                <div className="admin-empty-state" style={{ marginBottom: '28px' }}><p>No referred works yet.</p></div>
+            ) : (
+                <div className="dash-chart-card cme-card" style={{ marginBottom: '28px' }}>
+                    <div className="cme-row cme-header">
+                        <b className="cme-project">Project</b>
+                        <b className="cme-type">Work Type</b>
+                        <b className="cme-area">Completed Area</b>
+                        <b className="cme-cut">Referral Cut</b>
+                        <b className="cme-approved">Approved</b>
+                        <b className="cme-unapproved">Unapproved</b>
                     </div>
-                ))}
-            </div>
+                    {ledger.works.map(w => (
+                        <div key={w._id} className="cme-row">
+                            <p className="cme-project">{w.projectName}</p>
+                            <p className="cme-type"><span className="pq-group-label">Work Type</span>{w.workType}</p>
+                            <p className="cme-area"><span className="pq-group-label">Completed Area</span>{w.completedAreaSqft} sqft</p>
+                            <p className="cme-cut"><span className="pq-group-label">Referral Cut</span>{w.referralRatePerSqft != null ? `₹${w.referralRatePerSqft}/sqft` : <span title="No matching work type rate configured">(no rate)</span>}</p>
+                            <p className="cme-approved" style={{ color: w.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>
+                                <span className="pq-group-label">Approved</span>
+                                {w.earnings > 0
+                                    ? <>₹{w.earnings.toLocaleString('en-IN')} <span style={{ fontWeight: 400, fontSize: '0.75rem' }}>({w.approvedAreaSqft} sqft{w.approvedDate ? `, ${new Date(w.approvedDate).toLocaleDateString()}` : ''})</span></>
+                                    : 'Unapproved'}
+                            </p>
+                            <p className="cme-unapproved" style={{ color: w.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}><span className="pq-group-label">Unapproved</span>{w.referralRatePerSqft != null ? `₹${w.unapprovedAmount.toLocaleString('en-IN')}` : '-'}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div className="pq-section-header">
                 <h3 style={{ margin: 0 }}>Payments</h3>
                 <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>+ Add Payment</button>
             </div>
             {ledger.payments.length === 0 ? (
                 <div className="admin-empty-state"><p>No payments yet.</p></div>
             ) : (
-                <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
-                        <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>TDS</b><b>Action</b>
+                <div className="dash-chart-card cmp-card">
+                    <div className="cmp-row cmp-header">
+                        <b className="cmp-date">Date</b>
+                        <b className="cmp-amount">Amount</b>
+                        <b className="cmp-mode">Mode</b>
+                        <b className="cmp-account">Account</b>
+                        <b className="cmp-tds">TDS</b>
+                        <b className="cmp-actions">Action</b>
                     </div>
                     {ledger.payments.map(p => (
-                        <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
-                            <p>{new Date(p.date).toLocaleDateString()}</p>
-                            <p>₹{p.amount.toLocaleString('en-IN')}</p>
-                            <p>{p.paymentMode || '-'}</p>
-                            <p>{p.bankAccountId?.accountName || 'Cash'}</p>
-                            <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
-                            <div className="action-buttons"><p onClick={() => remove(p._id)} className="cursor delete-action">X</p></div>
+                        <div key={p._id} className="cmp-row">
+                            <p className="cmp-date"><span className="pq-group-label">Date</span>{new Date(p.date).toLocaleDateString()}</p>
+                            <p className="cmp-amount"><span className="pq-group-label">Amount</span>₹{p.amount.toLocaleString('en-IN')}</p>
+                            <p className="cmp-mode"><span className="pq-group-label">Mode</span>{p.paymentMode || '-'}</p>
+                            <p className="cmp-account"><span className="pq-group-label">Account</span>{p.bankAccountId?.accountName || 'Cash'}</p>
+                            <p className="cmp-tds"><span className="pq-group-label">TDS</span>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
+                            <div className="action-buttons cmp-actions">
+                                <button type="button" onClick={() => setConfirmItem(p)} className="pq-btn-ghost-danger" title="Remove payment" aria-label="Remove payment">
+                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
             )}
 
             {modalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>Add Payment</h2>
-                        <form onSubmit={submit}>
+                <div className="submit-loader-overlay cmp-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal cmp-modal">
+                        <div className="cmp-modal-header">
+                            <h2>Add Payment</h2>
+                        </div>
+                        <div className="cmp-modal-body">
+                        <form id="commission-payment-form" onSubmit={submit}>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Amount (₹) *</p>
@@ -183,11 +207,28 @@ const CommissionLedgerView = ({ url, referralId }) => {
                                     <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} />
                                 </div>
                             </div>
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                            </div>
                         </form>
+                        </div>
+                        <div className="edit-modal-actions cmp-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+                            <button type="submit" form="commission-payment-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {confirmItem && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmItem(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>Remove this payment?</h3>
+                        <p className="bin-confirm-name">₹{confirmItem.amount.toLocaleString('en-IN')}</p>
+                        <p className="bin-confirm-warning">Moved to Recovery Bin.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={confirmRemove} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body

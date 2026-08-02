@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 
 /* Read-only — every measurement logged against this labourer's works,
    across every project. Entry happens on Site Operations or a project's
@@ -27,15 +28,17 @@ const LabourWorkerMeasurementsView = ({ url, labourerId }) => {
     if (measurements.length === 0) return <div className="admin-empty-state"><p>No measurements logged against this labourer's works yet.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1fr' }}>
-                <b>Date</b><b>Work</b><b>Area Covered</b>
+        <div className="dash-chart-card lam-card">
+            <div className="lam-row lam-header">
+                <b className="lam-date">Date</b>
+                <b className="lam-work">Work</b>
+                <b className="lam-area">Area Covered</b>
             </div>
             {measurements.map(m => (
-                <div key={m._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1fr' }}>
-                    <p>{new Date(m.date).toLocaleDateString()}</p>
-                    <p>{m.workId?.workType || '-'}</p>
-                    <p>{m.areaCoveredSqft} sqft</p>
+                <div key={m._id} className="lam-row">
+                    <p className="lam-date"><span className="pq-group-label">Date</span>{new Date(m.date).toLocaleDateString()}</p>
+                    <p className="lam-work">{m.workId?.workType || '-'}</p>
+                    <p className="lam-area"><span className="pq-group-label">Area Covered</span>{m.areaCoveredSqft} sqft</p>
                 </div>
             ))}
         </div>

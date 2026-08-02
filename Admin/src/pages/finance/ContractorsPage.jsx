@@ -69,14 +69,15 @@ const ContractorProjectsTab = ({ url, vendorId }) => {
     if (projects.length === 0) return <div className="admin-empty-state"><p>No projects for this contractor yet.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 2fr' }}>
-                <b>Project</b><b>Work Types</b>
+        <div className="dash-chart-card con-proj-card">
+            <div className="con-proj-row con-proj-header">
+                <b className="con-proj-name">Project</b>
+                <b className="con-proj-types">Work Types</b>
             </div>
             {projects.map(p => (
-                <div key={p.projectId} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 2fr' }}>
-                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${p.projectId}`)}>{p.projectName}</p>
-                    <p>{p.workTypes.join(', ')}</p>
+                <div key={p.projectId} className="con-proj-row">
+                    <p className="con-proj-name cursor" onClick={() => navigate(`/finance/projects/${p.projectId}`)}>{p.projectName}</p>
+                    <p className="con-proj-types">{p.workTypes.join(', ')}</p>
                 </div>
             ))}
         </div>
@@ -176,19 +177,25 @@ const ContractorsOverviewTab = ({ url, onSelectContractor }) => {
                         </ChartCard>
                     </ChartGrid>
 
-                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 0.9fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr' }}>
-                            <b>Contractor</b><b>Total</b><b>Approved</b><b>Advances</b><b>Deductions</b><b>Payments</b><b>Balance Payable</b>
+                    <div className="dash-chart-card con-ov-card" style={{ marginBottom: '24px' }}>
+                        <div className="con-ov-row con-ov-header">
+                            <b className="con-ov-name">Contractor</b>
+                            <b className="con-ov-total">Total</b>
+                            <b className="con-ov-approved">Approved</b>
+                            <b className="con-ov-advances">Advances</b>
+                            <b className="con-ov-deductions">Deductions</b>
+                            <b className="con-ov-payments">Payments</b>
+                            <b className="con-ov-balance">Balance Payable</b>
                         </div>
                         {contractors.map(c => (
-                            <div key={c.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 0.9fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr' }}>
-                                <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => onSelectContractor(c.vendorId)}>{c.vendorName}</p>
-                                <p>{formatINR(c.totalAmount)}</p>
-                                <p style={{ color: c.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{c.earnings > 0 ? formatINR(c.earnings) : 'Unapproved'}</p>
-                                <p>{formatINR(c.advances)}</p>
-                                <p>{formatINR(c.deductions)}</p>
-                                <p>{formatINR(c.payments)}</p>
-                                <p style={{ color: c.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>{formatINR(c.balancePayable)}</p>
+                            <div key={c.vendorId} className="con-ov-row">
+                                <p className="con-ov-name cursor" onClick={() => onSelectContractor(c.vendorId)}>{c.vendorName}</p>
+                                <p className="con-ov-total"><span className="pq-group-label">Total</span>{formatINR(c.totalAmount)}</p>
+                                <p className="con-ov-approved" style={{ color: c.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}><span className="pq-group-label">Approved</span>{c.earnings > 0 ? formatINR(c.earnings) : 'Unapproved'}</p>
+                                <p className="con-ov-advances"><span className="pq-group-label">Advances</span>{formatINR(c.advances)}</p>
+                                <p className="con-ov-deductions"><span className="pq-group-label">Deductions</span>{formatINR(c.deductions)}</p>
+                                <p className="con-ov-payments"><span className="pq-group-label">Payments</span>{formatINR(c.payments)}</p>
+                                <p className="con-ov-balance" style={{ color: c.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}><span className="pq-group-label">Balance Payable</span>{formatINR(c.balancePayable)}</p>
                             </div>
                         ))}
                     </div>

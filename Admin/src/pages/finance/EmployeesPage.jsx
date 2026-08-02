@@ -14,6 +14,7 @@ import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
+import '../../styles/dashboard.css';
 
 /* Every tab except Directory operates on one picked employee — the
    supervisor-only tabs below only make sense for a financeEmployee whose
@@ -63,16 +64,19 @@ const SupervisorTeamTab = ({ url, supervisorId }) => {
     if (rows.length === 0) return <div className="admin-empty-state"><p>Not currently running a team on any Work.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1.3fr' }}>
-                <b>Labourer</b><b>Project</b><b>Work Type</b><b>Notes</b>
+        <div className="dash-chart-card set-card">
+            <div className="set-row set-header">
+                <b className="set-labourer">Labourer</b>
+                <b className="set-project">Project</b>
+                <b className="set-type">Work Type</b>
+                <b className="set-notes">Notes</b>
             </div>
             {rows.map(a => (
-                <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1.3fr 1fr 1.3fr' }}>
-                    <p>{a.labourerId?.name || '-'}</p>
-                    <p>{a.workId?.projectId?.name || '-'}</p>
-                    <p>{a.workId?.workType || '-'}</p>
-                    <p>{a.notes || '-'}</p>
+                <div key={a._id} className="set-row">
+                    <p className="set-labourer">{a.labourerId?.name || '-'}</p>
+                    <p className="set-project"><span className="pq-group-label">Project</span>{a.workId?.projectId?.name || '-'}</p>
+                    <p className="set-type"><span className="pq-group-label">Work Type</span>{a.workId?.workType || '-'}</p>
+                    <p className="set-notes"><span className="pq-group-label">Notes</span>{a.notes || '-'}</p>
                 </div>
             ))}
         </div>
@@ -145,15 +149,17 @@ const AssignedProjectsTab = ({ url, employeeId, employeeName }) => {
     if (projects.length === 0) return <div className="admin-empty-state"><p>No projects assigned to this supervisor.</p></div>;
 
     return (
-        <div className="list-table finance-table">
-            <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1fr 1fr' }}>
-                <b>Project</b><b>Status</b><b>Contract Type</b>
+        <div className="dash-chart-card sep-card">
+            <div className="sep-row sep-header">
+                <b className="sep-name">Project</b>
+                <b className="sep-status">Status</b>
+                <b className="sep-contract">Contract Type</b>
             </div>
             {projects.map(p => (
-                <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1fr 1fr' }}>
-                    <p className="item-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/finance/projects/${p._id}`)}>{p.name}</p>
-                    <p><span className="item-category">{p.status}</span></p>
-                    <p>{p.contractType}</p>
+                <div key={p._id} className="sep-row">
+                    <p className="sep-name cursor" onClick={() => navigate(`/finance/projects/${p._id}`)}>{p.name}</p>
+                    <p className="sep-status"><span className="item-category">{p.status}</span></p>
+                    <p className="sep-contract"><span className="pq-group-label">Contract Type</span>{p.contractType}</p>
                 </div>
             ))}
         </div>

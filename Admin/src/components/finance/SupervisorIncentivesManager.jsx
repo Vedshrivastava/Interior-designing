@@ -2,9 +2,12 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import StyledDatePicker from './StyledDatePicker';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
@@ -25,6 +28,8 @@ const SupervisorIncentivesManager = ({ url, employeeId }) => {
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
+    const [confirmItem, setConfirmItem] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchEntries = async () => {
         setLoading(true);
@@ -68,17 +73,20 @@ const SupervisorIncentivesManager = ({ url, employeeId }) => {
         finally { setSaving(false); }
     };
 
-    const remove = async (id) => {
+    const confirmRemove = async () => {
+        if (!confirmItem) return;
+        setDeleting(true);
         try {
-            const res = await axios.delete(`${url}/api/finance/supervisor-incentives/remove`, { ...authHeader, data: { _id: id } });
-            if (res.data.success) { toast.success(res.data.message); await fetchEntries(); }
+            const res = await axios.delete(`${url}/api/finance/supervisor-incentives/remove`, { ...authHeader, data: { _id: confirmItem._id } });
+            if (res.data.success) { toast.success(res.data.message); setConfirmItem(null); await fetchEntries(); }
             else toast.error(res.data.message);
         } catch { toast.error('Error removing incentive'); }
+        finally { setDeleting(false); }
     };
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div className="pq-section-header">
                 <h3 style={{ margin: 0 }}>Incentives</h3>
                 <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>+ Add Incentive</button>
             </div>
@@ -87,28 +95,40 @@ const SupervisorIncentivesManager = ({ url, employeeId }) => {
             ) : entries.length === 0 ? (
                 <div className="admin-empty-state"><p>No incentives recorded yet.</p></div>
             ) : (
-                <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1.3fr 1fr 1fr 100px' }}>
-                        <b>Date</b><b>Amount</b><b>Reason</b><b>Project</b><b>Work</b><b>Action</b>
+                <div className="dash-chart-card sin-card">
+                    <div className="sin-row sin-header">
+                        <b className="sin-date">Date</b>
+                        <b className="sin-amount">Amount</b>
+                        <b className="sin-reason">Reason</b>
+                        <b className="sin-project">Project</b>
+                        <b className="sin-work">Work</b>
+                        <b className="sin-actions">Action</b>
                     </div>
                     {entries.map(e => (
-                        <div key={e._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1.3fr 1fr 1fr 100px' }}>
-                            <p>{new Date(e.date).toLocaleDateString()}</p>
-                            <p>₹{e.amount.toLocaleString('en-IN')}</p>
-                            <p>{e.reason}</p>
-                            <p>{e.projectId?.name || '-'}</p>
-                            <p>{e.workId?.workType || '-'}</p>
-                            <div className="action-buttons"><p onClick={() => remove(e._id)} className="cursor delete-action">X</p></div>
+                        <div key={e._id} className="sin-row">
+                            <p className="sin-date"><span className="pq-group-label">Date</span>{new Date(e.date).toLocaleDateString()}</p>
+                            <p className="sin-amount"><span className="pq-group-label">Amount</span>₹{e.amount.toLocaleString('en-IN')}</p>
+                            <p className="sin-reason"><span className="pq-group-label">Reason</span>{e.reason}</p>
+                            <p className="sin-project"><span className="pq-group-label">Project</span>{e.projectId?.name || '-'}</p>
+                            <p className="sin-work"><span className="pq-group-label">Work</span>{e.workId?.workType || '-'}</p>
+                            <div className="action-buttons sin-actions">
+                                <button type="button" onClick={() => setConfirmItem(e)} className="pq-btn-ghost-danger" title="Remove incentive" aria-label="Remove incentive">
+                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
             )}
 
             {modalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>Add Incentive</h2>
-                        <form onSubmit={submit}>
+                <div className="submit-loader-overlay sin-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal sin-modal">
+                        <div className="sin-modal-header">
+                            <h2>Add Incentive</h2>
+                        </div>
+                        <div className="sin-modal-body">
+                        <form id="supervisor-incentive-form" onSubmit={submit}>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Amount (₹) *</p>
@@ -150,11 +170,28 @@ const SupervisorIncentivesManager = ({ url, employeeId }) => {
                                     </div>
                                 )}
                             </div>
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                            </div>
                         </form>
+                        </div>
+                        <div className="edit-modal-actions sin-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+                            <button type="submit" form="supervisor-incentive-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {confirmItem && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmItem(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>Remove this incentive?</h3>
+                        <p className="bin-confirm-name">₹{confirmItem.amount.toLocaleString('en-IN')} — {confirmItem.reason}</p>
+                        <p className="bin-confirm-warning">Moved to Recovery Bin.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={confirmRemove} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body

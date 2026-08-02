@@ -105,14 +105,21 @@ const SiteInventoryPage = ({ url }) => {
                         </ChartCard>
                     </ChartGrid>
 
-                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '240px 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr' }}>
-                            <b>Material</b><b>Current Stock</b><b>Minimum</b><b>Dumped</b><b>Returned</b><b>Consumed</b><b>Wastage</b>
+                    <div className="dash-chart-card si-card" style={{ marginBottom: '24px' }}>
+                        <div className="si-row si-header">
+                            <b className="si-material">Material</b>
+                            <b className="si-stock">Current Stock</b>
+                            <b className="si-minimum">Minimum</b>
+                            <b className="si-dumped">Dumped</b>
+                            <b className="si-returned">Returned</b>
+                            <b className="si-consumed">Consumed</b>
+                            <b className="si-wastage">Wastage</b>
                         </div>
                         {stockTable.map(r => (
-                            <div key={r.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '240px 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr' }}>
-                                <p>{r.materialName}</p>
-                                <p style={{ color: r.belowMinimum ? '#c0392b' : 'inherit', fontWeight: r.belowMinimum ? 600 : 400 }}>
+                            <div key={r.materialId} className="si-row">
+                                <p className="si-material">{r.materialName}</p>
+                                <p className="si-stock" style={{ color: r.belowMinimum ? '#c0392b' : 'inherit', fontWeight: r.belowMinimum ? 600 : 400 }}>
+                                    <span className="pq-group-label">Current Stock</span>
                                     {r.belowMinimum && '⚠ '}{r.currentStock} {r.unit}
                                     {/* Company-wide view only (no project selected) — a single blended
                                         total can't say which site is actually short, so this reports
@@ -125,11 +132,11 @@ const SiteInventoryPage = ({ url }) => {
                                         </span>
                                     )}
                                 </p>
-                                <p>{r.minimumStockLevel} {r.unit}</p>
-                                <p>{r.totalDumped} {r.unit}</p>
-                                <p>{r.totalReturned} {r.unit}</p>
-                                <p>{r.totalConsumed} {r.unit}</p>
-                                <p>{r.totalWasted} {r.unit} <span className="admin-subtitle" style={{ fontSize: '0.78rem' }}>({Math.round(r.wastageRate * 1000) / 10}%)</span></p>
+                                <p className="si-minimum"><span className="pq-group-label">Minimum</span>{r.minimumStockLevel} {r.unit}</p>
+                                <p className="si-dumped"><span className="pq-group-label">Dumped</span>{r.totalDumped} {r.unit}</p>
+                                <p className="si-returned"><span className="pq-group-label">Returned</span>{r.totalReturned} {r.unit}</p>
+                                <p className="si-consumed"><span className="pq-group-label">Consumed</span>{r.totalConsumed} {r.unit}</p>
+                                <p className="si-wastage"><span className="pq-group-label">Wastage</span>{r.totalWasted} {r.unit} <span className="admin-subtitle" style={{ fontSize: '0.78rem' }}>({Math.round(r.wastageRate * 1000) / 10}%)</span></p>
                             </div>
                         ))}
                     </div>

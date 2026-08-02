@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import StyledDatePicker from './StyledDatePicker';
 import StyledSelect from './StyledSelect';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 
 const emptyForm = { vendorId: '', projectId: '', materialId: '', quantity: '', ratePerUnit: '', date: '', referenceNumber: '', notes: '', gstRate: '' };
 
@@ -97,7 +100,7 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div className="pq-section-header">
                 <h3 style={{ margin: 0 }}>{isReturn ? 'Returns' : 'Purchases'}</h3>
                 <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>{`+ Record ${isReturn ? 'Return' : 'Purchase'}`}</button>
             </div>
@@ -106,21 +109,30 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
             ) : items.length === 0 ? (
                 <div className="admin-empty-state"><p>No {isReturn ? 'returns' : 'purchases'} recorded yet.</p></div>
             ) : (
-                <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 100px' }}>
-                        <b>Date</b><b>Vendor</b><b>Material</b><b>Qty</b><b>Rate</b><b>Total</b><b>GST</b><b>Action</b>
+                <div className="dash-chart-card por-card">
+                    <div className="por-row por-header">
+                        <b className="por-date">Date</b>
+                        <b className="por-vendor">Vendor</b>
+                        <b className="por-material">Material</b>
+                        <b className="por-qty">Qty</b>
+                        <b className="por-rate">Rate</b>
+                        <b className="por-total">Total</b>
+                        <b className="por-gst">GST</b>
+                        <b className="por-actions">Action</b>
                     </div>
                     {items.map(item => (
-                        <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 100px' }}>
-                            <p>{new Date(item.date).toLocaleDateString()}</p>
-                            <p>{item.vendorId?.name || '-'}</p>
-                            <p>{item.materialId?.name || '-'} {item.materialId?.unit ? `(${item.materialId.unit})` : ''}</p>
-                            <p>{item.quantity} {item.materialId?.unit || ''}</p>
-                            <p>₹{item.ratePerUnit}{item.materialId?.unit ? `/${item.materialId.unit}` : ''}</p>
-                            <p>₹{item.totalAmount.toLocaleString('en-IN')}</p>
-                            <p>{item.gstAmount ? `₹${item.gstAmount.toLocaleString('en-IN')} (${item.gstRate}%)` : '-'}</p>
-                            <div className="action-buttons">
-                                <p onClick={() => setConfirmItem(item)} className="cursor delete-action">X</p>
+                        <div key={item._id} className="por-row">
+                            <p className="por-date"><span className="pq-group-label">Date</span>{new Date(item.date).toLocaleDateString()}</p>
+                            <p className="por-vendor">{item.vendorId?.name || '-'}</p>
+                            <p className="por-material"><span className="pq-group-label">Material</span>{item.materialId?.name || '-'} {item.materialId?.unit ? `(${item.materialId.unit})` : ''}</p>
+                            <p className="por-qty"><span className="pq-group-label">Qty</span>{item.quantity} {item.materialId?.unit || ''}</p>
+                            <p className="por-rate"><span className="pq-group-label">Rate</span>₹{item.ratePerUnit}{item.materialId?.unit ? `/${item.materialId.unit}` : ''}</p>
+                            <p className="por-total"><span className="pq-group-label">Total</span>₹{item.totalAmount.toLocaleString('en-IN')}</p>
+                            <p className="por-gst"><span className="pq-group-label">GST</span>{item.gstAmount ? `₹${item.gstAmount.toLocaleString('en-IN')} (${item.gstRate}%)` : '-'}</p>
+                            <div className="action-buttons por-actions">
+                                <button type="button" onClick={() => setConfirmItem(item)} className="pq-btn-ghost-danger" title={`Remove ${isReturn ? 'return' : 'purchase'}`} aria-label={`Remove ${isReturn ? 'return' : 'purchase'}`}>
+                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -128,10 +140,13 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
             )}
 
             {modalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>{`Record ${isReturn ? 'Return' : 'Purchase'}`}</h2>
-                        <form onSubmit={submit}>
+                <div className="submit-loader-overlay por-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal por-modal">
+                        <div className="por-modal-header">
+                            <h2>{`Record ${isReturn ? 'Return' : 'Purchase'}`}</h2>
+                        </div>
+                        <div className="por-modal-body">
+                        <form id="purchase-or-return-form" onSubmit={submit}>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Vendor *</p>
@@ -177,17 +192,18 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
                                     <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
                                 </div>
                             </div>
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                            </div>
                         </form>
+                        </div>
+                        <div className="edit-modal-actions por-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+                            <button type="submit" form="purchase-or-return-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body
             )}
 
-            {confirmItem && (
+            {confirmItem && ReactDOM.createPortal(
                 <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmItem(null)}>
                     <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
                         <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
@@ -198,7 +214,8 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
                             <button className="bin-btn-delete" onClick={confirmDelete} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

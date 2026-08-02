@@ -4,6 +4,7 @@ import MasterCrudTable from '../../components/finance/MasterCrudTable';
 import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import CommissionLedgerView from '../../components/finance/CommissionLedgerView';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 
 const TABS = [
     { key: 'overview',         label: 'Overview' },
@@ -39,7 +40,7 @@ const ReferralsPage = ({ url }) => {
             activeKey={activeTab}
             onTabChange={setActiveTab}
         >
-            {activeTab === 'overview' && <MasterCrudTable url={url} resourceKey="referrals" />}
+            {activeTab === 'overview' && <MasterCrudTable url={url} resourceKey="referrals" cardTitle="Referrals" />}
             {activeTab === 'commissionLedger' && (
                 <>
                     <ReferralPicker url={url} selectedReferralId={selectedReferralId} onChange={setSelectedReferralId} />

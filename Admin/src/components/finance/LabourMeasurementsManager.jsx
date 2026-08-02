@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import StyledDatePicker from './StyledDatePicker';
 import StyledSelect from './StyledSelect';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
@@ -38,6 +41,8 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
+    const [confirmItem, setConfirmItem] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchProjects = () => {
         if (fixedProjectId) return;
@@ -157,12 +162,15 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
         } finally { setSaving(false); }
     };
 
-    const removeMeasurement = async (m) => {
+    const confirmRemoveMeasurement = async () => {
+        if (!confirmItem) return;
+        setDeleting(true);
         try {
-            const res = await axios.post(`${url}/api/finance/labour-measurements/remove`, { _id: m._id }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); await fetchMeasurements(selectedProjectId); }
+            const res = await axios.post(`${url}/api/finance/labour-measurements/remove`, { _id: confirmItem._id }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); setConfirmItem(null); await fetchMeasurements(selectedProjectId); }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error removing measurement'); }
+        finally { setDeleting(false); }
     };
 
     return (
@@ -183,7 +191,7 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                 <div className="admin-empty-state"><p>Select a project to log a measurement.</p></div>
             ) : (
                 <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div className="pq-section-header">
                         <h3 style={{ margin: 0 }}>Measurements</h3>
                         <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>+ Add Measurement</button>
                     </div>
@@ -192,18 +200,24 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                     ) : measurements.length === 0 ? (
                         <div className="admin-empty-state"><p>No measurements logged yet.</p></div>
                     ) : (
-                        <div className="list-table finance-table">
-                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 100px' }}>
-                                <b>Date</b><b>Work</b><b>Labourer</b><b>Area Covered</b><b>Action</b>
+                        <div className="dash-chart-card lmm-card">
+                            <div className="lmm-row lmm-header">
+                                <b className="lmm-date">Date</b>
+                                <b className="lmm-work">Work</b>
+                                <b className="lmm-labourer">Labourer</b>
+                                <b className="lmm-area">Area Covered</b>
+                                <b className="lmm-actions">Action</b>
                             </div>
                             {measurements.map(m => (
-                                <div key={m._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1.2fr 1.2fr 1fr 100px' }}>
-                                    <p>{new Date(m.date).toLocaleDateString()}</p>
-                                    <p>{m.workId?.workType || '-'}</p>
-                                    <p>{m.labourerId?.name || '-'}</p>
-                                    <p>{m.areaCoveredSqft} sqft</p>
-                                    <div className="action-buttons">
-                                        <p onClick={() => removeMeasurement(m)} className="cursor delete-action">X</p>
+                                <div key={m._id} className="lmm-row">
+                                    <p className="lmm-date"><span className="pq-group-label">Date</span>{new Date(m.date).toLocaleDateString()}</p>
+                                    <p className="lmm-work"><span className="pq-group-label">Work</span>{m.workId?.workType || '-'}</p>
+                                    <p className="lmm-labourer">{m.labourerId?.name || '-'}</p>
+                                    <p className="lmm-area"><span className="pq-group-label">Area Covered</span>{m.areaCoveredSqft} sqft</p>
+                                    <div className="action-buttons lmm-actions">
+                                        <button type="button" onClick={() => setConfirmItem(m)} className="pq-btn-ghost-danger" title="Remove measurement" aria-label="Remove measurement">
+                                            <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -211,10 +225,13 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                     )}
 
                     {modalOpen && ReactDOM.createPortal(
-                        <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                            <div className="loader-modal-box edit-modal">
-                                <h2>Add Measurement</h2>
-                                <form onSubmit={submit}>
+                        <div className="submit-loader-overlay lmm-overlay" style={{ zIndex: 99999 }}>
+                            <div className="loader-modal-box edit-modal lmm-modal">
+                                <div className="lmm-modal-header">
+                                    <h2>Add Measurement</h2>
+                                </div>
+                                <div className="lmm-modal-body">
+                                <form id="labour-measurement-form" onSubmit={submit}>
                                     <div className="wizard-field-grid">
                                         <div className="add-product-name flex-col">
                                             <p>Work *</p>
@@ -274,11 +291,28 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                                         </div>
                                     )}
 
-                                    <div className="edit-modal-actions">
-                                        <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
-                                        <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                                    </div>
                                 </form>
+                                </div>
+                                <div className="edit-modal-actions lmm-modal-footer">
+                                    <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+                                    <button type="submit" form="labour-measurement-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                                </div>
+                            </div>
+                        </div>,
+                        document.body
+                    )}
+
+                    {confirmItem && ReactDOM.createPortal(
+                        <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmItem(null)}>
+                            <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                                <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                                <h3>Remove this measurement?</h3>
+                                <p className="bin-confirm-name">{confirmItem.labourerId?.name || 'Labourer'} — {confirmItem.areaCoveredSqft} sqft</p>
+                                <p className="bin-confirm-warning">Moved to Recovery Bin.</p>
+                                <div className="bin-confirm-actions">
+                                    <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>
+                                    <button className="bin-btn-delete" onClick={confirmRemoveMeasurement} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>
+                                </div>
                             </div>
                         </div>,
                         document.body

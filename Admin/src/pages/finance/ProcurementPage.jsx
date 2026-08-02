@@ -115,17 +115,21 @@ const ProcurementVendorsOverviewTab = ({ url }) => {
                         </ChartCard>
                     </ChartGrid>
 
-                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr' }}>
-                            <b>Vendor</b><b>Purchases</b><b>Returns</b><b>Payments</b><b>Amount Owed</b>
+                    <div className="dash-chart-card pvs-card" style={{ marginBottom: '24px' }}>
+                        <div className="pvs-row pvs-header">
+                            <b className="pvs-vendor">Vendor</b>
+                            <b className="pvs-purchases">Purchases</b>
+                            <b className="pvs-returns">Returns</b>
+                            <b className="pvs-payments">Payments</b>
+                            <b className="pvs-owed">Amount Owed</b>
                         </div>
                         {vendors.map(v => (
-                            <div key={v.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr' }}>
-                                <p>{v.vendorName}</p>
-                                <p>{formatINR(v.purchases)}</p>
-                                <p>{formatINR(v.returns)}</p>
-                                <p>{formatINR(v.payments)}</p>
-                                <p style={{ color: v.amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}>{formatINR(v.amountOwed)}</p>
+                            <div key={v.vendorId} className="pvs-row">
+                                <p className="pvs-vendor">{v.vendorName}</p>
+                                <p className="pvs-purchases"><span className="pq-group-label">Purchases</span>{formatINR(v.purchases)}</p>
+                                <p className="pvs-returns"><span className="pq-group-label">Returns</span>{formatINR(v.returns)}</p>
+                                <p className="pvs-payments"><span className="pq-group-label">Payments</span>{formatINR(v.payments)}</p>
+                                <p className="pvs-owed" style={{ color: v.amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}><span className="pq-group-label">Amount Owed</span>{formatINR(v.amountOwed)}</p>
                             </div>
                         ))}
                     </div>

@@ -3,7 +3,9 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { ChartCard, EmptyChart, ChartTooltip, CHART_COLORS, formatINR } from './DashboardWidgets';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { KpiCard, KpiGrid, ChartCard, EmptyChart, ChartTooltip, CHART_COLORS, formatINR } from './DashboardWidgets';
 import StyledSelect from './StyledSelect';
 import DownloadButton from './DownloadButton';
 import { useFileDownload } from '../../hooks/useFileDownload';
@@ -67,6 +69,8 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
     const [advanceModalOpen, setAdvanceModalOpen] = useState(false);
     const [deductionModalOpen, setDeductionModalOpen] = useState(false);
     const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+    const [confirmRemove, setConfirmRemove] = useState(null); // { kind, id, label }
+    const [deleting, setDeleting] = useState(false);
 
     const fetchLedger = async () => {
         setLoading(true);
@@ -184,13 +188,17 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
         return [...seen.entries()].map(([value, label]) => ({ value, label }));
     }, [ledger]);
 
-    const remove = async (kind, id) => {
+    const confirmRemoveItem = async () => {
+        if (!confirmRemove) return;
+        const { kind, id } = confirmRemove;
         const endpoint = { advance: 'labour-advances', deduction: 'labour-deductions', payment: 'labour-payments' }[kind];
+        setDeleting(true);
         try {
             const res = await axios.delete(`${url}/api/finance/${endpoint}/remove`, { ...authHeader, data: { _id: id } });
-            if (res.data.success) { toast.success(res.data.message); await fetchLedger(); }
+            if (res.data.success) { toast.success(res.data.message); setConfirmRemove(null); await fetchLedger(); }
             else toast.error(res.data.message);
         } catch { toast.error(`Error removing ${kind}`); }
+        finally { setDeleting(false); }
     };
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
@@ -221,24 +229,17 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                 />
             </div>
 
-            <div className="list-table finance-table" style={{ marginBottom: '8px' }}>
-                <div className="list-table-format title" style={{ gridTemplateColumns: totals.materialWasteTotal > 0 ? 'repeat(9, 1fr)' : 'repeat(8, 1fr)' }}>
-                    <b>Total (All Logged)</b><b>Approved (Reviewed)</b><b>Unapproved</b><b>Advances</b><b>Deductions</b>
-                    {totals.materialWasteTotal > 0 && <b>Material Waste</b>}
-                    <b>Direct Payments</b><b>Payments</b><b>{totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}</b>
-                </div>
-                <div className="list-table-format row-item" style={{ gridTemplateColumns: totals.materialWasteTotal > 0 ? 'repeat(9, 1fr)' : 'repeat(8, 1fr)' }}>
-                    <p>₹{totals.totalAmount.toLocaleString('en-IN')}</p>
-                    <p style={{ color: totals.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{totals.earnings > 0 ? `₹${totals.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
-                    <p style={{ color: totals.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>₹{totals.unapprovedAmount.toLocaleString('en-IN')}</p>
-                    <p>₹{totals.advances.toLocaleString('en-IN')}</p>
-                    <p>₹{totals.deductions.toLocaleString('en-IN')}</p>
-                    {totals.materialWasteTotal > 0 && <p>₹{totals.materialWasteTotal.toLocaleString('en-IN')}</p>}
-                    <p>₹{totals.directPaymentTotal.toLocaleString('en-IN')}</p>
-                    <p>₹{totals.payments.toLocaleString('en-IN')}</p>
-                    <p style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</p>
-                </div>
-            </div>
+            <KpiGrid>
+                <KpiCard label="Total (All Logged)" value={formatINR(totals.totalAmount)} />
+                <KpiCard label="Approved (Reviewed)" value={totals.earnings > 0 ? formatINR(totals.earnings) : 'Unapproved'} tone={totals.earnings > 0 ? 'good' : undefined} />
+                <KpiCard label="Unapproved" value={formatINR(totals.unapprovedAmount)} tone={totals.unapprovedAmount > 0 ? 'danger' : undefined} />
+                <KpiCard label="Advances" value={formatINR(totals.advances)} />
+                <KpiCard label="Deductions" value={formatINR(totals.deductions)} />
+                {totals.materialWasteTotal > 0 && <KpiCard label="Material Waste" value={formatINR(totals.materialWasteTotal)} />}
+                <KpiCard label="Direct Payments" value={formatINR(totals.directPaymentTotal)} />
+                <KpiCard label="Payments" value={formatINR(totals.payments)} />
+                <KpiCard label={totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'} value={formatINR(Math.abs(totals.balancePayable))} tone={totals.balancePayable > 0 ? 'danger' : 'good'} />
+            </KpiGrid>
             {totals.unapprovedAmount > 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
                     ₹{totals.unapprovedAmount.toLocaleString('en-IN')} worth of measured work hasn't been reviewed yet (or is still awaiting rejected-sqft attribution); it isn't counted as Approved earnings until that's resolved (Payables/Receivables → Deductions).
@@ -287,70 +288,90 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
             {showWorks && (
                 <>
                     <h3 style={{ marginBottom: '8px' }}>Works & Earnings</h3>
-                    <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.9fr 1fr 0.9fr 1.1fr 0.9fr 1fr' }}>
-                            <b>Project</b><b>Work Type</b><b>Area Done</b><b>Total</b><b>Approved (as of)</b><b>Unapproved</b><b>Material Cost/Sqft</b>
-                        </div>
-                        {ledger.works.length === 0 ? (
-                            <div className="admin-empty-state"><p>No works for this labourer yet.</p></div>
-                        ) : (
-                            ledger.works.map(w => (
-                                <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.1fr 0.9fr 1fr 0.9fr 1.1fr 0.9fr 1fr' }}>
-                                    <p>{w.projectName}</p>
-                                    <p>{w.workType}</p>
+                    {ledger.works.length === 0 ? (
+                        <div className="admin-empty-state" style={{ marginBottom: '28px' }}><p>No works for this labourer yet.</p></div>
+                    ) : (
+                        <div className="dash-chart-card lle-work-card" style={{ marginBottom: '28px' }}>
+                            <div className="lle-work-row lle-work-header">
+                                <b className="lle-work-project">Project</b>
+                                <b className="lle-work-type">Work Type</b>
+                                <b className="lle-work-area">Area Done</b>
+                                <b className="lle-work-total">Total</b>
+                                <b className="lle-work-approved">Approved (as of)</b>
+                                <b className="lle-work-unapproved">Unapproved</b>
+                                <b className="lle-work-cost">Material Cost/Sqft</b>
+                            </div>
+                            {ledger.works.map(w => (
+                                <div key={w._id} className="lle-work-row">
+                                    <p className="lle-work-project">{w.projectName}</p>
+                                    <p className="lle-work-type"><span className="pq-group-label">Work Type</span>{w.workType}</p>
                                     {/* This labourer's own logged area on this Work — not
                                         w.estimatedAreaSqft, which is the whole Work's target,
                                         not this labourer's share of it. */}
-                                    <p>{w.completedAreaSqft} sqft</p>
-                                    <p>{w.rate ? `₹${w.totalAmount.toLocaleString('en-IN')}` : <span title="No matching labour rate configured">(no rate)</span>}</p>
-                                    <p style={{ color: w.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>
+                                    <p className="lle-work-area"><span className="pq-group-label">Area Done</span>{w.completedAreaSqft} sqft</p>
+                                    <p className="lle-work-total"><span className="pq-group-label">Total</span>{w.rate ? `₹${w.totalAmount.toLocaleString('en-IN')}` : <span title="No matching labour rate configured">(no rate)</span>}</p>
+                                    <p className="lle-work-approved" style={{ color: w.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>
+                                        <span className="pq-group-label">Approved (as of)</span>
                                         {w.earnings > 0
                                             ? <>₹{w.earnings.toLocaleString('en-IN')} <span style={{ fontWeight: 400, fontSize: '0.75rem' }}>({w.approvedAreaSqft} sqft{w.approvedDate ? `, ${new Date(w.approvedDate).toLocaleDateString()}` : ''})</span></>
                                             : 'Unapproved'}
                                     </p>
-                                    <p style={{ color: w.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>
+                                    <p className="lle-work-unapproved" style={{ color: w.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>
+                                        <span className="pq-group-label">Unapproved</span>
                                         {w.rate ? `₹${w.unapprovedAmount.toLocaleString('en-IN')}` : '-'}
                                     </p>
-                                    <p>{w.materialCostPerSqft != null ? `₹${w.materialCostPerSqft.toFixed(2)}` : '—'}</p>
+                                    <p className="lle-work-cost"><span className="pq-group-label">Material Cost/Sqft</span>{w.materialCostPerSqft != null ? `₹${w.materialCostPerSqft.toFixed(2)}` : '—'}</p>
                                 </div>
-                            ))
-                        )}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div className="pq-section-header">
                 <h3 style={{ margin: 0 }}>Advances</h3>
                 <button type="button" className="add-btn" onClick={() => setAdvanceModalOpen(true)}>+ Add Advance</button>
             </div>
             {ledger.advances.length === 0 ? (
                 <div className="admin-empty-state"><p>No advances yet.</p></div>
             ) : (
-                <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
-                        <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>Notes</b><b>Action</b>
+                <div className="dash-chart-card lla-card" style={{ marginBottom: '28px' }}>
+                    <div className="lla-row lla-header">
+                        <b className="lla-date">Date</b>
+                        <b className="lla-amount">Amount</b>
+                        <b className="lla-mode">Mode</b>
+                        <b className="lla-account">Account</b>
+                        <b className="lla-notes">Notes</b>
+                        <b className="lla-actions">Action</b>
                     </div>
                     {ledger.advances.map(a => (
-                        <div key={a._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 100px' }}>
-                            <p>{new Date(a.date).toLocaleDateString()}</p>
-                            <p>₹{a.amount.toLocaleString('en-IN')}</p>
-                            <p>{a.paymentMode || '-'}</p>
-                            <p>{a.bankAccountId?.accountName || 'Cash'}</p>
-                            <p>{a.notes || '-'}</p>
-                            <div className="action-buttons"><p onClick={() => remove('advance', a._id)} className="cursor delete-action">X</p></div>
+                        <div key={a._id} className="lla-row">
+                            <p className="lla-date"><span className="pq-group-label">Date</span>{new Date(a.date).toLocaleDateString()}</p>
+                            <p className="lla-amount"><span className="pq-group-label">Amount</span>₹{a.amount.toLocaleString('en-IN')}</p>
+                            <p className="lla-mode"><span className="pq-group-label">Mode</span>{a.paymentMode || '-'}</p>
+                            <p className="lla-account"><span className="pq-group-label">Account</span>{a.bankAccountId?.accountName || 'Cash'}</p>
+                            <p className="lla-notes"><span className="pq-group-label">Notes</span>{a.notes || '-'}</p>
+                            <div className="action-buttons lla-actions">
+                                <button type="button" onClick={() => setConfirmRemove({ kind: 'advance', id: a._id, label: `₹${a.amount.toLocaleString('en-IN')} advance` })} className="pq-btn-ghost-danger" title="Remove advance" aria-label="Remove advance">
+                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
             )}
 
             {advanceModalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>Add Advance</h2>
-                        <p className="admin-subtitle" style={{ marginTop: '-20px', marginBottom: '20px' }}>
-                            Current {totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}: <span style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</span>
-                        </p>
-                        <form onSubmit={submitAdvance}>
+                <div className="submit-loader-overlay lla-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal lla-modal">
+                        <div className="lla-modal-header">
+                            <h2>Add Advance</h2>
+                            <p className="admin-subtitle" style={{ margin: 0 }}>
+                                Current {totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}: <span style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</span>
+                            </p>
+                        </div>
+                        <div className="lla-modal-body">
+                        <form id="labour-advance-form" onSubmit={submitAdvance}>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Amount (₹) *</p>
@@ -376,17 +397,18 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                                     <input type="text" value={advanceForm.notes} onChange={e => setAdvanceForm(p => ({ ...p, notes: e.target.value }))} />
                                 </div>
                             </div>
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={() => setAdvanceModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving === 'advance'}>{saving === 'advance' ? 'Saving…' : 'Save'}</button>
-                            </div>
                         </form>
+                        </div>
+                        <div className="edit-modal-actions lla-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={() => setAdvanceModalOpen(false)}>Cancel</button>
+                            <button type="submit" form="labour-advance-form" className="add-btn" disabled={saving === 'advance'}>{saving === 'advance' ? 'Saving…' : 'Save'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div className="pq-section-header">
                 <h3 style={{ margin: 0 }}>Deductions</h3>
                 {!(showWorks && ledger.works.length === 0) && (
                     <button type="button" className="add-btn" onClick={() => setDeductionModalOpen(true)}>+ Add Deduction</button>
@@ -405,26 +427,37 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
             {ledger.deductions.length === 0 ? (
                 <div className="admin-empty-state"><p>No deductions yet.</p></div>
             ) : (
-                <div className="list-table finance-table" style={{ marginBottom: '28px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.6fr 0.75fr 0.85fr 1fr 0.8fr 0.8fr 0.8fr 100px' }}>
-                        <b>Date</b><b>Sqft</b><b>Amount</b><b>Material Waste</b><b>Reason</b><b>Caught By</b><b>Origin</b><b>Work</b><b>Action</b>
+                <div className="dash-chart-card lld-card" style={{ marginBottom: '28px' }}>
+                    <div className="lld-row lld-header">
+                        <b className="lld-date">Date</b>
+                        <b className="lld-sqft">Sqft</b>
+                        <b className="lld-amount">Amount</b>
+                        <b className="lld-waste">Material Waste</b>
+                        <b className="lld-reason">Reason</b>
+                        <b className="lld-caughtby">Caught By</b>
+                        <b className="lld-origin">Origin</b>
+                        <b className="lld-work">Work</b>
+                        <b className="lld-actions">Action</b>
                     </div>
                     {ledger.deductions.map(d => (
-                        <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.6fr 0.75fr 0.85fr 1fr 0.8fr 0.8fr 0.8fr 100px' }}>
-                            <p>{new Date(d.date).toLocaleDateString()}</p>
-                            <p>{d.areaSqft ?? '-'}</p>
-                            <p>₹{d.amount.toLocaleString('en-IN')}</p>
-                            <p>{d.materialWasteAmount > 0 ? `₹${d.materialWasteAmount.toLocaleString('en-IN')}` : '-'}</p>
-                            <p>{d.reason}</p>
-                            <p>{d.source === 'supervisor_catch' ? `Supervisor${d.supervisorId?.name ? ` (${d.supervisorId.name})` : ''}` : 'Engineer'}</p>
-                            <p style={{ color: d.workReviewCycle != null ? 'var(--text-lt)' : 'inherit', fontWeight: d.workReviewCycle == null ? 600 : 400 }}>
+                        <div key={d._id} className="lld-row">
+                            <p className="lld-date"><span className="pq-group-label">Date</span>{new Date(d.date).toLocaleDateString()}</p>
+                            <p className="lld-sqft"><span className="pq-group-label">Sqft</span>{d.areaSqft ?? '-'}</p>
+                            <p className="lld-amount"><span className="pq-group-label">Amount</span>₹{d.amount.toLocaleString('en-IN')}</p>
+                            <p className="lld-waste"><span className="pq-group-label">Material Waste</span>{d.materialWasteAmount > 0 ? `₹${d.materialWasteAmount.toLocaleString('en-IN')}` : '-'}</p>
+                            <p className="lld-reason"><span className="pq-group-label">Reason</span>{d.reason}</p>
+                            <p className="lld-caughtby"><span className="pq-group-label">Caught By</span>{d.source === 'supervisor_catch' ? `Supervisor${d.supervisorId?.name ? ` (${d.supervisorId.name})` : ''}` : 'Engineer'}</p>
+                            <p className="lld-origin" style={{ color: d.workReviewCycle != null ? 'var(--text-lt)' : 'inherit', fontWeight: d.workReviewCycle == null ? 600 : 400 }}>
+                                <span className="pq-group-label">Origin</span>
                                 {d.workReviewCycle != null ? 'Review' : 'Manual'}
                             </p>
-                            <p>{ledger.works.find(w => w._id === (d.workId?._id || d.workId))?.workType || '-'}</p>
-                            <div className="action-buttons">
+                            <p className="lld-work"><span className="pq-group-label">Work</span>{ledger.works.find(w => w._id === (d.workId?._id || d.workId))?.workType || '-'}</p>
+                            <div className="action-buttons lld-actions">
                                 {d.workReviewCycle != null
-                                    ? <p title="Change this by redoing the Work Review, not by deleting it here" style={{ color: 'var(--text-lt)', fontSize: '0.85em' }}>—</p>
-                                    : <p onClick={() => remove('deduction', d._id)} className="cursor delete-action">X</p>}
+                                    ? <p title="Change this by redoing the Work Review, not by deleting it here" style={{ color: 'var(--text-lt)', fontSize: '0.85em', margin: 0 }}>—</p>
+                                    : <button type="button" onClick={() => setConfirmRemove({ kind: 'deduction', id: d._id, label: `${d.reason} deduction` })} className="pq-btn-ghost-danger" title="Remove deduction" aria-label="Remove deduction">
+                                        <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                    </button>}
                             </div>
                         </div>
                     ))}
@@ -432,10 +465,13 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
             )}
 
             {deductionModalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>Add Deduction</h2>
-                        <form onSubmit={submitDeduction}>
+                <div className="submit-loader-overlay lld-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal lld-modal">
+                        <div className="lld-modal-header">
+                            <h2>Add Deduction</h2>
+                        </div>
+                        <div className="lld-modal-body">
+                        <form id="labour-deduction-form" onSubmit={submitDeduction}>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Work *</p>
@@ -479,49 +515,63 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                                     ? <p className="admin-subtitle" style={{ marginTop: '8px' }}>≈ ₹{(rate * Number(deductionForm.areaSqft)).toLocaleString('en-IN')} at ₹{rate}/sqft</p>
                                     : <p className="admin-subtitle" style={{ marginTop: '8px', color: '#c0392b' }}>No rate configured for this work; deduction will be rejected.</p>;
                             })()}
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={() => setDeductionModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving === 'deduction'}>{saving === 'deduction' ? 'Saving…' : 'Save'}</button>
-                            </div>
                         </form>
+                        </div>
+                        <div className="edit-modal-actions lld-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={() => setDeductionModalOpen(false)}>Cancel</button>
+                            <button type="submit" form="labour-deduction-form" className="add-btn" disabled={saving === 'deduction'}>{saving === 'deduction' ? 'Saving…' : 'Save'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div className="pq-section-header">
                 <h3 style={{ margin: 0 }}>Payments</h3>
                 <button type="button" className="add-btn" onClick={() => setPaymentModalOpen(true)}>+ Add Payment</button>
             </div>
             {ledger.payments.length === 0 ? (
                 <div className="admin-empty-state"><p>No payments yet.</p></div>
             ) : (
-                <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
-                        <b>Date</b><b>Amount</b><b>Mode</b><b>Account</b><b>TDS</b><b>Notes</b><b>Action</b>
+                <div className="dash-chart-card llp-card">
+                    <div className="llp-row llp-header">
+                        <b className="llp-date">Date</b>
+                        <b className="llp-amount">Amount</b>
+                        <b className="llp-mode">Mode</b>
+                        <b className="llp-account">Account</b>
+                        <b className="llp-tds">TDS</b>
+                        <b className="llp-notes">Notes</b>
+                        <b className="llp-actions">Action</b>
                     </div>
                     {ledger.payments.map(p => (
-                        <div key={p._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
-                            <p>{new Date(p.date).toLocaleDateString()}</p>
-                            <p>₹{p.amount.toLocaleString('en-IN')}</p>
-                            <p>{p.paymentMode || '-'}</p>
-                            <p>{p.bankAccountId?.accountName || 'Cash'}</p>
-                            <p>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
-                            <p>{p.notes || '-'}</p>
-                            <div className="action-buttons"><p onClick={() => remove('payment', p._id)} className="cursor delete-action">X</p></div>
+                        <div key={p._id} className="llp-row">
+                            <p className="llp-date"><span className="pq-group-label">Date</span>{new Date(p.date).toLocaleDateString()}</p>
+                            <p className="llp-amount"><span className="pq-group-label">Amount</span>₹{p.amount.toLocaleString('en-IN')}</p>
+                            <p className="llp-mode"><span className="pq-group-label">Mode</span>{p.paymentMode || '-'}</p>
+                            <p className="llp-account"><span className="pq-group-label">Account</span>{p.bankAccountId?.accountName || 'Cash'}</p>
+                            <p className="llp-tds"><span className="pq-group-label">TDS</span>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
+                            <p className="llp-notes"><span className="pq-group-label">Notes</span>{p.notes || '-'}</p>
+                            <div className="action-buttons llp-actions">
+                                <button type="button" onClick={() => setConfirmRemove({ kind: 'payment', id: p._id, label: `₹${p.amount.toLocaleString('en-IN')} payment` })} className="pq-btn-ghost-danger" title="Remove payment" aria-label="Remove payment">
+                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
             )}
 
             {paymentModalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>Add Payment</h2>
-                        <p className="admin-subtitle" style={{ marginTop: '-20px', marginBottom: '20px' }}>
-                            {totals.balancePayable < 0 ? 'Extra Paid' : 'Payment Left'}: <span style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</span>
-                        </p>
-                        <form onSubmit={submitPayment}>
+                <div className="submit-loader-overlay llp-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal llp-modal">
+                        <div className="llp-modal-header">
+                            <h2>Add Payment</h2>
+                            <p className="admin-subtitle" style={{ margin: 0 }}>
+                                {totals.balancePayable < 0 ? 'Extra Paid' : 'Payment Left'}: <span style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</span>
+                            </p>
+                        </div>
+                        <div className="llp-modal-body">
+                        <form id="labour-payment-form" onSubmit={submitPayment}>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Amount (₹) *</p>
@@ -572,11 +622,28 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                                     {paymentForm.tdsAmount > 0 && ` · TDS: ₹${Number(paymentForm.tdsAmount).toLocaleString('en-IN')} · Net Payable: ₹${(Number(paymentForm.amount) - Number(paymentForm.tdsAmount)).toLocaleString('en-IN')}`}
                                 </p>
                             )}
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={() => setPaymentModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving === 'payment'}>{saving === 'payment' ? 'Saving…' : 'Save'}</button>
-                            </div>
                         </form>
+                        </div>
+                        <div className="edit-modal-actions llp-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={() => setPaymentModalOpen(false)}>Cancel</button>
+                            <button type="submit" form="labour-payment-form" className="add-btn" disabled={saving === 'payment'}>{saving === 'payment' ? 'Saving…' : 'Save'}</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {confirmRemove && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmRemove(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>Remove this {confirmRemove.kind}?</h3>
+                        <p className="bin-confirm-name">{confirmRemove.label}</p>
+                        <p className="bin-confirm-warning">Moved to Recovery Bin.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setConfirmRemove(null)} disabled={deleting}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={confirmRemoveItem} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body

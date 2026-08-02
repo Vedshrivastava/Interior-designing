@@ -2590,6 +2590,1869 @@
     }
 }
 
+/* ── Procurement's Vendors tab — per-vendor summary (ProcurementPage.jsx)
+   — same dash-chart-card row shape as Client Detail's rollup tabs.
+   Read-only, no Actions column: this table exists to compare vendors at
+   a glance, not to act on a row (a vendor's own ledger opens from the
+   Ledger tab's picker instead). */
+.pvs-card {
+    padding: 0;
+}
+
+.pvs-row {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.pvs-row:last-child {
+    border-bottom: none;
+}
+
+.pvs-row.pvs-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+
+.pvs-vendor { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.pvs-purchases, .pvs-returns, .pvs-payments, .pvs-owed { margin: 0; font-variant-numeric: tabular-nums; }
+.pvs-owed { font-weight: 600; }
+
+/* Vendor (first column) stays left-aligned — same reasoning as every
+   other rollup tab's identifier column this pass. Desktop/laptop only. */
+@media (min-width: 641px) {
+    .pvs-purchases,
+    .pvs-returns,
+    .pvs-payments,
+    .pvs-owed {
+        justify-self: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .pvs-row.pvs-header {
+        display: none;
+    }
+
+    .pvs-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "vendor vendor"
+            "purchases returns"
+            "payments owed";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+
+    .pvs-vendor { grid-area: vendor; font-size: 1rem; }
+    .pvs-purchases { grid-area: purchases; }
+    .pvs-returns { grid-area: returns; text-align: right; }
+    .pvs-payments { grid-area: payments; }
+    .pvs-owed { grid-area: owed; text-align: right; }
+}
+
+/* ── Receivables' Pending Receipts tab (ReceivablesPage.jsx) — same
+   dash-chart-card row shape as Procurement's Vendors summary. Read-only,
+   no Actions column: Project is clickable (navigates to its detail page)
+   but nothing here is edited or deleted in place. */
+.prt-card {
+    padding: 0;
+}
+
+.prt-row {
+    display: grid;
+    grid-template-columns: 1.3fr 1.3fr 1fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.prt-row:last-child {
+    border-bottom: none;
+}
+
+.prt-row.prt-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+
+.prt-project { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.prt-client, .prt-issued, .prt-received, .prt-outstanding { margin: 0; font-variant-numeric: tabular-nums; }
+.prt-outstanding { font-weight: 600; }
+
+@media (min-width: 641px) {
+    .prt-client,
+    .prt-issued,
+    .prt-received,
+    .prt-outstanding {
+        justify-self: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .prt-row.prt-header {
+        display: none;
+    }
+
+    .prt-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "project project"
+            "client issued"
+            "received outstanding";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+
+    .prt-project { grid-area: project; font-size: 1rem; }
+    .prt-client { grid-area: client; }
+    .prt-issued { grid-area: issued; text-align: right; }
+    .prt-received { grid-area: received; }
+    .prt-outstanding { grid-area: outstanding; text-align: right; }
+}
+
+/* ── Work Review's main table (WorkReviewPanel.jsx) — same dash-chart-card
+   row shape. Action is a "Review" link or a "✓ Reviewed" badge, both
+   self-descriptive, so it skips the pq-group-label the value columns get. */
+.wr-card {
+    padding: 0;
+}
+
+.wr-row {
+    display: grid;
+    grid-template-columns: 1.3fr 0.9fr 0.9fr 0.9fr 1fr 130px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.wr-row:last-child {
+    border-bottom: none;
+}
+
+.wr-row.wr-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+
+.wr-worktype { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.wr-logged, .wr-approved, .wr-rejected, .wr-pending { margin: 0; font-variant-numeric: tabular-nums; }
+
+@media (min-width: 641px) {
+    .wr-logged,
+    .wr-approved,
+    .wr-rejected,
+    .wr-pending,
+    .wr-action {
+        justify-self: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .wr-row.wr-header {
+        display: none;
+    }
+
+    .wr-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "worktype worktype"
+            "logged approved"
+            "rejected pending"
+            "action action";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+
+    .wr-worktype { grid-area: worktype; font-size: 1rem; }
+    .wr-logged { grid-area: logged; }
+    .wr-approved { grid-area: approved; text-align: right; }
+    .wr-rejected { grid-area: rejected; }
+    .wr-pending { grid-area: pending; text-align: right; }
+    .wr-action { grid-area: action; margin-top: 4px; }
+}
+
+/* ── Work Review modal's own nested distribution tables (contractor/
+   labour, and the optional supervisor one) — both 3-column, Name/Type/
+   an input cell, so they share one class rather than a prefix each. */
+.wrd-card {
+    padding: 0;
+}
+
+.wrd-row {
+    display: grid;
+    grid-template-columns: 1fr 0.8fr 140px;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.wrd-row:last-child {
+    border-bottom: none;
+}
+
+.wrd-row.wrd-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+}
+
+.wrd-name { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.wrd-type { margin: 0; }
+.wrd-value { margin: 0; }
+.wrd-value input[type="number"] {
+    width: 100%;
+}
+
+@media (max-width: 640px) {
+    .wrd-row.wrd-header {
+        display: none;
+    }
+
+    .wrd-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "name name"
+            "type value";
+        row-gap: 8px;
+        column-gap: 10px;
+        padding: 14px;
+    }
+
+    .wrd-name { grid-area: name; font-size: 1rem; }
+    .wrd-type { grid-area: type; }
+    .wrd-value { grid-area: value; }
+}
+
+/* ── PurchaseOrReturnManager's own table (Procurement's Purchases/Returns
+   tabs) — same dash-chart-card row shape as everywhere else. Vendor is
+   the identifier column (bold, left-aligned) even though Date sits
+   first — matches the original table's own column order, but "who" is
+   what a purchase/return log is scanned by, not "when". */
+.por-card {
+    padding: 0;
+}
+
+.por-row {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 60px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.por-row:last-child {
+    border-bottom: none;
+}
+
+.por-row.por-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+
+.por-vendor { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.por-date, .por-material, .por-qty, .por-rate, .por-gst { margin: 0; }
+.por-total { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.por-actions { justify-content: flex-start; }
+
+/* Vendor (identifier) stays left-aligned — same reasoning as every other
+   rollup tab's identifier column this pass. Desktop/laptop only. */
+@media (min-width: 641px) {
+    .por-date,
+    .por-material,
+    .por-qty,
+    .por-rate,
+    .por-total,
+    .por-gst,
+    .por-actions {
+        justify-self: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .por-row.por-header {
+        display: none;
+    }
+
+    .por-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "vendor vendor"
+            "date total"
+            "material qty"
+            "rate gst"
+            "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+
+    .por-vendor { grid-area: vendor; font-size: 1rem; }
+    .por-date { grid-area: date; }
+    .por-total { grid-area: total; text-align: right; font-size: 1rem; }
+    .por-material { grid-area: material; }
+    .por-qty { grid-area: qty; text-align: right; }
+    .por-rate { grid-area: rate; }
+    .por-gst { grid-area: gst; text-align: right; }
+    .por-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+}
+
+/* ── MaterialDumpView (Procurement's Material Dump tab) — simple 3-column
+   read-only log, same dash-chart-card row shape. Material is the
+   identifier column even though Date sits first in the original table —
+   "what got dumped" is what this view is scanned by. */
+.md-card {
+    padding: 0;
+}
+
+.md-row {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.md-row:last-child {
+    border-bottom: none;
+}
+
+.md-row.md-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+
+.md-date { margin: 0; }
+.md-material { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.md-qty { margin: 0; font-variant-numeric: tabular-nums; }
+
+@media (min-width: 641px) {
+    .md-date,
+    .md-qty {
+        justify-self: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .md-row.md-header {
+        display: none;
+    }
+
+    .md-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "material material"
+            "date qty";
+        row-gap: 8px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+
+    .md-material { grid-area: material; font-size: 1rem; }
+    .md-date { grid-area: date; }
+    .md-qty { grid-area: qty; text-align: right; }
+}
+
+/* ── VendorLedgerView's Purchases and Returns tables (Procurement's
+   Ledger tab) — same dash-chart-card row shape, shared class since both
+   tables have the identical 5-column shape. Project is the identifier
+   column even though Date sits first in the original table — a single
+   vendor's ledger is naturally scanned by "which project," not "when". */
+.vlp-card {
+    padding: 0;
+}
+
+.vlp-row {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.vlp-row:last-child {
+    border-bottom: none;
+}
+
+.vlp-row.vlp-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+
+.vlp-project { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.vlp-date, .vlp-material, .vlp-qty { margin: 0; }
+.vlp-total { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+@media (min-width: 641px) {
+    .vlp-date,
+    .vlp-material,
+    .vlp-qty,
+    .vlp-total {
+        justify-self: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .vlp-row.vlp-header {
+        display: none;
+    }
+
+    .vlp-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "project project"
+            "date total"
+            "material qty";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+
+    .vlp-project { grid-area: project; font-size: 1rem; }
+    .vlp-date { grid-area: date; }
+    .vlp-total { grid-area: total; text-align: right; font-size: 1rem; }
+    .vlp-material { grid-area: material; }
+    .vlp-qty { grid-area: qty; text-align: right; }
+}
+
+/* ── VendorLedgerView's Payments table — same dash-chart-card row shape,
+   8 columns reflowed into 4 paired rows + a full-width attachment/action
+   row (no single field here reads as a natural "identifier"). */
+.vlpay-card {
+    padding: 0;
+}
+
+.vlpay-row {
+    display: grid;
+    grid-template-columns: 1fr 0.9fr 1fr 1fr 1fr 1fr 1fr 60px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.vlpay-row:last-child {
+    border-bottom: none;
+}
+
+.vlpay-row.vlpay-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+
+.vlpay-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.vlpay-type, .vlpay-mode, .vlpay-account, .vlpay-tds { margin: 0; }
+.vlpay-amount { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.vlpay-actions { justify-content: flex-start; }
+
+@media (min-width: 641px) {
+    .vlpay-type,
+    .vlpay-amount,
+    .vlpay-mode,
+    .vlpay-account,
+    .vlpay-tds,
+    .vlpay-attachment,
+    .vlpay-actions {
+        justify-self: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .vlpay-row.vlpay-header {
+        display: none;
+    }
+
+    .vlpay-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "date amount"
+            "type mode"
+            "account tds"
+            "attachment attachment"
+            "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+
+    .vlpay-date { grid-area: date; font-size: 1rem; }
+    .vlpay-amount { grid-area: amount; text-align: right; font-size: 1rem; }
+    .vlpay-type { grid-area: type; }
+    .vlpay-mode { grid-area: mode; text-align: right; }
+    .vlpay-account { grid-area: account; }
+    .vlpay-tds { grid-area: tds; text-align: right; }
+    .vlpay-attachment {
+        grid-area: attachment;
+        padding-top: 10px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+    .vlpay-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+    }
+}
+
+/* ── Site Inventory's own per-material stock summary (SiteInventoryPage.jsx)
+   — same dash-chart-card row shape as everywhere else. Material is the
+   identifier column; its cell also carries the below-minimum warning
+   color/icon and (company-wide view only) the "Low at X of Y active
+   projects" subtext, both untouched from the original markup. */
+.si-card {
+    padding: 0;
+}
+
+.si-row {
+    display: grid;
+    grid-template-columns: 1.6fr 1.3fr 1fr 1fr 1fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+
+.si-row:last-child {
+    border-bottom: none;
+}
+
+.si-row.si-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+
+.si-material { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.si-minimum, .si-dumped, .si-returned, .si-consumed, .si-wastage { margin: 0; }
+.si-stock { margin: 0; font-variant-numeric: tabular-nums; }
+
+@media (min-width: 641px) {
+    .si-stock,
+    .si-minimum,
+    .si-dumped,
+    .si-returned,
+    .si-consumed,
+    .si-wastage {
+        justify-self: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .si-row.si-header {
+        display: none;
+    }
+
+    .si-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "material material"
+            "stock minimum"
+            "dumped returned"
+            "consumed wastage";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+
+    .si-material { grid-area: material; font-size: 1rem; }
+    .si-stock { grid-area: stock; }
+    .si-minimum { grid-area: minimum; text-align: right; }
+    .si-dumped { grid-area: dumped; }
+    .si-returned { grid-area: returned; text-align: right; }
+    .si-consumed { grid-area: consumed; }
+    .si-wastage { grid-area: wastage; text-align: right; }
+}
+
+/* ── Contractors page: Overview tab's per-contractor summary
+   (ContractorsPage.jsx) — same dash-chart-card row shape as everywhere
+   else. Contractor name jumps straight to that contractor's Ledger tab
+   (existing onSelectContractor behavior, unchanged), so it's styled
+   clickable like every other identifier-column link this pass. */
+.con-ov-card { padding: 0; }
+.con-ov-row {
+    display: grid;
+    grid-template-columns: 1.4fr 0.9fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.con-ov-row:last-child { border-bottom: none; }
+.con-ov-row.con-ov-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.con-ov-name { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.con-ov-row.con-ov-header .con-ov-name { cursor: default; }
+.con-ov-total, .con-ov-advances, .con-ov-deductions, .con-ov-payments { margin: 0; }
+.con-ov-approved, .con-ov-balance { margin: 0; font-variant-numeric: tabular-nums; }
+@media (min-width: 641px) {
+    .con-ov-total, .con-ov-approved, .con-ov-advances,
+    .con-ov-deductions, .con-ov-payments, .con-ov-balance {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .con-ov-row.con-ov-header { display: none; }
+    .con-ov-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "name name"
+            "total approved"
+            "advances deductions"
+            "payments balance";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .con-ov-name { grid-area: name; font-size: 1rem; }
+    .con-ov-total { grid-area: total; }
+    .con-ov-approved { grid-area: approved; text-align: right; }
+    .con-ov-advances { grid-area: advances; }
+    .con-ov-deductions { grid-area: deductions; text-align: right; }
+    .con-ov-payments { grid-area: payments; }
+    .con-ov-balance { grid-area: balance; text-align: right; }
+}
+
+/* ── Contractors page: Projects tab (ContractorProjectsTab) — 2-column,
+   simple enough to stay 1-column even on mobile (Work Types is a
+   comma-joined list that reads better full-width than squeezed). */
+.con-proj-card { padding: 0; }
+.con-proj-row {
+    display: grid;
+    grid-template-columns: 2fr 2fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.con-proj-row:last-child { border-bottom: none; }
+.con-proj-row.con-proj-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.con-proj-name { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.con-proj-row.con-proj-header .con-proj-name { cursor: default; }
+.con-proj-types { margin: 0; }
+@media (max-width: 640px) {
+    .con-proj-row.con-proj-header { display: none; }
+    .con-proj-row {
+        grid-template-columns: 1fr;
+        row-gap: 6px;
+        padding: 16px;
+    }
+    .con-proj-name { font-size: 1rem; }
+}
+
+/* ── Contractors page: Works tab (ContractorWorksView) ── */
+.con-work-card { padding: 0; }
+.con-work-row {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1.3fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.con-work-row:last-child { border-bottom: none; }
+.con-work-row.con-work-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.con-work-project { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.con-work-type, .con-work-area, .con-work-cost { margin: 0; }
+.con-work-status { margin: 0; }
+@media (min-width: 641px) {
+    .con-work-type, .con-work-area, .con-work-cost, .con-work-status {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .con-work-row.con-work-header { display: none; }
+    .con-work-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "project project"
+            "type status"
+            "area cost";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .con-work-project { grid-area: project; font-size: 1rem; }
+    .con-work-type { grid-area: type; }
+    .con-work-status { grid-area: status; text-align: right; }
+    .con-work-area { grid-area: area; }
+    .con-work-cost { grid-area: cost; text-align: right; }
+}
+
+/* ── Contractors page: Measurements tab (ContractorMeasurementsView) ── */
+.con-meas-card { padding: 0; }
+.con-meas-row {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.con-meas-row:last-child { border-bottom: none; }
+.con-meas-row.con-meas-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.con-meas-work { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.con-meas-date, .con-meas-area { margin: 0; }
+@media (min-width: 641px) {
+    .con-meas-date, .con-meas-area { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .con-meas-row.con-meas-header { display: none; }
+    .con-meas-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "work work"
+            "date area";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .con-meas-work { grid-area: work; font-size: 1rem; }
+    .con-meas-date { grid-area: date; }
+    .con-meas-area { grid-area: area; text-align: right; }
+}
+
+/* ── PersonDocumentsView (Contractors/Labourers/Employees "Documents"
+   tab) — plain name+action row, no header (there's really only one
+   meaningful column, the filename; a header row would just repeat
+   "Document"/"Action" over what already reads as a file list). */
+.pdv-card { padding: 0; }
+.pdv-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.pdv-row:last-child { border-bottom: none; }
+.pdv-name { flex: 1; min-width: 0; }
+.pdv-actions { flex-shrink: 0; }
+
+/* ── ContractorLedgerView's "Works & Earnings" table ── */
+.cle-work-card { padding: 0; }
+.cle-work-row {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr 1fr 0.9fr 1.1fr 0.9fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.cle-work-row:last-child { border-bottom: none; }
+.cle-work-row.cle-work-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.cle-work-project { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.cle-work-type, .cle-work-area, .cle-work-total, .cle-work-cost { margin: 0; }
+.cle-work-approved, .cle-work-unapproved { margin: 0; }
+@media (min-width: 641px) {
+    .cle-work-type, .cle-work-area, .cle-work-total,
+    .cle-work-approved, .cle-work-unapproved, .cle-work-cost {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .cle-work-row.cle-work-header { display: none; }
+    .cle-work-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "project project"
+            "type area"
+            "total approved"
+            "unapproved cost";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .cle-work-project { grid-area: project; font-size: 1rem; }
+    .cle-work-type { grid-area: type; }
+    .cle-work-area { grid-area: area; text-align: right; }
+    .cle-work-total { grid-area: total; }
+    .cle-work-approved { grid-area: approved; text-align: right; }
+    .cle-work-unapproved { grid-area: unapproved; }
+    .cle-work-cost { grid-area: cost; text-align: right; }
+}
+
+/* ── ContractorLedgerView's Advances table ── */
+.cla-card { padding: 0; }
+.cla-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 60px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.cla-row:last-child { border-bottom: none; }
+.cla-row.cla-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.cla-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.cla-mode, .cla-account, .cla-notes { margin: 0; }
+.cla-amount { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.cla-actions { justify-content: flex-start; }
+@media (min-width: 641px) {
+    .cla-amount, .cla-mode, .cla-account, .cla-notes, .cla-actions {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .cla-row.cla-header { display: none; }
+    .cla-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "date amount"
+            "mode account"
+            "notes notes"
+            "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .cla-date { grid-area: date; font-size: 1rem; }
+    .cla-amount { grid-area: amount; text-align: right; font-size: 1rem; }
+    .cla-mode { grid-area: mode; }
+    .cla-account { grid-area: account; text-align: right; }
+    .cla-notes { grid-area: notes; }
+    .cla-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+}
+
+/* ── ContractorLedgerView's Deductions table ── */
+.cld-card { padding: 0; }
+.cld-row {
+    display: grid;
+    grid-template-columns: 1fr 0.7fr 0.8fr 0.9fr 0.8fr 1fr 0.9fr 60px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.cld-row:last-child { border-bottom: none; }
+.cld-row.cld-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.cld-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.cld-sqft, .cld-waste, .cld-source, .cld-work { margin: 0; }
+.cld-amount { margin: 0; font-variant-numeric: tabular-nums; }
+.cld-reason { margin: 0; }
+.cld-actions { justify-content: flex-start; }
+@media (min-width: 641px) {
+    .cld-sqft, .cld-amount, .cld-waste, .cld-source,
+    .cld-reason, .cld-work, .cld-actions {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .cld-row.cld-header { display: none; }
+    .cld-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "date amount"
+            "sqft waste"
+            "source work"
+            "reason reason"
+            "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .cld-date { grid-area: date; font-size: 1rem; }
+    .cld-amount { grid-area: amount; text-align: right; font-size: 1rem; }
+    .cld-sqft { grid-area: sqft; }
+    .cld-waste { grid-area: waste; text-align: right; }
+    .cld-source { grid-area: source; }
+    .cld-work { grid-area: work; text-align: right; }
+    .cld-reason { grid-area: reason; }
+    .cld-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+}
+
+/* ── ContractorLedgerView's Payments table ── */
+.clp-card { padding: 0; }
+.clp-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 60px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.clp-row:last-child { border-bottom: none; }
+.clp-row.clp-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.clp-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.clp-mode, .clp-account, .clp-tds { margin: 0; }
+.clp-amount { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.clp-actions { justify-content: flex-start; }
+@media (min-width: 641px) {
+    .clp-amount, .clp-mode, .clp-account, .clp-tds, .clp-attachment, .clp-actions {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .clp-row.clp-header { display: none; }
+    .clp-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "date amount"
+            "mode account"
+            "tds tds"
+            "attachment attachment"
+            "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .clp-date { grid-area: date; font-size: 1rem; }
+    .clp-amount { grid-area: amount; text-align: right; font-size: 1rem; }
+    .clp-mode { grid-area: mode; }
+    .clp-account { grid-area: account; text-align: right; }
+    .clp-tds { grid-area: tds; }
+    .clp-attachment {
+        grid-area: attachment;
+        padding-top: 10px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+    .clp-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+    }
+}
+
+/* ── Employees page: Supervisor Team tab (SupervisorTeamTab) ── */
+.set-card { padding: 0; }
+.set-row {
+    display: grid;
+    grid-template-columns: 1.3fr 1.3fr 1fr 1.3fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.set-row:last-child { border-bottom: none; }
+.set-row.set-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.set-labourer { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.set-project, .set-type, .set-notes { margin: 0; }
+@media (min-width: 641px) {
+    .set-project, .set-type, .set-notes { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .set-row.set-header { display: none; }
+    .set-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "labourer labourer" "project type" "notes notes";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .set-labourer { grid-area: labourer; font-size: 1rem; }
+    .set-project { grid-area: project; }
+    .set-type { grid-area: type; text-align: right; }
+    .set-notes { grid-area: notes; }
+}
+
+/* ── Employees page: Assigned Projects tab (AssignedProjectsTab) ── */
+.sep-card { padding: 0; }
+.sep-row {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.sep-row:last-child { border-bottom: none; }
+.sep-row.sep-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.sep-name { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.sep-row.sep-header .sep-name { cursor: default; }
+.sep-status, .sep-contract { margin: 0; }
+@media (min-width: 641px) {
+    .sep-status, .sep-contract { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .sep-row.sep-header { display: none; }
+    .sep-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "name name" "status contract";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .sep-name { grid-area: name; font-size: 1rem; }
+    .sep-status { grid-area: status; }
+    .sep-contract { grid-area: contract; text-align: right; }
+}
+
+/* ── Employees page: Supervisor Attendance tab (SupervisorAttendanceManager) ── */
+.saa-card { padding: 0; }
+.saa-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.5fr 60px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.saa-row:last-child { border-bottom: none; }
+.saa-row.saa-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.saa-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.saa-status, .saa-notes { margin: 0; }
+.saa-actions { justify-content: flex-start; }
+@media (min-width: 641px) {
+    .saa-status, .saa-notes, .saa-actions { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .saa-row.saa-header { display: none; }
+    .saa-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "date status" "notes notes" "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .saa-date { grid-area: date; font-size: 1rem; }
+    .saa-status { grid-area: status; text-align: right; }
+    .saa-notes { grid-area: notes; }
+    .saa-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+}
+
+/* ── Employees page: Supervisor Incentives / Deductions tabs — identical
+   6-column shape (Date/Amount/Reason/Project/Work/Action), separate
+   class prefixes since they're separate components (SupervisorIncentives
+   Manager / SupervisorDeductionsManager). ── */
+.sin-card, .sde-card { padding: 0; }
+.sin-row, .sde-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.3fr 1fr 1fr 60px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.sin-row:last-child, .sde-row:last-child { border-bottom: none; }
+.sin-row.sin-header, .sde-row.sde-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.sin-date, .sde-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.sin-amount, .sde-amount { margin: 0; font-variant-numeric: tabular-nums; }
+.sin-reason, .sde-reason, .sin-project, .sde-project, .sin-work, .sde-work { margin: 0; }
+.sin-actions, .sde-actions { justify-content: flex-start; }
+@media (min-width: 641px) {
+    .sin-amount, .sin-reason, .sin-project, .sin-work, .sin-actions,
+    .sde-amount, .sde-reason, .sde-project, .sde-work, .sde-actions {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .sin-row.sin-header, .sde-row.sde-header { display: none; }
+    .sin-row, .sde-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "date amount" "project work" "reason reason" "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .sin-date, .sde-date { grid-area: date; font-size: 1rem; }
+    .sin-amount, .sde-amount { grid-area: amount; text-align: right; font-size: 1rem; }
+    .sin-project, .sde-project { grid-area: project; }
+    .sin-work, .sde-work { grid-area: work; text-align: right; }
+    .sin-reason, .sde-reason { grid-area: reason; }
+    .sin-actions, .sde-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+}
+
+/* ── Employees page: Salary tab (SalaryLedgerView) — "By Month" (no
+   actions) and "Payment History" (with actions), separate row shapes. ── */
+.sal-card, .salp-card { padding: 0; }
+.sal-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.sal-row:last-child { border-bottom: none; }
+.sal-row.sal-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.sal-month { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.sal-expected, .sal-paid { margin: 0; }
+.sal-balance { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+@media (min-width: 641px) {
+    .sal-expected, .sal-paid, .sal-balance { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .sal-row.sal-header { display: none; }
+    .sal-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "month month" "expected paid" "balance balance";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .sal-month { grid-area: month; font-size: 1rem; }
+    .sal-expected { grid-area: expected; }
+    .sal-paid { grid-area: paid; text-align: right; }
+    .sal-balance { grid-area: balance; text-align: right; font-size: 1rem; }
+}
+
+.salp-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 60px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.salp-row:last-child { border-bottom: none; }
+.salp-row.salp-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.salp-month { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.salp-date, .salp-account, .salp-tds { margin: 0; }
+.salp-amount { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.salp-actions { justify-content: flex-start; }
+@media (min-width: 641px) {
+    .salp-date, .salp-amount, .salp-account, .salp-tds, .salp-actions {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .salp-row.salp-header { display: none; }
+    .salp-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "month date" "amount account" "tds tds" "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .salp-month { grid-area: month; font-size: 1rem; }
+    .salp-date { grid-area: date; text-align: right; }
+    .salp-amount { grid-area: amount; font-size: 1rem; }
+    .salp-account { grid-area: account; text-align: right; }
+    .salp-tds { grid-area: tds; }
+    .salp-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+}
+
+/* ── LabourLedgerView's "Works & Earnings" table — same shape as
+   ContractorLedgerView's own .cle-work-*, separate prefix (own component). */
+.lle-work-card { padding: 0; }
+.lle-work-row {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr 1fr 0.9fr 1.1fr 0.9fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.lle-work-row:last-child { border-bottom: none; }
+.lle-work-row.lle-work-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.lle-work-project { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.lle-work-type, .lle-work-area, .lle-work-total, .lle-work-cost { margin: 0; }
+.lle-work-approved, .lle-work-unapproved { margin: 0; }
+@media (min-width: 641px) {
+    .lle-work-type, .lle-work-area, .lle-work-total,
+    .lle-work-approved, .lle-work-unapproved, .lle-work-cost {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .lle-work-row.lle-work-header { display: none; }
+    .lle-work-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "project project" "type area" "total approved" "unapproved cost";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .lle-work-project { grid-area: project; font-size: 1rem; }
+    .lle-work-type { grid-area: type; }
+    .lle-work-area { grid-area: area; text-align: right; }
+    .lle-work-total { grid-area: total; }
+    .lle-work-approved { grid-area: approved; text-align: right; }
+    .lle-work-unapproved { grid-area: unapproved; }
+    .lle-work-cost { grid-area: cost; text-align: right; }
+}
+
+/* ── LabourLedgerView's Advances table — same shape as ContractorLedgerView's .cla-*. */
+.lla-card { padding: 0; }
+.lla-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 60px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.lla-row:last-child { border-bottom: none; }
+.lla-row.lla-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.lla-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.lla-mode, .lla-account, .lla-notes { margin: 0; }
+.lla-amount { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.lla-actions { justify-content: flex-start; }
+@media (min-width: 641px) {
+    .lla-amount, .lla-mode, .lla-account, .lla-notes, .lla-actions {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .lla-row.lla-header { display: none; }
+    .lla-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "date amount" "mode account" "notes notes" "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .lla-date { grid-area: date; font-size: 1rem; }
+    .lla-amount { grid-area: amount; text-align: right; font-size: 1rem; }
+    .lla-mode { grid-area: mode; }
+    .lla-account { grid-area: account; text-align: right; }
+    .lla-notes { grid-area: notes; }
+    .lla-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+}
+
+/* ── LabourLedgerView's Deductions table — 9 columns (one more than
+   ContractorLedgerView's own: an extra "Caught By" column). ── */
+.lld-card { padding: 0; }
+.lld-row {
+    display: grid;
+    grid-template-columns: 1fr 0.6fr 0.75fr 0.85fr 1fr 0.8fr 0.8fr 0.8fr 60px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.lld-row:last-child { border-bottom: none; }
+.lld-row.lld-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.lld-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.lld-sqft, .lld-waste, .lld-caughtby, .lld-work { margin: 0; }
+.lld-amount { margin: 0; font-variant-numeric: tabular-nums; }
+.lld-reason { margin: 0; }
+.lld-actions { justify-content: flex-start; }
+@media (min-width: 641px) {
+    .lld-sqft, .lld-amount, .lld-waste, .lld-reason,
+    .lld-caughtby, .lld-origin, .lld-work, .lld-actions {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .lld-row.lld-header { display: none; }
+    .lld-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "date amount" "sqft waste" "caughtby origin" "work work" "reason reason" "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .lld-date { grid-area: date; font-size: 1rem; }
+    .lld-amount { grid-area: amount; text-align: right; font-size: 1rem; }
+    .lld-sqft { grid-area: sqft; }
+    .lld-waste { grid-area: waste; text-align: right; }
+    .lld-caughtby { grid-area: caughtby; }
+    .lld-origin { grid-area: origin; text-align: right; }
+    .lld-work { grid-area: work; }
+    .lld-reason { grid-area: reason; }
+    .lld-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+}
+
+/* ── LabourLedgerView's Payments table — same shape as
+   ContractorLedgerView's .clp-*, but Notes instead of Attachment. ── */
+.llp-card { padding: 0; }
+.llp-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 60px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.llp-row:last-child { border-bottom: none; }
+.llp-row.llp-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.llp-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.llp-mode, .llp-account, .llp-tds, .llp-notes { margin: 0; }
+.llp-amount { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.llp-actions { justify-content: flex-start; }
+@media (min-width: 641px) {
+    .llp-amount, .llp-mode, .llp-account, .llp-tds, .llp-notes, .llp-actions {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .llp-row.llp-header { display: none; }
+    .llp-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "date amount" "mode account" "tds tds" "notes notes" "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .llp-date { grid-area: date; font-size: 1rem; }
+    .llp-amount { grid-area: amount; text-align: right; font-size: 1rem; }
+    .llp-mode { grid-area: mode; }
+    .llp-account { grid-area: account; text-align: right; }
+    .llp-tds { grid-area: tds; }
+    .llp-notes { grid-area: notes; }
+    .llp-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+}
+
+/* ── Labourers page: Projects tab (LabourerProjectsTab, DailyLabourPage.jsx)
+   — same shape as Contractors' own Projects tab, own prefix per this
+   session's convention (separate component). ── */
+.lap-card { padding: 0; }
+.lap-row {
+    display: grid;
+    grid-template-columns: 2fr 2fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.lap-row:last-child { border-bottom: none; }
+.lap-row.lap-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.lap-name { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.lap-row.lap-header .lap-name { cursor: default; }
+.lap-types { margin: 0; }
+@media (max-width: 640px) {
+    .lap-row.lap-header { display: none; }
+    .lap-row {
+        grid-template-columns: 1fr;
+        row-gap: 6px;
+        padding: 16px;
+    }
+    .lap-name { font-size: 1rem; }
+}
+
+/* ── Labourers page: Works tab (LabourWorksView) ── */
+.law-card { padding: 0; }
+.law-row {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1.3fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.law-row:last-child { border-bottom: none; }
+.law-row.law-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.law-project { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.law-type, .law-area, .law-cost, .law-status { margin: 0; }
+@media (min-width: 641px) {
+    .law-type, .law-area, .law-cost, .law-status { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .law-row.law-header { display: none; }
+    .law-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "project project" "type status" "area cost";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .law-project { grid-area: project; font-size: 1rem; }
+    .law-type { grid-area: type; }
+    .law-status { grid-area: status; text-align: right; }
+    .law-area { grid-area: area; }
+    .law-cost { grid-area: cost; text-align: right; }
+}
+
+/* ── Labourers page: Measurements tab (LabourWorkerMeasurementsView) ── */
+.lam-card { padding: 0; }
+.lam-row {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.lam-row:last-child { border-bottom: none; }
+.lam-row.lam-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.lam-work { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.lam-date, .lam-area { margin: 0; }
+@media (min-width: 641px) {
+    .lam-date, .lam-area { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .lam-row.lam-header { display: none; }
+    .lam-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "work work" "date area";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .lam-work { grid-area: work; font-size: 1rem; }
+    .lam-date { grid-area: date; }
+    .lam-area { grid-area: area; text-align: right; }
+}
+
+/* ── Labour Measurements table (LabourMeasurementsManager — shared by
+   Labourers' "All Entries" tab and Project Detail's own Labour tab) ── */
+.lmm-card { padding: 0; }
+.lmm-row {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1.2fr 1fr 60px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.lmm-row:last-child { border-bottom: none; }
+.lmm-row.lmm-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.lmm-labourer { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.lmm-date, .lmm-work, .lmm-area { margin: 0; }
+.lmm-actions { justify-content: flex-start; }
+@media (min-width: 641px) {
+    .lmm-date, .lmm-work, .lmm-area, .lmm-actions { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .lmm-row.lmm-header { display: none; }
+    .lmm-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "labourer labourer" "date area" "work work" "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .lmm-labourer { grid-area: labourer; font-size: 1rem; }
+    .lmm-date { grid-area: date; }
+    .lmm-area { grid-area: area; text-align: right; }
+    .lmm-work { grid-area: work; }
+    .lmm-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+}
+
+/* ── Labour Provider Ledger's "Earnings by Labourer & Work" table ── */
+.lpe-card { padding: 0; }
+.lpe-row {
+    display: grid;
+    grid-template-columns: 1.1fr 1.1fr 0.9fr 0.8fr 0.8fr 0.8fr 0.7fr 0.9fr 0.9fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.lpe-row:last-child { border-bottom: none; }
+.lpe-row.lpe-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.lpe-labourer { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.lpe-project, .lpe-type, .lpe-total, .lpe-approved, .lpe-pending, .lpe-rate { margin: 0; }
+.lpe-approvedpay, .lpe-pendingpay { margin: 0; font-variant-numeric: tabular-nums; }
+@media (min-width: 641px) {
+    .lpe-project, .lpe-type, .lpe-total, .lpe-approved,
+    .lpe-pending, .lpe-rate, .lpe-approvedpay, .lpe-pendingpay {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .lpe-row.lpe-header { display: none; }
+    .lpe-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "labourer labourer" "project type" "total approved" "pending rate" "approvedpay pendingpay";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .lpe-labourer { grid-area: labourer; font-size: 1rem; }
+    .lpe-project { grid-area: project; }
+    .lpe-type { grid-area: type; text-align: right; }
+    .lpe-total { grid-area: total; }
+    .lpe-approved { grid-area: approved; text-align: right; }
+    .lpe-pending { grid-area: pending; }
+    .lpe-rate { grid-area: rate; text-align: right; }
+    .lpe-approvedpay { grid-area: approvedpay; }
+    .lpe-pendingpay { grid-area: pendingpay; text-align: right; }
+}
+
+/* ── Labour Provider Ledger's Payments table ── */
+.lpp-card { padding: 0; }
+.lpp-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 60px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.lpp-row:last-child { border-bottom: none; }
+.lpp-row.lpp-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.lpp-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.lpp-mode, .lpp-account, .lpp-tds { margin: 0; }
+.lpp-amount { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.lpp-actions { justify-content: flex-start; }
+@media (min-width: 641px) {
+    .lpp-amount, .lpp-mode, .lpp-account, .lpp-tds, .lpp-actions { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .lpp-row.lpp-header { display: none; }
+    .lpp-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "date amount" "mode account" "tds tds" "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .lpp-date { grid-area: date; font-size: 1rem; }
+    .lpp-amount { grid-area: amount; text-align: right; font-size: 1rem; }
+    .lpp-mode { grid-area: mode; }
+    .lpp-account { grid-area: account; text-align: right; }
+    .lpp-tds { grid-area: tds; }
+    .lpp-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+}
+
+/* ── Commission Ledger's "Earnings by Work" table (CommissionLedgerView) ── */
+.cme-card { padding: 0; }
+.cme-row {
+    display: grid;
+    grid-template-columns: 1.2fr 0.9fr 1fr 0.9fr 1fr 0.9fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.cme-row:last-child { border-bottom: none; }
+.cme-row.cme-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.cme-project { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.cme-type, .cme-area, .cme-cut { margin: 0; }
+.cme-approved, .cme-unapproved { margin: 0; }
+@media (min-width: 641px) {
+    .cme-type, .cme-area, .cme-cut, .cme-approved, .cme-unapproved { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .cme-row.cme-header { display: none; }
+    .cme-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "project project" "type area" "cut approved" "unapproved unapproved";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .cme-project { grid-area: project; font-size: 1rem; }
+    .cme-type { grid-area: type; }
+    .cme-area { grid-area: area; text-align: right; }
+    .cme-cut { grid-area: cut; }
+    .cme-approved { grid-area: approved; text-align: right; }
+    .cme-unapproved { grid-area: unapproved; }
+}
+
+/* ── Commission Ledger's Payments table ── */
+.cmp-card { padding: 0; }
+.cmp-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 60px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.cmp-row:last-child { border-bottom: none; }
+.cmp-row.cmp-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.cmp-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.cmp-mode, .cmp-account, .cmp-tds { margin: 0; }
+.cmp-amount { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.cmp-actions { justify-content: flex-start; }
+@media (min-width: 641px) {
+    .cmp-amount, .cmp-mode, .cmp-account, .cmp-tds, .cmp-actions { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .cmp-row.cmp-header { display: none; }
+    .cmp-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "date amount" "mode account" "tds tds" "actions actions";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .cmp-date { grid-area: date; font-size: 1rem; }
+    .cmp-amount { grid-area: amount; text-align: right; font-size: 1rem; }
+    .cmp-mode { grid-area: mode; }
+    .cmp-account { grid-area: account; text-align: right; }
+    .cmp-tds { grid-area: tds; }
+    .cmp-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+}
+
 /* Stacks the "+ Add Quotation" button below the title/subtitle on mobile
    instead of letting it wrap onto 2 lines beside wrapping body text —
    desktop keeps the original side-by-side row untouched. */
@@ -2821,7 +4684,22 @@
 .edit-modal.doc-modal,
 .edit-modal.pt-modal,
 .edit-modal.mc-modal,
-.edit-modal.cp-modal {
+.edit-modal.cp-modal,
+.edit-modal.por-modal,
+.edit-modal.vlpay-modal,
+.edit-modal.cla-modal,
+.edit-modal.cld-modal,
+.edit-modal.clp-modal,
+.edit-modal.saa-modal,
+.edit-modal.sin-modal,
+.edit-modal.sde-modal,
+.edit-modal.lla-modal,
+.edit-modal.lld-modal,
+.edit-modal.llp-modal,
+.edit-modal.lmm-modal,
+.edit-modal.lpp-modal,
+.edit-modal.cmp-modal,
+.edit-modal.wr-modal {
     text-align: left;
 }
 
@@ -2992,7 +4870,22 @@
 .edit-modal-actions.doc-modal-footer,
 .edit-modal-actions.pt-modal-footer,
 .edit-modal-actions.mc-modal-footer,
-.edit-modal-actions.cp-modal-footer {
+.edit-modal-actions.cp-modal-footer,
+.edit-modal-actions.por-modal-footer,
+.edit-modal-actions.vlpay-modal-footer,
+.edit-modal-actions.cla-modal-footer,
+.edit-modal-actions.cld-modal-footer,
+.edit-modal-actions.clp-modal-footer,
+.edit-modal-actions.saa-modal-footer,
+.edit-modal-actions.sin-modal-footer,
+.edit-modal-actions.sde-modal-footer,
+.edit-modal-actions.lla-modal-footer,
+.edit-modal-actions.lld-modal-footer,
+.edit-modal-actions.llp-modal-footer,
+.edit-modal-actions.lmm-modal-footer,
+.edit-modal-actions.lpp-modal-footer,
+.edit-modal-actions.cmp-modal-footer,
+.edit-modal-actions.wr-modal-footer {
     margin-top: 36px;
 }
 
@@ -3846,6 +5739,550 @@
     }
 }
 
+/* ── Record Purchase/Return modal (PurchaseOrReturnManager, shared by
+   Procurement's Purchases and Returns tabs) — mobile bottom sheet,
+   mechanically identical to .doc-modal above: flat single-section field
+   list (Vendor/Project/Material pickers + Quantity/Rate/Date/Reference/
+   Total/GST/Notes), so no wizard-section-label handling is needed. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.por-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+
+    .edit-modal.por-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .por-modal-header {
+        flex-shrink: 0;
+        padding: 26px 20px 0;
+    }
+
+    .por-modal-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 0 20px 20px;
+    }
+
+    .edit-modal-actions.por-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.por-modal-footer button { width: 100% !important; }
+
+    .por-modal-body p {
+        font-size: 0.64rem !important;
+        letter-spacing: 1.3px !important;
+        margin-bottom: 6px !important;
+    }
+    .por-modal-body input[type="text"],
+    .por-modal-body input[type="number"],
+    .por-modal-body textarea,
+    .por-modal-body .add-cat-trigger {
+        font-size: 16px !important;
+        padding: 12px 14px !important;
+        border-radius: 10px !important;
+    }
+    .por-modal-body .wizard-field-grid {
+        gap: 12px !important;
+    }
+}
+
+/* ── Add Payment/Refund modal (VendorLedgerView) — mobile bottom sheet,
+   mechanically identical to .por-modal above: flat single-section field
+   list plus one checkbox row (isRefund) ahead of the form itself, so no
+   wizard-section-label handling is needed here either. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.vlpay-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+
+    .edit-modal.vlpay-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .vlpay-modal-header {
+        flex-shrink: 0;
+        padding: 26px 20px 0;
+    }
+
+    .vlpay-modal-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 0 20px 20px;
+    }
+
+    .edit-modal-actions.vlpay-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.vlpay-modal-footer button { width: 100% !important; }
+
+    .vlpay-modal-body p {
+        font-size: 0.64rem !important;
+        letter-spacing: 1.3px !important;
+        margin-bottom: 6px !important;
+    }
+    .vlpay-modal-body input[type="number"],
+    .vlpay-modal-body input[type="file"],
+    .vlpay-modal-body select,
+    .vlpay-modal-body .add-cat-trigger {
+        font-size: 16px !important;
+        padding: 12px 14px !important;
+        border-radius: 10px !important;
+    }
+    .vlpay-modal-body .wizard-field-grid {
+        gap: 12px !important;
+    }
+}
+
+/* ── Add Advance modal (ContractorLedgerView) — mobile bottom sheet,
+   mechanically identical to .cp-modal above: flat single-section field
+   list (Amount/Date/Payment Mode/Bank Account/Notes). */
+@media (max-width: 540px) {
+    .submit-loader-overlay.cla-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+    .edit-modal.cla-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    .cla-modal-header { flex-shrink: 0; padding: 26px 20px 0; }
+    .cla-modal-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 20px; }
+    .edit-modal-actions.cla-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.cla-modal-footer button { width: 100% !important; }
+    .cla-modal-body p {
+        font-size: 0.64rem !important;
+        letter-spacing: 1.3px !important;
+        margin-bottom: 6px !important;
+    }
+    .cla-modal-body input[type="text"],
+    .cla-modal-body input[type="number"],
+    .cla-modal-body .add-cat-trigger {
+        font-size: 16px !important;
+        padding: 12px 14px !important;
+        border-radius: 10px !important;
+    }
+    .cla-modal-body .wizard-field-grid {
+        gap: 12px !important;
+    }
+}
+
+/* ── Add Deduction modal (ContractorLedgerView) — mobile bottom sheet,
+   mechanically identical to .cp-modal above: flat single-section field
+   list (Work/Sqft/Reason/Date). */
+@media (max-width: 540px) {
+    .submit-loader-overlay.cld-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+    .edit-modal.cld-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    .cld-modal-header { flex-shrink: 0; padding: 26px 20px 0; }
+    .cld-modal-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 20px; }
+    .edit-modal-actions.cld-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.cld-modal-footer button { width: 100% !important; }
+    .cld-modal-body p {
+        font-size: 0.64rem !important;
+        letter-spacing: 1.3px !important;
+        margin-bottom: 6px !important;
+    }
+    .cld-modal-body input[type="text"],
+    .cld-modal-body input[type="number"],
+    .cld-modal-body select {
+        font-size: 16px !important;
+        padding: 12px 14px !important;
+        border-radius: 10px !important;
+    }
+    .cld-modal-body .wizard-field-grid {
+        gap: 12px !important;
+    }
+}
+
+/* ── Add Payment modal (ContractorLedgerView) — mobile bottom sheet,
+   mechanically identical to .vlpay-modal above: flat single-section
+   field list (Amount/Date/Work/Payment Mode/Bank Account/TDS Section/
+   TDS Amount/Attachment). */
+@media (max-width: 540px) {
+    .submit-loader-overlay.clp-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+    .edit-modal.clp-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    .clp-modal-header { flex-shrink: 0; padding: 26px 20px 0; }
+    .clp-modal-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 20px; }
+    .edit-modal-actions.clp-modal-footer {
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+    }
+    .edit-modal-actions.clp-modal-footer button { width: 100% !important; }
+    .clp-modal-body p {
+        font-size: 0.64rem !important;
+        letter-spacing: 1.3px !important;
+        margin-bottom: 6px !important;
+    }
+    .clp-modal-body input[type="text"],
+    .clp-modal-body input[type="number"],
+    .clp-modal-body input[type="file"],
+    .clp-modal-body .add-cat-trigger {
+        font-size: 16px !important;
+        padding: 12px 14px !important;
+        border-radius: 10px !important;
+    }
+    .clp-modal-body .wizard-field-grid {
+        gap: 12px !important;
+    }
+}
+
+/* ── Mark Attendance modal (SupervisorAttendanceManager) — mobile bottom
+   sheet, mechanically identical to .cp-modal above: flat single-section
+   field list (Date/Status/Notes). */
+@media (max-width: 540px) {
+    .submit-loader-overlay.saa-overlay { padding: 0 !important; align-items: flex-end !important; }
+    .edit-modal.saa-modal {
+        width: 100% !important; max-width: 100% !important; max-height: 92dvh !important;
+        margin: 0 !important; padding: 0 !important; border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important; display: flex !important; flex-direction: column !important;
+        align-items: stretch !important; animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    .saa-modal-header { flex-shrink: 0; padding: 26px 20px 0; }
+    .saa-modal-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 20px; }
+    .edit-modal-actions.saa-modal-footer {
+        flex-shrink: 0; margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important; gap: 10px !important;
+    }
+    .edit-modal-actions.saa-modal-footer button { width: 100% !important; }
+    .saa-modal-body p { font-size: 0.64rem !important; letter-spacing: 1.3px !important; margin-bottom: 6px !important; }
+    .saa-modal-body input[type="text"], .saa-modal-body select, .saa-modal-body .add-cat-trigger {
+        font-size: 16px !important; padding: 12px 14px !important; border-radius: 10px !important;
+    }
+    .saa-modal-body .wizard-field-grid { gap: 12px !important; }
+}
+
+/* ── Add Incentive / Add Deduction modals (SupervisorIncentivesManager /
+   SupervisorDeductionsManager) — mobile bottom sheet, mechanically
+   identical shape (flat field list, both native selects and plain
+   inputs), separate class prefixes since they're separate components. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.sin-overlay, .submit-loader-overlay.sde-overlay { padding: 0 !important; align-items: flex-end !important; }
+    .edit-modal.sin-modal, .edit-modal.sde-modal {
+        width: 100% !important; max-width: 100% !important; max-height: 92dvh !important;
+        margin: 0 !important; padding: 0 !important; border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important; display: flex !important; flex-direction: column !important;
+        align-items: stretch !important; animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    .sin-modal-header, .sde-modal-header { flex-shrink: 0; padding: 26px 20px 0; }
+    .sin-modal-body, .sde-modal-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 20px; }
+    .edit-modal-actions.sin-modal-footer, .edit-modal-actions.sde-modal-footer {
+        flex-shrink: 0; margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important; gap: 10px !important;
+    }
+    .edit-modal-actions.sin-modal-footer button, .edit-modal-actions.sde-modal-footer button { width: 100% !important; }
+    .sin-modal-body p, .sde-modal-body p { font-size: 0.64rem !important; letter-spacing: 1.3px !important; margin-bottom: 6px !important; }
+    .sin-modal-body input[type="text"], .sin-modal-body input[type="number"], .sin-modal-body select,
+    .sde-modal-body input[type="text"], .sde-modal-body input[type="number"], .sde-modal-body select {
+        font-size: 16px !important; padding: 12px 14px !important; border-radius: 10px !important;
+    }
+    .sin-modal-body .wizard-field-grid, .sde-modal-body .wizard-field-grid { gap: 12px !important; }
+}
+
+/* ── Add Advance modal (LabourLedgerView) — mobile bottom sheet,
+   mechanically identical to .cla-modal above. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.lla-overlay { padding: 0 !important; align-items: flex-end !important; }
+    .edit-modal.lla-modal {
+        width: 100% !important; max-width: 100% !important; max-height: 92dvh !important;
+        margin: 0 !important; padding: 0 !important; border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important; display: flex !important; flex-direction: column !important;
+        align-items: stretch !important; animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    .lla-modal-header { flex-shrink: 0; padding: 26px 20px 0; }
+    .lla-modal-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 20px; }
+    .edit-modal-actions.lla-modal-footer {
+        flex-shrink: 0; margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important; gap: 10px !important;
+    }
+    .edit-modal-actions.lla-modal-footer button { width: 100% !important; }
+    .lla-modal-body p { font-size: 0.64rem !important; letter-spacing: 1.3px !important; margin-bottom: 6px !important; }
+    .lla-modal-body input[type="text"], .lla-modal-body input[type="number"], .lla-modal-body .add-cat-trigger {
+        font-size: 16px !important; padding: 12px 14px !important; border-radius: 10px !important;
+    }
+    .lla-modal-body .wizard-field-grid { gap: 12px !important; }
+}
+
+/* ── Add Deduction modal (LabourLedgerView) — mobile bottom sheet,
+   mechanically identical to .cld-modal above, plus the extra Caught
+   By/Supervisor selects (both native <select>, already covered). */
+@media (max-width: 540px) {
+    .submit-loader-overlay.lld-overlay { padding: 0 !important; align-items: flex-end !important; }
+    .edit-modal.lld-modal {
+        width: 100% !important; max-width: 100% !important; max-height: 92dvh !important;
+        margin: 0 !important; padding: 0 !important; border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important; display: flex !important; flex-direction: column !important;
+        align-items: stretch !important; animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    .lld-modal-header { flex-shrink: 0; padding: 26px 20px 0; }
+    .lld-modal-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 20px; }
+    .edit-modal-actions.lld-modal-footer {
+        flex-shrink: 0; margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important; gap: 10px !important;
+    }
+    .edit-modal-actions.lld-modal-footer button { width: 100% !important; }
+    .lld-modal-body p { font-size: 0.64rem !important; letter-spacing: 1.3px !important; margin-bottom: 6px !important; }
+    .lld-modal-body input[type="text"], .lld-modal-body input[type="number"], .lld-modal-body select {
+        font-size: 16px !important; padding: 12px 14px !important; border-radius: 10px !important;
+    }
+    .lld-modal-body .wizard-field-grid { gap: 12px !important; }
+}
+
+/* ── Add Payment modal (LabourLedgerView) — mobile bottom sheet,
+   mechanically identical to .clp-modal above. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.llp-overlay { padding: 0 !important; align-items: flex-end !important; }
+    .edit-modal.llp-modal {
+        width: 100% !important; max-width: 100% !important; max-height: 92dvh !important;
+        margin: 0 !important; padding: 0 !important; border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important; display: flex !important; flex-direction: column !important;
+        align-items: stretch !important; animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    .llp-modal-header { flex-shrink: 0; padding: 26px 20px 0; }
+    .llp-modal-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 20px; }
+    .edit-modal-actions.llp-modal-footer {
+        flex-shrink: 0; margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important; gap: 10px !important;
+    }
+    .edit-modal-actions.llp-modal-footer button { width: 100% !important; }
+    .llp-modal-body p { font-size: 0.64rem !important; letter-spacing: 1.3px !important; margin-bottom: 6px !important; }
+    .llp-modal-body input[type="text"], .llp-modal-body input[type="number"], .llp-modal-body .add-cat-trigger {
+        font-size: 16px !important; padding: 12px 14px !important; border-radius: 10px !important;
+    }
+    .llp-modal-body .wizard-field-grid { gap: 12px !important; }
+}
+
+/* ── Add Measurement modal (LabourMeasurementsManager) — mobile bottom
+   sheet, mechanically identical to .cld-modal above: flat single-section
+   field list (Work/Labourer/Date/Area/Remarks) plus a conditional
+   Material Used section, already a plain block (no wizard-field-grid
+   member), so it inherits the same body padding/scroll unmodified. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.lmm-overlay { padding: 0 !important; align-items: flex-end !important; }
+    .edit-modal.lmm-modal {
+        width: 100% !important; max-width: 100% !important; max-height: 92dvh !important;
+        margin: 0 !important; padding: 0 !important; border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important; display: flex !important; flex-direction: column !important;
+        align-items: stretch !important; animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    .lmm-modal-header { flex-shrink: 0; padding: 26px 20px 0; }
+    .lmm-modal-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 20px; }
+    .edit-modal-actions.lmm-modal-footer {
+        flex-shrink: 0; margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important; gap: 10px !important;
+    }
+    .edit-modal-actions.lmm-modal-footer button { width: 100% !important; }
+    .lmm-modal-body p { font-size: 0.64rem !important; letter-spacing: 1.3px !important; margin-bottom: 6px !important; }
+    .lmm-modal-body input[type="number"], .lmm-modal-body textarea, .lmm-modal-body select {
+        font-size: 16px !important; padding: 12px 14px !important; border-radius: 10px !important;
+    }
+    .lmm-modal-body .wizard-field-grid { gap: 12px !important; }
+}
+
+/* ── Add Payment modal (LabourProviderLedgerView) — mobile bottom sheet,
+   mechanically identical to .lla-modal above. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.lpp-overlay { padding: 0 !important; align-items: flex-end !important; }
+    .edit-modal.lpp-modal {
+        width: 100% !important; max-width: 100% !important; max-height: 92dvh !important;
+        margin: 0 !important; padding: 0 !important; border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important; display: flex !important; flex-direction: column !important;
+        align-items: stretch !important; animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    .lpp-modal-header { flex-shrink: 0; padding: 26px 20px 0; }
+    .lpp-modal-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 20px; }
+    .edit-modal-actions.lpp-modal-footer {
+        flex-shrink: 0; margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important; gap: 10px !important;
+    }
+    .edit-modal-actions.lpp-modal-footer button { width: 100% !important; }
+    .lpp-modal-body p { font-size: 0.64rem !important; letter-spacing: 1.3px !important; margin-bottom: 6px !important; }
+    .lpp-modal-body input[type="text"], .lpp-modal-body input[type="number"], .lpp-modal-body select {
+        font-size: 16px !important; padding: 12px 14px !important; border-radius: 10px !important;
+    }
+    .lpp-modal-body .wizard-field-grid { gap: 12px !important; }
+}
+
+/* ── Add Payment modal (CommissionLedgerView) — mobile bottom sheet,
+   mechanically identical to .lpp-modal above. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.cmp-overlay { padding: 0 !important; align-items: flex-end !important; }
+    .edit-modal.cmp-modal {
+        width: 100% !important; max-width: 100% !important; max-height: 92dvh !important;
+        margin: 0 !important; padding: 0 !important; border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important; display: flex !important; flex-direction: column !important;
+        align-items: stretch !important; animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    .cmp-modal-header { flex-shrink: 0; padding: 26px 20px 0; }
+    .cmp-modal-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 20px; }
+    .edit-modal-actions.cmp-modal-footer {
+        flex-shrink: 0; margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important; gap: 10px !important;
+    }
+    .edit-modal-actions.cmp-modal-footer button { width: 100% !important; }
+    .cmp-modal-body p { font-size: 0.64rem !important; letter-spacing: 1.3px !important; margin-bottom: 6px !important; }
+    .cmp-modal-body input[type="text"], .cmp-modal-body input[type="number"], .cmp-modal-body select {
+        font-size: 16px !important; padding: 12px 14px !important; border-radius: 10px !important;
+    }
+    .cmp-modal-body .wizard-field-grid { gap: 12px !important; }
+}
+
+/* ── Review modal (WorkReviewPanel) — desktop stays on .edit-modal's own
+   base single-region overflow-y:auto scroll, same as every other modal
+   in this file (none get a header/body/footer flex split above the
+   ≤540px breakpoint) — a laptop viewport has enough room that this was
+   never actually broken, just occasionally requires a scroll for the
+   tallest (rejected-distribution) state, same as e.g. Deductions'
+   own many-line modal already does.
+
+   StyledDatePicker's calendar isn't portaled — it's position:absolute
+   inside whichever scroll region it's opened in, so it can only escape
+   as far as that region's own overflow allows. It now measures its
+   actual nearest scrolling ancestor itself (flips upward + self-caps
+   its own max-height when there isn't room, see StyledDatePicker.jsx's
+   openPicker), so no per-modal CSS override is needed here anymore. */
+
+/* ── Review modal (WorkReviewPanel) — mobile bottom sheet, mechanically
+   identical to every modal above. The one modal with nested tables
+   (.wrd-card) inside its own body — those already reflow to their own
+   mobile grid-areas independently, no extra rule needed here. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.wr-overlay { padding: 0 !important; align-items: flex-end !important; }
+    .edit-modal.wr-modal {
+        width: 100% !important; max-width: 100% !important; max-height: 92dvh !important;
+        margin: 0 !important; padding: 0 !important; border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important; display: flex !important; flex-direction: column !important;
+        align-items: stretch !important; animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    .wr-modal-header { flex-shrink: 0; padding: 26px 20px 0; }
+    .wr-modal-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 20px; }
+    .edit-modal-actions.wr-modal-footer {
+        flex-shrink: 0; margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important; gap: 10px !important;
+    }
+    .edit-modal-actions.wr-modal-footer button { width: 100% !important; }
+    .wr-modal-body p { font-size: 0.64rem !important; letter-spacing: 1.3px !important; margin-bottom: 6px !important; }
+    .wr-modal-body input[type="text"], .wr-modal-body input[type="number"] {
+        font-size: 16px !important; padding: 12px 14px !important; border-radius: 10px !important;
+    }
+    .wr-modal-body .wizard-field-grid { gap: 12px !important; }
+    /* The nested .wrd-card table's own <p> cells are real row content
+       (a person's name, "Contractor"/"Labour", an input), not field
+       labels — the generic shrink above would flatten them to the same
+       0.64rem uppercase-tracked label style, so it's undone here. */
+    .wr-modal-body .wrd-name,
+    .wr-modal-body .wrd-type,
+    .wr-modal-body .wrd-value {
+        font-size: 1rem !important; letter-spacing: normal !important; margin-bottom: 0 !important; text-transform: none !important;
+    }
+}
+
 /* ── Add Photos modal (PhotosTab) — mobile bottom sheet, mechanically
    identical to every modal above: same 540px breakpoint, corner radius,
    max-height, and aqSheetUp animation, plus the same align-items/
@@ -3928,12 +6365,16 @@
    layouts are deliberately not included here. */
 .aw-modal, .ac-modal, .al-modal, .qap-modal, .aq-modal, .amm-modal,
 .sdm-modal, .asm-modal, .rbg-modal, .rbgst-modal, .rcpt-modal,
-.exp-modal, .exps-modal, .doc-modal, .pt-modal, .mc-modal, .cp-modal {
+.exp-modal, .exps-modal, .doc-modal, .pt-modal, .mc-modal, .cp-modal, .por-modal, .vlpay-modal,
+.cla-modal, .cld-modal, .clp-modal, .saa-modal, .sin-modal, .sde-modal,
+.lla-modal, .lld-modal, .llp-modal, .lmm-modal, .lpp-modal, .cmp-modal {
     padding: 36px !important;
 }
 .aw-modal h2, .ac-modal h2, .al-modal h2, .qap-modal h2, .aq-modal h2, .amm-modal h2,
 .sdm-modal h2, .asm-modal h2, .rbg-modal h2, .rbgst-modal h2, .rcpt-modal h2,
-.exp-modal h2, .exps-modal h2, .doc-modal h2, .pt-modal h2, .mc-modal h2, .cp-modal h2 {
+.exp-modal h2, .exps-modal h2, .doc-modal h2, .pt-modal h2, .mc-modal h2, .cp-modal h2, .por-modal h2, .vlpay-modal h2,
+.cla-modal h2, .cld-modal h2, .clp-modal h2, .saa-modal h2, .sin-modal h2, .sde-modal h2,
+.lla-modal h2, .lld-modal h2, .llp-modal h2, .lmm-modal h2, .lpp-modal h2, .cmp-modal h2 {
     margin-bottom: 22px;
     padding-bottom: 14px;
 }
@@ -3941,7 +6382,11 @@
 .aq-modal form, .amm-modal-body form, .sdm-modal-body form, .asm-modal-body form,
 .rbg-modal-body form, .rbgst-modal-body form, .rcpt-modal-body form,
 .exp-modal-body form, .exps-modal-body form, .doc-modal-body form, .pt-modal-body form,
-.mc-modal-body form, .cp-modal-body form {
+.mc-modal-body form, .cp-modal-body form, .por-modal-body form, .vlpay-modal-body form,
+.cla-modal-body form, .cld-modal-body form, .clp-modal-body form,
+.saa-modal-body form, .sin-modal-body form, .sde-modal-body form,
+.lla-modal-body form, .lld-modal-body form, .llp-modal-body form,
+.lmm-modal-body form, .lpp-modal-body form, .cmp-modal-body form {
     gap: 16px !important;
 }
 /* Only the four modals whose field config actually carries multiple
@@ -3960,14 +6405,23 @@
 .qap-modal-body .wizard-field-grid, .aq-modal form .wizard-field-grid, .amm-modal-body .wizard-field-grid,
 .sdm-modal-body .wizard-field-grid, .asm-modal-body .wizard-field-grid, .rbg-modal-body .wizard-field-grid,
 .rcpt-modal-body .wizard-field-grid, .exp-modal-body .wizard-field-grid, .exps-modal-body .wizard-field-grid,
-.doc-modal-body .wizard-field-grid, .mc-modal-body .wizard-field-grid, .cp-modal-body .wizard-field-grid {
+.doc-modal-body .wizard-field-grid, .mc-modal-body .wizard-field-grid, .cp-modal-body .wizard-field-grid,
+.por-modal-body .wizard-field-grid, .vlpay-modal-body .wizard-field-grid,
+.cla-modal-body .wizard-field-grid, .cld-modal-body .wizard-field-grid, .clp-modal-body .wizard-field-grid,
+.saa-modal-body .wizard-field-grid, .sin-modal-body .wizard-field-grid, .sde-modal-body .wizard-field-grid,
+.lla-modal-body .wizard-field-grid, .lld-modal-body .wizard-field-grid, .llp-modal-body .wizard-field-grid,
+.lmm-modal-body .wizard-field-grid, .lpp-modal-body .wizard-field-grid, .cmp-modal-body .wizard-field-grid {
     gap: 14px;
     margin-bottom: 0;
 }
 .aw-modal-body p, .ac-modal-body p, .al-modal-body p, .qap-modal-body p, .aq-modal form p,
 .amm-modal-body p, .sdm-modal-body p, .asm-modal-body p, .rbg-modal-body p, .rbgst-modal-body p,
 .rcpt-modal-body p, .exp-modal-body p, .exps-modal-body p, .doc-modal-body p, .pt-modal-body p,
-.mc-modal-body p, .cp-modal-body p {
+.mc-modal-body p, .cp-modal-body p, .por-modal-body p, .vlpay-modal-body p,
+.cla-modal-body p, .cld-modal-body p, .clp-modal-body p,
+.saa-modal-body p, .sin-modal-body p, .sde-modal-body p,
+.lla-modal-body p, .lld-modal-body p, .llp-modal-body p,
+.lmm-modal-body p, .lpp-modal-body p, .cmp-modal-body p {
     font-size: 0.62rem;
     letter-spacing: 1.4px;
     margin-bottom: 6px;
@@ -3996,13 +6450,32 @@
 .pt-modal-body input[type="text"], .pt-modal-body input[type="file"],
 .mc-modal-body input[type="text"], .mc-modal-body input[type="tel"], .mc-modal-body input[type="email"],
 .mc-modal-body input[type="number"], .mc-modal-body input[type="date"], .mc-modal-body textarea, .mc-modal-body select,
-.cp-modal-body input[type="text"], .cp-modal-body input[type="tel"], .cp-modal-body input[type="email"] {
+.cp-modal-body input[type="text"], .cp-modal-body input[type="tel"], .cp-modal-body input[type="email"],
+.por-modal-body input[type="text"], .por-modal-body input[type="number"], .por-modal-body textarea,
+.vlpay-modal-body input[type="number"], .vlpay-modal-body input[type="file"], .vlpay-modal-body select,
+.cla-modal-body input[type="text"], .cla-modal-body input[type="number"],
+.cld-modal-body input[type="text"], .cld-modal-body input[type="number"], .cld-modal-body select,
+.clp-modal-body input[type="text"], .clp-modal-body input[type="number"], .clp-modal-body input[type="file"],
+.saa-modal-body input[type="text"], .saa-modal-body select,
+.sin-modal-body input[type="text"], .sin-modal-body input[type="number"], .sin-modal-body select,
+.sde-modal-body input[type="text"], .sde-modal-body input[type="number"], .sde-modal-body select,
+.lla-modal-body input[type="text"], .lla-modal-body input[type="number"],
+.lld-modal-body input[type="text"], .lld-modal-body input[type="number"], .lld-modal-body select,
+.llp-modal-body input[type="text"], .llp-modal-body input[type="number"],
+.lmm-modal-body input[type="number"], .lmm-modal-body textarea, .lmm-modal-body select,
+.lpp-modal-body input[type="text"], .lpp-modal-body input[type="number"], .lpp-modal-body select,
+.cmp-modal-body input[type="text"], .cmp-modal-body input[type="number"], .cmp-modal-body select {
     padding: 11px 14px;
 }
 .aw-modal-body .add-cat-trigger, .ac-modal-body .add-cat-trigger, .al-modal-body .add-cat-trigger,
 .qap-modal-body .add-cat-trigger, .amm-modal-body .add-cat-trigger, .sdm-modal-body .add-cat-trigger,
 .asm-modal-body .add-cat-trigger, .rbg-modal-body .add-cat-trigger, .rcpt-modal-body .add-cat-trigger,
-.exp-modal-body .add-cat-trigger, .exps-modal-body .add-cat-trigger, .mc-modal-body .add-cat-trigger {
+.exp-modal-body .add-cat-trigger, .exps-modal-body .add-cat-trigger, .mc-modal-body .add-cat-trigger,
+.por-modal-body .add-cat-trigger, .vlpay-modal-body .add-cat-trigger,
+.cla-modal-body .add-cat-trigger, .cld-modal-body .add-cat-trigger, .clp-modal-body .add-cat-trigger,
+.saa-modal-body .add-cat-trigger, .sin-modal-body .add-cat-trigger, .sde-modal-body .add-cat-trigger,
+.lla-modal-body .add-cat-trigger, .lld-modal-body .add-cat-trigger, .llp-modal-body .add-cat-trigger,
+.lmm-modal-body .add-cat-trigger, .lpp-modal-body .add-cat-trigger, .cmp-modal-body .add-cat-trigger {
     padding: 11px 14px;
 }
 .aw-modal-footer button[type="submit"], .ac-modal-footer button[type="submit"], .al-modal-footer button[type="submit"],
@@ -4010,7 +6483,12 @@
 .sdm-modal-footer button[type="submit"], .asm-modal-footer button[type="submit"], .rbg-modal-footer button[type="submit"],
 .rbgst-modal-footer button[type="submit"], .rcpt-modal-footer button[type="submit"], .exp-modal-footer button[type="submit"],
 .exps-modal-footer button[type="submit"], .doc-modal-footer button[type="submit"], .pt-modal-footer button[type="submit"],
-.mc-modal-footer button[type="submit"], .cp-modal-footer button[type="submit"] {
+.mc-modal-footer button[type="submit"], .cp-modal-footer button[type="submit"], .por-modal-footer button[type="submit"],
+.vlpay-modal-footer button[type="submit"], .cla-modal-footer button[type="submit"],
+.cld-modal-footer button[type="submit"], .clp-modal-footer button[type="submit"],
+.saa-modal-footer button[type="submit"], .sin-modal-footer button[type="submit"], .sde-modal-footer button[type="submit"],
+.lla-modal-footer button[type="submit"], .lld-modal-footer button[type="submit"], .llp-modal-footer button[type="submit"],
+.lmm-modal-footer button[type="submit"], .lpp-modal-footer button[type="submit"], .cmp-modal-footer button[type="submit"] {
     display: inline-flex;
     align-items: center;
     justify-content: center;

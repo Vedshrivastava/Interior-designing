@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import ViewAttachmentLink from './ViewAttachmentLink';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 
 // resourceKey -> { apiBase, idField } — the three entity types that carry
 // a documents:[{url,note}] field (Labourer, Vendor/Contractor, Employee/
@@ -34,6 +38,8 @@ const PersonDocumentsView = ({ url, resourceKey, entityId, entityLabel = 'person
     const [file, setFile] = useState(null);
     const [note, setNote] = useState('');
     const [saving, setSaving] = useState(false);
+    const [confirmDoc, setConfirmDoc] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchPerson = () => {
         setLoading(true);
@@ -66,12 +72,15 @@ const PersonDocumentsView = ({ url, resourceKey, entityId, entityLabel = 'person
         } finally { setSaving(false); }
     };
 
-    const removeDocument = async (documentId) => {
+    const confirmRemoveDocument = async () => {
+        if (!confirmDoc) return;
+        setDeleting(true);
         try {
-            const res = await axios.post(`${url}${apiBase}/documents/remove`, { [idField]: entityId, documentId }, authHeader);
-            if (res.data.success) { toast.success('Document removed'); fetchPerson(); }
+            const res = await axios.post(`${url}${apiBase}/documents/remove`, { [idField]: entityId, documentId: confirmDoc._id }, authHeader);
+            if (res.data.success) { toast.success('Document removed'); setConfirmDoc(null); fetchPerson(); }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error removing document'); }
+        finally { setDeleting(false); }
     };
 
     if (!entityId) return <div className="admin-empty-state"><p>Select a {entityLabel} to view their documents.</p></div>;
@@ -85,17 +94,16 @@ const PersonDocumentsView = ({ url, resourceKey, entityId, entityLabel = 'person
             {person.documents.length === 0 ? (
                 <div className="admin-empty-state" style={{ marginBottom: '20px' }}><p>No documents on file yet.</p></div>
             ) : (
-                <div className="list-table finance-table" style={{ marginBottom: '20px' }}>
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 100px' }}>
-                        <b>Document</b><b>Action</b>
-                    </div>
+                <div className="dash-chart-card pdv-card" style={{ marginBottom: '20px' }}>
                     {person.documents.map(d => (
-                        <div key={d._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 100px' }}>
-                            <ViewAttachmentLink url={d.url} name={d.note} className="item-name" style={{ textDecoration: 'none' }}>
+                        <div key={d._id} className="pdv-row">
+                            <ViewAttachmentLink url={d.url} name={d.note} className="item-name pdv-name" style={{ textDecoration: 'none' }}>
                                 📄 {d.note || 'Untitled document'}
                             </ViewAttachmentLink>
-                            <div className="action-buttons">
-                                <p onClick={() => removeDocument(d._id)} className="cursor delete-action">X</p>
+                            <div className="action-buttons pdv-actions">
+                                <button type="button" onClick={() => setConfirmDoc(d)} className="pq-btn-ghost-danger" title="Remove document" aria-label="Remove document">
+                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -117,6 +125,22 @@ const PersonDocumentsView = ({ url, resourceKey, entityId, entityLabel = 'person
                     </button>
                 </div>
             </div>
+
+            {confirmDoc && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmDoc(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>Remove this document?</h3>
+                        <p className="bin-confirm-name">{confirmDoc.note || 'Untitled document'}</p>
+                        <p className="bin-confirm-warning">This can't be undone.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setConfirmDoc(null)} disabled={deleting}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={confirmRemoveDocument} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };

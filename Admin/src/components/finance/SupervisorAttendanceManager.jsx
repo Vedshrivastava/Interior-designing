@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import StyledDatePicker from './StyledDatePicker';
 import '../../styles/list.css';
+import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
@@ -22,6 +25,8 @@ const SupervisorAttendanceManager = ({ url, employeeId }) => {
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
+    const [confirmItem, setConfirmItem] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchEntries = async () => {
         setLoading(true);
@@ -48,17 +53,20 @@ const SupervisorAttendanceManager = ({ url, employeeId }) => {
         finally { setSaving(false); }
     };
 
-    const remove = async (id) => {
+    const confirmRemove = async () => {
+        if (!confirmItem) return;
+        setDeleting(true);
         try {
-            const res = await axios.delete(`${url}/api/finance/supervisor-attendance/remove`, { ...authHeader, data: { _id: id } });
-            if (res.data.success) { toast.success(res.data.message); await fetchEntries(); }
+            const res = await axios.delete(`${url}/api/finance/supervisor-attendance/remove`, { ...authHeader, data: { _id: confirmItem._id } });
+            if (res.data.success) { toast.success(res.data.message); setConfirmItem(null); await fetchEntries(); }
             else toast.error(res.data.message);
         } catch { toast.error('Error removing attendance entry'); }
+        finally { setDeleting(false); }
     };
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div className="pq-section-header">
                 <h3 style={{ margin: 0 }}>Attendance</h3>
                 <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>+ Mark Attendance</button>
             </div>
@@ -67,26 +75,36 @@ const SupervisorAttendanceManager = ({ url, employeeId }) => {
             ) : entries.length === 0 ? (
                 <div className="admin-empty-state"><p>No attendance recorded yet.</p></div>
             ) : (
-                <div className="list-table finance-table">
-                    <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 100px' }}>
-                        <b>Date</b><b>Status</b><b>Notes</b><b>Action</b>
+                <div className="dash-chart-card saa-card">
+                    <div className="saa-row saa-header">
+                        <b className="saa-date">Date</b>
+                        <b className="saa-status">Status</b>
+                        <b className="saa-notes">Notes</b>
+                        <b className="saa-actions">Action</b>
                     </div>
                     {entries.map(e => (
-                        <div key={e._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr 1.5fr 100px' }}>
-                            <p>{new Date(e.date).toLocaleDateString()}</p>
-                            <p><span className="item-category">{STATUS_LABEL[e.status]}</span></p>
-                            <p>{e.notes || '-'}</p>
-                            <div className="action-buttons"><p onClick={() => remove(e._id)} className="cursor delete-action">X</p></div>
+                        <div key={e._id} className="saa-row">
+                            <p className="saa-date">{new Date(e.date).toLocaleDateString()}</p>
+                            <p className="saa-status"><span className="item-category">{STATUS_LABEL[e.status]}</span></p>
+                            <p className="saa-notes"><span className="pq-group-label">Notes</span>{e.notes || '-'}</p>
+                            <div className="action-buttons saa-actions">
+                                <button type="button" onClick={() => setConfirmItem(e)} className="pq-btn-ghost-danger" title="Remove entry" aria-label="Remove entry">
+                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
             )}
 
             {modalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>Mark Attendance</h2>
-                        <form onSubmit={submit}>
+                <div className="submit-loader-overlay saa-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal saa-modal">
+                        <div className="saa-modal-header">
+                            <h2>Mark Attendance</h2>
+                        </div>
+                        <div className="saa-modal-body">
+                        <form id="supervisor-attendance-form" onSubmit={submit}>
                             <div className="wizard-field-grid">
                                 <div className="add-product-name flex-col">
                                     <p>Date *</p>
@@ -103,11 +121,28 @@ const SupervisorAttendanceManager = ({ url, employeeId }) => {
                                     <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)} />
                                 </div>
                             </div>
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                            </div>
                         </form>
+                        </div>
+                        <div className="edit-modal-actions saa-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+                            <button type="submit" form="supervisor-attendance-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {confirmItem && ReactDOM.createPortal(
+                <div className="bin-confirm-backdrop" onClick={() => !deleting && setConfirmItem(null)}>
+                    <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
+                        <h3>Remove this attendance entry?</h3>
+                        <p className="bin-confirm-name">{new Date(confirmItem.date).toLocaleDateString()} — {STATUS_LABEL[confirmItem.status]}</p>
+                        <p className="bin-confirm-warning">Moved to Recovery Bin.</p>
+                        <div className="bin-confirm-actions">
+                            <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>
+                            <button className="bin-btn-delete" onClick={confirmRemove} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body

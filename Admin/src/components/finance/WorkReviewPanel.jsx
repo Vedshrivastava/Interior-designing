@@ -265,23 +265,28 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
                     ) : visibleRows.length === 0 ? (
                         <div className="admin-empty-state"><p>{rows.length === 0 ? 'No works on this project yet.' : 'Nothing matches this filter.'}</p></div>
                     ) : (
-                        <div className="list-table finance-table">
-                            <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 0.9fr 0.9fr 0.9fr 1fr 150px' }}>
-                                <b>Work Type</b><b>Logged</b><b>Approved</b><b>Rejected</b><b>Pending Review</b><b>Action</b>
+                        <div className="dash-chart-card wr-card">
+                            <div className="wr-row wr-header">
+                                <b className="wr-worktype">Work Type</b>
+                                <b className="wr-logged">Logged</b>
+                                <b className="wr-approved">Approved</b>
+                                <b className="wr-rejected">Rejected</b>
+                                <b className="wr-pending">Pending Review</b>
+                                <b className="wr-action">Action</b>
                             </div>
                             {visibleRows.map(row => (
-                                <div key={row.workId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 0.9fr 0.9fr 0.9fr 1fr 150px' }}>
-                                    <p>{row.workType}</p>
-                                    <p>{row.loggedSqft} sqft</p>
-                                    <p style={{ color: row.approvedAreaSqft > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{row.approvedAreaSqft} sqft</p>
-                                    <p style={{ color: row.rejectedAreaSqft > 0 ? '#c0392b' : 'var(--text-lt)' }}>
-                                        {row.rejectedAreaSqft} sqft
+                                <div key={row.workId} className="wr-row">
+                                    <p className="wr-worktype">{row.workType}</p>
+                                    <p className="wr-logged"><span className="pq-group-label">Logged</span>{row.loggedSqft} sqft</p>
+                                    <p className="wr-approved" style={{ color: row.approvedAreaSqft > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}><span className="pq-group-label">Approved</span>{row.approvedAreaSqft} sqft</p>
+                                    <p className="wr-rejected" style={{ color: row.rejectedAreaSqft > 0 ? '#c0392b' : 'var(--text-lt)' }}>
+                                        <span className="pq-group-label">Rejected</span>{row.rejectedAreaSqft} sqft
                                         {row.rejectedAreaSqft > 0 && row.unattributedAreaSqft > 0 && (
                                             <span className="admin-subtitle" style={{ display: 'block', fontSize: '0.75em' }}>{row.unattributedAreaSqft} sqft unattributed</span>
                                         )}
                                     </p>
-                                    <p style={{ color: row.pendingReviewSqft > 0 ? '#b8860b' : 'var(--text-lt)', fontWeight: row.pendingReviewSqft > 0 ? 600 : 400 }}>{row.pendingReviewSqft} sqft</p>
-                                    <div className="action-buttons">
+                                    <p className="wr-pending" style={{ color: row.pendingReviewSqft > 0 ? '#b8860b' : 'var(--text-lt)', fontWeight: row.pendingReviewSqft > 0 ? 600 : 400 }}><span className="pq-group-label">Pending Review</span>{row.pendingReviewSqft} sqft</p>
+                                    <div className="wr-action">
                                         {row.pendingReviewSqft > 0 ? (
                                             <p onClick={() => openReview(row)} className="cursor edit-action">Review</p>
                                         ) : (
@@ -296,111 +301,115 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
             )}
 
             {reviewTarget && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 100000 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>Review — {reviewTarget.workType}</h2>
-                        <p className="admin-subtitle" style={{ margin: '4px 0 16px' }}>
-                            {reviewTarget.loggedSqft} sqft logged in total. Enter how much is approved — whatever's left becomes a rejected pool you'll distribute below before this can save.
-                        </p>
-                        <form onSubmit={submitReview}>
-                            <div className="wizard-field-grid">
-                                <div className="add-product-name flex-col">
-                                    <p>Approved Sqft * (of {reviewTarget.loggedSqft})</p>
-                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" max={reviewTarget.loggedSqft} value={approvedInput} onChange={e => setApprovedInput(e.target.value)} />
-                                </div>
-                                <div className="add-product-name flex-col">
-                                    <p>Date *</p>
-                                    <StyledDatePicker value={reviewDate} onChange={setReviewDate} />
-                                </div>
-                            </div>
-                            {rejectedPreview !== null && (
-                                <p className="admin-subtitle" style={{ marginTop: '8px', color: rejectedPreview > 0 ? '#c0392b' : 'var(--moss)' }}>
-                                    {rejectedPreview > 0 ? `${rejectedPreview} sqft will be rejected — distribute it below.` : 'Everything logged will be approved.'}
+                <div className="submit-loader-overlay wr-overlay" style={{ zIndex: 100000 }}>
+                    <div className="loader-modal-box edit-modal wr-modal">
+                        <div className="wr-modal-header">
+                            <h2>Review — {reviewTarget.workType}</h2>
+                        </div>
+                        <div className="wr-modal-body">
+                            <form id="work-review-form" onSubmit={submitReview}>
+                                <p className="admin-subtitle" style={{ margin: '0 0 16px' }}>
+                                    {reviewTarget.loggedSqft} sqft logged in total. Enter how much is approved — whatever's left becomes a rejected pool you'll distribute below before this can save.
                                 </p>
-                            )}
-
-                            {needsDistribution && !loadingParties && (
-                                <div style={{
-                                    margin: '12px 0', padding: '10px 14px', borderRadius: '8px', fontWeight: 700, fontSize: '0.95rem',
-                                    textAlign: 'center',
-                                    background: fullyDistributed ? 'rgba(46,139,87,0.12)' : 'rgba(192,57,43,0.12)',
-                                    color: fullyDistributed ? 'var(--moss)' : '#c0392b',
-                                    border: `1px solid ${fullyDistributed ? 'var(--moss)' : '#c0392b'}`,
-                                }}>
-                                    {fullyDistributed
-                                        ? '✓ Fully distributed'
-                                        : remainingToDistribute > 0
-                                            ? `${remainingToDistribute} sqft still left to distribute`
-                                            : `${Math.abs(remainingToDistribute)} sqft over-allocated — reduce it back to ${rejectedPreview}`}
+                                <div className="wizard-field-grid">
+                                    <div className="add-product-name flex-col">
+                                        <p>Approved Sqft * (of {reviewTarget.loggedSqft})</p>
+                                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" max={reviewTarget.loggedSqft} value={approvedInput} onChange={e => setApprovedInput(e.target.value)} />
+                                    </div>
+                                    <div className="add-product-name flex-col">
+                                        <p>Date *</p>
+                                        <StyledDatePicker value={reviewDate} onChange={setReviewDate} />
+                                    </div>
                                 </div>
-                            )}
+                                {rejectedPreview !== null && (
+                                    <p className="admin-subtitle" style={{ marginTop: '8px', color: rejectedPreview > 0 ? '#c0392b' : 'var(--moss)' }}>
+                                        {rejectedPreview > 0 ? `${rejectedPreview} sqft will be rejected — distribute it below.` : 'Everything logged will be approved.'}
+                                    </p>
+                                )}
 
-                            {needsDistribution && (
-                                loadingParties ? (
-                                    <div className="admin-empty-state"><p>Loading…</p></div>
-                                ) : (
-                                    <>
-                                        <div className="list-table finance-table" style={{ margin: '12px 0' }}>
-                                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.8fr 140px' }}>
-                                                <b>Name</b><b>Type</b><b>Sqft to Deduct</b>
-                                            </div>
-                                            {contractors.map(a => {
-                                                const key = `contractor|${a.contractorVendorId._id}`;
-                                                return (
-                                                    <div key={key} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 140px' }}>
-                                                        <p>{a.contractorVendorId?.name || '—'}</p>
-                                                        <p><span className="item-category">Contractor</span></p>
-                                                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={sqftInputs[key] || ''} onChange={e => setSqftInputs(p => ({ ...p, [key]: e.target.value }))} />
-                                                    </div>
-                                                );
-                                            })}
-                                            {[...new Map(labourers.map(a => [a.labourerId._id, a])).values()].map(a => {
-                                                const key = `labour|${a.labourerId._id}`;
-                                                return (
-                                                    <div key={key} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 140px' }}>
-                                                        <p>{a.labourerId?.name || '—'}</p>
-                                                        <p><span className="item-category">Labour</span></p>
-                                                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={sqftInputs[key] || ''} onChange={e => setSqftInputs(p => ({ ...p, [key]: e.target.value }))} />
-                                                    </div>
-                                                );
-                                            })}
-                                            {contractors.length === 0 && labourers.length === 0 && (
-                                                <div className="admin-empty-state"><p>No contractors or labourers assigned to this work — cannot distribute the rejected sqft, so this review can't be saved.</p></div>
-                                            )}
-                                        </div>
+                                {needsDistribution && !loadingParties && (
+                                    <div style={{
+                                        margin: '12px 0', padding: '10px 14px', borderRadius: '8px', fontWeight: 700, fontSize: '0.95rem',
+                                        textAlign: 'center',
+                                        background: fullyDistributed ? 'rgba(46,139,87,0.12)' : 'rgba(192,57,43,0.12)',
+                                        color: fullyDistributed ? 'var(--moss)' : '#c0392b',
+                                        border: `1px solid ${fullyDistributed ? 'var(--moss)' : '#c0392b'}`,
+                                    }}>
+                                        {fullyDistributed
+                                            ? '✓ Fully distributed'
+                                            : remainingToDistribute > 0
+                                                ? `${remainingToDistribute} sqft still left to distribute`
+                                                : `${Math.abs(remainingToDistribute)} sqft over-allocated — reduce it back to ${rejectedPreview}`}
+                                    </div>
+                                )}
 
-                                        {supervisors.length > 0 && (
-                                            <div className="list-table finance-table" style={{ marginBottom: '12px' }}>
-                                                <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 0.8fr 140px' }}>
-                                                    <b>Name</b><b>Type</b><b>₹ to Deduct (optional)</b>
+                                {needsDistribution && (
+                                    loadingParties ? (
+                                        <div className="admin-empty-state"><p>Loading…</p></div>
+                                    ) : (
+                                        <>
+                                            <div className="dash-chart-card wrd-card" style={{ margin: '12px 0' }}>
+                                                <div className="wrd-row wrd-header">
+                                                    <b className="wrd-name">Name</b><b className="wrd-type">Type</b><b className="wrd-value">Sqft to Deduct</b>
                                                 </div>
-                                                {supervisors.map(s => (
-                                                    <div key={s.employeeId} className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 0.8fr 140px' }}>
-                                                        <p>{s.name}</p>
-                                                        <p><span className="item-category">Supervisor</span></p>
-                                                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={amountInputs[s.employeeId] || ''} onChange={e => setAmountInputs(p => ({ ...p, [s.employeeId]: e.target.value }))} />
-                                                    </div>
-                                                ))}
+                                                {contractors.map(a => {
+                                                    const key = `contractor|${a.contractorVendorId._id}`;
+                                                    return (
+                                                        <div key={key} className="wrd-row">
+                                                            <p className="wrd-name">{a.contractorVendorId?.name || '—'}</p>
+                                                            <p className="wrd-type"><span className="item-category">Contractor</span></p>
+                                                            <p className="wrd-value"><input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={sqftInputs[key] || ''} onChange={e => setSqftInputs(p => ({ ...p, [key]: e.target.value }))} /></p>
+                                                        </div>
+                                                    );
+                                                })}
+                                                {[...new Map(labourers.map(a => [a.labourerId._id, a])).values()].map(a => {
+                                                    const key = `labour|${a.labourerId._id}`;
+                                                    return (
+                                                        <div key={key} className="wrd-row">
+                                                            <p className="wrd-name">{a.labourerId?.name || '—'}</p>
+                                                            <p className="wrd-type"><span className="item-category">Labour</span></p>
+                                                            <p className="wrd-value"><input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={sqftInputs[key] || ''} onChange={e => setSqftInputs(p => ({ ...p, [key]: e.target.value }))} /></p>
+                                                        </div>
+                                                    );
+                                                })}
+                                                {contractors.length === 0 && labourers.length === 0 && (
+                                                    <div className="admin-empty-state"><p>No contractors or labourers assigned to this work — cannot distribute the rejected sqft, so this review can't be saved.</p></div>
+                                                )}
                                             </div>
-                                        )}
 
-                                        <p className="admin-subtitle" style={{ marginBottom: '12px', fontWeight: 600, color: fullyDistributed ? 'var(--moss)' : '#c0392b' }}>
-                                            {fullyDistributed ? 'Fully distributed' : remainingToDistribute > 0 ? `${remainingToDistribute} sqft still left to distribute` : `${Math.abs(remainingToDistribute)} sqft over-allocated`}
-                                        </p>
+                                            {supervisors.length > 0 && (
+                                                <div className="dash-chart-card wrd-card" style={{ marginBottom: '12px' }}>
+                                                    <div className="wrd-row wrd-header">
+                                                        <b className="wrd-name">Name</b><b className="wrd-type">Type</b><b className="wrd-value">₹ to Deduct (optional)</b>
+                                                    </div>
+                                                    {supervisors.map(s => (
+                                                        <div key={s.employeeId} className="wrd-row">
+                                                            <p className="wrd-name">{s.name}</p>
+                                                            <p className="wrd-type"><span className="item-category">Supervisor</span></p>
+                                                            <p className="wrd-value"><input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={amountInputs[s.employeeId] || ''} onChange={e => setAmountInputs(p => ({ ...p, [s.employeeId]: e.target.value }))} /></p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
 
-                                        <div className="add-product-name flex-col wizard-field-full" style={{ marginBottom: '8px' }}>
-                                            <p>Reason *</p>
-                                            <input type="text" value={reason} onChange={e => setReason(e.target.value)} placeholder="What went wrong" />
-                                        </div>
-                                    </>
-                                )
-                            )}
+                                            <p className="admin-subtitle" style={{ marginBottom: '12px', fontWeight: 600, color: fullyDistributed ? 'var(--moss)' : '#c0392b' }}>
+                                                {fullyDistributed ? 'Fully distributed' : remainingToDistribute > 0 ? `${remainingToDistribute} sqft still left to distribute` : `${Math.abs(remainingToDistribute)} sqft over-allocated`}
+                                            </p>
 
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={closeReview}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving || loadingParties || (needsDistribution && !fullyDistributed)}>{saving ? 'Saving…' : 'Save Review'}</button>
-                            </div>
-                        </form>
+                                            <div className="add-product-name flex-col wizard-field-full" style={{ marginBottom: '8px' }}>
+                                                <p>Reason *</p>
+                                                <input type="text" value={reason} onChange={e => setReason(e.target.value)} placeholder="What went wrong" />
+                                            </div>
+                                        </>
+                                    )
+                                )}
+                            </form>
+                        </div>
+
+                        <div className="edit-modal-actions wr-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={closeReview}>Cancel</button>
+                            <button type="submit" form="work-review-form" className="add-btn" disabled={saving || loadingParties || (needsDistribution && !fullyDistributed)}>{saving ? 'Saving…' : 'Save Review'}</button>
+                        </div>
                     </div>
                 </div>,
                 document.body

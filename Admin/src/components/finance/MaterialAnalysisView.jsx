@@ -63,31 +63,36 @@ const MaterialAnalysisView = ({ url }) => {
                     Cost/Sqft is only meaningful scoped to one project — pick a project above to see it; it shows as — for "All projects".
                 </p>
             )}
-            <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr 1fr 1.1fr 1fr' }}>
-                    <b>Material</b><b>Purchased</b><b>Returned</b><b>Consumed</b><b>Wasted</b><b>Current Stock</b>
-                    <b>Avg Cost <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>(weighted, /unit)</span></b>
-                    <b>Cost/Sqft</b>
+            <div className="dash-chart-card rma-card">
+                <div className="rma-row rma-header">
+                    <b className="rma-material">Material</b>
+                    <b className="rma-purchased">Purchased</b>
+                    <b className="rma-returned">Returned</b>
+                    <b className="rma-consumed">Consumed</b>
+                    <b className="rma-wasted">Wasted</b>
+                    <b className="rma-stock">Current Stock</b>
+                    <b className="rma-avgcost">Avg Cost <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>(weighted, /unit)</span></b>
+                    <b className="rma-costsqft">Cost/Sqft</b>
                 </div>
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
                 ) : rows.length === 0 ? (
                     <div className="admin-empty-state"><p>No material activity yet.</p></div>
                 ) : rows.map(r => (
-                    <div key={r.materialId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr 1fr 1.1fr 1fr' }}>
-                        <p>{r.materialName}</p>
-                        <p>{r.totalPurchased.toLocaleString('en-IN')} {r.unit}</p>
-                        <p>{r.totalReturned.toLocaleString('en-IN')} {r.unit}</p>
-                        <p>{r.totalConsumed.toLocaleString('en-IN')} {r.unit}</p>
-                        <p style={{ color: r.wasteCost > 0 ? '#c0392b' : 'inherit' }}>
-                            {r.totalWasted.toLocaleString('en-IN')} {r.unit}
+                    <div key={r.materialId} className="rma-row">
+                        <p className="rma-material">{r.materialName}</p>
+                        <p className="rma-purchased"><span className="pq-group-label">Purchased</span>{r.totalPurchased.toLocaleString('en-IN')} {r.unit}</p>
+                        <p className="rma-returned"><span className="pq-group-label">Returned</span>{r.totalReturned.toLocaleString('en-IN')} {r.unit}</p>
+                        <p className="rma-consumed"><span className="pq-group-label">Consumed</span>{r.totalConsumed.toLocaleString('en-IN')} {r.unit}</p>
+                        <p className="rma-wasted" style={{ color: r.wasteCost > 0 ? '#c0392b' : 'inherit' }}>
+                            <span className="pq-group-label">Wasted</span>{r.totalWasted.toLocaleString('en-IN')} {r.unit}
                             {r.wasteCost > 0 && (
                                 <span style={{ display: 'block', fontWeight: 400, fontSize: '0.75rem' }}>₹{r.wasteCost.toLocaleString('en-IN')} loss</span>
                             )}
                         </p>
-                        <p>{r.currentStock.toLocaleString('en-IN')} {r.unit}</p>
-                        <p>₹{r.weightedAverageCost.toFixed(2)}/{r.unit}</p>
-                        <p>{projectId && r.areaCoveredSqft > 0 ? `₹${r.costPerSqft.toFixed(2)}/sqft` : '—'}</p>
+                        <p className="rma-stock"><span className="pq-group-label">Current Stock</span>{r.currentStock.toLocaleString('en-IN')} {r.unit}</p>
+                        <p className="rma-avgcost"><span className="pq-group-label">Avg Cost</span>₹{r.weightedAverageCost.toFixed(2)}/{r.unit}</p>
+                        <p className="rma-costsqft"><span className="pq-group-label">Cost/Sqft</span>{projectId && r.areaCoveredSqft > 0 ? `₹${r.costPerSqft.toFixed(2)}/sqft` : '—'}</p>
                     </div>
                 ))}
             </div>

@@ -49,10 +49,13 @@ const TABS = [
  * WorksManager's "Profit" action — links into Work Profit), so their
  * picker state is lifted up here rather than living inside each tab.
  *
- * Work Profit has no picker of its own by design (per the build spec) —
- * it's only ever reached by drilling in from a project's Works tab or
- * from here, both of which land via ?tab=work-profit&workId=... in the
- * URL, read once on mount below.
+ * Work Profit is most often reached by drilling in from a project's
+ * Works tab or from here (both land via ?tab=work-profit&workId=... in
+ * the URL, read once on mount below), but also owns its own Project +
+ * Work picker (see WorkProfitView) for landing on the tab directly —
+ * `workId` stays lifted here either way, via the same onSelectWork
+ * setter passed to it, so the choice persists across a tab switch same
+ * as Project/Client Profit's own pickers.
  */
 const ReportsPage = ({ url }) => {
     const [searchParams] = useSearchParams();
@@ -79,7 +82,7 @@ const ReportsPage = ({ url }) => {
             {activeTab === 'client-profit' && (
                 <ClientProfitView url={url} clientId={clientId} onSelectClient={setClientId} onViewProjectProfit={goToProjectProfit} />
             )}
-            {activeTab === 'work-profit' && <WorkProfitView url={url} workId={workId} />}
+            {activeTab === 'work-profit' && <WorkProfitView url={url} workId={workId} onSelectWork={goToWorkProfit} />}
             {activeTab === 'contractor-analysis' && <ContractorAnalysisTable url={url} />}
             {activeTab === 'vendor-analysis' && <VendorAnalysisTable url={url} />}
             {activeTab === 'material-analysis' && <MaterialAnalysisView url={url} />}

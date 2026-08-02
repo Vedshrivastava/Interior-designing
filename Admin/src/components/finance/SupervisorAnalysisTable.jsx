@@ -55,21 +55,25 @@ const SupervisorAnalysisTable = ({ url }) => {
                 </p>
             )}
 
-            <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr' }}>
-                    <b>Supervisor</b><b>Salary Paid</b><b>Incentives</b><b>Deductions</b><b>Net Paid</b>
+            <div className="dash-chart-card rsa-card">
+                <div className="rsa-row rsa-header">
+                    <b className="rsa-supervisor">Supervisor</b>
+                    <b className="rsa-salary">Salary Paid</b>
+                    <b className="rsa-incentives">Incentives</b>
+                    <b className="rsa-deductions">Deductions</b>
+                    <b className="rsa-net">Net Paid</b>
                 </div>
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
                 ) : rows.length === 0 ? (
                     <div className="admin-empty-state"><p>No supervisors yet.</p></div>
                 ) : rows.map(r => (
-                    <div key={r.employeeId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr' }}>
-                        <p>{r.employeeName}</p>
-                        <p>₹{r.salaryPaid.toLocaleString('en-IN')}</p>
-                        <p style={{ color: 'var(--moss)' }}>₹{r.incentiveTotal.toLocaleString('en-IN')}</p>
-                        <p style={{ color: '#c0392b' }}>₹{r.deductionTotal.toLocaleString('en-IN')}</p>
-                        <p style={{ fontWeight: 600 }}>₹{r.netPaid.toLocaleString('en-IN')}</p>
+                    <div key={r.employeeId} className="rsa-row">
+                        <p className="rsa-supervisor">{r.employeeName}</p>
+                        <p className="rsa-salary"><span className="pq-group-label">Salary Paid</span>₹{r.salaryPaid.toLocaleString('en-IN')}</p>
+                        <p className="rsa-incentives" style={{ color: 'var(--moss)' }}><span className="pq-group-label">Incentives</span>₹{r.incentiveTotal.toLocaleString('en-IN')}</p>
+                        <p className="rsa-deductions" style={{ color: '#c0392b' }}><span className="pq-group-label">Deductions</span>₹{r.deductionTotal.toLocaleString('en-IN')}</p>
+                        <p className="rsa-net" style={{ fontWeight: 600 }}><span className="pq-group-label">Net Paid</span>₹{r.netPaid.toLocaleString('en-IN')}</p>
                     </div>
                 ))}
             </div>

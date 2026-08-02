@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { useFileDownload } from '../../hooks/useFileDownload';
 import DownloadButton from './DownloadButton';
 import StyledMonthPicker from './StyledMonthPicker';
+import { KpiCard, KpiGrid } from './DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/add.css';
 
@@ -58,64 +59,56 @@ const CaMonthlyPackageView = ({ url }) => {
                     </p>
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>GST Summary</p>
-                    <div className="list-table finance-table" style={{ marginBottom: '20px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-                            <b>Output GST</b><b>Input GST — Purchases</b><b>Input GST — Expenses</b><b>Total Input GST</b><b>Net Payable</b>
-                        </div>
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-                            <p>₹{data.gst.outputGst.toLocaleString('en-IN')}</p>
-                            <p>₹{data.gst.purchaseGst.toLocaleString('en-IN')}</p>
-                            <p>₹{data.gst.expenseGst.toLocaleString('en-IN')}</p>
-                            <p>₹{data.gst.inputGst.toLocaleString('en-IN')}</p>
-                            <p style={{ fontWeight: 600 }}>₹{data.gst.netGstPayable.toLocaleString('en-IN')}</p>
-                        </div>
-                    </div>
+                    <KpiGrid>
+                        <KpiCard label="Output GST" value={`₹${data.gst.outputGst.toLocaleString('en-IN')}`} />
+                        <KpiCard label="Input GST — Purchases" value={`₹${data.gst.purchaseGst.toLocaleString('en-IN')}`} />
+                        <KpiCard label="Input GST — Expenses" value={`₹${data.gst.expenseGst.toLocaleString('en-IN')}`} />
+                        <KpiCard label="Total Input GST" value={`₹${data.gst.inputGst.toLocaleString('en-IN')}`} />
+                        <KpiCard label="Net Payable" value={`₹${data.gst.netGstPayable.toLocaleString('en-IN')}`} />
+                    </KpiGrid>
 
-                    <p className="admin-subtitle" style={{ marginBottom: '10px' }}>TDS Summary</p>
-                    <div className="list-table finance-table" style={{ marginBottom: '20px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                            <b>Section</b><b>Amount</b>
+                    <p className="admin-subtitle" style={{ margin: '24px 0 10px' }}>TDS Summary</p>
+                    <div className="dash-chart-card camp-tds-card" style={{ marginBottom: '20px' }}>
+                        <div className="camp-tds-row camp-tds-header">
+                            <b className="camp-tds-section">Section</b>
+                            <b className="camp-tds-amount">Amount</b>
                         </div>
                         {data.tds.bySection.length === 0 ? (
                             <div className="admin-empty-state"><p>No TDS recorded this month.</p></div>
                         ) : data.tds.bySection.map(s => (
-                            <div key={s.tdsSectionId || 'unspecified'} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                                <p>{s.tdsSectionName}{s.tdsSectionCode ? ` (${s.tdsSectionCode})` : ''}</p>
-                                <p>₹{s.totalTds.toLocaleString('en-IN')}</p>
+                            <div key={s.tdsSectionId || 'unspecified'} className="camp-tds-row">
+                                <p className="camp-tds-section">{s.tdsSectionName}{s.tdsSectionCode ? ` (${s.tdsSectionCode})` : ''}</p>
+                                <p className="camp-tds-amount">₹{s.totalTds.toLocaleString('en-IN')}</p>
                             </div>
                         ))}
                     </div>
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Sales / Purchase / Expense Summary</p>
-                    <div className="list-table finance-table" style={{ marginBottom: '20px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                            <b>Sales (Issued Bills)</b><b>Net Purchases</b><b>Expenses</b>
-                        </div>
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                            <p>₹{data.sales.totalBilled.toLocaleString('en-IN')} ({data.sales.billCount})</p>
-                            <p>₹{data.purchases.netPurchases.toLocaleString('en-IN')} ({data.purchases.purchaseCount})</p>
-                            <p>₹{data.expenses.totalExpenses.toLocaleString('en-IN')} ({data.expenses.expenseCount})</p>
-                        </div>
-                    </div>
+                    <KpiGrid>
+                        <KpiCard label="Sales (Issued Bills)" value={`₹${data.sales.totalBilled.toLocaleString('en-IN')}`} sub={`${data.sales.billCount} bill${data.sales.billCount === 1 ? '' : 's'}`} />
+                        <KpiCard label="Net Purchases" value={`₹${data.purchases.netPurchases.toLocaleString('en-IN')}`} sub={`${data.purchases.purchaseCount} purchase${data.purchases.purchaseCount === 1 ? '' : 's'}`} />
+                        <KpiCard label="Expenses" value={`₹${data.expenses.totalExpenses.toLocaleString('en-IN')}`} sub={`${data.expenses.expenseCount} expense${data.expenses.expenseCount === 1 ? '' : 's'}`} />
+                    </KpiGrid>
 
-                    <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Bank & Cash Position (as of month end)</p>
-                    <div className="list-table finance-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                            <b>Account</b><b>Closing Balance</b>
+                    <p className="admin-subtitle" style={{ margin: '24px 0 10px' }}>Bank & Cash Position (as of month end)</p>
+                    <div className="dash-chart-card camp-bank-card">
+                        <div className="camp-bank-row camp-bank-header">
+                            <b className="camp-bank-account">Account</b>
+                            <b className="camp-bank-balance">Closing Balance</b>
                         </div>
                         {data.bankAndCash.bankAccounts.map(a => (
-                            <div key={a.accountId} className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                                <p>{a.accountName}</p>
-                                <p>₹{a.closingBalance.toLocaleString('en-IN')}</p>
+                            <div key={a.accountId} className="camp-bank-row">
+                                <p className="camp-bank-account">{a.accountName}</p>
+                                <p className="camp-bank-balance">₹{a.closingBalance.toLocaleString('en-IN')}</p>
                             </div>
                         ))}
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                            <p>Cash</p>
-                            <p>₹{data.bankAndCash.cashClosingBalance.toLocaleString('en-IN')}</p>
+                        <div className="camp-bank-row">
+                            <p className="camp-bank-account">Cash</p>
+                            <p className="camp-bank-balance">₹{data.bankAndCash.cashClosingBalance.toLocaleString('en-IN')}</p>
                         </div>
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: '2fr 1fr', fontWeight: 700 }}>
-                            <p>Total Position</p>
-                            <p>₹{data.bankAndCash.totalPosition.toLocaleString('en-IN')}</p>
+                        <div className="camp-bank-row" style={{ fontWeight: 700 }}>
+                            <p className="camp-bank-account">Total Position</p>
+                            <p className="camp-bank-balance">₹{data.bankAndCash.totalPosition.toLocaleString('en-IN')}</p>
                         </div>
                     </div>
                 </>

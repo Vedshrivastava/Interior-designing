@@ -48,21 +48,25 @@ const VendorAnalysisTable = ({ url }) => {
                 <StyledSelect value={projectId} onChange={setProjectId} placeholder="All projects" options={projects.map(p => ({ value: p._id, label: p.name }))} />
             </div>
 
-            <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr' }}>
-                    <b>Vendor</b><b>Purchases</b><b>Returns</b><b>Payments</b><b>Amount Owed</b>
+            <div className="dash-chart-card rva-card">
+                <div className="rva-row rva-header">
+                    <b className="rva-vendor">Vendor</b>
+                    <b className="rva-purchases">Purchases</b>
+                    <b className="rva-returns">Returns</b>
+                    <b className="rva-payments">Payments</b>
+                    <b className="rva-owed">Amount Owed</b>
                 </div>
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
                 ) : rows.length === 0 ? (
                     <div className="admin-empty-state"><p>No material vendors yet.</p></div>
                 ) : rows.map(r => (
-                    <div key={r.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr' }}>
-                        <p>{r.vendorName}</p>
-                        <p>₹{r.purchases.toLocaleString('en-IN')}</p>
-                        <p>₹{r.returns.toLocaleString('en-IN')}</p>
-                        <p>₹{r.payments.toLocaleString('en-IN')}</p>
-                        <p style={{ fontWeight: 600, color: r.amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}>₹{r.amountOwed.toLocaleString('en-IN')}</p>
+                    <div key={r.vendorId} className="rva-row">
+                        <p className="rva-vendor">{r.vendorName}</p>
+                        <p className="rva-purchases"><span className="pq-group-label">Purchases</span>₹{r.purchases.toLocaleString('en-IN')}</p>
+                        <p className="rva-returns"><span className="pq-group-label">Returns</span>₹{r.returns.toLocaleString('en-IN')}</p>
+                        <p className="rva-payments"><span className="pq-group-label">Payments</span>₹{r.payments.toLocaleString('en-IN')}</p>
+                        <p className="rva-owed" style={{ fontWeight: 600, color: r.amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}><span className="pq-group-label">Amount Owed</span>₹{r.amountOwed.toLocaleString('en-IN')}</p>
                     </div>
                 ))}
             </div>

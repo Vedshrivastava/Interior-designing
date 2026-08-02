@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
 import StyledSelect from './StyledSelect';
+import { KpiCard, KpiGrid } from './DashboardWidgets';
 import '../../styles/list.css';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -59,44 +60,44 @@ const CashFlowView = ({ url }) => {
 
             {data && (
                 <>
-                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                            <b>Total In</b><b>Total Out</b><b>Net</b>
-                        </div>
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                            <p style={{ color: 'var(--moss)' }}>₹{data.totals.in.toLocaleString('en-IN')}</p>
-                            <p style={{ color: '#c0392b' }}>₹{data.totals.out.toLocaleString('en-IN')}</p>
-                            <p style={{ fontWeight: 700 }}>₹{data.totals.net.toLocaleString('en-IN')}</p>
-                        </div>
-                    </div>
+                    <KpiGrid>
+                        <KpiCard label="Total In" value={`₹${data.totals.in.toLocaleString('en-IN')}`} tone="good" />
+                        <KpiCard label="Total Out" value={`₹${data.totals.out.toLocaleString('en-IN')}`} tone="danger" />
+                        <KpiCard label="Net" value={`₹${data.totals.net.toLocaleString('en-IN')}`} />
+                    </KpiGrid>
 
-                    <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By category</p>
-                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.5fr 1fr 1fr' }}>
-                            <b>Category</b><b>Direction</b><b>Amount</b>
+                    <p className="admin-subtitle" style={{ margin: '24px 0 10px' }}>By category</p>
+                    <div className="dash-chart-card rcf-cat-card" style={{ marginBottom: '24px' }}>
+                        <div className="rcf-cat-row rcf-cat-header">
+                            <b className="rcf-cat-category">Category</b>
+                            <b className="rcf-cat-direction">Direction</b>
+                            <b className="rcf-cat-amount">Amount</b>
                         </div>
                         {data.byCategory.map(c => (
-                            <div key={c.category} className="list-table-format row-item" style={{ gridTemplateColumns: '1.5fr 1fr 1fr' }}>
-                                <p>{CATEGORY_LABEL[c.category] || c.category}</p>
-                                <p style={{ color: c.direction === 'in' ? 'var(--moss)' : '#c0392b' }}>{c.direction === 'in' ? 'In' : 'Out'}</p>
-                                <p>₹{c.amount.toLocaleString('en-IN')}</p>
+                            <div key={c.category} className="rcf-cat-row">
+                                <p className="rcf-cat-category">{CATEGORY_LABEL[c.category] || c.category}</p>
+                                <p className="rcf-cat-direction" style={{ color: c.direction === 'in' ? 'var(--moss)' : '#c0392b' }}><span className="pq-group-label">Direction</span>{c.direction === 'in' ? 'In' : 'Out'}</p>
+                                <p className="rcf-cat-amount"><span className="pq-group-label">Amount</span>₹{c.amount.toLocaleString('en-IN')}</p>
                             </div>
                         ))}
                     </div>
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>By {groupBy}</p>
-                    <div className="list-table finance-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                            <b>Period</b><b>In</b><b>Out</b><b>Net</b>
+                    <div className="dash-chart-card rcf-series-card">
+                        <div className="rcf-series-row rcf-series-header">
+                            <b className="rcf-series-period">Period</b>
+                            <b className="rcf-series-in">In</b>
+                            <b className="rcf-series-out">Out</b>
+                            <b className="rcf-series-net">Net</b>
                         </div>
                         {data.series.length === 0 ? (
                             <div className="admin-empty-state"><p>No activity in this range.</p></div>
                         ) : data.series.map(s => (
-                            <div key={s.bucket} className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                                <p>{s.bucket}</p>
-                                <p style={{ color: 'var(--moss)' }}>₹{s.in.toLocaleString('en-IN')}</p>
-                                <p style={{ color: '#c0392b' }}>₹{s.out.toLocaleString('en-IN')}</p>
-                                <p style={{ fontWeight: 600 }}>₹{s.net.toLocaleString('en-IN')}</p>
+                            <div key={s.bucket} className="rcf-series-row">
+                                <p className="rcf-series-period">{s.bucket}</p>
+                                <p className="rcf-series-in" style={{ color: 'var(--moss)' }}><span className="pq-group-label">In</span>₹{s.in.toLocaleString('en-IN')}</p>
+                                <p className="rcf-series-out" style={{ color: '#c0392b' }}><span className="pq-group-label">Out</span>₹{s.out.toLocaleString('en-IN')}</p>
+                                <p className="rcf-series-net" style={{ fontWeight: 600 }}><span className="pq-group-label">Net</span>₹{s.net.toLocaleString('en-IN')}</p>
                             </div>
                         ))}
                     </div>

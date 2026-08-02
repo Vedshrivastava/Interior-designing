@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import StyledSelect from './StyledSelect';
+import { KpiCard, KpiGrid } from './DashboardWidgets';
 import '../../styles/list.css';
 
 // Same dashboardCache idea as FinanceHome.jsx, keyed by projectId — this
@@ -72,99 +73,92 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                         <button type="button" className="add-point-btn" onClick={() => onViewClientProfit(data.clientId)}>View Client Profit →</button>
                     </div>
 
-                    <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                            <b>Revenue</b><b>Material Cost <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>(weighted avg)</span></b><b>Contractor Cost</b><b>Commission Cost</b>
-                        </div>
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                            <p>₹{data.revenue.toLocaleString('en-IN')}</p>
-                            <p>₹{data.materialCost.toLocaleString('en-IN')}</p>
-                            <p>
-                                {data.contractorCost > 0 ? `₹${data.contractorCost.toLocaleString('en-IN')}` : (data.totalContractorCost > 0 ? <span style={{ color: '#c0392b' }}>Unapproved</span> : '₹0')}
-                                {data.totalContractorCost > data.contractorCost && (
-                                    <span style={{ display: 'block', fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>Total logged: ₹{data.totalContractorCost.toLocaleString('en-IN')}</span>
-                                )}
-                            </p>
-                            <p>₹{data.commissionCost.toLocaleString('en-IN')}</p>
-                        </div>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                            <b>Labour Cost</b><b>Other Expenses</b><b>Material Waste Cost</b><b>Profit</b>
-                        </div>
-                        <div className="list-table-format row-item" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                            <p>
-                                {data.labourCost > 0 ? `₹${data.labourCost.toLocaleString('en-IN')}` : (data.totalLabourCost > 0 ? <span style={{ color: '#c0392b' }}>Unapproved</span> : '₹0')}
-                                {data.totalLabourCost > data.labourCost && (
-                                    <span style={{ display: 'block', fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>Total logged: ₹{data.totalLabourCost.toLocaleString('en-IN')}</span>
-                                )}
-                            </p>
-                            <p>₹{data.otherExpenses.toLocaleString('en-IN')}</p>
-                            <p style={{ color: data.materialWasteCost > 0 ? '#c0392b' : 'inherit' }}>₹{data.materialWasteCost.toLocaleString('en-IN')}</p>
-                            <p style={{ fontWeight: 700, color: data.profit >= 0 ? 'var(--moss)' : '#c0392b' }}>
-                                ₹{data.profit.toLocaleString('en-IN')} ({data.marginPercent.toFixed(1)}%)
-                            </p>
-                        </div>
-                    </div>
+                    <KpiGrid>
+                        <KpiCard label="Revenue" value={`₹${data.revenue.toLocaleString('en-IN')}`} />
+                        <KpiCard label="Material Cost" value={`₹${data.materialCost.toLocaleString('en-IN')}`} sub="Weighted avg" />
+                        <KpiCard
+                            label="Contractor Cost"
+                            value={data.contractorCost > 0 ? `₹${data.contractorCost.toLocaleString('en-IN')}` : (data.totalContractorCost > 0 ? 'Unapproved' : '₹0')}
+                            tone={data.contractorCost === 0 && data.totalContractorCost > 0 ? 'danger' : undefined}
+                            sub={data.totalContractorCost > data.contractorCost ? `Total logged: ₹${data.totalContractorCost.toLocaleString('en-IN')}` : undefined}
+                        />
+                        <KpiCard label="Commission Cost" value={`₹${data.commissionCost.toLocaleString('en-IN')}`} />
+                        <KpiCard
+                            label="Labour Cost"
+                            value={data.labourCost > 0 ? `₹${data.labourCost.toLocaleString('en-IN')}` : (data.totalLabourCost > 0 ? 'Unapproved' : '₹0')}
+                            tone={data.labourCost === 0 && data.totalLabourCost > 0 ? 'danger' : undefined}
+                            sub={data.totalLabourCost > data.labourCost ? `Total logged: ₹${data.totalLabourCost.toLocaleString('en-IN')}` : undefined}
+                        />
+                        <KpiCard label="Other Expenses" value={`₹${data.otherExpenses.toLocaleString('en-IN')}`} />
+                        <KpiCard label="Material Waste Cost" value={`₹${data.materialWasteCost.toLocaleString('en-IN')}`} tone={data.materialWasteCost > 0 ? 'danger' : undefined} />
+                        <KpiCard label="Profit" value={`₹${data.profit.toLocaleString('en-IN')} (${data.marginPercent.toFixed(1)}%)`} tone={data.profit >= 0 ? 'good' : 'danger'} />
+                    </KpiGrid>
 
                     {(data.unapprovedAreaSqft > 0 || data.unapprovedCommissionCost > 0) && (
-                        <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
-                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                                <b>Area</b><b>Contractor Unapproved</b><b>Labour Unapproved</b><b>Commission</b><b>Revenue</b><b>Profit</b>
-                            </div>
-                            <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                                <p>{data.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
-                                <p>₹{data.unapprovedContractorCost.toLocaleString('en-IN')}</p>
-                                <p>₹{data.unapprovedLabourCost.toLocaleString('en-IN')}</p>
-                                <p>₹{data.unapprovedCommissionCost.toLocaleString('en-IN')}</p>
-                                <p>₹{data.unapprovedRevenue.toLocaleString('en-IN')}</p>
-                                <p style={{ color: data.unapprovedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>₹{data.unapprovedProfit.toLocaleString('en-IN')}</p>
-                            </div>
-                            <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
+                        <>
+                            <p className="admin-subtitle" style={{ margin: '24px 0 10px' }}>Unapproved (Pending Review)</p>
+                            <KpiGrid>
+                                <KpiCard label="Area" value={`${data.unapprovedAreaSqft.toLocaleString('en-IN')} sqft`} />
+                                <KpiCard label="Contractor Unapproved" value={`₹${data.unapprovedContractorCost.toLocaleString('en-IN')}`} />
+                                <KpiCard label="Labour Unapproved" value={`₹${data.unapprovedLabourCost.toLocaleString('en-IN')}`} />
+                                <KpiCard label="Commission" value={`₹${data.unapprovedCommissionCost.toLocaleString('en-IN')}`} />
+                                <KpiCard label="Revenue" value={`₹${data.unapprovedRevenue.toLocaleString('en-IN')}`} />
+                                <KpiCard label="Profit" value={`₹${data.unapprovedProfit.toLocaleString('en-IN')}`} tone={data.unapprovedProfit >= 0 ? 'good' : 'danger'} />
+                            </KpiGrid>
+                            <p className="admin-subtitle" style={{ margin: '10px 0 4px' }}>
                                 Logged work whose cost isn't counted in Profit yet.
                             </p>
-                            <p className="admin-subtitle" style={{ padding: '0 20px 16px', fontWeight: 600, color: data.totalProjectedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>
+                            <p className="admin-subtitle" style={{ marginBottom: '24px', fontWeight: 600, color: data.totalProjectedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>
                                 Total Projected Profit (Approved + Unapproved): ₹{data.totalProjectedProfit.toLocaleString('en-IN')}
                             </p>
-                        </div>
+                        </>
                     )}
 
                     {(data.directPaymentContractorTotal > 0 || data.directPaymentLabourTotal > 0) && (
-                        <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
-                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Direct Payments (Client → Workers)</b></div>
-                            <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                                <b>Party</b><b>Total</b>
+                        <>
+                            <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Direct Payments (Client → Workers)</p>
+                            <div className="dash-chart-card rpp-dp-card" style={{ marginBottom: '8px' }}>
+                                <div className="rpp-dp-row rpp-dp-header">
+                                    <b className="rpp-dp-party">Party</b>
+                                    <b className="rpp-dp-total">Total</b>
+                                </div>
+                                {data.directPaymentContractorTotal > 0 && (
+                                    <div className="rpp-dp-row">
+                                        <p className="rpp-dp-party">Contractor</p>
+                                        <p className="rpp-dp-total">₹{data.directPaymentContractorTotal.toLocaleString('en-IN')}</p>
+                                    </div>
+                                )}
+                                {data.directPaymentLabourTotal > 0 && (
+                                    <div className="rpp-dp-row">
+                                        <p className="rpp-dp-party">Labour</p>
+                                        <p className="rpp-dp-total">₹{data.directPaymentLabourTotal.toLocaleString('en-IN')}</p>
+                                    </div>
+                                )}
                             </div>
-                            {data.directPaymentContractorTotal > 0 && (
-                                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                                    <p>Contractor</p>
-                                    <p>₹{data.directPaymentContractorTotal.toLocaleString('en-IN')}</p>
-                                </div>
-                            )}
-                            {data.directPaymentLabourTotal > 0 && (
-                                <div className="list-table-format row-item" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                                    <p>Labour</p>
-                                    <p>₹{data.directPaymentLabourTotal.toLocaleString('en-IN')}</p>
-                                </div>
-                            )}
-                            <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
+                            <p className="admin-subtitle" style={{ marginBottom: '24px' }}>
                                 Amounts the client paid directly to a worker on this project — an advance, not tied to specific sqft, so it's a flat reduction against that worker's overall Balance Payable, not netted against Unapproved/Approved above.
                             </p>
-                        </div>
+                        </>
                     )}
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Works: drill into a work's own profit</p>
-                    <div className="list-table finance-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 140px' }}>
-                            <b>Work Type</b><b>Completed / Estimated</b><b>Status</b><b>Action</b>
+                    <div className="dash-chart-card rpp-work-card">
+                        <div className="rpp-work-row rpp-work-header">
+                            <b className="rpp-work-type">Work Type</b>
+                            <b className="rpp-work-area">Completed / Estimated</b>
+                            <b className="rpp-work-status">Status</b>
+                            <b className="rpp-work-action">Action</b>
                         </div>
                         {works.length === 0 ? (
                             <div className="admin-empty-state"><p>No works yet for this project.</p></div>
                         ) : works.map(w => (
-                            <div key={w._id} className="list-table-format row-item" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 140px' }}>
-                                <p>{w.workType}</p>
-                                <p>{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft</p>
-                                <p><span className="item-category">{w.status}</span></p>
-                                <p className="cursor edit-action" onClick={() => onViewWorkProfit(w._id)}>View Profit</p>
+                            <div key={w._id} className="rpp-work-row">
+                                <p className="rpp-work-type">{w.workType}</p>
+                                <p className="rpp-work-area"><span className="pq-group-label">Completed / Estimated</span>{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft</p>
+                                <p className="rpp-work-status"><span className="item-category">{w.status}</span></p>
+                                <div className="rpp-work-action">
+                                    <p className="cursor edit-action" onClick={() => onViewWorkProfit(w._id)}>View Profit</p>
+                                </div>
                             </div>
                         ))}
                     </div>

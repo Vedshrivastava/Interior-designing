@@ -53,25 +53,33 @@ const LabourAnalysisTable = ({ url }) => {
                 <StyledSelect value={projectId} onChange={setProjectId} placeholder="All projects" options={projects.map(p => ({ value: p._id, label: p.name }))} />
             </div>
 
-            <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.7fr 0.7fr 0.7fr 0.7fr 0.8fr 0.7fr 0.7fr 1fr' }}>
-                    <b>Labourer</b><b>Total</b><b>Approved</b><b>Advances</b><b>Deductions</b><b>Direct Pay</b><b>Payments</b><b>TDS</b><b>Balance Payable</b>
+            <div className="dash-chart-card rla-card">
+                <div className="rla-row rla-header">
+                    <b className="rla-labourer">Labourer</b>
+                    <b className="rla-total">Total</b>
+                    <b className="rla-approved">Approved</b>
+                    <b className="rla-advances">Advances</b>
+                    <b className="rla-deductions">Deductions</b>
+                    <b className="rla-directpay">Direct Pay</b>
+                    <b className="rla-payments">Payments</b>
+                    <b className="rla-tds">TDS</b>
+                    <b className="rla-balance">Balance Payable</b>
                 </div>
                 {loading ? (
                     <div className="admin-empty-state"><p>Loading…</p></div>
                 ) : rows.length === 0 ? (
                     <div className="admin-empty-state"><p>No labourers yet.</p></div>
                 ) : rows.map(r => (
-                    <div key={r.labourerId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.1fr 0.7fr 0.7fr 0.7fr 0.7fr 0.8fr 0.7fr 0.7fr 1fr' }}>
-                        <p>{r.labourerName}</p>
-                        <p>₹{r.totalAmount.toLocaleString('en-IN')}</p>
-                        <p style={{ color: r.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>{r.earnings > 0 ? `₹${r.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
-                        <p>₹{r.advances.toLocaleString('en-IN')}</p>
-                        <p>₹{r.deductions.toLocaleString('en-IN')}</p>
-                        <p>₹{r.directPaymentTotal.toLocaleString('en-IN')}</p>
-                        <p>₹{r.payments.toLocaleString('en-IN')}</p>
-                        <p>₹{r.tdsTotal.toLocaleString('en-IN')}</p>
-                        <p style={{ fontWeight: 600, color: r.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{r.balancePayable.toLocaleString('en-IN')}</p>
+                    <div key={r.labourerId} className="rla-row">
+                        <p className="rla-labourer">{r.labourerName}</p>
+                        <p className="rla-total"><span className="pq-group-label">Total</span>₹{r.totalAmount.toLocaleString('en-IN')}</p>
+                        <p className="rla-approved" style={{ color: r.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}><span className="pq-group-label">Approved</span>{r.earnings > 0 ? `₹${r.earnings.toLocaleString('en-IN')}` : 'Unapproved'}</p>
+                        <p className="rla-advances"><span className="pq-group-label">Advances</span>₹{r.advances.toLocaleString('en-IN')}</p>
+                        <p className="rla-deductions"><span className="pq-group-label">Deductions</span>₹{r.deductions.toLocaleString('en-IN')}</p>
+                        <p className="rla-directpay"><span className="pq-group-label">Direct Pay</span>₹{r.directPaymentTotal.toLocaleString('en-IN')}</p>
+                        <p className="rla-payments"><span className="pq-group-label">Payments</span>₹{r.payments.toLocaleString('en-IN')}</p>
+                        <p className="rla-tds"><span className="pq-group-label">TDS</span>₹{r.tdsTotal.toLocaleString('en-IN')}</p>
+                        <p className="rla-balance" style={{ fontWeight: 600, color: r.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}><span className="pq-group-label">Balance Payable</span>₹{r.balancePayable.toLocaleString('en-IN')}</p>
                     </div>
                 ))}
             </div>

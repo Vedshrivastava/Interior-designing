@@ -3532,6 +3532,477 @@
     .cem-action { grid-area: action; justify-content: flex-end; }
 }
 
+/* ── Reports page — Contractor/Labour Analysis (rca-/rla-, 9 cols, same
+   shape as Payables' own Contractor tab) and Vendor/Supervisor Analysis
+   (rva-/rsa-, 5 cols) — all four read-only, no Actions column. */
+.rca-card, .rla-card, .rva-card, .rsa-card {
+    padding: 0;
+}
+.rca-row, .rla-row {
+    display: grid;
+    grid-template-columns: 1.1fr 0.7fr 0.7fr 0.7fr 0.7fr 0.8fr 0.7fr 0.7fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.rva-row, .rsa-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.rca-row:last-child, .rla-row:last-child, .rva-row:last-child, .rsa-row:last-child {
+    border-bottom: none;
+}
+.rca-row.rca-header, .rla-row.rla-header, .rva-row.rva-header, .rsa-row.rsa-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.rca-contractor, .rla-labourer, .rva-vendor, .rsa-supervisor {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-dark, #1a1208);
+}
+.rca-total, .rca-approved, .rca-advances, .rca-deductions, .rca-directpay, .rca-payments, .rca-tds, .rca-balance,
+.rla-total, .rla-approved, .rla-advances, .rla-deductions, .rla-directpay, .rla-payments, .rla-tds, .rla-balance,
+.rva-purchases, .rva-returns, .rva-payments, .rva-owed,
+.rsa-salary, .rsa-incentives, .rsa-deductions, .rsa-net {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+.rca-balance, .rla-balance, .rva-owed, .rsa-net { font-weight: 600; }
+@media (min-width: 641px) {
+    .rca-total, .rca-approved, .rca-advances, .rca-deductions, .rca-directpay, .rca-payments, .rca-tds, .rca-balance,
+    .rla-total, .rla-approved, .rla-advances, .rla-deductions, .rla-directpay, .rla-payments, .rla-tds, .rla-balance,
+    .rva-purchases, .rva-returns, .rva-payments, .rva-owed,
+    .rsa-salary, .rsa-incentives, .rsa-deductions, .rsa-net {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .rca-row.rca-header, .rla-row.rla-header, .rva-row.rva-header, .rsa-row.rsa-header {
+        display: none;
+    }
+    .rca-row, .rla-row {
+        grid-template-columns: 1fr 1fr;
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .rca-row { grid-template-areas: "contractor contractor" "total approved" "advances deductions" "directpay payments" "tds balance"; }
+    .rla-row { grid-template-areas: "labourer labourer" "total approved" "advances deductions" "directpay payments" "tds balance"; }
+    .rca-contractor, .rla-labourer { grid-area: contractor; font-size: 1rem; }
+    .rla-labourer { grid-area: labourer; }
+    .rca-total, .rla-total { grid-area: total; }
+    .rca-approved, .rla-approved { grid-area: approved; text-align: right; }
+    .rca-advances, .rla-advances { grid-area: advances; }
+    .rca-deductions, .rla-deductions { grid-area: deductions; text-align: right; }
+    .rca-directpay, .rla-directpay { grid-area: directpay; }
+    .rca-payments, .rla-payments { grid-area: payments; text-align: right; }
+    .rca-tds, .rla-tds { grid-area: tds; }
+    .rca-balance, .rla-balance { grid-area: balance; text-align: right; }
+
+    .rva-row, .rsa-row {
+        grid-template-columns: 1fr 1fr;
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .rva-row { grid-template-areas: "vendor vendor" "purchases returns" "payments owed"; }
+    .rsa-row { grid-template-areas: "supervisor supervisor" "salary incentives" "deductions net"; }
+    .rva-vendor, .rsa-supervisor { grid-area: vendor; font-size: 1rem; }
+    .rsa-supervisor { grid-area: supervisor; }
+    .rva-purchases { grid-area: purchases; }
+    .rva-returns { grid-area: returns; text-align: right; }
+    .rva-payments { grid-area: payments; }
+    .rva-owed { grid-area: owed; text-align: right; }
+    .rsa-salary { grid-area: salary; }
+    .rsa-incentives { grid-area: incentives; text-align: right; }
+    .rsa-deductions { grid-area: deductions; }
+    .rsa-net { grid-area: net; text-align: right; }
+}
+
+/* ── Reconciliation Checklist (rec-, 4 cols) — Status is a "Clear" badge,
+   a "Review →" link back into another Reports tab, or a plain hint, so
+   it skips the pq-group-label the value columns get, same reasoning as
+   Work Review's own Action column. */
+.rec-card {
+    padding: 0;
+}
+.rec-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.rec-row:last-child {
+    border-bottom: none;
+}
+.rec-row.rec-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.rec-item { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.rec-count, .rec-amount { margin: 0; font-variant-numeric: tabular-nums; }
+.rec-status { margin: 0; }
+@media (min-width: 641px) {
+    .rec-count, .rec-amount, .rec-status { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .rec-row.rec-header {
+        display: none;
+    }
+    .rec-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "item item"
+            "count amount"
+            "status status";
+        row-gap: 10px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .rec-item { grid-area: item; font-size: 1rem; }
+    .rec-count { grid-area: count; }
+    .rec-amount { grid-area: amount; text-align: right; }
+    .rec-status { grid-area: status; margin-top: 4px; }
+}
+
+/* ── Material Analysis (rma-, 8 cols) — read-only. */
+.rma-card {
+    padding: 0;
+}
+.rma-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr 1fr 1.1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.rma-row:last-child {
+    border-bottom: none;
+}
+.rma-row.rma-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.rma-material { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.rma-purchased, .rma-returned, .rma-consumed, .rma-wasted, .rma-stock, .rma-avgcost, .rma-costsqft {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+@media (min-width: 641px) {
+    .rma-purchased, .rma-returned, .rma-consumed, .rma-wasted, .rma-stock, .rma-avgcost, .rma-costsqft {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .rma-row.rma-header {
+        display: none;
+    }
+    .rma-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "material material"
+            "purchased returned"
+            "consumed wasted"
+            "stock avgcost"
+            "costsqft costsqft";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .rma-material { grid-area: material; font-size: 1rem; }
+    .rma-purchased { grid-area: purchased; }
+    .rma-returned { grid-area: returned; text-align: right; }
+    .rma-consumed { grid-area: consumed; }
+    .rma-wasted { grid-area: wasted; text-align: right; }
+    .rma-stock { grid-area: stock; }
+    .rma-avgcost { grid-area: avgcost; text-align: right; }
+    .rma-costsqft { grid-area: costsqft; }
+}
+
+/* ── Cash Flow (rcf-cat-/rcf-series-, Reports tab) — By category (3
+   cols) and By day/week/month (4 cols), both read-only. */
+.rcf-cat-card, .rcf-series-card {
+    padding: 0;
+}
+.rcf-cat-row {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.rcf-series-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.rcf-cat-row:last-child, .rcf-series-row:last-child {
+    border-bottom: none;
+}
+.rcf-cat-row.rcf-cat-header, .rcf-series-row.rcf-series-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.rcf-cat-category, .rcf-series-period { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.rcf-cat-direction, .rcf-cat-amount, .rcf-series-in, .rcf-series-out, .rcf-series-net {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+@media (min-width: 641px) {
+    .rcf-cat-direction, .rcf-cat-amount, .rcf-series-in, .rcf-series-out, .rcf-series-net {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .rcf-cat-row.rcf-cat-header, .rcf-series-row.rcf-series-header {
+        display: none;
+    }
+    .rcf-cat-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "category category" "direction amount";
+        row-gap: 8px;
+        column-gap: 10px;
+        padding: 14px 16px;
+    }
+    .rcf-cat-category { grid-area: category; font-size: 1rem; }
+    .rcf-cat-direction { grid-area: direction; }
+    .rcf-cat-amount { grid-area: amount; text-align: right; }
+
+    .rcf-series-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "period period" "in out" "net net";
+        row-gap: 8px;
+        column-gap: 10px;
+        padding: 14px 16px;
+    }
+    .rcf-series-period { grid-area: period; font-size: 1rem; }
+    .rcf-series-in { grid-area: in; }
+    .rcf-series-out { grid-area: out; text-align: right; }
+    .rcf-series-net {
+        grid-area: net;
+        text-align: right;
+        margin-top: 4px;
+        padding-top: 8px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+}
+
+/* ── Simple "Name + Amount" 2-column tables scattered across Reports —
+   CA Monthly Package's TDS Summary (camp-tds-) and Bank & Cash Position
+   (camp-bank-), and every Profit view's own Direct Payments breakout
+   (rpp-dp- Project, rcp-dp- Client, rwp-dp- Work). All five share one
+   shape (own prefix per component per this session's convention, but
+   one shared ruleset since the shape is identical). Stay plain 2-column
+   grids even on mobile — two short cells, no stacking needed. */
+.camp-tds-card, .camp-bank-card, .rpp-dp-card, .rcp-dp-card, .rwp-dp-card {
+    padding: 0;
+}
+.camp-tds-row, .camp-bank-row, .rpp-dp-row, .rcp-dp-row, .rwp-dp-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.camp-tds-row:last-child, .camp-bank-row:last-child, .rpp-dp-row:last-child, .rcp-dp-row:last-child, .rwp-dp-row:last-child {
+    border-bottom: none;
+}
+.camp-tds-row.camp-tds-header, .camp-bank-row.camp-bank-header,
+.rpp-dp-row.rpp-dp-header, .rcp-dp-row.rcp-dp-header, .rwp-dp-row.rwp-dp-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+}
+.camp-tds-section, .camp-bank-account, .rpp-dp-party, .rcp-dp-party, .rwp-dp-party {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-dark, #1a1208);
+}
+.camp-tds-amount, .camp-bank-balance, .rpp-dp-total, .rcp-dp-total, .rwp-dp-total {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+@media (min-width: 641px) {
+    .camp-tds-amount, .camp-bank-balance, .rpp-dp-total, .rcp-dp-total, .rwp-dp-total {
+        justify-self: end;
+    }
+}
+@media (max-width: 640px) {
+    .camp-tds-row.camp-tds-header, .camp-bank-row.camp-bank-header,
+    .rpp-dp-row.rpp-dp-header, .rcp-dp-row.rcp-dp-header, .rwp-dp-row.rwp-dp-header {
+        display: none;
+    }
+    .camp-tds-row, .camp-bank-row, .rpp-dp-row, .rcp-dp-row, .rwp-dp-row {
+        padding: 12px 16px;
+    }
+    .camp-tds-amount, .camp-bank-balance, .rpp-dp-total, .rcp-dp-total, .rwp-dp-total {
+        text-align: right;
+    }
+}
+
+/* ── Profit views' own "drill-down" tables with an Action link: Project
+   Profit's Works list (rpp-work-, 4 cols) and Client Profit's By
+   project (rcp-proj-, 5 cols). */
+.rpp-work-card, .rcp-proj-card {
+    padding: 0;
+}
+.rpp-work-row {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr 110px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.rcp-proj-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr 90px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.rpp-work-row:last-child, .rcp-proj-row:last-child {
+    border-bottom: none;
+}
+.rpp-work-row.rpp-work-header, .rcp-proj-row.rcp-proj-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.rpp-work-type, .rcp-proj-name { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.rpp-work-area, .rpp-work-status, .rcp-proj-revenue, .rcp-proj-profit, .rcp-proj-margin {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+.rpp-work-action, .rcp-proj-action { display: flex; justify-content: center; }
+@media (min-width: 641px) {
+    .rpp-work-area, .rpp-work-status { justify-self: center; }
+    .rcp-proj-revenue, .rcp-proj-profit, .rcp-proj-margin { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .rpp-work-row.rpp-work-header, .rcp-proj-row.rcp-proj-header {
+        display: none;
+    }
+    .rpp-work-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "type type" "area status" "action action";
+        row-gap: 10px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .rpp-work-type { grid-area: type; font-size: 1rem; }
+    .rpp-work-area { grid-area: area; }
+    .rpp-work-status { grid-area: status; text-align: right; }
+    .rpp-work-action { grid-area: action; justify-content: flex-end; margin-top: 4px; }
+
+    .rcp-proj-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "name name" "revenue profit" "margin action";
+        row-gap: 10px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .rcp-proj-name { grid-area: name; font-size: 1rem; }
+    .rcp-proj-revenue { grid-area: revenue; }
+    .rcp-proj-profit { grid-area: profit; text-align: right; }
+    .rcp-proj-margin { grid-area: margin; }
+    .rcp-proj-action { grid-area: action; justify-content: flex-end; }
+}
+
+/* ── Work Profit's Contractor/Labour breakdown tables (rwp-cb-/rwp-lb-,
+   4 cols each, identical shape). */
+.rwp-cb-card, .rwp-lb-card {
+    padding: 0;
+}
+.rwp-cb-row, .rwp-lb-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.rwp-cb-row:last-child, .rwp-lb-row:last-child {
+    border-bottom: none;
+}
+.rwp-cb-row.rwp-cb-header, .rwp-lb-row.rwp-lb-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.rwp-cb-contractor, .rwp-lb-labourer { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.rwp-cb-area, .rwp-cb-rate, .rwp-cb-amount, .rwp-lb-area, .rwp-lb-rate, .rwp-lb-amount {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+@media (min-width: 641px) {
+    .rwp-cb-area, .rwp-cb-rate, .rwp-cb-amount, .rwp-lb-area, .rwp-lb-rate, .rwp-lb-amount {
+        justify-self: center;
+    }
+}
+@media (max-width: 640px) {
+    .rwp-cb-row.rwp-cb-header, .rwp-lb-row.rwp-lb-header {
+        display: none;
+    }
+    .rwp-cb-row, .rwp-lb-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: "name name" "area rate" "amount amount";
+        row-gap: 10px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .rwp-cb-contractor, .rwp-lb-labourer { grid-area: name; font-size: 1rem; }
+    .rwp-cb-area, .rwp-lb-area { grid-area: area; }
+    .rwp-cb-rate, .rwp-lb-rate { grid-area: rate; text-align: right; }
+    .rwp-cb-amount, .rwp-lb-amount {
+        grid-area: amount;
+        text-align: right;
+        margin-top: 4px;
+        padding-top: 8px;
+        border-top: 1px dashed rgba(201, 168, 124, 0.25);
+    }
+}
+
 /* ── PurchaseOrReturnManager's own table (Procurement's Purchases/Returns
    tabs) — same dash-chart-card row shape as everywhere else. Vendor is
    the identifier column (bold, left-aligned) even though Date sits

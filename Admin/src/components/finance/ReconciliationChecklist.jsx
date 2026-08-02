@@ -47,16 +47,19 @@ const ReconciliationChecklist = ({ url, onNavigate }) => {
                         {data.allClear ? 'All clear for this month.' : `${data.outstandingCount} item${data.outstandingCount === 1 ? '' : 's'} outstanding.`}
                     </p>
 
-                    <div className="list-table finance-table">
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
-                            <b>Item</b><b>Count</b><b>Amount</b><b>Status</b>
+                    <div className="dash-chart-card rec-card">
+                        <div className="rec-row rec-header">
+                            <b className="rec-item">Item</b>
+                            <b className="rec-count">Count</b>
+                            <b className="rec-amount">Amount</b>
+                            <b className="rec-status">Status</b>
                         </div>
                         {data.items.map(item => (
-                            <div key={item.key} className="list-table-format row-item" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
-                                <p>{item.label}</p>
-                                <p>{item.count === null ? '—' : item.count}</p>
-                                <p>{item.amount === null ? '—' : `₹${item.amount.toLocaleString('en-IN')}`}</p>
-                                <p>
+                            <div key={item.key} className="rec-row">
+                                <p className="rec-item">{item.label}</p>
+                                <p className="rec-count"><span className="pq-group-label">Count</span>{item.count === null ? '—' : item.count}</p>
+                                <p className="rec-amount"><span className="pq-group-label">Amount</span>{item.amount === null ? '—' : `₹${item.amount.toLocaleString('en-IN')}`}</p>
+                                <p className="rec-status">
                                     {item.clear ? (
                                         <span style={{ color: 'var(--moss)', fontWeight: 600 }}>Clear</span>
                                     ) : item.linkTab ? (

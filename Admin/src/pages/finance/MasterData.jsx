@@ -58,7 +58,7 @@ const MasterData = ({ url }) => {
                 {SETTING_TYPE_KEYS.includes(activeTab) ? (
                     <SettingsCrudList key={activeTab} url={url} lockedType={activeTab} />
                 ) : (
-                    <MasterCrudTable url={url} resourceKey={activeTab} />
+                    <MasterCrudTable url={url} resourceKey={activeTab} cardTitle={TABS.find(t => t.key === activeTab)?.label} />
                 )}
             </div>
         </div>

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPen, faTrash, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { FINANCE_SETTING_TYPES } from '../../config/financeMasters';
 import ToggleSwitch from './ToggleSwitch';
 import StyledSelect from './StyledSelect';
@@ -158,7 +160,16 @@ const SettingsCrudList = ({ url, lockedType }) => {
             ...(typeConfig.hasRate ? [{ key: 'rate', label: 'Rate', render: item => (item.rate != null ? `${item.rate}%` : '-') }] : []),
             ...(typeConfig.hasTdsSection ? [{ key: 'tdsSection', label: 'TDS Section', render: item => item.tdsSectionId?.name || 'No TDS' }] : []),
         ];
-    const gridCols = `${extraCols.length > 0 ? '1.6fr' : '1fr'} ${extraCols.map(() => '1fr').join(' ')} 140px`.trim().replace(/\s+/g, ' ');
+    // Same shape as MasterCrudTable's own cardTitle branch (mastercrud-*,
+    // dashboard.css) — column count varies per settingType (0-2 extra
+    // columns), same reason that generic pattern exists there: name gets
+    // its own line, remaining fields self-label and wrap, actions sit
+    // full-width on mobile. Reusing the exact classes instead of a new
+    // prefix means this needs zero new CSS and matches Masters' own
+    // Materials/Labourers tabs (MasterCrudTable with cardTitle) exactly,
+    // rather than the two halves of the same page looking like different
+    // apps.
+    const gridCols = `1.6fr ${extraCols.map(() => '1fr').join(' ')} 220px`.trim().replace(/\s+/g, ' ');
 
     return (
         <div>
@@ -181,24 +192,37 @@ const SettingsCrudList = ({ url, lockedType }) => {
                 <button type="button" className="add-point-btn" onClick={openAdd}>+ Add {typeLabelSingular}</button>
             </div>
 
-            <div className="list-table finance-table">
-                <div className="list-table-format title" style={{ gridTemplateColumns: gridCols }}>
+            <div className="dash-chart-card mastercrud-card">
+                <div className="mastercrud-row mastercrud-header" style={{ gridTemplateColumns: gridCols }}>
                     <b>Name</b>
                     {extraCols.map(c => <b key={c.key}>{c.label}</b>)}
                     <b>Action</b>
                 </div>
                 {loading ? (
-                    <div className="admin-empty-state"><p>Loading…</p></div>
+                    <div className="dash-empty">Loading…</div>
                 ) : visibleItems.length === 0 ? (
-                    <div className="admin-empty-state"><p>{items.length === 0 ? `No ${typeConfig.label.toLowerCase()} yet.` : 'Nothing matches your search.'}</p></div>
+                    <div className="dash-empty">{items.length === 0 ? `No ${typeConfig.label.toLowerCase()} yet.` : 'Nothing matches your search.'}</div>
                 ) : (
                     visibleItems.map(item => (
-                        <div key={item._id} className="list-table-format row-item" style={{ gridTemplateColumns: gridCols }}>
-                            <p>{item.name}</p>
-                            {extraCols.map(c => <p key={c.key}>{c.render(item)}</p>)}
-                            <div className="action-buttons">
-                                <p onClick={() => openEdit(item)} className="cursor edit-action">Edit</p>
-                                <p onClick={() => setConfirmItem(item)} className="cursor delete-action">X</p>
+                        <div key={item._id} className="mastercrud-row" style={{ gridTemplateColumns: gridCols }}>
+                            <p className="mastercrud-name">{item.name}</p>
+                            <div className="mastercrud-fields">
+                                {extraCols.map(c => (
+                                    <div key={c.key} className="mastercrud-field">
+                                        <span className="mastercrud-field-label">{c.label}</span>
+                                        <span className="mastercrud-field-value">{c.render(item)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="action-buttons mastercrud-actions">
+                                <p onClick={() => openEdit(item)} className="cursor edit-action">
+                                    <FontAwesomeIcon icon={faPen} className="pq-action-icon mastercrud-action-icon" />
+                                    <span className="mastercrud-action-text">Edit</span>
+                                </p>
+                                <button type="button" onClick={() => setConfirmItem(item)} className="cursor delete-action" title={`Remove ${typeLabelSingular.toLowerCase()}`} aria-label={`Remove ${typeLabelSingular.toLowerCase()}`}>
+                                    <FontAwesomeIcon icon={faTrash} className="pq-action-icon mastercrud-action-icon" />
+                                    <span className="mastercrud-action-text">Remove</span>
+                                </button>
                             </div>
                         </div>
                     ))
@@ -206,73 +230,78 @@ const SettingsCrudList = ({ url, lockedType }) => {
             </div>
 
             {modalOpen && ReactDOM.createPortal(
-                <div className="submit-loader-overlay" style={{ zIndex: 99999 }}>
-                    <div className="loader-modal-box edit-modal">
-                        <h2>{editingId ? 'Edit' : 'Add'} {typeLabelSingular}</h2>
-                        <form onSubmit={submit}>
-                            <div className="wizard-field-grid">
-                                <div className="add-product-name flex-col wizard-field-full">
-                                    <p>Name *</p>
-                                    <input type="text" placeholder={`New ${typeLabelSingular.toLowerCase()} name`}
-                                        value={form.name} onChange={e => setField('name', e.target.value)} autoFocus />
-                                </div>
-                                {typeConfig.hasCode && (
-                                    <div className="add-product-name flex-col">
-                                        <p>Code</p>
-                                        <input type="text" placeholder="e.g. 194C-IND" value={form.code} onChange={e => setField('code', e.target.value)} />
-                                    </div>
-                                )}
-                                {typeConfig.hasRate && (
-                                    <div className="add-product-name flex-col">
-                                        <p>Rate %</p>
-                                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.rate} onChange={e => setField('rate', e.target.value)} />
-                                    </div>
-                                )}
-                                {typeConfig.hasTdsSection && (
+                <div className="submit-loader-overlay sctl-overlay" style={{ zIndex: 99999 }}>
+                    <div className="loader-modal-box edit-modal sctl-modal">
+                        <div className="sctl-modal-header">
+                            <h2>{editingId ? 'Edit' : 'Add'} {typeLabelSingular}</h2>
+                        </div>
+                        <div className="sctl-modal-body">
+                            <form id="sctl-form" onSubmit={submit}>
+                                <div className="wizard-field-grid">
                                     <div className="add-product-name flex-col wizard-field-full">
-                                        <p>TDS Section</p>
-                                        <StyledSelect
-                                            value={form.tdsSectionId} onChange={v => setField('tdsSectionId', v)} placeholder="No TDS"
-                                            options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.rate != null ? ` (${s.rate}%)` : ''}` }))}
-                                        />
+                                        <p>Name *</p>
+                                        <input type="text" placeholder={`New ${typeLabelSingular.toLowerCase()} name`}
+                                            value={form.name} onChange={e => setField('name', e.target.value)} autoFocus />
                                     </div>
+                                    {typeConfig.hasCode && (
+                                        <div className="add-product-name flex-col">
+                                            <p>Code</p>
+                                            <input type="text" placeholder="e.g. 194C-IND" value={form.code} onChange={e => setField('code', e.target.value)} />
+                                        </div>
+                                    )}
+                                    {typeConfig.hasRate && (
+                                        <div className="add-product-name flex-col">
+                                            <p>Rate %</p>
+                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.rate} onChange={e => setField('rate', e.target.value)} />
+                                        </div>
+                                    )}
+                                    {typeConfig.hasTdsSection && (
+                                        <div className="add-product-name flex-col wizard-field-full">
+                                            <p>TDS Section</p>
+                                            <StyledSelect
+                                                value={form.tdsSectionId} onChange={v => setField('tdsSectionId', v)} placeholder="No TDS"
+                                                options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.rate != null ? ` (${s.rate}%)` : ''}` }))}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                                {typeConfig.hasTdsSection && (
+                                    <p className="admin-subtitle" style={{ margin: '8px 0 0' }}>
+                                        When set, a Contractor/Labour payment for a Work of this type auto-suggests this section and calculates TDS from its rate. Leave as "No TDS" if this work type doesn't attract any.
+                                    </p>
                                 )}
-                            </div>
-                            {typeConfig.hasTdsSection && (
-                                <p className="admin-subtitle" style={{ margin: '-8px 0 12px' }}>
-                                    When set, a Contractor/Labour payment for a Work of this type auto-suggests this section and calculates TDS from its rate. Leave as "No TDS" if this work type doesn't attract any.
-                                </p>
-                            )}
 
-                            {typeConfig.hasDeductFlags && (
-                                <>
-                                    <p className="wizard-section-label">When a payment under this category is recorded</p>
-                                    {/* Deliberately NOT .add-product-name — that class's own
-                                        `> label` rule is styled for a real field label (tiny,
-                                        uppercase, letter-spaced) and would otherwise catch
-                                        ToggleSwitch's own <label> wrapper too, forcing "Cut
-                                        from Client Bill" into that same micro-label look
-                                        instead of reading as a switch's own name. */}
-                                    <div className="settings-deduct-rule">
-                                        <ToggleSwitch checked={form.deductFromClientBill} onChange={v => setField('deductFromClientBill', v)} label="Cut from Client Bill" />
-                                        <p className="admin-subtitle settings-deduct-rule-note">
-                                            Reduces this project's Outstanding balance by the amount paid — the client owes that much less.
-                                        </p>
-                                    </div>
-                                    <div className="settings-deduct-rule">
-                                        <ToggleSwitch checked={form.deductFromWorkerPayout} onChange={v => setField('deductFromWorkerPayout', v)} label="Cut from Contractor/Labour Payout" />
-                                        <p className="admin-subtitle settings-deduct-rule-note">
-                                            Reduces what the company still owes the specific contractor/labourer paid — turn this off for something like Ration, which isn't part of their earnings.
-                                        </p>
-                                    </div>
-                                </>
-                            )}
-
-                            <div className="edit-modal-actions">
-                                <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
-                                <button type="submit" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                            </div>
-                        </form>
+                                {typeConfig.hasDeductFlags && (
+                                    <>
+                                        <p className="wizard-section-label">When a payment under this category is recorded</p>
+                                        {/* Deliberately NOT .add-product-name — that class's own
+                                            `> label` rule is styled for a real field label (tiny,
+                                            uppercase, letter-spaced) and would otherwise catch
+                                            ToggleSwitch's own <label> wrapper too, forcing "Cut
+                                            from Client Bill" into that same micro-label look
+                                            instead of reading as a switch's own name. */}
+                                        <div className="settings-deduct-rule">
+                                            <ToggleSwitch checked={form.deductFromClientBill} onChange={v => setField('deductFromClientBill', v)} label="Cut from Client Bill" />
+                                            <p className="admin-subtitle settings-deduct-rule-note">
+                                                Reduces this project's Outstanding balance by the amount paid — the client owes that much less.
+                                            </p>
+                                        </div>
+                                        <div className="settings-deduct-rule">
+                                            <ToggleSwitch checked={form.deductFromWorkerPayout} onChange={v => setField('deductFromWorkerPayout', v)} label="Cut from Contractor/Labour Payout" />
+                                            <p className="admin-subtitle settings-deduct-rule-note">
+                                                Reduces what the company still owes the specific contractor/labourer paid — turn this off for something like Ration, which isn't part of their earnings.
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
+                            </form>
+                        </div>
+                        <div className="edit-modal-actions sctl-modal-footer">
+                            <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
+                            <button type="submit" form="sctl-form" className="add-btn" disabled={saving}>
+                                {saving ? 'Saving…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Save</>}
+                            </button>
+                        </div>
                     </div>
                 </div>,
                 document.body

@@ -5864,7 +5864,8 @@
 .edit-modal.lppm-modal,
 .edit-modal.tdsm-modal,
 .edit-modal.bkt-modal,
-.edit-modal.cem-modal {
+.edit-modal.cem-modal,
+.edit-modal.sctl-modal {
     text-align: left;
 }
 
@@ -6060,7 +6061,8 @@
 .edit-modal-actions.lppm-modal-footer,
 .edit-modal-actions.tdsm-modal-footer,
 .edit-modal-actions.bkt-modal-footer,
-.edit-modal-actions.cem-modal-footer {
+.edit-modal-actions.cem-modal-footer,
+.edit-modal-actions.sctl-modal-footer {
     margin-top: 36px;
 }
 
@@ -7702,6 +7704,37 @@
     .cem-modal-body .wizard-field-grid { gap: 12px !important; }
 }
 
+/* ── Add/Edit modal (SettingsCrudList, Masters' 8 dropdown-list tabs) —
+   mobile bottom sheet, mechanically identical to every modal above.
+   .settings-deduct-rule itself (Direct Payment Categories only) is
+   already fluid/responsive at every width — no override needed here. */
+@media (max-width: 540px) {
+    .submit-loader-overlay.sctl-overlay { padding: 0 !important; align-items: flex-end !important; }
+    .edit-modal.sctl-modal {
+        width: 100% !important; max-width: 100% !important; max-height: 92dvh !important;
+        margin: 0 !important; padding: 0 !important; border-radius: 20px 20px 0 0 !important;
+        overflow: hidden !important; display: flex !important; flex-direction: column !important;
+        align-items: stretch !important; animation: aqSheetUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    .sctl-modal-header { flex-shrink: 0; padding: 26px 20px 0; }
+    .sctl-modal-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 20px; }
+    .edit-modal-actions.sctl-modal-footer {
+        flex-shrink: 0; margin-top: 0 !important;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        border-top: 1px solid rgba(201,168,124,0.15) !important;
+        flex-direction: column-reverse !important; gap: 10px !important;
+    }
+    .edit-modal-actions.sctl-modal-footer button { width: 100% !important; }
+    .sctl-modal-body p { font-size: 0.64rem !important; letter-spacing: 1.3px !important; margin-bottom: 6px !important; }
+    .sctl-modal-body input[type="text"], .sctl-modal-body input[type="number"], .sctl-modal-body .add-cat-trigger {
+        font-size: 16px !important; padding: 12px 14px !important; border-radius: 10px !important;
+    }
+    .sctl-modal-body .wizard-field-grid { gap: 12px !important; }
+    .sctl-modal-body .settings-deduct-rule-note {
+        font-size: 0.78rem !important; letter-spacing: normal !important; text-transform: none !important;
+    }
+}
+
 /* ── Add Photos modal (PhotosTab) — mobile bottom sheet, mechanically
    identical to every modal above: same 540px breakpoint, corner radius,
    max-height, and aqSheetUp animation, plus the same align-items/
@@ -7808,8 +7841,19 @@
 .lmm-modal-body form, .lpp-modal-body form, .cmp-modal-body form, .cdp-modal-body form,
 .cpm-modal-body form, .vpm-modal-body form, .lpm-modal-body form, .spm-modal-body form,
 .cmpm-modal-body form, .lppm-modal-body form, .tdsm-modal-body form, .bkt-modal-body form,
-.cem-modal-body form {
+.cem-modal-body form, .sctl-modal-body form {
     gap: 16px !important;
+}
+/* Direct Payment Categories is the one settingType with a
+   wizard-section-label (the deduct-flags heading) — same treatment as
+   the four-modal list above, reproduced here for this one extra
+   consumer rather than folding it into that list, since every other
+   settingType never renders a section label at all. */
+.sctl-modal-body .wizard-section-label {
+    margin-bottom: 10px;
+}
+.sctl-modal-body .wizard-section-label:not(:first-child) {
+    margin-top: 4px;
 }
 /* Only the five modals whose field config actually carries multiple
    sections (SectionLabel, masterFieldRenderer.jsx, or Client Direct
@@ -7840,7 +7884,7 @@
 .cpm-modal-body .wizard-field-grid, .vpm-modal-body .wizard-field-grid, .lpm-modal-body .wizard-field-grid,
 .spm-modal-body .wizard-field-grid, .cmpm-modal-body .wizard-field-grid, .lppm-modal-body .wizard-field-grid,
 .tdsm-modal-body .wizard-field-grid, .bkt-modal-body .wizard-field-grid,
-.cem-modal-body .wizard-field-grid {
+.cem-modal-body .wizard-field-grid, .sctl-modal-body .wizard-field-grid {
     gap: 14px;
     margin-bottom: 0;
 }
@@ -7854,10 +7898,19 @@
 .lmm-modal-body p, .lpp-modal-body p, .cmp-modal-body p, .cdp-modal-body p,
 .cpm-modal-body p, .vpm-modal-body p, .lpm-modal-body p, .spm-modal-body p,
 .cmpm-modal-body p, .lppm-modal-body p, .tdsm-modal-body p, .bkt-modal-body p,
-.cem-modal-body p {
+.cem-modal-body p, .sctl-modal-body p {
     font-size: 0.62rem;
     letter-spacing: 1.4px;
     margin-bottom: 6px;
+}
+/* .settings-deduct-rule-note (list.css) is real body copy explaining
+   what a toggle does, not a field label — the generic shrink above
+   would flatten it to the same tiny uppercase look every plain field
+   label gets, same reasoning as Work Review's own .wrd-name override. */
+.sctl-modal-body .settings-deduct-rule-note {
+    font-size: 0.78rem !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
 }
 .aw-modal-body input[type="text"], .aw-modal-body input[type="tel"], .aw-modal-body input[type="email"],
 .aw-modal-body input[type="number"], .aw-modal-body input[type="date"], .aw-modal-body textarea, .aw-modal-body select,
@@ -7907,7 +7960,8 @@
 .lppm-modal-body input[type="text"], .lppm-modal-body input[type="number"], .lppm-modal-body textarea,
 .tdsm-modal-body input[type="text"], .tdsm-modal-body input[type="number"], .tdsm-modal-body textarea,
 .bkt-modal-body input[type="text"], .bkt-modal-body input[type="number"],
-.cem-modal-body input[type="text"], .cem-modal-body input[type="number"], .cem-modal-body select {
+.cem-modal-body input[type="text"], .cem-modal-body input[type="number"], .cem-modal-body select,
+.sctl-modal-body input[type="text"], .sctl-modal-body input[type="number"] {
     padding: 11px 14px;
 }
 .aw-modal-body .add-cat-trigger, .ac-modal-body .add-cat-trigger, .al-modal-body .add-cat-trigger,
@@ -7922,7 +7976,7 @@
 .cdp-modal-body .add-cat-trigger,
 .cpm-modal-body .add-cat-trigger, .vpm-modal-body .add-cat-trigger, .lpm-modal-body .add-cat-trigger,
 .spm-modal-body .add-cat-trigger, .cmpm-modal-body .add-cat-trigger, .lppm-modal-body .add-cat-trigger,
-.tdsm-modal-body .add-cat-trigger, .bkt-modal-body .add-cat-trigger {
+.tdsm-modal-body .add-cat-trigger, .bkt-modal-body .add-cat-trigger, .sctl-modal-body .add-cat-trigger {
     padding: 11px 14px;
 }
 .aw-modal-footer button[type="submit"], .ac-modal-footer button[type="submit"], .al-modal-footer button[type="submit"],
@@ -7936,7 +7990,7 @@
 .saa-modal-footer button[type="submit"], .sin-modal-footer button[type="submit"], .sde-modal-footer button[type="submit"],
 .lla-modal-footer button[type="submit"], .lld-modal-footer button[type="submit"], .llp-modal-footer button[type="submit"],
 .lmm-modal-footer button[type="submit"], .lpp-modal-footer button[type="submit"], .cmp-modal-footer button[type="submit"],
-.cdp-modal-footer button[type="submit"] {
+.cdp-modal-footer button[type="submit"], .sctl-modal-footer button[type="submit"] {
     display: inline-flex;
     align-items: center;
     justify-content: center;

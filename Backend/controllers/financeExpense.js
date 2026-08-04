@@ -107,8 +107,14 @@ const addExpense = async (req, res) => {
 
         // gstAmount is always server-derived from amount × gstRate (never
         // trusted from the client) — same convention financePurchase.js
-        // uses for its own identical fields.
-        const hasGst = gstRate !== undefined && gstRate !== null && gstRate !== '';
+        // uses for its own identical fields. A reimbursement claim never
+        // gets GST at all, regardless of what's sent: Input Tax Credit
+        // requires the tax invoice to bear the COMPANY's own GSTIN, and an
+        // employee/labourer's personal out-of-pocket bill essentially never
+        // does — enforced here, not just by hiding the field on the
+        // Reimbursements form, since this is the only place a wrong ITC
+        // claim can actually leak into the CA Monthly Package's numbers.
+        const hasGst = !REIMBURSEMENT_TYPES.includes(resolvedRelatedToType) && gstRate !== undefined && gstRate !== null && gstRate !== '';
         const item = new FinanceExpense({
             expenseCategory: expenseCategory || '', projectId: projectId || null, workId: workId || null, amount: Number(amount), date,
             relatedToType: resolvedRelatedToType, relatedToId: relatedToId || null,
@@ -162,7 +168,10 @@ const updateExpense = async (req, res) => {
             return res.status(400).json({ success: false, message: 'A bill/receipt attachment is required for employee and labourer reimbursement claims' });
         }
 
-        const hasGst = gstRate !== undefined && gstRate !== null && gstRate !== '';
+        // See addExpense's identical comment — no GST on a reimbursement
+        // claim, ever. Also self-heals any row that somehow already has one
+        // (e.g. recorded before this rule existed) the next time it's saved.
+        const hasGst = !REIMBURSEMENT_TYPES.includes(existing.relatedToType) && gstRate !== undefined && gstRate !== null && gstRate !== '';
         const update = {
             expenseCategory: expenseCategory || '', projectId: projectId || null, amount: Number(amount), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', notes: notes || '',

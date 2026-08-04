@@ -2713,7 +2713,7 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         if (to) { receiptFilter.receiptDate.$lte = new Date(to); otherFilter.date.$lte = new Date(to); }
     }
 
-    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, contractorAdvances, labourAdvances, tdsDeposits] = await Promise.all([
+    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, expensePayments, contractorAdvances, labourAdvances, tdsDeposits] = await Promise.all([
         FinanceReceipt.find(receiptFilter),
         FinanceContractorPayment.find(otherFilter),
         FinanceVendorPayment.find(otherFilter),
@@ -2722,12 +2722,29 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         FinanceCommissionPayment.find(otherFilter),
         FinanceLabourProviderPayment.find(otherFilter),
         FinanceExpense.find(otherFilter),
+        // Settlements against an accrual expense — see the paidAtEntry
+        // split below for why these, not the expense rows themselves, are
+        // the actual cash-out event for that half of FinanceExpense.
+        FinanceExpensePayment.find(otherFilter),
         // Real cash out today, same as a Payment — see
         // financeBankAccount.js's getAccountActivity, identical reasoning.
         FinanceContractorAdvance.find(otherFilter),
         FinanceLabourAdvance.find(otherFilter),
         FinanceTdsDeposit.find(otherFilter),
     ]);
+
+    // FinanceExpense has two shapes (see financeExpense.js's withBalances):
+    // paid at entry (paymentMode/bankAccountId set when recorded — cash
+    // left that same day) vs accrual (neither — nothing's left the
+    // company yet, "pending" until settled later via one or more
+    // FinanceExpensePayment rows). Counting every expense's full amount as
+    // cash-out on its own `date`, as this used to, showed an unpaid
+    // reimbursement (or any other accrual expense) as cash already gone
+    // before it actually was, while never counting its real, later
+    // settlement at all. Only the paid-at-entry half counts on its own
+    // date now; the accrual half counts via its actual settlements below,
+    // each on the date that payment actually happened.
+    const paidAtEntryExpenses = expenses.filter(e => e.paymentMode || e.bankAccountId);
 
     // Cash actually leaving the company for any of these six payment types
     // is net of any TDS withheld (see financeBankAccount.js's
@@ -2753,7 +2770,7 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         labour: labourPayments.reduce((s, p) => s + netOut(p), 0) + labourAdvances.reduce((s, a) => s + a.amount, 0),
         commission: commissionPayments.reduce((s, p) => s + netOut(p), 0),
         labourProvider: labourProviderPayments.reduce((s, p) => s + netOut(p), 0),
-        expense: expenses.reduce((s, e) => s + e.amount, 0),
+        expense: paidAtEntryExpenses.reduce((s, e) => s + e.amount, 0) + expensePayments.reduce((s, p) => s + p.amount, 0),
         tdsDeposit: tdsDeposits.reduce((s, d) => s + d.amount, 0),
     };
     const totalOut = Object.values(outByCategory).reduce((a, b) => a + b, 0);
@@ -2769,7 +2786,8 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
     [...contractorPayments, ...vendorOutPayments, ...salaryPayments, ...labourPayments, ...commissionPayments, ...labourProviderPayments].forEach(p => bump(p.date, 'out', netOut(p)));
     [...contractorAdvances, ...labourAdvances].forEach(a => bump(a.date, 'out', a.amount));
     tdsDeposits.forEach(d => bump(d.date, 'out', d.amount));
-    expenses.forEach(p => bump(p.date, 'out', p.amount));
+    paidAtEntryExpenses.forEach(e => bump(e.date, 'out', e.amount));
+    expensePayments.forEach(p => bump(p.date, 'out', p.amount));
 
     const seriesArr = [...series.values()]
         .sort((a, b) => a.bucket.localeCompare(b.bucket))

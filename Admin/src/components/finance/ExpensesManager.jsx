@@ -419,10 +419,12 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                         <p>Amount (₹) *</p>
                                         <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => setField('amount', e.target.value)} />
                                     </div>
-                                    <div className="add-product-name flex-col">
-                                        <p>GST Rate % (optional, if claimable)</p>
-                                        <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.gstRate} onChange={e => setField('gstRate', e.target.value)} />
-                                    </div>
+                                    {!isReimbursement && (
+                                        <div className="add-product-name flex-col">
+                                            <p>GST Rate % (optional, if claimable)</p>
+                                            <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.gstRate} onChange={e => setField('gstRate', e.target.value)} />
+                                        </div>
+                                    )}
                                     <div className="add-product-name flex-col">
                                         <p>Date *</p>
                                         <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />

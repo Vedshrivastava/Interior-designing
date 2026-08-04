@@ -554,6 +554,43 @@ const computeCompanyWideExpensePayable = async () => {
     return { payable: round2(payable), count, oldestPendingDate };
 };
 
+// Reimbursement Payables — the subset of computeCompanyWideExpensePayable's
+// same accrual expenses that are also a reimbursement claim (relatedToType
+// financeEmployee/financeLabourer), rolled up per person instead of one
+// flat company-wide number, so the Dashboard KPI's breakdown line can show
+// "owed vs paid" and PayablesPage/EmployeesPage/DailyLabourPage's own
+// per-person "left to pay" figure (computed client-side from
+// ExpensesManager's already-fetched relatedToId-scoped list) stays
+// consistent with this company-wide total. Mirrors withBalances'
+// paid-at-entry-vs-accrual split — an expense paid at entry was never
+// something the person is still owed for.
+const REIMBURSEMENT_RELATED_TYPES = ['financeEmployee', 'financeLabourer'];
+const computeReimbursementRows = async () => {
+    const expenses = await FinanceExpense.find(
+        { deleted: { $ne: true }, relatedToType: { $in: REIMBURSEMENT_RELATED_TYPES }, relatedToId: { $ne: null } },
+        'amount date paymentMode bankAccountId relatedToType relatedToId'
+    );
+    if (!expenses.length) return [];
+    const accrualExpenses = expenses.filter(e => !e.paymentMode && !e.bankAccountId);
+    const accrualIds = accrualExpenses.map(e => e._id);
+    const paymentAgg = accrualIds.length ? await FinanceExpensePayment.aggregate([
+        { $match: { expenseId: { $in: accrualIds }, deleted: { $ne: true } } },
+        { $group: { _id: '$expenseId', total: { $sum: '$amount' } } },
+    ]) : [];
+    const paidByExpense = new Map(paymentAgg.map(r => [r._id.toString(), r.total]));
+
+    const byPerson = new Map();
+    for (const e of accrualExpenses) {
+        const key = `${e.relatedToType}:${e.relatedToId}`;
+        const paid = paidByExpense.get(e._id.toString()) || 0;
+        const row = byPerson.get(key) || { relatedToType: e.relatedToType, relatedToId: e.relatedToId, owed: 0, paid: 0 };
+        row.owed += e.amount;
+        row.paid += paid;
+        byPerson.set(key, row);
+    }
+    return [...byPerson.values()].map(r => ({ ...r, balancePayable: round2(r.owed - r.paid) }));
+};
+
 // All-time expense total for the Dashboard's "Total Expense" KPI — same
 // FinanceExpense rows as thisMonthExpense/computeCompanyWideExpensePayable,
 // just unbounded by date. Scoped to ongoing projects only (project.status
@@ -3681,7 +3718,7 @@ const getDashboardSummary = async (req, res) => {
         // incurred regardless of payment timing). Salary is cash-basis —
         // see computeSalaryPaidInRange's own comment for why it's different
         // from expense here.
-        const [monthMaterialCost, monthMaterialWasteCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth, expensePayableBreakdown, totalExpenseToDate] = await Promise.all([
+        const [monthMaterialCost, monthMaterialWasteCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth, expensePayableBreakdown, totalExpenseToDate, reimbursementRows] = await Promise.all([
             computeCompanyWideMaterialCostInRange(monthStart, monthEnd),
             computeCompanyWideMaterialCostInRange(monthStart, monthEnd, null, 'waste'),
             computeCompanyWideContractorCostInRange(monthStart, monthEnd, null, true),
@@ -3699,6 +3736,7 @@ const getDashboardSummary = async (req, res) => {
             computeCompanyWideSalaryExpectedThisMonth(monthKey),
             computeCompanyWideExpensePayable(),
             computeCompanyWideExpenseToDate(),
+            computeReimbursementRows(),
         ]);
         const thisMonthRevenue = monthRevenueAgg[0]?.total || 0;
         const thisMonthRevenueBillCount = monthRevenueAgg[0]?.count || 0;
@@ -3803,6 +3841,17 @@ const getDashboardSummary = async (req, res) => {
                 expensePayables: expensePayableBreakdown.payable,
                 expensePayablesCount: expensePayableBreakdown.count,
                 oldestPendingExpenseDate: expensePayableBreakdown.oldestPendingDate,
+                // Employee/labourer reimbursement claims still owed — the
+                // subset of expensePayables above that's specifically "someone
+                // paid this out of pocket and is waiting to be paid back."
+                // See computeReimbursementRows' own comment.
+                reimbursementPayables: sumPositive(reimbursementRows, 'balancePayable'),
+                reimbursementCreditTotal: sumNegative(reimbursementRows, 'balancePayable'),
+                reimbursementPayablesBreakdown: {
+                    owed: round2(reimbursementRows.reduce((s, r) => s + r.owed, 0)),
+                    paid: round2(reimbursementRows.reduce((s, r) => s + r.paid, 0)),
+                },
+                reimbursementPayablesCount: reimbursementRows.filter(r => r.balancePayable > 0.5).length,
                 // TDS withheld from every contractor/vendor/salary/labour/
                 // commission/labour-provider payment ever made, minus what's
                 // actually been deposited with the tax department — a real

@@ -288,6 +288,21 @@ const FinanceHome = ({ url }) => {
                     <KpiCard loading={phase1Loading} icon={faFileInvoice} label="Expense Payables" value={formatINR(summary?.expensePayables)}
                         sub={summary?.expensePayablesCount > 0 ? `${summary.expensePayablesCount} expense${summary.expensePayablesCount === 1 ? '' : 's'} pending or partially paid` : undefined}
                         onClick={() => navigate('/finance/payables?tab=expenses&status=unpaid')} tone={summary?.expensePayables > 0 ? 'danger' : 'good'} />
+                    <KpiCard loading={phase1Loading} icon={faReceipt} label="Reimbursement Payables" value={formatINR(summary?.reimbursementPayables)}
+                        sub={[
+                            summary?.reimbursementPayablesBreakdown && buildBreakdownSub([
+                                ['Claimed', summary.reimbursementPayablesBreakdown.owed],
+                                ['Paid', summary.reimbursementPayablesBreakdown.paid, true],
+                            ]),
+                            summary?.reimbursementPayablesCount > 0 ? `${summary.reimbursementPayablesCount} employee/labourer claim${summary.reimbursementPayablesCount === 1 ? '' : 's'} still owed` : null,
+                        ].filter(Boolean).join('  ') || undefined}
+                        // No single unscoped "all reimbursements" page exists —
+                        // it's a per-person tab under Employees/Labourers (see
+                        // ExpensesManager's fixedRelatedTo usage there) — this
+                        // just lands on Employees as the more common starting
+                        // point, same as every other Payables card linking to
+                        // wherever that payable is actually managed.
+                        onClick={() => navigate('/finance/employees')} tone={summary?.reimbursementPayables > 0 ? 'danger' : 'good'} />
                     <KpiCard loading={phase1Loading} icon={faFileInvoiceDollar} label="TDS Payable" value={formatINR(summary?.tdsPayable)}
                         sub={`Withheld ${formatINR(summary?.tdsWithheldToDate)} − Deposited ${formatINR(summary?.tdsDepositedToDate)}`}
                         onClick={() => navigate('/finance/payments?tab=tds')} tone={summary?.tdsPayable > 0 ? 'danger' : 'good'} />

@@ -37,6 +37,14 @@ const financeExpenseSchema = new mongoose.Schema({
     bankOrCashLabel: { type: String, default: '' },
     notes:           { type: String, default: '' },
 
+    // Proof this expense is genuine — a bill, receipt, or ticket. Cloudinary
+    // URL, same upload pattern as financeContractorPayment's attachmentUrl.
+    // Required (enforced in the controller, not here — see addExpense's
+    // comment) whenever this expense is a reimbursement claim, i.e.
+    // relatedToType is financeEmployee or financeLabourer; optional for
+    // every other expense the same way it always was.
+    attachmentUrl: { type: String, default: '' },
+
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },
     deletedBy: { type: String },

@@ -1,8 +1,27 @@
+import fs from 'fs';
 import FinanceExpense from '../models/financeExpense.js';
 import FinanceExpensePayment from '../models/financeExpensePayment.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
+import { uploadRawFile, resolveDeliveryUrl } from '../utils/uploadDocuments.js';
+
+// A reimbursement claim (an expense tagged to the employee/labourer who
+// actually paid it) needs proof it's genuine — everything else keeps
+// attachmentUrl fully optional, same as before this existed.
+const REIMBURSEMENT_TYPES = ['financeEmployee', 'financeLabourer'];
+
+const uploadAttachment = async (file) => {
+    if (!file) return '';
+    try {
+        const url = await uploadRawFile(file.path, 'expense_attachments');
+        fs.unlinkSync(file.path);
+        return url;
+    } catch (uploadError) {
+        console.error(`Error uploading attachment ${file.path}:`, uploadError);
+        return '';
+    }
+};
 
 // paidAmount/balance are computed fresh on every read, never stored — same
 // convention as every other ledger in this codebase (Vendor/Contractor/
@@ -24,7 +43,7 @@ const withBalances = async (items) => {
     return items.map(i => {
         const paidAtEntry = !!(i.paymentMode || i.bankAccountId);
         const paidAmount = paidAtEntry ? i.amount : (paidByExpense.get(i._id.toString()) || 0);
-        return { ...i.toObject(), paidAmount, balance: i.amount - paidAmount };
+        return { ...i.toObject(), paidAmount, balance: i.amount - paidAmount, attachmentUrl: resolveDeliveryUrl(i.attachmentUrl) };
     });
 };
 
@@ -77,15 +96,24 @@ const addExpense = async (req, res) => {
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
+        const resolvedRelatedToType = relatedToId ? (relatedToType || null) : null;
+        // Hard block, backend-enforced — a reimbursement claim with no proof
+        // it's genuine defeats the point of tracking it at all, so this
+        // can't be skipped client-side.
+        if (REIMBURSEMENT_TYPES.includes(resolvedRelatedToType) && !req.file) {
+            return res.status(400).json({ success: false, message: 'A bill/receipt attachment is required for employee and labourer reimbursement claims' });
+        }
+        const attachmentUrl = await uploadAttachment(req.file);
+
         // gstAmount is always server-derived from amount × gstRate (never
         // trusted from the client) — same convention financePurchase.js
         // uses for its own identical fields.
         const hasGst = gstRate !== undefined && gstRate !== null && gstRate !== '';
         const item = new FinanceExpense({
             expenseCategory: expenseCategory || '', projectId: projectId || null, workId: workId || null, amount: Number(amount), date,
-            relatedToType: relatedToId ? (relatedToType || null) : null, relatedToId: relatedToId || null,
+            relatedToType: resolvedRelatedToType, relatedToId: relatedToId || null,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null,
-            notes: notes || '',
+            attachmentUrl, notes: notes || '',
             gstRate: hasGst ? Number(gstRate) : null, gstAmount: hasGst ? Number(amount) * (Number(gstRate) / 100) : null,
         });
         await item.save();
@@ -127,13 +155,21 @@ const updateExpense = async (req, res) => {
         if (!existing) return res.status(404).json({ success: false, message: 'Not found' });
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
+        // Same hard block as addExpense — relatedToType/Id aren't editable
+        // here (update never touches them), so this only re-checks a
+        // pre-existing reimbursement claim that somehow still has no proof.
+        if (REIMBURSEMENT_TYPES.includes(existing.relatedToType) && !req.file && !existing.attachmentUrl) {
+            return res.status(400).json({ success: false, message: 'A bill/receipt attachment is required for employee and labourer reimbursement claims' });
+        }
 
         const hasGst = gstRate !== undefined && gstRate !== null && gstRate !== '';
-        await FinanceExpense.findByIdAndUpdate(_id, {
+        const update = {
             expenseCategory: expenseCategory || '', projectId: projectId || null, amount: Number(amount), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', notes: notes || '',
             gstRate: hasGst ? Number(gstRate) : null, gstAmount: hasGst ? Number(amount) * (Number(gstRate) / 100) : null,
-        });
+        };
+        if (req.file) update.attachmentUrl = await uploadAttachment(req.file);
+        await FinanceExpense.findByIdAndUpdate(_id, update);
         broadcast({ type: 'financeExpensesChanged', projectId: projectId || null });
         if (existing.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
         res.json({ success: true, message: 'Expense updated' });

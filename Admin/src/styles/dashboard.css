@@ -5969,6 +5969,16 @@
     align-items: center;
 }
 
+/* Reimbursement Payables' per-person "left to pay" figure — sits under
+   ExpensesManager's own heading subtitle when scoped to one employee/
+   labourer (fixedRelatedTo), so it reads as the headline number for that
+   person's tab rather than another line of plain body text. */
+.exp-left-to-pay {
+    margin: 6px 0 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
 /* ── Running Bills action row (all widths) ──
    Actions live outside the info grid, spanning its full width
    (grid-column:1/-1 — desktop's grid has no named areas of its own to

@@ -17,6 +17,11 @@ import '../../styles/add.css';
 
 const emptyForm = { expenseCategory: '', projectId: '', workId: '', relatedToUiType: '', relatedToId: '', amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', notes: '', gstRate: '' };
 const emptySettleForm = { amount: '', date: '', paymentMode: '', bankAccountId: '' };
+// An expense tagged to the person who actually paid it out of pocket is a
+// reimbursement claim — it needs a bill/receipt attached (hard-enforced on
+// the backend too, see controllers/financeExpense.js) and rolls up into
+// the person's own "left to pay" total below.
+const REIMBURSEMENT_TYPES = ['financeEmployee', 'financeLabourer'];
 const PAID_STATUS_OPTIONS = [
     { value: 'paid', label: 'Paid now' },
     { value: 'pending', label: 'Record as pending, settle later' },
@@ -108,6 +113,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     const [worksForProject, setWorksForProject] = useState([]);
     const [worksLoading, setWorksLoading] = useState(false);
     const [paidNow, setPaidNow] = useState(true);
+    const [file, setFile] = useState(null);
     const [saving, setSaving] = useState(false);
 
     const [settleTarget, setSettleTarget] = useState(null);
@@ -185,15 +191,22 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
 
     const openAdd = () => {
         setForm({ ...emptyForm, projectId: fixedProjectId || '', expenseCategory: fixedCategory || '' });
-        setPaidNow(true); setModalOpen(true);
+        setPaidNow(true); setFile(null); setModalOpen(true);
     };
     const closeModal = () => setModalOpen(false);
+
+    // Which relatedToType this form is currently pointed at — either fixed
+    // by the caller (fixedRelatedTo) or whatever's picked in the Related To
+    // dropdown right now — decides whether an attachment is required.
+    const effectiveRelatedToType = fixedRelatedTo ? fixedRelatedTo.type : (form.relatedToId ? relatedToUiConfig(form.relatedToUiType)?.backendType : null);
+    const isReimbursement = REIMBURSEMENT_TYPES.includes(effectiveRelatedToType);
 
     const submit = async (e) => {
         e.preventDefault();
         e.stopPropagation();
         if (!form.amount || Number(form.amount) <= 0) return toast.error('Amount must be greater than zero');
         if (!form.date) return toast.error('Date is required');
+        if (isReimbursement && !file) return toast.error('A bill/receipt attachment is required for employee and labourer reimbursement claims');
         setSaving(true);
         try {
             const { relatedToUiType, ...rest } = form;
@@ -203,7 +216,12 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                 relatedToId: fixedRelatedTo ? fixedRelatedTo.id : form.relatedToId,
                 ...(paidNow ? {} : { paymentMode: '', bankOrCashLabel: '', bankAccountId: '' }),
             };
-            const res = await axios.post(`${url}/api/finance/expenses/add`, payload, authHeader);
+            const data = new FormData();
+            Object.entries(payload).forEach(([k, v]) => data.append(k, v ?? ''));
+            if (file) data.append('attachment', file);
+            const res = await axios.post(`${url}/api/finance/expenses/add`, data, {
+                headers: { ...authHeader.headers, 'Content-Type': 'multipart/form-data' },
+            });
             if (res.data.success) {
                 toast.success(res.data.message);
                 await registerSettingIfNew(url, authHeader, 'expense_category', form.expenseCategory, categories.map(c => ({ name: c })));
@@ -291,11 +309,20 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     ].filter(Boolean).join(' ');
 
     const heading = fixedRelatedTo
-        ? { title: fixedRelatedTo.label, subtitle: 'Expenses tied to the company itself: director travel, hotel stays, and similar. Use Notes to say what it was, e.g. matched against a bank statement line.' }
+        ? { title: fixedRelatedTo.label, subtitle: fixedRelatedTo.subtitle || 'Expenses tied to the company itself: director travel, hotel stays, and similar. Use Notes to say what it was, e.g. matched against a bank statement line.' }
         : fixedCategory
         ? { title: `${fixedCategory} Expenses`, subtitle: `Quick, unlinked entries under the "${fixedCategory}" category: an amount, a date, and a note is enough.` }
         : hideProjectField
         ? { title: 'Expenses', subtitle: 'Site expenses logged against this project: paid now, or recorded pending and settled later.' }
+        : null;
+
+    // Only meaningful once scoped to one person — a company-wide total
+    // already exists as the Dashboard's Reimbursement Payables KPI
+    // (computeReimbursementRows on the backend); this is that same figure
+    // for just the person currently in view, computed client-side from the
+    // list already fetched rather than a second round-trip.
+    const totalLeftToPay = fixedRelatedTo && REIMBURSEMENT_TYPES.includes(fixedRelatedTo.type)
+        ? expenses.reduce((s, e) => s + Math.max(0, e.balance), 0)
         : null;
 
     return (
@@ -305,6 +332,11 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                     <div>
                         <h3 style={{ margin: '0 0 4px' }}>{heading.title}</h3>
                         <p className="admin-subtitle" style={{ margin: 0 }}>{heading.subtitle}</p>
+                        {totalLeftToPay !== null && (
+                            <p className="exp-left-to-pay" style={{ color: totalLeftToPay > 0 ? '#c0392b' : 'var(--moss)' }}>
+                                Total left to pay: ₹{totalLeftToPay.toLocaleString('en-IN')}
+                            </p>
+                        )}
                     </div>
                 ) : <span />}
                 <button type="button" className="add-btn" onClick={openAdd}>+ Record Expense</button>
@@ -375,6 +407,12 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                                 presetValues={relatedToUiConfig(form.relatedToUiType).presetValues}
                                                 value={form.relatedToId} onChange={v => setField('relatedToId', v)}
                                             />
+                                        </div>
+                                    )}
+                                    {isReimbursement && (
+                                        <div className="add-product-name flex-col">
+                                            <p>Bill / Receipt *</p>
+                                            <input type="file" onChange={e => setFile(e.target.files[0] || null)} />
                                         </div>
                                     )}
                                     <div className="add-product-name flex-col">
@@ -582,6 +620,12 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                         </div>
                                     ))}
                                 </div>
+                                {REIMBURSEMENT_TYPES.includes(viewTarget.relatedToType) && (
+                                    <div className="list-table-format row-item kv-row" style={{ gridTemplateColumns: '1fr 1.4fr' }}>
+                                        <p><b>Bill / Receipt</b></p>
+                                        <p>{viewTarget.attachmentUrl ? <a href={viewTarget.attachmentUrl} target="_blank" rel="noopener noreferrer">View attachment</a> : 'None'}</p>
+                                    </div>
+                                )}
                                 <div className="list-table-format row-item kv-row expv-notes-row" style={{ gridTemplateColumns: '1fr 1.4fr', alignItems: 'start' }}>
                                     <p><b>Notes</b></p><p style={{ whiteSpace: 'pre-wrap' }}>{viewTarget.notes || '-'}</p>
                                 </div>

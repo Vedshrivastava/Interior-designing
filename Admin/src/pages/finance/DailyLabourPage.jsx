@@ -10,6 +10,7 @@ import LabourWorksView from '../../components/finance/LabourWorksView';
 import LabourWorkerMeasurementsView from '../../components/finance/LabourWorkerMeasurementsView';
 import LabourLedgerView from '../../components/finance/LabourLedgerView';
 import LabourProviderLedgerView from '../../components/finance/LabourProviderLedgerView';
+import ExpensesManager from '../../components/finance/ExpensesManager';
 import PersonDocumentsView from '../../components/finance/PersonDocumentsView';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
@@ -21,12 +22,13 @@ const TABS = [
     { key: 'works',        label: 'Works' },
     { key: 'measurements', label: 'Measurements' },
     { key: 'ledger',       label: 'Ledger' },
+    { key: 'reimbursements', label: 'Reimbursements' },
     { key: 'labourProviders', label: 'Labour Providers' },
     { key: 'providerLedger', label: 'Labour Provider Ledger' },
     { key: 'documents',    label: 'Documents' },
 ];
 
-const LABOURER_SCOPED_TABS = ['projects', 'works', 'measurements', 'ledger', 'documents'];
+const LABOURER_SCOPED_TABS = ['projects', 'works', 'measurements', 'ledger', 'reimbursements', 'documents'];
 
 /* Same "picker on the same page" pattern as ContractorPicker. */
 const LabourerPicker = ({ url, selectedLabourerId, onChange }) => (
@@ -132,6 +134,17 @@ const DailyLabourPage = ({ url }) => {
             )}
             {activeTab === 'ledger' && (
                 selectedLabourerId ? <LabourLedgerView url={url} labourerId={selectedLabourerId} /> : <div className="admin-empty-state"><p>Select a labourer to view their ledger.</p></div>
+            )}
+            {activeTab === 'reimbursements' && (
+                selectedLabourerId ? (
+                    <ExpensesManager
+                        url={url}
+                        fixedRelatedTo={{
+                            type: 'financeLabourer', id: selectedLabourerId, label: 'Reimbursements',
+                            subtitle: 'Expenses this labourer paid out of pocket — a bill/receipt is required for each. Record as pending, then Settle once they\'ve been paid back.',
+                        }}
+                    />
+                ) : <div className="admin-empty-state"><p>Select a labourer to view their reimbursements.</p></div>
             )}
             {activeTab === 'labourProviders' && <MasterCrudTable url={url} resourceKey="labourProviders" cardTitle="Labour Providers" />}
             {activeTab === 'providerLedger' && (

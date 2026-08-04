@@ -8,6 +8,7 @@ import SupervisorAttendanceManager from '../../components/finance/SupervisorAtte
 import SupervisorIncentivesManager from '../../components/finance/SupervisorIncentivesManager';
 import SupervisorDeductionsManager from '../../components/finance/SupervisorDeductionsManager';
 import SalaryLedgerView from '../../components/finance/SalaryLedgerView';
+import ExpensesManager from '../../components/finance/ExpensesManager';
 import QuickAddPicker from '../../components/finance/QuickAddPicker';
 import PersonDocumentsView from '../../components/finance/PersonDocumentsView';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
@@ -35,6 +36,7 @@ const ALL_TABS = [
     { key: 'labour',      label: 'Labour Ledger',     supervisorOnly: true },
     { key: 'attendance',  label: 'Attendance' },
     { key: 'salary',      label: 'Salary' },
+    { key: 'reimbursements', label: 'Reimbursements' },
     { key: 'incentives',  label: 'Incentives' },
     { key: 'deductions',  label: 'Deductions' },
     { key: 'documents',   label: 'Documents' },
@@ -243,6 +245,16 @@ const EmployeesPage = ({ url }) => {
                             {activeTab === 'labour' && <SupervisorLabourLedgerTab url={url} supervisorId={selectedEmployeeId} />}
                             {activeTab === 'attendance' && <SupervisorAttendanceManager url={url} employeeId={selectedEmployeeId} />}
                             {activeTab === 'salary' && <SalaryLedgerView url={url} employeeId={selectedEmployeeId} />}
+                            {activeTab === 'reimbursements' && (
+                                <ExpensesManager
+                                    url={url}
+                                    fixedRelatedTo={{
+                                        type: 'financeEmployee', id: selectedEmployeeId,
+                                        label: `${selectedEmployee?.name || 'Employee'} — Reimbursements`,
+                                        subtitle: 'Expenses this employee paid out of pocket — a bill/receipt is required for each. Record as pending, then Settle once they\'ve been paid back.',
+                                    }}
+                                />
+                            )}
                             {activeTab === 'incentives' && <SupervisorIncentivesManager url={url} employeeId={selectedEmployeeId} />}
                             {activeTab === 'deductions' && <SupervisorDeductionsManager url={url} employeeId={selectedEmployeeId} />}
                             {activeTab === 'documents' && <PersonDocumentsView url={url} resourceKey="employees" entityId={selectedEmployeeId} entityLabel="employee" />}

@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faPen } from '@fortawesome/free-solid-svg-icons';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import StyledDatePicker from './StyledDatePicker';
 import StyledSelect from './StyledSelect';
@@ -33,6 +33,7 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
     const [form, setForm] = useState({ ...emptyForm, projectId: defaultProjectId || '', materialId: defaultMaterialId || '' });
     const [saving, setSaving] = useState(false);
     const [modalOpen, setModalOpen] = useState(!!(defaultProjectId || defaultMaterialId));
+    const [editId, setEditId] = useState(null);
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
@@ -74,6 +75,22 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
     const selectedMaterial = materials.find(m => m._id === form.materialId);
     const rateLabel = selectedMaterial?.unit ? `Rate per ${selectedMaterial.unit} (₹) *` : 'Rate per Unit (₹) *';
 
+    const openAdd = () => {
+        setEditId(null);
+        setForm({ ...emptyForm, projectId: defaultProjectId || '', materialId: defaultMaterialId || '' });
+        setModalOpen(true);
+    };
+    const openEdit = (item) => {
+        setEditId(item._id);
+        setForm({
+            vendorId: item.vendorId?._id || '', projectId: item.projectId || '', materialId: item.materialId?._id || '',
+            quantity: item.quantity, ratePerUnit: item.ratePerUnit, date: new Date(item.date).toISOString().slice(0, 10),
+            referenceNumber: item.referenceNumber || '', notes: item.notes || '', gstRate: item.gstRate ?? '',
+        });
+        setModalOpen(true);
+    };
+    const closeModal = () => { setModalOpen(false); setEditId(null); };
+
     const submit = async (e) => {
         e.preventDefault();
         if (!form.vendorId || !form.projectId || !form.materialId) return toast.error('Vendor, project, and material are required');
@@ -83,10 +100,12 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
 
         setSaving(true);
         try {
-            const res = await axios.post(`${url}/api/finance/purchases/add`, { ...form, transactionType }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); setModalOpen(false); await fetchItems(); }
+            const res = editId
+                ? await axios.post(`${url}/api/finance/purchases/update`, { ...form, _id: editId }, authHeader)
+                : await axios.post(`${url}/api/finance/purchases/add`, { ...form, transactionType }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); closeModal(); await fetchItems(); }
             else toast.error(res.data.message);
-        } catch (err) { toast.error(err.response?.data?.message || `Error recording ${isReturn ? 'return' : 'purchase'}`); }
+        } catch (err) { toast.error(err.response?.data?.message || `Error ${editId ? 'updating' : 'recording'} ${isReturn ? 'return' : 'purchase'}`); }
         finally { setSaving(false); }
     };
 
@@ -105,7 +124,7 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
         <div>
             <div className="pq-section-header">
                 <h3 style={{ margin: 0 }}>{isReturn ? 'Returns' : 'Purchases'}</h3>
-                <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>{`+ Record ${isReturn ? 'Return' : 'Purchase'}`}</button>
+                <button type="button" className="add-btn" onClick={openAdd}>{`+ Record ${isReturn ? 'Return' : 'Purchase'}`}</button>
             </div>
             {loading ? (
                 <div className="admin-empty-state"><p>Loading…</p></div>
@@ -133,6 +152,9 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
                             <p className="por-total"><span className="pq-group-label">Total</span>₹{item.totalAmount.toLocaleString('en-IN')}</p>
                             <p className="por-gst"><span className="pq-group-label">GST</span>{item.gstAmount ? `₹${item.gstAmount.toLocaleString('en-IN')} (${item.gstRate}%)` : '-'}</p>
                             <div className="action-buttons por-actions">
+                                <button type="button" onClick={() => openEdit(item)} className="pq-btn-ghost-edit" title={`Edit ${isReturn ? 'return' : 'purchase'}`} aria-label={`Edit ${isReturn ? 'return' : 'purchase'}`}>
+                                    <FontAwesomeIcon icon={faPen} className="pq-action-icon" />
+                                </button>
                                 <button type="button" onClick={() => setConfirmItem(item)} className="pq-btn-ghost-danger" title={`Remove ${isReturn ? 'return' : 'purchase'}`} aria-label={`Remove ${isReturn ? 'return' : 'purchase'}`}>
                                     <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
                                 </button>
@@ -146,7 +168,7 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
                 <div className="submit-loader-overlay por-overlay" style={{ zIndex: 99999 }}>
                     <div className="loader-modal-box edit-modal por-modal">
                         <div className="por-modal-header">
-                            <h2>{`Record ${isReturn ? 'Return' : 'Purchase'}`}</h2>
+                            <h2>{`${editId ? 'Edit' : 'Record'} ${isReturn ? 'Return' : 'Purchase'}`}</h2>
                         </div>
                         <div className="por-modal-body">
                         <form id="purchase-or-return-form" onSubmit={submit}>
@@ -198,7 +220,7 @@ const PurchaseOrReturnManager = ({ url, transactionType, defaultProjectId, defau
                         </form>
                         </div>
                         <div className="edit-modal-actions por-modal-footer">
-                            <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+                            <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
                             <button type="submit" form="purchase-or-return-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
                         </div>
                     </div>

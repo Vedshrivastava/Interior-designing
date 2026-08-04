@@ -4200,7 +4200,10 @@
 
 .por-row {
     display: grid;
-    grid-template-columns: 1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 60px;
+    /* Last column fits two 32px icon-only ghost buttons (Edit + Delete)
+       side by side with their .action-buttons gap — 60px (this table's
+       old width, sized for delete alone) clips a second icon. */
+    grid-template-columns: 1fr 1.2fr 1.2fr 1fr 1fr 1fr 1fr 84px;
     align-items: center;
     gap: 16px;
     padding: 14px 20px;

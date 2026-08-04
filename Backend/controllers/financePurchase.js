@@ -101,6 +101,55 @@ const addPurchase = async (req, res) => {
     }
 };
 
+// Same fields/validation as addPurchase, but re-saved onto both the
+// purchase AND its linked stock movement — a purchase and the dump/return
+// it generated are two records of the same event, not independent facts
+// (see removePurchase's own comment below), so an edit that only touched
+// the purchase document would leave stock computed from a now-stale
+// quantity/material/project. transactionType is intentionally not
+// editable here: PurchaseOrReturnManager always submits the tab's own
+// fixed type, same as addPurchase.
+const updatePurchase = async (req, res) => {
+    try {
+        const { _id, vendorId, projectId, materialId, quantity, ratePerUnit, date, referenceNumber, notes, gstRate } = req.body;
+        const existing = await FinancePurchase.findById(_id);
+        if (!existing) return res.status(404).json({ success: false, message: 'Not found' });
+        if (!vendorId || !projectId || !materialId) {
+            return res.status(400).json({ success: false, message: 'Vendor, project, and material are required' });
+        }
+        if (!quantity || Number(quantity) <= 0) return res.status(400).json({ success: false, message: 'Quantity must be greater than zero' });
+        if (!ratePerUnit || Number(ratePerUnit) <= 0) return res.status(400).json({ success: false, message: 'Rate per unit must be greater than zero' });
+        if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
+
+        const totalAmount = Number(quantity) * Number(ratePerUnit);
+        const hasGst = gstRate !== undefined && gstRate !== null && gstRate !== '';
+        await FinancePurchase.findByIdAndUpdate(_id, {
+            vendorId, projectId, materialId,
+            quantity: Number(quantity), ratePerUnit: Number(ratePerUnit), totalAmount,
+            date, referenceNumber: referenceNumber || '', notes: notes || '',
+            gstRate: hasGst ? Number(gstRate) : null,
+            gstAmount: hasGst ? totalAmount * (Number(gstRate) / 100) : null,
+        });
+        await FinanceStockMovement.updateMany(
+            { relatedPurchaseId: _id },
+            { projectId, materialId, vendorId, quantity: Number(quantity), date }
+        );
+
+        broadcast({ type: 'financePurchasesChanged', projectId, vendorId });
+        broadcast({ type: 'financeStockChanged', projectId });
+        // Old project's stock also shifts (the movement just left it) if
+        // the edit re-scoped this purchase to a different project.
+        if (projectId.toString() !== existing.projectId.toString()) {
+            broadcast({ type: 'financeStockChanged', projectId: existing.projectId });
+        }
+
+        res.json({ success: true, message: `${existing.transactionType === 'return' ? 'Return' : 'Purchase'} updated` });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error updating purchase' });
+    }
+};
+
 // Unlike removeMeasurement/removeWork (historical artifacts left as-is on
 // delete), removing a purchase DOES reverse its stock movement — a
 // purchase and the dump/return it generated are two records of the same
@@ -128,4 +177,4 @@ const removePurchase = async (req, res) => {
     }
 };
 
-export { listPurchases, addPurchase, removePurchase };
+export { listPurchases, addPurchase, updatePurchase, removePurchase };

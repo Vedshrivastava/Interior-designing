@@ -7,6 +7,7 @@ import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import QuickAddPicker from './QuickAddPicker';
+import ViewAttachmentLink from './ViewAttachmentLink';
 import { RELATED_TO_UI_OPTIONS, relatedToUiConfig } from '../../config/relatedToTypes';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -654,7 +655,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                 {REIMBURSEMENT_TYPES.includes(viewTarget.relatedToType) && (
                                     <div className="list-table-format row-item kv-row" style={{ gridTemplateColumns: '1fr 1.4fr' }}>
                                         <p><b>Bill / Receipt</b></p>
-                                        <p>{viewTarget.attachmentUrl ? <a href={viewTarget.attachmentUrl} target="_blank" rel="noopener noreferrer">View attachment</a> : 'None'}</p>
+                                        <p>{viewTarget.attachmentUrl ? <ViewAttachmentLink url={viewTarget.attachmentUrl}>View attachment</ViewAttachmentLink> : 'None'}</p>
                                     </div>
                                 )}
                                 <div className="list-table-format row-item kv-row expv-notes-row" style={{ gridTemplateColumns: '1fr 1.4fr', alignItems: 'start' }}>

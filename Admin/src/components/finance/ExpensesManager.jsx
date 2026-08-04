@@ -11,7 +11,7 @@ import ViewAttachmentLink from './ViewAttachmentLink';
 import { RELATED_TO_UI_OPTIONS, relatedToUiConfig } from '../../config/relatedToTypes';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faCheck, faPen } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -132,6 +132,14 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     const [viewTarget, setViewTarget] = useState(null);
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    // The full expense being edited, not just its id — controllers/
+    // financeExpense.js's updateExpense never touches workId/relatedToType/
+    // relatedToId (see its own comment), so those aren't editable here
+    // either; keeping the original object around is what lets isReimbursement
+    // and the attachment-already-on-file check below read from it directly
+    // instead of re-deriving them from form state that was never populated
+    // for those fields in the first place.
+    const [editTarget, setEditTarget] = useState(null);
 
     // The four scoping props are independent — a caller can combine them
     // (though today only one is ever set at a time) — so the fetch/columns/
@@ -197,20 +205,35 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     const setRelatedToUiType = (value) => setForm(prev => ({ ...prev, relatedToUiType: value, relatedToId: '' }));
 
     const openAdd = () => {
+        setEditTarget(null);
         setForm({ ...emptyForm, projectId: fixedProjectId || '', expenseCategory: fixedCategory || '' });
         setPaidNow(true); setFile(null); setModalOpen(true);
     };
-    const closeModal = () => setModalOpen(false);
+    // Only the fields updateExpense actually accepts are pre-filled/editable
+    // here — workId/relatedToType/relatedToId stay exactly as recorded.
+    const openEdit = (expense) => {
+        setEditTarget(expense);
+        setForm({
+            ...emptyForm,
+            expenseCategory: expense.expenseCategory || '', projectId: expense.projectId?._id || '',
+            amount: expense.amount, date: new Date(expense.date).toISOString().slice(0, 10),
+            notes: expense.notes || '', gstRate: expense.gstRate ?? '',
+        });
+        setFile(null); setModalOpen(true);
+    };
+    const closeModal = () => { setModalOpen(false); setEditTarget(null); };
 
-    // Which relatedToType this form is currently pointed at — either fixed
-    // by the caller (fixedRelatedTo) or whatever's picked in the Related To
-    // TYPE dropdown right now, regardless of whether a specific person has
-    // been picked yet — decides whether an attachment is required. Keying
-    // this off relatedToId instead (as it used to) meant the Bill/Receipt
-    // field only appeared after BOTH the type AND a specific person were
-    // picked, so selecting "Employee" alone looked like there was no
-    // upload option at all until you'd also picked who.
-    const effectiveRelatedToType = fixedRelatedTo ? fixedRelatedTo.type : relatedToUiConfig(form.relatedToUiType)?.backendType;
+    // Which relatedToType this form is currently pointed at — either the
+    // expense already being edited (its own relatedToType, never re-derived
+    // from the Related To picker since that's not shown/editable then),
+    // fixed by the caller (fixedRelatedTo), or whatever's picked in the
+    // Related To TYPE dropdown right now, regardless of whether a specific
+    // person has been picked yet — decides whether an attachment is
+    // required. Keying this off relatedToId instead (as it used to) meant
+    // the Bill/Receipt field only appeared after BOTH the type AND a
+    // specific person were picked, so selecting "Employee" alone looked
+    // like there was no upload option at all until you'd also picked who.
+    const effectiveRelatedToType = editTarget ? editTarget.relatedToType : fixedRelatedTo ? fixedRelatedTo.type : relatedToUiConfig(form.relatedToUiType)?.backendType;
     const isReimbursement = REIMBURSEMENT_TYPES.includes(effectiveRelatedToType);
 
     const submit = async (e) => {
@@ -223,22 +246,37 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
         // null) — catch it here instead of leaving the picker ignored with
         // no explanation. Only reachable when the field is even shown
         // (form.relatedToUiType stays '' whenever hideRelatedToField hides
-        // it), so this never fires for fixedCategory/fixedRelatedTo modes.
+        // it, same as it does while editing), so this never fires for
+        // fixedCategory/fixedRelatedTo modes or for an edit.
         if (form.relatedToUiType && !form.relatedToId) return toast.error(`Select ${relatedToUiConfig(form.relatedToUiType)?.label || 'who this is related to'}, or clear Related To`);
-        if (isReimbursement && !file) return toast.error('A bill/receipt attachment is required for employee and labourer reimbursement claims');
+        // Editing a reimbursement that already has a bill on file doesn't
+        // need a new one uploaded every time — only require it fresh when
+        // there's nothing there yet, same as updateExpense's own check.
+        if (isReimbursement && !file && !editTarget?.attachmentUrl) return toast.error('A bill/receipt attachment is required for employee and labourer reimbursement claims');
         setSaving(true);
         try {
             const { relatedToUiType, ...rest } = form;
-            const payload = {
-                ...rest,
-                relatedToType: fixedRelatedTo ? fixedRelatedTo.type : (relatedToUiConfig(relatedToUiType)?.backendType || null),
-                relatedToId: fixedRelatedTo ? fixedRelatedTo.id : form.relatedToId,
-                ...(paidNow ? {} : { paymentMode: '', bankOrCashLabel: '', bankAccountId: '' }),
-            };
+            const payload = editTarget
+                ? {
+                    _id: editTarget._id,
+                    expenseCategory: form.expenseCategory, projectId: form.projectId, amount: form.amount, date: form.date,
+                    notes: form.notes, gstRate: form.gstRate,
+                    // Not shown as editable fields (bankAccountId isn't even
+                    // accepted by updateExpense — see its own comment) — sent
+                    // back unchanged so the update doesn't wipe how this
+                    // expense was actually paid.
+                    paymentMode: editTarget.paymentMode || '', bankOrCashLabel: editTarget.bankOrCashLabel || '',
+                }
+                : {
+                    ...rest,
+                    relatedToType: fixedRelatedTo ? fixedRelatedTo.type : (relatedToUiConfig(relatedToUiType)?.backendType || null),
+                    relatedToId: fixedRelatedTo ? fixedRelatedTo.id : form.relatedToId,
+                    ...(paidNow ? {} : { paymentMode: '', bankOrCashLabel: '', bankAccountId: '' }),
+                };
             const data = new FormData();
             Object.entries(payload).forEach(([k, v]) => data.append(k, v ?? ''));
             if (file) data.append('attachment', file);
-            const res = await axios.post(`${url}/api/finance/expenses/add`, data, {
+            const res = await axios.post(`${url}/api/finance/expenses/${editTarget ? 'update' : 'add'}`, data, {
                 headers: { ...authHeader.headers, 'Content-Type': 'multipart/form-data' },
             });
             if (res.data.success) {
@@ -248,7 +286,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                 await fetchExpenses();
             }
             else toast.error(res.data.message);
-        } catch (err) { toast.error(err.response?.data?.message || 'Error recording expense'); }
+        } catch (err) { toast.error(err.response?.data?.message || `Error ${editTarget ? 'updating' : 'recording'} expense`); }
         finally { setSaving(false); }
     };
 
@@ -386,7 +424,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                 <div className="submit-loader-overlay exp-overlay" style={{ zIndex: 100000 }}>
                     <div className="loader-modal-box edit-modal exp-modal">
                         <div className="exp-modal-header">
-                            <h2>Record Expense</h2>
+                            <h2>{editTarget ? 'Edit Expense' : 'Record Expense'}</h2>
                         </div>
 
                         <div className="exp-modal-body">
@@ -410,7 +448,10 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                             />
                                         </div>
                                     )}
-                                    {!hideWorkField && (
+                                    {/* Work/Related To aren't part of what updateExpense accepts (see
+                                        openEdit's own comment) — shown only while adding, never editing,
+                                        rather than rendering pickers an edit would silently ignore. */}
+                                    {!hideWorkField && !editTarget && (
                                         <div className="add-product-name flex-col">
                                             <p>Work (optional{effectiveProjectId ? '' : ', pick a project first'})</p>
                                             <StyledSelect
@@ -419,7 +460,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                             />
                                         </div>
                                     )}
-                                    {!hideRelatedToField && (
+                                    {!hideRelatedToField && !editTarget && (
                                         <div className="add-product-name flex-col">
                                             <p>Related To (optional)</p>
                                             <StyledSelect
@@ -428,7 +469,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                             />
                                         </div>
                                     )}
-                                    {!hideRelatedToField && form.relatedToUiType && (
+                                    {!hideRelatedToField && !editTarget && form.relatedToUiType && (
                                         <div className="add-product-name flex-col">
                                             <p>{relatedToUiConfig(form.relatedToUiType).label}</p>
                                             <QuickAddPicker
@@ -441,7 +482,10 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                     )}
                                     {isReimbursement && (
                                         <div className="add-product-name flex-col">
-                                            <p>Bill / Receipt *</p>
+                                            <p>{editTarget?.attachmentUrl ? 'Bill / Receipt (leave blank to keep existing)' : 'Bill / Receipt *'}</p>
+                                            {editTarget?.attachmentUrl && (
+                                                <p style={{ margin: '0 0 6px' }}><ViewAttachmentLink url={editTarget.attachmentUrl}>View current attachment</ViewAttachmentLink></p>
+                                            )}
                                             <input type="file" onChange={e => setFile(e.target.files[0] || null)} />
                                         </div>
                                     )}
@@ -459,18 +503,31 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                         <p>Date *</p>
                                         <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
                                     </div>
-                                    <div className="add-product-name flex-col">
-                                        <p>Payment Status</p>
-                                        <StyledSelect value={paidNow ? 'paid' : 'pending'} onChange={v => setPaidNow(v === 'paid')} options={PAID_STATUS_OPTIONS} />
-                                    </div>
-                                    {paidNow && (
+                                    {/* Not editable here — updateExpense doesn't accept bankAccountId at
+                                        all (see openEdit's own comment), so changing how this was paid
+                                        isn't safe to offer until that reconciles with the cash entry it
+                                        already created. Shown as plain info instead of a dead control. */}
+                                    {editTarget ? (
                                         <div className="add-product-name flex-col">
-                                            <p>Bank Account (leave blank if cash)</p>
-                                            <StyledSelect
-                                                value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash" loading={refDataLoading}
-                                                options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
-                                            />
+                                            <p>Payment</p>
+                                            <p style={{ margin: 0 }}>{editTarget.paymentMode || editTarget.bankAccountId ? (editTarget.bankAccountId?.accountName || 'Cash') : 'Pending — not yet paid'}</p>
                                         </div>
+                                    ) : (
+                                        <>
+                                            <div className="add-product-name flex-col">
+                                                <p>Payment Status</p>
+                                                <StyledSelect value={paidNow ? 'paid' : 'pending'} onChange={v => setPaidNow(v === 'paid')} options={PAID_STATUS_OPTIONS} />
+                                            </div>
+                                            {paidNow && (
+                                                <div className="add-product-name flex-col">
+                                                    <p>Bank Account (leave blank if cash)</p>
+                                                    <StyledSelect
+                                                        value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash" loading={refDataLoading}
+                                                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                                                    />
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                     <div className="add-product-name flex-col wizard-field-full">
                                         <p>Notes</p>
@@ -482,7 +539,7 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
 
                         <div className="edit-modal-actions exp-modal-footer">
                             <button type="button" className="add-btn cancel-btn" onClick={closeModal}>Cancel</button>
-                            <button type="submit" form="record-expense-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> Record Expense</>}</button>
+                            <button type="submit" form="record-expense-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : <><FontAwesomeIcon icon={faCheck} className="pq-action-icon" /> {editTarget ? 'Save Changes' : 'Record Expense'}</>}</button>
                         </div>
                     </div>
                 </div>,
@@ -536,6 +593,9 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                                             <p onClick={() => navigate(`/finance/payables?tab=expenses&expenseId=${e._id}`)} className="cursor edit-action">Details</p>
                                         )}
                                         {e.balance > 0 && <p onClick={() => openSettle(e)} className="cursor edit-action">Settle</p>}
+                                        <button type="button" onClick={() => openEdit(e)} className="pq-btn-ghost-edit" title="Edit expense" aria-label="Edit expense">
+                                            <FontAwesomeIcon icon={faPen} className="pq-action-icon" />
+                                        </button>
                                         <button type="button" onClick={() => setConfirmItem(e)} className="pq-btn-ghost-danger" title="Remove expense" aria-label="Remove expense">
                                             <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
                                         </button>

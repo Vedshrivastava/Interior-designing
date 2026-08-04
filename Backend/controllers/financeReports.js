@@ -3922,25 +3922,34 @@ const getDashboardTrends = async (req, res) => {
             monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
         }
 
+        // Same cost terms and same approvedOnly=true gate on contractor/
+        // labour/commission that This Month Profit uses (getDashboardSummary
+        // above) — this used to run ungated and without salary, so a bar
+        // here could include large amounts of still-unreviewed contractor/
+        // labour/commission cost the rest of the dashboard doesn't count
+        // yet, while simultaneously omitting salary entirely. Both are now
+        // the exact same formula, just repeated per month instead of once
+        // for the current month, so a bar means what the KPI cards mean.
         const revenueVsCost = await Promise.all(monthKeys.map(async (monthKey) => {
             const { start, end } = monthBounds(monthKey);
-            const [revenueAgg, materialCost, materialWasteCost, contractorCost, commissionCost, expenseAgg, labourCost] = await Promise.all([
+            const [revenueAgg, materialCost, materialWasteCost, contractorCost, commissionCost, expenseAgg, labourCost, salaryCost] = await Promise.all([
                 FinanceRunningBill.aggregate([
                     { $match: { status: 'issued', billDate: { $gte: start, $lte: end }, deleted: { $ne: true } } },
                     { $group: { _id: null, total: { $sum: '$totalAmount' } } },
                 ]),
                 computeCompanyWideMaterialCostInRange(start, end),
                 computeCompanyWideMaterialCostInRange(start, end, null, 'waste'),
-                computeCompanyWideContractorCostInRange(start, end),
-                computeCompanyWideCommissionCostInRange(start, end),
+                computeCompanyWideContractorCostInRange(start, end, null, true),
+                computeCompanyWideCommissionCostInRange(start, end, null, true),
                 FinanceExpense.aggregate([
                     { $match: { date: { $gte: start, $lte: end }, deleted: { $ne: true } } },
                     { $group: { _id: null, total: { $sum: '$amount' } } },
                 ]),
-                computeCompanyWideLabourCostInRange(start, end),
+                computeCompanyWideLabourCostInRange(start, end, null, true),
+                computeSalaryPaidInRange(start, end),
             ]);
             const revenue = revenueAgg[0]?.total || 0;
-            const cost = materialCost + materialWasteCost + contractorCost + commissionCost + (expenseAgg[0]?.total || 0) + labourCost;
+            const cost = materialCost + materialWasteCost + contractorCost + commissionCost + (expenseAgg[0]?.total || 0) + labourCost + salaryCost;
             return { month: monthKey, revenue, cost };
         }));
 

@@ -5,6 +5,7 @@ import FinanceMaterial from '../models/financeMaterial.js';
 import FinanceProject from '../models/financeProject.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
+import { computeCurrentStock } from './financeStockMovement.js';
 
 // projectId/vendorId/materialId are optional narrowing filters, not
 // required — Procurement's Purchases/Returns tabs list everything;
@@ -120,6 +121,37 @@ const updatePurchase = async (req, res) => {
         if (!quantity || Number(quantity) <= 0) return res.status(400).json({ success: false, message: 'Quantity must be greater than zero' });
         if (!ratePerUnit || Number(ratePerUnit) <= 0) return res.status(400).json({ success: false, message: 'Rate per unit must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
+
+        // A purchase's dump is what site usage draws against (see
+        // financeMeasurement.js's own INSUFFICIENT_STOCK guard) — shrinking
+        // it, or moving it to a different material/project, can't be
+        // allowed to pull stock that's already been consumed/returned/
+        // wasted out from under those measurements. Only checked for an
+        // actual purchase — a return subtracts from stock, so editing one
+        // down (or moving it away) only ever gives stock back, never risks
+        // this. movingAway covers both "same material/project, smaller
+        // quantity" and "different material/project entirely" with one
+        // check: either way, this purchase's old contribution there drops
+        // to (at most) the new quantity, or to zero if it no longer
+        // applies to that pair at all.
+        if (existing.transactionType !== 'return') {
+            const stayingOnSamePair = projectId === existing.projectId.toString() && materialId === existing.materialId.toString();
+            const oldStockRows = await computeCurrentStock(existing.projectId, existing.materialId);
+            const oldCurrent = oldStockRows[0]?.currentStock || 0;
+            const remainingContribution = stayingOnSamePair ? Number(quantity) : 0;
+            const afterStock = oldCurrent - existing.quantity + remainingContribution;
+            if (afterStock < 0) {
+                const [material, project] = await Promise.all([
+                    FinanceMaterial.findById(existing.materialId).select('name unit'),
+                    FinanceProject.findById(existing.projectId).select('name'),
+                ]);
+                const unit = material?.unit ? ` ${material.unit}` : '';
+                const message = stayingOnSamePair
+                    ? `Only ${oldCurrent}${unit} of ${material?.name || 'this material'} is still unused at ${project?.name || 'this project'} — can't reduce this purchase below ${(existing.quantity - oldCurrent)}${unit}.`
+                    : `Can't move this purchase off ${material?.name || 'this material'} at ${project?.name || 'this project'} — only ${oldCurrent}${unit} of the ${existing.quantity}${unit} it added is still unused there.`;
+                return res.status(400).json({ success: false, message, code: 'INSUFFICIENT_STOCK' });
+            }
+        }
 
         const totalAmount = Number(quantity) * Number(ratePerUnit);
         const hasGst = gstRate !== undefined && gstRate !== null && gstRate !== '';

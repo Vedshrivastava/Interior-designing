@@ -203,8 +203,13 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
 
     // Which relatedToType this form is currently pointed at — either fixed
     // by the caller (fixedRelatedTo) or whatever's picked in the Related To
-    // dropdown right now — decides whether an attachment is required.
-    const effectiveRelatedToType = fixedRelatedTo ? fixedRelatedTo.type : (form.relatedToId ? relatedToUiConfig(form.relatedToUiType)?.backendType : null);
+    // TYPE dropdown right now, regardless of whether a specific person has
+    // been picked yet — decides whether an attachment is required. Keying
+    // this off relatedToId instead (as it used to) meant the Bill/Receipt
+    // field only appeared after BOTH the type AND a specific person were
+    // picked, so selecting "Employee" alone looked like there was no
+    // upload option at all until you'd also picked who.
+    const effectiveRelatedToType = fixedRelatedTo ? fixedRelatedTo.type : relatedToUiConfig(form.relatedToUiType)?.backendType;
     const isReimbursement = REIMBURSEMENT_TYPES.includes(effectiveRelatedToType);
 
     const submit = async (e) => {
@@ -212,13 +217,20 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
         e.stopPropagation();
         if (!form.amount || Number(form.amount) <= 0) return toast.error('Amount must be greater than zero');
         if (!form.date) return toast.error('Date is required');
+        // A Related To type picked with no actual person/vendor selected
+        // yet would otherwise silently submit as untagged (relatedToType
+        // null) — catch it here instead of leaving the picker ignored with
+        // no explanation. Only reachable when the field is even shown
+        // (form.relatedToUiType stays '' whenever hideRelatedToField hides
+        // it), so this never fires for fixedCategory/fixedRelatedTo modes.
+        if (form.relatedToUiType && !form.relatedToId) return toast.error(`Select ${relatedToUiConfig(form.relatedToUiType)?.label || 'who this is related to'}, or clear Related To`);
         if (isReimbursement && !file) return toast.error('A bill/receipt attachment is required for employee and labourer reimbursement claims');
         setSaving(true);
         try {
             const { relatedToUiType, ...rest } = form;
             const payload = {
                 ...rest,
-                relatedToType: fixedRelatedTo ? fixedRelatedTo.type : (form.relatedToId ? relatedToUiConfig(relatedToUiType)?.backendType || null : null),
+                relatedToType: fixedRelatedTo ? fixedRelatedTo.type : (relatedToUiConfig(relatedToUiType)?.backendType || null),
                 relatedToId: fixedRelatedTo ? fixedRelatedTo.id : form.relatedToId,
                 ...(paidNow ? {} : { paymentMode: '', bankOrCashLabel: '', bankAccountId: '' }),
             };

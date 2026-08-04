@@ -88,7 +88,7 @@ const STATUS_FILTERS = [
     { key: 'paid',    label: 'Paid' },
 ];
 
-const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedRelatedTo, highlightId, defaultStatusFilter }) => {
+const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedRelatedTo, highlightId, defaultStatusFilter, defaultRelatedToFilter }) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -107,6 +107,12 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
     // (opening this tab directly, a project's own Expenses tab) starts on
     // All, same as before.
     const [statusFilter, setStatusFilter] = useState(defaultStatusFilter || 'all');
+    // Same idea, orthogonal axis — the Dashboard's Reimbursement Payables
+    // KPI links in with defaultRelatedToFilter="reimbursement" so landing
+    // here on the full unscoped log is already narrowed to just employee/
+    // labourer claims (across every person, unlike the per-person tab
+    // under Employees/Labourers), with a chip to clear back to everything.
+    const [relatedToFilter, setRelatedToFilter] = useState(defaultRelatedToFilter || 'all');
 
     const [modalOpen, setModalOpen] = useState(false);
     const [form, setForm] = useState(emptyForm);
@@ -282,9 +288,12 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
         return { key: 'pending', label: 'Pending', color: '#c0392b' };
     };
 
-    const visibleExpenses = statusFilter === 'all' ? expenses
+    const statusFiltered = statusFilter === 'all' ? expenses
         : statusFilter === 'unpaid' ? expenses.filter(e => e.balance > 0)
         : expenses.filter(e => statusFor(e).key === statusFilter);
+    const visibleExpenses = relatedToFilter === 'reimbursement'
+        ? statusFiltered.filter(e => REIMBURSEMENT_TYPES.includes(e.relatedToType))
+        : statusFiltered;
     const pendingOrPartialCount = expenses.filter(e => e.balance > 0).length;
 
     // Same type-label logic as the backend's Expense Analysis breakdown
@@ -341,6 +350,14 @@ const ExpensesManager = ({ url, projectId: fixedProjectId, fixedCategory, fixedR
                 ) : <span />}
                 <button type="button" className="add-btn" onClick={openAdd}>+ Record Expense</button>
             </div>
+
+            {relatedToFilter === 'reimbursement' && (
+                <div className="admin-category-scroll" style={{ paddingTop: 0 }}>
+                    <button type="button" className="admin-cat-pill active" onClick={() => setRelatedToFilter('all')} title="Show every expense, not just reimbursement claims">
+                        Reimbursement claims only ×
+                    </button>
+                </div>
+            )}
 
             {pendingOrPartialCount > 0 && (
                 <div className="admin-category-scroll" style={{ paddingTop: 0 }}>

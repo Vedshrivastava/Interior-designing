@@ -296,13 +296,14 @@ const FinanceHome = ({ url }) => {
                             ]),
                             summary?.reimbursementPayablesCount > 0 ? `${summary.reimbursementPayablesCount} employee/labourer claim${summary.reimbursementPayablesCount === 1 ? '' : 's'} still owed` : null,
                         ].filter(Boolean).join('  ') || undefined}
-                        // No single unscoped "all reimbursements" page exists —
-                        // it's a per-person tab under Employees/Labourers (see
-                        // ExpensesManager's fixedRelatedTo usage there) — this
-                        // just lands on Employees as the more common starting
-                        // point, same as every other Payables card linking to
-                        // wherever that payable is actually managed.
-                        onClick={() => navigate('/finance/employees')} tone={summary?.reimbursementPayables > 0 ? 'danger' : 'good'} />
+                        // Same destination as Expense Payables above, plus a
+                        // relatedTo=reimbursement filter (ExpensesManager's
+                        // defaultRelatedToFilter) — one table of every
+                        // employee/labourer claim across every person at once,
+                        // with the same Settle action already there for any
+                        // other expense, rather than landing on Employees'
+                        // directory with no person picked yet.
+                        onClick={() => navigate('/finance/payables?tab=expenses&status=unpaid&relatedTo=reimbursement')} tone={summary?.reimbursementPayables > 0 ? 'danger' : 'good'} />
                     <KpiCard loading={phase1Loading} icon={faFileInvoiceDollar} label="TDS Payable" value={formatINR(summary?.tdsPayable)}
                         sub={`Withheld ${formatINR(summary?.tdsWithheldToDate)} − Deposited ${formatINR(summary?.tdsDepositedToDate)}`}
                         onClick={() => navigate('/finance/payments?tab=tds')} tone={summary?.tdsPayable > 0 ? 'danger' : 'good'} />

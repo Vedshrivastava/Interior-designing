@@ -29,7 +29,20 @@ export const uploadRawFile = async (filePath, folder) => {
     });
 };
 
-const CLOUDINARY_URL_RE = /res\.cloudinary\.com\/[^/]+\/([a-z]+)\/([a-z]+)\/(?:v\d+\/)?(.+)$/i;
+// A signed delivery url (sign_url: true, as uploadRawFile always uses)
+// inserts a `s--<signature>--/` path segment between `type` and the
+// `v<version>/` segment — e.g. `.../raw/authenticated/s--CzkCUNTE--/
+// v1785871565/expense_attachments/name.pdf`. The signature segment was
+// missing from this regex entirely, so it fell through into the greedy
+// `(.+)$` capture along with the version and (once a real query string
+// showed up) the query string too — every public_id extracted here was
+// wrong, every `private_download_url` call below built with it 404'd
+// ("Resource not found"), and every PDF attachment in the app (expenses,
+// contractor/vendor payments, project/client documents, quotations —
+// anywhere resolveDeliveryUrl runs) failed to open. Fixed to skip the
+// signature segment explicitly, and to stop the public_id capture at `?`
+// so a query string can never leak into it either.
+const CLOUDINARY_URL_RE = /res\.cloudinary\.com\/[^/]+\/([a-z]+)\/([a-z]+)\/(?:s--[^/]+--\/)?(?:v\d+\/)?([^?]+)/i;
 const PDF_URL_RE = /\.pdf(\?.*)?$/i;
 
 // PDFs can't be served via the normal public/authenticated CDN delivery url

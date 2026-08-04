@@ -155,14 +155,96 @@ const addLabourMeasurement = async (req, res) => {
     }
 };
 
-// Same "don't allow editing area" reasoning as financeMeasurement.updateMeasurement.
+// Same area/material reconciliation as financeMeasurement.updateMeasurement
+// — the work's completedAreaSqft is adjusted by the delta, and the old
+// consume movements are reversed and replaced, checked against stock with
+// this entry's own old usage added back first so it isn't double-counted
+// against itself. No billedInRunningBillId gate here — labour measurements
+// are never billed directly (see the model's own comment: earnings
+// correction happens via financeLabourDeduction after the fact, not a
+// billing snapshot), so there's nothing an area/material edit could corrupt.
 const updateLabourMeasurement = async (req, res) => {
     try {
         const { _id, remarks } = req.body;
         const existing = await FinanceLabourMeasurement.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Measurement not found' });
-        await FinanceLabourMeasurement.findByIdAndUpdate(_id, { remarks: remarks ?? existing.remarks });
+
+        const areaProvided = req.body.areaCoveredSqft !== undefined && req.body.areaCoveredSqft !== null && req.body.areaCoveredSqft !== '';
+        const newArea = areaProvided ? Number(req.body.areaCoveredSqft) : existing.areaCoveredSqft;
+        const areaChanging = areaProvided && newArea !== existing.areaCoveredSqft;
+        const materialProvided = Array.isArray(req.body.materialUsed);
+
+        if (areaProvided && (!newArea || newArea <= 0)) {
+            return res.status(400).json({ success: false, message: 'Area covered must be greater than zero' });
+        }
+
+        const update = { remarks: remarks ?? existing.remarks };
+        if (areaChanging) update.areaCoveredSqft = newArea;
+
+        let stockChanged = false;
+        if (materialProvided) {
+            const project = await FinanceProject.findById(existing.projectId);
+            let materialUsed = req.body.materialUsed.filter(m => m && m.materialId && Number(m.quantity) > 0).map(m => ({ materialId: m.materialId, quantity: Number(m.quantity) }));
+            if (!project?.materialTrackingEnabled) materialUsed = [];
+            else if (materialUsed.length === 0) {
+                return res.status(400).json({ success: false, message: 'At least one material used is required' });
+            }
+
+            if (materialUsed.length > 0) {
+                const oldByMaterial = new Map();
+                for (const m of existing.materialUsed) {
+                    const key = m.materialId.toString();
+                    oldByMaterial.set(key, (oldByMaterial.get(key) || 0) + m.quantity);
+                }
+                const requestedByMaterial = new Map();
+                for (const m of materialUsed) requestedByMaterial.set(m.materialId, (requestedByMaterial.get(m.materialId) || 0) + m.quantity);
+                const [stockRows, materials] = await Promise.all([
+                    computeCurrentStock(existing.projectId),
+                    FinanceMaterial.find({ _id: { $in: [...requestedByMaterial.keys()] } }, 'name unit'),
+                ]);
+                const stockByMaterial = new Map(stockRows.map(r => [r.materialId.toString(), r]));
+                const materialById = new Map(materials.map(m => [m._id.toString(), m]));
+                for (const [materialId, requested] of requestedByMaterial) {
+                    const available = (stockByMaterial.get(materialId)?.currentStock || 0) + (oldByMaterial.get(materialId) || 0);
+                    if (requested > available) {
+                        const material = materialById.get(materialId);
+                        const unit = material?.unit ? ` ${material.unit}` : '';
+                        return res.status(400).json({
+                            success: false,
+                            message: `Only ${available}${unit} of ${material?.name || 'this material'} would be available at this project after this edit — can't use ${requested}.`,
+                            code: 'INSUFFICIENT_STOCK',
+                            projectId: existing.projectId,
+                            materialId,
+                        });
+                    }
+                }
+            }
+
+            const deletedBy = req.userName || 'Admin';
+            await FinanceStockMovement.updateMany(
+                { relatedLabourMeasurementId: existing._id, deleted: { $ne: true } },
+                { deleted: true, deletedAt: new Date(), deletedBy }
+            );
+            stockChanged = true;
+            if (materialUsed.length > 0) {
+                await FinanceStockMovement.insertMany(materialUsed.map(m => ({
+                    projectId: existing.projectId, materialId: m.materialId, movementType: 'consume',
+                    quantity: m.quantity, date: existing.date, relatedLabourMeasurementId: existing._id, workId: existing.workId,
+                })));
+            }
+            update.materialUsed = materialUsed;
+        }
+
+        await FinanceLabourMeasurement.findByIdAndUpdate(_id, update);
+
+        if (areaChanging) {
+            await FinanceWork.findByIdAndUpdate(existing.workId, { $inc: { completedAreaSqft: newArea - existing.areaCoveredSqft } });
+        }
+
         broadcast({ type: 'financeLabourMeasurementsChanged', projectId: existing.projectId });
+        if (areaChanging) broadcast({ type: 'financeWorksChanged', projectId: existing.projectId });
+        if (stockChanged) broadcast({ type: 'financeStockChanged', projectId: existing.projectId });
+
         res.json({ success: true, message: 'Measurement updated' });
     } catch (err) {
         console.error(err);

@@ -9,6 +9,7 @@ import StyledDatePicker from './StyledDatePicker';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const STATUS_FILTER_OPTIONS = [
     { value: 'open', label: 'Open Issues' },

@@ -5,6 +5,24 @@ import Sidebar from './components/sidebar';
 import { Routes, Route } from 'react-router-dom';
 import './index.css';
 import 'react-toastify/dist/ReactToastify.css';
+// The Finance ERP's four shared stylesheets — eager, not left to whichever
+// lazy route chunk happens to import them first. Every route below is
+// code-split (see the lazy() calls), and each one's CSS bundle only
+// contains what its own static-import tree pulls in; dozens of finance
+// components use classes from these four files without importing them
+// directly, relying on some OTHER already-visited page having loaded it
+// first. That's fine for in-SPA navigation (the stylesheet stays injected
+// once loaded) but breaks completely on a hard refresh/direct link into a
+// route whose own tree never imports the file a class it uses actually
+// lives in — the exact bug reported on Site Operations, which turned out
+// to affect most of the Finance ERP's non-work-detail routes once audited.
+// Loading all four upfront trades a few hundred KB of always-eager CSS for
+// eliminating that whole bug class outright, rather than chasing it file
+// by file as new components get added.
+import './styles/add.css';
+import './styles/list.css';
+import './styles/wizard.css';
+import './styles/dashboard.css';
 import { ToastContainer } from 'react-toastify';
 import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';

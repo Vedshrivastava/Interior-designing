@@ -2255,7 +2255,13 @@
         font-weight: 400 !important;
         color: var(--text-lt) !important;
     }
-    /* nth-child(2) — reset. */
+    /* nth-child(2) — reset. .finance-table .list-table-format >
+       *:not(:first-child):not(:last-child) (list.css, unconditional)
+       center-aligns every middle column by DOM position — .wm-worker is
+       the row's 2nd DOM child in cross-project mode (Work is 1st), so it
+       gets swept up in that rule despite visually anchoring its own
+       "worker" grid area here; text-align:left restores it to reading
+       flush against the row's left edge like every other name/title field. */
     .list-table-format.wm-row.wm-cross .wm-worker {
         grid-area: worker !important;
         align-self: start !important;
@@ -2263,6 +2269,7 @@
         font-size: inherit !important;
         font-weight: normal !important;
         color: inherit !important;
+        text-align: left !important;
     }
     /* nth-child(3) — reset. */
     .list-table-format.wm-row.wm-cross .wm-area {

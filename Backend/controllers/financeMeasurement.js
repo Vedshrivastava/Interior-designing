@@ -155,15 +155,36 @@ const addMeasurement = async (req, res) => {
     }
 };
 
-// Deliberately does not accept areaCoveredSqft or materialUsed — editing
-// either would silently desync the work's completedAreaSqft and the stock
-// ledger from what this measurement already applied. Remove and re-add
-// instead if a quantity was entered wrong.
+// Editing areaCoveredSqft or materialUsed touches the same two side
+// effects addMeasurement created — the work's completedAreaSqft and the
+// consume stock movements — so both get reconciled here rather than left
+// to drift: the work total is adjusted by the delta (not overwritten), and
+// the old consume movements are reversed and replaced with new ones sized
+// to the new materialUsed, running the exact same insufficient-stock check
+// addMeasurement does (adjusted so this entry's own old usage doesn't
+// count against itself — see the comment further down). Blocked once the
+// measurement is part of an issued running bill, same guard
+// removeMeasurement already has, since the bill has already baked in the
+// old sqft/cost — area/material can't move under it without corrupting
+// that document; supervisorName/remarks/engineerApproved stay editable
+// regardless, since none of those feed into a bill's numbers.
 const updateMeasurement = async (req, res) => {
     try {
         const { _id, supervisorName, remarks, engineerApproved } = req.body;
         const existing = await FinanceMeasurement.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Measurement not found' });
+
+        const areaProvided = req.body.areaCoveredSqft !== undefined && req.body.areaCoveredSqft !== null && req.body.areaCoveredSqft !== '';
+        const newArea = areaProvided ? Number(req.body.areaCoveredSqft) : existing.areaCoveredSqft;
+        const areaChanging = areaProvided && newArea !== existing.areaCoveredSqft;
+        const materialProvided = Array.isArray(req.body.materialUsed);
+
+        if ((areaChanging || materialProvided) && existing.billedInRunningBillId) {
+            return res.status(400).json({ success: false, message: "This measurement is part of an issued running bill — area and material can't be changed. Void or reverse that bill before editing them." });
+        }
+        if (areaProvided && (!newArea || newArea <= 0)) {
+            return res.status(400).json({ success: false, message: 'Area covered must be greater than zero' });
+        }
 
         const update = {
             supervisorName: supervisorName ?? existing.supervisorName,
@@ -174,9 +195,77 @@ const updateMeasurement = async (req, res) => {
             update.engineerApprovedAt = engineerApproved ? new Date() : null;
             update.engineerApprovedBy = engineerApproved ? (req.userName || 'Admin') : '';
         }
+        if (areaChanging) update.areaCoveredSqft = newArea;
+
+        let stockChanged = false;
+        if (materialProvided) {
+            const project = await FinanceProject.findById(existing.projectId);
+            let materialUsed = req.body.materialUsed.filter(m => m && m.materialId && Number(m.quantity) > 0).map(m => ({ materialId: m.materialId, quantity: Number(m.quantity) }));
+            if (!project?.materialTrackingEnabled) materialUsed = [];
+            else if (materialUsed.length === 0) {
+                return res.status(400).json({ success: false, message: 'At least one material used is required' });
+            }
+
+            if (materialUsed.length > 0) {
+                // This measurement's own current usage, per material — added
+                // back to "available" below since it's about to be reversed,
+                // so the check reflects stock as it will actually read after
+                // this edit rather than double-counting this entry's old
+                // draw against its own new one.
+                const oldByMaterial = new Map();
+                for (const m of existing.materialUsed) {
+                    const key = m.materialId.toString();
+                    oldByMaterial.set(key, (oldByMaterial.get(key) || 0) + m.quantity);
+                }
+                const requestedByMaterial = new Map();
+                for (const m of materialUsed) requestedByMaterial.set(m.materialId, (requestedByMaterial.get(m.materialId) || 0) + m.quantity);
+                const [stockRows, materials] = await Promise.all([
+                    computeCurrentStock(existing.projectId),
+                    FinanceMaterial.find({ _id: { $in: [...requestedByMaterial.keys()] } }, 'name unit'),
+                ]);
+                const stockByMaterial = new Map(stockRows.map(r => [r.materialId.toString(), r]));
+                const materialById = new Map(materials.map(m => [m._id.toString(), m]));
+                for (const [materialId, requested] of requestedByMaterial) {
+                    const available = (stockByMaterial.get(materialId)?.currentStock || 0) + (oldByMaterial.get(materialId) || 0);
+                    if (requested > available) {
+                        const material = materialById.get(materialId);
+                        const unit = material?.unit ? ` ${material.unit}` : '';
+                        return res.status(400).json({
+                            success: false,
+                            message: `Only ${available}${unit} of ${material?.name || 'this material'} would be available at this project after this edit — can't use ${requested}.`,
+                            code: 'INSUFFICIENT_STOCK',
+                            projectId: existing.projectId,
+                            materialId,
+                        });
+                    }
+                }
+            }
+
+            const deletedBy = req.userName || 'Admin';
+            await FinanceStockMovement.updateMany(
+                { relatedMeasurementId: existing._id, deleted: { $ne: true } },
+                { deleted: true, deletedAt: new Date(), deletedBy }
+            );
+            stockChanged = true;
+            if (materialUsed.length > 0) {
+                await FinanceStockMovement.insertMany(materialUsed.map(m => ({
+                    projectId: existing.projectId, materialId: m.materialId, movementType: 'consume',
+                    quantity: m.quantity, date: existing.date, relatedMeasurementId: existing._id, workId: existing.workId,
+                })));
+            }
+            update.materialUsed = materialUsed;
+        }
 
         await FinanceMeasurement.findByIdAndUpdate(_id, update);
+
+        if (areaChanging) {
+            await FinanceWork.findByIdAndUpdate(existing.workId, { $inc: { completedAreaSqft: newArea - existing.areaCoveredSqft } });
+        }
+
         broadcast({ type: 'financeMeasurementsChanged', projectId: existing.projectId });
+        if (areaChanging) broadcast({ type: 'financeWorksChanged', projectId: existing.projectId });
+        if (stockChanged) broadcast({ type: 'financeStockChanged', projectId: existing.projectId });
+
         res.json({ success: true, message: 'Measurement updated' });
     } catch (err) {
         console.error(err);

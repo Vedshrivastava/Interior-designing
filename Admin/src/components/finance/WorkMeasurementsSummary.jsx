@@ -3,14 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircleInfo, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faCircleInfo, faPen, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import AddMeasurementModal from './AddMeasurementModal';
+import EditMeasurementModal from './EditMeasurementModal';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
+import '../../styles/add.css';
 
 const toDateKey = (d) => new Date(d).toISOString().slice(0, 10);
 
@@ -47,6 +49,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
     const [workType, setWorkType] = useState('');
     const [date, setDate] = useState('');
     const [addModalOpen, setAddModalOpen] = useState(false);
+    const [editingRecord, setEditingRecord] = useState(null);
 
     const fetchProjects = () => {
         if (!crossProject) return;
@@ -186,7 +189,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
     // actually gets confirmed now, per work type not per daily entry).
     // These rows stay a pure log of what was done — proof and data, not a
     // pending/approved status.
-    const columns = crossProject ? '1.3fr 1.6fr 1fr 1.3fr 150px' : '1.8fr 1fr 1.4fr 150px';
+    const columns = crossProject ? '1.3fr 1.6fr 1fr 1.3fr 230px' : '1.8fr 1fr 1.4fr 230px';
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
 
@@ -238,6 +241,14 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
                     url={url} projectId={fixedProjectId} defaultProjectId={selectedProject}
                     defaultDate={date} defaultWorkId={defaultWorkId}
                     onClose={() => setAddModalOpen(false)}
+                    onSaved={fetchMeasurements}
+                />
+            )}
+
+            {editingRecord && (
+                <EditMeasurementModal
+                    url={url} record={editingRecord}
+                    onClose={() => setEditingRecord(null)}
                     onSaved={fetchMeasurements}
                 />
             )}
@@ -296,6 +307,13 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
                                                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
                                             >
                                                 <FontAwesomeIcon icon={faCircleInfo} className="pq-action-icon" /> <span className="wm-action-label">Details</span>
+                                            </p>
+                                            <p
+                                                onClick={() => setEditingRecord({ kind, data: m })}
+                                                className="cursor edit-action"
+                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
+                                            >
+                                                <FontAwesomeIcon icon={faPen} className="pq-action-icon" /> <span className="wm-action-label">Edit</span>
                                             </p>
                                             <button
                                                 type="button"

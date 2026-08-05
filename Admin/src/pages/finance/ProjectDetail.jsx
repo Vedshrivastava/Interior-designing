@@ -28,7 +28,7 @@ import ProjectTimelineTab from '../../components/finance/ProjectTimelineTab';
 import ProjectProfitabilityTab from '../../components/finance/ProjectProfitabilityTab';
 import StyledSelect from '../../components/finance/StyledSelect';
 import SettingPicker from '../../components/finance/SettingPicker';
-import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, ChartTooltip, CHART_COLORS, formatINR } from '../../components/finance/DashboardWidgets';
+import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, ChartTooltip, CHART_COLORS, formatINR, buildBreakdownSub, unapprovedPaidNote } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -36,15 +36,6 @@ import '../../styles/add.css';
 
 const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance'];
 
-// Builds a KpiCard `sub` line out of a headline's own contributing terms —
-// same helper as FinanceHome.jsx's Dashboard Payables cards, just
-// project-scoped here. Each part is [label, amount, subtract?]; zero-value
-// terms are dropped so a simple case doesn't drag along a string of
-// "· Advances ₹0 · Deductions ₹0".
-const buildBreakdownSub = (parts) => {
-    const shown = parts.filter(([, v]) => v);
-    return shown.length ? shown.map(([label, v, subtract]) => `${subtract ? '− ' : ''}${label} ${formatINR(Math.abs(v))}`).join('  ') : undefined;
-};
 
 /*
  * Tier-2 dashboard for one project — KPI cards (revenue through
@@ -194,6 +185,17 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
         { name: 'Other Expenses', value: profit.otherExpenses },
     ].filter(d => d.value > 0);
 
+    // See DashboardWidgets.jsx's unapprovedPaidNote for why both halves
+    // matter — paidByUs comes from the same project-scoped Payables
+    // breakdown (payables.contractorBreakdown/labourBreakdown) the
+    // "Approved" Payables cards below already fetch.
+    const unapprovedNote = unapprovedPaidNote(
+        profit.directPaymentContractorTotal + profit.directPaymentLabourTotal,
+        (payables?.contractorBreakdown?.advances || 0) + (payables?.contractorBreakdown?.payments || 0)
+            + (payables?.labourBreakdown?.advances || 0) + (payables?.labourBreakdown?.payments || 0),
+        'contractors/labour',
+    );
+
     return (
         <div>
             <KpiGrid>
@@ -248,16 +250,17 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
                         Logged work whose cost isn't counted in Profit yet — review it in Payables/Receivables → Deductions to move it in. Revenue/Profit here are what this same unapproved work would add once reviewed and billed.
                     </p>
-                    {/* Approved's own Payables cards below show Direct Pay as a
-                        subtracted term right in their breakdown — Unapproved has
-                        no equivalent line of its own (the client's payment isn't
-                        tied to any particular sqft, so it can't be split between
-                        Approved/Unapproved the way material cost now is), so this
-                        says so explicitly instead of just staying silent about
-                        it here while the numbers exist two cards below. */}
-                    {(profit.directPaymentContractorTotal > 0 || profit.directPaymentLabourTotal > 0) && (
+                    {/* Approved's own Payables cards below show Direct Pay AND
+                        Advances/Paid as subtracted terms right in their
+                        breakdown — Unapproved has no equivalent line of its own
+                        (none of this is tied to any particular sqft, so it can't
+                        be split between Approved/Unapproved the way material
+                        cost now is), so this says so explicitly instead of just
+                        staying silent about it here while the numbers exist in
+                        the Payables/Direct Payments cards below. */}
+                    {unapprovedNote && (
                         <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
-                            {formatINR(profit.directPaymentContractorTotal + profit.directPaymentLabourTotal)} the client already paid workers directly on this project (see Direct Payments below) — a separate advance, not netted against Unapproved above.
+                            {unapprovedNote} (see Payables/Direct Payments below).
                         </p>
                     )}
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px', fontWeight: 600, color: profit.totalProjectedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>

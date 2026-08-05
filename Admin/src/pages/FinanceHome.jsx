@@ -11,7 +11,7 @@ import {
     faCartShopping, faHardHat, faReceipt, faBuilding, faClipboardList, faPersonDigging,
     faRulerCombined, faTriangleExclamation, faMoneyBillWave, faHandHoldingDollar, faUsers, faFileInvoice,
 } from '@fortawesome/free-solid-svg-icons';
-import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ActivityCard, ChartTooltip, CHART_COLORS, formatINR, truncateLabel, ProjectNameTick, buildBreakdownSub } from '../components/finance/DashboardWidgets';
+import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ActivityCard, ChartTooltip, CHART_COLORS, formatINR, truncateLabel, ProjectNameTick, buildBreakdownSub, unapprovedPaidNote } from '../components/finance/DashboardWidgets';
 import '../styles/welcome.css';
 import '../styles/list.css';
 
@@ -360,10 +360,18 @@ const FinanceHome = ({ url }) => {
                             ) : (
                                 <>
                                     <KpiCard icon={faHardHat} label="Contractor Payment Left - Unapproved" value={formatINR(summary.unapprovedContractorTotal)}
-                                        sub={summary.directPaymentContractorTotal > 0 ? `${formatINR(summary.directPaymentContractorTotal)} paid directly by client to contractors — a separate advance, not netted against this` : undefined}
+                                        sub={unapprovedPaidNote(
+                                            summary.directPaymentContractorTotal,
+                                            (summary.contractorPayablesBreakdown?.advances || 0) + (summary.contractorPayablesBreakdown?.payments || 0),
+                                            'contractors',
+                                        )}
                                         onClick={() => navigate('/finance/contractors')} tone={summary.unapprovedContractorTotal > 0 ? 'danger' : undefined} />
                                     <KpiCard icon={faPersonDigging} label="Labour Payment Left - Unapproved" value={formatINR(summary.unapprovedLabourTotal)}
-                                        sub={summary.directPaymentLabourTotal > 0 ? `${formatINR(summary.directPaymentLabourTotal)} paid directly by client to labour — a separate advance, not netted against this` : undefined}
+                                        sub={unapprovedPaidNote(
+                                            summary.directPaymentLabourTotal,
+                                            (summary.labourPayablesBreakdown?.advances || 0) + (summary.labourPayablesBreakdown?.payments || 0),
+                                            'labour',
+                                        )}
                                         onClick={() => navigate('/finance/daily-labour')} tone={summary.unapprovedLabourTotal > 0 ? 'danger' : undefined} />
                                     <KpiCard icon={faHandHoldingDollar} label="Commission - Unapproved" value={formatINR(summary.unapprovedCommissionTotal)} onClick={() => navigate('/finance/referrals')} tone={summary.unapprovedCommissionTotal > 0 ? 'danger' : undefined} />
                                     <KpiCard icon={faArrowTrendUp} label="Profit - Unapproved" value={formatINR(summary.unapprovedProfitTotal)}

@@ -2,20 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
-import { KpiCard, KpiGrid, KpiSectionLabel, formatINR } from './DashboardWidgets';
+import { KpiCard, KpiGrid, KpiSectionLabel, formatINR, buildBreakdownSub, unapprovedPaidNote } from './DashboardWidgets';
 import '../../styles/list.css';
 
 const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance'];
-
-// Builds a KpiCard `sub` line out of a headline's own contributing terms —
-// same helper as FinanceHome.jsx's Dashboard Payables cards, just
-// project-scoped here. Each part is [label, amount, subtract?]; zero-value
-// terms are dropped so a simple case doesn't drag along a string of
-// "· Advances ₹0 · Deductions ₹0".
-const buildBreakdownSub = (parts) => {
-    const shown = parts.filter(([, v]) => v);
-    return shown.length ? shown.map(([label, v, subtract]) => `${subtract ? '− ' : ''}${label} ${formatINR(Math.abs(v))}`).join('  ') : undefined;
-};
 
 /*
  * Lifetime billing/cost/profit summary — deliberately non-duplicative of
@@ -119,6 +109,15 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
 
     if (loading) return <div className="admin-empty-state"><p>Loading…</p></div>;
     if (!profit) return <div className="admin-empty-state"><p>No profitability data yet for this project.</p></div>;
+
+    // See DashboardWidgets.jsx's unapprovedPaidNote / ProjectDetail.jsx's
+    // identical derivation.
+    const unapprovedNote = unapprovedPaidNote(
+        profit.directPaymentContractorTotal + profit.directPaymentLabourTotal,
+        (payables?.contractorBreakdown?.advances || 0) + (payables?.contractorBreakdown?.payments || 0)
+            + (payables?.labourBreakdown?.advances || 0) + (payables?.labourBreakdown?.payments || 0),
+        'contractors/labour',
+    );
 
     return (
         <div>
@@ -225,12 +224,13 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                     </p>
                     {/* See ProjectDetail.jsx's identical block for why this note
                         exists — Approved's own Payables breakdown below shows
-                        Direct Pay as a subtracted term; Unapproved has no
-                        equivalent line since the client's payment can't be split
-                        between Approved/Unapproved the way material cost now is. */}
-                    {(profit.directPaymentContractorTotal > 0 || profit.directPaymentLabourTotal > 0) && (
+                        Direct Pay AND Advances/Paid as subtracted terms;
+                        Unapproved has no equivalent line since none of this can
+                        be split between Approved/Unapproved the way material
+                        cost now is. */}
+                    {unapprovedNote && (
                         <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
-                            {formatINR(profit.directPaymentContractorTotal + profit.directPaymentLabourTotal)} the client already paid workers directly on this project (see Direct Payments below) — a separate advance, not netted against Unapproved above.
+                            {unapprovedNote} (see Payables/Direct Payments below).
                         </p>
                     )}
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px', fontWeight: 600, color: profit.totalProjectedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>

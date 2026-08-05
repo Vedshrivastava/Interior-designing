@@ -75,6 +75,23 @@ export const extraPaidSub = (totals) => {
     ]);
 };
 
+// "Payment Left - Unapproved" (Dashboard and, per-project, Project Overview)
+// used to only ever mention the client-side half of this (direct payments)
+// — the company's own advances/payments against this same contractor/
+// labourer relationship are equally un-netted from this figure
+// (unapprovedContractorTotal/unapprovedContractorCost is a flat area × rate
+// value, not a balance; nothing gets subtracted from it at all), so leaving
+// those out told only half the "money that's already moved but isn't
+// reflected here" story. Both paidByUs and paidByClient come from the exact
+// same Payables breakdown the "Approved" Contractor/Labour Payables cards
+// already surface, just re-read here instead of duplicated.
+export const unapprovedPaidNote = (paidByClient, paidByUs, whom) => {
+    const parts = [];
+    if (paidByClient > 0) parts.push(`${formatINR(paidByClient)} paid directly by client`);
+    if (paidByUs > 0) parts.push(`${formatINR(paidByUs)} already paid by us (advances + payments)`);
+    return parts.length ? `${parts.join(', ')} to ${whom} — neither netted against this` : undefined;
+};
+
 // Shared by every "profit per project" bar chart (Dashboard, All Projects) —
 // project names run long ("Malhotra Enterprises — HQ Advance Contract") and
 // the chart's y-axis has nowhere near that much room. Recharts renders axis

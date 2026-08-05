@@ -195,6 +195,14 @@ const SettingsCrudList = ({ url, lockedType }) => {
             </div>
 
             <div className="dash-chart-card mastercrud-card">
+                {/* MasterCrudTable's cardTitle branch (Material Master/
+                    Labourers) always renders this above its own header row —
+                    this list never did, even though every one of its 8 tabs
+                    (all lockedType, so the internal type-switcher pills below
+                    never render either) needs it just as much: without it,
+                    the header row sat with zero top padding directly against
+                    the card's bare edge, no heading above it at all. */}
+                <p className="dash-chart-title">{typeConfig.label}</p>
                 <div className="mastercrud-row mastercrud-header" style={{ gridTemplateColumns: gridCols }}>
                     <b>Name</b>
                     {extraCols.map(c => <b key={c.key}>{c.label}</b>)}

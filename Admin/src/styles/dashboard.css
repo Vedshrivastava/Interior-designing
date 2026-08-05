@@ -1146,21 +1146,14 @@
     background: rgba(201, 168, 124, 0.06);
 }
 
-/* Darker label tone (--text-mid, not the low-contrast --text-lt every
-   plain data row already uses elsewhere) plus a background tint and its
-   own stronger border — --text-lt alone reads as roughly the same weight
-   as an ordinary row's own faint sub-labels, so the header line didn't
-   separate itself from the data underneath it. */
 .mastercrud-row.mastercrud-header {
-    color: var(--text-mid, #5a4e44);
+    color: var(--text-lt, #9a8e84);
     font-size: 0.7rem;
     font-weight: 700;
-    letter-spacing: 1px;
+    letter-spacing: 0.4px;
     text-transform: uppercase;
-    background: linear-gradient(to right, rgba(16, 37, 37, 0.03), transparent);
-    border-bottom: 1px solid rgba(201, 168, 124, 0.25);
     padding-top: 0;
-    padding-bottom: 14px;
+    padding-bottom: 10px;
 }
 
 .mastercrud-row.mastercrud-header b {

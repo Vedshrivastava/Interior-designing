@@ -50,6 +50,31 @@ export const buildBreakdownSub = (parts) => {
     return shown.length ? shown.map(([label, v, subtract]) => `${subtract ? '− ' : ''}${label} ${formatINR(Math.abs(v))}`).join('  ') : undefined;
 };
 
+// A contractor/labourer ledger's Balance Payable going negative ("Extra
+// Paid") is a different question than the still-owed case — not "what
+// factors add up to this," but "who actually overpaid, and from where."
+// Splits the excess into money the company itself sent (advances +
+// payments — both are real cash the company disbursed, just booked under
+// different categories) versus money the client already covered directly
+// (directPaymentTotal), against net earnings (deductions/material waste
+// already netted out, clamped at 0 — a deduction pile exceeding raw
+// earnings is a separate, rare edge case not worth a confusing negative
+// third term here). These three always sum to exactly
+// Math.abs(totals.balancePayable) whenever it's negative. Only meaningful
+// in that overpaid case — callers should keep buildBreakdownSub's full
+// earn-minus-every-cost formula for the still-owed case instead.
+export const extraPaidSub = (totals) => {
+    if (!totals || totals.balancePayable >= 0) return undefined;
+    const paidByUs = (totals.advances || 0) + (totals.payments || 0);
+    const paidByClient = totals.directPaymentTotal || 0;
+    const netEarned = Math.max(0, (totals.earnings || 0) - (totals.deductions || 0) - (totals.materialWasteTotal || 0));
+    return buildBreakdownSub([
+        ['Paid by Us', paidByUs],
+        ['Paid by Client', paidByClient],
+        ['Earned', netEarned, true],
+    ]);
+};
+
 // Shared by every "profit per project" bar chart (Dashboard, All Projects) —
 // project names run long ("Malhotra Enterprises — HQ Advance Contract") and
 // the chart's y-axis has nowhere near that much room. Recharts renders axis

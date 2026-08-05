@@ -9,6 +9,7 @@ import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { extraPaidSub } from './DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -43,8 +44,11 @@ const LabourPaymentsManager = ({ url }) => {
     const [worksLoading, setWorksLoading] = useState(false);
     const [paymentModes, setPaymentModes] = useState([]);
     const [payments, setPayments] = useState([]);
-    const [balancePayable, setBalancePayable] = useState(null);
+    // Full ledger totals, not just the one number — see
+    // ContractorPaymentsManager.jsx's identical comment.
+    const [totals, setTotals] = useState(null);
     const [loading, setLoading] = useState(false);
+    const balancePayable = totals?.balancePayable ?? null;
 
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
@@ -105,12 +109,12 @@ const LabourPaymentsManager = ({ url }) => {
     const fetchBalancePayable = async () => {
         try {
             const res = await axios.get(`${url}/api/finance/labourer-ledger/${labourerId}/ledger`, authHeader);
-            if (res.data.success) setBalancePayable(res.data.data.totals.balancePayable);
-        } catch { setBalancePayable(null); }
+            if (res.data.success) setTotals(res.data.data.totals);
+        } catch { setTotals(null); }
     };
 
     useEffect(() => {
-        if (labourerId) { fetchPayments(); fetchBalancePayable(); } else { setPayments([]); setBalancePayable(null); }
+        if (labourerId) { fetchPayments(); fetchBalancePayable(); } else { setPayments([]); setTotals(null); }
     }, [labourerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // A payment for this labourer recorded elsewhere (LabourLedgerView, or
@@ -192,7 +196,8 @@ const LabourPaymentsManager = ({ url }) => {
                     </div>
                     {balancePayable !== null && (
                         <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                            {balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}: <span style={{ fontWeight: 700, color: balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(balancePayable).toLocaleString('en-IN')}</span>
+                            {balancePayable < 0 ? 'Total Extra Paid' : 'Balance Payable'}: <span style={{ fontWeight: 700, color: balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(balancePayable).toLocaleString('en-IN')}</span>
+                            {balancePayable < 0 && ` (${extraPaidSub(totals)})`}
                         </p>
                     )}
                     {loading ? (
@@ -233,7 +238,8 @@ const LabourPaymentsManager = ({ url }) => {
                                     <h2>Add Payment</h2>
                                     {balancePayable !== null && (
                                         <p className="admin-subtitle" style={{ margin: '4px 0 0' }}>
-                                            {balancePayable < 0 ? 'Extra Paid' : 'Payment Left'}: <span style={{ fontWeight: 700, color: balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(balancePayable).toLocaleString('en-IN')}</span>
+                                            {balancePayable < 0 ? 'Total Extra Paid' : 'Payment Left'}: <span style={{ fontWeight: 700, color: balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(balancePayable).toLocaleString('en-IN')}</span>
+                                            {balancePayable < 0 && ` (${extraPaidSub(totals)})`}
                                         </p>
                                     )}
                                 </div>

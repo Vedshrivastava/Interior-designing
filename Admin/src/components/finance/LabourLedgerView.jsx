@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
-import { KpiCard, KpiGrid, ChartCard, EmptyChart, ChartTooltip, CHART_COLORS, formatINR, buildBreakdownSub } from './DashboardWidgets';
+import { KpiCard, KpiGrid, ChartCard, EmptyChart, ChartTooltip, CHART_COLORS, formatINR, buildBreakdownSub, extraPaidSub } from './DashboardWidgets';
 import StyledSelect from './StyledSelect';
 import DownloadButton from './DownloadButton';
 import { useFileDownload } from '../../hooks/useFileDownload';
@@ -241,8 +241,8 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                 {totals.materialWasteTotal > 0 && <KpiCard label="Material Waste" value={formatINR(totals.materialWasteTotal)} />}
                 <KpiCard label="Direct Payments" value={formatINR(totals.directPaymentTotal)} />
                 <KpiCard label="Payments" value={formatINR(totals.payments)} />
-                <KpiCard label={totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'} value={formatINR(Math.abs(totals.balancePayable))}
-                    sub={buildBreakdownSub([
+                <KpiCard label={totals.balancePayable < 0 ? 'Total Extra Paid' : 'Balance Payable'} value={formatINR(Math.abs(totals.balancePayable))}
+                    sub={totals.balancePayable < 0 ? extraPaidSub(totals) : buildBreakdownSub([
                         ['Earned', totals.earnings],
                         ['Advances', totals.advances, true],
                         ['Deductions', totals.deductions, true],
@@ -379,7 +379,8 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                         <div className="lla-modal-header">
                             <h2>Add Advance</h2>
                             <p className="admin-subtitle" style={{ margin: 0 }}>
-                                Current {totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}: <span style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</span>
+                                Current {totals.balancePayable < 0 ? 'Total Extra Paid' : 'Balance Payable'}: <span style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</span>
+                                {totals.balancePayable < 0 && ` (${extraPaidSub(totals)})`}
                             </p>
                         </div>
                         <div className="lla-modal-body">
@@ -579,7 +580,8 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                         <div className="llp-modal-header">
                             <h2>Add Payment</h2>
                             <p className="admin-subtitle" style={{ margin: 0 }}>
-                                {totals.balancePayable < 0 ? 'Extra Paid' : 'Payment Left'}: <span style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</span>
+                                {totals.balancePayable < 0 ? 'Total Extra Paid' : 'Payment Left'}: <span style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</span>
+                                {totals.balancePayable < 0 && ` (${extraPaidSub(totals)})`}
                             </p>
                         </div>
                         <div className="llp-modal-body">

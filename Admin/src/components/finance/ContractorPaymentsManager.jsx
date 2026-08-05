@@ -8,6 +8,7 @@ import StyledSelect from './StyledSelect';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import ViewAttachmentLink from './ViewAttachmentLink';
+import { extraPaidSub } from './DashboardWidgets';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/list.css';
@@ -42,8 +43,13 @@ const ContractorPaymentsManager = ({ url }) => {
     const [worksLoading, setWorksLoading] = useState(false);
     const [paymentModes, setPaymentModes] = useState([]);
     const [payments, setPayments] = useState([]);
-    const [balancePayable, setBalancePayable] = useState(null);
+    // Full ledger totals, not just the one number — the breakdown below
+    // (extraPaidSub) needs advances/payments/directPaymentTotal/earnings/
+    // deductions/materialWasteTotal too, all of which the ledger endpoint
+    // already returns; this used to discard everything but balancePayable.
+    const [totals, setTotals] = useState(null);
     const [loading, setLoading] = useState(false);
+    const balancePayable = totals?.balancePayable ?? null;
 
     const [form, setForm] = useState(emptyForm);
     const [file, setFile] = useState(null);
@@ -112,12 +118,12 @@ const ContractorPaymentsManager = ({ url }) => {
     const fetchBalancePayable = async () => {
         try {
             const res = await axios.get(`${url}/api/finance/contractors/${vendorId}/ledger`, authHeader);
-            if (res.data.success) setBalancePayable(res.data.data.totals.balancePayable);
-        } catch { setBalancePayable(null); }
+            if (res.data.success) setTotals(res.data.data.totals);
+        } catch { setTotals(null); }
     };
 
     useEffect(() => {
-        if (vendorId) { fetchPayments(); fetchBalancePayable(); } else { setPayments([]); setBalancePayable(null); }
+        if (vendorId) { fetchPayments(); fetchBalancePayable(); } else { setPayments([]); setTotals(null); }
     }, [vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // A payment for this contractor recorded elsewhere (ContractorLedgerView,
@@ -212,7 +218,8 @@ const ContractorPaymentsManager = ({ url }) => {
                     </div>
                     {balancePayable !== null && (
                         <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                            {balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'}: <span style={{ fontWeight: 700, color: balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(balancePayable).toLocaleString('en-IN')}</span>
+                            {balancePayable < 0 ? 'Total Extra Paid' : 'Balance Payable'}: <span style={{ fontWeight: 700, color: balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(balancePayable).toLocaleString('en-IN')}</span>
+                            {balancePayable < 0 && ` (${extraPaidSub(totals)})`}
                         </p>
                     )}
                     {loading ? (
@@ -255,7 +262,8 @@ const ContractorPaymentsManager = ({ url }) => {
                                     <h2>Add Payment</h2>
                                     {balancePayable !== null && (
                                         <p className="admin-subtitle" style={{ margin: '4px 0 0' }}>
-                                            {balancePayable < 0 ? 'Extra Paid' : 'Payment Left'}: <span style={{ fontWeight: 700, color: balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(balancePayable).toLocaleString('en-IN')}</span>
+                                            {balancePayable < 0 ? 'Total Extra Paid' : 'Payment Left'}: <span style={{ fontWeight: 700, color: balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(balancePayable).toLocaleString('en-IN')}</span>
+                                            {balancePayable < 0 && ` (${extraPaidSub(totals)})`}
                                         </p>
                                     )}
                                 </div>

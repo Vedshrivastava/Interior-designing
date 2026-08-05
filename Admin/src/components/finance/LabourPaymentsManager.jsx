@@ -302,8 +302,11 @@ const LabourPaymentsManager = ({ url }) => {
                                         </div>
                                         {form.amount > 0 && (
                                             <p className="admin-subtitle" style={{ margin: '12px 0 0' }}>
-                                                Gross: ₹{Number(form.amount).toLocaleString('en-IN')}
-                                                {form.tdsAmount > 0 && ` · TDS: ₹${Number(form.tdsAmount).toLocaleString('en-IN')} · Net Payable: ₹${(Number(form.amount) - Number(form.tdsAmount)).toLocaleString('en-IN')}`}
+                                                {form.tdsAmount > 0 ? (
+                                                    <>Amount entered ₹{Number(form.amount).toLocaleString('en-IN')} (before TDS) · TDS to withhold ₹{Number(form.tdsAmount).toLocaleString('en-IN')} · <b>Actual amount to pay: ₹{(Number(form.amount) - Number(form.tdsAmount)).toLocaleString('en-IN')}</b></>
+                                                ) : (
+                                                    <b>Actual amount to pay: ₹{Number(form.amount).toLocaleString('en-IN')}</b>
+                                                )}
                                             </p>
                                         )}
                                     </form>

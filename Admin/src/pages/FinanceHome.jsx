@@ -364,6 +364,7 @@ const FinanceHome = ({ url }) => {
                                             summary.directPaymentContractorTotal,
                                             (summary.contractorPayablesBreakdown?.advances || 0) + (summary.contractorPayablesBreakdown?.payments || 0),
                                             'contractors',
+                                            summary.contractorPayablesBreakdown?.tdsTotal || 0,
                                         )}
                                         onClick={() => navigate('/finance/contractors')} tone={summary.unapprovedContractorTotal > 0 ? 'danger' : undefined} />
                                     <KpiCard icon={faPersonDigging} label="Labour Payment Left - Unapproved" value={formatINR(summary.unapprovedLabourTotal)}
@@ -371,6 +372,7 @@ const FinanceHome = ({ url }) => {
                                             summary.directPaymentLabourTotal,
                                             (summary.labourPayablesBreakdown?.advances || 0) + (summary.labourPayablesBreakdown?.payments || 0),
                                             'labour',
+                                            summary.labourPayablesBreakdown?.tdsTotal || 0,
                                         )}
                                         onClick={() => navigate('/finance/daily-labour')} tone={summary.unapprovedLabourTotal > 0 ? 'danger' : undefined} />
                                     <KpiCard icon={faHandHoldingDollar} label="Commission - Unapproved" value={formatINR(summary.unapprovedCommissionTotal)} onClick={() => navigate('/finance/referrals')} tone={summary.unapprovedCommissionTotal > 0 ? 'danger' : undefined} />

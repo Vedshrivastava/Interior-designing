@@ -240,7 +240,8 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                 <KpiCard label="Deductions" value={formatINR(totals.deductions)} />
                 {totals.materialWasteTotal > 0 && <KpiCard label="Material Waste" value={formatINR(totals.materialWasteTotal)} />}
                 <KpiCard label="Direct Payments" value={formatINR(totals.directPaymentTotal)} />
-                <KpiCard label="Payments" value={formatINR(totals.payments)} />
+                <KpiCard label="Payments" value={formatINR(totals.payments)}
+                    sub={totals.tdsTotal > 0 ? `Cash to labourer ${formatINR(totals.payments - totals.tdsTotal)}  TDS withheld ${formatINR(totals.tdsTotal)}` : undefined} />
                 <KpiCard label={totals.balancePayable < 0 ? 'Total Extra Paid' : 'Balance Payable'} value={formatINR(Math.abs(totals.balancePayable))}
                     sub={totals.balancePayable < 0 ? extraPaidSub(totals) : buildBreakdownSub([
                         ['Earned', totals.earnings],
@@ -632,8 +633,11 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                             </div>
                             {paymentForm.amount > 0 && (
                                 <p className="admin-subtitle" style={{ margin: '-8px 0 12px' }}>
-                                    Gross: ₹{Number(paymentForm.amount).toLocaleString('en-IN')}
-                                    {paymentForm.tdsAmount > 0 && ` · TDS: ₹${Number(paymentForm.tdsAmount).toLocaleString('en-IN')} · Net Payable: ₹${(Number(paymentForm.amount) - Number(paymentForm.tdsAmount)).toLocaleString('en-IN')}`}
+                                    {paymentForm.tdsAmount > 0 ? (
+                                        <>Amount entered ₹{Number(paymentForm.amount).toLocaleString('en-IN')} (before TDS) · TDS to withhold ₹{Number(paymentForm.tdsAmount).toLocaleString('en-IN')} · <b>Actual amount to pay: ₹{(Number(paymentForm.amount) - Number(paymentForm.tdsAmount)).toLocaleString('en-IN')}</b></>
+                                    ) : (
+                                        <b>Actual amount to pay: ₹{Number(paymentForm.amount).toLocaleString('en-IN')}</b>
+                                    )}
                                 </p>
                             )}
                         </form>

@@ -91,6 +91,7 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                     deductions: sumPlain(contractorRes.data.data, 'deductions'),
                     directPaymentTotal: sumPlain(contractorRes.data.data, 'directPaymentTotal'),
                     payments: sumPlain(contractorRes.data.data, 'payments'),
+                    tdsTotal: sumPlain(contractorRes.data.data, 'tdsTotal'),
                 } : null,
                 labourBreakdown: labourRes.data.success ? {
                     earnings: sumPlain(labourRes.data.data, 'earnings'),
@@ -98,6 +99,7 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                     deductions: sumPlain(labourRes.data.data, 'deductions'),
                     directPaymentTotal: sumPlain(labourRes.data.data, 'directPaymentTotal'),
                     payments: sumPlain(labourRes.data.data, 'payments'),
+                    tdsTotal: sumPlain(labourRes.data.data, 'tdsTotal'),
                 } : null,
             });
         } catch { toast.error('Error fetching profitability data'); }
@@ -117,6 +119,7 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
         (payables?.contractorBreakdown?.advances || 0) + (payables?.contractorBreakdown?.payments || 0)
             + (payables?.labourBreakdown?.advances || 0) + (payables?.labourBreakdown?.payments || 0),
         'contractors/labour',
+        (payables?.contractorBreakdown?.tdsTotal || 0) + (payables?.labourBreakdown?.tdsTotal || 0),
     );
 
     return (

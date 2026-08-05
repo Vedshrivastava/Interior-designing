@@ -3966,6 +3966,7 @@ const getDashboardSummary = async (req, res) => {
                     deductions: round2(contractorRows.reduce((s, r) => s + r.deductions, 0)),
                     directPaymentTotal: round2(contractorRows.reduce((s, r) => s + (r.directPaymentTotal || 0), 0)),
                     payments: round2(contractorRows.reduce((s, r) => s + r.payments, 0)),
+                    tdsTotal: round2(contractorRows.reduce((s, r) => s + (r.tdsTotal || 0), 0)),
                 },
                 labourPayables: sumPositive(labourRows, 'balancePayable'),
                 labourCreditTotal: sumNegative(labourRows, 'balancePayable'),
@@ -3975,6 +3976,7 @@ const getDashboardSummary = async (req, res) => {
                     deductions: round2(labourRows.reduce((s, r) => s + r.deductions, 0)),
                     directPaymentTotal: round2(labourRows.reduce((s, r) => s + (r.directPaymentTotal || 0), 0)),
                     payments: round2(labourRows.reduce((s, r) => s + r.payments, 0)),
+                    tdsTotal: round2(labourRows.reduce((s, r) => s + (r.tdsTotal || 0), 0)),
                 },
                 commissionPayables: commissionBreakdown.commissionPayable,
                 commissionPayablesBreakdown: {

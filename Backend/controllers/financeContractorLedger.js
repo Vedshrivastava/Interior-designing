@@ -43,7 +43,10 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
  * frontend is responsible for that framing, this endpoint just reports
  * the signed number.
  *
- * Balance Payable = Approved Earnings − Advances − Deductions − Payments.
+ * Balance Payable = Approved Earnings − Advances − Deductions − Material
+ * Waste − Direct Pay (from client) − Payments. TDS is NOT its own term
+ * here — it's already inside the gross Payments figure (see totals.tdsTotal's
+ * own comment below), purely informational everywhere it's surfaced.
  *
  * INTERPRETATION FLAG: the source structure doc gives this as shorthand
  * ("Advance − Expense Given − Deductions = Balance Payable"). This is the
@@ -429,55 +432,56 @@ const downloadContractorBillStatement = async (req, res) => {
             doc.moveDown(0.8);
         }
 
-        // Totals — same shape as the client Bill Statement's own totals
-        // block, reordered into two tiers: everything that determines what
-        // this contractor was truly owed (Approved Earnings down through
-        // Direct Pay) settles into one Net Payable subtotal, THEN Payments
-        // already made are subtracted from that to reach the Balance
-        // Payable banner below — reads as "what you earned → what's left
-        // after what you've already been paid," not a flat, unordered list.
-        // BUG FIX (kept from the original version of this block): Direct
-        // Pay (what the client paid this contractor straight, bypassing
-        // the company) is silently subtracted into the Balance Payable
-        // banner below too, but used to never be its own line here, so the
-        // printed numbers didn't add up to that banner whenever a
-        // contractor had any (see ContractorLedgerView.jsx's own on-screen
-        // note for the identical figure).
+        // Totals — one tier, matching computeContractorLedger's own
+        // balancePayable formula exactly (earnings − advances − deductions
+        // − materialWaste − directPayment − payments), so the printed
+        // lines always foot to the banner below by construction instead of
+        // needing to independently re-derive and hope it matches.
+        //
+        // BUG FIX: this used to run TDS through a second, separate
+        // "Subtotal (before TDS) → TDS Withheld → Net Payable (after TDS)"
+        // tier, subtracting tdsTotal a second time from a subtotal that
+        // hadn't even had Payments applied yet. But paymentsTotal (used in
+        // balancePayable, and in the single Payments line below) is
+        // already the GROSS pre-TDS amount — tdsTotal is explicitly
+        // documented on computeContractorLedger's own totals object as
+        // "informational only... already included inside payments." Actually
+        // subtracting it again double-counted it, and every line here used
+        // to print Math.abs(value) with no sign at all, so a reader had no
+        // way to notice the running total had gone negative — a contractor
+        // paid more than tdsTotal beyond what they'd earned could see a
+        // "Net Payable (after TDS)" figure that was actually more negative
+        // than "Subtotal (before TDS)," reading as if TDS had been ADDED.
+        // TDS now stays exactly where the TDS Breakdown table above (and
+        // this endpoint's own totals comment) already say it belongs:
+        // informational only, never part of this arithmetic.
         const totalsBoxWidth = 260;
         const totalsX = right - totalsBoxWidth;
         const labelWidth = 150;
         const valueWidth = totalsBoxWidth - labelWidth;
         let ty = doc.y;
-        const totalsLine = (label, value, bold = false) => {
+        // subtract:true prefixes a minus sign against the always-positive
+        // absValue — same convention the on-screen Ledger/Dashboard
+        // breakdowns already use (buildBreakdownSub) — rather than relying
+        // on formatCurrency to render a negative number, which put the
+        // "Rs." before the sign ("Rs. -20,000") instead of after it. Plain
+        // ASCII hyphen, not the on-screen "−" (U+2212) — PDFKit's built-in
+        // Helvetica uses WinAnsiEncoding, which has no glyph for U+2212 and
+        // silently substitutes a completely different character (a " ditto
+        // mark) instead — confirmed by actually rendering this PDF to an
+        // image and looking at it, not just reading the source.
+        const totalsLine = (label, absValue, subtract = false, bold = false) => {
             doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(10);
             doc.text(label, totalsX, ty, { width: labelWidth });
-            doc.text(formatCurrency(Math.abs(value)), totalsX + labelWidth, ty, { width: valueWidth, align: 'right' });
+            doc.text(`${subtract ? '- ' : ''}${formatCurrency(absValue)}`, totalsX + labelWidth, ty, { width: valueWidth, align: 'right' });
             ty += bold ? 18 : 16;
         };
         totalsLine('Approved Earnings', data.totals.earnings);
-        totalsLine('Advances', -data.totals.advances);
-        totalsLine('Deductions', -data.totals.deductions);
-        if (data.totals.materialWasteTotal > 0) totalsLine('Material Waste', -data.totals.materialWasteTotal);
-        if (data.totals.directPaymentTotal > 0) totalsLine('Direct Pay (from Client)', -data.totals.directPaymentTotal);
-        doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(BRAND_GREEN).lineWidth(1).stroke();
-        ty += 6;
-        const subtotalBeforeTds = round2(data.totals.earnings - data.totals.advances - data.totals.deductions - data.totals.materialWasteTotal - data.totals.directPaymentTotal);
-        // TDS is cut from the subtotal owed, not from whatever a single
-        // payment's gross amount happened to be — so it belongs here, after
-        // everything else settles, and before the final Net Payable, not as
-        // a side note above disconnected from this roll-up.
-        if (data.totals.tdsTotal > 0) {
-            totalsLine('Subtotal (before TDS)', subtotalBeforeTds, true);
-            totalsLine('TDS Withheld', -data.totals.tdsTotal);
-            doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(BRAND_GREEN).lineWidth(1).stroke();
-            ty += 6;
-            const netPayable = round2(subtotalBeforeTds - data.totals.tdsTotal);
-            totalsLine('Net Payable (after TDS)', netPayable, true);
-            totalsLine('Payments (net, after TDS)', -(data.totals.payments - data.totals.tdsTotal));
-        } else {
-            totalsLine('Net Payable', subtotalBeforeTds, true);
-            totalsLine('Payments', -data.totals.payments);
-        }
+        totalsLine('Advances', data.totals.advances, true);
+        totalsLine('Deductions', data.totals.deductions, true);
+        if (data.totals.materialWasteTotal > 0) totalsLine('Material Waste', data.totals.materialWasteTotal, true);
+        if (data.totals.directPaymentTotal > 0) totalsLine('Direct Pay (from Client)', data.totals.directPaymentTotal, true);
+        totalsLine('Payments', data.totals.payments, true);
         doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(BRAND_GREEN).lineWidth(1).stroke();
         ty += 6;
         doc.font('Helvetica').fontSize(10);
@@ -485,6 +489,12 @@ const downloadContractorBillStatement = async (req, res) => {
         if (data.totals.directPaymentTotal > 0) {
             doc.fontSize(8).fillColor('#888888')
                 .text('Direct Pay: amounts the client paid you straight, bypassing the company — already counted as settled above.', left, doc.y, { width });
+            doc.fillColor('#000000').fontSize(10);
+            doc.moveDown(0.4);
+        }
+        if (data.totals.tdsTotal > 0) {
+            doc.fontSize(8).fillColor('#888888')
+                .text(`TDS: of the Rs. ${data.totals.payments.toLocaleString('en-IN')} in Payments above, Rs. ${(data.totals.payments - data.totals.tdsTotal).toLocaleString('en-IN')} was paid to you in cash and Rs. ${data.totals.tdsTotal.toLocaleString('en-IN')} was withheld and deposited with the tax department on your behalf (see TDS Breakdown above) — already counted in full above, not a further deduction.`, left, doc.y, { width });
             doc.fillColor('#000000').fontSize(10);
             doc.moveDown(0.4);
         }
@@ -505,7 +515,27 @@ const downloadContractorBillStatement = async (req, res) => {
                 left + 14, bannerY + 11
             );
         doc.fillColor('#000000').font('Helvetica').fontSize(10);
-        doc.y = bannerY + bannerH + 10;
+        doc.y = bannerY + bannerH + 4;
+
+        // Extra Paid breakdown — mirrors the on-screen ledger's extraPaidSub
+        // (DashboardWidgets.jsx) exactly, so the PDF and the app never tell a
+        // different story: who actually overpaid (the company itself, via
+        // advances/payments, vs the client direct) against net earnings. Paid
+        // by Us stays gross for the same reason the Totals block above does —
+        // TDS withheld still discharged the debt, just via the tax department
+        // instead of cash in hand — the parenthetical only clarifies the split.
+        if (balancePayable < 0) {
+            const paidByUs = round2((data.totals.advances || 0) + (data.totals.payments || 0));
+            const paidByClient = round2(data.totals.directPaymentTotal || 0);
+            const netEarned = Math.max(0, round2((data.totals.earnings || 0) - (data.totals.deductions || 0) - (data.totals.materialWasteTotal || 0)));
+            const paidByUsNote = data.totals.tdsTotal > 0
+                ? ` (Rs. ${(paidByUs - data.totals.tdsTotal).toLocaleString('en-IN')} cash + Rs. ${data.totals.tdsTotal.toLocaleString('en-IN')} TDS)`
+                : '';
+            doc.fontSize(8).fillColor('#888888')
+                .text(`Made up of: Paid by Us Rs. ${paidByUs.toLocaleString('en-IN')}${paidByUsNote} + Paid by Client Rs. ${paidByClient.toLocaleString('en-IN')} - Earned Rs. ${netEarned.toLocaleString('en-IN')}.`, left, doc.y, { width });
+            doc.fillColor('#000000').fontSize(10);
+        }
+        doc.moveDown(1);
 
         // Bank fields are required:true on financeVendor going forward, but
         // records saved before that constraint existed can still be blank —

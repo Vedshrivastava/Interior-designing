@@ -68,8 +68,15 @@ export const extraPaidSub = (totals) => {
     const paidByUs = (totals.advances || 0) + (totals.payments || 0);
     const paidByClient = totals.directPaymentTotal || 0;
     const netEarned = Math.max(0, (totals.earnings || 0) - (totals.deductions || 0) - (totals.materialWasteTotal || 0));
+    // "Paid by Us" stays gross (TDS withheld still discharges what's owed —
+    // it left the company and settled the debt, just via the tax department
+    // instead of the contractor's hand) — but the label itself surfaces the
+    // cash/TDS split so it doesn't read as if the full figure reached them
+    // as cash. See financeContractorLedger.js's header comment.
+    const tdsTotal = totals.tdsTotal || 0;
+    const paidByUsLabel = tdsTotal > 0 ? `Paid by Us (${formatINR(paidByUs - tdsTotal)} cash + ${formatINR(tdsTotal)} TDS)` : 'Paid by Us';
     return buildBreakdownSub([
-        ['Paid by Us', paidByUs],
+        [paidByUsLabel, paidByUs],
         ['Paid by Client', paidByClient],
         ['Earned', netEarned, true],
     ]);
@@ -85,10 +92,18 @@ export const extraPaidSub = (totals) => {
 // reflected here" story. Both paidByUs and paidByClient come from the exact
 // same Payables breakdown the "Approved" Contractor/Labour Payables cards
 // already surface, just re-read here instead of duplicated.
-export const unapprovedPaidNote = (paidByClient, paidByUs, whom) => {
+// tdsTotal (optional) splits paidByUs into what actually reached the
+// contractor/labourer in cash vs what was withheld as TDS — paidByUs itself
+// stays gross (matches balancePayable's own gross-based math, see
+// financeContractorLedger.js's header comment), this just makes the "already
+// moved" figure legible instead of reading as if the full amount left as cash.
+export const unapprovedPaidNote = (paidByClient, paidByUs, whom, tdsTotal = 0) => {
     const parts = [];
     if (paidByClient > 0) parts.push(`${formatINR(paidByClient)} paid directly by client`);
-    if (paidByUs > 0) parts.push(`${formatINR(paidByUs)} already paid by us (advances + payments)`);
+    if (paidByUs > 0) {
+        const tdsNote = tdsTotal > 0 ? ` — ${formatINR(paidByUs - tdsTotal)} cash + ${formatINR(tdsTotal)} TDS withheld` : '';
+        parts.push(`${formatINR(paidByUs)} already paid by us (advances + payments)${tdsNote}`);
+    }
     return parts.length ? `${parts.join(', ')} to ${whom} — neither netted against this` : undefined;
 };
 

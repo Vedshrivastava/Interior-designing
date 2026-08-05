@@ -35,6 +35,21 @@ export const formatINR = (n) => {
     return `${rounded < 0 ? '-' : ''}₹${Math.abs(rounded).toLocaleString('en-IN')}`;
 };
 
+// Builds a KpiCard `sub` line out of a headline's own contributing terms
+// (e.g. Contractor Payables = Earned − Advances − Deductions − Direct Pay −
+// Paid) — a bare balance with no visible factors gives no sense of whether
+// it's driven by fresh earnings or by payments simply not having caught up
+// yet. Zero-value terms are dropped so a simple case ("Earned ₹X · Paid ₹Y")
+// doesn't drag along a string of "· Advances ₹0 · Deductions ₹0". Each part
+// is [label, amount, subtract?] — subtract:true prefixes a minus sign
+// against the plain (always-positive) amount, so "Returned ₹240,000"
+// becomes "− Returned ₹240,000" instead of formatINR's own negative-number
+// rendering producing a confusing double-negative like "Returned -₹240,000".
+export const buildBreakdownSub = (parts) => {
+    const shown = parts.filter(([, v]) => v);
+    return shown.length ? shown.map(([label, v, subtract]) => `${subtract ? '− ' : ''}${label} ${formatINR(Math.abs(v))}`).join('  ') : undefined;
+};
+
 // Shared by every "profit per project" bar chart (Dashboard, All Projects) —
 // project names run long ("Malhotra Enterprises — HQ Advance Contract") and
 // the chart's y-axis has nowhere near that much room. Recharts renders axis

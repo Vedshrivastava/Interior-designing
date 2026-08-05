@@ -37,6 +37,8 @@ const LabourPaymentsManager = ({ url }) => {
     const [tdsSections, setTdsSections] = useState([]);
     const [workTypeSettings, setWorkTypeSettings] = useState([]);
     const [refDataLoading, setRefDataLoading] = useState(true);
+    const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(true);
     const [works, setWorks] = useState([]);
     const [worksLoading, setWorksLoading] = useState(false);
     const [paymentModes, setPaymentModes] = useState([]);
@@ -63,6 +65,16 @@ const LabourPaymentsManager = ({ url }) => {
         ]).finally(() => setRefDataLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Project is an optional pre-filter on the Work picker below, not a
+    // prerequisite — see ContractorPaymentsManager.jsx's identical comment.
+    const fetchProjects = () => {
+        setProjectsLoading(true);
+        axios.get(`${url}/api/finance/projects/list`, authHeader)
+            .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
+    };
+    useEffect(fetchProjects, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
+
     // This picker has no ledger loaded (unlike LabourLedgerView), so the
     // Work picker's options come from this labourer's own assignments
     // directly — see ContractorPaymentsManager.jsx's identical comment.
@@ -72,6 +84,10 @@ const LabourPaymentsManager = ({ url }) => {
         axios.get(`${url}/api/finance/work-labour-assignments/list`, { ...authHeader, params: { labourerId } })
             .then(res => { if (res.data.success) setWorks(res.data.data.filter(a => a.workId)); }).catch(() => {}).finally(() => setWorksLoading(false));
     }, [url, labourerId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // This labourer's own works, narrowed to the selected project when one's
+    // picked — see ContractorPaymentsManager.jsx's identical comment.
+    const worksForSelectedProject = form.projectId ? works.filter(a => a.workId?.projectId?._id === form.projectId) : works;
 
     const fetchPayments = async () => {
         setLoading(true);
@@ -103,6 +119,8 @@ const LabourPaymentsManager = ({ url }) => {
     useFinanceWsRefresh(['financeLabourLedgerChanged'], () => { if (labourerId) { fetchPayments(); fetchBalancePayable(); } });
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+    // See ContractorPaymentsManager.jsx's identical handler.
+    const setProjectField = (value) => setForm(prev => ({ ...prev, projectId: value, workId: '', tdsSectionId: '', tdsAmount: '' }));
 
     // See ContractorPaymentsManager.jsx's identical handlers.
     const onSelectWork = (workId) => {
@@ -231,10 +249,17 @@ const LabourPaymentsManager = ({ url }) => {
                                                 <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
                                             </div>
                                             <div className="add-product-name flex-col">
+                                                <p>Project (optional — narrows Work below)</p>
+                                                <StyledSelect
+                                                    value={form.projectId} onChange={setProjectField} placeholder="Any project" loading={projectsLoading}
+                                                    options={projects.map(p => ({ value: p._id, label: p.name }))}
+                                                />
+                                            </div>
+                                            <div className="add-product-name flex-col">
                                                 <p>Work (optional — resolves TDS from its type)</p>
                                                 <StyledSelect
                                                     value={form.workId} onChange={onSelectWork} placeholder="Not tied to a Work" loading={worksLoading}
-                                                    options={works.map(a => ({ value: a.workId._id, label: `${a.workId.workType} — ${a.workId.projectId?.name || '—'}` }))}
+                                                    options={worksForSelectedProject.map(a => ({ value: a.workId._id, label: `${a.workId.workType} — ${a.workId.projectId?.name || '—'}` }))}
                                                 />
                                             </div>
                                             <div className="add-product-name flex-col">

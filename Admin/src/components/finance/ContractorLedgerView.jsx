@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
-import { KpiCard, KpiGrid, ChartCard, EmptyChart, ChartTooltip, CHART_COLORS, formatINR } from './DashboardWidgets';
+import { KpiCard, KpiGrid, ChartCard, EmptyChart, ChartTooltip, CHART_COLORS, formatINR, buildBreakdownSub } from './DashboardWidgets';
 import StyledSelect from './StyledSelect';
 import DownloadButton from './DownloadButton';
 import { useFileDownload } from '../../hooks/useFileDownload';
@@ -257,7 +257,16 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                 {totals.materialWasteTotal > 0 && <KpiCard label="Material Waste" value={formatINR(totals.materialWasteTotal)} />}
                 <KpiCard label="Direct Payments" value={formatINR(totals.directPaymentTotal)} />
                 <KpiCard label="Payments" value={formatINR(totals.payments)} />
-                <KpiCard label={totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'} value={formatINR(Math.abs(totals.balancePayable))} tone={totals.balancePayable > 0 ? 'danger' : 'good'} />
+                <KpiCard label={totals.balancePayable < 0 ? 'Extra Paid' : 'Balance Payable'} value={formatINR(Math.abs(totals.balancePayable))}
+                    sub={buildBreakdownSub([
+                        ['Earned', totals.earnings],
+                        ['Advances', totals.advances, true],
+                        ['Deductions', totals.deductions, true],
+                        ['Material Waste', totals.materialWasteTotal, true],
+                        ['Direct Pay', totals.directPaymentTotal, true],
+                        ['Paid', totals.payments, true],
+                    ])}
+                    tone={totals.balancePayable > 0 ? 'danger' : 'good'} />
             </KpiGrid>
             {totals.unapprovedAmount > 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '8px' }}>

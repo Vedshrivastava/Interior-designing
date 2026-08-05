@@ -36,6 +36,8 @@ const ContractorPaymentsManager = ({ url }) => {
     const [tdsSections, setTdsSections] = useState([]);
     const [workTypeSettings, setWorkTypeSettings] = useState([]);
     const [refDataLoading, setRefDataLoading] = useState(true);
+    const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(true);
     const [works, setWorks] = useState([]);
     const [worksLoading, setWorksLoading] = useState(false);
     const [paymentModes, setPaymentModes] = useState([]);
@@ -63,15 +65,36 @@ const ContractorPaymentsManager = ({ url }) => {
         ]).finally(() => setRefDataLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Project is an optional pre-filter on the Work picker below, not a
+    // prerequisite — this form could already tag a payment to a Work with
+    // no Project field of its own (onSelectWork back-filled projectId from
+    // the Work), so leaving it unset and picking a Work directly still
+    // works exactly as before.
+    const fetchProjects = () => {
+        setProjectsLoading(true);
+        axios.get(`${url}/api/finance/projects/list`, authHeader)
+            .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
+    };
+    useEffect(fetchProjects, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
+
     // This picker has no ledger loaded (unlike ContractorLedgerView), so the
     // Work picker's options come from this contractor's own assignments
-    // directly — same endpoint, now filterable by contractorVendorId.
+    // directly — same endpoint, now filterable by contractorVendorId. Not
+    // additionally filtered by projectId server-side (that endpoint has no
+    // such param) — the Project field above narrows this same list
+    // client-side instead, just below.
     useEffect(() => {
         if (!vendorId) { setWorks([]); return; }
         setWorksLoading(true);
         axios.get(`${url}/api/finance/work-contractor-assignments/list`, { ...authHeader, params: { contractorVendorId: vendorId } })
             .then(res => { if (res.data.success) setWorks(res.data.data.filter(a => a.workId)); }).catch(() => {}).finally(() => setWorksLoading(false));
     }, [url, vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // This contractor's own works, narrowed to the selected project when
+    // one's picked — same list either way, so choosing a Project can never
+    // surface a Work that wasn't already a valid option.
+    const worksForSelectedProject = form.projectId ? works.filter(a => a.workId?.projectId?._id === form.projectId) : works;
 
     const fetchPayments = async () => {
         setLoading(true);
@@ -103,6 +126,12 @@ const ContractorPaymentsManager = ({ url }) => {
     useFinanceWsRefresh(['financeContractorLedgerChanged'], () => { if (vendorId) { fetchPayments(); fetchBalancePayable(); } });
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+    // Changing Project after a Work was already picked would otherwise leave
+    // a Work from the old project silently selected — clearing it (and the
+    // TDS section/amount that Work resolved) forces a fresh pick under the
+    // newly-selected project, same "changing the parent resets the child"
+    // rule ExpensesManager's setProjectField already applies.
+    const setProjectField = (value) => setForm(prev => ({ ...prev, projectId: value, workId: '', tdsSectionId: '', tdsAmount: '' }));
 
     // See ContractorLedgerView.jsx's identical handlers.
     const onSelectWork = (workId) => {
@@ -242,10 +271,17 @@ const ContractorPaymentsManager = ({ url }) => {
                                                 <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
                                             </div>
                                             <div className="add-product-name flex-col">
+                                                <p>Project (optional — narrows Work below)</p>
+                                                <StyledSelect
+                                                    value={form.projectId} onChange={setProjectField} placeholder="Any project" loading={projectsLoading}
+                                                    options={projects.map(p => ({ value: p._id, label: p.name }))}
+                                                />
+                                            </div>
+                                            <div className="add-product-name flex-col">
                                                 <p>Work (optional — resolves TDS from its type)</p>
                                                 <StyledSelect
                                                     value={form.workId} onChange={onSelectWork} placeholder="Not tied to a Work" loading={worksLoading}
-                                                    options={works.map(a => ({ value: a.workId._id, label: `${a.workId.workType} — ${a.workId.projectId?.name || '—'}` }))}
+                                                    options={worksForSelectedProject.map(a => ({ value: a.workId._id, label: `${a.workId.workType} — ${a.workId.projectId?.name || '—'}` }))}
                                                 />
                                             </div>
                                             <div className="add-product-name flex-col">

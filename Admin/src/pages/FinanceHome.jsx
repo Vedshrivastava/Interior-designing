@@ -11,7 +11,7 @@ import {
     faCartShopping, faHardHat, faReceipt, faBuilding, faClipboardList, faPersonDigging,
     faRulerCombined, faTriangleExclamation, faMoneyBillWave, faHandHoldingDollar, faUsers, faFileInvoice,
 } from '@fortawesome/free-solid-svg-icons';
-import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ActivityCard, ChartTooltip, CHART_COLORS, formatINR, truncateLabel, ProjectNameTick } from '../components/finance/DashboardWidgets';
+import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ActivityCard, ChartTooltip, CHART_COLORS, formatINR, truncateLabel, ProjectNameTick, buildBreakdownSub } from '../components/finance/DashboardWidgets';
 import '../styles/welcome.css';
 import '../styles/list.css';
 
@@ -27,21 +27,6 @@ const lastCompletedMonth = () => {
     // PayablesPage.jsx's identical helper for why toISOString() here would
     // roll the month back for viewers east of UTC in the early-morning hours.
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-};
-
-// Builds a KpiCard `sub` line out of a headline's own contributing terms
-// (e.g. Contractor Payables = Earned − Advances − Deductions − Direct Pay −
-// Paid) — a bare balance with no visible factors gives no sense of whether
-// it's driven by fresh earnings or by payments simply not having caught up
-// yet. Zero-value terms are dropped so a simple case ("Earned ₹X · Paid ₹Y")
-// doesn't drag along a string of "· Advances ₹0 · Deductions ₹0". Each part
-// is [label, amount, subtract?] — subtract:true prefixes a minus sign
-// against the plain (always-positive) amount, so "Returned ₹240,000"
-// becomes "− Returned ₹240,000" instead of formatINR's own negative-number
-// rendering producing a confusing double-negative like "Returned -₹240,000".
-const buildBreakdownSub = (parts) => {
-    const shown = parts.filter(([, v]) => v);
-    return shown.length ? shown.map(([label, v, subtract]) => `${subtract ? '− ' : ''}${label} ${formatINR(Math.abs(v))}`).join('  ') : undefined;
 };
 
 // Kept outside the component so it survives a route remount — navigating

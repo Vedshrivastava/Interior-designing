@@ -110,6 +110,15 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                             <p className="admin-subtitle" style={{ margin: '10px 0 4px' }}>
                                 Logged work whose cost isn't counted in Profit yet.
                             </p>
+                            {/* See ProjectDetail.jsx's identical note — Approved's
+                                own Payables breakdown shows Direct Pay as a
+                                subtracted term; Unapproved has no equivalent line
+                                of its own. */}
+                            {(data.directPaymentContractorTotal > 0 || data.directPaymentLabourTotal > 0) && (
+                                <p className="admin-subtitle" style={{ margin: '0 0 4px' }}>
+                                    ₹{(data.directPaymentContractorTotal + data.directPaymentLabourTotal).toLocaleString('en-IN')} the client already paid workers directly on this project (see Direct Payments below) — a separate advance, not netted against Unapproved above.
+                                </p>
+                            )}
                             <p className="admin-subtitle" style={{ marginBottom: '24px', fontWeight: 600, color: data.totalProjectedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>
                                 Total Projected Profit (Approved + Unapproved): ₹{data.totalProjectedProfit.toLocaleString('en-IN')}
                             </p>

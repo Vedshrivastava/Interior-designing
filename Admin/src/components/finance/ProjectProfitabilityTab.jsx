@@ -223,6 +223,16 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
                         Logged work whose cost isn't counted in Profit yet — review it in Payables/Receivables → Deductions to move it in. Revenue/Profit here are what this same unapproved work would add once reviewed and billed.
                     </p>
+                    {/* See ProjectDetail.jsx's identical block for why this note
+                        exists — Approved's own Payables breakdown below shows
+                        Direct Pay as a subtracted term; Unapproved has no
+                        equivalent line since the client's payment can't be split
+                        between Approved/Unapproved the way material cost now is. */}
+                    {(profit.directPaymentContractorTotal > 0 || profit.directPaymentLabourTotal > 0) && (
+                        <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
+                            {formatINR(profit.directPaymentContractorTotal + profit.directPaymentLabourTotal)} the client already paid workers directly on this project (see Direct Payments below) — a separate advance, not netted against Unapproved above.
+                        </p>
+                    )}
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px', fontWeight: 600, color: profit.totalProjectedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>
                         Total Projected Profit (Approved + Unapproved): {formatINR(profit.totalProjectedProfit)}
                     </p>

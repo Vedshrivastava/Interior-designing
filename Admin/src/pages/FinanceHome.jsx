@@ -381,7 +381,15 @@ const FinanceHome = ({ url }) => {
                                         sub={summary.directPaymentLabourTotal > 0 ? `${formatINR(summary.directPaymentLabourTotal)} paid directly by client to labour — a separate advance, not netted against this` : undefined}
                                         onClick={() => navigate('/finance/daily-labour')} tone={summary.unapprovedLabourTotal > 0 ? 'danger' : undefined} />
                                     <KpiCard icon={faHandHoldingDollar} label="Commission - Unapproved" value={formatINR(summary.unapprovedCommissionTotal)} onClick={() => navigate('/finance/referrals')} tone={summary.unapprovedCommissionTotal > 0 ? 'danger' : undefined} />
-                                    <KpiCard icon={faArrowTrendUp} label="Profit - Unapproved" value={formatINR(summary.unapprovedProfitTotal)} sub={`Revenue once approved: ${formatINR(summary.unapprovedRevenueTotal)}`} onClick={() => navigate('/finance/receivables')} tone={summary.unapprovedProfitTotal >= 0 ? 'good' : 'danger'} />
+                                    <KpiCard icon={faArrowTrendUp} label="Profit - Unapproved" value={formatINR(summary.unapprovedProfitTotal)}
+                                        sub={buildBreakdownSub([
+                                            ['Revenue once approved', summary.unapprovedRevenueTotal],
+                                            ['Material', summary.unapprovedMaterialTotal, true],
+                                            ['Contractor', summary.unapprovedContractorTotal, true],
+                                            ['Labour', summary.unapprovedLabourTotal, true],
+                                            ['Commission', summary.unapprovedCommissionTotal, true],
+                                        ])}
+                                        onClick={() => navigate('/finance/receivables')} tone={summary.unapprovedProfitTotal >= 0 ? 'good' : 'danger'} />
                                     <KpiCard icon={faArrowTrendUp} label="Total Projected Profit" value={formatINR(summary.totalProjectedProfit)}
                                         sub="Approved (ongoing projects) + Unapproved (all), once everything currently logged clears review"
                                         onClick={() => navigate('/finance/receivables')} tone={summary.totalProjectedProfit >= 0 ? 'good' : 'danger'} />

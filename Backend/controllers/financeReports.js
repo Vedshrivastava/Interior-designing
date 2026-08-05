@@ -97,22 +97,98 @@ const computeMaterialAvgRates = async (projectId) => {
     return avgRate;
 };
 
-const computeProjectMaterialCost = async (projectId) => {
+// Same weighted-average-rate costing formula as a flat material-cost sum,
+// but split by whether the measurement that consumed it belongs to
+// reviewed (approved or rejected) work or work still awaiting review — a
+// consume movement always traces back to the specific measurement that
+// drew it (relatedMeasurementId/relatedLabourMeasurementId), and that
+// measurement's own share of its Work's approved/rejected ceiling is
+// exactly the same splitApprovedAreaByShare proportional-estimate
+// convention computeProjectContractorCost/computeProjectLabourCost
+// already apply per vendor/labourer — applied here per measurement
+// instead. Without this, 100% of material cost landed in Profit the
+// instant it was consumed regardless of review status, while contractor/
+// labour/commission cost for the exact same still-unreviewed work sat in
+// Unapproved — a project with a lot of pending-review work but little/no
+// approved work yet could show a deeply negative "Approved" Profit driven
+// entirely by real material spend that has nothing to do with approval.
+//
+// decidedCost (approved + rejected) feeds Profit exactly like the old flat
+// total used to. A rejection is a final, already-reviewed decision, and
+// its material cost already gets correctly reclassified into Material
+// Waste Cost by computeProjectMaterialWasteReclassified, so it belongs in
+// decidedCost, not pendingCost. pendingCost is new — material cost tied to
+// work still awaiting review, previously silently folded into the
+// "Approved" total even though nothing about it is actually approved yet.
+const computeProjectMaterialCostSplit = async (projectId) => {
     const avgRate = await computeMaterialAvgRates(projectId);
-    const consumed = await FinanceStockMovement.aggregate([
-        { $match: { projectId: new mongoose.Types.ObjectId(projectId), movementType: 'consume', deleted: { $ne: true } } },
-        { $group: { _id: '$materialId', qty: { $sum: '$quantity' } } },
+    const works = await FinanceWork.find({ projectId, deleted: { $ne: true } }, '_id');
+    const workIds = works.map(w => w._id);
+    if (!workIds.length) return { decidedCost: 0, pendingCost: 0 };
+
+    const [consumeMovements, contractorMeasurements, labourMeasurements, categoryApprovedByWorkId] = await Promise.all([
+        FinanceStockMovement.find(
+            { projectId: new mongoose.Types.ObjectId(projectId), movementType: 'consume', deleted: { $ne: true } },
+            'materialId quantity relatedMeasurementId relatedLabourMeasurementId'
+        ),
+        FinanceMeasurement.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId areaCoveredSqft'),
+        FinanceLabourMeasurement.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId areaCoveredSqft'),
+        getCategoryApprovedAreaByWorkId(workIds),
     ]);
-    let total = 0;
-    for (const row of consumed) total += row.qty * (avgRate.get(row._id.toString()) || 0);
-    return total;
+    if (!consumeMovements.length) return { decidedCost: 0, pendingCost: 0 };
+
+    const contractorMeasurementById = new Map(contractorMeasurements.map(m => [m._id.toString(), m]));
+    const labourMeasurementById = new Map(labourMeasurements.map(m => [m._id.toString(), m]));
+    const contractorTotalByWorkId = new Map();
+    for (const m of contractorMeasurements) {
+        const k = m.workId.toString();
+        contractorTotalByWorkId.set(k, (contractorTotalByWorkId.get(k) || 0) + m.areaCoveredSqft);
+    }
+    const labourTotalByWorkId = new Map();
+    for (const m of labourMeasurements) {
+        const k = m.workId.toString();
+        labourTotalByWorkId.set(k, (labourTotalByWorkId.get(k) || 0) + m.areaCoveredSqft);
+    }
+
+    let decidedCost = 0, pendingCost = 0;
+    for (const mv of consumeMovements) {
+        const rate = avgRate.get(mv.materialId.toString()) || 0;
+        const cost = mv.quantity * rate;
+        if (!cost) continue;
+
+        const isContractor = !!mv.relatedMeasurementId;
+        const measurement = isContractor
+            ? contractorMeasurementById.get(mv.relatedMeasurementId.toString())
+            : mv.relatedLabourMeasurementId ? labourMeasurementById.get(mv.relatedLabourMeasurementId.toString()) : null;
+        // No traceable source measurement (shouldn't happen for a real
+        // 'consume' movement, but a manual/legacy one could lack the
+        // link) — treated as pending rather than silently assumed
+        // decided, same "don't force a guess" principle
+        // computeWorkMaterialWasteCost's own comment applies to
+        // untraceable waste rows.
+        if (!measurement) { pendingCost += cost; continue; }
+
+        const workKey = measurement.workId.toString();
+        const categoryEntry = categoryApprovedByWorkId.get(workKey);
+        const workApprovedArea = isContractor ? (categoryEntry?.contractorApprovedAreaSqft || 0) : (categoryEntry?.labourApprovedAreaSqft || 0);
+        const workRejectedArea = isContractor ? (categoryEntry?.contractorRejectedAreaSqft || 0) : (categoryEntry?.labourRejectedAreaSqft || 0);
+        const workTotalArea = (isContractor ? contractorTotalByWorkId : labourTotalByWorkId).get(workKey) || 0;
+
+        const approvedShare = splitApprovedAreaByShare(workApprovedArea, measurement.areaCoveredSqft, workTotalArea);
+        const rejectedShare = splitApprovedAreaByShare(workRejectedArea, measurement.areaCoveredSqft, workTotalArea);
+        const decidedFraction = measurement.areaCoveredSqft > 0 ? Math.min(1, (approvedShare + rejectedShare) / measurement.areaCoveredSqft) : 0;
+
+        decidedCost += cost * decidedFraction;
+        pendingCost += cost * (1 - decidedFraction);
+    }
+    return { decidedCost: round2(decidedCost), pendingCost: round2(pendingCost) };
 };
 
 // Wasted material is a real loss at the same weighted-average rate the
 // material was actually bought at — it was paid for and produced zero
 // value, same as consumed material produced value, so it belongs in
-// Profit too. Kept as its own line (not folded into computeProjectMaterialCost)
-// so "material productively used" and "material lost" stay distinguishable
+// Profit too. Kept as its own line (not folded into material cost) so
+// "material productively used" and "material lost" stay distinguishable
 // everywhere this is shown, not just netted into one blended number.
 const computeProjectMaterialWasteCost = async (projectId) => {
     const avgRate = await computeMaterialAvgRates(projectId);
@@ -672,12 +748,12 @@ const computeProjectProfit = async (projectId) => {
     const project = await FinanceProject.findOne({ _id: projectId, deleted: { $ne: true } });
     if (!project) return null;
 
-    const [revenueAgg, rawMaterialCost, rawMaterialWasteCost, materialWasteReclassified, contractorCostInfo, commissionCostInfo, expenseAgg, labourCostInfo, unapprovedRevenueInfo, directPaymentContractorByVendor, directPaymentLabourByLabourer] = await Promise.all([
+    const [revenueAgg, materialCostSplit, rawMaterialWasteCost, materialWasteReclassified, contractorCostInfo, commissionCostInfo, expenseAgg, labourCostInfo, unapprovedRevenueInfo, directPaymentContractorByVendor, directPaymentLabourByLabourer] = await Promise.all([
         FinanceRunningBill.aggregate([
             { $match: { projectId: project._id, status: 'issued', deleted: { $ne: true } } },
             { $group: { _id: null, total: { $sum: '$totalAmount' } } },
         ]),
-        computeProjectMaterialCost(project._id),
+        computeProjectMaterialCostSplit(project._id),
         computeProjectMaterialWasteCost(project._id),
         // A rejection's own wasted material was, until it was reviewed,
         // sitting inside rawMaterialCost like any other consumed material
@@ -708,20 +784,22 @@ const computeProjectProfit = async (projectId) => {
     // Clamped at 0 — materialWasteReclassified was priced at review time
     // using the material average rate as it stood then; a purchase/return
     // recorded since could have shifted that rate enough that it no longer
-    // divides cleanly out of a freshly-recomputed rawMaterialCost. Rare,
-    // but "Material Cost: -₹40" would be a worse outcome than slightly
+    // divides cleanly out of a freshly-recomputed decidedCost. Rare, but
+    // "Material Cost: -₹40" would be a worse outcome than slightly
     // under-crediting the reclassification in that edge case.
-    const materialCost = round2(Math.max(0, rawMaterialCost - materialWasteReclassified));
+    const materialCost = round2(Math.max(0, materialCostSplit.decidedCost - materialWasteReclassified));
     const materialWasteCost = round2(rawMaterialWasteCost + materialWasteReclassified);
+    // Material tied to work still awaiting review — see
+    // computeProjectMaterialCostSplit's own comment. Feeds unapprovedProfit
+    // below, the same way unapprovedContractorCost/unapprovedLabourCost/
+    // unapprovedCommissionCost already do for their own categories.
+    const unapprovedMaterialCost = materialCostSplit.pendingCost;
     // Profit is built off Approved (reviewed) cost — Total cost (every
     // logged sqft, unconditional) is exposed alongside for context, split
     // out as its own unapproved figure below, but never subtracted here.
     const contractorCost = contractorCostInfo.approvedAmount;
     const labourCost = labourCostInfo.approvedAmount;
     const commissionCost = commissionCostInfo.approvedAmount;
-    // Waste is unconditional (like material cost itself) — there's no
-    // "approval" concept for material, wasted or otherwise, so this always
-    // counts in full, same as materialCost.
     const profit = revenue - materialCost - materialWasteCost - contractorCost - commissionCost - otherExpenses - labourCost;
 
     // "Pending review" — logged work whose cost isn't counted in Profit yet
@@ -735,7 +813,7 @@ const computeProjectProfit = async (projectId) => {
     const unapprovedLabourCost = round2(Math.max(0, labourCostInfo.totalAmount - labourCost - labourCostInfo.rejectedAmount));
     const unapprovedCommissionCost = round2(Math.max(0, commissionCostInfo.totalAmount - commissionCost - commissionCostInfo.rejectedAmount));
 
-    const unapprovedProfit = round2(unapprovedRevenue - unapprovedContractorCost - unapprovedLabourCost - unapprovedCommissionCost);
+    const unapprovedProfit = round2(unapprovedRevenue - unapprovedMaterialCost - unapprovedContractorCost - unapprovedLabourCost - unapprovedCommissionCost);
 
     const directPaymentContractorTotal = round2([...directPaymentContractorByVendor.values()].reduce((s, v) => s + v, 0));
     const directPaymentLabourTotal = round2([...directPaymentLabourByLabourer.values()].reduce((s, v) => s + v, 0));
@@ -755,7 +833,7 @@ const computeProjectProfit = async (projectId) => {
         // vague "Total logged" that reads like an open item.
         rejectedContractorCost: contractorCostInfo.rejectedAmount, rejectedLabourCost: labourCostInfo.rejectedAmount,
         rejectedCommissionCost: commissionCostInfo.rejectedAmount,
-        unapprovedContractorCost, unapprovedLabourCost, unapprovedCommissionCost,
+        unapprovedMaterialCost, unapprovedContractorCost, unapprovedLabourCost, unapprovedCommissionCost,
         directPaymentContractorTotal, directPaymentLabourTotal,
         // What this same still-unreviewed work is worth: revenue it'll bill
         // once approved, minus the unapproved cost lines above — the
@@ -2890,7 +2968,7 @@ const startOfDay = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0,
 const endOfDay = (d = new Date()) => { const x = new Date(d); x.setHours(23, 59, 59, 999); return x; };
 
 // Company-wide, date-scoped material cost — same weighted-average-rate
-// formula as computeProjectMaterialCost, but computed once across every
+// formula as computeProjectMaterialCostSplit, but computed once across every
 // project's purchases/consumption instead of looping per project (used by
 // the dashboard's "This Month Profit" and the Revenue-vs-Cost trend, both
 // of which need this for every project or a handful of months at once).
@@ -3235,7 +3313,7 @@ const computeDashboardApprovedBreakdown = async () => {
     // computeReadyProjectIds) still exclude completed Works on purpose —
     // only this cumulative rollup needed the fix.
     const works = await FinanceWork.find({ deleted: { $ne: true } }, 'workType projectId completedAreaSqft');
-    if (!works.length) return { byWorkType: [], contractorTotal: 0, labourTotal: 0, approvedContractorAreaSqft: 0, approvedLabourAreaSqft: 0, unapprovedByWorkType: [], unapprovedContractorTotal: 0, unapprovedLabourTotal: 0, unapprovedRevenueTotal: 0 };
+    if (!works.length) return { byWorkType: [], contractorTotal: 0, labourTotal: 0, approvedContractorAreaSqft: 0, approvedLabourAreaSqft: 0, unapprovedByWorkType: [], unapprovedContractorTotal: 0, unapprovedLabourTotal: 0, unapprovedRevenueTotal: 0, unapprovedMaterialTotal: 0 };
     const workIds = works.map(w => w._id);
     const workById = new Map(works.map(w => [w._id.toString(), w]));
 
@@ -3371,12 +3449,69 @@ const computeDashboardApprovedBreakdown = async () => {
         bump(unapprovedByWorkType, w.workType, unapprovedArea, revenueAmount);
     }
 
+    // Same material-cost-by-approval-status split as
+    // computeProjectMaterialCostSplit's own header comment explains in
+    // detail, applied company-wide instead of to one project — reuses the
+    // works/measurements/categoryApprovedByWorkId/workContractorTotalArea/
+    // workLabourTotalArea already built above rather than re-fetching them.
+    // Only the pending (unapproved) share is needed here: the decided
+    // share already flows into totalApprovedProfitToDate for free, since
+    // that figure is a straight sum of computeProjectProfit's own `profit`
+    // per ongoing project, not computed independently here.
+    const [purchases, consumeMovements] = await Promise.all([
+        FinancePurchase.find({ deleted: { $ne: true } }, 'projectId materialId quantity totalAmount transactionType'),
+        FinanceStockMovement.find(
+            { movementType: 'consume', deleted: { $ne: true } },
+            'materialId quantity projectId relatedMeasurementId relatedLabourMeasurementId'
+        ),
+    ]);
+    const materialRateAgg = new Map();
+    for (const p of purchases) {
+        const key = `${p.projectId}_${p.materialId}`;
+        if (!materialRateAgg.has(key)) materialRateAgg.set(key, { qty: 0, amt: 0 });
+        const m = materialRateAgg.get(key);
+        const sign = p.transactionType === 'return' ? -1 : 1;
+        m.qty += sign * p.quantity;
+        m.amt += sign * p.totalAmount;
+    }
+    const materialRateByKey = new Map();
+    for (const [key, m] of materialRateAgg) materialRateByKey.set(key, m.qty > 0 ? m.amt / m.qty : 0);
+
+    const contractorMeasurementById = new Map(contractorMeasurements.map(m => [m._id.toString(), m]));
+    const labourMeasurementById = new Map(labourMeasurements.map(m => [m._id.toString(), m]));
+    let unapprovedMaterialTotal = 0;
+    for (const mv of consumeMovements) {
+        const rate = materialRateByKey.get(`${mv.projectId}_${mv.materialId}`) || 0;
+        const cost = mv.quantity * rate;
+        if (!cost) continue;
+
+        const isContractor = !!mv.relatedMeasurementId;
+        const measurement = isContractor
+            ? contractorMeasurementById.get(mv.relatedMeasurementId.toString())
+            : mv.relatedLabourMeasurementId ? labourMeasurementById.get(mv.relatedLabourMeasurementId.toString()) : null;
+        // No traceable source measurement — same "don't force a guess"
+        // treatment as computeProjectMaterialCostSplit's identical case.
+        if (!measurement) { unapprovedMaterialTotal += cost; continue; }
+
+        const workKey = measurement.workId.toString();
+        const categoryEntry = categoryApprovedByWorkId.get(workKey);
+        const workApprovedArea = isContractor ? (categoryEntry?.contractorApprovedAreaSqft || 0) : (categoryEntry?.labourApprovedAreaSqft || 0);
+        const workRejectedArea = isContractor ? (categoryEntry?.contractorRejectedAreaSqft || 0) : (categoryEntry?.labourRejectedAreaSqft || 0);
+        const workTotalArea = (isContractor ? workContractorTotalArea : workLabourTotalArea).get(workKey) || 0;
+
+        const approvedShare = splitApprovedAreaByShare(workApprovedArea, measurement.areaCoveredSqft, workTotalArea);
+        const rejectedShare = splitApprovedAreaByShare(workRejectedArea, measurement.areaCoveredSqft, workTotalArea);
+        const decidedFraction = measurement.areaCoveredSqft > 0 ? Math.min(1, (approvedShare + rejectedShare) / measurement.areaCoveredSqft) : 0;
+
+        unapprovedMaterialTotal += cost * (1 - decidedFraction);
+    }
+
     const toArray = (map) => [...map.entries()].map(([workType, v]) => ({ workType, sqft: round2(v.sqft), amount: round2(v.amount) })).sort((a, b) => b.sqft - a.sqft);
     return {
         byWorkType: toArray(byWorkType), contractorTotal: round2(contractorTotal), labourTotal: round2(labourTotal),
         approvedContractorAreaSqft: round2(approvedContractorAreaSqft), approvedLabourAreaSqft: round2(approvedLabourAreaSqft),
         unapprovedByWorkType: toArray(unapprovedByWorkType), unapprovedContractorTotal: round2(unapprovedContractorTotal), unapprovedLabourTotal: round2(unapprovedLabourTotal),
-        unapprovedRevenueTotal: round2(unapprovedRevenueTotal),
+        unapprovedRevenueTotal: round2(unapprovedRevenueTotal), unapprovedMaterialTotal: round2(unapprovedMaterialTotal),
         // Flat, informational totals — no longer split by Unapproved/Approved
         // (see getWorkerPayoutTotal's comment).
         directPaymentContractorTotal, directPaymentLabourTotal,
@@ -3779,6 +3914,7 @@ const getDashboardSummary = async (req, res) => {
         // the response below) so totalProjectedProfit can reuse the exact
         // same number instead of a second, easy-to-drift copy of the formula.
         const unapprovedProfitTotal = round2(approvedBreakdown.unapprovedRevenueTotal
+            - approvedBreakdown.unapprovedMaterialTotal
             - approvedBreakdown.unapprovedContractorTotal
             - approvedBreakdown.unapprovedLabourTotal
             - commissionBreakdown.unapprovedCommissionTotal);
@@ -3900,6 +4036,7 @@ const getDashboardSummary = async (req, res) => {
                 directPaymentLabourTotal: approvedBreakdown.directPaymentLabourTotal,
                 unapprovedCommissionTotal: commissionBreakdown.unapprovedCommissionTotal,
                 unapprovedRevenueTotal: approvedBreakdown.unapprovedRevenueTotal,
+                unapprovedMaterialTotal: approvedBreakdown.unapprovedMaterialTotal,
                 unapprovedProfitTotal,
                 thisMonthRevenue, thisMonthProfit, thisMonthExpense,
                 thisMonthRevenueBillCount, thisMonthExpenseCount, thisMonthTotalCost,

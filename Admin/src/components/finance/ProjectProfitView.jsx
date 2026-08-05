@@ -100,6 +100,7 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                             <p className="admin-subtitle" style={{ margin: '24px 0 10px' }}>Unapproved (Pending Review)</p>
                             <KpiGrid>
                                 <KpiCard label="Area" value={`${data.unapprovedAreaSqft.toLocaleString('en-IN')} sqft`} />
+                                <KpiCard label="Material Unapproved" value={`₹${data.unapprovedMaterialCost.toLocaleString('en-IN')}`} sub="Weighted avg — material for this work has already been used, review or no review" />
                                 <KpiCard label="Contractor Unapproved" value={`₹${data.unapprovedContractorCost.toLocaleString('en-IN')}`} />
                                 <KpiCard label="Labour Unapproved" value={`₹${data.unapprovedLabourCost.toLocaleString('en-IN')}`} />
                                 <KpiCard label="Commission" value={`₹${data.unapprovedCommissionCost.toLocaleString('en-IN')}`} />

@@ -235,6 +235,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                     <p className="dash-chart-title">Unapproved (Pending Review)</p>
                     <div className="stat-grid">
                         <div className="stat-block"><span className="stat-block-label">Area</span><span className="stat-block-value">{profit.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</span></div>
+                        <div className="stat-block"><span className="stat-block-label">Material Unapproved</span><span className="stat-block-value">{formatINR(profit.unapprovedMaterialCost)}</span></div>
                         <div className="stat-block"><span className="stat-block-label">Contractor Unapproved</span><span className="stat-block-value">{formatINR(profit.unapprovedContractorCost)}</span></div>
                         <div className="stat-block"><span className="stat-block-label">Labour Unapproved</span><span className="stat-block-value">{formatINR(profit.unapprovedLabourCost)}</span></div>
                         <div className="stat-block"><span className="stat-block-label">Commission</span><span className="stat-block-value">{formatINR(profit.unapprovedCommissionCost)}</span></div>

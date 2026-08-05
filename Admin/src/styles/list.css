@@ -3341,14 +3341,15 @@
    nth-child(2)/(3) hijack risk as every table above throughout.
 ══════════════════════════════════════════════ */
 @media (max-width: 640px) {
-    /* ── Unapproved (Pending Review) — single summary row, 6 fields ── */
+    /* ── Unapproved (Pending Review) — single summary row, 7 fields ── */
     .list-table-format.pp-unapp-header { display: none !important; }
     .list-table-format.pp-unapp-row {
         grid-template-columns: 1fr 1fr !important;
         grid-template-areas:
-            "area contractor"
-            "labour commission"
-            "revenue profit" !important;
+            "area material"
+            "contractor labour"
+            "commission revenue"
+            "profit profit" !important;
         row-gap: 12px !important;
         padding: 16px !important;
     }
@@ -3360,13 +3361,14 @@
         text-align: left !important;
     }
     .list-table-format.pp-unapp-row .pp-unapp-area { grid-area: area !important; }
-    /* nth-child(2)/(3) under the generic ≤480px hijack — the reset above
+    /* nth-child(2)-(6) under the generic ≤480px hijack — the reset above
        already covers font-size/weight/color/text-align; grid-area still
        needs setting per field since the generic rule forces its own. */
-    .list-table-format.pp-unapp-row :nth-child(2) { grid-area: contractor !important; }
-    .list-table-format.pp-unapp-row :nth-child(3) { grid-area: labour !important; }
-    .list-table-format.pp-unapp-row :nth-child(4) { grid-area: commission !important; }
-    .list-table-format.pp-unapp-row :nth-child(5) { grid-area: revenue !important; }
+    .list-table-format.pp-unapp-row :nth-child(2) { grid-area: material !important; }
+    .list-table-format.pp-unapp-row :nth-child(3) { grid-area: contractor !important; }
+    .list-table-format.pp-unapp-row :nth-child(4) { grid-area: labour !important; }
+    .list-table-format.pp-unapp-row :nth-child(5) { grid-area: commission !important; }
+    .list-table-format.pp-unapp-row :nth-child(6) { grid-area: revenue !important; }
     .list-table-format.pp-unapp-row .pp-unapp-profit {
         grid-area: profit !important;
         font-weight: 700 !important;

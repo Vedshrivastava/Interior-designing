@@ -206,11 +206,12 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
             {(profit.unapprovedAreaSqft > 0 || profit.unapprovedCommissionCost > 0) && (
                 <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                     <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}><b>Unapproved (Pending Review)</b></div>
-                    <div className="list-table-format title pp-unapp-row pp-unapp-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                        <b>Area</b><b>Contractor Unapproved</b><b>Labour Unapproved</b><b>Commission</b><b>Revenue</b><b>Profit</b>
+                    <div className="list-table-format title pp-unapp-row pp-unapp-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                        <b>Area</b><b>Material Unapproved</b><b>Contractor Unapproved</b><b>Labour Unapproved</b><b>Commission</b><b>Revenue</b><b>Profit</b>
                     </div>
-                    <div className="list-table-format row-item pp-unapp-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                    <div className="list-table-format row-item pp-unapp-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
                         <p className="pp-unapp-field pp-unapp-area"><span className="pp-field-label">Area</span>{profit.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
+                        <p className="pp-unapp-field"><span className="pp-field-label">Material Unapproved</span>{formatINR(profit.unapprovedMaterialCost)}</p>
                         <p className="pp-unapp-field"><span className="pp-field-label">Contractor Unapproved</span>{formatINR(profit.unapprovedContractorCost)}</p>
                         <p className="pp-unapp-field"><span className="pp-field-label">Labour Unapproved</span>{formatINR(profit.unapprovedLabourCost)}</p>
                         <p className="pp-unapp-field"><span className="pp-field-label">Commission</span>{formatINR(profit.unapprovedCommissionCost)}</p>

@@ -131,8 +131,18 @@ const WorkProfitView = ({ url, workId, onSelectWork }) => {
                     tone={data.contractorCost === 0 && totalContractorAmount > 0 ? 'danger' : undefined}
                     sub={contractorSub}
                 />
-                <KpiCard label="Labour Cost" value={`₹${data.labourCost.toLocaleString('en-IN')}`} sub={labourSub} />
-                <KpiCard label="Material Cost" value={`₹${data.materialCost.toLocaleString('en-IN')}`} sub="Weighted avg" />
+                <KpiCard
+                    label="Labour Cost"
+                    value={data.labourCost > 0 ? `₹${data.labourCost.toLocaleString('en-IN')}` : (totalLabourAmount > 0 ? 'Unapproved' : '₹0')}
+                    tone={data.labourCost === 0 && totalLabourAmount > 0 ? 'danger' : undefined}
+                    sub={labourSub}
+                />
+                <KpiCard
+                    label="Material Cost"
+                    value={data.materialCost > 0 ? `₹${data.materialCost.toLocaleString('en-IN')}` : (data.totalMaterialCost > 0 ? 'Unapproved' : '₹0')}
+                    tone={data.materialCost === 0 && data.totalMaterialCost > 0 ? 'danger' : undefined}
+                    sub={data.unapprovedMaterialCost > 0 ? `Total logged: ₹${data.totalMaterialCost.toLocaleString('en-IN')}` : 'Weighted avg'}
+                />
                 <KpiCard label="Material Waste Cost" value={`₹${data.materialWasteCost.toLocaleString('en-IN')}`} tone={data.materialWasteCost > 0 ? 'danger' : undefined} />
                 <KpiCard label="Commission Cost" value={`₹${data.commissionCost.toLocaleString('en-IN')}`} />
                 <KpiCard label="Profit" value={`₹${data.profit.toLocaleString('en-IN')}`} tone={data.profit >= 0 ? 'good' : 'danger'} />
@@ -145,6 +155,7 @@ const WorkProfitView = ({ url, workId, onSelectWork }) => {
                     </p>
                     <KpiGrid>
                         <KpiCard label="Area" value={`${data.unapprovedAreaSqft.toLocaleString('en-IN')} sqft`} />
+                        <KpiCard label="Material Unapproved" value={`₹${data.unapprovedMaterialCost.toLocaleString('en-IN')}`} />
                         <KpiCard label="Contractor Unapproved" value={`₹${data.unapprovedContractorCost.toLocaleString('en-IN')}`} />
                         <KpiCard label="Labour Unapproved" value={`₹${data.unapprovedLabourCost.toLocaleString('en-IN')}`} />
                         <KpiCard label="Commission" value={`₹${data.unapprovedCommissionAmount.toLocaleString('en-IN')}`} />

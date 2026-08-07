@@ -271,7 +271,12 @@ const WorkDetail = ({ url }) => {
                         tone={data.commissionCost > 0 ? 'good' : (data.totalCommissionAmount > 0 ? 'danger' : undefined)}
                         sub={data.unapprovedCommissionAmount > 0 ? `Total logged: ${formatINR(data.totalCommissionAmount)}` : 'All-time'}
                     />
-                    <KpiCard label="Material Cost" value={formatINR(data.materialCost)} sub="Always all-time — material has no approval gate" />
+                    <KpiCard
+                        label="Material Cost"
+                        value={data.materialCost > 0 ? formatINR(data.materialCost) : (data.totalMaterialCost > 0 ? 'Unapproved' : formatINR(0))}
+                        tone={data.materialCost > 0 ? 'good' : (data.totalMaterialCost > 0 ? 'danger' : undefined)}
+                        sub={data.unapprovedMaterialCost > 0 ? `Total logged: ${formatINR(data.totalMaterialCost)}` : 'All-time'}
+                    />
                     <KpiCard label="Material Waste Cost" value={formatINR(data.materialWasteCost)} tone={data.materialWasteCost > 0 ? 'danger' : undefined}
                         sub="Wasted material at the same rate it was bought — a real loss, already counted in Profit" />
                 </KpiGrid>
@@ -281,11 +286,12 @@ const WorkDetail = ({ url }) => {
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}>
                             <b>{data.heldForAttribution ? 'Unapproved — Held Pending Rejection Attribution' : 'Unapproved (Pending Review)'}</b>
                         </div>
-                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                            <b>Area</b><b>Contractor Unapproved</b><b>Labour Unapproved</b><b>Commission</b><b>Revenue</b><b>Profit</b>
+                        <div className="list-table-format title" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                            <b>Area</b><b>Material Unapproved</b><b>Contractor Unapproved</b><b>Labour Unapproved</b><b>Commission</b><b>Revenue</b><b>Profit</b>
                         </div>
-                        <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                        <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
                             <p>{data.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
+                            <p>{formatINR(data.unapprovedMaterialCost)}</p>
                             <p>{formatINR(data.unapprovedContractorCost)}</p>
                             <p>{formatINR(data.unapprovedLabourCost)}</p>
                             <p>{formatINR(data.unapprovedCommissionAmount)}</p>

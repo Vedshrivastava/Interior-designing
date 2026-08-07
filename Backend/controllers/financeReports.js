@@ -1117,6 +1117,78 @@ const computeWorkBilledArea = async (work) => {
 const splitApprovedAreaByShare = (approvedAreaSqft, partyArea, totalAreaAllParties) =>
     totalAreaAllParties > 0 ? round2(approvedAreaSqft * (partyArea / totalAreaAllParties)) : 0;
 
+// Work-scoped analog of computeProjectMaterialCostSplit — traces each
+// 'consume' movement on this one Work back to its source measurement, then
+// splits its cost by that measurement's own approved/rejected/pending
+// share of this Work's already-computed contractor/labour ceilings
+// (computeWorkProfit passes those straight in, so this doesn't re-query
+// getCategoryApprovedAreaByWorkId a second time).
+//
+// BUG FIX: computeWorkProfit used to subtract computeWorkMaterialCost's
+// flat, unconditional total straight into `profit` regardless of review
+// status, while contractorCost/labourCost/commissionCost for that exact
+// same still-unreviewed work correctly stayed in Unapproved. A Work with
+// real material spend but nothing approved yet showed a deeply negative
+// "Approved" Profit driven entirely by material — see
+// computeProjectMaterialCostSplit's identical header comment for the
+// project-level version of this same bug, fixed there first.
+const computeWorkMaterialCostSplit = async (
+    projectId, workId,
+    contractorApprovedAreaSqft, contractorRejectedAreaSqft,
+    labourApprovedAreaSqft, labourRejectedAreaSqft,
+) => {
+    const avgRate = await computeMaterialAvgRates(projectId);
+    const [contractorMeasurements, labourMeasurements] = await Promise.all([
+        FinanceMeasurement.find({ workId, deleted: { $ne: true } }, 'areaCoveredSqft'),
+        FinanceLabourMeasurement.find({ workId, deleted: { $ne: true } }, 'areaCoveredSqft'),
+    ]);
+    const measurementIds = contractorMeasurements.map(m => m._id);
+    const labourMeasurementIds = labourMeasurements.map(m => m._id);
+    if (!measurementIds.length && !labourMeasurementIds.length) return { decidedCost: 0, pendingCost: 0 };
+
+    const consumeMovements = await FinanceStockMovement.find({
+        movementType: 'consume', deleted: { $ne: true },
+        $or: [
+            { relatedMeasurementId: { $in: measurementIds } },
+            { relatedLabourMeasurementId: { $in: labourMeasurementIds } },
+        ],
+    }, 'materialId quantity relatedMeasurementId relatedLabourMeasurementId');
+    if (!consumeMovements.length) return { decidedCost: 0, pendingCost: 0 };
+
+    const contractorMeasurementById = new Map(contractorMeasurements.map(m => [m._id.toString(), m]));
+    const labourMeasurementById = new Map(labourMeasurements.map(m => [m._id.toString(), m]));
+    const contractorTotalArea = contractorMeasurements.reduce((s, m) => s + m.areaCoveredSqft, 0);
+    const labourTotalArea = labourMeasurements.reduce((s, m) => s + m.areaCoveredSqft, 0);
+
+    let decidedCost = 0, pendingCost = 0;
+    for (const mv of consumeMovements) {
+        const rate = avgRate.get(mv.materialId.toString()) || 0;
+        const cost = mv.quantity * rate;
+        if (!cost) continue;
+
+        const isContractor = !!mv.relatedMeasurementId;
+        const measurement = isContractor
+            ? contractorMeasurementById.get(mv.relatedMeasurementId.toString())
+            : mv.relatedLabourMeasurementId ? labourMeasurementById.get(mv.relatedLabourMeasurementId.toString()) : null;
+        // No traceable source measurement — treated as pending rather than
+        // silently assumed decided, same principle
+        // computeProjectMaterialCostSplit's identical case applies.
+        if (!measurement) { pendingCost += cost; continue; }
+
+        const approvedArea = isContractor ? contractorApprovedAreaSqft : labourApprovedAreaSqft;
+        const rejectedArea = isContractor ? contractorRejectedAreaSqft : labourRejectedAreaSqft;
+        const totalArea = isContractor ? contractorTotalArea : labourTotalArea;
+
+        const approvedShare = splitApprovedAreaByShare(approvedArea, measurement.areaCoveredSqft, totalArea);
+        const rejectedShare = splitApprovedAreaByShare(rejectedArea, measurement.areaCoveredSqft, totalArea);
+        const decidedFraction = measurement.areaCoveredSqft > 0 ? Math.min(1, (approvedShare + rejectedShare) / measurement.areaCoveredSqft) : 0;
+
+        decidedCost += cost * decidedFraction;
+        pendingCost += cost * (1 - decidedFraction);
+    }
+    return { decidedCost: round2(decidedCost), pendingCost: round2(pendingCost) };
+};
+
 // BUG FIX (found while investigating wrong Dashboard/Project Overview/
 // Profitability numbers right after reviewing a Work that has BOTH
 // contractor and labour measurements): a Work's review sets ONE combined
@@ -1602,7 +1674,14 @@ const computeWorkProfit = async (work) => {
         clientRatePerSqft = workTypeRate?.clientRatePerSqft || 0;
     }
 
-    const materialCost = await computeWorkMaterialCost(work.projectId, work._id);
+    const materialCostSplit = await computeWorkMaterialCostSplit(
+        work.projectId, work._id,
+        contractorApprovedAreaSqft, contractorRejectedAreaSqft,
+        labourApprovedAreaSqft, labourRejectedAreaSqft,
+    );
+    const materialCost = materialCostSplit.decidedCost;
+    const unapprovedMaterialCost = materialCostSplit.pendingCost;
+    const totalMaterialCost = round2(materialCostSplit.decidedCost + materialCostSplit.pendingCost);
     const materialWasteCost = await computeWorkMaterialWasteCost(work.projectId, work._id);
     const profit = revenue - contractorCost - labourCost - materialCost - materialWasteCost - commissionCost;
     const {
@@ -1647,6 +1726,9 @@ const computeWorkProfit = async (work) => {
 
     return {
         revenue, contractorCost, contractorBreakdown, labourCost, labourBreakdown, materialCost, materialWasteCost, profit, areaBilledSqft,
+        // Same "everything ever logged, unconditional" shape totalContractorCost
+        // etc. use elsewhere — see computeWorkMaterialCostSplit's header comment.
+        unapprovedMaterialCost, totalMaterialCost,
         commissionCost, totalCommissionAmount, unapprovedCommissionAmount, unapprovedRevenue,
         unapprovedContractorCost, unapprovedLabourCost, rejectedContractorCost, rejectedLabourCost,
         expectedPay, deductedTotal, expectedPayNetOfDeductions,
@@ -1840,6 +1922,7 @@ const getWorkProfit = async (req, res) => {
 
         const wp = await computeWorkProfit(work);
         const unapprovedProfit = round2(wp.unapprovedRevenue
+            - wp.unapprovedMaterialCost
             - wp.unapprovedContractorCost
             - wp.unapprovedLabourCost
             - wp.unapprovedCommissionAmount);
@@ -1855,7 +1938,8 @@ const getWorkProfit = async (req, res) => {
                 rejectedContractorCost: wp.rejectedContractorCost, rejectedLabourCost: wp.rejectedLabourCost,
                 commissionCost: wp.commissionCost, totalCommissionAmount: wp.totalCommissionAmount,
                 unapprovedCommissionAmount: wp.unapprovedCommissionAmount,
-                materialCost: wp.materialCost, materialWasteCost: wp.materialWasteCost, profit: wp.profit,
+                materialCost: wp.materialCost, unapprovedMaterialCost: wp.unapprovedMaterialCost, totalMaterialCost: wp.totalMaterialCost,
+                materialWasteCost: wp.materialWasteCost, profit: wp.profit,
                 totalAreaSqft: wp.totalAreaSqft, totalAmount: wp.totalAmount,
                 approvedAreaSqft: wp.approvedAreaSqft, approvedAmount: wp.approvedAmount, approvedDate: wp.approvedDate,
                 unapprovedAreaSqft: wp.unapprovedAreaSqft, unapprovedAmount: wp.unapprovedAmount,
@@ -1930,6 +2014,7 @@ const getWorkDetail = async (req, res) => {
         const totalContractorAmount = round2(workProfit.contractorBreakdown.reduce((s, b) => s + b.totalAmount, 0));
         const totalLabourAmount = round2(workProfit.labourBreakdown.reduce((s, b) => s + b.totalAmount, 0));
         const unapprovedProfit = round2(workProfit.unapprovedRevenue
+            - workProfit.unapprovedMaterialCost
             - workProfit.unapprovedContractorCost
             - workProfit.unapprovedLabourCost
             - workProfit.unapprovedCommissionAmount);
@@ -1978,6 +2063,7 @@ const getWorkDetail = async (req, res) => {
                 // revenue/contractorCost/labourCost above, so they need
                 // their own explicit key rather than relying on the spread.
                 materialCost: workProfit.materialCost, materialWasteCost: workProfit.materialWasteCost,
+                unapprovedMaterialCost: workProfit.unapprovedMaterialCost, totalMaterialCost: workProfit.totalMaterialCost,
                 // Commission (Approved) — same review-gated shape as
                 // Contractor/Labour Cost above, attributed to just this
                 // Work's own workType rate. Zero for projects with no

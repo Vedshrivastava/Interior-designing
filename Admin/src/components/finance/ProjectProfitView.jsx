@@ -76,14 +76,24 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
 
                     <KpiGrid>
                         <KpiCard label="Revenue" value={`₹${data.revenue.toLocaleString('en-IN')}`} />
-                        <KpiCard label="Material Cost" value={`₹${data.materialCost.toLocaleString('en-IN')}`} sub="Weighted avg" />
+                        <KpiCard
+                            label="Material Cost"
+                            value={data.materialCost > 0 ? `₹${data.materialCost.toLocaleString('en-IN')}` : (data.totalMaterialCost > 0 ? 'Unapproved' : '₹0')}
+                            tone={data.materialCost === 0 && data.totalMaterialCost > 0 ? 'danger' : undefined}
+                            sub={data.unapprovedMaterialCost > 0 ? `Total logged: ₹${data.totalMaterialCost.toLocaleString('en-IN')}` : 'Weighted avg'}
+                        />
                         <KpiCard
                             label="Contractor Cost"
                             value={data.contractorCost > 0 ? `₹${data.contractorCost.toLocaleString('en-IN')}` : (data.totalContractorCost > 0 ? 'Unapproved' : '₹0')}
                             tone={data.contractorCost === 0 && data.totalContractorCost > 0 ? 'danger' : undefined}
                             sub={data.totalContractorCost > data.contractorCost ? `Total logged: ₹${data.totalContractorCost.toLocaleString('en-IN')}` : undefined}
                         />
-                        <KpiCard label="Commission Cost" value={`₹${data.commissionCost.toLocaleString('en-IN')}`} />
+                        <KpiCard
+                            label="Commission Cost"
+                            value={data.commissionCost > 0 ? `₹${data.commissionCost.toLocaleString('en-IN')}` : (data.totalCommissionCost > 0 ? 'Unapproved' : '₹0')}
+                            tone={data.commissionCost === 0 && data.totalCommissionCost > 0 ? 'danger' : undefined}
+                            sub={data.totalCommissionCost > data.commissionCost ? `Total logged: ₹${data.totalCommissionCost.toLocaleString('en-IN')}` : undefined}
+                        />
                         <KpiCard
                             label="Labour Cost"
                             value={data.labourCost > 0 ? `₹${data.labourCost.toLocaleString('en-IN')}` : (data.totalLabourCost > 0 ? 'Unapproved' : '₹0')}

@@ -506,8 +506,18 @@ const downloadContractorBillStatement = async (req, res) => {
         // (slightly quirky) on-screen behavior rather than inventing a
         // cleaner but inconsistent variant here.
         const balancePayable = data.totals.balancePayable;
-        const bannerY = doc.y;
         const bannerH = 36;
+        // BUG FIX: doc.rect() draws at a raw coordinate with no page-fit
+        // check at all, but doc.text() DOES auto-paginate once its y would
+        // land past the bottom margin — so a banner landing near the page
+        // break used to split in two: the colored rect stayed on the
+        // trailing sliver of the old page while its own label text jumped
+        // to the top of the next one, leaving a mostly-blank page behind
+        // it. Same ensureSpace-style guard drawInfoBox/drawTable already
+        // use elsewhere in this file — decide the page BEFORE computing
+        // bannerY, so the rect and its text are always drawn together.
+        if (doc.y + bannerH > doc.page.height - doc.page.margins.bottom) doc.addPage();
+        const bannerY = doc.y;
         doc.rect(left, bannerY, width, bannerH).fill(balancePayable > 0 ? '#fdecea' : '#eafaf1');
         doc.fillColor(balancePayable > 0 ? '#c0392b' : '#1e8449').font('Helvetica-Bold').fontSize(12.5)
             .text(
@@ -534,6 +544,24 @@ const downloadContractorBillStatement = async (req, res) => {
             doc.fontSize(8).fillColor('#888888')
                 .text(`Made up of: Paid by Us Rs. ${paidByUs.toLocaleString('en-IN')}${paidByUsNote} + Paid by Client Rs. ${paidByClient.toLocaleString('en-IN')} - Earned Rs. ${netEarned.toLocaleString('en-IN')}.`, left, doc.y, { width });
             doc.fillColor('#000000').fontSize(10);
+        } else if (balancePayable > 0) {
+            // "Payment Left" breakdown — mirrors the on-screen ledger's own
+            // buildBreakdownSub for the still-owed case exactly (Earned minus
+            // every cost/payment term), same reasoning as the Extra Paid
+            // breakdown above: the PDF and the app should never tell a
+            // different story about why the headline number is what it is.
+            const parts = [
+                ['Earned', data.totals.earnings],
+                ['Advances', data.totals.advances],
+                ['Deductions', data.totals.deductions],
+                ['Direct Pay', data.totals.directPaymentTotal],
+                ['Payments', data.totals.payments],
+            ].filter(([, v]) => v);
+            if (parts.length) {
+                const made = parts.map(([label, v], i) => `${i > 0 ? '- ' : ''}${label} Rs. ${v.toLocaleString('en-IN')}`).join(' ');
+                doc.fontSize(8).fillColor('#888888').text(`Made up of: ${made}.`, left, doc.y, { width });
+                doc.fillColor('#000000').fontSize(10);
+            }
         }
         doc.moveDown(1);
 

@@ -437,8 +437,13 @@ const downloadLabourBillStatement = async (req, res) => {
         // keys off < 0 — a zero balance reads "Balance Payable: Rs. 0" in
         // green, matching that exact on-screen behavior.
         const balancePayable = data.totals.balancePayable;
-        const bannerY = doc.y;
         const bannerH = 36;
+        // BUG FIX: see financeContractorLedger.js's identical guard — without
+        // this, a banner landing near a page break could split in two (the
+        // colored rect stayed on the old page while its text auto-paginated
+        // to the top of the next one), leaving a mostly-blank page behind it.
+        if (doc.y + bannerH > doc.page.height - doc.page.margins.bottom) doc.addPage();
+        const bannerY = doc.y;
         doc.rect(left, bannerY, width, bannerH).fill(balancePayable > 0 ? '#fdecea' : '#eafaf1');
         doc.fillColor(balancePayable > 0 ? '#c0392b' : '#1e8449').font('Helvetica-Bold').fontSize(12.5)
             .text(
@@ -461,6 +466,21 @@ const downloadLabourBillStatement = async (req, res) => {
             doc.fontSize(8).fillColor('#888888')
                 .text(`Made up of: Paid by Us Rs. ${paidByUs.toLocaleString('en-IN')}${paidByUsNote} + Paid by Client Rs. ${paidByClient.toLocaleString('en-IN')} - Earned Rs. ${netEarned.toLocaleString('en-IN')}.`, left, doc.y, { width });
             doc.fillColor('#000000').fontSize(10);
+        } else if (balancePayable > 0) {
+            // "Payment Left" breakdown — see financeContractorLedger.js's
+            // identical block for the full reasoning.
+            const parts = [
+                ['Earned', data.totals.earnings],
+                ['Advances', data.totals.advances],
+                ['Deductions', data.totals.deductions],
+                ['Direct Pay', data.totals.directPaymentTotal],
+                ['Payments', data.totals.payments],
+            ].filter(([, v]) => v);
+            if (parts.length) {
+                const made = parts.map(([label, v], i) => `${i > 0 ? '- ' : ''}${label} Rs. ${v.toLocaleString('en-IN')}`).join(' ');
+                doc.fontSize(8).fillColor('#888888').text(`Made up of: ${made}.`, left, doc.y, { width });
+                doc.fillColor('#000000').fontSize(10);
+            }
         }
         doc.moveDown(1);
 

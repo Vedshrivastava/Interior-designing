@@ -218,7 +218,16 @@ const FinanceHome = ({ url }) => {
                     <KpiCard hero loading={phase1Loading} icon={faArrowTrendUp} label="Total Approved Profit - Ongoing Projects" value={formatINR(summary?.totalApprovedProfitToDate)} sub="All-time, excludes completed projects" onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.totalApprovedProfitToDate >= 0 ? 'good' : 'danger'} />
                     <KpiCard hero loading={phase1Loading} icon={faTriangleExclamation} label="Material Wastage Loss - Ongoing Projects" value={formatINR(summary?.materialWasteCostToDate)} sub="All-time, excludes completed projects; already counted in Profit above" onClick={() => navigate('/finance/site-inventory')} tone={summary?.materialWasteCostToDate > 0 ? 'danger' : 'good'} />
                     <KpiCard hero loading={phase1Loading} icon={faMoneyBillWave} label="Total Expenses - Ongoing Projects" value={formatINR(summary?.totalExpensesAllTime)}
-                        sub="All-time, excludes completed projects — literally every expense: material used (incl. unapproved, since it can't be un-used), contractor/labour/commission/salary/labour provider/supervisor incentive cash paid, non-material vendor payments, miscellaneous expenses, and manual bank/cash out entries"
+                        // Material vendor payments are deliberately NOT
+                        // summed into the total above — Material Used
+                        // (consumption value) already counts that same spend
+                        // once; also adding cash paid to the vendor would
+                        // double it. Vendor Payment Left (what's still owed
+                        // for material purchased) is surfaced here instead,
+                        // informational only, same "show it, don't blend it
+                        // into a total it'd distort" treatment Client Credit
+                        // Balance/Reimbursement already get elsewhere.
+                        sub={`All-time, excludes completed projects — literally every expense: material used (incl. unapproved, since it can't be un-used), contractor/labour/commission/salary/labour provider/supervisor incentive cash paid, non-material vendor payments, miscellaneous expenses, and manual bank/cash out entries. Material vendor payment left: ${formatINR(summary?.vendorPayables)} (not included above — see Material Used)`}
                         tone="danger" />
                     <KpiCard hero loading={phase1Loading} icon={faFileInvoiceDollar} label="Total Receivables"
                         value={formatINR(

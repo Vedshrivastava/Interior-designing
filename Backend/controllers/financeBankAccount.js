@@ -12,6 +12,7 @@ import FinanceExpensePayment from '../models/financeExpensePayment.js';
 import FinanceContractorAdvance from '../models/financeContractorAdvance.js';
 import FinanceLabourAdvance from '../models/financeLabourAdvance.js';
 import FinanceTdsDeposit from '../models/financeTdsDeposit.js';
+import FinanceBankEntry from '../models/financeBankEntry.js';
 import { broadcast } from '../middlewares/webSocket.js';
 
 /*
@@ -40,10 +41,15 @@ import { broadcast } from '../middlewares/webSocket.js';
  * financeExpensePayment instead — both need their own query since the
  * amount that actually moved through the bank isn't always on the same
  * document.
+ *
+ * bankEntries are manual, standalone records (financeBankEntry.js) — money
+ * in/out with no originating receipt/payment/transfer behind it (capital
+ * injected, a loan disbursed, interest credited, a correction against the
+ * real bank statement).
  */
 const getAccountActivity = async (accountId) => {
     const filter = { bankAccountId: accountId, deleted: { $ne: true } };
-    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, expensePayments, contractorAdvances, labourAdvances, tdsDeposits, transfersOut, transfersIn] = await Promise.all([
+    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, expensePayments, contractorAdvances, labourAdvances, tdsDeposits, transfersOut, transfersIn, bankEntries] = await Promise.all([
         FinanceReceipt.find(filter),
         FinanceContractorPayment.find(filter),
         FinanceVendorPayment.find(filter),
@@ -58,6 +64,7 @@ const getAccountActivity = async (accountId) => {
         FinanceTdsDeposit.find(filter),
         FinanceBankTransfer.find({ fromAccountId: accountId, deleted: { $ne: true } }),
         FinanceBankTransfer.find({ toAccountId: accountId, deleted: { $ne: true } }),
+        FinanceBankEntry.find(filter),
     ]);
 
     // Every payment type here now has an identical tdsAmount/tdsSectionId
@@ -88,6 +95,7 @@ const getAccountActivity = async (accountId) => {
         ...tdsDeposits.map(d => ({ date: d.date, amount: d.amount, direction: 'debit', description: 'TDS deposit', sourceType: 'tdsDeposit', sourceId: d._id })),
         ...transfersOut.map(t => ({ date: t.date, amount: t.amount, direction: 'debit', description: 'Transfer out', sourceType: 'transfer', sourceId: t._id })),
         ...transfersIn.map(t => ({ date: t.date, amount: t.amount, direction: 'credit', description: 'Transfer in', sourceType: 'transfer', sourceId: t._id })),
+        ...bankEntries.map(e => ({ date: e.date, amount: e.amount, direction: e.type === 'in' ? 'credit' : 'debit', description: e.reason, sourceType: 'bankEntry', sourceId: e._id })),
     ];
 };
 

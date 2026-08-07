@@ -332,6 +332,9 @@ export const ACTIVITY_META = {
     site_diary_entry: { tone: 'neutral', icon: faClipboardList },
     site_diary_issue_resolved: { tone: 'neutral', icon: faClipboardList },
     bank_transfer: { tone: 'neutral', icon: faBuildingColumns },
+    bank_entry_in: { tone: 'in', icon: faBuildingColumns },
+    bank_entry_out: { tone: 'out', icon: faBuildingColumns },
+    bank_entry_deleted: { tone: 'neutral', icon: faBuildingColumns },
     // Delete/restore counterparts — until these existed, Recent Activity
     // only ever grew (every create logged, nothing ever logged going back
     // out), so a delete-then-re-add correction looked identical to two

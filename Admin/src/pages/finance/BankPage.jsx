@@ -4,12 +4,14 @@ import MasterCrudTable from '../../components/finance/MasterCrudTable';
 import BankBalanceView from '../../components/finance/BankBalanceView';
 import BankStatementView from '../../components/finance/BankStatementView';
 import BankTransfersManager from '../../components/finance/BankTransfersManager';
+import BankEntriesManager from '../../components/finance/BankEntriesManager';
 
 const TABS = [
     { key: 'accounts',     label: 'All Accounts' },
     { key: 'balance',      label: 'Balance' },
     { key: 'transactions', label: 'Transactions / Statements' },
     { key: 'transfers',    label: 'Transfers' },
+    { key: 'entries',      label: 'Manual Entries' },
 ];
 
 /* Real as of the Bank + Cash Book build. Transactions and Statements were
@@ -32,6 +34,7 @@ const BankPage = ({ url }) => {
             {activeTab === 'balance' && <BankBalanceView url={url} />}
             {activeTab === 'transactions' && <BankStatementView url={url} />}
             {activeTab === 'transfers' && <BankTransfersManager url={url} />}
+            {activeTab === 'entries' && <BankEntriesManager url={url} />}
         </FinanceTabShell>
     );
 };

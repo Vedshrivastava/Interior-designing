@@ -40,6 +40,7 @@ const EVENT_TYPES = [
     'expense_recorded', 'daily_labour_logged', 'supervisor_incentive_given',
     'work_created', 'work_completed', 'project_created', 'project_activated',
     'client_quotation_issued', 'client_quotation_status_changed',
+    'bank_entry_in', 'bank_entry_out', 'bank_entry_deleted',
     // Delete/restore counterparts — see DashboardWidgets.jsx's ACTIVITY_META
     // comment on why these exist now: without them, a deleted or restored
     // record was invisible here even though it changed real state.

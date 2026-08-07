@@ -41,6 +41,7 @@ import FinanceSetting from '../models/financeSetting.js';
 import FinanceTdsDeposit from '../models/financeTdsDeposit.js';
 import FinanceBankAccount from '../models/financeBankAccount.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
+import FinanceBankEntry from '../models/financeBankEntry.js';
 import FinanceActivityLog from '../models/financeActivityLog.js';
 import { getAccountActivity } from './financeBankAccount.js';
 import PDFDocument from 'pdfkit';
@@ -2916,7 +2917,7 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         if (to) { receiptFilter.receiptDate.$lte = new Date(to); otherFilter.date.$lte = new Date(to); }
     }
 
-    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, expensePayments, contractorAdvances, labourAdvances, tdsDeposits] = await Promise.all([
+    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, expensePayments, contractorAdvances, labourAdvances, tdsDeposits, manualCashEntries, manualBankEntries] = await Promise.all([
         FinanceReceipt.find(receiptFilter),
         FinanceContractorPayment.find(otherFilter),
         FinanceVendorPayment.find(otherFilter),
@@ -2934,6 +2935,16 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         FinanceContractorAdvance.find(otherFilter),
         FinanceLabourAdvance.find(otherFilter),
         FinanceTdsDeposit.find(otherFilter),
+        // Manual entries with no other originating record — petty cash/
+        // owner draws (financeCashEntry.js) and capital injected/loan
+        // disbursed/interest credited/corrections (financeBankEntry.js).
+        // BUG FIX: cash flow used to only ever see money moving through a
+        // tracked business event (a receipt, a payment, an advance...) —
+        // real cash genuinely entering or leaving the company through one
+        // of these manual entries was invisible here even though it's
+        // exactly as real as a receipt or a payment.
+        FinanceCashEntry.find(otherFilter),
+        FinanceBankEntry.find(otherFilter),
     ]);
 
     // FinanceExpense has two shapes (see financeExpense.js's withBalances):
@@ -2965,7 +2976,14 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
     const vendorOutPayments = vendorPayments.filter(p => !p.isRefund);
     const vendorRefundsTotal = vendorRefunds.reduce((s, p) => s + netOut(p), 0);
 
-    const totalIn = receipts.reduce((s, r) => s + r.amount, 0) + vendorRefundsTotal;
+    const manualCashIn = manualCashEntries.filter(e => e.type === 'in');
+    const manualCashOut = manualCashEntries.filter(e => e.type === 'out');
+    const manualBankIn = manualBankEntries.filter(e => e.type === 'in');
+    const manualBankOut = manualBankEntries.filter(e => e.type === 'out');
+    const manualCashInTotal = manualCashIn.reduce((s, e) => s + e.amount, 0);
+    const manualBankInTotal = manualBankIn.reduce((s, e) => s + e.amount, 0);
+
+    const totalIn = receipts.reduce((s, r) => s + r.amount, 0) + vendorRefundsTotal + manualCashInTotal + manualBankInTotal;
     const outByCategory = {
         contractor: contractorPayments.reduce((s, p) => s + netOut(p), 0) + contractorAdvances.reduce((s, a) => s + a.amount, 0),
         vendor: vendorOutPayments.reduce((s, p) => s + netOut(p), 0),
@@ -2975,6 +2993,8 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         labourProvider: labourProviderPayments.reduce((s, p) => s + netOut(p), 0),
         expense: paidAtEntryExpenses.reduce((s, e) => s + e.amount, 0) + expensePayments.reduce((s, p) => s + p.amount, 0),
         tdsDeposit: tdsDeposits.reduce((s, d) => s + d.amount, 0),
+        manualCash: manualCashOut.reduce((s, e) => s + e.amount, 0),
+        manualBank: manualBankOut.reduce((s, e) => s + e.amount, 0),
     };
     const totalOut = Object.values(outByCategory).reduce((a, b) => a + b, 0);
 
@@ -2991,6 +3011,10 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
     tdsDeposits.forEach(d => bump(d.date, 'out', d.amount));
     paidAtEntryExpenses.forEach(e => bump(e.date, 'out', e.amount));
     expensePayments.forEach(p => bump(p.date, 'out', p.amount));
+    manualCashIn.forEach(e => bump(e.date, 'in', e.amount));
+    manualBankIn.forEach(e => bump(e.date, 'in', e.amount));
+    manualCashOut.forEach(e => bump(e.date, 'out', e.amount));
+    manualBankOut.forEach(e => bump(e.date, 'out', e.amount));
 
     const seriesArr = [...series.values()]
         .sort((a, b) => a.bucket.localeCompare(b.bucket))
@@ -3001,6 +3025,8 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         byCategory: [
             { category: 'receipt', direction: 'in', amount: receipts.reduce((s, r) => s + r.amount, 0) },
             ...(vendorRefundsTotal > 0 ? [{ category: 'vendorRefund', direction: 'in', amount: vendorRefundsTotal }] : []),
+            ...(manualCashInTotal > 0 ? [{ category: 'manualCashIn', direction: 'in', amount: manualCashInTotal }] : []),
+            ...(manualBankInTotal > 0 ? [{ category: 'manualBankIn', direction: 'in', amount: manualBankInTotal }] : []),
             ...Object.entries(outByCategory).map(([category, amount]) => ({ category, direction: 'out', amount })),
         ],
         series: seriesArr,

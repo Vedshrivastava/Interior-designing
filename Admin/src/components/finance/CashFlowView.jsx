@@ -9,7 +9,14 @@ import '../../styles/list.css';
 const today = () => new Date().toISOString().slice(0, 10);
 const firstOfMonth = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10); };
 
-const CATEGORY_LABEL = { receipt: 'Receipts', contractor: 'Contractor Payments', vendor: 'Vendor Payments', salary: 'Salary Payments', labour: 'Labour Payments', commission: 'Commission Payments', labourProvider: 'Labour Provider Payments', expense: 'Expenses' };
+const CATEGORY_LABEL = {
+    receipt: 'Receipts', vendorRefund: 'Vendor Refunds',
+    contractor: 'Contractor Payments', vendor: 'Vendor Payments', salary: 'Salary Payments',
+    labour: 'Labour Payments', commission: 'Commission Payments', labourProvider: 'Labour Provider Payments',
+    expense: 'Expenses', tdsDeposit: 'TDS Deposited',
+    manualCashIn: 'Manual Cash In', manualBankIn: 'Manual Bank In',
+    manualCash: 'Manual Cash Out', manualBank: 'Manual Bank Out',
+};
 
 const GROUP_BY_OPTIONS = [
     { value: 'day',   label: 'Day' },

@@ -823,6 +823,14 @@ const computeProjectProfit = async (projectId) => {
         revenue, materialCost, materialWasteCost, contractorCost, commissionCost, otherExpenses, labourCost, profit,
         totalContractorCost: contractorCostInfo.totalAmount, totalLabourCost: labourCostInfo.totalAmount,
         totalCommissionCost: commissionCostInfo.totalAmount,
+        // Same "everything ever logged, unconditional" shape as
+        // totalContractorCost/totalLabourCost/totalCommissionCost above —
+        // decidedCost (approved + rejected, pre-waste-reclassification) +
+        // pendingCost covers every 'consume' movement regardless of review
+        // status, so a project with real material usage but nothing
+        // approved yet reads as "Unapproved: totalMaterialCost logged"
+        // instead of a bare, misleading "Material Cost: ₹0".
+        totalMaterialCost: round2(materialCostSplit.decidedCost + materialCostSplit.pendingCost),
         // Approved sqft behind contractorCost/labourCost above — the "why"
         // behind those ₹ figures, same reasoning as the Dashboard's own
         // Contractor/Labour Teams - Approved sqft sub-line.

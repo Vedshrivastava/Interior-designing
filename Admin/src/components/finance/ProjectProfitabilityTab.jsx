@@ -130,7 +130,12 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                     sub={`Revenue ${formatINR(profit.revenue)} − Costs ${formatINR(profit.materialCost + profit.materialWasteCost + profit.contractorCost + profit.commissionCost + profit.labourCost + profit.otherExpenses)}`} />
                 <KpiCard label="Margin %" value={`${profit.marginPercent.toFixed(1)}%`} tone={profit.marginPercent >= 0 ? 'good' : 'danger'}
                     sub={`Profit ${formatINR(profit.profit)} on Revenue ${formatINR(profit.revenue)}`} />
-                <KpiCard label="Material Cost" value={formatINR(profit.materialCost)} sub="Weighted average cost of materials consumed (see Overview tab)" />
+                <KpiCard
+                    label="Material Cost (Approved)"
+                    value={profit.materialCost > 0 ? formatINR(profit.materialCost) : (profit.totalMaterialCost > 0 ? 'Unapproved' : formatINR(0))}
+                    tone={profit.materialCost > 0 ? 'good' : (profit.totalMaterialCost > 0 ? 'danger' : undefined)}
+                    sub={profit.unapprovedMaterialCost > 0 ? `Total logged: ${formatINR(profit.totalMaterialCost)}` : 'Weighted average cost of materials consumed (see Overview tab)'}
+                />
                 <KpiCard label="Material Waste Cost" value={formatINR(profit.materialWasteCost)} tone={profit.materialWasteCost > 0 ? 'danger' : undefined}
                     sub="Already counted in Profit above" />
                 <KpiCard

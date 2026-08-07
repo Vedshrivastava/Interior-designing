@@ -204,24 +204,43 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
             <KpiGrid>
                 <KpiCard label="Revenue" value={formatINR(profit.revenue)}
                     sub={receivable ? `${receivable.issuedBillCount} bill${receivable.issuedBillCount === 1 ? '' : 's'} issued to date` : undefined} />
-                <KpiCard label="Material Cost" value={formatINR(profit.materialCost)}
-                    sub={materials.length > 0 ? `${materials.length} material${materials.length === 1 ? '' : 's'} tracked` : undefined} />
+                <KpiCard
+                    label="Material Cost"
+                    value={profit.materialCost > 0 ? formatINR(profit.materialCost) : (profit.totalMaterialCost > 0 ? 'Unapproved' : formatINR(0))}
+                    tone={profit.materialCost > 0 ? 'good' : (profit.totalMaterialCost > 0 ? 'danger' : undefined)}
+                    sub={profit.unapprovedMaterialCost > 0 ? `Total logged: ${formatINR(profit.totalMaterialCost)}`
+                        : (materials.length > 0 ? `${materials.length} material${materials.length === 1 ? '' : 's'} tracked` : undefined)}
+                />
                 <KpiCard label="Material Waste Cost" value={formatINR(profit.materialWasteCost)} tone={profit.materialWasteCost > 0 ? 'danger' : undefined}
                     sub="Wasted material at the same rate it was bought — a real loss, already counted in Profit" />
-                <KpiCard label="Contractor Cost" value={formatINR(profit.contractorCost)}
+                <KpiCard
+                    label="Contractor Cost"
+                    value={profit.contractorCost > 0 ? formatINR(profit.contractorCost) : (profit.totalContractorCost > 0 ? 'Unapproved' : formatINR(0))}
+                    tone={profit.contractorCost > 0 ? 'good' : (profit.totalContractorCost > 0 ? 'danger' : undefined)}
                     sub={[
                         profit.approvedContractorAreaSqft > 0 ? `${profit.approvedContractorAreaSqft.toLocaleString('en-IN')} sqft approved` : null,
-                        profit.unapprovedContractorCost === 0 && profit.rejectedContractorCost > 0 ? `${formatINR(profit.rejectedContractorCost)} rejected (already settled)` : null,
-                    ].filter(Boolean).join('  ') || undefined} />
-                <KpiCard label="Commission Cost" value={formatINR(profit.commissionCost)}
+                        profit.unapprovedContractorCost > 0 ? `Total logged: ${formatINR(profit.totalContractorCost)}`
+                            : profit.rejectedContractorCost > 0 ? `${formatINR(profit.rejectedContractorCost)} rejected (already settled)` : null,
+                    ].filter(Boolean).join('  ') || undefined}
+                />
+                <KpiCard
+                    label="Commission Cost"
+                    value={profit.commissionCost > 0 ? formatINR(profit.commissionCost) : (profit.totalCommissionCost > 0 ? 'Unapproved' : formatINR(0))}
+                    tone={profit.commissionCost > 0 ? 'good' : (profit.totalCommissionCost > 0 ? 'danger' : undefined)}
                     sub={profit.unapprovedCommissionCost === 0 && profit.rejectedCommissionCost > 0
                         ? `${formatINR(profit.rejectedCommissionCost)} rejected (already settled)`
-                        : (profit.unapprovedCommissionCost > 0 ? `Total logged: ${formatINR(profit.totalCommissionCost)}` : undefined)} />
-                <KpiCard label="Labour Cost" value={formatINR(profit.labourCost)}
+                        : (profit.unapprovedCommissionCost > 0 ? `Total logged: ${formatINR(profit.totalCommissionCost)}` : undefined)}
+                />
+                <KpiCard
+                    label="Labour Cost"
+                    value={profit.labourCost > 0 ? formatINR(profit.labourCost) : (profit.totalLabourCost > 0 ? 'Unapproved' : formatINR(0))}
+                    tone={profit.labourCost > 0 ? 'good' : (profit.totalLabourCost > 0 ? 'danger' : undefined)}
                     sub={[
                         profit.approvedLabourAreaSqft > 0 ? `${profit.approvedLabourAreaSqft.toLocaleString('en-IN')} sqft approved` : null,
-                        profit.unapprovedLabourCost === 0 && profit.rejectedLabourCost > 0 ? `${formatINR(profit.rejectedLabourCost)} rejected (already settled)` : null,
-                    ].filter(Boolean).join('  ') || undefined} />
+                        profit.unapprovedLabourCost > 0 ? `Total logged: ${formatINR(profit.totalLabourCost)}`
+                            : profit.rejectedLabourCost > 0 ? `${formatINR(profit.rejectedLabourCost)} rejected (already settled)` : null,
+                    ].filter(Boolean).join('  ') || undefined}
+                />
                 <KpiCard label="Other Expenses" value={formatINR(profit.otherExpenses)}
                     sub={payables?.expenseCount > 0 ? `${payables.expenseCount} expense${payables.expenseCount === 1 ? '' : 's'} recorded` : undefined} />
                 <KpiCard label="Profit" value={formatINR(profit.profit)} tone={profit.profit >= 0 ? 'good' : 'danger'}

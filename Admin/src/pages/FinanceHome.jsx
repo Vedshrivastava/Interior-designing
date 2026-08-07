@@ -220,6 +220,55 @@ const FinanceHome = ({ url }) => {
                     <KpiCard hero loading={phase1Loading} icon={faMoneyBillWave} label="Total Expenses - Ongoing Projects" value={formatINR(summary?.totalExpensesAllTime)}
                         sub="All-time, excludes completed projects — everything actually spent: material used (incl. unapproved, since it can't be un-used), contractor/labour/commission cash paid, and other expenses"
                         tone="danger" />
+                    <KpiCard hero loading={phase1Loading} icon={faFileInvoiceDollar} label="Total Receivables"
+                        value={formatINR(
+                            (summary?.clientReceivables || 0) + (summary?.vendorCreditTotal || 0)
+                            + (summary?.contractorCreditTotal || 0) + (summary?.labourCreditTotal || 0)
+                        )}
+                        // Client Receivables is the main one (money clients
+                        // still owe against issued bills); Vendor/Contractor/
+                        // Labour Credit are the same concept from the other
+                        // direction — a party who's been overpaid or
+                        // over-returned-on owes the company back, a real
+                        // receivable too, just never blended into
+                        // vendorPayables/contractorPayables/labourPayables
+                        // themselves (see those cards' own comment on why).
+                        // Client Credit Balance is deliberately NOT included
+                        // — that's money the client paid ahead of billing,
+                        // which the company owes back via future bills, the
+                        // opposite direction from every other term here.
+                        sub={buildBreakdownSub([
+                            ['Client', summary?.clientReceivables],
+                            ['Vendor owes us', summary?.vendorCreditTotal],
+                            ['Contractor owes us', summary?.contractorCreditTotal],
+                            ['Labour owes us', summary?.labourCreditTotal],
+                        ])}
+                        onClick={() => navigate('/finance/clients')} tone="good" />
+                    <KpiCard hero loading={phase1Loading} icon={faFileInvoiceDollar} label="Total Payables"
+                        value={formatINR(
+                            (summary?.vendorPayables || 0) + (summary?.contractorPayables || 0) + (summary?.labourPayables || 0)
+                            + (summary?.commissionPayables || 0) + (summary?.salaryPayables || 0)
+                            + (summary?.expensePayables || 0) + (summary?.tdsPayable || 0)
+                        )}
+                        // expensePayables already includes Reimbursement
+                        // Payables (a subset, not a separate liability — see
+                        // that card's own comment), so it's deliberately left
+                        // out here to avoid double-counting. Salary uses the
+                        // overdue-only figure (salaryPayables), not
+                        // salaryExpectedThisMonth — the latter isn't actually
+                        // due yet, so it doesn't belong in a "what's owed
+                        // right now" total the same way every other term
+                        // here is.
+                        sub={buildBreakdownSub([
+                            ['Vendor', summary?.vendorPayables],
+                            ['Contractor', summary?.contractorPayables],
+                            ['Labour', summary?.labourPayables],
+                            ['Commission', summary?.commissionPayables],
+                            ['Salary (overdue)', summary?.salaryPayables],
+                            ['Expenses', summary?.expensePayables],
+                            ['TDS', summary?.tdsPayable],
+                        ])}
+                        tone="danger" />
                 </KpiGrid>
 
                 <KpiSectionLabel>Cash, Receivables &amp; Payables</KpiSectionLabel>

@@ -211,14 +211,14 @@ const FinanceHome = ({ url }) => {
                     <KpiCard hero loading={phase1Loading} icon={faArrowTrendUp} label="This Month Profit" value={formatINR(summary?.thisMonthProfit)}
                         sub={`Revenue ${formatINR(summary?.thisMonthRevenue)} − Costs ${formatINR(summary?.thisMonthTotalCost)}`}
                         onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.thisMonthProfit >= 0 ? 'good' : 'danger'} />
-                    <KpiCard hero loading={phase1Loading} icon={faMoneyBillWave} label="This Month Expense" value={formatINR(summary?.thisMonthExpense)}
+                    <KpiCard hero loading={phase1Loading} icon={faMoneyBillWave} label="This Month Miscellaneous Expense" value={formatINR(summary?.thisMonthExpense)}
                         sub={summary?.thisMonthExpenseCount > 0 ? `${summary.thisMonthExpenseCount} expense${summary.thisMonthExpenseCount === 1 ? '' : 's'} recorded this month` : undefined}
                         onClick={() => navigate('/finance/payables?tab=expenses')} />
-                    <KpiCard hero loading={phase1Loading} icon={faReceipt} label="Total Expense - Ongoing Projects" value={formatINR(summary?.totalExpenseToDate)} sub="All-time, excludes completed projects" onClick={() => navigate('/finance/payables?tab=expenses')} />
+                    <KpiCard hero loading={phase1Loading} icon={faReceipt} label="Total Miscellaneous Expense - Ongoing Projects" value={formatINR(summary?.totalExpenseToDate)} sub="All-time, excludes completed projects — misc./overhead expenses only (rent, tools, etc.); see Total Expenses below for everything" onClick={() => navigate('/finance/payables?tab=expenses')} />
                     <KpiCard hero loading={phase1Loading} icon={faArrowTrendUp} label="Total Approved Profit - Ongoing Projects" value={formatINR(summary?.totalApprovedProfitToDate)} sub="All-time, excludes completed projects" onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.totalApprovedProfitToDate >= 0 ? 'good' : 'danger'} />
                     <KpiCard hero loading={phase1Loading} icon={faTriangleExclamation} label="Material Wastage Loss - Ongoing Projects" value={formatINR(summary?.materialWasteCostToDate)} sub="All-time, excludes completed projects; already counted in Profit above" onClick={() => navigate('/finance/site-inventory')} tone={summary?.materialWasteCostToDate > 0 ? 'danger' : 'good'} />
                     <KpiCard hero loading={phase1Loading} icon={faMoneyBillWave} label="Total Expenses - Ongoing Projects" value={formatINR(summary?.totalExpensesAllTime)}
-                        sub="All-time, excludes completed projects — everything actually spent: material used (incl. unapproved, since it can't be un-used), contractor/labour/commission cash paid, and other expenses"
+                        sub="All-time, excludes completed projects — literally every expense: material used (incl. unapproved, since it can't be un-used), contractor/labour/commission/salary/labour provider/supervisor incentive cash paid, non-material vendor payments, miscellaneous expenses, and manual bank/cash out entries"
                         tone="danger" />
                     <KpiCard hero loading={phase1Loading} icon={faFileInvoiceDollar} label="Total Receivables"
                         value={formatINR(

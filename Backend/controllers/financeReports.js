@@ -687,34 +687,75 @@ const computeCompanyWideExpenseToDate = async () => {
     return round2(agg[0]?.total || 0);
 };
 
-// Cash actually disbursed to contractors/labourers/referrals, same
-// "ongoing projects + untagged" scoping as computeCompanyWideExpenseToDate
-// above (a null projectId — a general, not-tied-to-one-project advance/
-// payment — isn't in completedProjectIds either way, so it's naturally
-// still counted, same as an untagged FinanceExpense). Feeds the Dashboard's
-// Total Expenses card: unlike Material (counted in full regardless of
-// review — see computeProjectMaterialCostSplit's header comment), what's
-// merely been earned by a contractor/labourer isn't a confirmed expense
-// yet if it could still be rejected, so this counts actual disbursed cash
-// (advances + payments) instead of totalContractorCost/totalLabourCost.
+// Cash actually disbursed, same "ongoing projects + untagged" scoping as
+// computeCompanyWideExpenseToDate above (a null projectId — a general,
+// not-tied-to-one-project record — isn't in completedProjectIds either
+// way, so it's naturally still counted, same as an untagged FinanceExpense;
+// financeSalaryPayment has no projectId field at all, so it's always
+// counted in full, company-wide, same reasoning). Feeds the Dashboard's
+// Total Expenses card, meant to be genuinely comprehensive — "literally
+// every expense" — unlike Material (counted in full regardless of review —
+// see computeProjectMaterialCostSplit's header comment), Contractor/Labour/
+// Salary/Labour Provider/Commission/Supervisor Incentive count actual cash
+// disbursed (advances + payments) instead of what's merely been earned,
+// since that isn't a confirmed expense yet if it could still be rejected.
+//
+// Vendor Payments deliberately excludes:
+//   - isRefund: true rows — that's cash coming IN (the vendor paying the
+//     company back), not an expense.
+//   - payments to a 'material_supplier' vendor — already counted via
+//     Material Used (totalMaterialCost), which prices consumption at the
+//     weighted-average PURCHASE rate; also counting the cash paid for that
+//     same material would double it. Only 'other'-type vendors (equipment
+//     rental, professional services, anything not material or labour_
+//     contractor) are genuinely a separate, not-yet-counted expense here.
 const computeCompanyWidePaidExpenses = async () => {
     const completedProjectIds = await FinanceProject.distinct('_id', { status: 'completed', deleted: { $ne: true } });
-    const sumAmount = async (Model) => {
+    const scopeFilter = { deleted: { $ne: true }, projectId: { $nin: completedProjectIds } };
+    const sumAmount = async (Model, filter = scopeFilter) => {
         const agg = await Model.aggregate([
-            { $match: { deleted: { $ne: true }, projectId: { $nin: completedProjectIds } } },
+            { $match: filter },
             { $group: { _id: null, total: { $sum: '$amount' } } },
         ]);
         return round2(agg[0]?.total || 0);
     };
-    const [contractorAdvances, contractorPayments, labourAdvances, labourPayments, commissionPayments] = await Promise.all([
+    const [
+        contractorAdvances, contractorPayments, labourAdvances, labourPayments, commissionPayments,
+        salaryPayments, labourProviderPayments, supervisorIncentives,
+        nonRefundVendorPayments, otherVendorIds,
+        manualCashOut, manualBankOut,
+    ] = await Promise.all([
         sumAmount(FinanceContractorAdvance), sumAmount(FinanceContractorPayment),
         sumAmount(FinanceLabourAdvance), sumAmount(FinanceLabourPayment),
         sumAmount(FinanceCommissionPayment),
+        sumAmount(FinanceSalaryPayment, { deleted: { $ne: true } }),
+        sumAmount(FinanceLabourProviderPayment),
+        sumAmount(FinanceSupervisorIncentive),
+        FinanceVendorPayment.find({ ...scopeFilter, isRefund: { $ne: true } }, 'vendorId amount'),
+        FinanceVendor.distinct('_id', { vendorType: { $ne: 'material_supplier' } }),
+        sumAmount(FinanceCashEntry, { deleted: { $ne: true }, type: 'out' }),
+        sumAmount(FinanceBankEntry, { deleted: { $ne: true }, type: 'out' }),
     ]);
+    const otherVendorIdSet = new Set(otherVendorIds.map(id => id.toString()));
+    const vendorPaidNonMaterial = round2(nonRefundVendorPayments
+        .filter(p => otherVendorIdSet.has(p.vendorId?.toString()))
+        .reduce((s, p) => s + p.amount, 0));
+
     return {
         contractorPaid: round2(contractorAdvances + contractorPayments),
         labourPaid: round2(labourAdvances + labourPayments),
         commissionPaid: commissionPayments,
+        salaryPaid: salaryPayments,
+        labourProviderPaid: labourProviderPayments,
+        supervisorIncentivesPaid: supervisorIncentives,
+        vendorPaidNonMaterial,
+        // Manual entries with no other originating record (petty cash,
+        // owner draws, bank corrections) — see financeCashEntry.js/
+        // financeBankEntry.js's own comments. An owner draw is arguably an
+        // equity distribution rather than a true business expense, but
+        // included here for "literally every expense" completeness; revisit
+        // if that framing ever needs to split out separately.
+        manualOut: round2(manualCashOut + manualBankOut),
     };
 };
 
@@ -3165,204 +3206,6 @@ const computeCompanyWideMaterialCostInRange = async (start, end, projectIds = nu
     return total;
 };
 
-// Company-wide, date-scoped contractor cost — completedAreaSqft has no
-// history of its own, so this uses dated FinanceMeasurement rows (the only
-// dated record of "work done") as the proxy for when the area — and its
-// contractor cost — was actually incurred, same approximation the
-// project-progress chart relies on. Ungated (every logged measurement in
-// range counts, not just billed-to-client ones) — same reasoning as
-// computeWorkScopedReport: billing approval is a whole-Work snapshot, not
-// attributable to a specific date range, so a monthly cost trend shows
-// real costs incurred that month regardless of how far client billing has
-// caught up.
-// approvedOnly (used only by This Month Profit, never by the 6-month trend
-// chart, which deliberately stays ungated per the comment above): gates
-// each (work, vendor) in-range area down to its review-approved share,
-// using the exact same splitApprovedAreaByShare proportional-estimate
-// convention computeProjectContractorCost already applies to "one
-// work-level approved ceiling attributed across multiple contributors" —
-// here the "contributors" being split across are time buckets (this
-// month's area vs the work's lifetime area) instead of vendors.
-const computeCompanyWideContractorCostInRange = async (start, end, projectIds = null, approvedOnly = false) => {
-    const match = { date: { $gte: start, $lte: end }, deleted: { $ne: true } };
-    const measurements = await FinanceMeasurement.find(match).populate({ path: 'workId', select: 'projectId workType completedAreaSqft' });
-    const relevant = measurements.filter(m => m.workId && m.contractorVendorId && (!projectIds || projectIds.some(id => id.toString() === m.workId.projectId.toString())));
-    if (!relevant.length) return 0;
-
-    // Grouping key is (work, contractor vendor) rather than work alone, so
-    // a Work with more than one contributing contractor splits correctly.
-    const areaByWorkVendor = new Map(); // `${workId}_${contractorVendorId}` -> area
-    const workById = new Map();
-    const vendorIds = new Set();
-    for (const m of relevant) {
-        const work = m.workId;
-        const key = `${work._id}_${m.contractorVendorId}`;
-        areaByWorkVendor.set(key, (areaByWorkVendor.get(key) || 0) + m.areaCoveredSqft);
-        workById.set(work._id.toString(), work);
-        vendorIds.add(m.contractorVendorId.toString());
-    }
-    if (!areaByWorkVendor.size) return 0;
-
-    const works = [...workById.values()];
-    const projIds = [...new Set(works.map(w => w.projectId.toString()))];
-    // getCategoryApprovedAreaByWorkId, NOT the raw getApprovedBillingByWorkId
-    // ceiling — a Work's review approves contractor + labour sqft together
-    // as ONE combined number; handing that same raw ceiling to the
-    // contractor split here AND to the labour split in
-    // computeCompanyWideLabourCostInRange independently double-counts
-    // approved cost on any Work with both (see
-    // getCategoryApprovedAreaByWorkId's own header comment — this is the
-    // exact bug that function exists to prevent, this call site had just
-    // never been switched over to it).
-    const [rates, categoryApprovedByWorkId, allTimeContractorAgg] = await Promise.all([
-        FinanceContractorRate.find({ projectId: { $in: projIds }, contractorVendorId: { $in: [...vendorIds] }, deleted: { $ne: true } }),
-        approvedOnly ? getCategoryApprovedAreaByWorkId(works.map(w => w._id)) : Promise.resolve(new Map()),
-        // All-time (not date-ranged like `measurements` above) contractor-only
-        // total per work — the correct denominator for splitting an all-time
-        // reviewed ceiling proportionally. w.completedAreaSqft would be wrong
-        // here: it's the work's COMBINED contractor+labour total, mismatched
-        // against contractorApprovedAreaSqft's contractor-only numerator.
-        approvedOnly ? FinanceMeasurement.aggregate([
-            { $match: { workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } } },
-            { $group: { _id: '$workId', total: { $sum: '$areaCoveredSqft' } } },
-        ]) : Promise.resolve([]),
-    ]);
-    const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.contractorVendorId}_${r.workType}`, r]));
-    const workContractorTotalArea = new Map(allTimeContractorAgg.map(r => [r._id.toString(), r.total]));
-
-    let total = 0;
-    for (const [key, area] of areaByWorkVendor) {
-        const [workId, vendorId] = key.split('_');
-        const w = workById.get(workId);
-        const rate = rateByKey.get(`${w.projectId}_${vendorId}_${w.workType}`);
-        if (!rate) continue;
-        const countedArea = approvedOnly
-            ? splitApprovedAreaByShare(categoryApprovedByWorkId.get(workId)?.contractorApprovedAreaSqft || 0, area, workContractorTotalArea.get(workId) || 0)
-            : area;
-        total += countedArea * rate.ratePerSqft;
-    }
-    return total;
-};
-
-// Mirrors computeCompanyWideContractorCostInRange, at individual-labourer
-// granularity — no engineerApproved gate (financeLabourMeasurement has none).
-const computeCompanyWideLabourCostInRange = async (start, end, projectIds = null, approvedOnly = false) => {
-    const match = { date: { $gte: start, $lte: end }, deleted: { $ne: true } };
-    const measurements = await FinanceLabourMeasurement.find(match).populate({ path: 'workId', select: 'projectId workType completedAreaSqft' });
-    const relevant = measurements.filter(m => m.workId && (!projectIds || projectIds.some(id => id.toString() === m.workId.projectId.toString())));
-    if (!relevant.length) return 0;
-
-    const areaByWorkLabourer = new Map(); // `${workId}_${labourerId}` -> area
-    const workById = new Map();
-    const labourerIds = new Set();
-    for (const m of relevant) {
-        const work = m.workId;
-        const key = `${work._id}_${m.labourerId}`;
-        areaByWorkLabourer.set(key, (areaByWorkLabourer.get(key) || 0) + m.areaCoveredSqft);
-        workById.set(work._id.toString(), work);
-        labourerIds.add(m.labourerId.toString());
-    }
-    if (!areaByWorkLabourer.size) return 0;
-
-    const works = [...workById.values()];
-    const projIds = [...new Set(works.map(w => w.projectId.toString()))];
-    // See computeCompanyWideContractorCostInRange's identical comment — same
-    // category-split fix, same correct (all-time, labour-only) denominator.
-    const [rates, categoryApprovedByWorkId, allTimeLabourAgg] = await Promise.all([
-        FinanceLabourRate.find({ projectId: { $in: projIds }, labourerId: { $in: [...labourerIds] }, deleted: { $ne: true } }),
-        approvedOnly ? getCategoryApprovedAreaByWorkId(works.map(w => w._id)) : Promise.resolve(new Map()),
-        approvedOnly ? FinanceLabourMeasurement.aggregate([
-            { $match: { workId: { $in: works.map(w => w._id) }, deleted: { $ne: true } } },
-            { $group: { _id: '$workId', total: { $sum: '$areaCoveredSqft' } } },
-        ]) : Promise.resolve([]),
-    ]);
-    const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.labourerId}_${r.workType}`, r]));
-    const workLabourTotalArea = new Map(allTimeLabourAgg.map(r => [r._id.toString(), r.total]));
-
-    let total = 0;
-    for (const [key, area] of areaByWorkLabourer) {
-        const [workId, labourerId] = key.split('_');
-        const w = workById.get(workId);
-        const rate = rateByKey.get(`${w.projectId}_${labourerId}_${w.workType}`);
-        if (!rate) continue;
-        const countedArea = approvedOnly
-            ? splitApprovedAreaByShare(categoryApprovedByWorkId.get(workId)?.labourApprovedAreaSqft || 0, area, workLabourTotalArea.get(workId) || 0)
-            : area;
-        total += countedArea * rate.ratePerSqft;
-    }
-    return total;
-};
-
-// Same measurement-date proxy as the contractor-cost helper above, scoped
-// to projects that actually have a referral vendor (commission only applies
-// there). Known gap: Advance projects' referralCommissionAmount is a flat
-// manual figure with no date of its own, so it never contributes to this
-// date-ranged view (only to the lifetime computeProjectCommissionCost) —
-// same class of approximation as everything else in this function.
-//
-// BUG FIX: this used to source areaByWork from FinanceMeasurement
-// (contractor-side) only — a Work whose in-range activity was entirely
-// labour-side (or mostly so) had that area silently missing from the
-// "was there activity here this month" area weight, undercounting This
-// Month's commission cost on any project with real labour contribution
-// (commission is earned on the Work's whole completedAreaSqft, contractor
-// + labour combined, same as computeProjectCommissionCost — there's no
-// contractor-only carve-out for referral commission).
-const computeCompanyWideCommissionCostInRange = async (start, end, projectIds = null, approvedOnly = false) => {
-    const match = { date: { $gte: start, $lte: end }, deleted: { $ne: true } };
-    const [contractorMeasurements, labourMeasurements] = await Promise.all([
-        FinanceMeasurement.find(match).populate({ path: 'workId', select: 'projectId workType completedAreaSqft' }),
-        FinanceLabourMeasurement.find(match).populate({ path: 'workId', select: 'projectId workType completedAreaSqft' }),
-    ]);
-    const relevant = [...contractorMeasurements, ...labourMeasurements]
-        .filter(m => m.workId && (!projectIds || projectIds.some(id => id.toString() === m.workId.projectId.toString())));
-    if (!relevant.length) return 0;
-
-    const candidateProjectIds = [...new Set(relevant.map(m => m.workId.projectId.toString()))];
-    const referralProjects = await FinanceProject.find({ _id: { $in: candidateProjectIds }, referralId: { $ne: null } }, '_id');
-    const referralProjectIds = new Set(referralProjects.map(p => p._id.toString()));
-    if (!referralProjectIds.size) return 0;
-
-    // Grouped per-work (not just per project+workType, though the two are
-    // equivalent for the ungated total since cost is linear in area) so the
-    // approvedOnly gate below can attribute each work's single approved
-    // ceiling proportionally, same convention as the contractor/labour
-    // siblings above.
-    const areaByWork = new Map(); // workId -> area (contractor + labour combined)
-    const workById = new Map();
-    for (const m of relevant) {
-        const work = m.workId;
-        const pid = work.projectId.toString();
-        if (!referralProjectIds.has(pid)) continue;
-        const key = work._id.toString();
-        areaByWork.set(key, (areaByWork.get(key) || 0) + m.areaCoveredSqft);
-        workById.set(key, work);
-    }
-    if (!areaByWork.size) return 0;
-
-    const works = [...workById.values()];
-    const [rates, approvedBillingByWorkId] = await Promise.all([
-        FinanceWorkTypeRate.find({ projectId: { $in: [...referralProjectIds] }, deleted: { $ne: true } }),
-        approvedOnly ? getApprovedBillingByWorkId(works.map(w => w._id)) : Promise.resolve(new Map()),
-    ]);
-    const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.workType}`, r.referralRatePerSqft]));
-
-    let total = 0;
-    for (const [workId, area] of areaByWork) {
-        const w = workById.get(workId);
-        const rate = rateByKey.get(`${w.projectId}_${w.workType}`) || 0;
-        // Rejected sqft is never owed commission — only genuinely-approved
-        // sqft counts as real cost here (the rejected-exclusion fix used
-        // elsewhere in this file is for "Unapproved" DISPLAY figures only,
-        // never for a cost figure like this one).
-        const countedArea = approvedOnly
-            ? splitApprovedAreaByShare(approvedBillingByWorkId.get(workId)?.areaSqft || 0, area, w.completedAreaSqft)
-            : area;
-        total += countedArea * rate;
-    }
-    return total;
-};
-
 // Counts a material once if it's short at ANY active project — same
 // per-(project, material) definition as Site Inventory's company-wide view
 // (getInventorySummary above), so the two never disagree on the same
@@ -3876,6 +3719,56 @@ const computeLabourBalancesForProject = async (projectId, works) => {
     }));
 };
 
+// BUG FIX: This Month Profit (and the Revenue-vs-Cost trend chart, which
+// deliberately mirrors it) used to gate contractor/labour/commission/
+// material cost to "reviewed" via computeCompanyWideContractorCostInRange's
+// approvedOnly=true mode — but that mode still filtered the underlying
+// FinanceMeasurement rows by *measurement date*, then applied the Work's
+// CURRENT approved share to only that month's slice of area. A Work
+// measured in an earlier month but only reviewed (and billed) this month
+// showed 100% of its Revenue this month with ~0% of its cost — the
+// measurement date the cost was keyed off had already passed, so almost no
+// area fell inside this month's window to even apply the approved-share
+// gate to. Confirmed live: a bill issued today against a Work measured back
+// in July showed "This Month Profit" exactly equal to Revenue.
+//
+// Cost only becomes a confirmed, billable-matched liability at the moment
+// of review (the same gate Generate Bill itself requires before a Work's
+// sqft can be billed at all) — so review date, not measurement date, is
+// the basis that actually lines up with Revenue's own billing-date
+// recognition. Reuses computeWorkProfit (already the single source of
+// truth for one Work's approved cost, including the material decided/
+// pending split) rather than re-deriving the same proportional-share math
+// a third time.
+//
+// Material Waste is deliberately NOT included here — it's a real physical
+// loss with no approval gate of its own (see computeProjectMaterialWasteCost's
+// own comment), genuinely tied to when the waste stock movement happened,
+// not to review timing — so it stays on the old, correctly date-scoped
+// computeCompanyWideMaterialCostInRange(..., 'waste') call at both sites
+// below.
+//
+// KNOWN LIMITATION: financeWorkReview is a running total, not an
+// append-only ledger (see that model's own comment) — only the LATEST
+// review's timestamp and ceiling are ever available. A Work reviewed more
+// than once folds its entire CURRENT approved cost into whichever month
+// the most recent review landed in, even if part of that ceiling was
+// already approved in an earlier review/month. Accepted as a rare edge
+// case against a straightforward, provably-correct fix for the far more
+// common single-review case.
+const computeReviewedCostsInRange = async (start, end) => {
+    const reviews = await FinanceWorkReview.find({ lastReviewedAt: { $gte: start, $lte: end } }, 'workId');
+    if (!reviews.length) return { materialCost: 0, contractorCost: 0, labourCost: 0, commissionCost: 0 };
+    const works = await FinanceWork.find({ _id: { $in: reviews.map(r => r.workId) }, deleted: { $ne: true } });
+    const profiles = await Promise.all(works.map(w => computeWorkProfit(w)));
+    return {
+        materialCost: round2(profiles.reduce((s, p) => s + p.materialCost, 0)),
+        contractorCost: round2(profiles.reduce((s, p) => s + p.contractorCost, 0)),
+        labourCost: round2(profiles.reduce((s, p) => s + p.labourCost, 0)),
+        commissionCost: round2(profiles.reduce((s, p) => s + p.commissionCost, 0)),
+    };
+};
+
 // Tier-0 Company Dashboard KPIs — every number here is meant to be a
 // doorway into a Tier-1/Tier-2 page, not a granular breakdown of its own.
 const getDashboardSummary = async (req, res) => {
@@ -4024,25 +3917,21 @@ const getDashboardSummary = async (req, res) => {
         // just-completed project's cost from the same month its revenue
         // still counted, overstating This Month Profit.
         //
-        // Contractor/labour/commission cost here is approvedOnly=true —
-        // unlike getDashboardTrends' 6-month chart (deliberately ungated,
-        // see that function's own comment), This Month Profit only counts
-        // cost that's actually been reviewed, same "unapproved/unpaid
-        // shouldn't count as profit-eaten cost yet" rule already applied to
-        // Project Profit. Expense is unconditional (accrual — real cost
-        // incurred regardless of payment timing). Salary is cash-basis —
-        // see computeSalaryPaidInRange's own comment for why it's different
+        // Contractor/labour/commission/material cost here is keyed off
+        // review date, not measurement date — see computeReviewedCostsInRange's
+        // header comment for the full reasoning (the bug it fixes, and why
+        // Material Waste stays on the old date-scoped call below). Expense
+        // is unconditional (accrual — real cost incurred regardless of
+        // payment timing). Salary is cash-basis — see
+        // computeSalaryPaidInRange's own comment for why it's different
         // from expense here.
-        const [monthMaterialCost, monthMaterialWasteCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth, expensePayableBreakdown, totalExpenseToDate, reimbursementRows, companyWidePaidExpenses] = await Promise.all([
-            computeCompanyWideMaterialCostInRange(monthStart, monthEnd),
+        const [monthMaterialWasteCost, reviewedCosts, monthExpenseAgg, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth, expensePayableBreakdown, totalExpenseToDate, reimbursementRows, companyWidePaidExpenses] = await Promise.all([
             computeCompanyWideMaterialCostInRange(monthStart, monthEnd, null, 'waste'),
-            computeCompanyWideContractorCostInRange(monthStart, monthEnd, null, true),
-            computeCompanyWideCommissionCostInRange(monthStart, monthEnd, null, true),
+            computeReviewedCostsInRange(monthStart, monthEnd),
             FinanceExpense.aggregate([
                 { $match: { date: { $gte: monthStart, $lte: monthEnd }, deleted: { $ne: true } } },
                 { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } },
             ]),
-            computeCompanyWideLabourCostInRange(monthStart, monthEnd, null, true),
             computeDashboardApprovedBreakdown(),
             computeLabourAnalysisRows(),
             computeCompanyWideCommissionBreakdown(),
@@ -4054,6 +3943,7 @@ const getDashboardSummary = async (req, res) => {
             computeReimbursementRows(),
             computeCompanyWidePaidExpenses(),
         ]);
+        const { materialCost: monthMaterialCost, contractorCost: monthContractorCost, labourCost: monthLabourCost, commissionCost: monthCommissionCost } = reviewedCosts;
         const thisMonthRevenue = monthRevenueAgg[0]?.total || 0;
         const thisMonthRevenueBillCount = monthRevenueAgg[0]?.count || 0;
         const thisMonthExpense = monthExpenseAgg[0]?.total || 0;
@@ -4183,22 +4073,30 @@ const getDashboardSummary = async (req, res) => {
                 // overhead only (completed projects excluded) — see
                 // computeCompanyWideExpenseToDate's own comment.
                 totalExpenseToDate,
-                // Everything the company has actually spent, company-wide,
-                // ongoing projects + untagged only (completed projects
-                // excluded — same reasoning/scoping as totalExpenseToDate
-                // above and totalApprovedProfitToDate below: a completed
-                // project's spend is already settled history, not part of
-                // "what's currently going out the door"). Material counts in
-                // full regardless of review (see computeProjectMaterialCostSplit's
-                // header comment — used material can't be un-used); Contractor/
-                // Labour/Commission count actual cash disbursed, not merely
-                // earned (see computeCompanyWidePaidExpenses' own comment).
+                // Literally every expense — everything the company has
+                // actually spent, company-wide, ongoing projects + untagged
+                // only (completed projects excluded — same reasoning/scoping
+                // as totalExpenseToDate above and totalApprovedProfitToDate
+                // below: a completed project's spend is already settled
+                // history, not part of "what's currently going out the
+                // door"). Material counts in full regardless of review (see
+                // computeProjectMaterialCostSplit's header comment — used
+                // material can't be un-used); every payment category counts
+                // actual cash disbursed, not merely earned (see
+                // computeCompanyWidePaidExpenses' own comment for the full
+                // breakdown and why Vendor Payments/manual entries are
+                // handled the way they are).
                 totalExpensesAllTime: round2(
                     ongoingProjectProfits.reduce((s, p) => s + p.totalMaterialCost, 0)
                     + materialWasteCostToDate
                     + companyWidePaidExpenses.contractorPaid
                     + companyWidePaidExpenses.labourPaid
                     + companyWidePaidExpenses.commissionPaid
+                    + companyWidePaidExpenses.salaryPaid
+                    + companyWidePaidExpenses.labourProviderPaid
+                    + companyWidePaidExpenses.supervisorIncentivesPaid
+                    + companyWidePaidExpenses.vendorPaidNonMaterial
+                    + companyWidePaidExpenses.manualOut
                     + totalExpenseToDate
                 ),
                 runningBillsReady: readyProjectIds.length,
@@ -4260,34 +4158,29 @@ const getDashboardTrends = async (req, res) => {
             monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
         }
 
-        // Same cost terms and same approvedOnly=true gate on contractor/
-        // labour/commission that This Month Profit uses (getDashboardSummary
-        // above) — this used to run ungated and without salary, so a bar
-        // here could include large amounts of still-unreviewed contractor/
-        // labour/commission cost the rest of the dashboard doesn't count
-        // yet, while simultaneously omitting salary entirely. Both are now
-        // the exact same formula, just repeated per month instead of once
-        // for the current month, so a bar means what the KPI cards mean.
+        // Same cost terms and same review-date basis on contractor/labour/
+        // commission/material that This Month Profit uses
+        // (computeReviewedCostsInRange, see its own header comment) — both
+        // are the exact same formula, just repeated per month instead of
+        // once for the current month, so a bar means what the KPI cards mean.
         const revenueVsCost = await Promise.all(monthKeys.map(async (monthKey) => {
             const { start, end } = monthBounds(monthKey);
-            const [revenueAgg, materialCost, materialWasteCost, contractorCost, commissionCost, expenseAgg, labourCost, salaryCost] = await Promise.all([
+            const [revenueAgg, materialWasteCost, reviewedCosts, expenseAgg, salaryCost] = await Promise.all([
                 FinanceRunningBill.aggregate([
                     { $match: { status: 'issued', billDate: { $gte: start, $lte: end }, deleted: { $ne: true } } },
                     { $group: { _id: null, total: { $sum: '$totalAmount' } } },
                 ]),
-                computeCompanyWideMaterialCostInRange(start, end),
                 computeCompanyWideMaterialCostInRange(start, end, null, 'waste'),
-                computeCompanyWideContractorCostInRange(start, end, null, true),
-                computeCompanyWideCommissionCostInRange(start, end, null, true),
+                computeReviewedCostsInRange(start, end),
                 FinanceExpense.aggregate([
                     { $match: { date: { $gte: start, $lte: end }, deleted: { $ne: true } } },
                     { $group: { _id: null, total: { $sum: '$amount' } } },
                 ]),
-                computeCompanyWideLabourCostInRange(start, end, null, true),
                 computeSalaryPaidInRange(start, end),
             ]);
             const revenue = revenueAgg[0]?.total || 0;
-            const cost = materialCost + materialWasteCost + contractorCost + commissionCost + (expenseAgg[0]?.total || 0) + labourCost + salaryCost;
+            const cost = reviewedCosts.materialCost + materialWasteCost + reviewedCosts.contractorCost + reviewedCosts.commissionCost
+                + (expenseAgg[0]?.total || 0) + reviewedCosts.labourCost + salaryCost;
             return { month: monthKey, revenue, cost };
         }));
 

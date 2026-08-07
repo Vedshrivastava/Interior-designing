@@ -2096,6 +2096,17 @@ const getWorkDetail = async (req, res) => {
                 // their own explicit key rather than relying on the spread.
                 materialCost: workProfit.materialCost, materialWasteCost: workProfit.materialWasteCost,
                 unapprovedMaterialCost: workProfit.unapprovedMaterialCost, totalMaterialCost: workProfit.totalMaterialCost,
+                // All-time, unconditional, per-party — distinct from the
+                // `contractorBreakdown`/`labourBreakdown` in the `report`
+                // spread above (that one's the Day/Month/AllTime *scoped*
+                // earnings table, keyed by `.earnings`). This one carries
+                // `.totalAmount` (this Work's own share of that party's
+                // total earnings, all-time, regardless of review status) —
+                // needed to work out this Work's proportional share of what
+                // was actually paid to each party project-wide, since a
+                // payment itself is never recorded against one specific Work.
+                allTimeContractorBreakdown: workProfit.contractorBreakdown,
+                allTimeLabourBreakdown: workProfit.labourBreakdown,
                 // Commission (Approved) — same review-gated shape as
                 // Contractor/Labour Cost above, attributed to just this
                 // Work's own workType rate. Zero for projects with no

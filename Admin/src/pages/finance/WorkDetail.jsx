@@ -103,7 +103,10 @@ const WorkDetail = ({ url }) => {
             // see ProjectDetail.jsx's identical comment on why commission
             // isn't cleanly project-scoped.
             axios.get(`${url}/api/finance/commission-payments/list`, { ...authHeader, params: { projectId } }),
-        ]).then(([vendorRes, contractorRes, labourRes, expenseRes, commissionPaymentRes]) => {
+            // Project-wide total commission earnings (all works, unconditional)
+            // — the denominator for this Work's own proportional share below.
+            axios.get(`${url}/api/finance/reports/project-profit`, { ...authHeader, params: { projectId } }),
+        ]).then(([vendorRes, contractorRes, labourRes, expenseRes, commissionPaymentRes, projectProfitRes]) => {
             const sumPositive = (rows, key) => Math.round(rows.reduce((s, r) => s + Math.max(0, r[key]), 0) * 100) / 100;
             // See ProjectDetail.jsx's identical helper — the credit side of
             // the same balance, never netted against the payable figures.
@@ -113,6 +116,14 @@ const WorkDetail = ({ url }) => {
                 ? Math.round(commissionPaymentRes.data.data.reduce((s, p) => s + p.amount, 0) * 100) / 100
                 : 0;
             setPayables({
+                // Raw per-vendor/per-labourer rows (not just the summed
+                // breakdown below) — needed to work out THIS Work's own
+                // proportional share of what was actually paid to each party,
+                // since advances/payments settle a party's whole relationship
+                // on the project, never one specific Work directly.
+                contractorRows: contractorRes.data.success ? contractorRes.data.data : [],
+                labourRows: labourRes.data.success ? labourRes.data.data : [],
+                totalCommissionCostProject: projectProfitRes.data.success ? (projectProfitRes.data.data.totalCommissionCost || 0) : 0,
                 vendorPaymentLeft: vendorRes.data.success ? sumPositive(vendorRes.data.data, 'amountOwed') : 0,
                 contractorBalancePayable: contractorRes.data.success ? sumPositive(contractorRes.data.data, 'balancePayable') : 0,
                 labourBalancePayable: labourRes.data.success ? sumPositive(labourRes.data.data, 'balancePayable') : 0,
@@ -289,6 +300,61 @@ const WorkDetail = ({ url }) => {
                         sub="Wasted material at the same rate it was bought — a real loss, already counted in Profit" />
                 </KpiGrid>
 
+                {/* Distinct from Approved Cost above on purpose — that's
+                    approval-gated (unreviewed work might still get
+                    rejected). This answers "how much has actually left the
+                    company so far, for THIS Work specifically": Material
+                    counts this Work's own full consumed amount (used
+                    material can't be un-used, review or no review).
+                    Contractor/Labour/Commission Paid are never recorded
+                    against one specific Work (an advance/payment/commission
+                    payment settles a party's whole relationship on the
+                    project) — so each party's own project-wide Paid amount
+                    is split proportionally by their earnings share on THIS
+                    Work vs. their total earnings on the whole project, same
+                    proportional-allocation principle
+                    computeContractorAnalysisRows already uses to split an
+                    untagged advance/payment across a vendor's several
+                    projects, just one level down (works within one project
+                    instead of projects for one vendor). */}
+                {payables && (() => {
+                    const shareOfPaid = (workRows, projectRows) => (workRows || []).reduce((sum, b) => {
+                        const idKey = b.vendorId || b.labourerId;
+                        const projectRow = (projectRows || []).find(r => (r.vendorId || r.labourerId)?.toString() === idKey?.toString());
+                        if (!projectRow || !projectRow.totalAmount) return sum;
+                        const share = b.totalAmount / projectRow.totalAmount;
+                        return sum + share * ((projectRow.advances || 0) + (projectRow.payments || 0));
+                    }, 0);
+                    const contractorPaidThisWork = shareOfPaid(data.allTimeContractorBreakdown, payables.contractorRows);
+                    const labourPaidThisWork = shareOfPaid(data.allTimeLabourBreakdown, payables.labourRows);
+                    const commissionShare = payables.totalCommissionCostProject > 0 ? data.totalCommissionAmount / payables.totalCommissionCostProject : 0;
+                    const commissionPaidThisWork = commissionShare * (payables.commissionPaid || 0);
+                    const totalExpensesThisWork = (data.totalMaterialCost || 0) + (data.materialWasteCost || 0)
+                        + contractorPaidThisWork + labourPaidThisWork + commissionPaidThisWork;
+                    return (
+                        <>
+                            <KpiSectionLabel>Total Expenses So Far — This Work</KpiSectionLabel>
+                            <KpiGrid>
+                                <KpiCard
+                                    label="Total Expenses"
+                                    value={formatINR(totalExpensesThisWork)}
+                                    tone="danger"
+                                    sub={[
+                                        data.totalMaterialCost > 0 ? `Material ${formatINR(data.totalMaterialCost)}` : null,
+                                        data.materialWasteCost > 0 ? `Waste ${formatINR(data.materialWasteCost)}` : null,
+                                        contractorPaidThisWork > 0 ? `Contractor ${formatINR(contractorPaidThisWork)}` : null,
+                                        labourPaidThisWork > 0 ? `Labour ${formatINR(labourPaidThisWork)}` : null,
+                                        commissionPaidThisWork > 0 ? `Commission ${formatINR(commissionPaidThisWork)}` : null,
+                                    ].filter(Boolean).join('  ')}
+                                />
+                            </KpiGrid>
+                            <p className="admin-subtitle" style={{ padding: '0 0 16px' }}>
+                                Everything actually spent on this specific Work — Material counts every bit consumed here, review or no review (it can&apos;t be un-used). Contractor/Labour/Commission Paid are estimated: each party&apos;s project-wide Paid amount (advances + payments) is split by this Work&apos;s share of their total earnings on the project, since a payment itself is never recorded against one specific Work.
+                            </p>
+                        </>
+                    );
+                })()}
+
                 {(data.unapprovedAreaSqft > 0 || data.unapprovedCommissionAmount > 0) && (
                     <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1fr' }}>
@@ -348,33 +414,6 @@ const WorkDetail = ({ url }) => {
 
                 {payables && (
                     <div style={{ marginBottom: '24px' }}>
-                        {/* Distinct from Approved Cost above on purpose — that's
-                            approval-gated (unreviewed work might still get
-                            rejected). This answers "how much has actually left
-                            the company so far": Material counts this Work's own
-                            full consumed amount (used material can't be
-                            un-used, review or no review); Contractor/Labour/
-                            Commission count real cash disbursed project-wide
-                            (advances/payments/commission payments aren't
-                            tracked per individual Work, same limitation the
-                            Payables row below already carries). */}
-                        <p className="admin-subtitle" style={{ marginBottom: '4px' }}>
-                            Total Expenses So Far — {formatINR(
-                                (data.totalMaterialCost || 0) + (data.materialWasteCost || 0)
-                                + (payables.contractorBreakdown?.advances || 0) + (payables.contractorBreakdown?.payments || 0)
-                                + (payables.labourBreakdown?.advances || 0) + (payables.labourBreakdown?.payments || 0)
-                                + (payables.commissionPaid || 0)
-                            )}
-                        </p>
-                        <p className="admin-subtitle" style={{ marginBottom: '10px' }}>
-                            {buildBreakdownSub([
-                                ['Material Used (this Work)', data.totalMaterialCost],
-                                ['Material Waste (this Work)', data.materialWasteCost],
-                                ['Contractor Paid (project-wide)', payables.contractorBreakdown?.advances + payables.contractorBreakdown?.payments],
-                                ['Labour Paid (project-wide)', payables.labourBreakdown?.advances + payables.labourBreakdown?.payments],
-                                ['Commission Paid (project-wide)', payables.commissionPaid],
-                            ])}
-                        </p>
                         <p className="admin-subtitle" style={{ marginBottom: '10px' }}>
                             Payables — everything {data.projectName} still owes, right now (project-wide, not just this Work; Contractor/Labour count approved earnings only, same as everywhere else).
                         </p>

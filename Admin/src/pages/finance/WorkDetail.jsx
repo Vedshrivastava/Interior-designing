@@ -99,12 +99,19 @@ const WorkDetail = ({ url }) => {
             axios.get(`${url}/api/finance/reports/contractor-analysis`, { ...authHeader, params: { projectId } }),
             axios.get(`${url}/api/finance/reports/labour-analysis`, { ...authHeader, params: { projectId } }),
             axios.get(`${url}/api/finance/expenses/list`, { ...authHeader, params: { projectId } }),
-        ]).then(([vendorRes, contractorRes, labourRes, expenseRes]) => {
+            // Only commission payments explicitly tagged to this project —
+            // see ProjectDetail.jsx's identical comment on why commission
+            // isn't cleanly project-scoped.
+            axios.get(`${url}/api/finance/commission-payments/list`, { ...authHeader, params: { projectId } }),
+        ]).then(([vendorRes, contractorRes, labourRes, expenseRes, commissionPaymentRes]) => {
             const sumPositive = (rows, key) => Math.round(rows.reduce((s, r) => s + Math.max(0, r[key]), 0) * 100) / 100;
             // See ProjectDetail.jsx's identical helper — the credit side of
             // the same balance, never netted against the payable figures.
             const sumNegative = (rows, key) => Math.round(rows.reduce((s, r) => s + Math.max(0, -r[key]), 0) * 100) / 100;
             const sumPlain = (rows, key) => Math.round(rows.reduce((s, r) => s + (r[key] || 0), 0) * 100) / 100;
+            const commissionPaid = commissionPaymentRes.data.success
+                ? Math.round(commissionPaymentRes.data.data.reduce((s, p) => s + p.amount, 0) * 100) / 100
+                : 0;
             setPayables({
                 vendorPaymentLeft: vendorRes.data.success ? sumPositive(vendorRes.data.data, 'amountOwed') : 0,
                 contractorBalancePayable: contractorRes.data.success ? sumPositive(contractorRes.data.data, 'balancePayable') : 0,
@@ -135,6 +142,7 @@ const WorkDetail = ({ url }) => {
                     directPaymentTotal: sumPlain(labourRes.data.data, 'directPaymentTotal'),
                     payments: sumPlain(labourRes.data.data, 'payments'),
                 } : null,
+                commissionPaid,
             });
         }).catch(() => {});
     };
@@ -340,6 +348,33 @@ const WorkDetail = ({ url }) => {
 
                 {payables && (
                     <div style={{ marginBottom: '24px' }}>
+                        {/* Distinct from Approved Cost above on purpose — that's
+                            approval-gated (unreviewed work might still get
+                            rejected). This answers "how much has actually left
+                            the company so far": Material counts this Work's own
+                            full consumed amount (used material can't be
+                            un-used, review or no review); Contractor/Labour/
+                            Commission count real cash disbursed project-wide
+                            (advances/payments/commission payments aren't
+                            tracked per individual Work, same limitation the
+                            Payables row below already carries). */}
+                        <p className="admin-subtitle" style={{ marginBottom: '4px' }}>
+                            Total Expenses So Far — {formatINR(
+                                (data.totalMaterialCost || 0) + (data.materialWasteCost || 0)
+                                + (payables.contractorBreakdown?.advances || 0) + (payables.contractorBreakdown?.payments || 0)
+                                + (payables.labourBreakdown?.advances || 0) + (payables.labourBreakdown?.payments || 0)
+                                + (payables.commissionPaid || 0)
+                            )}
+                        </p>
+                        <p className="admin-subtitle" style={{ marginBottom: '10px' }}>
+                            {buildBreakdownSub([
+                                ['Material Used (this Work)', data.totalMaterialCost],
+                                ['Material Waste (this Work)', data.materialWasteCost],
+                                ['Contractor Paid (project-wide)', payables.contractorBreakdown?.advances + payables.contractorBreakdown?.payments],
+                                ['Labour Paid (project-wide)', payables.labourBreakdown?.advances + payables.labourBreakdown?.payments],
+                                ['Commission Paid (project-wide)', payables.commissionPaid],
+                            ])}
+                        </p>
                         <p className="admin-subtitle" style={{ marginBottom: '10px' }}>
                             Payables — everything {data.projectName} still owes, right now (project-wide, not just this Work; Contractor/Labour count approved earnings only, same as everywhere else).
                         </p>

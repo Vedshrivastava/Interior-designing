@@ -53,15 +53,25 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                 axios.get(`${url}/api/finance/reports/labour-analysis`, { ...authHeader, params: { projectId } }),
                 axios.get(`${url}/api/finance/reports/vendor-analysis`, { ...authHeader, params: { projectId } }),
                 axios.get(`${url}/api/finance/expenses/list`, { ...authHeader, params: { projectId } }),
+                axios.get(`${url}/api/finance/commission-payments/list`, { ...authHeader, params: { projectId } }),
             ];
             if (BILLABLE_CONTRACT_TYPES.includes(contractType)) {
                 requests.push(axios.get(`${url}/api/finance/receivables/summary`, { ...authHeader, params: { projectId } }));
             }
-            const [profitRes, contractorRes, labourRes, vendorRes, expenseRes, receivableRes] = await Promise.all(requests);
+            const [profitRes, contractorRes, labourRes, vendorRes, expenseRes, commissionPaymentRes, receivableRes] = await Promise.all(requests);
             if (profitRes.data.success) setProfit(profitRes.data.data);
             if (contractorRes.data.success) setContractors(contractorRes.data.data.filter(r => r.totalAmount > 0));
             if (labourRes.data.success) setLabourers(labourRes.data.data.filter(r => r.totalAmount > 0));
             if (receivableRes?.data.success) setReceivable(receivableRes.data.data);
+            // Commission payments actually made against this project — no
+            // company-wide "commission analysis" endpoint like contractor/
+            // labour have, so summed directly from the raw payment list
+            // instead (a commission payment is always tagged to one project,
+            // unlike contractor/labour advances/payments which can be
+            // untagged and proportionally allocated).
+            const commissionPaid = commissionPaymentRes.data.success
+                ? Math.round(commissionPaymentRes.data.data.reduce((s, p) => s + p.amount, 0) * 100) / 100
+                : 0;
 
             const sumPositive = (rows, key) => Math.round(rows.reduce((s, r) => s + Math.max(0, r[key]), 0) * 100) / 100;
             // See ProjectDetail.jsx's identical helper — the credit side of
@@ -101,6 +111,7 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                     payments: sumPlain(labourRes.data.data, 'payments'),
                     tdsTotal: sumPlain(labourRes.data.data, 'tdsTotal'),
                 } : null,
+                commissionPaid,
             });
         } catch { toast.error('Error fetching profitability data'); }
         finally { setLoading(false); }
@@ -167,6 +178,44 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                 <KpiCard label="Other Expenses" value={formatINR(profit.otherExpenses)}
                     sub={payables?.expenseCount > 0 ? `${payables.expenseCount} expense${payables.expenseCount === 1 ? '' : 's'} recorded` : undefined} />
             </KpiGrid>
+
+            {/* Distinct from Profit's own Costs above on purpose — Profit only
+                counts approval-gated cost (matching revenue recognition:
+                unreviewed contractor/labour work might still get rejected, so
+                no confirmed liability exists for it yet). This is a different
+                question — "how much has actually left the company so far" —
+                so Material counts its FULL consumed amount (used material
+                can't be un-used regardless of review status) while Contractor/
+                Labour/Commission count actual cash disbursed (Advances +
+                Payments/Payments made), not what's merely been earned. */}
+            {payables && (
+                <>
+                    <KpiSectionLabel>Total Expenses So Far</KpiSectionLabel>
+                    <KpiGrid>
+                        <KpiCard
+                            label="Total Expenses"
+                            value={formatINR(
+                                (profit.totalMaterialCost || 0) + (profit.materialWasteCost || 0)
+                                + (payables.contractorBreakdown?.advances || 0) + (payables.contractorBreakdown?.payments || 0)
+                                + (payables.labourBreakdown?.advances || 0) + (payables.labourBreakdown?.payments || 0)
+                                + (payables.commissionPaid || 0) + (profit.otherExpenses || 0)
+                            )}
+                            tone="danger"
+                            sub={buildBreakdownSub([
+                                ['Material Used', profit.totalMaterialCost],
+                                ['Material Waste', profit.materialWasteCost],
+                                ['Contractor Paid', (payables.contractorBreakdown?.advances || 0) + (payables.contractorBreakdown?.payments || 0)],
+                                ['Labour Paid', (payables.labourBreakdown?.advances || 0) + (payables.labourBreakdown?.payments || 0)],
+                                ['Commission Paid', payables.commissionPaid],
+                                ['Other Expenses', profit.otherExpenses],
+                            ])}
+                        />
+                    </KpiGrid>
+                    <p className="admin-subtitle" style={{ padding: '0 0 16px' }}>
+                        Everything the company has actually spent on this project — Material Used counts every bit consumed so far, review or no review (it can't be un-used); Contractor/Labour/Commission count real cash disbursed (advances + payments), not just what's been earned.
+                    </p>
+                </>
+            )}
 
             {payables && (
                 <>

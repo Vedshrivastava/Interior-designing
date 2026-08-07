@@ -686,6 +686,37 @@ const computeCompanyWideExpenseToDate = async () => {
     return round2(agg[0]?.total || 0);
 };
 
+// Cash actually disbursed to contractors/labourers/referrals, same
+// "ongoing projects + untagged" scoping as computeCompanyWideExpenseToDate
+// above (a null projectId — a general, not-tied-to-one-project advance/
+// payment — isn't in completedProjectIds either way, so it's naturally
+// still counted, same as an untagged FinanceExpense). Feeds the Dashboard's
+// Total Expenses card: unlike Material (counted in full regardless of
+// review — see computeProjectMaterialCostSplit's header comment), what's
+// merely been earned by a contractor/labourer isn't a confirmed expense
+// yet if it could still be rejected, so this counts actual disbursed cash
+// (advances + payments) instead of totalContractorCost/totalLabourCost.
+const computeCompanyWidePaidExpenses = async () => {
+    const completedProjectIds = await FinanceProject.distinct('_id', { status: 'completed', deleted: { $ne: true } });
+    const sumAmount = async (Model) => {
+        const agg = await Model.aggregate([
+            { $match: { deleted: { $ne: true }, projectId: { $nin: completedProjectIds } } },
+            { $group: { _id: null, total: { $sum: '$amount' } } },
+        ]);
+        return round2(agg[0]?.total || 0);
+    };
+    const [contractorAdvances, contractorPayments, labourAdvances, labourPayments, commissionPayments] = await Promise.all([
+        sumAmount(FinanceContractorAdvance), sumAmount(FinanceContractorPayment),
+        sumAmount(FinanceLabourAdvance), sumAmount(FinanceLabourPayment),
+        sumAmount(FinanceCommissionPayment),
+    ]);
+    return {
+        contractorPaid: round2(contractorAdvances + contractorPayments),
+        labourPaid: round2(labourAdvances + labourPayments),
+        commissionPaid: commissionPayments,
+    };
+};
+
 // Cash-basis salary cost for This Month Profit — actual payments made this
 // calendar month (by payment date, not which pay-period they're for), not
 // accrual. Unlike material/expense (accrual — real cost incurred, whether
@@ -3965,7 +3996,7 @@ const getDashboardSummary = async (req, res) => {
         // incurred regardless of payment timing). Salary is cash-basis —
         // see computeSalaryPaidInRange's own comment for why it's different
         // from expense here.
-        const [monthMaterialCost, monthMaterialWasteCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth, expensePayableBreakdown, totalExpenseToDate, reimbursementRows] = await Promise.all([
+        const [monthMaterialCost, monthMaterialWasteCost, monthContractorCost, monthCommissionCost, monthExpenseAgg, monthLabourCost, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth, expensePayableBreakdown, totalExpenseToDate, reimbursementRows, companyWidePaidExpenses] = await Promise.all([
             computeCompanyWideMaterialCostInRange(monthStart, monthEnd),
             computeCompanyWideMaterialCostInRange(monthStart, monthEnd, null, 'waste'),
             computeCompanyWideContractorCostInRange(monthStart, monthEnd, null, true),
@@ -3984,6 +4015,7 @@ const getDashboardSummary = async (req, res) => {
             computeCompanyWideExpensePayable(),
             computeCompanyWideExpenseToDate(),
             computeReimbursementRows(),
+            computeCompanyWidePaidExpenses(),
         ]);
         const thisMonthRevenue = monthRevenueAgg[0]?.total || 0;
         const thisMonthRevenueBillCount = monthRevenueAgg[0]?.count || 0;
@@ -4114,6 +4146,24 @@ const getDashboardSummary = async (req, res) => {
                 // overhead only (completed projects excluded) — see
                 // computeCompanyWideExpenseToDate's own comment.
                 totalExpenseToDate,
+                // Everything the company has actually spent, company-wide,
+                // ongoing projects + untagged only (completed projects
+                // excluded — same reasoning/scoping as totalExpenseToDate
+                // above and totalApprovedProfitToDate below: a completed
+                // project's spend is already settled history, not part of
+                // "what's currently going out the door"). Material counts in
+                // full regardless of review (see computeProjectMaterialCostSplit's
+                // header comment — used material can't be un-used); Contractor/
+                // Labour/Commission count actual cash disbursed, not merely
+                // earned (see computeCompanyWidePaidExpenses' own comment).
+                totalExpensesAllTime: round2(
+                    ongoingProjectProfits.reduce((s, p) => s + p.totalMaterialCost, 0)
+                    + materialWasteCostToDate
+                    + companyWidePaidExpenses.contractorPaid
+                    + companyWidePaidExpenses.labourPaid
+                    + companyWidePaidExpenses.commissionPaid
+                    + totalExpenseToDate
+                ),
                 runningBillsReady: readyProjectIds.length,
                 activeProjects: activeProjectsCount,
                 activeWorks: activeWorksCount,

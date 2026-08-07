@@ -75,11 +75,22 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                 axios.get(`${url}/api/finance/reports/contractor-analysis`, { ...authHeader, params: { projectId } }),
                 axios.get(`${url}/api/finance/reports/labour-analysis`, { ...authHeader, params: { projectId } }),
                 axios.get(`${url}/api/finance/expenses/list`, { ...authHeader, params: { projectId } }),
+                // Only commission payments explicitly tagged to this project —
+                // see this component's own comment above on why commission
+                // isn't cleanly project-scoped (a referral's payment can
+                // settle against their whole portfolio); this is a real but
+                // partial figure, not a proportional allocation the way
+                // contractor/labour advances/payments get.
+                axios.get(`${url}/api/finance/commission-payments/list`, { ...authHeader, params: { projectId } }),
             ];
             if (BILLABLE_CONTRACT_TYPES.includes(contractType)) {
                 requests.push(axios.get(`${url}/api/finance/receivables/summary`, { ...authHeader, params: { projectId } }));
             }
-            const [profitRes, materialRes, vendorRes, contractorRes, labourRes, expenseRes, receivableRes] = await Promise.all(requests);
+            const [profitRes, materialRes, vendorRes, contractorRes, labourRes, expenseRes, commissionPaymentRes, receivableRes] = await Promise.all(requests);
+            const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+            const commissionPaid = commissionPaymentRes.data.success
+                ? round2(commissionPaymentRes.data.data.reduce((s, p) => s + p.amount, 0))
+                : 0;
             if (profitRes.data.success) setProfit(profitRes.data.data);
             if (materialRes.data.success) setMaterials(materialRes.data.data);
             if (vendorRes.data.success) {
@@ -99,7 +110,6 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
             // per row first, so one overpaid contractor can't quietly net
             // against a different contractor's real balance due on the same
             // project (same reasoning as the Client Credit Balance fix).
-            const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
             const sumPositive = (rows, key) => round2(rows.reduce((s, r) => s + Math.max(0, r[key]), 0));
             // Mirror of sumPositive for the other side of the same balance —
             // a party whose returns/payments/deductions already exceed what's
@@ -148,6 +158,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                     payments: sumPlain(labourRes.data.data, 'payments'),
                     tdsTotal: sumPlain(labourRes.data.data, 'tdsTotal'),
                 } : null,
+                commissionPaid,
             });
         } catch {
             // Overview degrades gracefully — sections just show empty state.
@@ -248,6 +259,47 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                 <KpiCard label="Margin %" value={`${Math.round(profit.marginPercent * 10) / 10}%`} tone={profit.marginPercent >= 0 ? 'good' : 'danger'}
                     sub={`Profit ${formatINR(profit.profit)} on Revenue ${formatINR(profit.revenue)}`} />
             </KpiGrid>
+
+            {/* Distinct from Profit's own Costs above on purpose — Profit only
+                counts approval-gated cost (unreviewed contractor/labour work
+                might still get rejected, so no confirmed liability exists for
+                it yet). This answers a different question — "how much has
+                actually left the company so far" — so Material counts its
+                FULL consumed amount (used material can't be un-used
+                regardless of review status) while Contractor/Labour/
+                Commission count actual cash disbursed (advances + payments),
+                not what's merely been earned. */}
+            {payables && (
+                <div className="dash-chart-card ov-card" style={{ marginBottom: '24px' }}>
+                    <p className="dash-chart-title">Total Expenses So Far</p>
+                    <div className="stat-grid">
+                        <div className="stat-block">
+                            <span className="stat-block-label">Total Expenses</span>
+                            <span className="stat-block-value" style={{ color: '#c0392b' }}>
+                                {formatINR(
+                                    (profit.totalMaterialCost || 0) + (profit.materialWasteCost || 0)
+                                    + (payables.contractorBreakdown?.advances || 0) + (payables.contractorBreakdown?.payments || 0)
+                                    + (payables.labourBreakdown?.advances || 0) + (payables.labourBreakdown?.payments || 0)
+                                    + (payables.commissionPaid || 0) + (profit.otherExpenses || 0)
+                                )}
+                            </span>
+                        </div>
+                    </div>
+                    <p className="admin-subtitle" style={{ padding: '8px 20px 0' }}>
+                        {buildBreakdownSub([
+                            ['Material Used', profit.totalMaterialCost],
+                            ['Material Waste', profit.materialWasteCost],
+                            ['Contractor Paid', (payables.contractorBreakdown?.advances || 0) + (payables.contractorBreakdown?.payments || 0)],
+                            ['Labour Paid', (payables.labourBreakdown?.advances || 0) + (payables.labourBreakdown?.payments || 0)],
+                            ['Commission Paid', payables.commissionPaid],
+                            ['Other Expenses', profit.otherExpenses],
+                        ])}
+                    </p>
+                    <p className="admin-subtitle" style={{ padding: '4px 20px 16px' }}>
+                        Everything the company has actually spent on this project — Material Used counts every bit consumed so far, review or no review (it can&apos;t be un-used); Contractor/Labour count real cash disbursed (advances + payments), not just what&apos;s been earned.
+                    </p>
+                </div>
+            )}
 
             {/* Stat grids, not a table — each of these is one record's worth
                 of labelled figures, not a repeating list, so auto-fit/minmax

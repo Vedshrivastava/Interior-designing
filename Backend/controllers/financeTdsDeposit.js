@@ -74,6 +74,17 @@ const removeTdsDeposit = async (req, res) => {
         broadcast({ type: 'financeTdsDepositsChanged' });
         broadcast({ type: 'financeCashBookChanged' });
         if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
+
+        await logActivity({
+            eventType: 'tds_deposit_deleted',
+            entityType: 'financeTdsDeposit',
+            entityId: item._id,
+            projectId: null,
+            summary: `TDS deposit deleted${item.challanNumber ? ` (Challan ${item.challanNumber})` : ''}`,
+            amount: item.amount,
+            req,
+        });
+
         res.json({ success: true, message: 'TDS deposit removed' });
     } catch (err) {
         console.error(err);

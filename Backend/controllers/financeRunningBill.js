@@ -332,6 +332,17 @@ const removeRunningBill = async (req, res) => {
         await item.save();
 
         broadcast({ type: 'financeRunningBillsChanged', projectId: item.projectId });
+
+        await logActivity({
+            eventType: 'running_bill_deleted',
+            entityType: 'financeRunningBill',
+            entityId: item._id,
+            projectId: item.projectId,
+            summary: `Running Bill #${item.billNumber} deleted`,
+            amount: item.totalAmount,
+            req,
+        });
+
         res.json({ success: true, message: `Bill #${item.billNumber} moved to recovery bin — its sqft is available to approve again` });
     } catch (err) {
         console.error(err);

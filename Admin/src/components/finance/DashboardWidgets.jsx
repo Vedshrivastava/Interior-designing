@@ -332,6 +332,50 @@ export const ACTIVITY_META = {
     site_diary_entry: { tone: 'neutral', icon: faClipboardList },
     site_diary_issue_resolved: { tone: 'neutral', icon: faClipboardList },
     bank_transfer: { tone: 'neutral', icon: faBuildingColumns },
+    // Delete/restore counterparts — until these existed, Recent Activity
+    // only ever grew (every create logged, nothing ever logged going back
+    // out), so a delete-then-re-add correction looked identical to two
+    // separate real transactions piling up, and a Recovery Bin restore left
+    // no trace at all. Kept `neutral` regardless of the creation event's own
+    // tone: these are corrective/administrative actions, not a fresh
+    // inflow/outflow — reusing the creation event's own icon just keeps the
+    // same entity reading as the same picture in the feed.
+    contractor_payment_deleted: { tone: 'neutral', icon: faHardHat },
+    contractor_advance_deleted: { tone: 'neutral', icon: faHardHat },
+    contractor_deduction_deleted: { tone: 'neutral', icon: faHardHat },
+    labour_payment_deleted: { tone: 'neutral', icon: faPersonDigging },
+    labour_advance_deleted: { tone: 'neutral', icon: faPersonDigging },
+    labour_deduction_deleted: { tone: 'neutral', icon: faPersonDigging },
+    labour_provider_payment_deleted: { tone: 'neutral', icon: faPersonDigging },
+    salary_payment_deleted: { tone: 'neutral', icon: faUsers },
+    supervisor_incentive_deleted: { tone: 'neutral', icon: faUsers },
+    supervisor_deduction_deleted: { tone: 'neutral', icon: faUsers },
+    commission_payment_deleted: { tone: 'neutral', icon: faHandHoldingDollar },
+    client_direct_payment_deleted: { tone: 'neutral', icon: faHandHoldingDollar },
+    expense_deleted: { tone: 'neutral', icon: faReceipt },
+    expense_payment_deleted: { tone: 'neutral', icon: faReceipt },
+    purchase_deleted: { tone: 'neutral', icon: faBoxOpen },
+    stock_return_deleted: { tone: 'neutral', icon: faBoxOpen },
+    stock_dumped_deleted: { tone: 'neutral', icon: faBoxOpen },
+    stock_returned_deleted: { tone: 'neutral', icon: faBoxOpen },
+    stock_wasted_deleted: { tone: 'neutral', icon: faTriangleExclamation },
+    vendor_payment_deleted: { tone: 'neutral', icon: faBoxOpen },
+    vendor_refund_deleted: { tone: 'neutral', icon: faBoxOpen },
+    receipt_deleted: { tone: 'neutral', icon: faFileInvoiceDollar },
+    running_bill_deleted: { tone: 'neutral', icon: faFileInvoiceDollar },
+    runningBill_restored: { tone: 'neutral', icon: faFileInvoiceDollar },
+    runningBill_permanently_deleted: { tone: 'neutral', icon: faFileInvoiceDollar },
+    tds_deposit_deleted: { tone: 'neutral', icon: faFileInvoiceDollar },
+    project_deleted: { tone: 'neutral', icon: faBuilding },
+    project_restored: { tone: 'neutral', icon: faBuilding },
+    project_permanently_deleted: { tone: 'neutral', icon: faBuilding },
+    work_restored: { tone: 'neutral', icon: faClipboardList },
+    work_permanently_deleted: { tone: 'neutral', icon: faClipboardList },
+    purchase_restored: { tone: 'neutral', icon: faBoxOpen },
+    purchase_permanently_deleted: { tone: 'neutral', icon: faBoxOpen },
+    client_quotation_deleted: { tone: 'neutral', icon: faFileInvoice },
+    site_diary_entry_deleted: { tone: 'neutral', icon: faClipboardList },
+    bank_transfer_deleted: { tone: 'neutral', icon: faBuildingColumns },
 };
 export const DEFAULT_ACTIVITY_META = { tone: 'neutral', icon: faClipboardList };
 

@@ -97,6 +97,19 @@ const removeReceipt = async (req, res) => {
         broadcast({ type: 'financeReceiptsChanged', projectId: item.projectId, clientId: item.clientId });
         broadcast({ type: 'financeCashBookChanged' });
         if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
+
+        const client = await FinanceClient.findById(item.clientId).select('name');
+        await logActivity({
+            eventType: 'receipt_deleted',
+            entityType: 'financeReceipt',
+            entityId: item._id,
+            projectId: item.projectId,
+            summary: `Receipt from ${client?.name || 'client'} deleted`,
+            entityNames: client?.name ? [client.name] : [],
+            amount: item.amount,
+            req,
+        });
+
         res.json({ success: true, message: 'Receipt removed' });
     } catch (err) {
         console.error(err);

@@ -202,6 +202,22 @@ const removePurchase = async (req, res) => {
 
         broadcast({ type: 'financePurchasesChanged', projectId: item.projectId, vendorId: item.vendorId });
         broadcast({ type: 'financeStockChanged', projectId: item.projectId });
+
+        const [vendor, material] = await Promise.all([
+            FinanceVendor.findById(item.vendorId).select('name'),
+            FinanceMaterial.findById(item.materialId).select('name unit'),
+        ]);
+        await logActivity({
+            eventType: item.transactionType === 'return' ? 'stock_return_deleted' : 'purchase_deleted',
+            entityType: 'financePurchase',
+            entityId: item._id,
+            projectId: item.projectId || null,
+            summary: `${item.quantity} ${material?.unit || ''} of ${material?.name || 'material'} — ${item.transactionType === 'return' ? 'return' : 'purchase'} deleted`,
+            entityNames: vendor?.name ? [vendor.name] : [],
+            amount: item.totalAmount,
+            req,
+        });
+
         res.json({ success: true, message: `${item.transactionType === 'return' ? 'Return' : 'Purchase'} removed` });
     } catch (err) {
         console.error(err);

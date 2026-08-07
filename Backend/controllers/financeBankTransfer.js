@@ -59,6 +59,20 @@ const removeBankTransfer = async (req, res) => {
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
         broadcast({ type: 'financeBankAccountsChanged' });
+
+        const [fromAccount, toAccount] = await Promise.all([
+            FinanceBankAccount.findById(item.fromAccountId).select('accountName'),
+            FinanceBankAccount.findById(item.toAccountId).select('accountName'),
+        ]);
+        await logActivity({
+            eventType: 'bank_transfer_deleted',
+            entityType: 'financeBankTransfer',
+            entityId: item._id,
+            summary: `Transfer from ${fromAccount?.accountName || 'account'} to ${toAccount?.accountName || 'account'} deleted`,
+            amount: item.amount,
+            req,
+        });
+
         res.json({ success: true, message: 'Transfer removed' });
     } catch (err) {
         console.error(err);

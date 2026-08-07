@@ -16,6 +16,7 @@ import FinanceStockMovement from '../models/financeStockMovement.js';
 import FinanceClientDocument from '../models/financeClientDocument.js';
 import FinanceProjectDocument from '../models/financeProjectDocument.js';
 import { broadcast } from '../middlewares/webSocket.js';
+import { logActivity } from '../utils/financeActivityLog.js';
 
 dotenv.config();
 cloudinary.config({
@@ -107,6 +108,24 @@ const restoreFinanceItem = async (req, res) => {
 
         broadcast({ type: 'binChanged' });
         broadcast({ type: cfg.changed });
+
+        // One call here covers restore for every type this Recovery Bin
+        // handles — Recent Activity used to only ever show the original
+        // "created" entry for these, so a delete-then-restore cycle left no
+        // trace, reading like the item had simply always been there (or,
+        // worse, like a second one had appeared if it was recreated instead
+        // of restored). See the matching *_deleted logActivity calls added
+        // alongside each entity's own soft-delete for the other half of this.
+        await logActivity({
+            eventType: `${_type}_restored`,
+            entityType: cfg.model.modelName,
+            entityId: item._id,
+            projectId: item.projectId || null,
+            summary: `${cfg.label} "${cfg.name(item)}" restored`,
+            entityNames: [cfg.name(item)],
+            req,
+        });
+
         res.json({ success: true, message: `"${cfg.name(item)}" restored` });
     } catch (err) {
         console.error(err);
@@ -135,6 +154,17 @@ const permanentDeleteFinanceItem = async (req, res) => {
         await cfg.model.findByIdAndDelete(_id);
         broadcast({ type: 'binChanged' });
         broadcast({ type: cfg.changed });
+
+        await logActivity({
+            eventType: `${_type}_permanently_deleted`,
+            entityType: cfg.model.modelName,
+            entityId: item._id,
+            projectId: item.projectId || null,
+            summary: `${cfg.label} "${cfg.name(item)}" permanently deleted`,
+            entityNames: [cfg.name(item)],
+            req,
+        });
+
         res.json({ success: true, message: `"${cfg.name(item)}" permanently deleted` });
     } catch (err) {
         console.error(err);

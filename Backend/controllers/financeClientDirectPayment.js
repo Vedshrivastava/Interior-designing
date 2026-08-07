@@ -199,6 +199,19 @@ const removeClientDirectPayment = async (req, res) => {
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
         broadcast({ type: 'clientDirectPaymentsChanged', projectId: item.projectId, partyType: item.partyType, partyId: item.partyId });
+
+        const party = await assertParty(item.partyType, item.partyId).catch(() => null);
+        await logActivity({
+            eventType: 'client_direct_payment_deleted',
+            entityType: 'financeClientDirectPayment',
+            entityId: item._id,
+            projectId: item.projectId,
+            summary: `Client direct payment to ${party?.name || 'Unknown'} deleted`,
+            entityNames: party ? [party.name] : [],
+            amount: item.amount,
+            req,
+        });
+
         res.json({ success: true, message: 'Client direct payment removed' });
     } catch (err) {
         console.error(err);

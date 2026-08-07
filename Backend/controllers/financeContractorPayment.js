@@ -138,6 +138,19 @@ const removeContractorPayment = async (req, res) => {
         broadcast({ type: 'financeContractorLedgerChanged', vendorId: item.vendorId });
         broadcast({ type: 'financeCashBookChanged' });
         if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
+
+        const vendor = await assertContractorVendor(item.vendorId).catch(() => null);
+        await logActivity({
+            eventType: 'contractor_payment_deleted',
+            entityType: 'financeContractorPayment',
+            entityId: item._id,
+            projectId: item.projectId || null,
+            summary: `Payment to contractor ${vendor?.name || 'Unknown'} deleted`,
+            entityNames: vendor ? [vendor.name] : [],
+            amount: item.amount,
+            req,
+        });
+
         res.json({ success: true, message: 'Payment removed' });
     } catch (err) {
         console.error(err);

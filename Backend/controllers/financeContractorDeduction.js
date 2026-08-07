@@ -100,6 +100,19 @@ const removeContractorDeduction = async (req, res) => {
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
         broadcast({ type: 'financeContractorLedgerChanged', vendorId: item.vendorId });
+
+        const vendor = await assertContractorVendor(item.vendorId).catch(() => null);
+        await logActivity({
+            eventType: 'contractor_deduction_deleted',
+            entityType: 'financeContractorDeduction',
+            entityId: item._id,
+            projectId: item.projectId || null,
+            summary: `Deduction from ${vendor?.name || 'Unknown'} deleted`,
+            entityNames: vendor ? [vendor.name] : [],
+            amount: item.amount,
+            req,
+        });
+
         res.json({ success: true, message: 'Deduction removed' });
     } catch (err) {
         console.error(err);

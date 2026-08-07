@@ -62,6 +62,19 @@ const removeSupervisorDeduction = async (req, res) => {
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
         broadcast({ type: 'financeSupervisorDeductionsChanged', employeeId: item.employeeId });
+
+        const employee = await FinanceEmployee.findById(item.employeeId).select('name');
+        await logActivity({
+            eventType: 'supervisor_deduction_deleted',
+            entityType: 'financeSupervisorDeduction',
+            entityId: item._id,
+            projectId: item.projectId || null,
+            summary: `Deduction from ${employee?.name || 'employee'} deleted`,
+            entityNames: employee?.name ? [employee.name] : [],
+            amount: item.amount,
+            req,
+        });
+
         res.json({ success: true, message: 'Deduction removed' });
     } catch (err) {
         console.error(err);

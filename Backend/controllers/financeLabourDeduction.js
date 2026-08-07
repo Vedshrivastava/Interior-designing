@@ -118,6 +118,19 @@ const removeLabourDeduction = async (req, res) => {
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
         broadcast({ type: 'financeLabourLedgerChanged', labourerId: item.labourerId });
+
+        const labourer = await FinanceLabourer.findById(item.labourerId).select('name');
+        await logActivity({
+            eventType: 'labour_deduction_deleted',
+            entityType: 'financeLabourDeduction',
+            entityId: item._id,
+            projectId: item.projectId || null,
+            summary: `Deduction from ${labourer?.name || 'Unknown'} deleted`,
+            entityNames: labourer ? [labourer.name] : [],
+            amount: item.amount,
+            req,
+        });
+
         res.json({ success: true, message: 'Deduction removed — note: any linked supervisor incentive was not automatically reversed, remove it separately if needed' });
     } catch (err) {
         console.error(err);

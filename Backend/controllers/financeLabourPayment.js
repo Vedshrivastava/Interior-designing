@@ -86,6 +86,19 @@ const removeLabourPayment = async (req, res) => {
         broadcast({ type: 'financeLabourLedgerChanged', labourerId: item.labourerId });
         broadcast({ type: 'financeCashBookChanged' });
         if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
+
+        const labourer = await FinanceLabourer.findById(item.labourerId).select('name');
+        await logActivity({
+            eventType: 'labour_payment_deleted',
+            entityType: 'financeLabourPayment',
+            entityId: item._id,
+            projectId: item.projectId || null,
+            summary: `Payment to ${labourer?.name || 'Unknown'} deleted`,
+            entityNames: labourer ? [labourer.name] : [],
+            amount: item.amount,
+            req,
+        });
+
         res.json({ success: true, message: 'Payment removed' });
     } catch (err) {
         console.error(err);

@@ -102,6 +102,19 @@ const removeCommissionPayment = async (req, res) => {
         broadcast({ type: 'financeCommissionPaymentsChanged', referralId: item.referralId });
         broadcast({ type: 'financeCashBookChanged' });
         if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
+
+        const referral = await assertReferralVendor(item.referralId).catch(() => null);
+        await logActivity({
+            eventType: 'commission_payment_deleted',
+            entityType: 'financeCommissionPayment',
+            entityId: item._id,
+            projectId: item.projectId || null,
+            summary: `Commission payment to ${referral?.name || 'Unknown'} deleted`,
+            entityNames: referral ? [referral.name] : [],
+            amount: item.amount,
+            req,
+        });
+
         res.json({ success: true, message: 'Commission payment removed' });
     } catch (err) {
         console.error(err);

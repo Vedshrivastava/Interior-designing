@@ -588,6 +588,17 @@ const removeFinanceProject = async (req, res) => {
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
         broadcast({ type: 'financeProjectsChanged' });
+
+        await logActivity({
+            eventType: 'project_deleted',
+            entityType: 'financeProject',
+            entityId: item._id,
+            projectId: item._id,
+            summary: `Project "${item.name}" deleted`,
+            entityNames: [item.name],
+            req,
+        });
+
         res.json({ success: true, message: `"${item.name}" moved to recovery bin` });
     } catch (err) {
         console.error(err);

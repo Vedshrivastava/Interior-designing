@@ -89,6 +89,16 @@ const removeSiteDiaryEntry = async (req, res) => {
         await item.save();
 
         broadcast({ type: 'financeSiteDiaryChanged', projectId: item.projectId });
+
+        await logActivity({
+            eventType: 'site_diary_entry_deleted',
+            entityType: 'financeSiteDiary',
+            entityId: item._id,
+            projectId: item.projectId,
+            summary: `Site Diary: ${item.entryType === 'issue' ? 'Issue' : 'Note'} deleted — ${item.note.slice(0, 80)}`,
+            req,
+        });
+
         res.json({ success: true, message: 'Entry removed' });
     } catch (err) {
         console.error(err);

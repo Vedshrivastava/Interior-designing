@@ -105,6 +105,18 @@ const removeSalaryPayment = async (req, res) => {
         broadcast({ type: 'financeSalaryPaymentsChanged', employeeId: item.employeeId });
         broadcast({ type: 'financeCashBookChanged' });
         if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
+
+        const employee = await FinanceEmployee.findById(item.employeeId).select('name');
+        await logActivity({
+            eventType: 'salary_payment_deleted',
+            entityType: 'financeSalaryPayment',
+            entityId: item._id,
+            summary: `Salary payment to ${employee?.name || 'employee'} for ${item.month} deleted`,
+            entityNames: employee?.name ? [employee.name] : [],
+            amount: item.amount,
+            req,
+        });
+
         res.json({ success: true, message: 'Salary payment removed' });
     } catch (err) {
         console.error(err);

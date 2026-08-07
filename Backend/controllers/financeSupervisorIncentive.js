@@ -83,6 +83,19 @@ const removeSupervisorIncentive = async (req, res) => {
         );
         broadcast({ type: 'financeSupervisorIncentivesChanged', employeeId: item.employeeId });
         broadcast({ type: 'financeCashBookChanged' });
+
+        const employee = await FinanceEmployee.findById(item.employeeId).select('name');
+        await logActivity({
+            eventType: 'supervisor_incentive_deleted',
+            entityType: 'financeSupervisorIncentive',
+            entityId: item._id,
+            projectId: item.projectId || null,
+            summary: `Incentive to ${employee?.name || 'employee'} deleted`,
+            entityNames: employee?.name ? [employee.name] : [],
+            amount: item.amount,
+            req,
+        });
+
         res.json({ success: true, message: 'Incentive removed' });
     } catch (err) {
         console.error(err);

@@ -94,6 +94,20 @@ const removeStockMovement = async (req, res) => {
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
         broadcast({ type: 'financeStockChanged', projectId: item.projectId });
+
+        const [material, project] = await Promise.all([
+            FinanceMaterial.findById(item.materialId).select('name unit'),
+            FinanceProject.findById(item.projectId).select('name'),
+        ]);
+        await logActivity({
+            eventType: `${EVENT_TYPE_BY_MOVEMENT[item.movementType] || 'stock_movement'}_deleted`,
+            entityType: 'financeStockMovement',
+            entityId: item._id,
+            projectId: item.projectId,
+            summary: `${item.quantity} ${material?.unit || ''} of ${material?.name || 'material'} — ${item.movementType} entry deleted at ${project?.name || 'project'}`,
+            req,
+        });
+
         res.json({ success: true, message: 'Stock movement removed' });
     } catch (err) {
         console.error(err);

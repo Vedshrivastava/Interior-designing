@@ -40,6 +40,33 @@ const EVENT_TYPES = [
     'expense_recorded', 'daily_labour_logged', 'supervisor_incentive_given',
     'work_created', 'work_completed', 'project_created', 'project_activated',
     'client_quotation_issued', 'client_quotation_status_changed',
+    // Delete/restore counterparts — see DashboardWidgets.jsx's ACTIVITY_META
+    // comment on why these exist now: without them, a deleted or restored
+    // record was invisible here even though it changed real state.
+    'contractor_payment_deleted', 'contractor_advance_deleted', 'contractor_deduction_deleted',
+    'labour_payment_deleted', 'labour_advance_deleted', 'labour_deduction_deleted',
+    'labour_provider_payment_deleted', 'salary_payment_deleted',
+    'supervisor_incentive_deleted', 'supervisor_deduction_deleted',
+    'commission_payment_deleted', 'client_direct_payment_deleted',
+    'expense_deleted', 'expense_payment_deleted',
+    'purchase_deleted', 'stock_return_deleted', 'stock_dumped_deleted', 'stock_returned_deleted', 'stock_wasted_deleted',
+    'vendor_payment_deleted', 'vendor_refund_deleted',
+    'receipt_deleted', 'running_bill_deleted', 'tds_deposit_deleted',
+    'client_quotation_deleted', 'site_diary_entry_deleted', 'bank_transfer_deleted',
+    'project_deleted', 'project_restored', 'project_permanently_deleted',
+    'work_restored', 'work_permanently_deleted',
+    'runningBill_restored', 'runningBill_permanently_deleted',
+    'purchase_restored', 'purchase_permanently_deleted',
+    'client_restored', 'client_permanently_deleted',
+    'vendor_restored', 'vendor_permanently_deleted',
+    'referral_restored', 'referral_permanently_deleted',
+    'labourProvider_restored', 'labourProvider_permanently_deleted',
+    'employee_restored', 'employee_permanently_deleted',
+    'material_restored', 'material_permanently_deleted',
+    'labourer_restored', 'labourer_permanently_deleted',
+    'bankAccount_restored', 'bankAccount_permanently_deleted',
+    'clientDocument_restored', 'clientDocument_permanently_deleted',
+    'projectDocument_restored', 'projectDocument_permanently_deleted',
 ];
 const eventLabel = (et) => et.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 

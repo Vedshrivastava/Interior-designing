@@ -111,6 +111,17 @@ const removeClientQuotation = async (req, res) => {
         item.deleted = true; item.deletedAt = new Date(); item.deletedBy = req.userName || 'Admin';
         await item.save();
         broadcast({ type: 'financeClientQuotationsChanged', projectId: item.projectId });
+
+        await logActivity({
+            eventType: 'client_quotation_deleted',
+            entityType: 'financeClientQuotation',
+            entityId: item._id,
+            projectId: item.projectId,
+            summary: `Quotation #${item.quotationNumber} deleted`,
+            amount: item.amount,
+            req,
+        });
+
         res.json({ success: true, message: `Quotation #${item.quotationNumber} removed` });
     } catch (err) {
         console.error(err);

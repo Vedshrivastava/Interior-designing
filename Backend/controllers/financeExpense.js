@@ -206,6 +206,17 @@ const removeExpense = async (req, res) => {
         broadcast({ type: 'financeExpensesChanged', projectId: item.projectId });
         broadcast({ type: 'financeCashBookChanged' });
         if (item.bankAccountId) broadcast({ type: 'financeBankAccountsChanged' });
+
+        await logActivity({
+            eventType: 'expense_deleted',
+            entityType: 'financeExpense',
+            entityId: item._id,
+            projectId: item.projectId || null,
+            summary: `Expense deleted — ${item.expenseCategory || 'General'}`,
+            amount: item.amount,
+            req,
+        });
+
         res.json({ success: true, message: 'Expense removed' });
     } catch (err) {
         console.error(err);

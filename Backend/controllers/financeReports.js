@@ -45,7 +45,7 @@ import FinanceBankEntry from '../models/financeBankEntry.js';
 import FinanceActivityLog from '../models/financeActivityLog.js';
 import { getAccountActivity } from './financeBankAccount.js';
 import PDFDocument from 'pdfkit';
-import { writeLetterhead, writeSectionHeading, writeFooter, formatCurrency, formatDate, paintPageBackground } from '../utils/pdfLetterhead.js';
+import { writeLetterhead, writeSectionHeading, writeFooter, drawTable, formatCurrency, formatDate, paintPageBackground } from '../utils/pdfLetterhead.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
 
 // totalArea − approvedArea on floats accumulated across many measurements
@@ -4523,11 +4523,21 @@ const getClientDetail = async (req, res) => {
 const computeCaMonthlyPackage = async (month) => {
     const { start, end } = monthBounds(month);
 
-    const issuedBills = await FinanceRunningBill.find({ billDate: { $gte: start, $lte: end }, status: 'issued', deleted: { $ne: true } });
+    // Line items alongside every total below — a CA reconciling this
+    // against the real bank statement, GSTR filings, and a 26Q TDS return
+    // can't do it from one summary number; they need the actual bills,
+    // purchases, expenses, and transactions that number is made of.
+    const issuedBills = await FinanceRunningBill.find({ billDate: { $gte: start, $lte: end }, status: 'issued', deleted: { $ne: true } })
+        .populate('projectId', 'name').sort({ billDate: 1 });
     const outputGst = issuedBills.reduce((sum, b) => sum + (b.gstAmount || 0), 0);
     const salesTotal = issuedBills.reduce((sum, b) => sum + b.totalAmount, 0);
+    const billRows = issuedBills.map(b => ({
+        billNumber: b.billNumber, billDate: b.billDate, projectName: b.projectId?.name || '—',
+        subtotal: b.totalAmount, gstAmount: b.gstAmount || 0, total: b.totalAmount + (b.gstAmount || 0),
+    }));
 
-    const purchases = await FinancePurchase.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } });
+    const purchases = await FinancePurchase.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } })
+        .populate('vendorId', 'name').populate('materialId', 'name').sort({ date: 1 });
     const purchaseRows = purchases.filter(p => p.transactionType === 'purchase');
     const returnRows = purchases.filter(p => p.transactionType === 'return');
     // Net of returns — a return carries its own gstAmount (the GST on the
@@ -4539,66 +4549,117 @@ const computeCaMonthlyPackage = async (month) => {
         - returnRows.reduce((sum, p) => sum + (p.gstAmount || 0), 0);
     const totalPurchased = purchaseRows.reduce((sum, p) => sum + p.totalAmount, 0);
     const totalReturned = returnRows.reduce((sum, p) => sum + p.totalAmount, 0);
+    const purchaseLineItems = purchases.map(p => ({
+        date: p.date, vendorName: p.vendorId?.name || '—', materialName: p.materialId?.name || '—',
+        transactionType: p.transactionType, quantity: p.quantity, ratePerUnit: p.ratePerUnit,
+        totalAmount: p.totalAmount, gstAmount: p.gstAmount || 0, referenceNumber: p.referenceNumber || '',
+    }));
 
     // All six payment types that carry a tdsAmount/tdsSectionId pair — this
     // used to only include Contractor/Vendor/Commission, silently missing
     // any TDS withheld on Labour/Salary/LabourProvider payments from this
     // package's Total TDS (the figure meant for actual CA/tax filing).
+    // Each populated with its own party field so tds.payments below can
+    // name the actual deductee, not just a section total — a 26Q filing is
+    // deductee-wise, not just section-wise.
     const [contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments] = await Promise.all([
-        FinanceContractorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }),
-        FinanceVendorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }),
-        FinanceSalaryPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }),
-        FinanceLabourPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }),
-        FinanceCommissionPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }),
-        FinanceLabourProviderPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }),
+        FinanceContractorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('vendorId', 'name').populate('tdsSectionId', 'name code'),
+        FinanceVendorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('vendorId', 'name').populate('tdsSectionId', 'name code'),
+        FinanceSalaryPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('employeeId', 'name').populate('tdsSectionId', 'name code'),
+        FinanceLabourPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('labourerId', 'name').populate('tdsSectionId', 'name code'),
+        FinanceCommissionPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('referralId', 'name').populate('tdsSectionId', 'name code'),
+        FinanceLabourProviderPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('labourProviderId', 'name').populate('tdsSectionId', 'name code'),
     ]);
-    const allPayments = [...contractorPayments, ...vendorPayments, ...salaryPayments, ...labourPayments, ...commissionPayments, ...labourProviderPayments];
-    const tdsSectionIds = [...new Set(allPayments.filter(p => p.tdsSectionId).map(p => p.tdsSectionId.toString()))];
-    const tdsSections = tdsSectionIds.length ? await FinanceSetting.find({ _id: { $in: tdsSectionIds } }) : [];
-    const sectionById = new Map(tdsSections.map(s => [s._id.toString(), s]));
+    // partyType is the plain-English label for the PDF/on-screen table, not
+    // a schema/refPath name.
+    const taggedPayments = [
+        ...contractorPayments.map(p => ({ p, partyType: 'Contractor', partyName: p.vendorId?.name })),
+        ...vendorPayments.map(p => ({ p, partyType: 'Vendor', partyName: p.vendorId?.name })),
+        ...salaryPayments.map(p => ({ p, partyType: 'Employee', partyName: p.employeeId?.name })),
+        ...labourPayments.map(p => ({ p, partyType: 'Labourer', partyName: p.labourerId?.name })),
+        ...commissionPayments.map(p => ({ p, partyType: 'Referral', partyName: p.referralId?.name })),
+        ...labourProviderPayments.map(p => ({ p, partyType: 'Labour Provider', partyName: p.labourProviderId?.name })),
+    ];
     const tdsBySection = new Map();
     let totalTds = 0;
-    for (const p of allPayments) {
+    const tdsPaymentRows = [];
+    for (const { p, partyType, partyName } of taggedPayments) {
         if (!p.tdsAmount) continue;
         totalTds += p.tdsAmount;
-        const key = p.tdsSectionId ? p.tdsSectionId.toString() : 'unspecified';
+        const key = p.tdsSectionId ? p.tdsSectionId._id.toString() : 'unspecified';
         if (!tdsBySection.has(key)) {
-            const section = sectionById.get(key);
-            tdsBySection.set(key, { tdsSectionId: p.tdsSectionId || null, tdsSectionName: section?.name || 'Unspecified', tdsSectionCode: section?.code || '', totalTds: 0 });
+            tdsBySection.set(key, { tdsSectionId: p.tdsSectionId?._id || null, tdsSectionName: p.tdsSectionId?.name || 'Unspecified', tdsSectionCode: p.tdsSectionId?.code || '', totalTds: 0 });
         }
         tdsBySection.get(key).totalTds += p.tdsAmount;
+        tdsPaymentRows.push({
+            date: p.date, partyName: partyName || '—', partyType,
+            sectionName: p.tdsSectionId?.name || 'Unspecified', sectionCode: p.tdsSectionId?.code || '',
+            grossAmount: p.amount, tdsAmount: p.tdsAmount,
+        });
     }
+    tdsPaymentRows.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    const expenses = await FinanceExpense.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } });
+    // The other half of TDS reconciliation — what's actually been
+    // deposited with the tax department this month, not just withheld.
+    // Previously missing from this package entirely despite being exactly
+    // what a CA needs alongside `tds.payments` above to file a 26Q return.
+    const tdsDepositsRaw = await FinanceTdsDeposit.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } })
+        .populate('tdsSectionId', 'name code').populate('bankAccountId', 'accountName').sort({ date: 1 });
+    const totalTdsDeposited = round2(tdsDepositsRaw.reduce((s, d) => s + d.amount, 0));
+    const tdsDepositRows = tdsDepositsRaw.map(d => ({
+        date: d.date, challanNumber: d.challanNumber || '—',
+        sectionName: d.tdsSectionId?.name || 'Unspecified', accountName: d.bankAccountId?.accountName || 'Cash',
+        amount: d.amount,
+    }));
+
+    const expenses = await FinanceExpense.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).sort({ date: 1 });
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     // Claimable Input GST on GST-invoiced expenses (office rent, equipment,
     // professional fees, etc.) — same claim as a material purchase's own
     // gstAmount, just on the Expenses side instead of Purchases.
     const expenseGst = expenses.reduce((sum, e) => sum + (e.gstAmount || 0), 0);
+    const expenseRows = expenses.map(e => ({
+        date: e.date, category: e.expenseCategory || 'Uncategorized', amount: e.amount, gstAmount: e.gstAmount || 0,
+    }));
 
-    // Opening/credits/debits/closing per account, same shape as
-    // getCashBookSummary's own opening-before/in-range split below — a CA
-    // reconciling against the real bank statement needs the month's
-    // movement, not just a single ending number with no way to verify it.
+    // Opening/credits/debits/closing per account, plus the actual
+    // transaction list with a running balance — a CA reconciling against
+    // the real bank statement needs to match it line by line, not just
+    // confirm a single ending number with no way to verify it. Same
+    // running-balance walk getBankStatement already does for the
+    // unscoped, all-time statement, just windowed to this month and
+    // starting from this month's own opening balance instead of the
+    // account's lifetime opening balance.
     const bankAccounts = await FinanceBankAccount.find({ deleted: { $ne: true } });
     const bankPositions = await Promise.all(bankAccounts.map(async (a) => {
         const activity = await getAccountActivity(a._id);
         const netBefore = activity.filter(t => new Date(t.date) < start).reduce((sum, t) => sum + (t.direction === 'credit' ? t.amount : -t.amount), 0);
-        const duringMonth = activity.filter(t => new Date(t.date) >= start && new Date(t.date) <= end);
+        const duringMonth = activity.filter(t => new Date(t.date) >= start && new Date(t.date) <= end)
+            .sort((x, y) => new Date(x.date) - new Date(y.date));
         const creditTotal = duringMonth.filter(t => t.direction === 'credit').reduce((sum, t) => sum + t.amount, 0);
         const debitTotal = duringMonth.filter(t => t.direction === 'debit').reduce((sum, t) => sum + t.amount, 0);
         const openingBalance = a.openingBalance + netBefore;
+        let running = openingBalance;
+        const transactions = duringMonth.map(t => {
+            running += t.direction === 'credit' ? t.amount : -t.amount;
+            return { date: t.date, description: t.description, direction: t.direction, amount: t.amount, runningBalance: round2(running) };
+        });
         const closingBalance = openingBalance + creditTotal - debitTotal;
-        return { accountId: a._id, accountName: a.accountName, openingBalance, creditTotal, debitTotal, closingBalance };
+        return { accountId: a._id, accountName: a.accountName, openingBalance, creditTotal, debitTotal, closingBalance, transactions };
     }));
     const totalBankBalance = bankPositions.reduce((sum, b) => sum + b.closingBalance, 0);
 
     const cashBefore = await FinanceCashEntry.find({ deleted: { $ne: true }, date: { $lt: start } });
     const cashOpeningBalance = cashBefore.reduce((sum, e) => sum + (e.type === 'in' ? e.amount : -e.amount), 0);
-    const cashDuring = await FinanceCashEntry.find({ deleted: { $ne: true }, date: { $gte: start, $lte: end } });
+    const cashDuring = await FinanceCashEntry.find({ deleted: { $ne: true }, date: { $gte: start, $lte: end } }).sort({ date: 1 });
     const cashInTotal = cashDuring.filter(e => e.type === 'in').reduce((sum, e) => sum + e.amount, 0);
     const cashOutTotal = cashDuring.filter(e => e.type === 'out').reduce((sum, e) => sum + e.amount, 0);
     const cashClosingBalance = cashOpeningBalance + cashInTotal - cashOutTotal;
+    let runningCash = cashOpeningBalance;
+    const cashTransactions = cashDuring.map(e => {
+        runningCash += e.type === 'in' ? e.amount : -e.amount;
+        return { date: e.date, description: e.reason || (e.type === 'in' ? 'Cash In' : 'Cash Out'), direction: e.type === 'in' ? 'credit' : 'debit', amount: e.amount, runningBalance: round2(runningCash) };
+    });
 
     // Input GST is claimable from both Purchases (material) and Expenses
     // (GST-invoiced overhead) — purchaseGst/expenseGst broken out
@@ -4609,13 +4670,16 @@ const computeCaMonthlyPackage = async (month) => {
     return {
         month,
         gst: { outputGst, inputGst, purchaseGst, expenseGst, netGstPayable: outputGst - inputGst },
-        tds: { totalTds, bySection: [...tdsBySection.values()].sort((a, b) => b.totalTds - a.totalTds) },
-        sales: { totalBilled: salesTotal, billCount: issuedBills.length },
-        purchases: { totalPurchased, totalReturned, netPurchases: totalPurchased - totalReturned, purchaseCount: purchaseRows.length },
-        expenses: { totalExpenses, expenseCount: expenses.length, expenseGst },
+        tds: {
+            totalTds, bySection: [...tdsBySection.values()].sort((a, b) => b.totalTds - a.totalTds),
+            payments: tdsPaymentRows, deposits: tdsDepositRows, totalDeposited: totalTdsDeposited,
+        },
+        sales: { totalBilled: salesTotal, billCount: issuedBills.length, bills: billRows },
+        purchases: { totalPurchased, totalReturned, netPurchases: totalPurchased - totalReturned, purchaseCount: purchaseRows.length, rows: purchaseLineItems },
+        expenses: { totalExpenses, expenseCount: expenses.length, expenseGst, rows: expenseRows },
         bankAndCash: {
             bankAccounts: bankPositions, totalBankBalance,
-            cashOpeningBalance, cashInTotal, cashOutTotal, cashClosingBalance,
+            cashOpeningBalance, cashInTotal, cashOutTotal, cashClosingBalance, cashTransactions,
             totalPosition: totalBankBalance + cashClosingBalance,
         },
     };
@@ -4739,36 +4803,184 @@ const downloadCaMonthlyPackage = async (req, res) => {
             doc.text('No TDS recorded this month.');
         } else {
             data.tds.bySection.forEach(s => doc.text(`${s.tdsSectionName}${s.tdsSectionCode ? ` (${s.tdsSectionCode})` : ''}: ${formatCurrency(s.totalTds)}`));
-            doc.font('Helvetica-Bold').text(`Total TDS: ${formatCurrency(data.tds.totalTds)}`).font('Helvetica');
+            doc.font('Helvetica-Bold').text(`Total TDS Withheld: ${formatCurrency(data.tds.totalTds)}`).font('Helvetica');
+            doc.text(`Total TDS Deposited: ${formatCurrency(data.tds.totalDeposited)}`);
+            doc.font('Helvetica-Bold').text(`TDS Payable (this month's withholding, net of this month's deposits): ${formatCurrency(round2(data.tds.totalTds - data.tds.totalDeposited))}`).font('Helvetica');
+            doc.moveDown(0.4);
+        }
+
+        if (data.tds.payments.length > 0) {
+            doc.font('Helvetica-Bold').fontSize(10).text('TDS Withheld — Deductee-wise').font('Helvetica');
+            doc.moveDown(0.2);
+            drawTable(doc, {
+                company,
+                rowHeight: 30, // see the Purchases table's identical comment — long party names
+                columns: [
+                    { label: 'Date', width: 68, align: 'left' },
+                    { label: 'Party', width: 122, align: 'left' },
+                    { label: 'Type', width: 82, align: 'left' },
+                    // A section CODE (194H, 194C, …) is what a 26Q return
+                    // is actually filed against — shorter than the full
+                    // descriptive name too, so this prefers it (falling
+                    // back to the name only when no code is set) rather
+                    // than printing both and overflowing the column.
+                    { label: 'Section', width: 78, align: 'left' },
+                    { label: 'Gross Amount', width: 82, align: 'right' },
+                    { label: 'TDS', width: 80, align: 'right' },
+                ],
+                rows: data.tds.payments.map(p => [
+                    formatDate(p.date), p.partyName, p.partyType,
+                    p.sectionCode || p.sectionName,
+                    formatCurrency(p.grossAmount), formatCurrency(p.tdsAmount),
+                ]),
+            });
+        }
+        if (data.tds.deposits.length > 0) {
+            doc.font('Helvetica-Bold').fontSize(10).text('TDS Deposits Made (Challans)').font('Helvetica');
+            doc.moveDown(0.2);
+            drawTable(doc, {
+                company,
+                columns: [
+                    { label: 'Date', width: 68, align: 'left' },
+                    { label: 'Challan No.', width: 108, align: 'left' },
+                    { label: 'Section', width: 90, align: 'left' },
+                    { label: 'Paid From', width: 130, align: 'left' },
+                    { label: 'Amount', width: 116, align: 'right' },
+                ],
+                rows: data.tds.deposits.map(d => [
+                    formatDate(d.date), d.challanNumber, d.sectionName, d.accountName, formatCurrency(d.amount),
+                ]),
+            });
         }
 
         writeSectionHeading(doc, 'Sales Summary');
         doc.text(`Total Billed (issued bills): ${formatCurrency(data.sales.totalBilled)}`);
         doc.text(`Bill Count: ${data.sales.billCount}`);
+        doc.moveDown(0.4);
+        if (data.sales.bills.length > 0) {
+            drawTable(doc, {
+                company,
+                rowHeight: 30, // see the Purchases table's identical comment — long project names
+                columns: [
+                    { label: 'Bill #', width: 50, align: 'left' },
+                    { label: 'Date', width: 68, align: 'left' },
+                    { label: 'Project', width: 114, align: 'left' },
+                    { label: 'Subtotal', width: 90, align: 'right' },
+                    { label: 'GST', width: 85, align: 'right' },
+                    { label: 'Total', width: 105, align: 'right' },
+                ],
+                rows: data.sales.bills.map(b => [
+                    b.billNumber, formatDate(b.billDate), b.projectName,
+                    formatCurrency(b.subtotal), formatCurrency(b.gstAmount), formatCurrency(b.total),
+                ]),
+            });
+        }
 
         writeSectionHeading(doc, 'Purchase Summary');
         doc.text(`Total Purchased: ${formatCurrency(data.purchases.totalPurchased)}`);
         doc.text(`Total Returned: ${formatCurrency(data.purchases.totalReturned)}`);
         doc.text(`Net Purchases: ${formatCurrency(data.purchases.netPurchases)}`);
         doc.text(`Purchase Count: ${data.purchases.purchaseCount}`);
+        doc.moveDown(0.4);
+        if (data.purchases.rows.length > 0) {
+            drawTable(doc, {
+                company,
+                // Taller rows than the default — a long vendor/material name
+                // has no reliable width that fits every real name on one
+                // line, so this gives PDFKit's own wrap room to use instead
+                // of bleeding into the row below it (see drawTable's own
+                // per-cell width; a cell's text can still wrap even with
+                // lineBreak: false once the column's genuinely too narrow).
+                rowHeight: 30,
+                columns: [
+                    { label: 'Date', width: 65, align: 'left' },
+                    { label: 'Vendor', width: 85, align: 'left' },
+                    { label: 'Material', width: 80, align: 'left' },
+                    { label: 'Type', width: 58, align: 'left' },
+                    { label: 'Qty', width: 42, align: 'right' },
+                    { label: 'Rate', width: 45, align: 'right' },
+                    { label: 'Amount', width: 82, align: 'right' },
+                    { label: 'GST', width: 55, align: 'right' },
+                ],
+                rows: data.purchases.rows.map(p => [
+                    formatDate(p.date), p.vendorName, p.materialName, p.transactionType === 'return' ? 'Return' : 'Purchase',
+                    String(p.quantity), formatCurrency(p.ratePerUnit), formatCurrency(p.totalAmount), formatCurrency(p.gstAmount),
+                ]),
+            });
+        }
 
         writeSectionHeading(doc, 'Expense Summary');
         doc.text(`Total Expenses: ${formatCurrency(data.expenses.totalExpenses)}`);
         doc.text(`Expense Count: ${data.expenses.expenseCount}`);
+        doc.moveDown(0.4);
+        if (data.expenses.rows.length > 0) {
+            drawTable(doc, {
+                company,
+                columns: [
+                    { label: 'Date', width: 80, align: 'left' },
+                    { label: 'Category', width: 220, align: 'left' },
+                    { label: 'Amount', width: 106, align: 'right' },
+                    { label: 'GST', width: 106, align: 'right' },
+                ],
+                rows: data.expenses.rows.map(e => [formatDate(e.date), e.category, formatCurrency(e.amount), formatCurrency(e.gstAmount)]),
+            });
+        }
 
         writeSectionHeading(doc, 'Bank & Cash Movement');
         data.bankAndCash.bankAccounts.forEach(a => {
-            doc.font('Helvetica-Bold').text(a.accountName).font('Helvetica');
+            doc.font('Helvetica-Bold').fontSize(10).text(a.accountName).font('Helvetica').fontSize(10);
             doc.text(`  Opening Balance: ${formatCurrency(a.openingBalance)}`);
             doc.text(`  Credits (In): ${formatCurrency(a.creditTotal)}`);
             doc.text(`  Debits (Out): ${formatCurrency(a.debitTotal)}`);
             doc.text(`  Closing Balance: ${formatCurrency(a.closingBalance)}`);
+            doc.moveDown(0.3);
+            if (a.transactions.length > 0) {
+                drawTable(doc, {
+                    company,
+                    rowHeight: 30, // see the Purchases table's identical comment
+                    columns: [
+                        { label: 'Date', width: 70, align: 'left' },
+                        { label: 'Description', width: 190, align: 'left' },
+                        { label: 'Direction', width: 70, align: 'left' },
+                        { label: 'Amount', width: 85, align: 'right' },
+                        { label: 'Running Balance', width: 97, align: 'right' },
+                    ],
+                    rows: a.transactions.map(t => [
+                        formatDate(t.date), t.description, t.direction === 'credit' ? 'In' : 'Out',
+                        formatCurrency(t.amount), formatCurrency(t.runningBalance),
+                    ]),
+                });
+            } else {
+                doc.font('Helvetica').fontSize(9).fillColor('#888888').text('No transactions this month.').fillColor('#000000').fontSize(10);
+                doc.moveDown(0.4);
+            }
         });
-        doc.font('Helvetica-Bold').text('Cash').font('Helvetica');
+        doc.font('Helvetica-Bold').fontSize(10).text('Cash').font('Helvetica').fontSize(10);
         doc.text(`  Opening Balance: ${formatCurrency(data.bankAndCash.cashOpeningBalance)}`);
         doc.text(`  Cash In: ${formatCurrency(data.bankAndCash.cashInTotal)}`);
         doc.text(`  Cash Out: ${formatCurrency(data.bankAndCash.cashOutTotal)}`);
         doc.text(`  Closing Balance: ${formatCurrency(data.bankAndCash.cashClosingBalance)}`);
+        doc.moveDown(0.3);
+        if (data.bankAndCash.cashTransactions.length > 0) {
+            drawTable(doc, {
+                company,
+                rowHeight: 30, // see the Purchases table's identical comment — cash entries carry a free-text reason
+                columns: [
+                    { label: 'Date', width: 70, align: 'left' },
+                    { label: 'Description', width: 190, align: 'left' },
+                    { label: 'Direction', width: 70, align: 'left' },
+                    { label: 'Amount', width: 85, align: 'right' },
+                    { label: 'Running Balance', width: 97, align: 'right' },
+                ],
+                rows: data.bankAndCash.cashTransactions.map(t => [
+                    formatDate(t.date), t.description, t.direction === 'credit' ? 'In' : 'Out',
+                    formatCurrency(t.amount), formatCurrency(t.runningBalance),
+                ]),
+            });
+        } else {
+            doc.font('Helvetica').fontSize(9).fillColor('#888888').text('No cash transactions this month.').fillColor('#000000').fontSize(10);
+            doc.moveDown(0.4);
+        }
         doc.font('Helvetica-Bold').text(`Total Position (bank + cash, month end): ${formatCurrency(data.bankAndCash.totalPosition)}`).font('Helvetica');
 
         writeFooter(doc, company);

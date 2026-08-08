@@ -322,6 +322,18 @@ const drawTable = (doc, { columns, rows, theme = COLOR_THEME, rowHeight = 20, he
 
     doc.moveTo(left, doc.y).lineTo(right, doc.y).strokeColor(theme.accentBorder).lineWidth(1).stroke();
     doc.moveDown(0.4);
+    // BUG FIX: drawRow's own doc.text(str, x, y, {...}) calls (explicit x
+    // per cell) leave doc.x sitting wherever the LAST column's cell was
+    // drawn — near the right edge of the table, not the page's left
+    // margin. A caller's very next doc.text(...) with no explicit x of its
+    // own (a plain heading or summary line right after this table) then
+    // silently inherits that stray x, rendering shifted right and wrapping
+    // early as if the page were much narrower than it is. Every existing
+    // caller happened to avoid this by always following a table with
+    // another explicit-x call (writeSectionHeading, another drawTable) —
+    // reset here so a plain doc.text() call is safe immediately after any
+    // table too.
+    doc.x = left;
 };
 
 // "Pay To" block for outgoing Bills/Receipts — silent (renders nothing) if

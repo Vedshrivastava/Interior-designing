@@ -558,47 +558,61 @@ const computeCompanyWideSalaryPayable = async (currentMonthKey) => {
     const employees = await FinanceEmployee.find({ deleted: { $ne: true } });
     if (!employees.length) return { payable: 0, overduePayable: 0, oldestUnpaidMonth: null };
     const payments = await FinanceSalaryPayment.find({ deleted: { $ne: true } });
-    const paidByEmployee = new Map();
+    // Keyed by employeeId_month, not just employeeId — every
+    // FinanceSalaryPayment always carries a required `month` tag (the pay
+    // period it settles; see that model's own comment), and
+    // financeSalaryLedger.js's getSalaryLedger already nets strictly
+    // per-month against it. Pooling every payment regardless of month and
+    // FIFO-guessing which months look covered (the old approach here) let
+    // a payment tagged to a FUTURE month — a normal advance-payment
+    // workflow, nothing stops it — silently offset a CLOSED month's real
+    // backlog before that future month had even started, understating
+    // overdue on the Dashboard while getSalaryLedger correctly showed the
+    // advance sitting against its own future month, untouched.
+    const paidByEmployeeMonth = new Map();
     for (const p of payments) {
-        const key = p.employeeId.toString();
-        paidByEmployee.set(key, (paidByEmployee.get(key) || 0) + p.amount);
+        const key = `${p.employeeId}_${p.month}`;
+        paidByEmployeeMonth.set(key, (paidByEmployeeMonth.get(key) || 0) + p.amount);
     }
     const [curY, curM] = currentMonthKey.split('-').map(Number);
     let payable = 0;
     let overduePayable = 0;
     let oldestUnpaidMonth = null;
     for (const e of employees) {
-        const paidTotal = paidByEmployee.get(e._id.toString()) || 0;
-        let expectedTotal = 0;
+        let employeePayable = 0;
         let closedMonthsExpectedTotal = 0; // excludes currentMonthKey itself
+        let closedMonthsPaidTotal = 0;
         let firstUnpaidMonth = null;
-        let remainingPool = paidTotal;
+        const monthKeys = [];
         if (e.joiningDate) {
             const joined = new Date(e.joiningDate);
             let y = joined.getFullYear(), m = joined.getMonth() + 1;
             while (y < curY || (y === curY && m <= curM)) {
-                const monthKey = `${y}-${String(m).padStart(2, '0')}`;
-                const expected = expectedSalaryForMonth(e, monthKey);
-                expectedTotal += expected;
-                if (monthKey < currentMonthKey) closedMonthsExpectedTotal += expected;
-                if (firstUnpaidMonth === null) {
-                    if (remainingPool >= expected) remainingPool -= expected;
-                    else firstUnpaidMonth = monthKey;
-                }
+                monthKeys.push(`${y}-${String(m).padStart(2, '0')}`);
                 m += 1;
                 if (m > 12) { m = 1; y += 1; }
             }
         } else {
-            expectedTotal = expectedSalaryForMonth(e, currentMonthKey);
-            if (paidTotal < expectedTotal) firstUnpaidMonth = currentMonthKey;
+            monthKeys.push(currentMonthKey);
         }
-        const employeePayable = expectedTotal - paidTotal;
+        for (const monthKey of monthKeys) {
+            const expected = expectedSalaryForMonth(e, monthKey);
+            const paidForMonth = paidByEmployeeMonth.get(`${e._id}_${monthKey}`) || 0;
+            employeePayable += expected - paidForMonth;
+            if (monthKey < currentMonthKey) {
+                closedMonthsExpectedTotal += expected;
+                closedMonthsPaidTotal += paidForMonth;
+            }
+            if (firstUnpaidMonth === null && expected - paidForMonth > 0.5) firstUnpaidMonth = monthKey;
+        }
         payable += employeePayable;
-        // FIFO means any payment always settles closed months before the
-        // current one, so this is simply "closed-months debt minus what's
-        // been paid," floored at 0 (an employee overpaid overall shouldn't
-        // make another employee's real overdue amount look smaller).
-        overduePayable += Math.max(0, closedMonthsExpectedTotal - paidTotal);
+        // Each closed month's own expected/paid, summed then subtracted
+        // once (so a genuine overpayment in one closed month still nets
+        // against a shortfall in another closed month for the SAME
+        // employee, same as before) — floored at 0 so one employee's
+        // overpayment can never make a DIFFERENT employee's real overdue
+        // amount look smaller once added together below.
+        overduePayable += Math.max(0, closedMonthsExpectedTotal - closedMonthsPaidTotal);
         if (employeePayable > 0.5 && firstUnpaidMonth && (!oldestUnpaidMonth || firstUnpaidMonth < oldestUnpaidMonth)) {
             oldestUnpaidMonth = firstUnpaidMonth;
         }

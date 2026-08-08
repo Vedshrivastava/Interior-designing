@@ -185,6 +185,7 @@ const ContractorsOverviewTab = ({ url, onSelectContractor }) => {
                             <b className="con-ov-advances">Advances</b>
                             <b className="con-ov-deductions">Deductions</b>
                             <b className="con-ov-payments">Payments</b>
+                            <b className="con-ov-held">Held</b>
                             <b className="con-ov-balance">Balance Payable</b>
                         </div>
                         {contractors.map(c => (
@@ -195,6 +196,7 @@ const ContractorsOverviewTab = ({ url, onSelectContractor }) => {
                                 <p className="con-ov-advances"><span className="pq-group-label">Advances</span>{formatINR(c.advances)}</p>
                                 <p className="con-ov-deductions"><span className="pq-group-label">Deductions</span>{formatINR(c.deductions)}</p>
                                 <p className="con-ov-payments"><span className="pq-group-label">Payments</span>{formatINR(c.payments)}</p>
+                                <p className="con-ov-held" style={{ color: c.holdingTotal > 0 ? '#c0392b' : 'var(--text-lt)' }}><span className="pq-group-label">Held</span>{formatINR(c.holdingTotal || 0)}</p>
                                 <p className="con-ov-balance" style={{ color: c.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}><span className="pq-group-label">Balance Payable</span>{formatINR(c.balancePayable)}</p>
                             </div>
                         ))}

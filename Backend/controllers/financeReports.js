@@ -2684,6 +2684,62 @@ const getContractorsSummary = async (req, res) => {
     }
 };
 
+// New Tier-1 endpoint for Labourers — direct mirror of
+// getContractorsSummary (see its own comment): wraps
+// computeLabourAnalysisRows for the table, plus cost-per-sqft grouped by
+// work type.
+const getLabourersSummary = async (req, res) => {
+    try {
+        const { projectId } = req.query;
+        const labourers = await FinanceLabourer.find({ deleted: { $ne: true } });
+        const [rows, costPerSqft] = await Promise.all([
+            computeLabourAnalysisRows(projectId),
+            Promise.all(labourers.map(async (l) => {
+                const assignments = await FinanceWorkLabourAssignment.find({ labourerId: l._id, deleted: { $ne: true } });
+                const workIds = assignments.map(a => a.workId);
+                if (!workIds.length) return { labourerId: l._id, labourerName: l.name, byWorkType: [] };
+
+                const workFilter = { _id: { $in: workIds }, deleted: { $ne: true } };
+                if (projectId) workFilter.projectId = projectId;
+                const works = await FinanceWork.find(workFilter);
+                if (!works.length) return { labourerId: l._id, labourerName: l.name, byWorkType: [] };
+                const workById = new Map(works.map(w => [w._id.toString(), w]));
+
+                const [rates, measurements] = await Promise.all([
+                    FinanceLabourRate.find({ projectId: { $in: [...new Set(works.map(w => w.projectId.toString()))] }, labourerId: l._id, deleted: { $ne: true } }),
+                    FinanceLabourMeasurement.find({ workId: { $in: works.map(w => w._id) }, labourerId: l._id, deleted: { $ne: true } }),
+                ]);
+                const rateByKey = new Map(rates.map(r => [`${r.projectId}_${r.workType}`, r]));
+
+                // See getContractorsSummary's identical comment — cost/sqft
+                // is just the configured rate either way, not gated by
+                // billing approval.
+                const byType = new Map();
+                for (const m of measurements) {
+                    const work = workById.get(m.workId.toString());
+                    if (!work) continue;
+                    const rate = rateByKey.get(`${work.projectId}_${work.workType}`);
+                    const earnings = rate ? m.areaCoveredSqft * (rate.ratePerSqft) : 0;
+                    if (!byType.has(work.workType)) byType.set(work.workType, { area: 0, earnings: 0 });
+                    const t = byType.get(work.workType);
+                    t.area += m.areaCoveredSqft;
+                    t.earnings += earnings;
+                }
+                const byWorkType = [...byType.entries()].map(([workType, t]) => ({
+                    workType, completedAreaSqft: t.area, earnings: t.earnings,
+                    costPerSqft: t.area > 0 ? t.earnings / t.area : 0,
+                }));
+                return { labourerId: l._id, labourerName: l.name, byWorkType };
+            })),
+        ]);
+
+        res.json({ success: true, data: { labourers: rows.sort((a, b) => b.balancePayable - a.balancePayable), costPerSqft } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error computing labourers summary' });
+    }
+};
+
 // THE canonical Vendor Amount Owed formula. financeVendorLedger.js's
 // getVendorLedger calls this for its `totals` block instead of keeping its
 // own simpler (and, when project-scoped, wrong) copy — that version
@@ -4123,6 +4179,7 @@ const getDashboardSummary = async (req, res) => {
                     directPaymentTotal: round2(contractorRows.reduce((s, r) => s + (r.directPaymentTotal || 0), 0)),
                     payments: round2(contractorRows.reduce((s, r) => s + r.payments, 0)),
                     tdsTotal: round2(contractorRows.reduce((s, r) => s + (r.tdsTotal || 0), 0)),
+                    holdingTotal: round2(contractorRows.reduce((s, r) => s + (r.holdingTotal || 0), 0)),
                 },
                 labourPayables: sumPositive(labourRows, 'balancePayable'),
                 labourCreditTotal: sumNegative(labourRows, 'balancePayable'),
@@ -4133,6 +4190,7 @@ const getDashboardSummary = async (req, res) => {
                     directPaymentTotal: round2(labourRows.reduce((s, r) => s + (r.directPaymentTotal || 0), 0)),
                     payments: round2(labourRows.reduce((s, r) => s + r.payments, 0)),
                     tdsTotal: round2(labourRows.reduce((s, r) => s + (r.tdsTotal || 0), 0)),
+                    holdingTotal: round2(labourRows.reduce((s, r) => s + (r.holdingTotal || 0), 0)),
                 },
                 commissionPayables: commissionBreakdown.commissionPayable,
                 commissionPayablesBreakdown: {
@@ -4232,6 +4290,22 @@ const getDashboardSummary = async (req, res) => {
                 // The "why" behind materialWasteCostToDate — see
                 // FinanceHome.jsx's Material Wastage Loss card.
                 materialWasteBreakdown: { fromStock: materialWasteFromStockToDate, fromRejection: materialWasteFromRejectionToDate },
+                // Company-wide Holding (retention) still sitting with the
+                // company, across every Contractor/Labour payment ever
+                // made — not scoped to ongoing projects only, since a
+                // holding on a completed-but-not-yet-released project is
+                // still a real, current liability. See
+                // computeContractorBalance/computeLabourBalance's own
+                // holdingTotal comment for what this is and isn't (unlike
+                // TDS, it never discharges what's owed).
+                totalHeld: round2(
+                    contractorRows.reduce((s, r) => s + (r.holdingTotal || 0), 0)
+                    + labourRows.reduce((s, r) => s + (r.holdingTotal || 0), 0)
+                ),
+                holdingBreakdown: {
+                    contractor: round2(contractorRows.reduce((s, r) => s + (r.holdingTotal || 0), 0)),
+                    labour: round2(labourRows.reduce((s, r) => s + (r.holdingTotal || 0), 0)),
+                },
                 // What Profit becomes once everything currently logged and
                 // still-unreviewed actually clears review — not a separate
                 // number to reconcile by hand, so it's computed once here
@@ -4831,7 +4905,7 @@ const getReconciliation = async (req, res) => {
 
 export {
     getProjectProfit, getProjectProfitsBatch, getClientProfit, getWorkProfit, getWorkDetail,
-    getContractorAnalysis, getContractorsSummary, getLabourAnalysis, getSupervisorAnalysis,
+    getContractorAnalysis, getContractorsSummary, getLabourAnalysis, getLabourersSummary, getSupervisorAnalysis,
     getVendorAnalysis, getVendorsSummary,
     getMaterialAnalysis, getInventorySummary,
     getCashFlow, getExpenseAnalysis,

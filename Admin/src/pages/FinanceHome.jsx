@@ -9,7 +9,7 @@ import {
 import {
     faMoneyBillTransfer, faArrowTrendUp, faBuildingColumns, faWallet, faFileInvoiceDollar,
     faCartShopping, faHardHat, faReceipt, faBuilding, faClipboardList, faPersonDigging,
-    faRulerCombined, faTriangleExclamation, faMoneyBillWave, faHandHoldingDollar, faUsers, faFileInvoice,
+    faRulerCombined, faTriangleExclamation, faMoneyBillWave, faHandHoldingDollar, faUsers, faFileInvoice, faLock,
 } from '@fortawesome/free-solid-svg-icons';
 import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ChartSkeleton, ActivityCard, ChartTooltip, CHART_COLORS, formatINR, truncateLabel, ProjectNameTick, buildBreakdownSub, unapprovedPaidNote } from '../components/finance/DashboardWidgets';
 import '../styles/welcome.css';
@@ -330,6 +330,12 @@ const FinanceHome = ({ url }) => {
                             summary?.labourCreditTotal > 0 ? `Labourer(s) owe us: ${formatINR(summary.labourCreditTotal)}` : null,
                         ].filter(Boolean).join('  ') || undefined}
                         onClick={() => navigate('/finance/daily-labour')} tone={summary?.labourPayables > 0 ? 'danger' : 'good'} />
+                    <KpiCard loading={phase1Loading} icon={faLock} label="Total Held" value={formatINR(summary?.totalHeld)}
+                        sub={summary?.holdingBreakdown && buildBreakdownSub([
+                            ['Contractor', summary.holdingBreakdown.contractor],
+                            ['Labour', summary.holdingBreakdown.labour],
+                        ])}
+                        tone={summary?.totalHeld > 0 ? 'danger' : 'good'} />
                     <KpiCard loading={phase1Loading} icon={faHandHoldingDollar} label="Commission Payables" value={formatINR(summary?.commissionPayables)}
                         sub={summary?.commissionPayablesBreakdown && buildBreakdownSub([
                             ['Earned', summary.commissionPayablesBreakdown.earnings],

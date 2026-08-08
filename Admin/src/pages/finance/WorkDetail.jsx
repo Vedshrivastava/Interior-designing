@@ -331,6 +331,22 @@ const WorkDetail = ({ url }) => {
                     const commissionPaidThisWork = commissionShare * (payables.commissionPaid || 0);
                     const totalExpensesThisWork = (data.totalMaterialCost || 0) + (data.materialWasteCost || 0)
                         + contractorPaidThisWork + labourPaidThisWork + commissionPaidThisWork;
+                    // Same proportional allocation as shareOfPaid above, just
+                    // reading holdingTotal instead of advances+payments — a
+                    // Holding is never recorded against one specific Work
+                    // either (it's a Contractor/Labour Payment-level field,
+                    // scoped to a project), so this Work's share of it is
+                    // estimated the identical way.
+                    const shareOfHeld = (workRows, projectRows) => (workRows || []).reduce((sum, b) => {
+                        const idKey = b.vendorId || b.labourerId;
+                        const projectRow = (projectRows || []).find(r => (r.vendorId || r.labourerId)?.toString() === idKey?.toString());
+                        if (!projectRow || !projectRow.totalAmount) return sum;
+                        const share = b.totalAmount / projectRow.totalAmount;
+                        return sum + share * (projectRow.holdingTotal || 0);
+                    }, 0);
+                    const contractorHeldThisWork = shareOfHeld(data.allTimeContractorBreakdown, payables.contractorRows);
+                    const labourHeldThisWork = shareOfHeld(data.allTimeLabourBreakdown, payables.labourRows);
+                    const heldThisWork = contractorHeldThisWork + labourHeldThisWork;
                     return (
                         <>
                             <KpiSectionLabel>Total Expenses So Far — This Work</KpiSectionLabel>
@@ -347,9 +363,21 @@ const WorkDetail = ({ url }) => {
                                         commissionPaidThisWork > 0 ? `Commission ${formatINR(commissionPaidThisWork)}` : null,
                                     ].filter(Boolean).join('  ')}
                                 />
+                                {heldThisWork > 0 && (
+                                    <KpiCard
+                                        label="Held"
+                                        value={formatINR(heldThisWork)}
+                                        tone="danger"
+                                        sub={[
+                                            contractorHeldThisWork > 0 ? `Contractor ${formatINR(contractorHeldThisWork)}` : null,
+                                            labourHeldThisWork > 0 ? `Labour ${formatINR(labourHeldThisWork)}` : null,
+                                        ].filter(Boolean).join('  ') || 'Retained from Contractor/Labour payments — still owed until released as a future payment'}
+                                    />
+                                )}
                             </KpiGrid>
                             <p className="admin-subtitle" style={{ padding: '0 0 16px' }}>
                                 Everything actually spent on this specific Work — Material counts every bit consumed here, review or no review (it can&apos;t be un-used). Contractor/Labour/Commission Paid are estimated: each party&apos;s project-wide Paid amount (advances + payments) is split by this Work&apos;s share of their total earnings on the project, since a payment itself is never recorded against one specific Work.
+                                {heldThisWork > 0 && ` Held is that same estimate, applied to holdingTotal instead — it's already counted inside Contractor/Labour Paid above (a gross figure, not yet net of Holding), so it isn't a separate additional expense; it's shown here as context for how much of that Paid figure never actually left the company.`}
                             </p>
                         </>
                     );

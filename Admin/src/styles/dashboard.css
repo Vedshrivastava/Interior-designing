@@ -4608,7 +4608,7 @@
 .con-ov-card { padding: 0; }
 .con-ov-row {
     display: grid;
-    grid-template-columns: 1.4fr 0.9fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr;
+    grid-template-columns: 1.4fr 0.9fr 0.9fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr;
     align-items: center;
     gap: 16px;
     padding: 14px 20px;
@@ -4625,11 +4625,11 @@
 }
 .con-ov-name { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
 .con-ov-row.con-ov-header .con-ov-name { cursor: default; }
-.con-ov-total, .con-ov-advances, .con-ov-deductions, .con-ov-payments { margin: 0; }
+.con-ov-total, .con-ov-advances, .con-ov-deductions, .con-ov-payments, .con-ov-held { margin: 0; }
 .con-ov-approved, .con-ov-balance { margin: 0; font-variant-numeric: tabular-nums; }
 @media (min-width: 641px) {
     .con-ov-total, .con-ov-approved, .con-ov-advances,
-    .con-ov-deductions, .con-ov-payments, .con-ov-balance {
+    .con-ov-deductions, .con-ov-payments, .con-ov-held, .con-ov-balance {
         justify-self: center;
     }
 }
@@ -4641,7 +4641,8 @@
             "name name"
             "total approved"
             "advances deductions"
-            "payments balance";
+            "payments held"
+            "balance balance";
         row-gap: 12px;
         column-gap: 10px;
         padding: 16px;
@@ -4652,6 +4653,7 @@
     .con-ov-advances { grid-area: advances; }
     .con-ov-deductions { grid-area: deductions; text-align: right; }
     .con-ov-payments { grid-area: payments; }
+    .con-ov-held { grid-area: held; text-align: right; }
     .con-ov-balance { grid-area: balance; text-align: right; }
 }
 

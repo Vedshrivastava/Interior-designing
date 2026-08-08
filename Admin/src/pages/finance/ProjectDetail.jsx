@@ -473,6 +473,17 @@ const ProjectOverviewTab = ({ url, projectId, contractType, status, onViewWorks,
                                 ['Paid', payables.labourBreakdown.payments, true],
                             ])} />
                         <KpiCard label="Expense Payables" value={formatINR(payables.expensePayable)} tone={payables.expensePayable > 0 ? 'danger' : 'good'} onClick={onViewExpenses} />
+                        {/* Held from Contractor/Labour payments on this project —
+                            already computed unconditionally above (not gated on
+                            project status), unlike the Closing Summary's own copy
+                            of this same figure further down, which only renders
+                            once the project is Completed. */}
+                        <KpiCard label="Total Held" value={formatINR((payables.contractorBreakdown?.holdingTotal || 0) + (payables.labourBreakdown?.holdingTotal || 0))}
+                            tone={((payables.contractorBreakdown?.holdingTotal || 0) + (payables.labourBreakdown?.holdingTotal || 0)) > 0 ? 'danger' : 'good'}
+                            sub={buildBreakdownSub([
+                                ['Contractor', payables.contractorBreakdown?.holdingTotal],
+                                ['Labour', payables.labourBreakdown?.holdingTotal],
+                            ]) || 'Retained from Contractor/Labour payments — still owed until released as a future payment'} />
                     </KpiGrid>
                 </div>
             )}

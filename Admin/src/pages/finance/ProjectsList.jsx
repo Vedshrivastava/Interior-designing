@@ -21,7 +21,7 @@ const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance']
 // since the list resolves fast and the stats depend on a slower N+1
 // fan-out chained off it.
 let projectsListCache = null;
-let projectsStatsCache = null; // { profitData, billedVsCollected }
+let projectsStatsCache = null; // { profitData, billedVsCollected, heldByProject }
 
 const ProjectsList = ({ url }) => {
     const navigate = useNavigate();
@@ -34,6 +34,7 @@ const ProjectsList = ({ url }) => {
     const [deleting, setDeleting] = useState(false);
     const [profitData, setProfitData] = useState(projectsStatsCache?.profitData || []);
     const [billedVsCollected, setBilledVsCollected] = useState(projectsStatsCache?.billedVsCollected || []);
+    const [heldByProject, setHeldByProject] = useState(projectsStatsCache?.heldByProject || []);
     const [statsLoading, setStatsLoading] = useState(!projectsStatsCache);
 
     const fetchList = async () => {
@@ -63,7 +64,7 @@ const ProjectsList = ({ url }) => {
     // types now — advance draws its credit down against its own bills).
     useEffect(() => {
         if (list.length === 0) {
-            if (!projectsStatsCache) { setProfitData([]); setBilledVsCollected([]); }
+            if (!projectsStatsCache) { setProfitData([]); setBilledVsCollected([]); setHeldByProject([]); }
             // The list itself might just still be loading (empty for now,
             // not confirmed empty) — only report these stats as "not
             // loading" once the list fetch has genuinely finished.
@@ -106,9 +107,31 @@ const ProjectsList = ({ url }) => {
                     .catch(() => null)
             ));
             const nextBilledVsCollected = receivables.filter(Boolean).filter(r => r.billed > 0);
+            if (!cancelled) setBilledVsCollected(nextBilledVsCollected);
+
+            // Holding isn't gated by contract type or billing status the way
+            // Billed/Collected is (a cash/without_material project can still
+            // hold back a contractor/labour payment) — draft projects are
+            // excluded since work hasn't started, so no payment could exist
+            // yet. No single endpoint returns per-project held amounts, so
+            // this sums contractor-analysis/labour-analysis's own holdingTotal
+            // per project, same as ProjectDetail.jsx/WorkDetail.jsx already do.
+            const heldEligibleProjects = list.filter(p => p.status !== 'draft');
+            const held = await Promise.all(heldEligibleProjects.map(p =>
+                Promise.all([
+                    axios.get(`${url}/api/finance/reports/contractor-analysis`, { ...authHeader, params: { projectId: p._id } }),
+                    axios.get(`${url}/api/finance/reports/labour-analysis`, { ...authHeader, params: { projectId: p._id } }),
+                ])
+                    .then(([cRes, lRes]) => {
+                        const sumHeld = (res) => (res.data.success ? res.data.data.reduce((s, r) => s + (r.holdingTotal || 0), 0) : 0);
+                        return { projectName: p.name, projectId: p._id, held: sumHeld(cRes) + sumHeld(lRes) };
+                    })
+                    .catch(() => null)
+            ));
+            const nextHeldByProject = held.filter(Boolean);
             if (!cancelled) {
-                setBilledVsCollected(nextBilledVsCollected);
-                projectsStatsCache = { profitData: nextProfitData, billedVsCollected: nextBilledVsCollected };
+                setHeldByProject(nextHeldByProject);
+                projectsStatsCache = { profitData: nextProfitData, billedVsCollected: nextBilledVsCollected, heldByProject: nextHeldByProject };
                 setStatsLoading(false);
             }
         })();
@@ -125,6 +148,12 @@ const ProjectsList = ({ url }) => {
     const outstandingByProject = billedVsCollected
         .filter(r => r.outstanding > 0)
         .sort((a, b) => b.outstanding - a.outstanding);
+
+    // Same idea for Holding — a project with nothing currently held (the
+    // common case) is dropped rather than shown as a zero-length bar.
+    const heldByProjectFiltered = heldByProject
+        .filter(r => r.held > 0)
+        .sort((a, b) => b.held - a.held);
 
     // Same dynamic sizing as the Dashboard's own Project Profitability chart
     // (FinanceHome.jsx) — sized to the longest name actually on screen
@@ -224,6 +253,20 @@ const ProjectsList = ({ url }) => {
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : <EmptyChart text="Nothing outstanding — everything billed has been collected." />}
+                    </ChartCard>
+
+                    <ChartCard title="Total Held">
+                        {loading || statsLoading ? <ChartSkeleton /> : heldByProjectFiltered.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={240}>
+                                <BarChart data={heldByProjectFiltered} layout="vertical" margin={{ left: 24 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                    <XAxis type="number" tick={{ fontSize: 11 }} />
+                                    <YAxis type="category" dataKey="projectName" tick={{ fontSize: 11 }} width={110} />
+                                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
+                                    <Bar dataKey="held" name="Held" fill={CHART_COLORS[3 % CHART_COLORS.length]} onClick={(d) => navigate(`/finance/projects/${d.projectId}`)} style={{ cursor: 'pointer' }} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : <EmptyChart text="Nothing retained from Contractor/Labour payments right now." />}
                     </ChartCard>
                 </ChartGrid>
 

@@ -71,8 +71,10 @@ const getAccountActivity = async (accountId) => {
     // pair (see each model's own comment — "mirrors financeContractorPayment's
     // identical fields") and a working TDS input in its own Admin form, so
     // this nets out consistently across all six instead of assuming only
-    // some of them ever carry a real TDS withholding.
-    const netOut = (p) => p.amount - (p.tdsAmount || 0);
+    // some of them ever carry a real TDS withholding. holdingAmount only
+    // exists on Contractor/Labour Payment (retention — see that model's own
+    // comment); undefined on the other four, so `|| 0` is a no-op there.
+    const netOut = (p) => p.amount - (p.tdsAmount || 0) - (p.holdingAmount || 0);
 
     return [
         ...receipts.map(r => ({ date: r.receiptDate, amount: r.amount, direction: 'credit', description: 'Receipt', sourceType: 'receipt', sourceId: r._id })),

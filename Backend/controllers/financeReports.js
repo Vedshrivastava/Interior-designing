@@ -712,10 +712,16 @@ const computeCompanyWideExpenseToDate = async () => {
 const computeCompanyWidePaidExpenses = async () => {
     const completedProjectIds = await FinanceProject.distinct('_id', { status: 'completed', deleted: { $ne: true } });
     const scopeFilter = { deleted: { $ne: true }, projectId: { $nin: completedProjectIds } };
-    const sumAmount = async (Model, filter = scopeFilter) => {
+    const sumAmount = async (Model, filter = scopeFilter, netOfHolding = false) => {
         const agg = await Model.aggregate([
             { $match: filter },
-            { $group: { _id: null, total: { $sum: '$amount' } } },
+            // Holding stays with the company until the project completes —
+            // not actually spent yet, so it's subtracted out the same way
+            // Balance Payable nets against it (see financeContractorLedger.js's
+            // header comment). Only Contractor/Labour Payment ever set this
+            // param; the field is absent on every other model, so $ifNull
+            // keeps this a no-op there.
+            { $group: { _id: null, total: { $sum: netOfHolding ? { $subtract: ['$amount', { $ifNull: ['$holdingAmount', 0] }] } : '$amount' } } },
         ]);
         return round2(agg[0]?.total || 0);
     };
@@ -725,8 +731,8 @@ const computeCompanyWidePaidExpenses = async () => {
         nonRefundVendorPayments, otherVendorIds,
         manualCashOut, manualBankOut,
     ] = await Promise.all([
-        sumAmount(FinanceContractorAdvance), sumAmount(FinanceContractorPayment),
-        sumAmount(FinanceLabourAdvance), sumAmount(FinanceLabourPayment),
+        sumAmount(FinanceContractorAdvance), sumAmount(FinanceContractorPayment, scopeFilter, true),
+        sumAmount(FinanceLabourAdvance), sumAmount(FinanceLabourPayment, scopeFilter, true),
         sumAmount(FinanceCommissionPayment),
         sumAmount(FinanceSalaryPayment, { deleted: { $ne: true } }),
         sumAmount(FinanceLabourProviderPayment),
@@ -2335,23 +2341,33 @@ const computeContractorAnalysisRows = async (projectId) => {
         const deductionsTotal = round2(allocate(deductions));
         const paymentsTotal = round2(allocate(payments));
         // Informational only — already inside paymentsTotal (the gross
-        // figure balancePayable nets against); surfaces how much of it was
-        // withheld as TDS. See financeContractorLedger.js's identical comment.
+        // figure); surfaces how much of it was withheld as TDS. See
+        // financeContractorLedger.js's identical comment — TDS still
+        // discharges what's owed, unlike holdingTotal below.
         const tdsTotal = round2(allocate(payments, 'tdsAmount'));
+        // Holding (retention) — unlike TDS, never discharges what's owed
+        // (the money stays with the company until the project completes),
+        // so it's subtracted back out of paymentsTotal before balancePayable
+        // nets against it. See financeContractorLedger.js's identical
+        // comment. Every holding-bearing payment requires a projectId (see
+        // addContractorPayment's own guard), so allocate() never has to
+        // proportionally guess this one across a vendor's several projects.
+        const holdingTotal = round2(allocate(payments, 'holdingAmount'));
+        const paymentsNetOfHolding = round2(paymentsTotal - holdingTotal);
         // Flat — see getWorkerPayoutTotal's comment; a separate term from
         // deductionsTotal so a real rejection-deduction and an advance the
         // client already paid this vendor directly never blend into one
         // ambiguous "Deductions" figure. materialWasteTotal is kept
         // separate too, for the same reason — see this file's own comment
         // a few lines up.
-        const balancePayable = round2(earnings - advancesTotal - deductionsTotal - materialWasteTotal - paymentsTotal - directPaymentTotal);
+        const balancePayable = round2(earnings - advancesTotal - deductionsTotal - materialWasteTotal - paymentsNetOfHolding - directPaymentTotal);
 
         return {
             // Field names match financeContractorLedger.js's getContractorLedger
             // totals shape (totalAmount/earnings/unapprovedAmount) so both
             // feeds render identically on the frontend.
             vendorId: v._id, vendorName: v.name, earnings, totalAmount: totalEarnings, unapprovedAmount: unapprovedAmountTotal,
-            advances: advancesTotal, deductions: deductionsTotal, materialWasteTotal, payments: paymentsTotal, tdsTotal, directPaymentTotal, balancePayable,
+            advances: advancesTotal, deductions: deductionsTotal, materialWasteTotal, payments: paymentsTotal, tdsTotal, holdingTotal, directPaymentTotal, balancePayable,
         };
     }));
 };
@@ -2483,17 +2499,21 @@ const computeLabourAnalysisRows = async (projectId) => {
         const deductionsTotal = round2(allocate(deductions));
         const paymentsTotal = round2(allocate(payments));
         const tdsTotal = round2(allocate(payments, 'tdsAmount'));
+        // Holding (retention) — see computeContractorAnalysisRows' identical
+        // comment; doesn't discharge what's owed, unlike TDS.
+        const holdingTotal = round2(allocate(payments, 'holdingAmount'));
+        const paymentsNetOfHolding = round2(paymentsTotal - holdingTotal);
         // Flat — see getWorkerPayoutTotal's comment; kept separate from
         // deductionsTotal so a real rejection-deduction and an advance the
         // client already paid this labourer directly never blend together.
         // materialWasteTotal is kept separate too, for the same reason.
-        const balancePayable = round2(earnings - advancesTotal - deductionsTotal - materialWasteTotal - paymentsTotal - directPaymentTotal);
+        const balancePayable = round2(earnings - advancesTotal - deductionsTotal - materialWasteTotal - paymentsNetOfHolding - directPaymentTotal);
 
         return {
             // Field names match financeLabourLedger.js's getLabourLedger
             // totals shape so both feeds render identically on the frontend.
             labourerId: l._id, labourerName: l.name, earnings, totalAmount: totalEarnings, unapprovedAmount: unapprovedAmountTotal,
-            advances: advancesTotal, deductions: deductionsTotal, materialWasteTotal, payments: paymentsTotal, tdsTotal, directPaymentTotal, balancePayable,
+            advances: advancesTotal, deductions: deductionsTotal, materialWasteTotal, payments: paymentsTotal, tdsTotal, holdingTotal, directPaymentTotal, balancePayable,
         };
     }));
 };
@@ -3017,8 +3037,12 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
     // getAccountActivity, same reasoning/same six types — Vendor and
     // Commission payments now have a working TDS input too, so treating
     // them as always-gross was undercounting cash out whenever either
-    // actually carried a withholding).
-    const netOut = (p) => p.amount - (p.tdsAmount || 0);
+    // actually carried a withholding) — and, for Contractor/Labour
+    // specifically, net of any Holding too: that money doesn't leave the
+    // company either, it just stays put until the project completes.
+    // holdingAmount is undefined on the other four payment types, so `|| 0`
+    // makes this a no-op for them.
+    const netOut = (p) => p.amount - (p.tdsAmount || 0) - (p.holdingAmount || 0);
 
     // A vendor payment with isRefund: true is cash coming IN (the vendor
     // paying the company back), not out — split out before it's treated

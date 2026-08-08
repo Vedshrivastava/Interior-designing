@@ -3136,7 +3136,18 @@
 .cpm-card, .vpm-card, .lpm-card, .spm-card, .cmpm-card, .lppm-card {
     padding: 0;
 }
-.cpm-row, .vpm-row {
+/* cpm/lpm (Contractor/Labour Payments) carry an extra Held column — see
+   financeContractorPayment.js's holdingAmount comment — that vpm/spm/
+   cmpm/lppm (Vendor/Salary/Commission/Labour Provider) don't. */
+.cpm-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 90px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.vpm-row {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 90px;
     align-items: center;
@@ -3144,7 +3155,15 @@
     padding: 14px 20px;
     border-bottom: 1px solid rgba(201, 168, 124, 0.12);
 }
-.lpm-row, .spm-row, .cmpm-row, .lppm-row {
+.lpm-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 90px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.spm-row, .cmpm-row, .lppm-row {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr 1fr 90px;
     align-items: center;
@@ -3175,9 +3194,9 @@
     font-variant-numeric: tabular-nums;
     font-weight: 600;
 }
-.cpm-mode, .cpm-account, .cpm-tds, .cpm-attachment,
+.cpm-mode, .cpm-account, .cpm-tds, .cpm-held, .cpm-attachment,
 .vpm-mode, .vpm-account, .vpm-tds, .vpm-attachment,
-.lpm-mode, .lpm-account, .lpm-tds,
+.lpm-mode, .lpm-account, .lpm-tds, .lpm-held,
 .spm-tds, .spm-mode, .spm-account,
 .cmpm-mode, .cmpm-account, .cmpm-tds,
 .lppm-mode, .lppm-account, .lppm-tds {
@@ -3188,9 +3207,9 @@
     justify-content: center;
 }
 @media (min-width: 641px) {
-    .cpm-amount, .cpm-mode, .cpm-account, .cpm-tds, .cpm-attachment,
+    .cpm-amount, .cpm-mode, .cpm-account, .cpm-tds, .cpm-held, .cpm-attachment,
     .vpm-amount, .vpm-mode, .vpm-account, .vpm-tds, .vpm-attachment,
-    .lpm-amount, .lpm-mode, .lpm-account, .lpm-tds,
+    .lpm-amount, .lpm-mode, .lpm-account, .lpm-tds, .lpm-held,
     .spm-amount, .spm-tds, .spm-mode, .spm-account,
     .cmpm-amount, .cmpm-mode, .cmpm-account, .cmpm-tds,
     .lppm-amount, .lppm-mode, .lppm-account, .lppm-tds {
@@ -3202,7 +3221,19 @@
     .spm-row.spm-header, .cmpm-row.cmpm-header, .lppm-row.lppm-header {
         display: none;
     }
-    .cpm-row, .vpm-row {
+    .cpm-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "date amount"
+            "mode account"
+            "tds held"
+            "attachment attachment"
+            "action action";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .vpm-row {
         grid-template-columns: 1fr 1fr;
         grid-template-areas:
             "date amount"
@@ -3214,7 +3245,18 @@
         column-gap: 10px;
         padding: 16px;
     }
-    .lpm-row, .spm-row, .cmpm-row, .lppm-row {
+    .lpm-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "date amount"
+            "mode account"
+            "tds held"
+            "action action";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .spm-row, .cmpm-row, .lppm-row {
         grid-template-columns: 1fr 1fr;
         grid-template-areas:
             "date amount"
@@ -3240,6 +3282,7 @@
         text-align: right;
     }
     .cpm-tds, .vpm-tds, .lpm-tds, .spm-tds, .cmpm-tds, .lppm-tds { grid-area: tds; }
+    .cpm-held, .lpm-held { grid-area: held; text-align: right; }
     .cpm-attachment, .vpm-attachment {
         grid-area: attachment;
         padding-top: 10px;
@@ -4918,7 +4961,7 @@
 .clp-card { padding: 0; }
 .clp-row {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 60px;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 60px;
     align-items: center;
     gap: 16px;
     padding: 14px 20px;
@@ -4934,11 +4977,11 @@
     padding-bottom: 10px;
 }
 .clp-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
-.clp-mode, .clp-account, .clp-tds { margin: 0; }
+.clp-mode, .clp-account, .clp-tds, .clp-held { margin: 0; }
 .clp-amount { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
 .clp-actions { justify-content: flex-start; }
 @media (min-width: 641px) {
-    .clp-amount, .clp-mode, .clp-account, .clp-tds, .clp-attachment, .clp-actions {
+    .clp-amount, .clp-mode, .clp-account, .clp-tds, .clp-held, .clp-attachment, .clp-actions {
         justify-self: center;
     }
 }
@@ -4949,7 +4992,7 @@
         grid-template-areas:
             "date amount"
             "mode account"
-            "tds tds"
+            "tds held"
             "attachment attachment"
             "actions actions";
         row-gap: 12px;
@@ -4961,6 +5004,7 @@
     .clp-mode { grid-area: mode; }
     .clp-account { grid-area: account; text-align: right; }
     .clp-tds { grid-area: tds; }
+    .clp-held { grid-area: held; text-align: right; }
     .clp-attachment {
         grid-area: attachment;
         padding-top: 10px;
@@ -5401,7 +5445,7 @@
 .llp-card { padding: 0; }
 .llp-row {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 60px;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 60px;
     align-items: center;
     gap: 16px;
     padding: 14px 20px;
@@ -5417,11 +5461,11 @@
     padding-bottom: 10px;
 }
 .llp-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
-.llp-mode, .llp-account, .llp-tds, .llp-notes { margin: 0; }
+.llp-mode, .llp-account, .llp-tds, .llp-held, .llp-notes { margin: 0; }
 .llp-amount { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
 .llp-actions { justify-content: flex-start; }
 @media (min-width: 641px) {
-    .llp-amount, .llp-mode, .llp-account, .llp-tds, .llp-notes, .llp-actions {
+    .llp-amount, .llp-mode, .llp-account, .llp-tds, .llp-held, .llp-notes, .llp-actions {
         justify-self: center;
     }
 }
@@ -5429,7 +5473,7 @@
     .llp-row.llp-header { display: none; }
     .llp-row {
         grid-template-columns: 1fr 1fr;
-        grid-template-areas: "date amount" "mode account" "tds tds" "notes notes" "actions actions";
+        grid-template-areas: "date amount" "mode account" "tds held" "notes notes" "actions actions";
         row-gap: 12px;
         column-gap: 10px;
         padding: 16px;
@@ -5439,6 +5483,7 @@
     .llp-mode { grid-area: mode; }
     .llp-account { grid-area: account; text-align: right; }
     .llp-tds { grid-area: tds; }
+    .llp-held { grid-area: held; text-align: right; }
     .llp-notes { grid-area: notes; }
     .llp-actions {
         grid-area: actions;

@@ -24,7 +24,7 @@ const listLabourPayments = async (req, res) => {
 // payment controller in this codebase.
 const addLabourPayment = async (req, res) => {
     try {
-        const { labourerId, projectId, workId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, notes, tdsSectionId, tdsAmount } = req.body;
+        const { labourerId, projectId, workId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, notes, tdsSectionId, tdsAmount, holdingPercent, holdingAmount } = req.body;
         if (!labourerId) return res.status(400).json({ success: false, message: 'Labourer is required' });
         const labourer = await FinanceLabourer.findOne({ _id: labourerId, deleted: { $ne: true } });
         if (!labourer) return res.status(404).json({ success: false, message: 'Labourer not found' });
@@ -32,19 +32,28 @@ const addLabourPayment = async (req, res) => {
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
         const resolvedTdsAmount = (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null;
+        const resolvedHoldingAmount = (holdingAmount !== undefined && holdingAmount !== '') ? Number(holdingAmount) : null;
+        // Release is tied to completing ONE specific project — see
+        // financeContractorPayment.js's identical guard.
+        if (resolvedHoldingAmount && !projectId) {
+            return res.status(400).json({ success: false, message: 'A project is required when withholding a holding amount — it\'s released when that project completes' });
+        }
         const item = new FinanceLabourPayment({
             labourerId, projectId: projectId || null, workId: workId || null, amount: Number(amount), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null,
             notes: notes || '', tdsSectionId: tdsSectionId || null, tdsAmount: resolvedTdsAmount,
+            holdingPercent: (holdingPercent !== undefined && holdingPercent !== '') ? Number(holdingPercent) : null,
+            holdingAmount: resolvedHoldingAmount,
         });
         await item.save();
 
         // See financeContractorPayment.js's identical comment — only the
-        // net (post-TDS) amount actually leaves cash; Balance Payable
-        // (financeLabourLedger.js/financeReports.js) stays gross.
+        // net (post-TDS, post-holding) amount actually leaves cash; Balance
+        // Payable (financeLabourLedger.js/financeReports.js) stays gross of
+        // TDS but net of holding.
         if (!bankAccountId) {
             await FinanceCashEntry.create({
-                date, type: 'out', amount: Number(amount) - (resolvedTdsAmount || 0), projectId: projectId || null,
+                date, type: 'out', amount: Number(amount) - (resolvedTdsAmount || 0) - (resolvedHoldingAmount || 0), projectId: projectId || null,
                 reason: 'Labour payment', relatedLabourPaymentId: item._id, notes: notes || '',
             });
             broadcast({ type: 'financeCashBookChanged' });

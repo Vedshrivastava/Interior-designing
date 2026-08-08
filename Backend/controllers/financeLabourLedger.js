@@ -32,9 +32,13 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
  * same thing as a work simply not being reviewed yet.
  *
  * Balance Payable = Approved Earnings − Advances − Deductions − Material
- * Waste − Direct Pay (from client) − Payments. TDS is NOT its own term
- * here — it's already inside the gross Payments figure (see totals.tdsTotal's
- * own comment below), purely informational everywhere it's surfaced.
+ * Waste − Direct Pay (from client) − Payments (net of Holding). TDS is NOT
+ * its own term here — it's already inside the gross Payments figure (see
+ * totals.tdsTotal's own comment below), purely informational everywhere
+ * it's surfaced, since withholding it still discharges what's owed. Holding
+ * is the opposite — see financeContractorLedger.js's identical comment for
+ * the full reasoning (that money never leaves the company until the
+ * project completes, so it's subtracted back out of Payments here instead).
  */
 const computeLabourLedger = async (labourerId, projectId) => {
     const labourer = await FinanceLabourer.findOne({ _id: labourerId, deleted: { $ne: true } });
@@ -180,13 +184,17 @@ const computeLabourLedger = async (labourerId, projectId) => {
     const materialWasteTotal = round2(deductions.reduce((sum, d) => sum + (d.materialWasteAmount || 0), 0));
     const paymentsTotal = payments.reduce((sum, p) => sum + p.amount, 0);
     const tdsTotal = round2(payments.reduce((sum, p) => sum + (p.tdsAmount || 0), 0));
+    // Holding — see financeContractorLedger.js's identical comment for the
+    // full reasoning (doesn't discharge what's owed, unlike TDS).
+    const holdingTotal = round2(payments.reduce((sum, p) => sum + (p.holdingAmount || 0), 0));
+    const paymentsNetOfHolding = round2(paymentsTotal - holdingTotal);
     earningsTotal = round2(earningsTotal);
     totalAmountTotal = round2(totalAmountTotal);
     unapprovedAmountTotal = round2(unapprovedAmountTotal);
     // Flat — see getWorkerPayoutTotal's comment; kept separate from
     // deductionsTotal so a real rejection-deduction and an advance the
     // client already paid this labourer directly never blend together.
-    const balancePayable = round2(earningsTotal - advancesTotal - deductionsTotal - materialWasteTotal - paymentsTotal - directPaymentTotal);
+    const balancePayable = round2(earningsTotal - advancesTotal - deductionsTotal - materialWasteTotal - paymentsNetOfHolding - directPaymentTotal);
 
     // Pooled total/total across every work this labourer has touched — same
     // convention as the per-work figure above, just not scoped to one work.
@@ -209,6 +217,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
             materialCostPerSqft: materialAreaTotal > 0 ? materialCostTotal / materialAreaTotal : null,
             // See financeContractorLedger.js's identical comment.
             tdsTotal,
+            holdingTotal,
         },
     };
 };
@@ -340,18 +349,23 @@ const downloadLabourBillStatement = async (req, res) => {
 
         if (data.payments.length > 0) {
             writeSectionHeading(doc, 'Payments');
+            // Amount here is net of Holding — see downloadContractorBillStatement's
+            // identical block/comment for the full reasoning (differs from
+            // TDS's own gross-with-a-footnote display convention).
             drawTable(doc, {
                 company,
                 columns: [
-                    { label: 'Date', width: 81, align: 'left' },
-                    { label: 'Amount', width: 99, align: 'right' },
-                    { label: 'Mode', width: 99, align: 'left' },
-                    { label: 'Account', width: 117, align: 'left' },
-                    { label: 'TDS', width: 116, align: 'left' },
+                    { label: 'Date', width: 75, align: 'left' },
+                    { label: 'Amount', width: 85, align: 'right' },
+                    { label: 'Mode', width: 80, align: 'left' },
+                    { label: 'Account', width: 90, align: 'left' },
+                    { label: 'TDS', width: 100, align: 'left' },
+                    { label: 'Held', width: 82, align: 'left' },
                 ],
                 rows: data.payments.map(p => [
-                    formatDate(p.date), formatCurrency(p.amount), p.paymentMode || '—', p.bankAccountId?.accountName || 'Cash',
+                    formatDate(p.date), formatCurrency(p.amount - (p.holdingAmount || 0)), p.paymentMode || '—', p.bankAccountId?.accountName || 'Cash',
                     p.tdsAmount ? `${formatCurrency(p.tdsAmount)}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '—',
+                    p.holdingAmount ? `${formatCurrency(p.holdingAmount)}${p.holdingPercent ? ` (${p.holdingPercent}%)` : ''}` : '—',
                 ]),
             });
             doc.moveDown(0.4);
@@ -406,7 +420,8 @@ const downloadLabourBillStatement = async (req, res) => {
         const totalsLine = (label, absValue, subtract = false, bold = false) => {
             doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(10);
             doc.text(label, totalsX, ty, { width: labelWidth });
-            doc.text(`${subtract ? '- ' : ''}${formatCurrency(absValue)}`, totalsX + labelWidth, ty, { width: valueWidth, align: 'right' });
+            const sign = subtract === 'plus' ? '+ ' : subtract ? '- ' : '';
+            doc.text(`${sign}${formatCurrency(absValue)}`, totalsX + labelWidth, ty, { width: valueWidth, align: 'right' });
             ty += bold ? 18 : 16;
         };
         totalsLine('Approved Earnings', data.totals.earnings);
@@ -415,6 +430,10 @@ const downloadLabourBillStatement = async (req, res) => {
         if (data.totals.materialWasteTotal > 0) totalsLine('Material Waste', data.totals.materialWasteTotal, true);
         if (data.totals.directPaymentTotal > 0) totalsLine('Direct Pay (from Client)', data.totals.directPaymentTotal, true);
         totalsLine('Payments', data.totals.payments, true);
+        // Payments above is gross (includes the held amount) — add Holding
+        // back to land on the same net-of-holding figure balancePayable
+        // actually subtracted. See financeContractorLedger.js's identical line.
+        if (data.totals.holdingTotal > 0) totalsLine('Holding (retained, not yet paid)', data.totals.holdingTotal, 'plus');
         doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(BRAND_GREEN).lineWidth(1).stroke();
         ty += 6;
         doc.font('Helvetica').fontSize(10);
@@ -428,6 +447,12 @@ const downloadLabourBillStatement = async (req, res) => {
         if (data.totals.tdsTotal > 0) {
             doc.fontSize(8).fillColor('#888888')
                 .text(`TDS: of the Rs. ${data.totals.payments.toLocaleString('en-IN')} in Payments above, Rs. ${(data.totals.payments - data.totals.tdsTotal).toLocaleString('en-IN')} was paid to you in cash and Rs. ${data.totals.tdsTotal.toLocaleString('en-IN')} was withheld and deposited with the tax department on your behalf (see TDS Breakdown above) — already counted in full above, not a further deduction.`, left, doc.y, { width });
+            doc.fillColor('#000000').fontSize(10);
+            doc.moveDown(0.4);
+        }
+        if (data.totals.holdingTotal > 0) {
+            doc.fontSize(8).fillColor('#888888')
+                .text(`Holding: Rs. ${data.totals.holdingTotal.toLocaleString('en-IN')} of the Rs. ${data.totals.payments.toLocaleString('en-IN')} in Payments above was retained, not paid — unlike TDS, this money is still owed to you and stays with the company until this project is marked complete and it's released as a future payment (see Payments table above for which rows carried a holding).`, left, doc.y, { width });
             doc.fillColor('#000000').fontSize(10);
             doc.moveDown(0.4);
         }
@@ -473,8 +498,9 @@ const downloadLabourBillStatement = async (req, res) => {
                 ['Earned', data.totals.earnings],
                 ['Advances', data.totals.advances],
                 ['Deductions', data.totals.deductions],
+                ['Material Waste', data.totals.materialWasteTotal],
                 ['Direct Pay', data.totals.directPaymentTotal],
-                ['Payments', data.totals.payments],
+                ['Payments', round2(data.totals.payments - (data.totals.holdingTotal || 0))],
             ].filter(([, v]) => v);
             if (parts.length) {
                 const made = parts.map(([label, v], i) => `${i > 0 ? '- ' : ''}${label} Rs. ${v.toLocaleString('en-IN')}`).join(' ');

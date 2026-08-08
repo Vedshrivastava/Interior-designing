@@ -34,7 +34,7 @@ const buildMonthlyMoneyFlow = (advances, deductions, payments) => {
 
 const emptyAdvanceForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '' };
 const emptyDeductionForm = { areaSqft: '', reason: '', date: '', notes: '', workId: '' };
-const emptyPaymentForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', workId: '', projectId: '', tdsSectionId: '', tdsAmount: '' };
+const emptyPaymentForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', workId: '', projectId: '', tdsSectionId: '', tdsAmount: '', holdingPercent: '', holdingAmount: '' };
 
 // Section's `rate` (%) × amount, rounded — a Work Type's own tdsSectionId
 // comes pre-populated with its rate (see financeSetting.js's populate), so
@@ -168,7 +168,14 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
     const onChangePaymentAmount = (amount) => {
         setPaymentForm(p => {
             const section = tdsSections.find(s => s._id === p.tdsSectionId);
-            return { ...p, amount, tdsAmount: p.tdsSectionId ? calcTds(section?.rate, amount) : p.tdsAmount };
+            return {
+                ...p, amount,
+                tdsAmount: p.tdsSectionId ? calcTds(section?.rate, amount) : p.tdsAmount,
+                // Holding has no Section/Work resolution (unlike TDS) — it's
+                // just a manually-picked percent, but still recalculates off
+                // a changed Amount the same way.
+                holdingAmount: p.holdingPercent ? calcTds(p.holdingPercent, amount) : p.holdingAmount,
+            };
         });
     };
     const onChangePaymentTdsSection = (tdsSectionId) => {
@@ -177,11 +184,20 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
             return { ...p, tdsSectionId, tdsAmount: tdsSectionId ? calcTds(section?.rate, p.amount) : '' };
         });
     };
+    // calcTds is a plain rate% × amount formula — reused as-is for Holding.
+    const onChangePaymentHoldingPercent = (holdingPercent) => {
+        setPaymentForm(p => ({ ...p, holdingPercent, holdingAmount: holdingPercent ? calcTds(holdingPercent, p.amount) : '' }));
+    };
 
     const submitPayment = async (e) => {
         e.preventDefault();
         if (!paymentForm.amount || Number(paymentForm.amount) <= 0) return toast.error('Amount must be greater than zero');
         if (!paymentForm.date) return toast.error('Date is required');
+        // See financeContractorPayment.js's identical guard — a holding
+        // needs a project to release against once it completes.
+        if (Number(paymentForm.holdingAmount) > 0 && !(projectId || paymentForm.projectId)) {
+            return toast.error('A project is required when withholding a holding amount');
+        }
         setSaving('payment');
         try {
             const data = new FormData();
@@ -257,7 +273,11 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                 {totals.materialWasteTotal > 0 && <KpiCard label="Material Waste" value={formatINR(totals.materialWasteTotal)} />}
                 <KpiCard label="Direct Payments" value={formatINR(totals.directPaymentTotal)} />
                 <KpiCard label="Payments" value={formatINR(totals.payments)}
-                    sub={totals.tdsTotal > 0 ? `Cash to contractor ${formatINR(totals.payments - totals.tdsTotal)}  TDS withheld ${formatINR(totals.tdsTotal)}` : undefined} />
+                    sub={(totals.tdsTotal > 0 || totals.holdingTotal > 0)
+                        ? `Cash to contractor ${formatINR(totals.payments - (totals.tdsTotal || 0) - (totals.holdingTotal || 0))}`
+                            + (totals.tdsTotal > 0 ? `  TDS withheld ${formatINR(totals.tdsTotal)}` : '')
+                            + (totals.holdingTotal > 0 ? `  Holding ${formatINR(totals.holdingTotal)}` : '')
+                        : undefined} />
                 <KpiCard label={totals.balancePayable < 0 ? 'Total Extra Paid' : 'Balance Payable'} value={formatINR(Math.abs(totals.balancePayable))}
                     sub={totals.balancePayable < 0 ? extraPaidSub(totals) : buildBreakdownSub([
                         ['Earned', totals.earnings],
@@ -265,7 +285,10 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                         ['Deductions', totals.deductions, true],
                         ['Material Waste', totals.materialWasteTotal, true],
                         ['Direct Pay', totals.directPaymentTotal, true],
-                        ['Paid', totals.payments, true],
+                        // Net of Holding — a held amount hasn't actually left
+                        // the company (unlike TDS), so it stays owed; see
+                        // financeContractorLedger.js's balancePayable comment.
+                        ['Paid', round2(totals.payments - (totals.holdingTotal || 0)), true],
                     ])}
                     tone={totals.balancePayable > 0 ? 'danger' : 'good'} />
             </KpiGrid>
@@ -292,6 +315,11 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
             {totals.tdsTotal > 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
                     Total Paid: ₹{totals.payments.toLocaleString('en-IN')} (of which ₹{totals.tdsTotal.toLocaleString('en-IN')} was TDS withheld, not cash in hand).
+                </p>
+            )}
+            {totals.holdingTotal > 0 && (
+                <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
+                    ₹{totals.holdingTotal.toLocaleString('en-IN')} of Total Paid was retained as Holding, not paid out — unlike TDS, this stays owed (already reflected in Balance Payable above) until released as a future payment once the project completes.
                 </p>
             )}
 
@@ -551,16 +579,20 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                         <b className="clp-mode">Mode</b>
                         <b className="clp-account">Account</b>
                         <b className="clp-tds">TDS</b>
+                        <b className="clp-held">Held</b>
                         <b className="clp-attachment">Attachment</b>
                         <b className="clp-actions">Action</b>
                     </div>
                     {ledger.payments.map(p => (
                         <div key={p._id} className="clp-row">
                             <p className="clp-date"><span className="pq-group-label">Date</span>{new Date(p.date).toLocaleDateString()}</p>
-                            <p className="clp-amount"><span className="pq-group-label">Amount</span>₹{p.amount.toLocaleString('en-IN')}</p>
+                            {/* Net of Holding — see financeContractorLedger.js's PDF Payments
+                                table for the identical convention/reasoning. */}
+                            <p className="clp-amount"><span className="pq-group-label">Amount</span>₹{(p.amount - (p.holdingAmount || 0)).toLocaleString('en-IN')}</p>
                             <p className="clp-mode"><span className="pq-group-label">Mode</span>{p.paymentMode || '-'}</p>
                             <p className="clp-account"><span className="pq-group-label">Account</span>{p.bankAccountId?.accountName || 'Cash'}</p>
                             <p className="clp-tds"><span className="pq-group-label">TDS</span>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
+                            <p className="clp-held"><span className="pq-group-label">Held</span>{p.holdingAmount ? `₹${p.holdingAmount.toLocaleString('en-IN')}${p.holdingPercent ? ` (${p.holdingPercent}%)` : ''}` : '-'}</p>
                             <div className="clp-attachment">
                                 <span className="pq-group-label">Attachment</span>
                                 {p.attachmentUrl ? <ViewAttachmentLink url={p.attachmentUrl} className="cursor edit-action" style={{ textDecoration: 'none' }}>View</ViewAttachmentLink> : <p style={{ margin: 0 }}>-</p>}
@@ -625,15 +657,31 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                     <p>TDS Amount</p>
                                     <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={paymentForm.tdsAmount} onChange={e => setPaymentForm(p => ({ ...p, tdsAmount: e.target.value }))} />
                                 </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Holding % (retained till project completes)</p>
+                                    <input type="number" onWheel={e => e.target.blur()} min="0" max="100" step="any" value={paymentForm.holdingPercent} onChange={e => onChangePaymentHoldingPercent(e.target.value)} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>Holding Amount</p>
+                                    <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={paymentForm.holdingAmount} onChange={e => setPaymentForm(p => ({ ...p, holdingAmount: e.target.value }))} />
+                                </div>
                                 <div className="add-product-name flex-col wizard-field-full">
                                     <p>Attachment</p>
                                     <input type="file" onChange={e => setPaymentFile(e.target.files[0] || null)} />
                                 </div>
                             </div>
+                            {Number(paymentForm.holdingAmount) > 0 && !(projectId || paymentForm.projectId) && (
+                                <p className="admin-subtitle" style={{ margin: '-8px 0 12px', color: '#c0392b' }}>A project is required when withholding a holding amount — pick a Work above or it will be rejected on save.</p>
+                            )}
                             {paymentForm.amount > 0 && (
                                 <p className="admin-subtitle" style={{ margin: '-8px 0 12px' }}>
-                                    {paymentForm.tdsAmount > 0 ? (
-                                        <>Amount entered ₹{Number(paymentForm.amount).toLocaleString('en-IN')} (before TDS) · TDS to withhold ₹{Number(paymentForm.tdsAmount).toLocaleString('en-IN')} · <b>Actual amount to pay: ₹{(Number(paymentForm.amount) - Number(paymentForm.tdsAmount)).toLocaleString('en-IN')}</b></>
+                                    {(paymentForm.tdsAmount > 0 || paymentForm.holdingAmount > 0) ? (
+                                        <>
+                                            Amount entered ₹{Number(paymentForm.amount).toLocaleString('en-IN')}
+                                            {paymentForm.tdsAmount > 0 && <> · TDS to withhold ₹{Number(paymentForm.tdsAmount).toLocaleString('en-IN')}</>}
+                                            {paymentForm.holdingAmount > 0 && <> · Holding ₹{Number(paymentForm.holdingAmount).toLocaleString('en-IN')}</>}
+                                            {' · '}<b>Actual amount to pay: ₹{(Number(paymentForm.amount) - Number(paymentForm.tdsAmount || 0) - Number(paymentForm.holdingAmount || 0)).toLocaleString('en-IN')}</b>
+                                        </>
                                     ) : (
                                         <b>Actual amount to pay: ₹{Number(paymentForm.amount).toLocaleString('en-IN')}</b>
                                     )}

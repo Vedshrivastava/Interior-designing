@@ -44,9 +44,15 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
  * the signed number.
  *
  * Balance Payable = Approved Earnings − Advances − Deductions − Material
- * Waste − Direct Pay (from client) − Payments. TDS is NOT its own term
- * here — it's already inside the gross Payments figure (see totals.tdsTotal's
- * own comment below), purely informational everywhere it's surfaced.
+ * Waste − Direct Pay (from client) − Payments (net of Holding). TDS is NOT
+ * its own term here — it's already inside the gross Payments figure (see
+ * totals.tdsTotal's own comment below), purely informational everywhere
+ * it's surfaced, since withholding it still discharges what's owed (paid
+ * to the tax department on the vendor's behalf). Holding is the opposite:
+ * that money never leaves the company at all until the project completes,
+ * so — unlike TDS — it's subtracted back OUT of Payments before this
+ * formula runs, keeping the held amount part of what's still genuinely
+ * owed (see totals.holdingTotal's own comment below).
  *
  * INTERPRETATION FLAG: the source structure doc gives this as shorthand
  * ("Advance − Expense Given − Deductions = Balance Payable"). This is the
@@ -205,13 +211,24 @@ const computeContractorLedger = async (vendorId, projectId) => {
     const materialWasteTotal = round2(deductions.reduce((sum, d) => sum + (d.materialWasteAmount || 0), 0));
     const paymentsTotal = payments.reduce((sum, p) => sum + p.amount, 0);
     const tdsTotal = round2(payments.reduce((sum, p) => sum + (p.tdsAmount || 0), 0));
+    // Holding (retention/security) — UNLIKE TDS, this money never leaves
+    // the company at all; it's kept back until the project completes, so
+    // it does NOT discharge what's owed the way TDS does. Balance Payable
+    // below nets against paymentsTotal minus holdingTotal (not the full
+    // gross paymentsTotal TDS still uses) — the held portion stays a real,
+    // outstanding liability until it's released as a later ordinary
+    // payment (no special "release" transaction type needed: recording
+    // that future payment naturally reduces Balance Payable the same way
+    // any payment does).
+    const holdingTotal = round2(payments.reduce((sum, p) => sum + (p.holdingAmount || 0), 0));
+    const paymentsNetOfHolding = round2(paymentsTotal - holdingTotal);
     earningsTotal = round2(earningsTotal);
     totalAmountTotal = round2(totalAmountTotal);
     unapprovedAmountTotal = round2(unapprovedAmountTotal);
     // Flat — see getWorkerPayoutTotal's comment; a separate term from
     // deductionsTotal so a real rejection-deduction and an advance the
     // client already paid this vendor directly never blend together.
-    const balancePayable = round2(earningsTotal - advancesTotal - deductionsTotal - materialWasteTotal - paymentsTotal - directPaymentTotal);
+    const balancePayable = round2(earningsTotal - advancesTotal - deductionsTotal - materialWasteTotal - paymentsNetOfHolding - directPaymentTotal);
 
     // Pooled total/total across every work this vendor has touched — same
     // convention as the per-work figure above, just not scoped to one work.
@@ -235,10 +252,16 @@ const computeContractorLedger = async (vendorId, projectId) => {
             balancePayable,
             materialCostPerSqft: materialAreaTotal > 0 ? materialCostTotal / materialAreaTotal : null,
             // Informational only — already included inside `payments`
-            // (paymentsTotal is the gross figure Balance Payable nets
-            // against); this just surfaces how much of that was withheld
-            // as TDS rather than actually reaching the vendor's hand.
+            // (paymentsTotal is the gross figure); this just surfaces how
+            // much of that was withheld as TDS rather than actually
+            // reaching the vendor's hand. TDS still discharges what's
+            // owed (see balancePayable's own comment above), unlike...
             tdsTotal,
+            // ...holdingTotal — this one is NOT already discharged. Balance
+            // Payable above already nets against payments minus this
+            // figure, so the held amount correctly stays part of what's
+            // still owed until it's released.
+            holdingTotal,
         },
     };
 };
@@ -383,18 +406,26 @@ const downloadContractorBillStatement = async (req, res) => {
 
         if (data.payments.length > 0) {
             writeSectionHeading(doc, 'Payments');
+            // Amount here is net of Holding (unlike TDS, which stays gross
+            // with its own separate note below) — a ₹2,000 payment with a
+            // ₹100 holding shows ₹1,900, with "Held ₹100" in its own column,
+            // since a holding genuinely never reached the contractor's hand
+            // at all (see financeContractorLedger.js's header comment on why
+            // this differs from TDS's own display convention).
             drawTable(doc, {
                 company,
                 columns: [
-                    { label: 'Date', width: 81, align: 'left' },
-                    { label: 'Amount', width: 99, align: 'right' },
-                    { label: 'Mode', width: 99, align: 'left' },
-                    { label: 'UTR / Reference', width: 117, align: 'left' },
-                    { label: 'TDS', width: 116, align: 'left' },
+                    { label: 'Date', width: 75, align: 'left' },
+                    { label: 'Amount', width: 85, align: 'right' },
+                    { label: 'Mode', width: 80, align: 'left' },
+                    { label: 'UTR / Reference', width: 90, align: 'left' },
+                    { label: 'TDS', width: 100, align: 'left' },
+                    { label: 'Held', width: 82, align: 'left' },
                 ],
                 rows: data.payments.map(p => [
-                    formatDate(p.date), formatCurrency(p.amount), p.paymentMode || '—', p.utrNumber || '—',
+                    formatDate(p.date), formatCurrency(p.amount - (p.holdingAmount || 0)), p.paymentMode || '—', p.utrNumber || '—',
                     p.tdsAmount ? `${formatCurrency(p.tdsAmount)}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '—',
+                    p.holdingAmount ? `${formatCurrency(p.holdingAmount)}${p.holdingPercent ? ` (${p.holdingPercent}%)` : ''}` : '—',
                 ]),
             });
             doc.moveDown(0.4);
@@ -470,10 +501,17 @@ const downloadContractorBillStatement = async (req, res) => {
         // silently substitutes a completely different character (a " ditto
         // mark) instead — confirmed by actually rendering this PDF to an
         // image and looking at it, not just reading the source.
+        // subtract accepts true ("- "), 'plus' ("+ "), or false/omitted (no
+        // sign) — 'plus' is for Holding only: Payments below stays the
+        // gross figure (same convention as TDS), so Holding has to be
+        // added back afterward to correctly land on the same
+        // paymentsNetOfHolding balancePayable itself already nets against,
+        // rather than being subtracted a confusing second time.
         const totalsLine = (label, absValue, subtract = false, bold = false) => {
             doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(10);
             doc.text(label, totalsX, ty, { width: labelWidth });
-            doc.text(`${subtract ? '- ' : ''}${formatCurrency(absValue)}`, totalsX + labelWidth, ty, { width: valueWidth, align: 'right' });
+            const sign = subtract === 'plus' ? '+ ' : subtract ? '- ' : '';
+            doc.text(`${sign}${formatCurrency(absValue)}`, totalsX + labelWidth, ty, { width: valueWidth, align: 'right' });
             ty += bold ? 18 : 16;
         };
         totalsLine('Approved Earnings', data.totals.earnings);
@@ -482,6 +520,15 @@ const downloadContractorBillStatement = async (req, res) => {
         if (data.totals.materialWasteTotal > 0) totalsLine('Material Waste', data.totals.materialWasteTotal, true);
         if (data.totals.directPaymentTotal > 0) totalsLine('Direct Pay (from Client)', data.totals.directPaymentTotal, true);
         totalsLine('Payments', data.totals.payments, true);
+        // Holding is added back here, not subtracted a second time — Payments
+        // above is the gross figure (same convention TDS already uses), but
+        // a Holding never actually reached the contractor's hand, so it has
+        // to come back out of that subtraction to land on the same
+        // paymentsNetOfHolding the Balance Payable banner below already
+        // nets against. See financeContractorLedger.js's header comment for
+        // why this differs from TDS (which stays purely informational,
+        // never touching this arithmetic at all).
+        if (data.totals.holdingTotal > 0) totalsLine('Holding (retained, not yet paid)', data.totals.holdingTotal, 'plus');
         doc.moveTo(totalsX, ty).lineTo(right, ty).strokeColor(BRAND_GREEN).lineWidth(1).stroke();
         ty += 6;
         doc.font('Helvetica').fontSize(10);
@@ -495,6 +542,12 @@ const downloadContractorBillStatement = async (req, res) => {
         if (data.totals.tdsTotal > 0) {
             doc.fontSize(8).fillColor('#888888')
                 .text(`TDS: of the Rs. ${data.totals.payments.toLocaleString('en-IN')} in Payments above, Rs. ${(data.totals.payments - data.totals.tdsTotal).toLocaleString('en-IN')} was paid to you in cash and Rs. ${data.totals.tdsTotal.toLocaleString('en-IN')} was withheld and deposited with the tax department on your behalf (see TDS Breakdown above) — already counted in full above, not a further deduction.`, left, doc.y, { width });
+            doc.fillColor('#000000').fontSize(10);
+            doc.moveDown(0.4);
+        }
+        if (data.totals.holdingTotal > 0) {
+            doc.fontSize(8).fillColor('#888888')
+                .text(`Holding: Rs. ${data.totals.holdingTotal.toLocaleString('en-IN')} of the Rs. ${data.totals.payments.toLocaleString('en-IN')} in Payments above was retained, not paid — unlike TDS, this money is still owed to you and stays with the company until this project is marked complete and it's released as a future payment (see Payments table above for which rows carried a holding).`, left, doc.y, { width });
             doc.fillColor('#000000').fontSize(10);
             doc.moveDown(0.4);
         }
@@ -554,8 +607,12 @@ const downloadContractorBillStatement = async (req, res) => {
                 ['Earned', data.totals.earnings],
                 ['Advances', data.totals.advances],
                 ['Deductions', data.totals.deductions],
+                ['Material Waste', data.totals.materialWasteTotal],
                 ['Direct Pay', data.totals.directPaymentTotal],
-                ['Payments', data.totals.payments],
+                // Net of Holding — a held amount never reached the
+                // contractor's hand, so it must stay OUT of what counts as
+                // "paid" here, same reasoning as the Totals block above.
+                ['Payments', round2(data.totals.payments - (data.totals.holdingTotal || 0))],
             ].filter(([, v]) => v);
             if (parts.length) {
                 const made = parts.map(([label, v], i) => `${i > 0 ? '- ' : ''}${label} Rs. ${v.toLocaleString('en-IN')}`).join(' ');

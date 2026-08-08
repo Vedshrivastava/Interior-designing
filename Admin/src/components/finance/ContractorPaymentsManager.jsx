@@ -15,7 +15,7 @@ import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', workId: '', projectId: '', tdsSectionId: '', tdsAmount: '' };
+const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', workId: '', projectId: '', tdsSectionId: '', tdsAmount: '', holdingPercent: '', holdingAmount: '' };
 
 // See ContractorLedgerView.jsx's identical helper.
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -154,7 +154,11 @@ const ContractorPaymentsManager = ({ url }) => {
     const onChangeAmount = (amount) => {
         setForm(p => {
             const section = tdsSections.find(s => s._id === p.tdsSectionId);
-            return { ...p, amount, tdsAmount: p.tdsSectionId ? calcTds(section?.rate, amount) : p.tdsAmount };
+            return {
+                ...p, amount,
+                tdsAmount: p.tdsSectionId ? calcTds(section?.rate, amount) : p.tdsAmount,
+                holdingAmount: p.holdingPercent ? calcTds(p.holdingPercent, amount) : p.holdingAmount,
+            };
         });
     };
     const onChangeTdsSection = (tdsSectionId) => {
@@ -163,12 +167,18 @@ const ContractorPaymentsManager = ({ url }) => {
             return { ...p, tdsSectionId, tdsAmount: tdsSectionId ? calcTds(section?.rate, p.amount) : '' };
         });
     };
+    // calcTds is a plain rate% × amount formula — reused as-is for Holding.
+    const onChangeHoldingPercent = (holdingPercent) => {
+        setForm(p => ({ ...p, holdingPercent, holdingAmount: holdingPercent ? calcTds(holdingPercent, p.amount) : '' }));
+    };
 
     const submit = async (e) => {
         e.preventDefault();
         if (!vendorId) return toast.error('Select a contractor');
         if (!form.amount || Number(form.amount) <= 0) return toast.error('Amount must be greater than zero');
         if (!form.date) return toast.error('Date is required');
+        // See financeContractorPayment.js's identical guard.
+        if (Number(form.holdingAmount) > 0 && !form.projectId) return toast.error('A project is required when withholding a holding amount');
 
         setSaving(true);
         try {
@@ -234,16 +244,18 @@ const ContractorPaymentsManager = ({ url }) => {
                                 <b className="cpm-mode">Mode</b>
                                 <b className="cpm-account">Account</b>
                                 <b className="cpm-tds">TDS</b>
+                                <b className="cpm-held">Held</b>
                                 <b className="cpm-attachment">Attachment</b>
                                 <b className="cpm-action">Action</b>
                             </div>
                             {payments.map(p => (
                                 <div key={p._id} className="cpm-row">
                                     <p className="cpm-date">{new Date(p.date).toLocaleDateString()}</p>
-                                    <p className="cpm-amount"><span className="pq-group-label">Amount</span>₹{p.amount.toLocaleString('en-IN')}</p>
+                                    <p className="cpm-amount"><span className="pq-group-label">Amount</span>₹{(p.amount - (p.holdingAmount || 0)).toLocaleString('en-IN')}</p>
                                     <p className="cpm-mode"><span className="pq-group-label">Mode</span>{p.paymentMode || '-'}</p>
                                     <p className="cpm-account"><span className="pq-group-label">Account</span>{p.bankAccountId?.accountName || 'Cash'}</p>
                                     <p className="cpm-tds"><span className="pq-group-label">TDS</span>{p.tdsAmount ? `₹${p.tdsAmount.toLocaleString('en-IN')}${p.tdsSectionId?.name ? ` (${p.tdsSectionId.name})` : ''}` : '-'}</p>
+                                    <p className="cpm-held"><span className="pq-group-label">Held</span>{p.holdingAmount ? `₹${p.holdingAmount.toLocaleString('en-IN')}${p.holdingPercent ? ` (${p.holdingPercent}%)` : ''}` : '-'}</p>
                                     <p className="cpm-attachment"><span className="pq-group-label">Attachment</span>{p.attachmentUrl ? <ViewAttachmentLink url={p.attachmentUrl}>View</ViewAttachmentLink> : '-'}</p>
                                     <div className="cpm-action">
                                         <button type="button" className="pq-btn-ghost-danger" onClick={() => setConfirmItem(p)} title="Remove payment" aria-label="Remove payment">
@@ -316,6 +328,14 @@ const ContractorPaymentsManager = ({ url }) => {
                                                 <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} />
                                             </div>
                                             <div className="add-product-name flex-col">
+                                                <p>Holding % (retained till project completes)</p>
+                                                <input type="number" onWheel={e => e.target.blur()} min="0" max="100" step="any" value={form.holdingPercent} onChange={e => onChangeHoldingPercent(e.target.value)} />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>Holding Amount</p>
+                                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.holdingAmount} onChange={e => setField('holdingAmount', e.target.value)} />
+                                            </div>
+                                            <div className="add-product-name flex-col">
                                                 <p>UTR / Reference Number</p>
                                                 <input type="text" value={form.utrNumber} onChange={e => setField('utrNumber', e.target.value)} />
                                             </div>
@@ -332,10 +352,18 @@ const ContractorPaymentsManager = ({ url }) => {
                                                 <input type="text" value={form.bankOrCashLabel} onChange={e => setField('bankOrCashLabel', e.target.value)} />
                                             </div>
                                         </div>
+                                        {Number(form.holdingAmount) > 0 && !form.projectId && (
+                                            <p className="admin-subtitle" style={{ margin: '12px 0 0', color: '#c0392b' }}>A project is required when withholding a holding amount — pick one above or it will be rejected on save.</p>
+                                        )}
                                         {form.amount > 0 && (
                                             <p className="admin-subtitle" style={{ margin: '12px 0 0' }}>
-                                                {form.tdsAmount > 0 ? (
-                                                    <>Amount entered ₹{Number(form.amount).toLocaleString('en-IN')} (before TDS) · TDS to withhold ₹{Number(form.tdsAmount).toLocaleString('en-IN')} · <b>Actual amount to pay: ₹{(Number(form.amount) - Number(form.tdsAmount)).toLocaleString('en-IN')}</b></>
+                                                {(form.tdsAmount > 0 || form.holdingAmount > 0) ? (
+                                                    <>
+                                                        Amount entered ₹{Number(form.amount).toLocaleString('en-IN')}
+                                                        {form.tdsAmount > 0 && <> · TDS to withhold ₹{Number(form.tdsAmount).toLocaleString('en-IN')}</>}
+                                                        {form.holdingAmount > 0 && <> · Holding ₹{Number(form.holdingAmount).toLocaleString('en-IN')}</>}
+                                                        {' · '}<b>Actual amount to pay: ₹{(Number(form.amount) - Number(form.tdsAmount || 0) - Number(form.holdingAmount || 0)).toLocaleString('en-IN')}</b>
+                                                    </>
                                                 ) : (
                                                     <b>Actual amount to pay: ₹{Number(form.amount).toLocaleString('en-IN')}</b>
                                                 )}

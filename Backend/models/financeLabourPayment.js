@@ -24,6 +24,12 @@ const financeLabourPaymentSchema = new mongoose.Schema({
     tdsSectionId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeSetting', default: null },
     tdsAmount:    { type: Number, default: null },
 
+    // Retention/security holding — see financeContractorPayment.js's
+    // identical field for the full reasoning (unlike TDS, doesn't discharge
+    // what's owed; requires projectId, enforced in the controller).
+    holdingPercent: { type: Number, default: null },
+    holdingAmount:  { type: Number, default: null },
+
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },
     deletedBy: { type: String },

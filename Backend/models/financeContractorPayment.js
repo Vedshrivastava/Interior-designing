@@ -28,6 +28,17 @@ const financeContractorPaymentSchema = new mongoose.Schema({
     tdsSectionId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeSetting', default: null },
     tdsAmount:    { type: Number, default: null },
 
+    // Retention/security holding — unlike TDS, this money never leaves the
+    // company at all; it's kept back until the project completes, so it
+    // does NOT discharge what's owed the way TDS does. See
+    // financeContractorLedger.js's balancePayable comment: `amount −
+    // holdingAmount` (not the full gross amount) is what counts as
+    // actually paid for this field. Requires projectId (enforced in the
+    // controller, not the schema) since release is tied to one specific
+    // project's completion.
+    holdingPercent: { type: Number, default: null },
+    holdingAmount:  { type: Number, default: null },
+
     deleted:   { type: Boolean, default: false },
     deletedAt: { type: Date },
     deletedBy: { type: String },

@@ -41,11 +41,19 @@ const uploadAttachment = async (file) => {
 // bankAccountId means cash — a financeCashEntry is auto-created below.
 const addContractorPayment = async (req, res) => {
     try {
-        const { vendorId, projectId, workId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
+        const { vendorId, projectId, workId, amount, date, paymentMode, bankOrCashLabel, bankAccountId, utrNumber, notes, tdsSectionId, tdsAmount, holdingPercent, holdingAmount } = req.body;
         if (!vendorId) return res.status(400).json({ success: false, message: 'Vendor is required' });
         const vendor = await assertContractorVendor(vendorId);
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
+
+        const resolvedHoldingAmount = (holdingAmount !== undefined && holdingAmount !== '') ? Number(holdingAmount) : null;
+        // Release is tied to completing ONE specific project (see
+        // financeProject.js's completeFinanceProject) — a holding with no
+        // project to release it against would just sit withheld forever.
+        if (resolvedHoldingAmount && !projectId) {
+            return res.status(400).json({ success: false, message: 'A project is required when withholding a holding amount — it\'s released when that project completes' });
+        }
 
         const attachmentUrl = await uploadAttachment(req.file);
         const resolvedTdsAmount = (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null;
@@ -55,16 +63,21 @@ const addContractorPayment = async (req, res) => {
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', bankAccountId: bankAccountId || null, utrNumber: utrNumber || '',
             attachmentUrl, notes: notes || '',
             tdsSectionId: tdsSectionId || null, tdsAmount: resolvedTdsAmount,
+            holdingPercent: (holdingPercent !== undefined && holdingPercent !== '') ? Number(holdingPercent) : null,
+            holdingAmount: resolvedHoldingAmount,
         });
         await item.save();
 
-        // Only the net (post-TDS) amount actually leaves the company's
-        // bank/cash — the withheld portion is owed to the tax authority
-        // instead, not spent yet. The vendor's own Balance Payable stays
-        // gross (see financeContractorLedger.js/financeReports.js — those
-        // still sum the full `amount`), since TDS is still money the
-        // vendor was "paid," just paid on their behalf.
-        const netAmount = Number(amount) - (resolvedTdsAmount || 0);
+        // Only the net (post-TDS, post-holding) amount actually leaves the
+        // company's bank/cash — TDS is owed to the tax authority instead;
+        // a holding just stays with the company, unspent, until the
+        // project completes and it's released as a later payment. The
+        // vendor's own Balance Payable stays gross of TDS (see
+        // financeContractorLedger.js/financeReports.js — those still sum
+        // the full `amount` there) but NET of holding — see that same
+        // file's balancePayable comment for why holding, unlike TDS,
+        // doesn't discharge what's owed.
+        const netAmount = Number(amount) - (resolvedTdsAmount || 0) - (resolvedHoldingAmount || 0);
         if (!bankAccountId) {
             await FinanceCashEntry.create({
                 date, type: 'out', amount: netAmount, projectId: projectId || null,
@@ -101,16 +114,23 @@ const addContractorPayment = async (req, res) => {
 // financeMeasurement's update not touching areaCoveredSqft/materialUsed.
 const updateContractorPayment = async (req, res) => {
     try {
-        const { _id, projectId, workId, amount, date, paymentMode, bankOrCashLabel, utrNumber, notes, tdsSectionId, tdsAmount } = req.body;
+        const { _id, projectId, workId, amount, date, paymentMode, bankOrCashLabel, utrNumber, notes, tdsSectionId, tdsAmount, holdingPercent, holdingAmount } = req.body;
         const existing = await FinanceContractorPayment.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Not found' });
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
+        const resolvedHoldingAmount = (holdingAmount !== undefined && holdingAmount !== '') ? Number(holdingAmount) : null;
+        if (resolvedHoldingAmount && !projectId) {
+            return res.status(400).json({ success: false, message: 'A project is required when withholding a holding amount — it\'s released when that project completes' });
+        }
+
         const update = {
             projectId: projectId || null, workId: workId || null, amount: Number(amount), date,
             paymentMode: paymentMode || '', bankOrCashLabel: bankOrCashLabel || '', utrNumber: utrNumber || '', notes: notes || '',
             tdsSectionId: tdsSectionId || null, tdsAmount: (tdsAmount !== undefined && tdsAmount !== '') ? Number(tdsAmount) : null,
+            holdingPercent: (holdingPercent !== undefined && holdingPercent !== '') ? Number(holdingPercent) : null,
+            holdingAmount: resolvedHoldingAmount,
         };
         if (req.file) update.attachmentUrl = await uploadAttachment(req.file);
 

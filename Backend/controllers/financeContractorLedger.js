@@ -8,8 +8,7 @@ import FinanceContractorDeduction from '../models/financeContractorDeduction.js'
 import FinanceContractorPayment from '../models/financeContractorPayment.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
 import { assertContractorVendor } from '../utils/contractorVendor.js';
-import { getCategoryApprovedAreaByWorkId, splitApprovedAreaByShare, computeMaterialAvgRates } from './financeReports.js';
-import { getWorkerPayoutTotal } from './financeClientDirectPayment.js';
+import { getCategoryApprovedAreaByWorkId, splitApprovedAreaByShare, computeMaterialAvgRates, computeContractorBalance } from './financeReports.js';
 import PDFDocument from 'pdfkit';
 import { writeLetterhead, writeSectionHeading, writeSignatureLine, writeFooter, drawInfoBox, drawTable, contentBox, formatCurrency, formatDate, BRAND_GREEN, paintPageBackground } from '../utils/pdfLetterhead.js';
 
@@ -88,7 +87,7 @@ const computeContractorLedger = async (vendorId, projectId) => {
     const areaByWork = new Map(); // workId -> { totalArea, allVendorsArea }
     for (const w of works) areaByWork.set(w._id.toString(), { totalArea: 0, allVendorsArea: 0 });
 
-    const [measurements, allVendorMeasurements, categoryApprovedByWorkId, avgRateEntries, directPaymentTotal] = await Promise.all([
+    const [measurements, allVendorMeasurements, categoryApprovedByWorkId, avgRateEntries] = await Promise.all([
         works.length
             ? FinanceMeasurement.find({ workId: { $in: works.map(w => w._id) }, contractorVendorId: vendorId, deleted: { $ne: true } })
                 .populate('workId', 'workType')
@@ -109,9 +108,6 @@ const computeContractorLedger = async (vendorId, projectId) => {
         // single-project scope — each project needs its own weighted-average
         // material rate map (rates are project-scoped, not global).
         Promise.all(projectIds.map(async (pid) => [pid, await computeMaterialAvgRates(pid)])),
-        // Flat, not sqft-based — see getWorkerPayoutTotal's comment (an
-        // advance, not payment for specific measured work).
-        getWorkerPayoutTotal('contractor', vendorId, projectId || undefined),
     ]);
     const avgRateByProject = new Map(avgRateEntries);
     for (const m of allVendorMeasurements) {
@@ -138,9 +134,6 @@ const computeContractorLedger = async (vendorId, projectId) => {
         }
     }
 
-    let earningsTotal = 0;
-    let totalAmountTotal = 0;
-    let unapprovedAmountTotal = 0;
     const worksOut = [];
     for (const w of works) {
         const workKey = w._id.toString();
@@ -166,9 +159,6 @@ const computeContractorLedger = async (vendorId, projectId) => {
         const totalAmount = round2(rate ? totalArea * rateValue : 0);
         const earnings = round2(rate ? approvedArea * rateValue : 0);
         const unapprovedAmount = round2(rate ? unapprovedArea * rateValue : 0);
-        earningsTotal += earnings;
-        totalAmountTotal += totalAmount;
-        unapprovedAmountTotal += unapprovedAmount;
 
         const workMaterialArea = materialAreaByWork.get(workKey) || 0;
         worksOut.push({
@@ -185,50 +175,20 @@ const computeContractorLedger = async (vendorId, projectId) => {
         });
     }
 
+    // Raw rows, for display in the Payments/Advances/Deductions tables
+    // below — the TOTALS actually shown (Balance Payable etc.) come from
+    // computeContractorBalance instead of being re-derived from these same
+    // rows a second time (see that function's own comment for why: this
+    // simpler direct-filter-by-projectId query silently dropped every
+    // general/untagged advance/deduction/payment once project-scoped).
     const moneyFilter = { vendorId, deleted: { $ne: true } };
     if (projectId) moneyFilter.projectId = projectId;
-    const [advances, deductions, payments] = await Promise.all([
+    const [advances, deductions, payments, balance] = await Promise.all([
         FinanceContractorAdvance.find(moneyFilter).populate('bankAccountId', 'accountName').sort({ date: -1 }),
         FinanceContractorDeduction.find(moneyFilter).sort({ date: -1 }),
         FinanceContractorPayment.find(moneyFilter).populate('bankAccountId', 'accountName').populate('tdsSectionId', 'name code').sort({ date: -1 }),
+        computeContractorBalance(vendorId, projectId),
     ]);
-
-    const advancesTotal = advances.reduce((sum, a) => sum + a.amount, 0);
-    // A workReviewCycle-tagged row is the atomic review's own exact
-    // rejection attribution — already reflected above via approvedArea, so
-    // it must not ALSO reduce Balance Payable again here (would double-
-    // count it). It still ships in `deductions` below for a complete
-    // history (the frontend labels it "From Review" vs "Manual"), just
-    // excluded from this sum — only a genuinely standalone manual
-    // deduction (workReviewCycle: null) counts toward the total. See
-    // getCategoryApprovedAreaByWorkId's own comment for the full story.
-    const deductionsTotal = deductions.filter(d => d.workReviewCycle == null).reduce((sum, d) => sum + d.amount, 0);
-    // The material a rejection wasted, priced separately from `amount`
-    // above (see the model's own comment) — kept as its own figure rather
-    // than folded into deductionsTotal so "Deductions" never silently
-    // means two different things depending on which rows exist; Balance
-    // Payable below subtracts both explicitly.
-    const materialWasteTotal = round2(deductions.reduce((sum, d) => sum + (d.materialWasteAmount || 0), 0));
-    const paymentsTotal = payments.reduce((sum, p) => sum + p.amount, 0);
-    const tdsTotal = round2(payments.reduce((sum, p) => sum + (p.tdsAmount || 0), 0));
-    // Holding (retention/security) — UNLIKE TDS, this money never leaves
-    // the company at all; it's kept back until the project completes, so
-    // it does NOT discharge what's owed the way TDS does. Balance Payable
-    // below nets against paymentsTotal minus holdingTotal (not the full
-    // gross paymentsTotal TDS still uses) — the held portion stays a real,
-    // outstanding liability until it's released as a later ordinary
-    // payment (no special "release" transaction type needed: recording
-    // that future payment naturally reduces Balance Payable the same way
-    // any payment does).
-    const holdingTotal = round2(payments.reduce((sum, p) => sum + (p.holdingAmount || 0), 0));
-    const paymentsNetOfHolding = round2(paymentsTotal - holdingTotal);
-    earningsTotal = round2(earningsTotal);
-    totalAmountTotal = round2(totalAmountTotal);
-    unapprovedAmountTotal = round2(unapprovedAmountTotal);
-    // Flat — see getWorkerPayoutTotal's comment; a separate term from
-    // deductionsTotal so a real rejection-deduction and an advance the
-    // client already paid this vendor directly never blend together.
-    const balancePayable = round2(earningsTotal - advancesTotal - deductionsTotal - materialWasteTotal - paymentsNetOfHolding - directPaymentTotal);
 
     // Pooled total/total across every work this vendor has touched — same
     // convention as the per-work figure above, just not scoped to one work.
@@ -241,27 +201,8 @@ const computeContractorLedger = async (vendorId, projectId) => {
         vendorId: vendor._id, vendorName: vendor.name,
         works: worksOut, measurements, advances, deductions, payments,
         totals: {
-            earnings: earningsTotal, totalAmount: totalAmountTotal, unapprovedAmount: unapprovedAmountTotal,
-            advances: advancesTotal, deductions: deductionsTotal, materialWasteTotal, payments: paymentsTotal,
-            // Flat total of client-paid amounts (category flagged "cut from
-            // worker payout") — an advance, not tied to specific sqft, so
-            // it's its own separate subtractor in balancePayable above, not
-            // blended into deductionsTotal. See getWorkerPayoutTotal's
-            // comment.
-            directPaymentTotal,
-            balancePayable,
+            ...balance,
             materialCostPerSqft: materialAreaTotal > 0 ? materialCostTotal / materialAreaTotal : null,
-            // Informational only — already included inside `payments`
-            // (paymentsTotal is the gross figure); this just surfaces how
-            // much of that was withheld as TDS rather than actually
-            // reaching the vendor's hand. TDS still discharges what's
-            // owed (see balancePayable's own comment above), unlike...
-            tdsTotal,
-            // ...holdingTotal — this one is NOT already discharged. Balance
-            // Payable above already nets against payments minus this
-            // figure, so the held amount correctly stays part of what's
-            // still owed until it's released.
-            holdingTotal,
         },
     };
 };

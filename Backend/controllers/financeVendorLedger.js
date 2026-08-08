@@ -1,13 +1,23 @@
 import FinanceVendor from '../models/financeVendor.js';
 import FinancePurchase from '../models/financePurchase.js';
 import FinanceVendorPayment from '../models/financeVendorPayment.js';
+import { computeVendorBalance } from './financeReports.js';
 
 /*
  * Computed fresh on every call — nothing stored. Same anti-drift rule
  * used for the Contractor Ledger, current-stock, Receivables, and
  * Payables elsewhere in this codebase.
  *
- * Amount Owed = SUM(purchase) − SUM(return) − SUM(vendorPayment).
+ * Amount Owed comes from computeVendorBalance (financeReports.js) — see
+ * that function's own comment. It used to be re-derived inline right here,
+ * simply filtering purchases/payments directly by projectId when scoped;
+ * that silently dropped every general/untagged vendor payment once
+ * project-scoped (financeVendorPayment.projectId is optional), making a
+ * vendor read as still owed their full purchase total right after being
+ * paid. Not reachable today (nothing renders this ledger with a
+ * projectId), but wrong the moment it is — fixed by standardizing on the
+ * same proportional-allocation formula computeVendorAnalysisRows already
+ * used correctly.
  *
  * Project Cost / Profitability roll-up from these purchases belongs to
  * the Reports/Profitability module later — this endpoint only exposes the
@@ -23,24 +33,24 @@ const getVendorLedger = async (req, res) => {
 
         const purchaseFilter = { vendorId, deleted: { $ne: true } };
         if (projectId) purchaseFilter.projectId = projectId;
-        const purchases = await FinancePurchase.find(purchaseFilter)
-            .populate('materialId', 'name unit')
-            .populate('projectId', 'name')
-            .sort({ date: -1 });
-
-        const paymentFilter = { vendorId, deleted: { $ne: true } };
-        if (projectId) paymentFilter.projectId = projectId;
-        const payments = await FinanceVendorPayment.find(paymentFilter).populate('bankAccountId', 'accountName').sort({ date: -1 });
-
-        const purchaseTotal = purchases.filter(p => p.transactionType === 'purchase').reduce((sum, p) => sum + p.totalAmount, 0);
-        const returnTotal = purchases.filter(p => p.transactionType === 'return').reduce((sum, p) => sum + p.totalAmount, 0);
-        // A refund (isRefund: true) is the vendor paying the company back,
-        // not the other way round — nets against paymentsTotal instead of
-        // piling onto it, so Amount Owed correctly moves back toward 0 (or
-        // positive) as a credit gets settled instead of going more negative.
-        const paymentsTotal = payments.filter(p => !p.isRefund).reduce((sum, p) => sum + p.amount, 0);
-        const refundsTotal = payments.filter(p => p.isRefund).reduce((sum, p) => sum + p.amount, 0);
-        const amountOwed = purchaseTotal - returnTotal - paymentsTotal + refundsTotal;
+        const [purchases, payments, totals] = await Promise.all([
+            FinancePurchase.find(purchaseFilter)
+                .populate('materialId', 'name unit')
+                .populate('projectId', 'name')
+                .sort({ date: -1 }),
+            // Raw rows for display — when scoped, includes general/untagged
+            // payments too (not just ones tagged to exactly this project),
+            // since computeVendorBalance below counts a proportional share
+            // of those toward this project's own Amount Owed; a payment
+            // tagged to a DIFFERENT specific project is still excluded, so
+            // this never shows a payment that has nothing to do with the
+            // project being viewed.
+            FinanceVendorPayment.find({
+                vendorId, deleted: { $ne: true },
+                ...(projectId ? { $or: [{ projectId }, { projectId: null }] } : {}),
+            }).populate('bankAccountId', 'accountName').sort({ date: -1 }),
+            computeVendorBalance(vendorId, projectId),
+        ]);
 
         res.json({
             success: true,
@@ -49,7 +59,7 @@ const getVendorLedger = async (req, res) => {
                 purchases: purchases.filter(p => p.transactionType === 'purchase'),
                 returns: purchases.filter(p => p.transactionType === 'return'),
                 payments,
-                totals: { purchases: purchaseTotal, returns: returnTotal, payments: paymentsTotal, refunds: refundsTotal, amountOwed },
+                totals,
             },
         });
     } catch (err) {

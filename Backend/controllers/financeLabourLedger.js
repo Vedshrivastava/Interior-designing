@@ -8,8 +8,7 @@ import FinanceLabourAdvance from '../models/financeLabourAdvance.js';
 import FinanceLabourDeduction from '../models/financeLabourDeduction.js';
 import FinanceLabourPayment from '../models/financeLabourPayment.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
-import { getCategoryApprovedAreaByWorkId, splitApprovedAreaByShare, computeMaterialAvgRates } from './financeReports.js';
-import { getWorkerPayoutTotal } from './financeClientDirectPayment.js';
+import { getCategoryApprovedAreaByWorkId, splitApprovedAreaByShare, computeMaterialAvgRates, computeLabourBalance } from './financeReports.js';
 import PDFDocument from 'pdfkit';
 import { writeLetterhead, writeSectionHeading, writeSignatureLine, writeFooter, drawInfoBox, drawTable, contentBox, formatCurrency, formatDate, BRAND_GREEN, paintPageBackground } from '../utils/pdfLetterhead.js';
 
@@ -63,7 +62,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
     const areaByWork = new Map(); // workId -> { totalArea, allLabourersArea }
     for (const w of works) areaByWork.set(w._id.toString(), { totalArea: 0, allLabourersArea: 0 });
 
-    const [measurements, allLabourerMeasurements, categoryApprovedByWorkId, avgRateEntries, directPaymentTotal] = await Promise.all([
+    const [measurements, allLabourerMeasurements, categoryApprovedByWorkId, avgRateEntries] = await Promise.all([
         works.length
             ? FinanceLabourMeasurement.find({ workId: { $in: works.map(w => w._id) }, labourerId, deleted: { $ne: true } })
                 .populate('workId', 'workType')
@@ -82,9 +81,6 @@ const computeLabourLedger = async (labourerId, projectId) => {
         // its own weighted-average material rate map (see the identical
         // comment in financeContractorLedger.js).
         Promise.all(projectIds.map(async (pid) => [pid, await computeMaterialAvgRates(pid)])),
-        // Flat, not sqft-based — see getWorkerPayoutTotal's comment (an
-        // advance, not payment for specific measured work).
-        getWorkerPayoutTotal('labour', labourerId, projectId || undefined),
     ]);
     const avgRateByProject = new Map(avgRateEntries);
     for (const m of allLabourerMeasurements) {
@@ -110,9 +106,6 @@ const computeLabourLedger = async (labourerId, projectId) => {
         }
     }
 
-    let earningsTotal = 0;
-    let totalAmountTotal = 0;
-    let unapprovedAmountTotal = 0;
     const worksOut = [];
     for (const w of works) {
         const workKey = w._id.toString();
@@ -139,9 +132,6 @@ const computeLabourLedger = async (labourerId, projectId) => {
         const totalAmount = round2(rate ? totalArea * rateValue : 0);
         const earnings = round2(rate ? approvedArea * rateValue : 0);
         const unapprovedAmount = round2(rate ? unapprovedArea * rateValue : 0);
-        earningsTotal += earnings;
-        totalAmountTotal += totalAmount;
-        unapprovedAmountTotal += unapprovedAmount;
 
         const workMaterialArea = materialAreaByWork.get(workKey) || 0;
         worksOut.push({
@@ -158,43 +148,17 @@ const computeLabourLedger = async (labourerId, projectId) => {
         });
     }
 
+    // Raw rows, for display — see financeContractorLedger.js's identical
+    // comment for why the TOTALS come from computeLabourBalance instead of
+    // being re-derived from these same rows a second time.
     const moneyFilter = { labourerId, deleted: { $ne: true } };
     if (projectId) moneyFilter.projectId = projectId;
-    const [advances, deductions, payments] = await Promise.all([
+    const [advances, deductions, payments, balance] = await Promise.all([
         FinanceLabourAdvance.find(moneyFilter).populate('bankAccountId', 'accountName').sort({ date: -1 }),
         FinanceLabourDeduction.find(moneyFilter).sort({ date: -1 }),
         FinanceLabourPayment.find(moneyFilter).populate('bankAccountId', 'accountName').populate('tdsSectionId', 'name code').sort({ date: -1 }),
+        computeLabourBalance(labourerId, projectId),
     ]);
-
-    const advancesTotal = advances.reduce((sum, a) => sum + a.amount, 0);
-    // A workReviewCycle-tagged row is the atomic review's own exact
-    // rejection attribution — already reflected above via approvedArea, so
-    // it must not ALSO reduce Balance Payable again here (would double-
-    // count it). It still ships in `deductions` below for a complete
-    // history (the frontend labels it "From Review" vs "Manual"), just
-    // excluded from this sum — only a genuinely standalone manual
-    // deduction (workReviewCycle: null) counts toward the total. See
-    // getCategoryApprovedAreaByWorkId's own comment for the full story.
-    const deductionsTotal = deductions.filter(d => d.workReviewCycle == null).reduce((sum, d) => sum + d.amount, 0);
-    // The material a rejection wasted, priced separately from `amount`
-    // above (see the model's own comment) — kept as its own figure rather
-    // than folded into deductionsTotal so "Deductions" never silently
-    // means two different things depending on which rows exist; Balance
-    // Payable below subtracts both explicitly.
-    const materialWasteTotal = round2(deductions.reduce((sum, d) => sum + (d.materialWasteAmount || 0), 0));
-    const paymentsTotal = payments.reduce((sum, p) => sum + p.amount, 0);
-    const tdsTotal = round2(payments.reduce((sum, p) => sum + (p.tdsAmount || 0), 0));
-    // Holding — see financeContractorLedger.js's identical comment for the
-    // full reasoning (doesn't discharge what's owed, unlike TDS).
-    const holdingTotal = round2(payments.reduce((sum, p) => sum + (p.holdingAmount || 0), 0));
-    const paymentsNetOfHolding = round2(paymentsTotal - holdingTotal);
-    earningsTotal = round2(earningsTotal);
-    totalAmountTotal = round2(totalAmountTotal);
-    unapprovedAmountTotal = round2(unapprovedAmountTotal);
-    // Flat — see getWorkerPayoutTotal's comment; kept separate from
-    // deductionsTotal so a real rejection-deduction and an advance the
-    // client already paid this labourer directly never blend together.
-    const balancePayable = round2(earningsTotal - advancesTotal - deductionsTotal - materialWasteTotal - paymentsNetOfHolding - directPaymentTotal);
 
     // Pooled total/total across every work this labourer has touched — same
     // convention as the per-work figure above, just not scoped to one work.
@@ -207,17 +171,8 @@ const computeLabourLedger = async (labourerId, projectId) => {
         labourerId: labourer._id, labourerName: labourer.name,
         works: worksOut, measurements, advances, deductions, payments,
         totals: {
-            earnings: earningsTotal, totalAmount: totalAmountTotal, unapprovedAmount: unapprovedAmountTotal,
-            advances: advancesTotal, deductions: deductionsTotal, materialWasteTotal, payments: paymentsTotal,
-            // Flat total of client-paid amounts (category flagged "cut from
-            // worker payout") — see getWorkerPayoutTotal's comment; its own
-            // term in balancePayable above, not blended into deductionsTotal.
-            directPaymentTotal,
-            balancePayable,
+            ...balance,
             materialCostPerSqft: materialAreaTotal > 0 ? materialCostTotal / materialAreaTotal : null,
-            // See financeContractorLedger.js's identical comment.
-            tdsTotal,
-            holdingTotal,
         },
     };
 };

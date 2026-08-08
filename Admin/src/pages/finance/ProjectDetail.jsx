@@ -35,6 +35,7 @@ import '../../styles/wizard.css';
 import '../../styles/add.css';
 
 const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance'];
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 
 /*
@@ -44,7 +45,7 @@ const BILLABLE_CONTRACT_TYPES = ['with_material', 'without_material', 'advance']
  * report endpoints Reports already computes off of — nothing recomputed
  * client-side.
  */
-const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewExpenses }) => {
+const ProjectOverviewTab = ({ url, projectId, contractType, status, onViewWorks, onViewExpenses }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const [profit, setProfit] = useState(null);
@@ -87,7 +88,6 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                 requests.push(axios.get(`${url}/api/finance/receivables/summary`, { ...authHeader, params: { projectId } }));
             }
             const [profitRes, materialRes, vendorRes, contractorRes, labourRes, expenseRes, commissionPaymentRes, receivableRes] = await Promise.all(requests);
-            const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
             const commissionPaid = commissionPaymentRes.data.success
                 ? round2(commissionPaymentRes.data.data.reduce((s, p) => s + p.amount, 0))
                 : 0;
@@ -149,6 +149,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                     directPaymentTotal: sumPlain(contractorRes.data.data, 'directPaymentTotal'),
                     payments: sumPlain(contractorRes.data.data, 'payments'),
                     tdsTotal: sumPlain(contractorRes.data.data, 'tdsTotal'),
+                    holdingTotal: sumPlain(contractorRes.data.data, 'holdingTotal'),
                 } : null,
                 labourBreakdown: labourRes.data.success ? {
                     earnings: sumPlain(labourRes.data.data, 'earnings'),
@@ -157,6 +158,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                     directPaymentTotal: sumPlain(labourRes.data.data, 'directPaymentTotal'),
                     payments: sumPlain(labourRes.data.data, 'payments'),
                     tdsTotal: sumPlain(labourRes.data.data, 'tdsTotal'),
+                    holdingTotal: sumPlain(labourRes.data.data, 'holdingTotal'),
                 } : null,
                 commissionPaid,
             });
@@ -259,6 +261,40 @@ const ProjectOverviewTab = ({ url, projectId, contractType, onViewWorks, onViewE
                 <KpiCard label="Margin %" value={`${Math.round(profit.marginPercent * 10) / 10}%`} tone={profit.marginPercent >= 0 ? 'good' : 'danger'}
                     sub={`Profit ${formatINR(profit.profit)} on Revenue ${formatINR(profit.revenue)}`} />
             </KpiGrid>
+
+            {/* Once a project is completed, Works/Measurements/Diary/Materials
+                stop showing on this page (ProjectDetail.jsx's HIDDEN_TABS_
+                WHEN_COMPLETED) — everything about what's still financially
+                open on it belongs right here instead, so closing it out
+                doesn't mean losing sight of Holdings still retained or
+                balances still outstanding either way. */}
+            {status === 'completed' && payables && (() => {
+                const totalHeld = round2((payables.contractorBreakdown?.holdingTotal || 0) + (payables.labourBreakdown?.holdingTotal || 0));
+                const totalPayables = round2(payables.vendorPaymentLeft + payables.contractorBalancePayable + payables.labourBalancePayable + payables.expensePayable);
+                const totalReceivables = receivable ? receivable.balance : null;
+                return (
+                    <div style={{ marginBottom: '24px' }}>
+                        <p className="admin-subtitle" style={{ marginBottom: '10px' }}>
+                            Project Closing Summary — this project is marked Completed; shown below is everything still financially open on it.
+                        </p>
+                        <KpiGrid>
+                            <KpiCard label="Total Held" value={formatINR(totalHeld)} tone={totalHeld > 0 ? 'danger' : 'good'}
+                                sub={totalHeld > 0 ? 'Retained from Contractor/Labour payments — still owed until released as a future payment' : 'Nothing retained'} />
+                            <KpiCard label="Total Payables (Owed)" value={formatINR(totalPayables)} tone={totalPayables > 0 ? 'danger' : 'good'}
+                                sub={buildBreakdownSub([
+                                    ['Vendor', payables.vendorPaymentLeft],
+                                    ['Contractor', payables.contractorBalancePayable],
+                                    ['Labour', payables.labourBalancePayable],
+                                    ['Expense', payables.expensePayable],
+                                ])} />
+                            {totalReceivables != null && (
+                                <KpiCard label="Total Receivables" value={formatINR(totalReceivables)} tone={totalReceivables > 0 ? 'danger' : 'good'}
+                                    sub="Still owed by the client, against bills issued so far" />
+                            )}
+                        </KpiGrid>
+                    </div>
+                );
+            })()}
 
             {/* Distinct from Profit's own Costs above on purpose — Profit only
                 counts approval-gated cost (unreviewed contractor/labour work
@@ -563,6 +599,14 @@ const TABS = [
     { key: 'profitability', label: 'Profitability' },
 ];
 
+// Once a project is completed there's nothing left to measure, log, or
+// rate — these four tabs are all about work still in progress, so they'd
+// only ever show stale, frozen-in-time data past that point. Everything
+// else (Workers, Running Bills, Receipts, Expenses, Documents, Photos,
+// Timeline, Profitability) stays visible — those are historical records,
+// not active-work tools.
+const HIDDEN_TABS_WHEN_COMPLETED = ['works', 'measurements', 'diary', 'materials'];
+
 const CONTRACT_TYPE_LABEL = { with_material: 'With Material', without_material: 'Without Material', advance: 'Advance' };
 const STATUS_LABEL = { draft: 'Draft', active: 'Active', completed: 'Completed' };
 
@@ -730,6 +774,11 @@ const ProjectDetail = ({ url }) => {
             // catch block below instead.
             toast.success(res.data.message);
             setCompletionBlockers(null);
+            // A hidden-when-completed tab (Works & Rates, Measurements, Diary,
+            // Materials) has no pill to click back to once its button
+            // disappears below — land on Overview instead of leaving whatever
+            // was open stranded.
+            setActiveTab('overview');
             await fetchProject();
         } catch (err) {
             if (err.response?.data?.blockers) setCompletionBlockers(err.response.data.blockers);
@@ -856,7 +905,7 @@ const ProjectDetail = ({ url }) => {
                 </div>
 
                 <div className="admin-category-scroll">
-                    {TABS.map(t => (
+                    {(project.status === 'completed' ? TABS.filter(t => !HIDDEN_TABS_WHEN_COMPLETED.includes(t.key)) : TABS).map(t => (
                         <button key={t.key} className={`admin-cat-pill${activeTab === t.key ? ' active' : ''}`} onClick={() => setActiveTab(t.key)}>
                             {t.label}
                         </button>
@@ -928,7 +977,7 @@ const ProjectDetail = ({ url }) => {
                             )}
                             <div className="project-info-row"><b>Notes</b><p>{project.notes || '-'}</p></div>
                         </div>
-                        <ProjectOverviewTab url={url} projectId={id} contractType={project.contractType} onViewWorks={() => setActiveTab('works')} onViewExpenses={() => setActiveTab('expenses')} />
+                        <ProjectOverviewTab url={url} projectId={id} contractType={project.contractType} status={project.status} onViewWorks={() => setActiveTab('works')} onViewExpenses={() => setActiveTab('expenses')} />
                     </div>
                 )}
 

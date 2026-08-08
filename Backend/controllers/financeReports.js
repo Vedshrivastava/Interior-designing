@@ -867,6 +867,14 @@ const computeProjectProfit = async (projectId) => {
     // "Material Cost: -₹40" would be a worse outcome than slightly
     // under-crediting the reclassification in that edge case.
     const materialCost = round2(Math.max(0, materialCostSplit.decidedCost - materialWasteReclassified));
+    // materialWasteCost's own two constituents, exposed separately — see
+    // getDashboardSummary's materialWasteBreakdown, which sums these two
+    // across every ongoing project so the Dashboard's "Material Wastage
+    // Loss" card can say what it's actually made of (physical waste logged
+    // in Site Inventory vs. rejected-work material reclassified out of
+    // Material Cost above) instead of one opaque total.
+    const materialWasteFromStock = round2(rawMaterialWasteCost);
+    const materialWasteFromRejection = round2(materialWasteReclassified);
     const materialWasteCost = round2(rawMaterialWasteCost + materialWasteReclassified);
     // Material tied to work still awaiting review — see
     // computeProjectMaterialCostSplit's own comment. Feeds unapprovedProfit
@@ -899,7 +907,8 @@ const computeProjectProfit = async (projectId) => {
 
     return {
         projectId: project._id, projectName: project.name, clientId: project.clientId,
-        revenue, materialCost, materialWasteCost, contractorCost, commissionCost, otherExpenses, labourCost, profit,
+        revenue, materialCost, materialWasteCost, materialWasteFromStock, materialWasteFromRejection,
+        contractorCost, commissionCost, otherExpenses, labourCost, profit,
         totalContractorCost: contractorCostInfo.totalAmount, totalLabourCost: labourCostInfo.totalAmount,
         totalCommissionCost: commissionCostInfo.totalAmount,
         // Same "everything ever logged, unconditional" shape as
@@ -3268,8 +3277,15 @@ const bucketForAgeDays = (days) => (days <= 30 ? '0-30' : days <= 60 ? '30-60' :
 // Per-bill remaining balance: receipts tied to a specific runningBillId
 // reduce that bill directly; receipts with no runningBillId (a lump-sum
 // payment not tied to one bill) reduce the oldest still-open bill first —
-// `bills` must already be sorted oldest-first by billDate.
-const computeBillBalances = (bills, receipts) => {
+// `bills` must already be sorted oldest-first by billDate. directPaymentCredits
+// (see summarizeProject's identical term — money the client paid straight to
+// a contractor/labourer, never a FinanceReceipt) settles a bill exactly like
+// an unlinked receipt does: it isn't tied to one specific bill either, so it
+// joins the same oldest-bill-first pool instead of a separate allocation
+// rule. Without this, a bill fully settled via a direct payment (no receipt
+// at all) sat at its full balance forever, overstating both this bill's own
+// balance and the aging bucket it fell into.
+const computeBillBalances = (bills, receipts, directPaymentCredits = 0) => {
     const balances = new Map(bills.map(b => [b._id.toString(), b.totalAmount + (b.gstAmount || 0)]));
     for (const r of receipts) {
         if (r.runningBillId && balances.has(r.runningBillId.toString())) {
@@ -3277,7 +3293,7 @@ const computeBillBalances = (bills, receipts) => {
             balances.set(key, balances.get(key) - r.amount);
         }
     }
-    let pool = receipts.filter(r => !r.runningBillId).reduce((s, r) => s + r.amount, 0);
+    let pool = receipts.filter(r => !r.runningBillId).reduce((s, r) => s + r.amount, 0) + directPaymentCredits;
     for (const b of bills) {
         if (pool <= 0) break;
         const key = b._id.toString();
@@ -3292,8 +3308,8 @@ const computeBillBalances = (bills, receipts) => {
 
 // Receivables aging — 0-30/30-60/60-90/90+ days since each bill's billDate,
 // today as the reference point. `bills` must be sorted oldest-first.
-const computeAging = (bills, receipts) => {
-    const balances = computeBillBalances(bills, receipts);
+const computeAging = (bills, receipts, directPaymentCredits = 0) => {
+    const balances = computeBillBalances(bills, receipts, directPaymentCredits);
     const today = new Date();
     const buckets = { '0-30': 0, '30-60': 0, '60-90': 0, '90+': 0 };
     for (const b of bills) {
@@ -3987,6 +4003,10 @@ const getDashboardSummary = async (req, res) => {
         // scopes (This Month Profit is monthly; this one is a running total).
         const totalApprovedProfitToDate = round2(ongoingProjectProfits.reduce((s, p) => s + p.profit, 0));
         const materialWasteCostToDate = round2(ongoingProjectProfits.reduce((s, p) => s + p.materialWasteCost, 0));
+        // materialWasteCostToDate's own two constituents — see
+        // computeProjectProfit's identical fields for what each one is.
+        const materialWasteFromStockToDate = round2(ongoingProjectProfits.reduce((s, p) => s + p.materialWasteFromStock, 0));
+        const materialWasteFromRejectionToDate = round2(ongoingProjectProfits.reduce((s, p) => s + p.materialWasteFromRejection, 0));
         // Company-wide Unapproved Profit, computed here (not just inline in
         // the response below) so totalProjectedProfit can reuse the exact
         // same number instead of a second, easy-to-drift copy of the formula.
@@ -4150,6 +4170,9 @@ const getDashboardSummary = async (req, res) => {
                 // month-scoped) rather than mismatching against This Month
                 // Profit's monthly window.
                 totalApprovedProfitToDate, materialWasteCostToDate,
+                // The "why" behind materialWasteCostToDate — see
+                // FinanceHome.jsx's Material Wastage Loss card.
+                materialWasteBreakdown: { fromStock: materialWasteFromStockToDate, fromRejection: materialWasteFromRejectionToDate },
                 // What Profit becomes once everything currently logged and
                 // still-unreviewed actually clears review — not a separate
                 // number to reconcile by hand, so it's computed once here
@@ -4238,18 +4261,30 @@ const computeClientsSummaryRows = async () => {
             Promise.all(projects.map(summarizeProject)),
         ]) : [[], [], []];
         const totalBilled = bills.reduce((s, b) => s + b.totalAmount + (b.gstAmount || 0), 0);
+        // Revenue, unlike totalBilled above, excludes GST — GST is
+        // collected on the client's behalf and passed through to the tax
+        // authority, never company income, so it's excluded here the same
+        // way computeProjectProfit's own `revenue` (FinanceRunningBill's
+        // totalAmount alone, no gstAmount) already is everywhere else in
+        // Finance. ClientsPage.jsx's "Top Clients by Revenue" chart reads
+        // this, not totalBilled — see that component's own comment for the
+        // bug this fixes (GST inflating what was labelled Revenue).
+        const revenue = bills.reduce((s, b) => s + b.totalAmount, 0);
         const totalReceived = receipts.reduce((s, r) => s + r.amount, 0);
         // outstanding/clientCreditBalance come from summarizeProject
         // (per-project, each already clamped at 0) summed here — not
         // totalBilled - totalReceived directly, which ignores client
         // direct payment credits entirely and can't reflect a running
-        // credit balance either. totalBilled/totalReceived themselves
-        // stay raw for the aging breakdown below, unaffected.
+        // credit balance either. totalBilled/totalReceived themselves stay
+        // raw (pre-direct-payment) for the aging breakdown below — aging
+        // applies the same directPaymentCredits total itself, via
+        // computeAging's own directPaymentCredits param.
         const outstanding = round2(summaries.reduce((s, r) => s + r.balance, 0));
         const clientCreditBalance = round2(summaries.reduce((s, r) => s + r.clientCreditBalance, 0));
+        const directPaymentCreditsTotal = round2(summaries.reduce((s, r) => s + r.directPaymentCredits, 0));
         return {
-            clientId: c._id, clientName: c.name, totalBilled, totalReceived,
-            outstanding, clientCreditBalance, aging: computeAging(bills, receipts),
+            clientId: c._id, clientName: c.name, totalBilled, revenue, totalReceived,
+            outstanding, clientCreditBalance, aging: computeAging(bills, receipts, directPaymentCreditsTotal),
         };
     }));
 
@@ -4306,6 +4341,7 @@ const getClientDetail = async (req, res) => {
         // getClientsSummary and the Dashboard's clientReceivables above.
         const outstanding = round2(summaries.reduce((s, r) => s + r.balance, 0));
         const clientCreditBalance = round2(summaries.reduce((s, r) => s + r.clientCreditBalance, 0));
+        const directPaymentCreditsTotal = round2(summaries.reduce((s, r) => s + r.directPaymentCredits, 0));
 
         const projectsSummary = billableProjects.map(p => {
             const pBills = bills.filter(b => b.projectId.toString() === p._id.toString());
@@ -4331,7 +4367,7 @@ const getClientDetail = async (req, res) => {
                 // as the Dashboard's Payables cards).
                 billCount: bills.length,
                 totalProfit: round2(totals.profit),
-                projects: projectsSummary, receipts, aging: computeAging(bills, receipts),
+                projects: projectsSummary, receipts, aging: computeAging(bills, receipts, directPaymentCreditsTotal),
             },
         });
     } catch (err) {

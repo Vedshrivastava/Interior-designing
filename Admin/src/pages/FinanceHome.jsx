@@ -216,7 +216,15 @@ const FinanceHome = ({ url }) => {
                         onClick={() => navigate('/finance/payables?tab=expenses')} />
                     <KpiCard hero loading={phase1Loading} icon={faReceipt} label="Total Miscellaneous Expense - Ongoing Projects" value={formatINR(summary?.totalExpenseToDate)} sub="All-time, excludes completed projects — misc./overhead expenses only (rent, tools, etc.); see Total Expenses below for everything" onClick={() => navigate('/finance/payables?tab=expenses')} />
                     <KpiCard hero loading={phase1Loading} icon={faArrowTrendUp} label="Total Approved Profit - Ongoing Projects" value={formatINR(summary?.totalApprovedProfitToDate)} sub="All-time, excludes completed projects" onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.totalApprovedProfitToDate >= 0 ? 'good' : 'danger'} />
-                    <KpiCard hero loading={phase1Loading} icon={faTriangleExclamation} label="Material Wastage Loss - Ongoing Projects" value={formatINR(summary?.materialWasteCostToDate)} sub="All-time, excludes completed projects; already counted in Profit above" onClick={() => navigate('/finance/site-inventory')} tone={summary?.materialWasteCostToDate > 0 ? 'danger' : 'good'} />
+                    <KpiCard hero loading={phase1Loading} icon={faTriangleExclamation} label="Material Wastage Loss - Ongoing Projects" value={formatINR(summary?.materialWasteCostToDate)}
+                        sub={[
+                            summary?.materialWasteBreakdown && buildBreakdownSub([
+                                ['Rejected work', summary.materialWasteBreakdown.fromRejection],
+                                ['Physical waste', summary.materialWasteBreakdown.fromStock],
+                            ]),
+                            'All-time, excludes completed projects; already counted in Profit above',
+                        ].filter(Boolean).join('  ')}
+                        onClick={() => navigate('/finance/site-inventory')} tone={summary?.materialWasteCostToDate > 0 ? 'danger' : 'good'} />
                     <KpiCard hero loading={phase1Loading} icon={faMoneyBillWave} label="Total Expenses - Ongoing Projects" value={formatINR(summary?.totalExpensesAllTime)}
                         // Material vendor payments are deliberately NOT
                         // summed into the total above — Material Used

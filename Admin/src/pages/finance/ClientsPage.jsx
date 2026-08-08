@@ -60,7 +60,12 @@ const ClientsPage = ({ url }) => {
 
     const clients = summary?.clients || [];
     const sorted = [...clients].sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
-    const topClients = sorted.slice(0, 8).map(c => ({ name: c.clientName, revenue: c.totalBilled, clientId: c.clientId }));
+    // c.revenue excludes GST (a pass-through tax, never company income) —
+    // c.totalBilled is what the client owes/paid including GST, the right
+    // figure for the Billed column/aging below, but the wrong one for a
+    // chart titled "Revenue" (previously used totalBilled, overstating
+    // every client's revenue by their GST rate).
+    const topClients = sorted.slice(0, 8).map(c => ({ name: c.clientName, revenue: c.revenue, clientId: c.clientId }));
     const agingData = summary ? AGE_BUCKETS.map(bucket => ({ bucket, amount: summary.aging[bucket] })) : [];
 
     const sortableHeader = (key, label) => (

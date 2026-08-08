@@ -85,7 +85,24 @@ const ProjectsList = ({ url }) => {
             const billableProjects = list.filter(p => BILLABLE_CONTRACT_TYPES.includes(p.contractType));
             const receivables = await Promise.all(billableProjects.map(p =>
                 axios.get(`${url}/api/finance/receivables/summary`, { ...authHeader, params: { projectId: p._id } })
-                    .then(r => (r.data.success ? { projectName: p.name, projectId: p._id, billed: r.data.data.issuedTotal, collected: r.data.data.receivedTotal } : null))
+                    // receivedTotal alone is only what came through the
+                    // company's own Receipts — directPaymentCredits is money
+                    // the client paid straight to a contractor/labourer,
+                    // bypassing the company, but it still settles the bill
+                    // (see summarizeProject's rawBalance) exactly like a
+                    // receipt would. Omitting it here understated Collected
+                    // on any project with direct payments.
+                    .then(r => (r.data.success ? {
+                        projectName: p.name, projectId: p._id,
+                        billed: r.data.data.issuedTotal,
+                        collected: r.data.data.receivedTotal + r.data.data.directPaymentCredits,
+                        // Already computed server-side as issuedTotal minus
+                        // both collection paths, clamped at 0 — see
+                        // summarizeProject's own balance/clientCreditBalance
+                        // split for why 0 (not negative) whenever direct
+                        // payments outrun what's been billed so far.
+                        outstanding: r.data.data.balance,
+                    } : null))
                     .catch(() => null)
             ));
             const nextBilledVsCollected = receivables.filter(Boolean).filter(r => r.billed > 0);
@@ -101,6 +118,13 @@ const ProjectsList = ({ url }) => {
     const contractTypeData = Object.entries(
         list.reduce((acc, p) => { acc[p.contractType] = (acc[p.contractType] || 0) + 1; return acc; }, {})
     ).map(([type, count]) => ({ name: CONTRACT_TYPE_LABEL[type] || type, value: count }));
+
+    // Its own chart, ranked biggest-first — a project fully collected
+    // (outstanding: 0, the common case right after a receipt/direct
+    // payment clears it) is dropped rather than shown as a zero-length bar.
+    const outstandingByProject = billedVsCollected
+        .filter(r => r.outstanding > 0)
+        .sort((a, b) => b.outstanding - a.outstanding);
 
     // Same dynamic sizing as the Dashboard's own Project Profitability chart
     // (FinanceHome.jsx) — sized to the longest name actually on screen
@@ -186,6 +210,20 @@ const ProjectsList = ({ url }) => {
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : <EmptyChart text="No bills issued yet." />}
+                    </ChartCard>
+
+                    <ChartCard title="Left to Collect">
+                        {loading || statsLoading ? <ChartSkeleton /> : outstandingByProject.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={240}>
+                                <BarChart data={outstandingByProject} layout="vertical" margin={{ left: 24 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                                    <XAxis type="number" tick={{ fontSize: 11 }} />
+                                    <YAxis type="category" dataKey="projectName" tick={{ fontSize: 11 }} width={110} />
+                                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,124,0.08)' }} />
+                                    <Bar dataKey="outstanding" name="Left to Collect" fill={CHART_COLORS[2]} onClick={(d) => navigate(`/finance/projects/${d.projectId}`)} style={{ cursor: 'pointer' }} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : <EmptyChart text="Nothing outstanding — everything billed has been collected." />}
                     </ChartCard>
                 </ChartGrid>
 

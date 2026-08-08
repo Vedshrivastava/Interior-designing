@@ -44,7 +44,12 @@ const ClientDashboardSummary = ({ url, clientId }) => {
                 <KpiCard label="Total Billed" value={formatINR(detail.totalBilled)}
                     sub={detail.billCount > 0 ? `From ${detail.billCount} bill${detail.billCount === 1 ? '' : 's'} issued` : undefined} />
                 <KpiCard label="Total Received" value={formatINR(detail.totalReceived)}
-                    sub={detail.totalBilled > detail.totalReceived ? `${formatINR(detail.totalBilled - detail.totalReceived)} still outstanding` : undefined} />
+                    // detail.outstanding (not totalBilled - totalReceived,
+                    // which ignores direct payments the client made straight
+                    // to a contractor/labourer) — the exact figure the
+                    // "Outstanding" card right next to this one already
+                    // shows, so the two can never contradict each other.
+                    sub={detail.outstanding > 0 ? `${formatINR(detail.outstanding)} still outstanding` : undefined} />
                 <KpiCard label="Outstanding" value={formatINR(detail.outstanding)} tone={detail.outstanding > 0 ? 'danger' : 'good'} />
                 <KpiCard label="Margin %" value={`${Math.round((detail.marginPercent || 0) * 10) / 10}%`} tone={detail.marginPercent >= 0 ? 'good' : 'danger'}
                     sub={`Profit ${formatINR(detail.totalProfit)} on Revenue ${formatINR(detail.totalBilled)}`} />

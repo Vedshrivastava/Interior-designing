@@ -102,12 +102,11 @@ const WorkProfitView = ({ url, workId, onSelectWork }) => {
     if (!data) return <div>{picker}<div className="admin-empty-state"><p>Work not found.</p></div></div>;
 
     // data.totalAmount (computeWorkExpectedPay's own figure) is contractor
-    // + labour combined and, when a Work has more than one contractor or
-    // labourer, sums each one's rate × the full logged area rather than a
-    // real per-party split (see that function's own KNOWN LIMITATION
-    // comment) — not the right source for a "Total logged" caption placed
-    // specifically under Contractor Cost or Labour Cost. The breakdown
-    // arrays are already correctly per-party, so sum those instead.
+    // + labour combined, computed from one blended rate per category — not
+    // the right source for a "Total logged" caption placed specifically
+    // under Contractor Cost or Labour Cost. The breakdown arrays are
+    // already correctly per-party (exact, not blended), so sum those
+    // instead.
     const totalContractorAmount = data.contractorBreakdown.reduce((s, b) => s + b.totalAmount, 0);
     const totalLabourAmount = data.labourBreakdown.reduce((s, b) => s + b.totalAmount, 0);
     const contractorSub = data.unapprovedContractorCost > 0

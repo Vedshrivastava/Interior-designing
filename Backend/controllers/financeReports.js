@@ -3553,12 +3553,12 @@ const computeAging = (bills, receipts, directPaymentCredits = 0) => {
 // there's no "today" version of Approved, since a bill's approval doesn't
 // expire.
 //
-// KNOWN LIMITATION: same as computeWorkExpectedPay — a work with more than
-// one contributing vendor/labourer sums each one's rate × the work's full
-// approved area rather than a real split (no data records how a work's
-// billed area actually divides between multiple contributors). Acceptable
-// for a company-wide glance total; the precise per-work/per-vendor split
-// lives in the Ledger views instead.
+// Unlike computeWorkExpectedPay's old bug (fixed — see that function's own
+// header comment), this loop already keys per (work, vendor) / (work,
+// labourer) pair below and splits each one's own approved/rejected share
+// via splitApprovedAreaByShare before multiplying by THEIR OWN rate — a
+// work with several contributing contractors/labourers is never summed
+// against one shared full-area figure here.
 // "Approved" here means the same thing it means everywhere else in the
 // app now (financeWorkReview — reviewed, not billed): per (work,
 // contractor-or-labourer) actual measured area, split into what's been

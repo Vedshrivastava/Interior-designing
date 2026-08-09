@@ -1477,25 +1477,38 @@ const getCategoryApprovedAreaByWorkId = async (workIds) => {
 // separate from computeWorkProfit's contractorCost/labourCost (which are
 // backward-looking: actual measured/approved area to date). This instead
 // asks "what will this work actually pay out once finished, after
-// penalties": rate × estimatedAreaSqft (the full contract target) per
-// assigned contractor/labourer, minus every deduction manually entered
-// against this specific work (financeContractorDeduction/
-// financeLabourDeduction with a matching workId — see those controllers).
-// Reuses the exact same rate-lookup-by-(project, party, workType) shape as
-// computeWorkProfit so nothing drifts between the two.
+// penalties": rate × estimatedAreaSqft (the full contract target), minus
+// every deduction manually entered against this specific work
+// (financeContractorDeduction/financeLabourDeduction with a matching
+// workId — see those controllers). Reuses the exact same
+// rate-lookup-by-(project, party, workType) shape as computeWorkProfit so
+// nothing drifts between the two.
 //
-// KNOWN LIMITATION: if a Work genuinely has more than one contributing
-// contractor/labourer, this sums each one's rate × the *full* estimated
-// area rather than a real split of who's doing which portion — accepted
-// because no data anywhere in this schema records that split (the same
-// simplification computeProjectContractorCost's callers already live
-// with). Harmless for the common case of one team per Work.
+// No one is assigned a personal target sqft here — everyone just works,
+// and gets paid for what they actually measured (that part is already
+// correctly per-party, see computeWorkProfit's contractorBreakdown/
+// labourBreakdown). estimatedAreaSqft is a single, whole-Work target, so
+// when more than one contractor (or labourer) contributes, this uses ONE
+// blended rate per category — weighted by each party's own share of area
+// measured on this Work so far, falling back to a plain average of the
+// assigned rates before anything's been measured yet — instead of
+// treating the full target as if every assigned party would complete it
+// on their own (which used to sum each one's rate × the *full* area,
+// inflating the total by however many people are assigned).
+const weightedAvgRate = (rates, idField, measuredAreaByParty) => {
+    if (!rates.length) return 0;
+    const totalMeasured = rates.reduce((s, r) => s + (measuredAreaByParty.get(r[idField].toString()) || 0), 0);
+    if (totalMeasured > 0) {
+        return rates.reduce((s, r) => s + (measuredAreaByParty.get(r[idField].toString()) || 0) / totalMeasured * r.ratePerSqft, 0);
+    }
+    return rates.reduce((s, r) => s + r.ratePerSqft, 0) / rates.length;
+};
 const computeWorkExpectedPay = async (work) => {
     const [contractorAssignments, labourAssignments, contractorMeasurements, labourMeasurements] = await Promise.all([
         FinanceWorkContractorAssignment.find({ workId: work._id, deleted: { $ne: true } }, 'contractorVendorId'),
         FinanceWorkLabourAssignment.find({ workId: work._id, deleted: { $ne: true } }, 'labourerId'),
-        FinanceMeasurement.find({ workId: work._id, deleted: { $ne: true } }, 'contractorVendorId'),
-        FinanceLabourMeasurement.find({ workId: work._id, deleted: { $ne: true } }, 'labourerId'),
+        FinanceMeasurement.find({ workId: work._id, deleted: { $ne: true } }, 'contractorVendorId areaCoveredSqft'),
+        FinanceLabourMeasurement.find({ workId: work._id, deleted: { $ne: true } }, 'labourerId areaCoveredSqft'),
     ]);
     const vendorIds = new Set([
         ...contractorAssignments.map(a => a.contractorVendorId.toString()),
@@ -1505,6 +1518,17 @@ const computeWorkExpectedPay = async (work) => {
         ...labourAssignments.map(a => a.labourerId.toString()),
         ...labourMeasurements.map(m => m.labourerId.toString()),
     ]);
+    const contractorAreaByVendor = new Map();
+    for (const m of contractorMeasurements) {
+        if (!m.contractorVendorId) continue;
+        const key = m.contractorVendorId.toString();
+        contractorAreaByVendor.set(key, (contractorAreaByVendor.get(key) || 0) + m.areaCoveredSqft);
+    }
+    const labourAreaByLabourer = new Map();
+    for (const m of labourMeasurements) {
+        const key = m.labourerId.toString();
+        labourAreaByLabourer.set(key, (labourAreaByLabourer.get(key) || 0) + m.areaCoveredSqft);
+    }
 
     const [contractorRates, labourRates, contractorDeductionAgg, labourDeductionAgg, supervisorDeductionAgg] = await Promise.all([
         vendorIds.size ? FinanceContractorRate.find({ projectId: work.projectId, contractorVendorId: { $in: [...vendorIds] }, workType: work.workType, deleted: { $ne: true } }) : [],
@@ -1527,9 +1551,15 @@ const computeWorkExpectedPay = async (work) => {
         ]),
     ]);
 
-    const expectedContractorPay = contractorRates.reduce((s, r) => s + work.estimatedAreaSqft * r.ratePerSqft, 0);
-    const expectedLabourPay = labourRates.reduce((s, r) => s + work.estimatedAreaSqft * r.ratePerSqft, 0);
-    const expectedPay = round2(expectedContractorPay + expectedLabourPay);
+    // One blended rate per category — see this function's own header
+    // comment. Every area figure below (total/approved/rejected/
+    // unapproved/available-to-bill/expected) now multiplies by these two
+    // instead of summing every individual rate found, so the fix applies
+    // consistently everywhere in this function, not just expectedPay.
+    const contractorRate = weightedAvgRate(contractorRates, 'contractorVendorId', contractorAreaByVendor);
+    const labourRate = weightedAvgRate(labourRates, 'labourerId', labourAreaByLabourer);
+
+    const expectedPay = round2(work.estimatedAreaSqft * (contractorRate + labourRate));
     const deductedTotal = round2((contractorDeductionAgg[0]?.total || 0) + (labourDeductionAgg[0]?.total || 0) + (supervisorDeductionAgg[0]?.total || 0));
 
     // Total = every logged sqft so far (work.completedAreaSqft, unconditional
@@ -1540,15 +1570,9 @@ const computeWorkExpectedPay = async (work) => {
     // the work. Unapproved is simply the gap; never a separately entered
     // figure.
     const totalAreaSqft = work.completedAreaSqft;
-    const totalAmount = round2(
-        contractorRates.reduce((s, r) => s + totalAreaSqft * r.ratePerSqft, 0)
-        + labourRates.reduce((s, r) => s + totalAreaSqft * r.ratePerSqft, 0)
-    );
+    const totalAmount = round2(totalAreaSqft * (contractorRate + labourRate));
     const { approvedAreaSqft, approvedDate, rejectedAreaSqft, heldForAttribution } = await computeWorkApprovedBilling(work);
-    const approvedAmount = round2(
-        contractorRates.reduce((s, r) => s + approvedAreaSqft * r.ratePerSqft, 0)
-        + labourRates.reduce((s, r) => s + approvedAreaSqft * r.ratePerSqft, 0)
-    );
+    const approvedAmount = round2(approvedAreaSqft * (contractorRate + labourRate));
 
     // Available to bill = Reviewed − already Billed — deliberately NOT the
     // same gap as unapprovedAreaSqft (Total − Reviewed, "still pending
@@ -1560,20 +1584,14 @@ const computeWorkExpectedPay = async (work) => {
     // bill to draw on.
     const { billedAreaSqft } = await computeWorkBilledArea(work);
     const availableToBillAreaSqft = round2(Math.max(0, approvedAreaSqft - billedAreaSqft));
-    const availableToBillAmount = round2(
-        contractorRates.reduce((s, r) => s + availableToBillAreaSqft * r.ratePerSqft, 0)
-        + labourRates.reduce((s, r) => s + availableToBillAreaSqft * r.ratePerSqft, 0)
-    );
+    const availableToBillAmount = round2(availableToBillAreaSqft * (contractorRate + labourRate));
 
     // A rejection is a FINAL, already-reviewed decision, not "still pending
     // review" — it must never sit in Unapproved forever just because it was
     // never re-labeled Approved. Subtracted out here, at the source, so
     // every caller of this function inherits the fix instead of each
     // needing its own patch.
-    const rejectedAmount = round2(
-        contractorRates.reduce((s, r) => s + rejectedAreaSqft * r.ratePerSqft, 0)
-        + labourRates.reduce((s, r) => s + rejectedAreaSqft * r.ratePerSqft, 0)
-    );
+    const rejectedAmount = round2(rejectedAreaSqft * (contractorRate + labourRate));
     const unapprovedAreaSqft = round2(Math.max(0, totalAreaSqft - approvedAreaSqft - rejectedAreaSqft));
     const unapprovedAmount = round2(Math.max(0, totalAmount - approvedAmount - rejectedAmount));
 

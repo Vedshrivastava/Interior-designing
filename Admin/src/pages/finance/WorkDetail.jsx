@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ChartTooltip, CHART_COLORS, formatINR, reviewGatedValue } from '../../components/finance/DashboardWidgets';
+import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ChartTooltip, CHART_COLORS, formatINR, reviewGatedValue, materialCostPerSqftDisplay } from '../../components/finance/DashboardWidgets';
 import StyledDatePicker from '../../components/finance/StyledDatePicker';
 import StyledMonthPicker from '../../components/finance/StyledMonthPicker';
 import ToggleSwitch from '../../components/finance/ToggleSwitch';
@@ -505,11 +505,12 @@ const WorkDetail = ({ url }) => {
                                 <p>₹{b.rate.toFixed(2)}</p>
                                 <p>{formatINR(b.earnings)}</p>
                                 <p>{formatINR(b.directPaymentTotal || 0)}</p>
-                                <p>{b.materialCostPerSqft != null ? `₹${b.materialCostPerSqft.toFixed(2)}` : '—'}</p>
+                                <p>{materialCostPerSqftDisplay(b.materialCostPerSqft, b.approvedAreaSqft)}</p>
                             </div>
                         ))}
                         <p className="admin-subtitle" style={{ padding: '8px 20px 16px' }}>
                             Material Cost/Sqft is each contractor's own material use ÷ only the area they covered while logging it — compare across rows to see who gets the most coverage per unit of material.
+                            {scope === 'alltime' && ' Marked "pending review" when none of that contractor\'s area on this Work has been approved yet.'}
                         </p>
                     </div>
                 )}
@@ -526,7 +527,7 @@ const WorkDetail = ({ url }) => {
                                 <p>₹{b.rate.toFixed(2)}</p>
                                 <p>{formatINR(b.earnings)}</p>
                                 <p>{formatINR(b.directPaymentTotal || 0)}</p>
-                                <p>{b.materialCostPerSqft != null ? `₹${b.materialCostPerSqft.toFixed(2)}` : '—'}</p>
+                                <p>{materialCostPerSqftDisplay(b.materialCostPerSqft, b.approvedAreaSqft)}</p>
                             </div>
                         ))}
                     </div>

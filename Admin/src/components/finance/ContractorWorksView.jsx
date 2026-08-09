@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { materialCostPerSqftDisplay } from './DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 
@@ -45,7 +46,7 @@ const ContractorWorksView = ({ url, vendorId }) => {
                         whole Work's target, not this contractor's share of
                         it (a Work can have more than one contributor). */}
                     <p className="con-work-area"><span className="pq-group-label">Area Covered</span>{w.completedAreaSqft} sqft</p>
-                    <p className="con-work-cost"><span className="pq-group-label">Material Cost/Sqft</span>{w.materialCostPerSqft != null ? `₹${w.materialCostPerSqft.toFixed(2)}` : '—'}</p>
+                    <p className="con-work-cost"><span className="pq-group-label">Material Cost/Sqft</span>{materialCostPerSqftDisplay(w.materialCostPerSqft, w.approvedAreaSqft)}</p>
                     <p className="con-work-status"><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
                 </div>
             ))}

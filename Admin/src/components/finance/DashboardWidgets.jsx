@@ -64,6 +64,23 @@ export const reviewGatedValue = (cost, unapproved, rejected) => {
     return { value: formatINR(0), tone: undefined };
 };
 
+// Material Cost/Sqft is a pooled rate (cost ÷ area) across every logged
+// measurement — it can't be split into a genuinely different "approved"
+// vs "unapproved" number (a proportional split of a ratio always
+// algebraically collapses back to the same blended figure), so this
+// doesn't invent a second number. What it fixes: showing this rate
+// unlabeled right next to genuinely approval-gated columns (Approved/
+// Unapproved amounts) made it read as confirmed data even when 100% of
+// the underlying work is still pending review. `approvedAreaSqft` being
+// undefined/null (no approval context available for this row, e.g. a
+// Day/Month-scoped table where approval isn't a coherent concept) falls
+// through to the plain rate, unchanged from before this existed.
+export const materialCostPerSqftDisplay = (rate, approvedAreaSqft) => {
+    if (rate == null) return '—';
+    if (approvedAreaSqft === 0) return `₹${rate.toFixed(2)} (pending review)`;
+    return `₹${rate.toFixed(2)}`;
+};
+
 // A contractor/labourer ledger's Balance Payable going negative ("Extra
 // Paid") is a different question than the still-owed case — not "what
 // factors add up to this," but "who actually overpaid, and from where."

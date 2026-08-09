@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
-import { KpiCard, KpiGrid, ChartCard, EmptyChart, ChartTooltip, CHART_COLORS, formatINR, buildBreakdownSub, extraPaidSub } from './DashboardWidgets';
+import { KpiCard, KpiGrid, ChartCard, EmptyChart, ChartTooltip, CHART_COLORS, formatINR, buildBreakdownSub, extraPaidSub, materialCostPerSqftDisplay } from './DashboardWidgets';
 import StyledSelect from './StyledSelect';
 import DownloadButton from './DownloadButton';
 import { useFileDownload } from '../../hooks/useFileDownload';
@@ -377,7 +377,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                         <span className="pq-group-label">Unapproved</span>
                                         {w.rate ? `₹${w.unapprovedAmount.toLocaleString('en-IN')}` : '-'}
                                     </p>
-                                    <p className="cle-work-cost"><span className="pq-group-label">Material Cost/Sqft</span>{w.materialCostPerSqft != null ? `₹${w.materialCostPerSqft.toFixed(2)}` : '—'}</p>
+                                    <p className="cle-work-cost"><span className="pq-group-label">Material Cost/Sqft</span>{materialCostPerSqftDisplay(w.materialCostPerSqft, w.approvedAreaSqft)}</p>
                                 </div>
                             ))}
                         </div>

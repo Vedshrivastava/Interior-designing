@@ -2146,6 +2146,30 @@ const getWorkDetail = async (req, res) => {
             computeCurrentStock(work.projectId),
         ]);
         const report = await computeWorkScopedReport(work, { dateStart, dateEnd, avgRate });
+        // Approval is a whole-Work, all-time decision — it has no coherent
+        // meaning scoped to one Day/Month, so this is only attached when the
+        // picker is All Time. Merged in-memory from workProfit's own
+        // contractorBreakdown/labourBreakdown (already computed above, same
+        // vendorId/labourerId keys) rather than re-queried, purely so the
+        // frontend can tell "this Material Cost/Sqft reflects at least some
+        // approved work" apart from "nothing on this row is approved yet" —
+        // see WorkDetail.jsx's use of materialCostPerSqftDisplay.
+        if (scope === 'alltime') {
+            const approvedAreaByVendor = new Map(workProfit.contractorBreakdown.map(b => [b.vendorId.toString(), b.approvedAreaSqft]));
+            const unapprovedAreaByVendor = new Map(workProfit.contractorBreakdown.map(b => [b.vendorId.toString(), b.unapprovedAreaSqft]));
+            report.contractorBreakdown = report.contractorBreakdown.map(b => ({
+                ...b,
+                approvedAreaSqft: approvedAreaByVendor.get(b.vendorId.toString()) ?? null,
+                unapprovedAreaSqft: unapprovedAreaByVendor.get(b.vendorId.toString()) ?? null,
+            }));
+            const approvedAreaByLabourer = new Map(workProfit.labourBreakdown.map(b => [b.labourerId.toString(), b.approvedAreaSqft]));
+            const unapprovedAreaByLabourer = new Map(workProfit.labourBreakdown.map(b => [b.labourerId.toString(), b.unapprovedAreaSqft]));
+            report.labourBreakdown = report.labourBreakdown.map(b => ({
+                ...b,
+                approvedAreaSqft: approvedAreaByLabourer.get(b.labourerId.toString()) ?? null,
+                unapprovedAreaSqft: unapprovedAreaByLabourer.get(b.labourerId.toString()) ?? null,
+            }));
+        }
         // totalContractorAmount/totalLabourAmount still used just below for
         // each KPI card's own "Total logged" sub-line — kept for that, but
         // no longer used to derive "unapproved" (see workProfit's own

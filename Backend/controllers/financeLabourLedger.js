@@ -165,6 +165,11 @@ const computeLabourLedger = async (labourerId, projectId) => {
     let materialCostTotal = 0, materialAreaTotal = 0;
     for (const cost of materialCostByWork.values()) materialCostTotal += cost;
     for (const area of materialAreaByWork.values()) materialAreaTotal += area;
+    // See financeContractorLedger.js's identical comment — lets the
+    // frontend distinguish "this pooled rate reflects at least some
+    // approved work" from "nothing approved at all yet."
+    const totalApprovedAreaSqft = round2(worksOut.reduce((s, w) => s + w.approvedAreaSqft, 0));
+    const totalUnapprovedAreaSqft = round2(worksOut.reduce((s, w) => s + w.unapprovedAreaSqft, 0));
 
     return {
         labourer,
@@ -173,6 +178,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
         totals: {
             ...balance,
             materialCostPerSqft: materialAreaTotal > 0 ? materialCostTotal / materialAreaTotal : null,
+            totalApprovedAreaSqft, totalUnapprovedAreaSqft,
         },
     };
 };

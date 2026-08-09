@@ -70,7 +70,7 @@ const getAccountActivity = async (accountId) => {
         // fine — that's a company-level/overhead expense with no specific
         // party to name in the first place.
         FinanceExpense.find(filter).populate('relatedToId', 'name'),
-        FinanceExpensePayment.find(filter).populate('expenseId', 'expenseCategory'),
+        FinanceExpensePayment.find(filter).populate({ path: 'expenseId', select: 'expenseCategory relatedToId relatedToType', populate: { path: 'relatedToId', select: 'name' } }),
         FinanceContractorAdvance.find(filter).populate('vendorId', 'name'),
         FinanceLabourAdvance.find(filter).populate('labourerId', 'name'),
         FinanceTdsDeposit.find(filter).populate('tdsSectionId', 'name code'),
@@ -107,7 +107,11 @@ const getAccountActivity = async (accountId) => {
             description: [e.expenseCategory ? `Expense — ${e.expenseCategory}` : 'Expense', e.relatedToId?.name].filter(Boolean).join(' — '),
             sourceType: 'expense', sourceId: e._id,
         })),
-        ...expensePayments.map(p => ({ date: p.date, amount: p.amount, direction: 'debit', description: p.expenseId?.expenseCategory ? `Expense payment — ${p.expenseId.expenseCategory}` : 'Expense payment', sourceType: 'expensePayment', sourceId: p._id })),
+        ...expensePayments.map(p => ({
+            date: p.date, amount: p.amount, direction: 'debit',
+            description: [p.expenseId?.expenseCategory ? `Expense payment — ${p.expenseId.expenseCategory}` : 'Expense payment', p.expenseId?.relatedToId?.name].filter(Boolean).join(' — '),
+            sourceType: 'expensePayment', sourceId: p._id,
+        })),
         ...contractorAdvances.map(a => ({ date: a.date, amount: a.amount, direction: 'debit', description: a.vendorId?.name ? `Contractor advance — ${a.vendorId.name}` : 'Contractor advance', sourceType: 'contractorAdvance', sourceId: a._id })),
         ...labourAdvances.map(a => ({ date: a.date, amount: a.amount, direction: 'debit', description: a.labourerId?.name ? `Labour advance — ${a.labourerId.name}` : 'Labour advance', sourceType: 'labourAdvance', sourceId: a._id })),
         ...tdsDeposits.map(d => ({ date: d.date, amount: d.amount, direction: 'debit', description: d.tdsSectionId?.name ? `TDS deposit — ${d.tdsSectionId.name}` : 'TDS deposit', sourceType: 'tdsDeposit', sourceId: d._id })),

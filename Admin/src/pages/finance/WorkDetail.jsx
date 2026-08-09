@@ -30,6 +30,20 @@ const buildBreakdownSub = (parts) => {
     return shown.length ? shown.map(([label, v, subtract]) => `${subtract ? '− ' : ''}${label} ${formatINR(Math.abs(v))}`).join('  ') : undefined;
 };
 
+// A cost bucket sitting at 0 could mean three very different things: nothing
+// logged at all, something logged but still awaiting review, or something
+// logged that WAS reviewed and rejected (a final, already-settled decision,
+// not an open item). The sub-line below already tells these apart correctly
+// — this makes sure the headline value does too, instead of calling a fully
+// rejected bucket "Unapproved" (which reads as still-pending) right above a
+// sub-line that says "already settled".
+const reviewGatedValue = (cost, unapproved, rejected) => {
+    if (cost > 0) return { value: formatINR(cost), tone: 'good' };
+    if (unapproved > 0) return { value: 'Unapproved', tone: 'danger' };
+    if (rejected > 0) return { value: 'Rejected', tone: 'danger' };
+    return { value: formatINR(0), tone: undefined };
+};
+
 /*
  * Tier-2 drill-down for one work — reached identically from the Works
  * tab's "Details" action and from a measurement row's "Details" action
@@ -266,8 +280,7 @@ const WorkDetail = ({ url }) => {
                     <KpiCard label="Area Approved" value={`${data.approvedAreaSqft} sqft`} tone="good" sub={data.unapprovedAreaSqft > 0 ? `${data.unapprovedAreaSqft} sqft still pending review` : 'Everything logged so far is reviewed'} />
                     <KpiCard
                         label="Contractor Cost"
-                        value={data.contractorCost > 0 ? formatINR(data.contractorCost) : (data.totalContractorAmount > 0 ? 'Unapproved' : formatINR(0))}
-                        tone={data.contractorCost > 0 ? 'good' : (data.totalContractorAmount > 0 ? 'danger' : undefined)}
+                        {...reviewGatedValue(data.contractorCost, data.unapprovedContractorCost, data.rejectedContractorCost)}
                         sub={
                             data.unapprovedContractorCost > 0 ? `Total logged: ${formatINR(data.totalContractorAmount)}`
                                 : data.rejectedContractorCost > 0 ? `${formatINR(data.rejectedContractorCost)} rejected (already settled)`
@@ -276,8 +289,7 @@ const WorkDetail = ({ url }) => {
                     />
                     <KpiCard
                         label="Labour Cost"
-                        value={data.labourCost > 0 ? formatINR(data.labourCost) : (data.totalLabourAmount > 0 ? 'Unapproved' : formatINR(0))}
-                        tone={data.labourCost > 0 ? 'good' : (data.totalLabourAmount > 0 ? 'danger' : undefined)}
+                        {...reviewGatedValue(data.labourCost, data.unapprovedLabourCost, data.rejectedLabourCost)}
                         sub={
                             data.unapprovedLabourCost > 0 ? `Total logged: ${formatINR(data.totalLabourAmount)}`
                                 : data.rejectedLabourCost > 0 ? `${formatINR(data.rejectedLabourCost)} rejected (already settled)`
@@ -286,18 +298,27 @@ const WorkDetail = ({ url }) => {
                     />
                     <KpiCard
                         label="Commission Cost"
-                        value={data.commissionCost > 0 ? formatINR(data.commissionCost) : (data.totalCommissionAmount > 0 ? 'Unapproved' : formatINR(0))}
-                        tone={data.commissionCost > 0 ? 'good' : (data.totalCommissionAmount > 0 ? 'danger' : undefined)}
-                        sub={data.unapprovedCommissionAmount > 0 ? `Total logged: ${formatINR(data.totalCommissionAmount)}` : 'All-time'}
+                        {...reviewGatedValue(data.commissionCost, data.unapprovedCommissionAmount, data.rejectedCommissionAmount)}
+                        sub={
+                            data.unapprovedCommissionAmount > 0 ? `Total logged: ${formatINR(data.totalCommissionAmount)}`
+                                : data.rejectedCommissionAmount > 0 ? `${formatINR(data.rejectedCommissionAmount)} rejected (already settled)`
+                                    : 'All-time'
+                        }
                     />
                     <KpiCard
                         label="Material Cost"
-                        value={data.materialCost > 0 ? formatINR(data.materialCost) : (data.totalMaterialCost > 0 ? 'Unapproved' : formatINR(0))}
-                        tone={data.materialCost > 0 ? 'good' : (data.totalMaterialCost > 0 ? 'danger' : undefined)}
-                        sub={data.unapprovedMaterialCost > 0 ? `Total logged: ${formatINR(data.totalMaterialCost)}` : 'All-time'}
+                        {...reviewGatedValue(data.materialCost, data.unapprovedMaterialCost, data.materialWasteFromRejection)}
+                        sub={
+                            data.unapprovedMaterialCost > 0 ? `Total logged: ${formatINR(data.totalMaterialCost)}`
+                                : data.materialWasteFromRejection > 0 ? `${formatINR(data.materialWasteFromRejection)} reclassified as waste (rejected work)`
+                                    : 'All-time'
+                        }
                     />
                     <KpiCard label="Material Waste Cost" value={formatINR(data.materialWasteCost)} tone={data.materialWasteCost > 0 ? 'danger' : undefined}
-                        sub="Wasted material at the same rate it was bought — a real loss, already counted in Profit" />
+                        sub={buildBreakdownSub([
+                            ['Rejected work', data.materialWasteFromRejection],
+                            ['Physical waste', data.materialWasteFromStock],
+                        ]) || 'Wasted material at the same rate it was bought — a real loss, already counted in Profit'} />
                 </KpiGrid>
 
                 {/* Distinct from Approved Cost above on purpose — that's

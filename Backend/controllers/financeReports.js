@@ -311,6 +311,22 @@ const computeWorkMaterialWasteCost = async (projectId, workId) => {
     return total;
 };
 
+// Work-scoped analog of computeProjectMaterialWaste's fromRejection — same
+// materialWasteAmount rows, just filtered to this one Work's workId instead
+// of every work in the project. Needed so computeWorkProfit can net this
+// out of Material Cost and into Material Waste Cost the same way
+// computeProjectProfit already does at the project level (see that
+// function's identical comment) — without this, a Work's own Material
+// Cost/Material Waste Cost don't add up to the project-level figures for
+// the exact same underlying data whenever a rejection happened on it.
+const computeWorkMaterialWasteFromRejection = async (workId) => {
+    const [contractorRows, labourRows] = await Promise.all([
+        FinanceContractorDeduction.find({ workId, deleted: { $ne: true }, materialWasteAmount: { $gt: 0 } }, 'materialWasteAmount'),
+        FinanceLabourDeduction.find({ workId, deleted: { $ne: true }, materialWasteAmount: { $gt: 0 } }, 'materialWasteAmount'),
+    ]);
+    return round2([...contractorRows, ...labourRows].reduce((s, d) => s + (d.materialWasteAmount || 0), 0));
+};
+
 // Measurement-level: each day's area attributes to whichever contractor
 // vendor actually did it (a Work can have more than one contractor
 // contributing). Contractor cost = only engineer-approved area —
@@ -1765,7 +1781,7 @@ const computeWorkProfit = async (work) => {
     // the whole project (financeProject.referralCommissionAmount), with no
     // per-sqft rate to attribute to an individual work at all.
     const project = await FinanceProject.findById(work.projectId, 'referralId contractType');
-    let commissionCost = 0, totalCommissionAmount = 0, unapprovedCommissionAmount = 0, clientRatePerSqft = 0;
+    let commissionCost = 0, totalCommissionAmount = 0, unapprovedCommissionAmount = 0, rejectedCommissionAmount = 0, clientRatePerSqft = 0;
     if (project?.referralId && project.contractType !== 'advance') {
         const workTypeRate = await FinanceWorkTypeRate.findOne({ projectId: work.projectId, workType: work.workType, deleted: { $ne: true } });
         if (workTypeRate) {
@@ -1775,7 +1791,11 @@ const computeWorkProfit = async (work) => {
             commissionCost = round2(workApprovedAreaSqft * referralRate);
             // A rejection is final, already-reviewed — excluded from
             // Unapproved (same reasoning as everywhere else in this file).
-            const rejectedCommissionAmount = round2(workRejectedAreaSqft * referralRate);
+            // Exposed on the return object (not just a local) so callers
+            // can tell "still pending review" apart from "already rejected,
+            // settled" the same way rejectedContractorCost/rejectedLabourCost
+            // already let them — see WorkDetail.jsx's Commission Cost card.
+            rejectedCommissionAmount = round2(workRejectedAreaSqft * referralRate);
             unapprovedCommissionAmount = round2(Math.max(0, totalCommissionAmount - commissionCost - rejectedCommissionAmount));
         }
     } else if (project?.contractType !== 'advance') {
@@ -1790,10 +1810,21 @@ const computeWorkProfit = async (work) => {
         contractorApprovedAreaSqft, contractorRejectedAreaSqft,
         labourApprovedAreaSqft, labourRejectedAreaSqft,
     );
-    const materialCost = materialCostSplit.decidedCost;
+    const materialWasteFromRejection = await computeWorkMaterialWasteFromRejection(work._id);
+    // Clamped at 0 — same reasoning as computeProjectProfit's identical
+    // clamp: the reclassification was priced using the material rate as it
+    // stood at review time, which a purchase/return since could have
+    // shifted enough that it no longer divides cleanly out of a
+    // freshly-recomputed decidedCost.
+    const materialCost = round2(Math.max(0, materialCostSplit.decidedCost - materialWasteFromRejection));
     const unapprovedMaterialCost = materialCostSplit.pendingCost;
     const totalMaterialCost = round2(materialCostSplit.decidedCost + materialCostSplit.pendingCost);
-    const materialWasteCost = await computeWorkMaterialWasteCost(work.projectId, work._id);
+    // materialWasteCost's own two constituents — see computeProjectMaterialWaste's
+    // identical fromStock/fromRejection split; exposed separately here too
+    // so a Work's own Material Waste Cost can show what it's made of
+    // instead of one opaque total, same as the Dashboard's card.
+    const materialWasteFromStock = await computeWorkMaterialWasteCost(work.projectId, work._id);
+    const materialWasteCost = round2(materialWasteFromStock + materialWasteFromRejection);
     const profit = revenue - contractorCost - labourCost - materialCost - materialWasteCost - commissionCost;
     const {
         expectedPay, deductedTotal, expectedPayNetOfDeductions,
@@ -1836,11 +1867,12 @@ const computeWorkProfit = async (work) => {
     const rejectedLabourCost = round2(labourBreakdown.reduce((s, b) => s + b.rejectedAmount, 0));
 
     return {
-        revenue, contractorCost, contractorBreakdown, labourCost, labourBreakdown, materialCost, materialWasteCost, profit, areaBilledSqft,
+        revenue, contractorCost, contractorBreakdown, labourCost, labourBreakdown, materialCost, materialWasteCost,
+        materialWasteFromStock, materialWasteFromRejection, profit, areaBilledSqft,
         // Same "everything ever logged, unconditional" shape totalContractorCost
         // etc. use elsewhere — see computeWorkMaterialCostSplit's header comment.
         unapprovedMaterialCost, totalMaterialCost,
-        commissionCost, totalCommissionAmount, unapprovedCommissionAmount, unapprovedRevenue,
+        commissionCost, totalCommissionAmount, unapprovedCommissionAmount, rejectedCommissionAmount, unapprovedRevenue,
         unapprovedContractorCost, unapprovedLabourCost, rejectedContractorCost, rejectedLabourCost,
         expectedPay, deductedTotal, expectedPayNetOfDeductions,
         totalAreaSqft, totalAmount, approvedAreaSqft, approvedAmount, approvedDate, unapprovedAreaSqft, unapprovedAmount,
@@ -2174,6 +2206,7 @@ const getWorkDetail = async (req, res) => {
                 // revenue/contractorCost/labourCost above, so they need
                 // their own explicit key rather than relying on the spread.
                 materialCost: workProfit.materialCost, materialWasteCost: workProfit.materialWasteCost,
+                materialWasteFromStock: workProfit.materialWasteFromStock, materialWasteFromRejection: workProfit.materialWasteFromRejection,
                 unapprovedMaterialCost: workProfit.unapprovedMaterialCost, totalMaterialCost: workProfit.totalMaterialCost,
                 // All-time, unconditional, per-party — distinct from the
                 // `contractorBreakdown`/`labourBreakdown` in the `report`
@@ -2193,7 +2226,7 @@ const getWorkDetail = async (req, res) => {
                 // commission is one flat project-level figure, not
                 // per-work). See computeWorkProfit's own comment.
                 commissionCost: workProfit.commissionCost, totalCommissionAmount: workProfit.totalCommissionAmount,
-                unapprovedCommissionAmount: workProfit.unapprovedCommissionAmount,
+                unapprovedCommissionAmount: workProfit.unapprovedCommissionAmount, rejectedCommissionAmount: workProfit.rejectedCommissionAmount,
                 // The Unapproved section's own mini profit picture — what
                 // this Work's still-unreviewed sqft would add to Revenue/
                 // Profit once reviewed and billed, mirroring

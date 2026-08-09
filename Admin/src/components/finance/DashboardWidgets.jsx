@@ -50,6 +50,20 @@ export const buildBreakdownSub = (parts) => {
     return shown.length ? shown.map(([label, v, subtract]) => `${subtract ? '− ' : ''}${label} ${formatINR(Math.abs(v))}`).join('  ') : undefined;
 };
 
+// A cost bucket sitting at 0 could mean three very different things:
+// nothing logged at all, something logged but still awaiting review, or
+// something logged that WAS reviewed and rejected (a final, already-settled
+// decision, not an open item). Several KpiCards' own sub-lines already tell
+// these apart correctly — this makes sure the headline value does too,
+// instead of calling a fully rejected bucket "Unapproved" (which reads as
+// still-pending) right above a sub-line that says "already settled".
+export const reviewGatedValue = (cost, unapproved, rejected) => {
+    if (cost > 0) return { value: formatINR(cost), tone: 'good' };
+    if (unapproved > 0) return { value: 'Unapproved', tone: 'danger' };
+    if (rejected > 0) return { value: 'Rejected', tone: 'danger' };
+    return { value: formatINR(0), tone: undefined };
+};
+
 // A contractor/labourer ledger's Balance Payable going negative ("Extra
 // Paid") is a different question than the still-owed case — not "what
 // factors add up to this," but "who actually overpaid, and from where."

@@ -28,7 +28,7 @@ import ProjectTimelineTab from '../../components/finance/ProjectTimelineTab';
 import ProjectProfitabilityTab from '../../components/finance/ProjectProfitabilityTab';
 import StyledSelect from '../../components/finance/StyledSelect';
 import SettingPicker from '../../components/finance/SettingPicker';
-import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, ChartTooltip, CHART_COLORS, formatINR, buildBreakdownSub, unapprovedPaidNote } from '../../components/finance/DashboardWidgets';
+import { KpiCard, KpiGrid, ChartCard, ChartGrid, EmptyChart, ChartTooltip, CHART_COLORS, formatINR, buildBreakdownSub, unapprovedPaidNote, reviewGatedValue } from '../../components/finance/DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -219,17 +219,19 @@ const ProjectOverviewTab = ({ url, projectId, contractType, status, onViewWorks,
                     sub={receivable ? `${receivable.issuedBillCount} bill${receivable.issuedBillCount === 1 ? '' : 's'} issued to date` : undefined} />
                 <KpiCard
                     label="Material Cost"
-                    value={profit.materialCost > 0 ? formatINR(profit.materialCost) : (profit.totalMaterialCost > 0 ? 'Unapproved' : formatINR(0))}
-                    tone={profit.materialCost > 0 ? 'good' : (profit.totalMaterialCost > 0 ? 'danger' : undefined)}
+                    {...reviewGatedValue(profit.materialCost, profit.unapprovedMaterialCost, profit.materialWasteFromRejection)}
                     sub={profit.unapprovedMaterialCost > 0 ? `Total logged: ${formatINR(profit.totalMaterialCost)}`
-                        : (materials.length > 0 ? `${materials.length} material${materials.length === 1 ? '' : 's'} tracked` : undefined)}
+                        : profit.materialWasteFromRejection > 0 ? `${formatINR(profit.materialWasteFromRejection)} reclassified as waste (rejected work)`
+                            : (materials.length > 0 ? `${materials.length} material${materials.length === 1 ? '' : 's'} tracked` : undefined)}
                 />
                 <KpiCard label="Material Waste Cost" value={formatINR(profit.materialWasteCost)} tone={profit.materialWasteCost > 0 ? 'danger' : undefined}
-                    sub="Wasted material at the same rate it was bought — a real loss, already counted in Profit" />
+                    sub={buildBreakdownSub([
+                        ['Rejected work', profit.materialWasteFromRejection],
+                        ['Physical waste', profit.materialWasteFromStock],
+                    ]) || 'Wasted material at the same rate it was bought — a real loss, already counted in Profit'} />
                 <KpiCard
                     label="Contractor Cost"
-                    value={profit.contractorCost > 0 ? formatINR(profit.contractorCost) : (profit.totalContractorCost > 0 ? 'Unapproved' : formatINR(0))}
-                    tone={profit.contractorCost > 0 ? 'good' : (profit.totalContractorCost > 0 ? 'danger' : undefined)}
+                    {...reviewGatedValue(profit.contractorCost, profit.unapprovedContractorCost, profit.rejectedContractorCost)}
                     sub={[
                         profit.approvedContractorAreaSqft > 0 ? `${profit.approvedContractorAreaSqft.toLocaleString('en-IN')} sqft approved` : null,
                         profit.unapprovedContractorCost > 0 ? `Total logged: ${formatINR(profit.totalContractorCost)}`
@@ -238,16 +240,14 @@ const ProjectOverviewTab = ({ url, projectId, contractType, status, onViewWorks,
                 />
                 <KpiCard
                     label="Commission Cost"
-                    value={profit.commissionCost > 0 ? formatINR(profit.commissionCost) : (profit.totalCommissionCost > 0 ? 'Unapproved' : formatINR(0))}
-                    tone={profit.commissionCost > 0 ? 'good' : (profit.totalCommissionCost > 0 ? 'danger' : undefined)}
+                    {...reviewGatedValue(profit.commissionCost, profit.unapprovedCommissionCost, profit.rejectedCommissionCost)}
                     sub={profit.unapprovedCommissionCost === 0 && profit.rejectedCommissionCost > 0
                         ? `${formatINR(profit.rejectedCommissionCost)} rejected (already settled)`
                         : (profit.unapprovedCommissionCost > 0 ? `Total logged: ${formatINR(profit.totalCommissionCost)}` : undefined)}
                 />
                 <KpiCard
                     label="Labour Cost"
-                    value={profit.labourCost > 0 ? formatINR(profit.labourCost) : (profit.totalLabourCost > 0 ? 'Unapproved' : formatINR(0))}
-                    tone={profit.labourCost > 0 ? 'good' : (profit.totalLabourCost > 0 ? 'danger' : undefined)}
+                    {...reviewGatedValue(profit.labourCost, profit.unapprovedLabourCost, profit.rejectedLabourCost)}
                     sub={[
                         profit.approvedLabourAreaSqft > 0 ? `${profit.approvedLabourAreaSqft.toLocaleString('en-IN')} sqft approved` : null,
                         profit.unapprovedLabourCost > 0 ? `Total logged: ${formatINR(profit.totalLabourCost)}`

@@ -5116,6 +5116,17 @@ const computeReconciliationChecklist = async (month) => {
     // Reports/Reconciliation investigation: this checklist row is the
     // right home for that number, not a standalone GST page).
     const { gst, tds } = await computeCaMonthlyPackage(month);
+    // BUG FIX: this row used to show tds.totalTds — gross TDS withheld
+    // this month — and considered itself "clear" only once that hit 0,
+    // which never happens in any normal month (withholding is expected,
+    // not a problem to fix). What actually needs chasing is TDS Payable:
+    // what's still owed to the tax authority after this month's deposits
+    // are netted out — same formula the CA Monthly Package's own PDF
+    // already computes and labels "TDS Payable (this month's withholding,
+    // net of this month's deposits)". Confirmed live: depositing the full
+    // withheld amount left this row reading "not clear" under the old
+    // formula, unchanged.
+    const tdsPayable = round2(tds.totalTds - tds.totalDeposited);
 
     // linkTab is null for the two items whose real workspace lives outside
     // Reports (Work Review and Running Bills both live under Receivables)
@@ -5129,7 +5140,7 @@ const computeReconciliationChecklist = async (month) => {
         { key: 'chase-receivables', label: 'Chase receivables', count: null, amount: receivablesOverdue, clear: receivablesOverdue === 0, linkTab: 'client-profit' },
         { key: 'pay-vendors', label: 'Pay vendors', count: vendorOutstandingCount, amount: vendorOutstandingAmount, clear: vendorOutstandingCount === 0, linkTab: 'vendor-analysis' },
         { key: 'gst', label: 'GST', count: null, amount: gst.netGstPayable, clear: gst.netGstPayable === 0, linkTab: 'ca-monthly-package' },
-        { key: 'tds', label: 'TDS', count: null, amount: tds.totalTds, clear: tds.totalTds === 0, linkTab: 'ca-monthly-package' },
+        { key: 'tds', label: 'TDS', count: null, amount: tdsPayable, clear: tdsPayable === 0, linkTab: 'ca-monthly-package' },
     ];
     const outstandingCount = items.filter(i => !i.clear).length;
 

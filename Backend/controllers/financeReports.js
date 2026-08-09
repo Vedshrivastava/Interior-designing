@@ -1952,10 +1952,17 @@ const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) =>
             const earnings = round2(totalArea * perUnit);
             contractorCost += earnings;
             const vendorMaterialArea = materialAreaByVendor.get(vendorId) || 0;
+            const vendorMaterialCost = materialCostByVendor.get(vendorId) || 0;
             contractorBreakdown.push({
                 vendorId, vendorName: vendorById.get(vendorId)?.name || '—',
                 areaSqft: round2(totalArea), rate: perUnit, earnings,
-                materialCostPerSqft: vendorMaterialArea > 0 ? (materialCostByVendor.get(vendorId) || 0) / vendorMaterialArea : null,
+                materialCostPerSqft: vendorMaterialArea > 0 ? vendorMaterialCost / vendorMaterialArea : null,
+                // Real, unscaled material cost — kept alongside the blended
+                // ratio above so getWorkDetail can divide it by approved/
+                // unapproved area instead (see that function's own
+                // comment); only meaningful once approval context is
+                // merged in, i.e. All Time scope.
+                materialCost: vendorMaterialCost,
             });
         }
     }
@@ -1986,10 +1993,13 @@ const computeWorkScopedReport = async (work, { dateStart, dateEnd, avgRate }) =>
             const earnings = round2(totalArea * perUnit);
             labourCost += earnings;
             const labourerMaterialArea = materialAreaByLabourer.get(labourerId) || 0;
+            const labourerMaterialCost = materialCostByLabourer.get(labourerId) || 0;
             labourBreakdown.push({
                 labourerId, labourerName: labourerById.get(labourerId)?.name || '—',
                 areaSqft: round2(totalArea), rate: perUnit, earnings,
-                materialCostPerSqft: labourerMaterialArea > 0 ? (materialCostByLabourer.get(labourerId) || 0) / labourerMaterialArea : null,
+                materialCostPerSqft: labourerMaterialArea > 0 ? labourerMaterialCost / labourerMaterialArea : null,
+                // See contractorBreakdown's identical field above.
+                materialCost: labourerMaterialCost,
             });
         }
     }
@@ -2150,25 +2160,39 @@ const getWorkDetail = async (req, res) => {
         // meaning scoped to one Day/Month, so this is only attached when the
         // picker is All Time. Merged in-memory from workProfit's own
         // contractorBreakdown/labourBreakdown (already computed above, same
-        // vendorId/labourerId keys) rather than re-queried, purely so the
-        // frontend can tell "this Material Cost/Sqft reflects at least some
-        // approved work" apart from "nothing on this row is approved yet" —
-        // see WorkDetail.jsx's use of materialCostPerSqftDisplay.
+        // vendorId/labourerId keys) rather than re-queried.
+        //
+        // materialCostPerSqftApproved/Unapproved divide this party's real,
+        // unscaled material cost (report.*Breakdown's own `materialCost` —
+        // never reduced) by ONLY their approved (or unapproved) area — NOT
+        // a proportional split of the cost itself. If some of this party's
+        // logged area was rejected, the same real spend is now divided
+        // across fewer confirmed sqft, so this genuinely reads higher than
+        // the blended materialCostPerSqft above; that's the point, not a
+        // rounding artifact.
         if (scope === 'alltime') {
             const approvedAreaByVendor = new Map(workProfit.contractorBreakdown.map(b => [b.vendorId.toString(), b.approvedAreaSqft]));
             const unapprovedAreaByVendor = new Map(workProfit.contractorBreakdown.map(b => [b.vendorId.toString(), b.unapprovedAreaSqft]));
-            report.contractorBreakdown = report.contractorBreakdown.map(b => ({
-                ...b,
-                approvedAreaSqft: approvedAreaByVendor.get(b.vendorId.toString()) ?? null,
-                unapprovedAreaSqft: unapprovedAreaByVendor.get(b.vendorId.toString()) ?? null,
-            }));
+            report.contractorBreakdown = report.contractorBreakdown.map(b => {
+                const approvedAreaSqft = approvedAreaByVendor.get(b.vendorId.toString()) ?? null;
+                const unapprovedAreaSqft = unapprovedAreaByVendor.get(b.vendorId.toString()) ?? null;
+                return {
+                    ...b, approvedAreaSqft, unapprovedAreaSqft,
+                    materialCostPerSqftApproved: approvedAreaSqft > 0 ? b.materialCost / approvedAreaSqft : null,
+                    materialCostPerSqftUnapproved: unapprovedAreaSqft > 0 ? b.materialCost / unapprovedAreaSqft : null,
+                };
+            });
             const approvedAreaByLabourer = new Map(workProfit.labourBreakdown.map(b => [b.labourerId.toString(), b.approvedAreaSqft]));
             const unapprovedAreaByLabourer = new Map(workProfit.labourBreakdown.map(b => [b.labourerId.toString(), b.unapprovedAreaSqft]));
-            report.labourBreakdown = report.labourBreakdown.map(b => ({
-                ...b,
-                approvedAreaSqft: approvedAreaByLabourer.get(b.labourerId.toString()) ?? null,
-                unapprovedAreaSqft: unapprovedAreaByLabourer.get(b.labourerId.toString()) ?? null,
-            }));
+            report.labourBreakdown = report.labourBreakdown.map(b => {
+                const approvedAreaSqft = approvedAreaByLabourer.get(b.labourerId.toString()) ?? null;
+                const unapprovedAreaSqft = unapprovedAreaByLabourer.get(b.labourerId.toString()) ?? null;
+                return {
+                    ...b, approvedAreaSqft, unapprovedAreaSqft,
+                    materialCostPerSqftApproved: approvedAreaSqft > 0 ? b.materialCost / approvedAreaSqft : null,
+                    materialCostPerSqftUnapproved: unapprovedAreaSqft > 0 ? b.materialCost / unapprovedAreaSqft : null,
+                };
+            });
         }
         // totalContractorAmount/totalLabourAmount still used just below for
         // each KPI card's own "Total logged" sub-line — kept for that, but
@@ -2232,6 +2256,16 @@ const getWorkDetail = async (req, res) => {
                 materialCost: workProfit.materialCost, materialWasteCost: workProfit.materialWasteCost,
                 materialWasteFromStock: workProfit.materialWasteFromStock, materialWasteFromRejection: workProfit.materialWasteFromRejection,
                 unapprovedMaterialCost: workProfit.unapprovedMaterialCost, totalMaterialCost: workProfit.totalMaterialCost,
+                // The Work's own real, unscaled material cost (every bit
+                // ever consumed, all-time, review status aside) divided by
+                // ONLY its approved (or, as a fallback, unapproved) area —
+                // not a proportional split of the cost, so this genuinely
+                // differs from the scoped/blended averageCostPerSqft in
+                // `report` above whenever any of this Work's area is
+                // rejected. Always all-time (approval has no day/month
+                // meaning), unconditional on the scope picker.
+                averageCostPerSqftApproved: workProfit.approvedAreaSqft > 0 ? workProfit.totalMaterialCost / workProfit.approvedAreaSqft : null,
+                averageCostPerSqftUnapproved: workProfit.unapprovedAreaSqft > 0 ? workProfit.totalMaterialCost / workProfit.unapprovedAreaSqft : null,
                 // All-time, unconditional, per-party — distinct from the
                 // `contractorBreakdown`/`labourBreakdown` in the `report`
                 // spread above (that one's the Day/Month/AllTime *scoped*

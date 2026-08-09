@@ -242,8 +242,12 @@ const WorkDetail = ({ url }) => {
                     )}
                     <KpiCard
                         label="Average Material Cost/Sqft"
-                        value={`₹${data.averageCostPerSqft.toFixed(2)}`}
-                        sub="Mean of each day's cost/sqft ratio, not total cost ÷ total area"
+                        value={scope === 'alltime'
+                            ? materialCostPerSqftDisplay(data.averageCostPerSqftApproved, data.averageCostPerSqftUnapproved)
+                            : `₹${data.averageCostPerSqft.toFixed(2)}`}
+                        sub={scope === 'alltime'
+                            ? "This Work's real material cost, all-time, ÷ only its approved (or unapproved) area — not a blended average"
+                            : `Total material cost ÷ total area across ${data.scopeLabel.toLowerCase()}, not a mean of each day's own ratio`}
                     />
                     <KpiCard
                         label="Expected Pay (Net of Deductions)"
@@ -505,12 +509,14 @@ const WorkDetail = ({ url }) => {
                                 <p>₹{b.rate.toFixed(2)}</p>
                                 <p>{formatINR(b.earnings)}</p>
                                 <p>{formatINR(b.directPaymentTotal || 0)}</p>
-                                <p>{materialCostPerSqftDisplay(b.materialCostPerSqft, b.approvedAreaSqft)}</p>
+                                <p>{scope === 'alltime'
+                                    ? materialCostPerSqftDisplay(b.materialCostPerSqftApproved, b.materialCostPerSqftUnapproved)
+                                    : (b.materialCostPerSqft != null ? `₹${b.materialCostPerSqft.toFixed(2)}` : '—')}</p>
                             </div>
                         ))}
                         <p className="admin-subtitle" style={{ padding: '8px 20px 16px' }}>
                             Material Cost/Sqft is each contractor's own material use ÷ only the area they covered while logging it — compare across rows to see who gets the most coverage per unit of material.
-                            {scope === 'alltime' && ' Marked "pending review" when none of that contractor\'s area on this Work has been approved yet.'}
+                            {scope === 'alltime' && ' All Time shows real material cost ÷ only approved area instead (marked "(unapproved)" and divided by unapproved area when none of it is approved yet).'}
                         </p>
                     </div>
                 )}
@@ -527,7 +533,9 @@ const WorkDetail = ({ url }) => {
                                 <p>₹{b.rate.toFixed(2)}</p>
                                 <p>{formatINR(b.earnings)}</p>
                                 <p>{formatINR(b.directPaymentTotal || 0)}</p>
-                                <p>{materialCostPerSqftDisplay(b.materialCostPerSqft, b.approvedAreaSqft)}</p>
+                                <p>{scope === 'alltime'
+                                    ? materialCostPerSqftDisplay(b.materialCostPerSqftApproved, b.materialCostPerSqftUnapproved)
+                                    : (b.materialCostPerSqft != null ? `₹${b.materialCostPerSqft.toFixed(2)}` : '—')}</p>
                             </div>
                         ))}
                     </div>

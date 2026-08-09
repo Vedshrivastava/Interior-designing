@@ -47,7 +47,7 @@ const LabourWorksView = ({ url, labourerId }) => {
                         whole Work's target, not this labourer's share of
                         it (a Work can have more than one contributor). */}
                     <p className="law-area"><span className="pq-group-label">Area Covered</span>{w.completedAreaSqft} sqft</p>
-                    <p className="law-cost"><span className="pq-group-label">Material Cost/Sqft</span>{materialCostPerSqftDisplay(w.materialCostPerSqft, w.approvedAreaSqft)}</p>
+                    <p className="law-cost"><span className="pq-group-label">Material Cost/Sqft</span>{materialCostPerSqftDisplay(w.materialCostPerSqftApproved, w.materialCostPerSqftUnapproved)}</p>
                     <p className="law-status"><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
                 </div>
             ))}

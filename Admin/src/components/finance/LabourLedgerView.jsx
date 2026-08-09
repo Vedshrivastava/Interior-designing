@@ -355,7 +355,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                                         <span className="pq-group-label">Unapproved</span>
                                         {w.rate ? `₹${w.unapprovedAmount.toLocaleString('en-IN')}` : '-'}
                                     </p>
-                                    <p className="lle-work-cost"><span className="pq-group-label">Material Cost/Sqft</span>{materialCostPerSqftDisplay(w.materialCostPerSqft, w.approvedAreaSqft)}</p>
+                                    <p className="lle-work-cost"><span className="pq-group-label">Material Cost/Sqft</span>{materialCostPerSqftDisplay(w.materialCostPerSqftApproved, w.materialCostPerSqftUnapproved)}</p>
                                 </div>
                             ))}
                         </div>

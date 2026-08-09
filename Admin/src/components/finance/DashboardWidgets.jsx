@@ -64,21 +64,22 @@ export const reviewGatedValue = (cost, unapproved, rejected) => {
     return { value: formatINR(0), tone: undefined };
 };
 
-// Material Cost/Sqft is a pooled rate (cost ÷ area) across every logged
-// measurement — it can't be split into a genuinely different "approved"
-// vs "unapproved" number (a proportional split of a ratio always
-// algebraically collapses back to the same blended figure), so this
-// doesn't invent a second number. What it fixes: showing this rate
-// unlabeled right next to genuinely approval-gated columns (Approved/
-// Unapproved amounts) made it read as confirmed data even when 100% of
-// the underlying work is still pending review. `approvedAreaSqft` being
-// undefined/null (no approval context available for this row, e.g. a
-// Day/Month-scoped table where approval isn't a coherent concept) falls
-// through to the plain rate, unchanged from before this existed.
-export const materialCostPerSqftDisplay = (rate, approvedAreaSqft) => {
-    if (rate == null) return '—';
-    if (approvedAreaSqft === 0) return `₹${rate.toFixed(2)} (pending review)`;
-    return `₹${rate.toFixed(2)}`;
+// Real, unscaled material cost ÷ ONLY the approved area (falling back to
+// ONLY the unapproved area when nothing's approved yet) — not a
+// proportional split of the cost itself, and not the same number as a
+// blended cost÷totalArea average. If part of a party's/work's logged area
+// was rejected, the same real spend now divides across fewer confirmed
+// sqft, so approvedRate genuinely reads higher than a blended figure
+// would — that's the intended signal ("how much real material is riding
+// on the confirmed portion of this work"), not noise. Both null (neither
+// area bucket has anything in it, or no material cost at all) renders as
+// "—". Backend computes both fields; this just picks whichever applies —
+// approved first, unapproved labeled as a fallback only when nothing is
+// approved.
+export const materialCostPerSqftDisplay = (approvedRate, unapprovedRate) => {
+    if (approvedRate != null) return `₹${approvedRate.toFixed(2)}`;
+    if (unapprovedRate != null) return `₹${unapprovedRate.toFixed(2)} (unapproved)`;
+    return '—';
 };
 
 // A contractor/labourer ledger's Balance Payable going negative ("Extra

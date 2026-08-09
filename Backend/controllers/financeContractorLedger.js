@@ -161,6 +161,7 @@ const computeContractorLedger = async (vendorId, projectId) => {
         const unapprovedAmount = round2(rate ? unapprovedArea * rateValue : 0);
 
         const workMaterialArea = materialAreaByWork.get(workKey) || 0;
+        const workMaterialCost = materialCostByWork.get(workKey) || 0;
         worksOut.push({
             _id: w._id,
             projectId: w.projectId, projectName: projectNameById.get(w.projectId.toString()) || '—',
@@ -171,7 +172,22 @@ const computeContractorLedger = async (vendorId, projectId) => {
             status: w.status,
             rate: rate ? rate.ratePerSqft : null,
             totalAmount, earnings, unapprovedAmount,
-            materialCostPerSqft: workMaterialArea > 0 ? (materialCostByWork.get(workKey) || 0) / workMaterialArea : null,
+            // Kept for anything still reading the old blended figure
+            // (real material cost ÷ all material-tagged area, unconditional
+            // on approval).
+            materialCostPerSqft: workMaterialArea > 0 ? workMaterialCost / workMaterialArea : null,
+            // The real, full material cost this vendor's own measurements
+            // used on this work (never reduced/scaled) divided by ONLY
+            // their approved (or, as a fallback, only their unapproved)
+            // area — NOT a proportional split of the cost itself. This is
+            // a genuinely different number from materialCostPerSqft above:
+            // if part of this vendor's logged area on this work was
+            // rejected, the real cost gets spread across fewer confirmed
+            // sqft, so this reads higher than the blended rate — exactly
+            // the "how much real material is riding on the confirmed
+            // portion of this work" signal that a blended average hides.
+            materialCostPerSqftApproved: approvedArea > 0 ? workMaterialCost / approvedArea : null,
+            materialCostPerSqftUnapproved: unapprovedArea > 0 ? workMaterialCost / unapprovedArea : null,
         });
     }
 
@@ -209,6 +225,8 @@ const computeContractorLedger = async (vendorId, projectId) => {
         totals: {
             ...balance,
             materialCostPerSqft: materialAreaTotal > 0 ? materialCostTotal / materialAreaTotal : null,
+            materialCostPerSqftApproved: totalApprovedAreaSqft > 0 ? materialCostTotal / totalApprovedAreaSqft : null,
+            materialCostPerSqftUnapproved: totalUnapprovedAreaSqft > 0 ? materialCostTotal / totalUnapprovedAreaSqft : null,
             totalApprovedAreaSqft, totalUnapprovedAreaSqft,
         },
     };

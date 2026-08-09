@@ -134,6 +134,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
         const unapprovedAmount = round2(rate ? unapprovedArea * rateValue : 0);
 
         const workMaterialArea = materialAreaByWork.get(workKey) || 0;
+        const workMaterialCost = materialCostByWork.get(workKey) || 0;
         worksOut.push({
             _id: w._id,
             projectId: w.projectId, projectName: projectNameById.get(w.projectId.toString()) || '—',
@@ -144,7 +145,13 @@ const computeLabourLedger = async (labourerId, projectId) => {
             status: w.status,
             rate: rate ? rate.ratePerSqft : null,
             totalAmount, earnings, unapprovedAmount,
-            materialCostPerSqft: workMaterialArea > 0 ? (materialCostByWork.get(workKey) || 0) / workMaterialArea : null,
+            // See financeContractorLedger.js's identical fields for the
+            // full reasoning — real material cost (unscaled) ÷ approved
+            // (or, as a fallback, unapproved) area only, not a proportional
+            // split of the cost itself.
+            materialCostPerSqft: workMaterialArea > 0 ? workMaterialCost / workMaterialArea : null,
+            materialCostPerSqftApproved: approvedArea > 0 ? workMaterialCost / approvedArea : null,
+            materialCostPerSqftUnapproved: unapprovedArea > 0 ? workMaterialCost / unapprovedArea : null,
         });
     }
 
@@ -178,6 +185,8 @@ const computeLabourLedger = async (labourerId, projectId) => {
         totals: {
             ...balance,
             materialCostPerSqft: materialAreaTotal > 0 ? materialCostTotal / materialAreaTotal : null,
+            materialCostPerSqftApproved: totalApprovedAreaSqft > 0 ? materialCostTotal / totalApprovedAreaSqft : null,
+            materialCostPerSqftUnapproved: totalUnapprovedAreaSqft > 0 ? materialCostTotal / totalUnapprovedAreaSqft : null,
             totalApprovedAreaSqft, totalUnapprovedAreaSqft,
         },
     };

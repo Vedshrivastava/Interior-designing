@@ -4827,6 +4827,46 @@ const computeCaMonthlyPackage = async (month) => {
     const inputGst = purchaseGst + expenseGst;
     const itcPosition = await computeGstItcPosition(month);
 
+    // HSN/SAC Summary — GSTR-1/GSTR-2-style grouping for the CA.
+    // Sales: financeWorkTypeRate has no sacCode field of its own (checked
+    // before writing this), so there's no per-work-type code to group
+    // by — every issued bill this month collapses into one row under the
+    // single company-wide defaultSacCode (see financeCompanySettings'
+    // own comment: a sqft-rate service business, one code is deliberate,
+    // same code the Bill Statement PDF already prints). Reuses the
+    // already-computed salesTotal/outputGst rather than re-querying.
+    // If a per-work-type sacCode is ever added, this becomes a real
+    // $group over lineItems.sacCode instead of one static row.
+    const company = await getCompanyForPdf();
+    const sacSummary = issuedBills.length
+        ? [{ sacCode: company?.defaultSacCode || '—', taxableValue: salesTotal, gstAmount: outputGst, total: salesTotal + outputGst }]
+        : [];
+
+    // Purchases: a real per-material grouping, since hsnCode does exist on
+    // financeMaterial (just added — existing/un-backfilled materials group
+    // under '—' rather than a fabricated code). Single aggregate, not a
+    // query per material, same pattern as computeMonthlyGstTotals above.
+    // Scoped to transactionType: 'purchase' only — matches "purchase line
+    // items" specifically; returns already net out of the top-level
+    // purchaseGst/totalReturned figures elsewhere in this package.
+    const hsnAgg = await FinancePurchase.aggregate([
+        { $match: { date: { $gte: start, $lte: end }, transactionType: 'purchase', deleted: { $ne: true } } },
+        { $lookup: { from: 'financematerials', localField: 'materialId', foreignField: '_id', as: 'material' } },
+        { $unwind: { path: '$material', preserveNullAndEmptyArrays: true } },
+        {
+            $group: {
+                _id: { $ifNull: ['$material.hsnCode', ''] },
+                quantity: { $sum: '$quantity' },
+                taxableValue: { $sum: '$totalAmount' },
+                gstAmount: { $sum: { $ifNull: ['$gstAmount', 0] } },
+            },
+        },
+        { $sort: { _id: 1 } },
+    ]);
+    const hsnSummary = hsnAgg.map(r => ({
+        hsnCode: r._id || '—', quantity: round2(r.quantity), taxableValue: round2(r.taxableValue), gstAmount: round2(r.gstAmount),
+    }));
+
     return {
         month,
         gst: {
@@ -4840,8 +4880,8 @@ const computeCaMonthlyPackage = async (month) => {
             totalTds, bySection: [...tdsBySection.values()].sort((a, b) => b.totalTds - a.totalTds),
             payments: tdsPaymentRows, deposits: tdsDepositRows, totalDeposited: totalTdsDeposited,
         },
-        sales: { totalBilled: salesTotal, billCount: issuedBills.length, bills: billRows },
-        purchases: { totalPurchased, totalReturned, netPurchases: totalPurchased - totalReturned, purchaseCount: purchaseRows.length, rows: purchaseLineItems },
+        sales: { totalBilled: salesTotal, billCount: issuedBills.length, bills: billRows, sacSummary },
+        purchases: { totalPurchased, totalReturned, netPurchases: totalPurchased - totalReturned, purchaseCount: purchaseRows.length, rows: purchaseLineItems, hsnSummary },
         expenses: { totalExpenses, expenseCount: expenses.length, expenseGst, rows: expenseRows },
         bankAndCash: {
             bankAccounts: bankPositions, totalBankBalance,
@@ -5052,6 +5092,23 @@ const downloadCaMonthlyPackage = async (req, res) => {
                 ]),
             });
         }
+        if (data.sales.sacSummary.length > 0) {
+            doc.moveDown(0.3);
+            doc.font('Helvetica-Bold').fontSize(10).text('HSN/SAC Summary').font('Helvetica');
+            doc.moveDown(0.2);
+            drawTable(doc, {
+                company,
+                columns: [
+                    { label: 'SAC Code', width: 150, align: 'left' },
+                    { label: 'Taxable Value', width: 130, align: 'right' },
+                    { label: 'GST Amount', width: 116, align: 'right' },
+                    { label: 'Total', width: 116, align: 'right' },
+                ],
+                rows: data.sales.sacSummary.map(s => [
+                    s.sacCode, formatCurrency(s.taxableValue), formatCurrency(s.gstAmount), formatCurrency(s.total),
+                ]),
+            });
+        }
 
         writeSectionHeading(doc, 'Purchase Summary');
         doc.text(`Total Purchased: ${formatCurrency(data.purchases.totalPurchased)}`);
@@ -5083,6 +5140,23 @@ const downloadCaMonthlyPackage = async (req, res) => {
                 rows: data.purchases.rows.map(p => [
                     formatDate(p.date), p.vendorName, p.vendorGstin, p.materialName, p.transactionType === 'return' ? 'Return' : 'Purchase',
                     String(p.quantity), formatCurrency(p.ratePerUnit), formatCurrency(p.totalAmount), formatCurrency(p.gstAmount),
+                ]),
+            });
+        }
+        if (data.purchases.hsnSummary.length > 0) {
+            doc.moveDown(0.3);
+            doc.font('Helvetica-Bold').fontSize(10).text('HSN/SAC Summary').font('Helvetica');
+            doc.moveDown(0.2);
+            drawTable(doc, {
+                company,
+                columns: [
+                    { label: 'HSN Code', width: 150, align: 'left' },
+                    { label: 'Quantity', width: 130, align: 'right' },
+                    { label: 'Taxable Value', width: 116, align: 'right' },
+                    { label: 'GST Amount', width: 116, align: 'right' },
+                ],
+                rows: data.purchases.hsnSummary.map(h => [
+                    h.hsnCode, String(h.quantity), formatCurrency(h.taxableValue), formatCurrency(h.gstAmount),
                 ]),
             });
         }

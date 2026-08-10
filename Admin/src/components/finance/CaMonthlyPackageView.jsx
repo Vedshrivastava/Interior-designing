@@ -190,6 +190,20 @@ const CaMonthlyPackageView = ({ url }) => {
                         />
                     </div>
 
+                    <p className="admin-subtitle" style={{ marginBottom: '10px' }}>HSN/SAC Summary — Sales</p>
+                    <div style={{ marginBottom: '20px' }}>
+                        <LineItemTable
+                            emptyText="No sales this month."
+                            columns={[
+                                { key: 'sacCode', label: 'SAC Code' },
+                                { key: 'taxableValue', label: 'Taxable Value', align: 'right', render: r => fmtMoney(r.taxableValue) },
+                                { key: 'gstAmount', label: 'GST Amount', align: 'right', render: r => fmtMoney(r.gstAmount) },
+                                { key: 'total', label: 'Total', align: 'right', render: r => fmtMoney(r.total) },
+                            ]}
+                            rows={data.sales.sacSummary}
+                        />
+                    </div>
+
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Purchases &amp; Returns</p>
                     <div style={{ marginBottom: '20px' }}>
                         <LineItemTable
@@ -206,6 +220,20 @@ const CaMonthlyPackageView = ({ url }) => {
                                 { key: 'gstAmount', label: 'GST', align: 'right', render: r => fmtMoney(r.gstAmount) },
                             ]}
                             rows={data.purchases.rows}
+                        />
+                    </div>
+
+                    <p className="admin-subtitle" style={{ marginBottom: '10px' }}>HSN/SAC Summary — Purchases</p>
+                    <div style={{ marginBottom: '20px' }}>
+                        <LineItemTable
+                            emptyText="No purchases this month."
+                            columns={[
+                                { key: 'hsnCode', label: 'HSN Code' },
+                                { key: 'quantity', label: 'Quantity', align: 'right' },
+                                { key: 'taxableValue', label: 'Taxable Value', align: 'right', render: r => fmtMoney(r.taxableValue) },
+                                { key: 'gstAmount', label: 'GST Amount', align: 'right', render: r => fmtMoney(r.gstAmount) },
+                            ]}
+                            rows={data.purchases.hsnSummary}
                         />
                     </div>
 

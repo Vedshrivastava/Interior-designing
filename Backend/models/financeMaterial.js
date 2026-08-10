@@ -5,6 +5,11 @@ const financeMaterialSchema = new mongoose.Schema({
     unit:              { type: String, default: 'unit' }, // e.g. bag, sqft, kg, piece
     minimumStockLevel: { type: Number, default: 0 },
     notes:             { type: String, default: '' },
+    // GST HSN code for this material — optional, blank on every existing
+    // record until backfilled. Used by the CA Monthly Package's HSN/SAC
+    // Summary to group purchases; a purchase whose material has none
+    // reports as hsnCode: '—' there rather than a fabricated code.
+    hsnCode:           { type: String, default: '' },
 
     // Which financeWork.workType values this material applies to (matched
     // by string, same as every other workType usage in this codebase —

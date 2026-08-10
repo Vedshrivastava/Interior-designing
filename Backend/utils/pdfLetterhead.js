@@ -285,6 +285,72 @@ const drawInfoBox = (doc, x, width, title, lines, company, forcedHeight, theme =
     return startY + boxH;
 };
 
+// One tier below writeSectionHeading — a small accent-colored, uppercase,
+// letter-spaced caption (literally drawInfoBox's own title styling,
+// standalone) for a table that's a sub-element of a section rather than a
+// whole new section: "TDS Withheld — Deductee-wise" under "TDS Summary",
+// a bank account's own name under "Bank & Cash Movement", etc. Gives the
+// document a real 3-tier heading hierarchy (writeSectionHeading > this >
+// table headers) instead of major sections and sub-elements reading at
+// the same plain-bold-text weight.
+const writeSubLabel = (doc, text, theme = COLOR_THEME) => {
+    const { left } = contentBox(doc);
+    doc.moveDown(0.5);
+    doc.font('Helvetica-Bold').fontSize(8.5).fillColor(theme.accent)
+        .text(text.toUpperCase(), left, doc.y, { characterSpacing: 1 });
+    doc.fillColor('#000000').font('Helvetica').fontSize(10);
+    doc.moveDown(0.25);
+};
+
+// A bordered card (same rounded-rect + accentBorder stroke as drawInfoBox)
+// of aligned label/value stat rows — the compact, scannable alternative to
+// a stack of plain "Label: value" text lines with nothing lining up.
+// `rows`: [{ label, value, bold, tone: 'accent', divider }] — label
+// left-aligned in a muted secondary tone, value right-aligned in bold
+// black by default. `tone: 'accent'` renders the value in the theme
+// accent color (for a headline number like Net GST Payable); `divider`
+// draws a thin hairline directly above that row, separating "inputs"
+// from "the answer" instead of leaving every row at the same weight.
+const drawStatBlock = (doc, { rows, theme = COLOR_THEME }) => {
+    const { left, width } = contentBox(doc);
+    const pad = 10;
+    const innerWidth = width - pad * 2;
+    const valueW = 150;
+    const labelW = innerWidth - valueW;
+    const rowH = 16;
+    const dividerH = 6;
+    const dividerCount = rows.filter(r => r.divider).length;
+    const naturalH = pad * 2 + rows.length * rowH + dividerCount * dividerH;
+
+    // Same page-break-aware rule drawInfoBox/writeSectionHeading already
+    // use — without this, a card landing near the bottom margin fragments
+    // one row per page instead of jumping to a fresh page as a whole.
+    if (doc.y + naturalH > doc.page.height - doc.page.margins.bottom) doc.addPage();
+    const startY = doc.y;
+
+    doc.roundedRect(left, startY, width, naturalH, 3).lineWidth(0.5).strokeColor(theme.accentBorder).stroke();
+
+    let y = startY + pad;
+    rows.forEach((r) => {
+        if (r.divider) {
+            doc.moveTo(left + pad, y + 2).lineTo(left + width - pad, y + 2).lineWidth(0.5).strokeColor(theme.accentBorder).stroke();
+            y += dividerH;
+        }
+        const bold = !!r.bold;
+        const labelColor = bold ? theme.primary : '#666666';
+        const valueColor = r.tone === 'accent' ? theme.accent : (bold ? theme.primary : '#000000');
+        doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(9.5).fillColor(labelColor)
+            .text(r.label, left + pad, y, { width: labelW });
+        doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(bold ? 10.5 : 9.5).fillColor(valueColor)
+            .text(r.value, left + pad + labelW, y, { width: valueW, align: 'right' });
+        y += rowH;
+    });
+    doc.fillColor('#000000').font('Helvetica').fontSize(10);
+    doc.y = startY + naturalH;
+    doc.x = left;
+    doc.moveDown(0.5);
+};
+
 // Bordered, page-break-aware table. `columns`: [{ label, width, align }],
 // widths should sum to the page's content width. `rows`: array of arrays
 // of cell strings, positionally matched to columns. `rowHeight`/
@@ -411,6 +477,6 @@ export {
     DEFAULT_COMPANY, COLOR_THEME, MONO_THEME, getTheme,
     BRAND_GREEN, GOLD, GOLD_BORDER, IVORY_BG,
     paintPageBackground, formatCurrency, formatDate, contentBox,
-    writeLetterhead, writeSectionHeading, drawInfoBox, measureInfoBoxHeight, drawTable,
+    writeLetterhead, writeSectionHeading, writeSubLabel, drawInfoBox, drawStatBlock, measureInfoBoxHeight, drawTable,
     writePaymentDetails, writeSignatureLine, writeFooter,
 };

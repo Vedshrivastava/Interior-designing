@@ -45,7 +45,7 @@ import FinanceBankEntry from '../models/financeBankEntry.js';
 import FinanceActivityLog from '../models/financeActivityLog.js';
 import { getAccountActivity } from './financeBankAccount.js';
 import PDFDocument from 'pdfkit';
-import { writeLetterhead, writeSectionHeading, writeFooter, drawTable, formatCurrency, formatDate, paintPageBackground, contentBox } from '../utils/pdfLetterhead.js';
+import { writeLetterhead, writeSectionHeading, writeSubLabel, writeFooter, drawTable, drawStatBlock, formatCurrency, formatDate, paintPageBackground, contentBox } from '../utils/pdfLetterhead.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
 
 // totalArea − approvedArea on floats accumulated across many measurements
@@ -4996,37 +4996,46 @@ const downloadCaMonthlyPackage = async (req, res) => {
         paintPageBackground(doc);
 
         await writeLetterhead(doc, `CA Monthly Package — ${month}`, company);
-        doc.font('Helvetica').fontSize(9).fillColor('#555555')
-            .text('For handoff to your CA — these are computed figures, not a filed return. GST/TDS amounts reflect only what was entered against bills, purchases, and payments this month.');
-        doc.fillColor('#000000');
 
         writeSectionHeading(doc, 'GST Summary');
-        doc.text(`ITC Brought Forward: ${formatCurrency(data.gst.itcBroughtForward)}`);
-        doc.text(`Output GST (from issued bills, this month): ${formatCurrency(data.gst.outputGst)}`);
-        doc.text(`Input GST — Purchases (material, this month): ${formatCurrency(data.gst.purchaseGst)}`);
-        doc.text(`Input GST — Expenses (this month): ${formatCurrency(data.gst.expenseGst)}`);
-        doc.text(`Total Credit Available (brought forward + this month): ${formatCurrency(data.gst.availableCredit)}`);
-        if (data.gst.netGstPayable > 0) {
-            doc.font('Helvetica-Bold').text(`Net GST Payable: ${formatCurrency(data.gst.netGstPayable)}`).font('Helvetica');
-        } else {
-            doc.font('Helvetica-Bold').text(`Net GST Payable: Rs. 0  —  ITC Carried Forward: ${formatCurrency(data.gst.itcCarriedForward)}`).font('Helvetica');
+        {
+            const gstRows = [
+                { label: 'ITC Brought Forward', value: formatCurrency(data.gst.itcBroughtForward) },
+                { label: 'Output GST (from issued bills, this month)', value: formatCurrency(data.gst.outputGst) },
+                { label: 'Input GST — Purchases (material, this month)', value: formatCurrency(data.gst.purchaseGst) },
+                { label: 'Input GST — Expenses (this month)', value: formatCurrency(data.gst.expenseGst) },
+                { label: 'Total Credit Available (brought forward + this month)', value: formatCurrency(data.gst.availableCredit) },
+                {
+                    label: 'Net GST Payable', value: formatCurrency(data.gst.netGstPayable), bold: true, divider: true,
+                    tone: data.gst.netGstPayable > 0 ? 'accent' : undefined,
+                },
+            ];
+            if (data.gst.netGstPayable === 0 && data.gst.itcCarriedForward > 0) {
+                gstRows.push({ label: 'ITC Carried Forward', value: formatCurrency(data.gst.itcCarriedForward), bold: true, tone: 'accent' });
+            }
+            drawStatBlock(doc, { rows: gstRows });
         }
 
         writeSectionHeading(doc, 'TDS Summary');
         if (data.tds.bySection.length === 0) {
             doc.text('No TDS recorded this month.');
         } else {
-            data.tds.bySection.forEach(s => doc.text(`${s.tdsSectionName}${s.tdsSectionCode ? ` (${s.tdsSectionCode})` : ''}: ${formatCurrency(s.totalTds)}`));
-            doc.font('Helvetica-Bold').text(`Total TDS Withheld: ${formatCurrency(data.tds.totalTds)}`).font('Helvetica');
-            doc.text(`Total TDS Deposited: ${formatCurrency(data.tds.totalDeposited)}`);
-            doc.font('Helvetica-Bold').text(`TDS Payable (this month's withholding, net of this month's deposits): ${formatCurrency(round2(data.tds.totalTds - data.tds.totalDeposited))}`).font('Helvetica');
-            doc.font('Helvetica-Bold').text(`Cumulative TDS Payable (all-time, all sections, as of today): ${formatCurrency(tdsPayableAllTime.payable)}`).font('Helvetica');
-            doc.moveDown(0.4);
+            drawStatBlock(doc, {
+                rows: [
+                    ...data.tds.bySection.map(s => ({ label: `${s.tdsSectionName}${s.tdsSectionCode ? ` (${s.tdsSectionCode})` : ''}`, value: formatCurrency(s.totalTds) })),
+                    { label: 'Total TDS Withheld', value: formatCurrency(data.tds.totalTds), bold: true },
+                    { label: 'Total TDS Deposited', value: formatCurrency(data.tds.totalDeposited) },
+                    {
+                        label: "TDS Payable (this month's withholding, net of deposits)",
+                        value: formatCurrency(round2(data.tds.totalTds - data.tds.totalDeposited)), bold: true, tone: 'accent', divider: true,
+                    },
+                    { label: 'Cumulative TDS Payable (all-time, all sections)', value: formatCurrency(tdsPayableAllTime.payable), bold: true, tone: 'accent' },
+                ],
+            });
         }
 
         if (data.tds.payments.length > 0) {
-            doc.font('Helvetica-Bold').fontSize(10).text('TDS Withheld — Deductee-wise').font('Helvetica');
-            doc.moveDown(0.2);
+            writeSubLabel(doc, 'TDS Withheld — Deductee-wise');
             drawTable(doc, {
                 company,
                 rowHeight: 30, // see the Purchases table's identical comment — long party names
@@ -5051,8 +5060,7 @@ const downloadCaMonthlyPackage = async (req, res) => {
             });
         }
         if (data.tds.deposits.length > 0) {
-            doc.font('Helvetica-Bold').fontSize(10).text('TDS Deposits Made (Challans)').font('Helvetica');
-            doc.moveDown(0.2);
+            writeSubLabel(doc, 'TDS Deposits Made (Challans)');
             drawTable(doc, {
                 company,
                 columns: [
@@ -5069,10 +5077,14 @@ const downloadCaMonthlyPackage = async (req, res) => {
         }
 
         writeSectionHeading(doc, 'Sales Summary');
-        doc.text(`Total Billed (issued bills): ${formatCurrency(data.sales.totalBilled)}`);
-        doc.text(`Bill Count: ${data.sales.billCount}`);
-        doc.moveDown(0.4);
+        drawStatBlock(doc, {
+            rows: [
+                { label: 'Total Billed (issued bills)', value: formatCurrency(data.sales.totalBilled), bold: true },
+                { label: 'Bill Count', value: String(data.sales.billCount) },
+            ],
+        });
         if (data.sales.bills.length > 0) {
+            writeSubLabel(doc, 'Bills Issued');
             drawTable(doc, {
                 company,
                 rowHeight: 30, // see the Purchases table's identical comment — long project/client names
@@ -5093,9 +5105,7 @@ const downloadCaMonthlyPackage = async (req, res) => {
             });
         }
         if (data.sales.sacSummary.length > 0) {
-            doc.moveDown(0.3);
-            doc.font('Helvetica-Bold').fontSize(10).text('HSN/SAC Summary').font('Helvetica');
-            doc.moveDown(0.2);
+            writeSubLabel(doc, 'HSN/SAC Summary');
             drawTable(doc, {
                 company,
                 columns: [
@@ -5111,12 +5121,16 @@ const downloadCaMonthlyPackage = async (req, res) => {
         }
 
         writeSectionHeading(doc, 'Purchase Summary');
-        doc.text(`Total Purchased: ${formatCurrency(data.purchases.totalPurchased)}`);
-        doc.text(`Total Returned: ${formatCurrency(data.purchases.totalReturned)}`);
-        doc.text(`Net Purchases: ${formatCurrency(data.purchases.netPurchases)}`);
-        doc.text(`Purchase Count: ${data.purchases.purchaseCount}`);
-        doc.moveDown(0.4);
+        drawStatBlock(doc, {
+            rows: [
+                { label: 'Total Purchased', value: formatCurrency(data.purchases.totalPurchased) },
+                { label: 'Total Returned', value: formatCurrency(data.purchases.totalReturned) },
+                { label: 'Net Purchases', value: formatCurrency(data.purchases.netPurchases), bold: true },
+                { label: 'Purchase Count', value: String(data.purchases.purchaseCount) },
+            ],
+        });
         if (data.purchases.rows.length > 0) {
+            writeSubLabel(doc, 'Purchases');
             drawTable(doc, {
                 company,
                 // Taller rows than the default — a long vendor/material name
@@ -5144,9 +5158,7 @@ const downloadCaMonthlyPackage = async (req, res) => {
             });
         }
         if (data.purchases.hsnSummary.length > 0) {
-            doc.moveDown(0.3);
-            doc.font('Helvetica-Bold').fontSize(10).text('HSN/SAC Summary').font('Helvetica');
-            doc.moveDown(0.2);
+            writeSubLabel(doc, 'HSN/SAC Summary');
             drawTable(doc, {
                 company,
                 columns: [
@@ -5162,9 +5174,12 @@ const downloadCaMonthlyPackage = async (req, res) => {
         }
 
         writeSectionHeading(doc, 'Expense Summary');
-        doc.text(`Total Expenses: ${formatCurrency(data.expenses.totalExpenses)}`);
-        doc.text(`Expense Count: ${data.expenses.expenseCount}`);
-        doc.moveDown(0.4);
+        drawStatBlock(doc, {
+            rows: [
+                { label: 'Total Expenses', value: formatCurrency(data.expenses.totalExpenses), bold: true },
+                { label: 'Expense Count', value: String(data.expenses.expenseCount) },
+            ],
+        });
         if (data.expenses.rows.length > 0) {
             drawTable(doc, {
                 company,
@@ -5180,12 +5195,15 @@ const downloadCaMonthlyPackage = async (req, res) => {
 
         writeSectionHeading(doc, 'Bank & Cash Movement');
         data.bankAndCash.bankAccounts.forEach(a => {
-            doc.font('Helvetica-Bold').fontSize(10).text(a.accountName).font('Helvetica').fontSize(10);
-            doc.text(`  Opening Balance: ${formatCurrency(a.openingBalance)}`);
-            doc.text(`  Credits (In): ${formatCurrency(a.creditTotal)}`);
-            doc.text(`  Debits (Out): ${formatCurrency(a.debitTotal)}`);
-            doc.text(`  Closing Balance: ${formatCurrency(a.closingBalance)}`);
-            doc.moveDown(0.3);
+            writeSubLabel(doc, a.accountName);
+            drawStatBlock(doc, {
+                rows: [
+                    { label: 'Opening Balance', value: formatCurrency(a.openingBalance) },
+                    { label: 'Credits (In)', value: formatCurrency(a.creditTotal) },
+                    { label: 'Debits (Out)', value: formatCurrency(a.debitTotal) },
+                    { label: 'Closing Balance', value: formatCurrency(a.closingBalance), bold: true, divider: true },
+                ],
+            });
             if (a.transactions.length > 0) {
                 drawTable(doc, {
                     company,
@@ -5207,12 +5225,15 @@ const downloadCaMonthlyPackage = async (req, res) => {
                 doc.moveDown(0.4);
             }
         });
-        doc.font('Helvetica-Bold').fontSize(10).text('Cash').font('Helvetica').fontSize(10);
-        doc.text(`  Opening Balance: ${formatCurrency(data.bankAndCash.cashOpeningBalance)}`);
-        doc.text(`  Cash In: ${formatCurrency(data.bankAndCash.cashInTotal)}`);
-        doc.text(`  Cash Out: ${formatCurrency(data.bankAndCash.cashOutTotal)}`);
-        doc.text(`  Closing Balance: ${formatCurrency(data.bankAndCash.cashClosingBalance)}`);
-        doc.moveDown(0.3);
+        writeSubLabel(doc, 'Cash');
+        drawStatBlock(doc, {
+            rows: [
+                { label: 'Opening Balance', value: formatCurrency(data.bankAndCash.cashOpeningBalance) },
+                { label: 'Cash In', value: formatCurrency(data.bankAndCash.cashInTotal) },
+                { label: 'Cash Out', value: formatCurrency(data.bankAndCash.cashOutTotal) },
+                { label: 'Closing Balance', value: formatCurrency(data.bankAndCash.cashClosingBalance), bold: true, divider: true },
+            ],
+        });
         if (data.bankAndCash.cashTransactions.length > 0) {
             drawTable(doc, {
                 company,
@@ -5233,7 +5254,11 @@ const downloadCaMonthlyPackage = async (req, res) => {
             doc.font('Helvetica').fontSize(9).fillColor('#888888').text('No cash transactions this month.').fillColor('#000000').fontSize(10);
             doc.moveDown(0.4);
         }
-        doc.font('Helvetica-Bold').text(`Total Position (bank + cash, month end): ${formatCurrency(data.bankAndCash.totalPosition)}`).font('Helvetica');
+        drawStatBlock(doc, {
+            rows: [
+                { label: 'Total Position (bank + cash, month end)', value: formatCurrency(data.bankAndCash.totalPosition), bold: true, tone: 'accent' },
+            ],
+        });
 
         writeFooter(doc, company);
 

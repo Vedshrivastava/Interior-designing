@@ -4804,7 +4804,14 @@ const computeCaMonthlyPackage = async (month) => {
             return { date: t.date, description: t.description, direction: t.direction, amount: t.amount, runningBalance: round2(running) };
         });
         const closingBalance = openingBalance + creditTotal - debitTotal;
-        return { accountId: a._id, accountName: a.accountName, openingBalance, creditTotal, debitTotal, closingBalance, transactions };
+        return {
+            accountId: a._id, accountName: a.accountName,
+            // So the CA can match this section against the real bank
+            // statement by bank name + account number, not just this
+            // app's own internal accountName label for it.
+            bankName: a.bankName, accountNumber: a.accountNumber || '—',
+            openingBalance, creditTotal, debitTotal, closingBalance, transactions,
+        };
     }));
     const totalBankBalance = bankPositions.reduce((sum, b) => sum + b.closingBalance, 0);
 
@@ -5195,7 +5202,7 @@ const downloadCaMonthlyPackage = async (req, res) => {
 
         writeSectionHeading(doc, 'Bank & Cash Movement');
         data.bankAndCash.bankAccounts.forEach(a => {
-            writeSubLabel(doc, a.accountName);
+            writeSubLabel(doc, `${a.accountName} — ${a.bankName} — A/C ${a.accountNumber}`);
             drawStatBlock(doc, {
                 rows: [
                     { label: 'Opening Balance', value: formatCurrency(a.openingBalance) },

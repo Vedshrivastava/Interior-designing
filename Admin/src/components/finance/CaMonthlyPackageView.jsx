@@ -262,7 +262,10 @@ const CaMonthlyPackageView = ({ url }) => {
                         </div>
                         {data.bankAndCash.bankAccounts.map(a => (
                             <div key={a.accountId} className="camp-bank-row">
-                                <p className="camp-bank-account"><span className="pq-group-label">Account</span>{a.accountName}</p>
+                                <p className="camp-bank-account">
+                                    <span className="pq-group-label">Account</span>{a.accountName}
+                                    <span style={{ display: 'block', fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-lt)' }}>{a.bankName} — A/C {a.accountNumber}</span>
+                                </p>
                                 <p className="camp-bank-opening"><span className="pq-group-label">Opening</span>{fmtMoney(a.openingBalance)}</p>
                                 <p className="camp-bank-in"><span className="pq-group-label">Credits</span>{fmtMoney(a.creditTotal)}</p>
                                 <p className="camp-bank-out"><span className="pq-group-label">Debits</span>{fmtMoney(a.debitTotal)}</p>
@@ -287,7 +290,7 @@ const CaMonthlyPackageView = ({ url }) => {
 
                     {data.bankAndCash.bankAccounts.map(a => (
                         <div key={a.accountId} style={{ marginTop: '16px' }}>
-                            <p className="admin-subtitle" style={{ marginBottom: '10px' }}>{a.accountName} — Transactions</p>
+                            <p className="admin-subtitle" style={{ marginBottom: '10px' }}>{a.accountName} — {a.bankName} — A/C {a.accountNumber} — Transactions</p>
                             <LineItemTable
                                 emptyText="No transactions this month."
                                 columns={[

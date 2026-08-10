@@ -4618,6 +4618,51 @@ const getClientDetail = async (req, res) => {
     }
 };
 
+// One entry per calendar month with any GST-relevant activity, from the
+// earliest such month through `throughMonth` inclusive. Grouped aggregates,
+// not a query per month, so this stays cheap even years into the business.
+const computeMonthlyGstTotals = async (throughMonth) => {
+    const { end: throughEnd } = monthBounds(throughMonth);
+    const byMonth = (dateField) => ({ $group: { _id: { $dateToString: { format: '%Y-%m', date: `$${dateField}` } }, gst: { $sum: { $ifNull: ['$gstAmount', 0] } } } });
+    const [billTotals, purchaseTotals, returnTotals, expenseTotals] = await Promise.all([
+        FinanceRunningBill.aggregate([{ $match: { billDate: { $lte: throughEnd }, status: 'issued', deleted: { $ne: true } } }, byMonth('billDate')]),
+        FinancePurchase.aggregate([{ $match: { date: { $lte: throughEnd }, transactionType: 'purchase', deleted: { $ne: true } } }, byMonth('date')]),
+        FinancePurchase.aggregate([{ $match: { date: { $lte: throughEnd }, transactionType: 'return', deleted: { $ne: true } } }, byMonth('date')]),
+        FinanceExpense.aggregate([{ $match: { date: { $lte: throughEnd }, deleted: { $ne: true } } }, byMonth('date')]),
+    ]);
+    const monthMap = new Map();
+    const addTo = (key, field, amount) => {
+        if (!monthMap.has(key)) monthMap.set(key, { monthKey: key, outputGst: 0, inputGst: 0 });
+        monthMap.get(key)[field] += amount;
+    };
+    billTotals.forEach(r => addTo(r._id, 'outputGst', r.gst));
+    purchaseTotals.forEach(r => addTo(r._id, 'inputGst', r.gst));
+    returnTotals.forEach(r => addTo(r._id, 'inputGst', -r.gst));
+    expenseTotals.forEach(r => addTo(r._id, 'inputGst', r.gst));
+    return [...monthMap.values()].sort((a, b) => a.monthKey.localeCompare(b.monthKey));
+};
+
+// Walks every month through `month`, clamping credit at zero exactly like
+// GSTN's own Electronic Credit Ledger: a payable month drains the balance
+// to zero and settles (paid in cash), it does not carry forward as debt —
+// which is why this has to be a sequential walk rather than one lifetime
+// sum of (input - output).
+const computeGstItcPosition = async (month) => {
+    const monthlyTotals = await computeMonthlyGstTotals(month);
+    let openingCredit = 0, result = null;
+    for (const m of monthlyTotals) {
+        const available = openingCredit + m.inputGst;
+        const payable = Math.max(0, m.outputGst - available);
+        const closingCredit = Math.max(0, available - m.outputGst);
+        if (m.monthKey === month) {
+            result = { itcBroughtForward: round2(openingCredit), availableCredit: round2(available), netGstPayable: round2(payable), itcCarriedForward: round2(closingCredit) };
+        }
+        openingCredit = closingCredit;
+    }
+    if (!result) result = { itcBroughtForward: round2(openingCredit), availableCredit: round2(openingCredit), netGstPayable: 0, itcCarriedForward: round2(openingCredit) };
+    return result;
+};
+
 /*
  * Shared by getCaMonthlyPackage (JSON) and downloadCaMonthlyPackage (PDF)
  * so the numbers on screen and in the PDF can never drift apart.
@@ -4636,17 +4681,22 @@ const computeCaMonthlyPackage = async (month) => {
     // against the real bank statement, GSTR filings, and a 26Q TDS return
     // can't do it from one summary number; they need the actual bills,
     // purchases, expenses, and transactions that number is made of.
+    // Client isn't a direct ref on FinanceRunningBill — reached through
+    // projectId.clientId instead, so the CA can match a bill's GSTIN
+    // against the actual GSTR-1 filing without a separate lookup.
     const issuedBills = await FinanceRunningBill.find({ billDate: { $gte: start, $lte: end }, status: 'issued', deleted: { $ne: true } })
-        .populate('projectId', 'name').sort({ billDate: 1 });
+        .populate({ path: 'projectId', select: 'name clientId', populate: { path: 'clientId', select: 'name gstNumber' } })
+        .sort({ billDate: 1 });
     const outputGst = issuedBills.reduce((sum, b) => sum + (b.gstAmount || 0), 0);
     const salesTotal = issuedBills.reduce((sum, b) => sum + b.totalAmount, 0);
     const billRows = issuedBills.map(b => ({
         billNumber: b.billNumber, billDate: b.billDate, projectName: b.projectId?.name || '—',
+        clientName: b.projectId?.clientId?.name || '—', clientGstin: b.projectId?.clientId?.gstNumber || '—',
         subtotal: b.totalAmount, gstAmount: b.gstAmount || 0, total: b.totalAmount + (b.gstAmount || 0),
     }));
 
     const purchases = await FinancePurchase.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } })
-        .populate('vendorId', 'name').populate('materialId', 'name').sort({ date: 1 });
+        .populate('vendorId', 'name gstNumber').populate('materialId', 'name').sort({ date: 1 });
     const purchaseRows = purchases.filter(p => p.transactionType === 'purchase');
     const returnRows = purchases.filter(p => p.transactionType === 'return');
     // Net of returns — a return carries its own gstAmount (the GST on the
@@ -4659,7 +4709,7 @@ const computeCaMonthlyPackage = async (month) => {
     const totalPurchased = purchaseRows.reduce((sum, p) => sum + p.totalAmount, 0);
     const totalReturned = returnRows.reduce((sum, p) => sum + p.totalAmount, 0);
     const purchaseLineItems = purchases.map(p => ({
-        date: p.date, vendorName: p.vendorId?.name || '—', materialName: p.materialId?.name || '—',
+        date: p.date, vendorName: p.vendorId?.name || '—', vendorGstin: p.vendorId?.gstNumber || '—', materialName: p.materialId?.name || '—',
         transactionType: p.transactionType, quantity: p.quantity, ratePerUnit: p.ratePerUnit,
         totalAmount: p.totalAmount, gstAmount: p.gstAmount || 0, referenceNumber: p.referenceNumber || '',
     }));
@@ -4775,10 +4825,17 @@ const computeCaMonthlyPackage = async (month) => {
     // separately below so the CA package shows exactly where each rupee of
     // the claim came from, not just one blended figure.
     const inputGst = purchaseGst + expenseGst;
+    const itcPosition = await computeGstItcPosition(month);
 
     return {
         month,
-        gst: { outputGst, inputGst, purchaseGst, expenseGst, netGstPayable: outputGst - inputGst },
+        gst: {
+            outputGst, inputGst, purchaseGst, expenseGst,
+            itcBroughtForward: itcPosition.itcBroughtForward,
+            availableCredit: itcPosition.availableCredit,
+            netGstPayable: itcPosition.netGstPayable,
+            itcCarriedForward: itcPosition.itcCarriedForward,
+        },
         tds: {
             totalTds, bySection: [...tdsBySection.values()].sort((a, b) => b.totalTds - a.totalTds),
             payments: tdsPaymentRows, deposits: tdsDepositRows, totalDeposited: totalTdsDeposited,
@@ -4904,16 +4961,16 @@ const downloadCaMonthlyPackage = async (req, res) => {
         doc.fillColor('#000000');
 
         writeSectionHeading(doc, 'GST Summary');
-        doc.text(`Output GST (from issued bills): ${formatCurrency(data.gst.outputGst)}`);
-        doc.text(`Input GST — Purchases (material): ${formatCurrency(data.gst.purchaseGst)}`);
-        doc.text(`Input GST — Expenses: ${formatCurrency(data.gst.expenseGst)}`);
-        doc.text(`Total Input GST: ${formatCurrency(data.gst.inputGst)}`);
-        const netGst = data.gst.netGstPayable;
-        doc.font('Helvetica-Bold').text(
-            netGst >= 0
-                ? `Net GST Payable: ${formatCurrency(netGst)}`
-                : `Net Input Tax Credit Available (this month only): ${formatCurrency(Math.abs(netGst))}`
-        ).font('Helvetica');
+        doc.text(`ITC Brought Forward: ${formatCurrency(data.gst.itcBroughtForward)}`);
+        doc.text(`Output GST (from issued bills, this month): ${formatCurrency(data.gst.outputGst)}`);
+        doc.text(`Input GST — Purchases (material, this month): ${formatCurrency(data.gst.purchaseGst)}`);
+        doc.text(`Input GST — Expenses (this month): ${formatCurrency(data.gst.expenseGst)}`);
+        doc.text(`Total Credit Available (brought forward + this month): ${formatCurrency(data.gst.availableCredit)}`);
+        if (data.gst.netGstPayable > 0) {
+            doc.font('Helvetica-Bold').text(`Net GST Payable: ${formatCurrency(data.gst.netGstPayable)}`).font('Helvetica');
+        } else {
+            doc.font('Helvetica-Bold').text(`Net GST Payable: Rs. 0  —  ITC Carried Forward: ${formatCurrency(data.gst.itcCarriedForward)}`).font('Helvetica');
+        }
 
         writeSectionHeading(doc, 'TDS Summary');
         if (data.tds.bySection.length === 0) {
@@ -4978,17 +5035,19 @@ const downloadCaMonthlyPackage = async (req, res) => {
         if (data.sales.bills.length > 0) {
             drawTable(doc, {
                 company,
-                rowHeight: 30, // see the Purchases table's identical comment — long project names
+                rowHeight: 30, // see the Purchases table's identical comment — long project/client names
                 columns: [
-                    { label: 'Bill #', width: 50, align: 'left' },
-                    { label: 'Date', width: 68, align: 'left' },
-                    { label: 'Project', width: 114, align: 'left' },
-                    { label: 'Subtotal', width: 90, align: 'right' },
-                    { label: 'GST', width: 85, align: 'right' },
-                    { label: 'Total', width: 105, align: 'right' },
+                    { label: 'Bill #', width: 34, align: 'left' },
+                    { label: 'Date', width: 58, align: 'left' },
+                    { label: 'Project', width: 68, align: 'left' },
+                    { label: 'Client', width: 68, align: 'left' },
+                    { label: 'Client GSTIN', width: 92, align: 'left' },
+                    { label: 'Subtotal', width: 62, align: 'right' },
+                    { label: 'GST', width: 55, align: 'right' },
+                    { label: 'Total', width: 75, align: 'right' },
                 ],
                 rows: data.sales.bills.map(b => [
-                    b.billNumber, formatDate(b.billDate), b.projectName,
+                    b.billNumber, formatDate(b.billDate), b.projectName, b.clientName, b.clientGstin,
                     formatCurrency(b.subtotal), formatCurrency(b.gstAmount), formatCurrency(b.total),
                 ]),
             });
@@ -5011,17 +5070,18 @@ const downloadCaMonthlyPackage = async (req, res) => {
                 // lineBreak: false once the column's genuinely too narrow).
                 rowHeight: 30,
                 columns: [
-                    { label: 'Date', width: 65, align: 'left' },
-                    { label: 'Vendor', width: 85, align: 'left' },
-                    { label: 'Material', width: 80, align: 'left' },
-                    { label: 'Type', width: 58, align: 'left' },
-                    { label: 'Qty', width: 42, align: 'right' },
-                    { label: 'Rate', width: 45, align: 'right' },
-                    { label: 'Amount', width: 82, align: 'right' },
-                    { label: 'GST', width: 55, align: 'right' },
+                    { label: 'Date', width: 55, align: 'left' },
+                    { label: 'Vendor', width: 68, align: 'left' },
+                    { label: 'Vendor GSTIN', width: 88, align: 'left' },
+                    { label: 'Material', width: 65, align: 'left' },
+                    { label: 'Type', width: 48, align: 'left' },
+                    { label: 'Qty', width: 38, align: 'right' },
+                    { label: 'Rate', width: 40, align: 'right' },
+                    { label: 'Amount', width: 65, align: 'right' },
+                    { label: 'GST', width: 45, align: 'right' },
                 ],
                 rows: data.purchases.rows.map(p => [
-                    formatDate(p.date), p.vendorName, p.materialName, p.transactionType === 'return' ? 'Return' : 'Purchase',
+                    formatDate(p.date), p.vendorName, p.vendorGstin, p.materialName, p.transactionType === 'return' ? 'Return' : 'Purchase',
                     String(p.quantity), formatCurrency(p.ratePerUnit), formatCurrency(p.totalAmount), formatCurrency(p.gstAmount),
                 ]),
             });

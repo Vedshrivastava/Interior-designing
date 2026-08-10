@@ -104,11 +104,13 @@ const CaMonthlyPackageView = ({ url }) => {
 
                     <p className="admin-subtitle" style={{ marginBottom: '10px' }}>GST Summary</p>
                     <KpiGrid>
-                        <KpiCard label="Output GST" value={fmtMoney(data.gst.outputGst)} />
-                        <KpiCard label="Input GST — Purchases" value={fmtMoney(data.gst.purchaseGst)} />
-                        <KpiCard label="Input GST — Expenses" value={fmtMoney(data.gst.expenseGst)} />
-                        <KpiCard label="Total Input GST" value={fmtMoney(data.gst.inputGst)} />
-                        <KpiCard label="Net Payable" value={fmtMoney(data.gst.netGstPayable)} />
+                        <KpiCard label="ITC Brought Forward" value={fmtMoney(data.gst.itcBroughtForward)} />
+                        <KpiCard label="Output GST (this month)" value={fmtMoney(data.gst.outputGst)} />
+                        <KpiCard label="Input GST — Purchases (this month)" value={fmtMoney(data.gst.purchaseGst)} />
+                        <KpiCard label="Input GST — Expenses (this month)" value={fmtMoney(data.gst.expenseGst)} />
+                        <KpiCard label="Total Credit Available" value={fmtMoney(data.gst.availableCredit)} />
+                        <KpiCard label="Net Payable" value={fmtMoney(data.gst.netGstPayable)}
+                            sub={data.gst.netGstPayable === 0 && data.gst.itcCarriedForward > 0 ? `ITC Carried Forward: ${fmtMoney(data.gst.itcCarriedForward)}` : undefined} />
                     </KpiGrid>
 
                     <p className="admin-subtitle" style={{ margin: '24px 0 10px' }}>TDS Summary</p>
@@ -178,6 +180,8 @@ const CaMonthlyPackageView = ({ url }) => {
                                 { key: 'billNumber', label: 'Bill #' },
                                 { key: 'billDate', label: 'Date', render: r => fmtDate(r.billDate) },
                                 { key: 'projectName', label: 'Project' },
+                                { key: 'clientName', label: 'Client' },
+                                { key: 'clientGstin', label: 'Client GSTIN' },
                                 { key: 'subtotal', label: 'Subtotal', align: 'right', render: r => fmtMoney(r.subtotal) },
                                 { key: 'gstAmount', label: 'GST', align: 'right', render: r => fmtMoney(r.gstAmount) },
                                 { key: 'total', label: 'Total', align: 'right', render: r => fmtMoney(r.total) },
@@ -193,6 +197,7 @@ const CaMonthlyPackageView = ({ url }) => {
                             columns={[
                                 { key: 'date', label: 'Date', render: r => fmtDate(r.date) },
                                 { key: 'vendorName', label: 'Vendor' },
+                                { key: 'vendorGstin', label: 'Vendor GSTIN' },
                                 { key: 'materialName', label: 'Material' },
                                 { key: 'transactionType', label: 'Type', render: r => (r.transactionType === 'return' ? 'Return' : 'Purchase') },
                                 { key: 'quantity', label: 'Qty', align: 'right' },

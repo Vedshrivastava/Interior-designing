@@ -45,7 +45,7 @@ import FinanceBankEntry from '../models/financeBankEntry.js';
 import FinanceActivityLog from '../models/financeActivityLog.js';
 import { getAccountActivity } from './financeBankAccount.js';
 import PDFDocument from 'pdfkit';
-import { writeLetterhead, writeSectionHeading, writeFooter, drawTable, formatCurrency, formatDate, paintPageBackground } from '../utils/pdfLetterhead.js';
+import { writeLetterhead, writeSectionHeading, writeFooter, drawTable, formatCurrency, formatDate, paintPageBackground, contentBox } from '../utils/pdfLetterhead.js';
 import FinanceCompanySettings from '../models/financeCompanySettings.js';
 
 // totalArea − approvedArea on floats accumulated across many measurements
@@ -4884,13 +4884,16 @@ const downloadCaMonthlyPackage = async (req, res) => {
     try {
         const { month } = req.query;
         if (!month || !/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ success: false, message: 'month is required in YYYY-MM format' });
-        const data = await computeCaMonthlyPackage(month);
+        const [data, tdsPayableAllTime] = await Promise.all([
+            computeCaMonthlyPackage(month),
+            computeTdsPayable(),
+        ]);
         const company = await getCompanyForPdf();
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="CA-Monthly-Package-${month}.pdf"`);
 
-        const doc = new PDFDocument({ margin: 50 });
+        const doc = new PDFDocument({ margin: 50, bufferPages: true });
         doc.pipe(res);
         doc.on('pageAdded', () => paintPageBackground(doc));
         paintPageBackground(doc);
@@ -4905,7 +4908,12 @@ const downloadCaMonthlyPackage = async (req, res) => {
         doc.text(`Input GST — Purchases (material): ${formatCurrency(data.gst.purchaseGst)}`);
         doc.text(`Input GST — Expenses: ${formatCurrency(data.gst.expenseGst)}`);
         doc.text(`Total Input GST: ${formatCurrency(data.gst.inputGst)}`);
-        doc.font('Helvetica-Bold').text(`Net GST Payable: ${formatCurrency(data.gst.netGstPayable)}`).font('Helvetica');
+        const netGst = data.gst.netGstPayable;
+        doc.font('Helvetica-Bold').text(
+            netGst >= 0
+                ? `Net GST Payable: ${formatCurrency(netGst)}`
+                : `Net Input Tax Credit Available (this month only): ${formatCurrency(Math.abs(netGst))}`
+        ).font('Helvetica');
 
         writeSectionHeading(doc, 'TDS Summary');
         if (data.tds.bySection.length === 0) {
@@ -4915,6 +4923,7 @@ const downloadCaMonthlyPackage = async (req, res) => {
             doc.font('Helvetica-Bold').text(`Total TDS Withheld: ${formatCurrency(data.tds.totalTds)}`).font('Helvetica');
             doc.text(`Total TDS Deposited: ${formatCurrency(data.tds.totalDeposited)}`);
             doc.font('Helvetica-Bold').text(`TDS Payable (this month's withholding, net of this month's deposits): ${formatCurrency(round2(data.tds.totalTds - data.tds.totalDeposited))}`).font('Helvetica');
+            doc.font('Helvetica-Bold').text(`Cumulative TDS Payable (all-time, all sections, as of today): ${formatCurrency(tdsPayableAllTime.payable)}`).font('Helvetica');
             doc.moveDown(0.4);
         }
 
@@ -5093,6 +5102,27 @@ const downloadCaMonthlyPackage = async (req, res) => {
         doc.font('Helvetica-Bold').text(`Total Position (bank + cash, month end): ${formatCurrency(data.bankAndCash.totalPosition)}`).font('Helvetica');
 
         writeFooter(doc, company);
+
+        // BUG FIX: writing at page.height - margins.bottom + 18 still sits
+        // BELOW PDFKit's own overflow line (it checks against margins.bottom,
+        // not the physical page height), so each .text() call here silently
+        // triggered doc.addPage() before drawing — doubling the page count
+        // with blank pages instead of numbering the real ones. Temporarily
+        // zeroing margins.bottom for the duration of this write is the
+        // standard PDFKit workaround: it makes the "writable area" extend
+        // all the way to the physical bottom edge, so a position in the
+        // footer gutter no longer reads as an overflow.
+        const pageRange = doc.bufferedPageRange();
+        const bottomMargin = doc.page.margins.bottom;
+        for (let i = 0; i < pageRange.count; i++) {
+            doc.switchToPage(i);
+            const { left, right } = contentBox(doc);
+            doc.page.margins.bottom = 0;
+            doc.fontSize(7.5).fillColor('#999999')
+                .text(`Page ${i + 1} of ${pageRange.count}`, left, doc.page.height - bottomMargin + 18, { width: right - left, align: 'center' });
+            doc.page.margins.bottom = bottomMargin;
+            doc.fillColor('#000000');
+        }
         doc.end();
     } catch (err) {
         console.error(err);

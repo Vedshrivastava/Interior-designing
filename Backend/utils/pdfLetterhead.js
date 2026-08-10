@@ -218,6 +218,11 @@ const writeLetterhead = async (doc, documentTitle, company, rightLabel, theme = 
 const writeSectionHeading = (doc, text, theme = COLOR_THEME) => {
     const { left } = contentBox(doc);
     doc.moveDown(0.8);
+    // Same page-break-aware rule drawInfoBox already uses — without this, a
+    // heading landing right at the bottom margin gets orphaned there with
+    // its section's content starting on the next page.
+    const headingH = 16;
+    if (doc.y + headingH > doc.page.height - doc.page.margins.bottom) doc.addPage();
     const y = doc.y;
     doc.rect(left, y + 2, 4, 12).fill(theme.accent);
     doc.fontSize(12).font('Helvetica-Bold').fillColor(theme.primary).text(text, left + 12, y);
@@ -294,7 +299,11 @@ const drawTable = (doc, { columns, rows, theme = COLOR_THEME, rowHeight = 20, he
     const headerH = headerHeight;
 
     const ensureSpace = (h) => {
-        if (doc.y + h > doc.page.height - doc.page.margins.bottom) doc.addPage();
+        if (doc.y + h > doc.page.height - doc.page.margins.bottom) {
+            doc.addPage();
+            return true;
+        }
+        return false;
     };
 
     const drawRow = (cells, { bold = false, fill = null, textColor = '#000000', height = rowH } = {}) => {
@@ -310,13 +319,15 @@ const drawTable = (doc, { columns, rows, theme = COLOR_THEME, rowHeight = 20, he
         doc.y = y + height;
     };
 
+    const drawHeaderRow = () => drawRow(columns.map((c) => c.label), { bold: true, fill: theme.primary, textColor: theme.onPrimary, height: headerH });
     ensureSpace(headerH);
-    drawRow(columns.map((c) => c.label), { bold: true, fill: theme.primary, textColor: theme.onPrimary, height: headerH });
+    drawHeaderRow();
 
     // No vertical grid — alternating stripe fill reads the row boundaries
     // without the heavier look of drawn borders.
     rows.forEach((r, idx) => {
-        ensureSpace(rowH);
+        const brokePage = ensureSpace(rowH);
+        if (brokePage) drawHeaderRow();
         drawRow(r, { fill: idx % 2 === 1 ? theme.rowStripe : '#ffffff' });
     });
 

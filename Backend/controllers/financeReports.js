@@ -4674,19 +4674,128 @@ const computeGstItcPosition = async (month) => {
  * Input GST has no such filter since the spec is explicit
  * (transactionType: 'purchase' only) and purchases have no draft state.
  */
+// Fetches this month's bank accounts' opening/credits/debits/closing +
+// running-balance transaction list — split out of computeCaMonthlyPackage
+// only so it can be handed to Promise.all as one unit alongside every
+// other independent fetch below (it has its own internal two-step
+// dependency: bankPositions needs bankAccounts resolved first, so it can't
+// sit directly inside that same top-level array).
+const fetchBankPositions = async (start, end) => {
+    const bankAccounts = await FinanceBankAccount.find({ deleted: { $ne: true } });
+    return Promise.all(bankAccounts.map(async (a) => {
+        const activity = await getAccountActivity(a._id);
+        const netBefore = activity.filter(t => new Date(t.date) < start).reduce((sum, t) => sum + (t.direction === 'credit' ? t.amount : -t.amount), 0);
+        const duringMonth = activity.filter(t => new Date(t.date) >= start && new Date(t.date) <= end)
+            .sort((x, y) => new Date(x.date) - new Date(y.date));
+        const creditTotal = duringMonth.filter(t => t.direction === 'credit').reduce((sum, t) => sum + t.amount, 0);
+        const debitTotal = duringMonth.filter(t => t.direction === 'debit').reduce((sum, t) => sum + t.amount, 0);
+        const openingBalance = a.openingBalance + netBefore;
+        let running = openingBalance;
+        const transactions = duringMonth.map(t => {
+            running += t.direction === 'credit' ? t.amount : -t.amount;
+            return { date: t.date, description: t.description, direction: t.direction, amount: t.amount, runningBalance: round2(running) };
+        });
+        const closingBalance = openingBalance + creditTotal - debitTotal;
+        return {
+            accountId: a._id, accountName: a.accountName,
+            bankName: a.bankName, accountNumber: a.accountNumber || '—',
+            openingBalance, creditTotal, debitTotal, closingBalance, transactions,
+        };
+    }));
+};
+
 const computeCaMonthlyPackage = async (month) => {
     const { start, end } = monthBounds(month);
 
-    // Line items alongside every total below — a CA reconciling this
-    // against the real bank statement, GSTR filings, and a 26Q TDS return
-    // can't do it from one summary number; they need the actual bills,
-    // purchases, expenses, and transactions that number is made of.
-    // Client isn't a direct ref on FinanceRunningBill — reached through
-    // projectId.clientId instead, so the CA can match a bill's GSTIN
-    // against the actual GSTR-1 filing without a separate lookup.
-    const issuedBills = await FinanceRunningBill.find({ billDate: { $gte: start, $lte: end }, status: 'issued', deleted: { $ne: true } })
-        .populate({ path: 'projectId', select: 'name clientId', populate: { path: 'clientId', select: 'name gstNumber' } })
-        .sort({ billDate: 1 });
+    // Every fetch below is independent of every other — none needs
+    // another's result, they only get combined once all of them have
+    // arrived. This used to be ~10 sequential awaits, one full network
+    // round trip to MongoDB Atlas after another, none of which actually
+    // depended on the one before it — the dominant cost in generating
+    // this package. Now they all run concurrently instead, bounding the
+    // total wait to roughly the single slowest one instead of the sum of
+    // all of them.
+    const [
+        issuedBills,
+        purchases,
+        [contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments],
+        tdsDepositsRaw,
+        expenses,
+        bankPositions,
+        cashBefore,
+        cashDuring,
+        itcPosition,
+        company,
+        hsnAgg,
+    ] = await Promise.all([
+        // Line items alongside every total below — a CA reconciling this
+        // against the real bank statement, GSTR filings, and a 26Q TDS
+        // return can't do it from one summary number; they need the actual
+        // bills, purchases, expenses, and transactions that number is made
+        // of. Client isn't a direct ref on FinanceRunningBill — reached
+        // through projectId.clientId instead, so the CA can match a bill's
+        // GSTIN against the actual GSTR-1 filing without a separate lookup.
+        FinanceRunningBill.find({ billDate: { $gte: start, $lte: end }, status: 'issued', deleted: { $ne: true } })
+            .populate({ path: 'projectId', select: 'name clientId', populate: { path: 'clientId', select: 'name gstNumber' } })
+            .sort({ billDate: 1 }),
+        FinancePurchase.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } })
+            .populate('vendorId', 'name gstNumber').populate('materialId', 'name').sort({ date: 1 }),
+        // All six payment types that carry a tdsAmount/tdsSectionId pair —
+        // this used to only include Contractor/Vendor/Commission, silently
+        // missing any TDS withheld on Labour/Salary/LabourProvider payments
+        // from this package's Total TDS (the figure meant for actual
+        // CA/tax filing). Each populated with its own party field so
+        // tds.payments below can name the actual deductee, not just a
+        // section total — a 26Q filing is deductee-wise, not just
+        // section-wise.
+        Promise.all([
+            FinanceContractorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('vendorId', 'name').populate('tdsSectionId', 'name code'),
+            FinanceVendorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('vendorId', 'name').populate('tdsSectionId', 'name code'),
+            FinanceSalaryPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('employeeId', 'name').populate('tdsSectionId', 'name code'),
+            FinanceLabourPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('labourerId', 'name').populate('tdsSectionId', 'name code'),
+            FinanceCommissionPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('referralId', 'name').populate('tdsSectionId', 'name code'),
+            FinanceLabourProviderPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('labourProviderId', 'name').populate('tdsSectionId', 'name code'),
+        ]),
+        // The other half of TDS reconciliation — what's actually been
+        // deposited with the tax department this month, not just withheld.
+        FinanceTdsDeposit.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } })
+            .populate('tdsSectionId', 'name code').populate('bankAccountId', 'accountName').sort({ date: 1 }),
+        FinanceExpense.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).sort({ date: 1 }),
+        // Opening/credits/debits/closing per account, plus the actual
+        // transaction list with a running balance — a CA reconciling
+        // against the real bank statement needs to match it line by line,
+        // not just confirm a single ending number with no way to verify
+        // it. Same running-balance walk getBankStatement already does for
+        // the unscoped, all-time statement, just windowed to this month
+        // and starting from this month's own opening balance instead of
+        // the account's lifetime opening balance.
+        fetchBankPositions(start, end),
+        FinanceCashEntry.find({ deleted: { $ne: true }, date: { $lt: start } }),
+        FinanceCashEntry.find({ deleted: { $ne: true }, date: { $gte: start, $lte: end } }).sort({ date: 1 }),
+        computeGstItcPosition(month),
+        getCompanyForPdf(),
+        // Purchases: a real per-material grouping, since hsnCode does
+        // exist on financeMaterial — existing/un-backfilled materials
+        // group under '—' rather than a fabricated code. Scoped to
+        // transactionType: 'purchase' only — matches "purchase line
+        // items" specifically; returns already net out of the top-level
+        // purchaseGst/totalReturned figures computed below.
+        FinancePurchase.aggregate([
+            { $match: { date: { $gte: start, $lte: end }, transactionType: 'purchase', deleted: { $ne: true } } },
+            { $lookup: { from: 'financematerials', localField: 'materialId', foreignField: '_id', as: 'material' } },
+            { $unwind: { path: '$material', preserveNullAndEmptyArrays: true } },
+            {
+                $group: {
+                    _id: { $ifNull: ['$material.hsnCode', ''] },
+                    quantity: { $sum: '$quantity' },
+                    taxableValue: { $sum: '$totalAmount' },
+                    gstAmount: { $sum: { $ifNull: ['$gstAmount', 0] } },
+                },
+            },
+            { $sort: { _id: 1 } },
+        ]),
+    ]);
+
     const outputGst = issuedBills.reduce((sum, b) => sum + (b.gstAmount || 0), 0);
     const salesTotal = issuedBills.reduce((sum, b) => sum + b.totalAmount, 0);
     const billRows = issuedBills.map(b => ({
@@ -4695,8 +4804,6 @@ const computeCaMonthlyPackage = async (month) => {
         subtotal: b.totalAmount, gstAmount: b.gstAmount || 0, total: b.totalAmount + (b.gstAmount || 0),
     }));
 
-    const purchases = await FinancePurchase.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } })
-        .populate('vendorId', 'name gstNumber').populate('materialId', 'name').sort({ date: 1 });
     const purchaseRows = purchases.filter(p => p.transactionType === 'purchase');
     const returnRows = purchases.filter(p => p.transactionType === 'return');
     // Net of returns — a return carries its own gstAmount (the GST on the
@@ -4714,21 +4821,6 @@ const computeCaMonthlyPackage = async (month) => {
         totalAmount: p.totalAmount, gstAmount: p.gstAmount || 0, referenceNumber: p.referenceNumber || '',
     }));
 
-    // All six payment types that carry a tdsAmount/tdsSectionId pair — this
-    // used to only include Contractor/Vendor/Commission, silently missing
-    // any TDS withheld on Labour/Salary/LabourProvider payments from this
-    // package's Total TDS (the figure meant for actual CA/tax filing).
-    // Each populated with its own party field so tds.payments below can
-    // name the actual deductee, not just a section total — a 26Q filing is
-    // deductee-wise, not just section-wise.
-    const [contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments] = await Promise.all([
-        FinanceContractorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('vendorId', 'name').populate('tdsSectionId', 'name code'),
-        FinanceVendorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('vendorId', 'name').populate('tdsSectionId', 'name code'),
-        FinanceSalaryPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('employeeId', 'name').populate('tdsSectionId', 'name code'),
-        FinanceLabourPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('labourerId', 'name').populate('tdsSectionId', 'name code'),
-        FinanceCommissionPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('referralId', 'name').populate('tdsSectionId', 'name code'),
-        FinanceLabourProviderPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('labourProviderId', 'name').populate('tdsSectionId', 'name code'),
-    ]);
     // partyType is the plain-English label for the PDF/on-screen table, not
     // a schema/refPath name.
     const taggedPayments = [
@@ -4762,8 +4854,6 @@ const computeCaMonthlyPackage = async (month) => {
     // deposited with the tax department this month, not just withheld.
     // Previously missing from this package entirely despite being exactly
     // what a CA needs alongside `tds.payments` above to file a 26Q return.
-    const tdsDepositsRaw = await FinanceTdsDeposit.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } })
-        .populate('tdsSectionId', 'name code').populate('bankAccountId', 'accountName').sort({ date: 1 });
     const totalTdsDeposited = round2(tdsDepositsRaw.reduce((s, d) => s + d.amount, 0));
     const tdsDepositRows = tdsDepositsRaw.map(d => ({
         date: d.date, challanNumber: d.challanNumber || '—',
@@ -4771,7 +4861,6 @@ const computeCaMonthlyPackage = async (month) => {
         amount: d.amount,
     }));
 
-    const expenses = await FinanceExpense.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).sort({ date: 1 });
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     // Claimable Input GST on GST-invoiced expenses (office rent, equipment,
     // professional fees, etc.) — same claim as a material purchase's own
@@ -4781,43 +4870,9 @@ const computeCaMonthlyPackage = async (month) => {
         date: e.date, category: e.expenseCategory || 'Uncategorized', amount: e.amount, gstAmount: e.gstAmount || 0,
     }));
 
-    // Opening/credits/debits/closing per account, plus the actual
-    // transaction list with a running balance — a CA reconciling against
-    // the real bank statement needs to match it line by line, not just
-    // confirm a single ending number with no way to verify it. Same
-    // running-balance walk getBankStatement already does for the
-    // unscoped, all-time statement, just windowed to this month and
-    // starting from this month's own opening balance instead of the
-    // account's lifetime opening balance.
-    const bankAccounts = await FinanceBankAccount.find({ deleted: { $ne: true } });
-    const bankPositions = await Promise.all(bankAccounts.map(async (a) => {
-        const activity = await getAccountActivity(a._id);
-        const netBefore = activity.filter(t => new Date(t.date) < start).reduce((sum, t) => sum + (t.direction === 'credit' ? t.amount : -t.amount), 0);
-        const duringMonth = activity.filter(t => new Date(t.date) >= start && new Date(t.date) <= end)
-            .sort((x, y) => new Date(x.date) - new Date(y.date));
-        const creditTotal = duringMonth.filter(t => t.direction === 'credit').reduce((sum, t) => sum + t.amount, 0);
-        const debitTotal = duringMonth.filter(t => t.direction === 'debit').reduce((sum, t) => sum + t.amount, 0);
-        const openingBalance = a.openingBalance + netBefore;
-        let running = openingBalance;
-        const transactions = duringMonth.map(t => {
-            running += t.direction === 'credit' ? t.amount : -t.amount;
-            return { date: t.date, description: t.description, direction: t.direction, amount: t.amount, runningBalance: round2(running) };
-        });
-        const closingBalance = openingBalance + creditTotal - debitTotal;
-        return {
-            accountId: a._id, accountName: a.accountName,
-            // So the CA can match this section against the real bank
-            // statement by bank name + account number, not just this
-            // app's own internal accountName label for it.
-            bankName: a.bankName, accountNumber: a.accountNumber || '—',
-            openingBalance, creditTotal, debitTotal, closingBalance, transactions,
-        };
-    }));
     const totalBankBalance = bankPositions.reduce((sum, b) => sum + b.closingBalance, 0);
 
-    const cashBefore = await FinanceCashEntry.find({ deleted: { $ne: true }, date: { $lt: start } });
     const cashOpeningBalance = cashBefore.reduce((sum, e) => sum + (e.type === 'in' ? e.amount : -e.amount), 0);
-    const cashDuring = await FinanceCashEntry.find({ deleted: { $ne: true }, date: { $gte: start, $lte: end } }).sort({ date: 1 });
     const cashInTotal = cashDuring.filter(e => e.type === 'in').reduce((sum, e) => sum + e.amount, 0);
     const cashOutTotal = cashDuring.filter(e => e.type === 'out').reduce((sum, e) => sum + e.amount, 0);
     const cashClosingBalance = cashOpeningBalance + cashInTotal - cashOutTotal;
@@ -4832,7 +4887,6 @@ const computeCaMonthlyPackage = async (month) => {
     // separately below so the CA package shows exactly where each rupee of
     // the claim came from, not just one blended figure.
     const inputGst = purchaseGst + expenseGst;
-    const itcPosition = await computeGstItcPosition(month);
 
     // HSN/SAC Summary — GSTR-1/GSTR-2-style grouping for the CA.
     // Sales: financeWorkTypeRate has no sacCode field of its own (checked
@@ -4844,32 +4898,10 @@ const computeCaMonthlyPackage = async (month) => {
     // already-computed salesTotal/outputGst rather than re-querying.
     // If a per-work-type sacCode is ever added, this becomes a real
     // $group over lineItems.sacCode instead of one static row.
-    const company = await getCompanyForPdf();
     const sacSummary = issuedBills.length
         ? [{ sacCode: company?.defaultSacCode || '—', taxableValue: salesTotal, gstAmount: outputGst, total: salesTotal + outputGst }]
         : [];
 
-    // Purchases: a real per-material grouping, since hsnCode does exist on
-    // financeMaterial (just added — existing/un-backfilled materials group
-    // under '—' rather than a fabricated code). Single aggregate, not a
-    // query per material, same pattern as computeMonthlyGstTotals above.
-    // Scoped to transactionType: 'purchase' only — matches "purchase line
-    // items" specifically; returns already net out of the top-level
-    // purchaseGst/totalReturned figures elsewhere in this package.
-    const hsnAgg = await FinancePurchase.aggregate([
-        { $match: { date: { $gte: start, $lte: end }, transactionType: 'purchase', deleted: { $ne: true } } },
-        { $lookup: { from: 'financematerials', localField: 'materialId', foreignField: '_id', as: 'material' } },
-        { $unwind: { path: '$material', preserveNullAndEmptyArrays: true } },
-        {
-            $group: {
-                _id: { $ifNull: ['$material.hsnCode', ''] },
-                quantity: { $sum: '$quantity' },
-                taxableValue: { $sum: '$totalAmount' },
-                gstAmount: { $sum: { $ifNull: ['$gstAmount', 0] } },
-            },
-        },
-        { $sort: { _id: 1 } },
-    ]);
     const hsnSummary = hsnAgg.map(r => ({
         hsnCode: r._id || '—', quantity: round2(r.quantity), taxableValue: round2(r.taxableValue), gstAmount: round2(r.gstAmount),
     }));
@@ -4988,11 +5020,11 @@ const downloadCaMonthlyPackage = async (req, res) => {
     try {
         const { month } = req.query;
         if (!month || !/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ success: false, message: 'month is required in YYYY-MM format' });
-        const [data, tdsPayableAllTime] = await Promise.all([
+        const [data, tdsPayableAllTime, company] = await Promise.all([
             computeCaMonthlyPackage(month),
             computeTdsPayable(),
+            getCompanyForPdf(),
         ]);
-        const company = await getCompanyForPdf();
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="CA-Monthly-Package-${month}.pdf"`);

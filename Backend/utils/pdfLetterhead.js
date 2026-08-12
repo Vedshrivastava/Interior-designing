@@ -372,17 +372,61 @@ const drawTable = (doc, { columns, rows, theme = COLOR_THEME, rowHeight = 20, he
         return false;
     };
 
+    // A row with any \n cell (see drawRow below) needs at least this much
+    // height for both lines to fit without spilling into the row below —
+    // computed here (not just left to each caller's own rowHeight) so a
+    // multi-line cell is self-healing even if a caller forgets to ask for
+    // taller rows, the way the Expenses table once did.
+    const MULTILINE_MIN_HEIGHT = 30;
+    const rowHeightFor = (cells, height) => (cells.some(c => String(c ?? '').includes('\n')) ? Math.max(height, MULTILINE_MIN_HEIGHT) : height);
+
+    // lineBreak: false does NOT reliably stop PDFKit wrapping a string that
+    // doesn't fit its given width — it was still breaking text onto a
+    // second line at arbitrary character boundaries ("Purchase" ->
+    // "Purcha"/"se", "17500" -> "1750"/"0"), spilling into the row below.
+    // The only actually reliable way to guarantee one line is to never
+    // ask PDFKit to fit text wider than the space available: measure it
+    // with the font/size already active and truncate with an ellipsis
+    // ourselves before drawing. Must be called after doc.font/.fontSize
+    // for the cell so the measurement matches what's about to render.
+    const fitOneLine = (text, maxWidth) => {
+        if (doc.widthOfString(text) <= maxWidth) return text;
+        let t = text;
+        while (t.length > 0 && doc.widthOfString(`${t}…`) > maxWidth) t = t.slice(0, -1);
+        return t.length > 0 ? `${t}…` : '…';
+    };
+
     const drawRow = (cells, { bold = false, fill = null, textColor = '#000000', height = rowH } = {}) => {
+        const rowHeightUsed = rowHeightFor(cells, height);
         const y = doc.y;
-        if (fill) doc.rect(left, y, tableWidth, height).fill(fill);
-        doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(9.5).fillColor(textColor);
+        if (fill) doc.rect(left, y, tableWidth, rowHeightUsed).fill(fill);
         let x = left;
         columns.forEach((col, i) => {
-            doc.text(String(cells[i] ?? ''), x + 6, y + (height - 10) / 2, { width: col.width - 12, align: col.align || 'left', lineBreak: false });
+            const raw = String(cells[i] ?? '');
+            const maxWidth = col.width - 12;
+            // A cell value with an embedded \n renders as a primary line
+            // (e.g. a bank account name) plus a smaller, muted second line
+            // below it (e.g. that account's number) — every other cell is
+            // truncated to one line (see fitOneLine above) rather than
+            // left to wrap unpredictably. Only the first two lines render;
+            // this is a name/number pairing, not general multi-line
+            // support.
+            const lines = raw.split('\n');
+            if (lines.length > 1) {
+                const lineGap = 9;
+                const startY = y + (rowHeightUsed - lines.length * lineGap) / 2;
+                doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(7.5).fillColor(textColor);
+                doc.text(fitOneLine(lines[0], maxWidth), x + 6, startY, { width: maxWidth, align: col.align || 'left', lineBreak: false });
+                doc.font('Helvetica').fontSize(6.5).fillColor('#666666');
+                doc.text(fitOneLine(lines[1], maxWidth), x + 6, startY + lineGap, { width: maxWidth, align: col.align || 'left', lineBreak: false });
+            } else {
+                doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(7.5).fillColor(textColor);
+                doc.text(fitOneLine(raw, maxWidth), x + 6, y + (rowHeightUsed - 8) / 2, { width: maxWidth, align: col.align || 'left', lineBreak: false });
+            }
             x += col.width;
         });
         doc.fillColor('#000000').font('Helvetica').fontSize(10);
-        doc.y = y + height;
+        doc.y = y + rowHeightUsed;
     };
 
     const drawHeaderRow = () => drawRow(columns.map((c) => c.label), { bold: true, fill: theme.primary, textColor: theme.onPrimary, height: headerH });
@@ -392,7 +436,7 @@ const drawTable = (doc, { columns, rows, theme = COLOR_THEME, rowHeight = 20, he
     // No vertical grid — alternating stripe fill reads the row boundaries
     // without the heavier look of drawn borders.
     rows.forEach((r, idx) => {
-        const brokePage = ensureSpace(rowH);
+        const brokePage = ensureSpace(rowHeightFor(r, rowH));
         if (brokePage) drawHeaderRow();
         drawRow(r, { fill: idx % 2 === 1 ? theme.rowStripe : '#ffffff' });
     });

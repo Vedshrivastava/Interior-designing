@@ -11,7 +11,13 @@ import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const emptyForm = { type: 'in', date: '', amount: '', bankAccountId: '', projectId: '', reason: '', notes: '' };
+const emptyForm = { type: 'in', date: '', amount: '', bankAccountId: '', projectId: '', reason: '', notes: '', source: 'other' };
+
+const SOURCE_LABELS = {
+    ownerInvestment: 'Owner Investment', loan: 'Loan', interest: 'Interest',
+    correction: 'Correction', other: 'Other',
+};
+const SOURCE_OPTIONS = Object.entries(SOURCE_LABELS).map(([value, label]) => ({ value, label }));
 
 /*
  * Manual bank entries — the bank-account equivalent of Cash Book's Cash
@@ -125,6 +131,7 @@ const BankEntriesManager = ({ url }) => {
                         <b className="cem-amount">Amount</b>
                         <b className="cem-reason">Reason</b>
                         <b className="cem-source">Account</b>
+                        <b className="cem-source">Source</b>
                         <b className="cem-action">Action</b>
                     </div>
                     {entries.map(e => (
@@ -136,6 +143,7 @@ const BankEntriesManager = ({ url }) => {
                             </p>
                             <p className="cem-reason"><span className="pq-group-label">Reason</span>{e.reason}</p>
                             <p className="cem-source"><span className="pq-group-label">Account</span>{e.bankAccountId?.accountName || '—'}</p>
+                            <p className="cem-source"><span className="pq-group-label">Source</span>{SOURCE_LABELS[e.source] || 'Other'}</p>
                             <div className="cem-action">
                                 <button type="button" className="pq-btn-ghost-danger" onClick={() => setConfirmItem(e)} title="Remove entry" aria-label="Remove entry">
                                     <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
@@ -167,6 +175,13 @@ const BankEntriesManager = ({ url }) => {
                                         <StyledSelect
                                             value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Select account…" loading={accountsLoading}
                                             options={accounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                                        />
+                                    </div>
+                                    <div className="add-product-name flex-col">
+                                        <p>Source *</p>
+                                        <StyledSelect
+                                            value={form.source} onChange={v => setField('source', v)}
+                                            options={SOURCE_OPTIONS}
                                         />
                                     </div>
                                     <div className="add-product-name flex-col">

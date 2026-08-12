@@ -145,6 +145,7 @@ const CaMonthlyPackageView = ({ url }) => {
                                 { key: 'section', label: 'Section', render: r => `${r.sectionName}${r.sectionCode ? ` (${r.sectionCode})` : ''}` },
                                 { key: 'grossAmount', label: 'Gross Amount', align: 'right', render: r => fmtMoney(r.grossAmount) },
                                 { key: 'tdsAmount', label: 'TDS', align: 'right', render: r => fmtMoney(r.tdsAmount) },
+                                { key: 'bankDetails', label: 'Bank Details', render: r => r.bankDetails.split('\n').join(' — ') },
                             ]}
                             rows={data.tds.payments}
                         />
@@ -165,10 +166,23 @@ const CaMonthlyPackageView = ({ url }) => {
                         />
                     </div>
 
-                    <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Sales / Purchase / Expense Summary</p>
+                    <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Contractor &amp; Labour Payables</p>
+                    <p style={{ marginBottom: '10px', fontSize: '0.8rem', color: 'var(--text-lt)' }}>
+                        All-time running balance still owed for work already done — not scoped to this month. Payments actually made this month are in TDS Withheld above and Bank &amp; Cash Movement below.
+                    </p>
+                    <KpiGrid>
+                        <KpiCard label="Outstanding Payable — Contractors (all-time)" value={fmtMoney(data.payables.contractors)} />
+                        <KpiCard label="Outstanding Payable — Labour (all-time)" value={fmtMoney(data.payables.labour)} />
+                    </KpiGrid>
+
+                    <p className="admin-subtitle" style={{ margin: '24px 0 10px' }}>Sales / Purchase / Expense Summary</p>
+                    <p style={{ marginBottom: '10px', fontSize: '0.8rem', color: 'var(--text-lt)' }}>
+                        Net Purchases is accrual — includes purchases not yet paid to the vendor. It will not match vendor-payment debits on the bank statement 1:1; see Outstanding Payable — Vendors below for what remains unpaid.
+                    </p>
                     <KpiGrid>
                         <KpiCard label="Sales (Issued Bills)" value={fmtMoney(data.sales.totalBilled)} sub={`${data.sales.billCount} bill${data.sales.billCount === 1 ? '' : 's'}`} />
                         <KpiCard label="Net Purchases" value={fmtMoney(data.purchases.netPurchases)} sub={`${data.purchases.purchaseCount} purchase${data.purchases.purchaseCount === 1 ? '' : 's'}`} />
+                        <KpiCard label="Outstanding Payable — Vendors (all-time)" value={fmtMoney(data.payables.vendors)} />
                         <KpiCard label="Expenses" value={fmtMoney(data.expenses.totalExpenses)} sub={`${data.expenses.expenseCount} expense${data.expenses.expenseCount === 1 ? '' : 's'}`} />
                     </KpiGrid>
 
@@ -212,6 +226,7 @@ const CaMonthlyPackageView = ({ url }) => {
                                 { key: 'date', label: 'Date', render: r => fmtDate(r.date) },
                                 { key: 'vendorName', label: 'Vendor' },
                                 { key: 'vendorGstin', label: 'Vendor GSTIN' },
+                                { key: 'vendorBankDetails', label: 'Bank Details', render: r => r.vendorBankDetails.split('\n').join(' — ') },
                                 { key: 'materialName', label: 'Material' },
                                 { key: 'transactionType', label: 'Type', render: r => (r.transactionType === 'return' ? 'Return' : 'Purchase') },
                                 { key: 'quantity', label: 'Qty', align: 'right' },
@@ -246,6 +261,7 @@ const CaMonthlyPackageView = ({ url }) => {
                                 { key: 'category', label: 'Category' },
                                 { key: 'amount', label: 'Amount', align: 'right', render: r => fmtMoney(r.amount) },
                                 { key: 'gstAmount', label: 'GST', align: 'right', render: r => fmtMoney(r.gstAmount) },
+                                { key: 'paidFrom', label: 'Paid From', render: r => r.paidFrom.split('\n').join(' — ') },
                             ]}
                             rows={data.expenses.rows}
                         />
@@ -318,6 +334,31 @@ const CaMonthlyPackageView = ({ url }) => {
                             rows={data.bankAndCash.cashTransactions}
                         />
                     </div>
+
+                    {data.bankAndCash.ownerInvestment.allTime > 0 && (
+                        <>
+                            <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Owner Investment</p>
+                            <p style={{ marginBottom: '10px', fontSize: '0.8rem', color: 'var(--text-lt)' }}>
+                                Capital the owner put into the business — called out separately since it isn&apos;t revenue.
+                            </p>
+                            <KpiGrid>
+                                <KpiCard label="This Month" value={fmtMoney(data.bankAndCash.ownerInvestment.thisMonth)} />
+                                <KpiCard label="Cumulative (All-Time, Through This Month)" value={fmtMoney(data.bankAndCash.ownerInvestment.allTime)} />
+                            </KpiGrid>
+                            <div style={{ margin: '12px 0 20px' }}>
+                                <LineItemTable
+                                    emptyText="No owner investment this month."
+                                    columns={[
+                                        { key: 'date', label: 'Date', render: r => fmtDate(r.date) },
+                                        { key: 'bankAccountName', label: 'Account' },
+                                        { key: 'reason', label: 'Reason' },
+                                        { key: 'amount', label: 'Amount', align: 'right', render: r => fmtMoney(r.amount) },
+                                    ]}
+                                    rows={data.bankAndCash.ownerInvestment.rows}
+                                />
+                            </div>
+                        </>
+                    )}
                 </>
             )}
         </div>

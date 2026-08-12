@@ -13,6 +13,14 @@ const financeBankEntrySchema = new mongoose.Schema({
     date:   { type: Date, required: true },
     type:   { type: String, enum: ['in', 'out'], required: true },
     amount: { type: Number, required: true },
+    // What kind of thing this money movement actually is — orthogonal to
+    // type (direction). ownerInvestment/loan/interest describe the most
+    // common reasons money enters an account with no receipt/payment
+    // behind it; correction/other cover everything else (including any
+    // out-direction entry, which never carries owner-investment semantics).
+    // Defaults to 'other' so every entry recorded before this field
+    // existed keeps working without a backfill.
+    source: { type: String, enum: ['ownerInvestment', 'loan', 'interest', 'correction', 'other'], default: 'other' },
 
     bankAccountId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeBankAccount', required: true },
     projectId:     { type: mongoose.Schema.Types.ObjectId, ref: 'financeProject', default: null },

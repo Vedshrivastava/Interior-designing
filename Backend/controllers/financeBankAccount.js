@@ -117,7 +117,7 @@ const getAccountActivity = async (accountId) => {
         ...tdsDeposits.map(d => ({ date: d.date, amount: d.amount, direction: 'debit', description: d.tdsSectionId?.name ? `TDS deposit — ${d.tdsSectionId.name}` : 'TDS deposit', sourceType: 'tdsDeposit', sourceId: d._id })),
         ...transfersOut.map(t => ({ date: t.date, amount: t.amount, direction: 'debit', description: t.toAccountId?.accountName ? `Transfer out — to ${t.toAccountId.accountName}` : 'Transfer out', sourceType: 'transfer', sourceId: t._id })),
         ...transfersIn.map(t => ({ date: t.date, amount: t.amount, direction: 'credit', description: t.fromAccountId?.accountName ? `Transfer in — from ${t.fromAccountId.accountName}` : 'Transfer in', sourceType: 'transfer', sourceId: t._id })),
-        ...bankEntries.map(e => ({ date: e.date, amount: e.amount, direction: e.type === 'in' ? 'credit' : 'debit', description: e.reason, sourceType: 'bankEntry', sourceId: e._id })),
+        ...bankEntries.map(e => ({ date: e.date, amount: e.amount, direction: e.type === 'in' ? 'credit' : 'debit', description: e.reason, sourceType: 'bankEntry', sourceId: e._id, entrySource: e.source })),
     ];
 };
 

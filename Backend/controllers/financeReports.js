@@ -4727,6 +4727,10 @@ const computeCaMonthlyPackage = async (month) => {
         itcPosition,
         company,
         hsnAgg,
+        ownerInvestmentEntries,
+        vendorAnalysisRows,
+        contractorAnalysisRows,
+        labourAnalysisRows,
     ] = await Promise.all([
         // Line items alongside every total below — a CA reconciling this
         // against the real bank statement, GSTR filings, and a 26Q TDS
@@ -4738,8 +4742,14 @@ const computeCaMonthlyPackage = async (month) => {
         FinanceRunningBill.find({ billDate: { $gte: start, $lte: end }, status: 'issued', deleted: { $ne: true } })
             .populate({ path: 'projectId', select: 'name clientId', populate: { path: 'clientId', select: 'name gstNumber' } })
             .sort({ billDate: 1 }),
+        // bankName/accountNumber so a purchase row can show whose account
+        // this vendor eventually gets paid into (same reasoning as the
+        // TDS Withheld table's Bank Details column) — a purchase itself
+        // never moves money (see Purchase Summary's own accrual-basis
+        // note above it), but the CA still needs to identify which vendor
+        // account to expect a matching payment against later.
         FinancePurchase.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } })
-            .populate('vendorId', 'name gstNumber').populate('materialId', 'name').sort({ date: 1 }),
+            .populate('vendorId', 'name gstNumber bankName accountNumber').populate('materialId', 'name').sort({ date: 1 }),
         // All six payment types that carry a tdsAmount/tdsSectionId pair —
         // this used to only include Contractor/Vendor/Commission, silently
         // missing any TDS withheld on Labour/Salary/LabourProvider payments
@@ -4749,18 +4759,25 @@ const computeCaMonthlyPackage = async (month) => {
         // section total — a 26Q filing is deductee-wise, not just
         // section-wise.
         Promise.all([
-            FinanceContractorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('vendorId', 'name').populate('tdsSectionId', 'name code'),
-            FinanceVendorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('vendorId', 'name').populate('tdsSectionId', 'name code'),
-            FinanceSalaryPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('employeeId', 'name').populate('tdsSectionId', 'name code'),
-            FinanceLabourPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('labourerId', 'name').populate('tdsSectionId', 'name code'),
-            FinanceCommissionPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('referralId', 'name').populate('tdsSectionId', 'name code'),
-            FinanceLabourProviderPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('labourProviderId', 'name').populate('tdsSectionId', 'name code'),
+            // Party populate now also carries that party's own receiving
+            // bank details (bankName/accountNumber — required fields on
+            // every one of these party models, "who actually gets paid")
+            // so the TDS Withheld table below can show whose account the
+            // money actually landed in, not just which of our own accounts
+            // it left from (obvious — there's only ever a handful of
+            // those, already covered by the Bank & Cash Movement section).
+            FinanceContractorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('vendorId', 'name bankName accountNumber').populate('tdsSectionId', 'name code'),
+            FinanceVendorPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('vendorId', 'name bankName accountNumber').populate('tdsSectionId', 'name code'),
+            FinanceSalaryPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('employeeId', 'name bankName accountNumber').populate('tdsSectionId', 'name code'),
+            FinanceLabourPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('labourerId', 'name bankName accountNumber').populate('tdsSectionId', 'name code'),
+            FinanceCommissionPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('referralId', 'name bankName accountNumber').populate('tdsSectionId', 'name code'),
+            FinanceLabourProviderPayment.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('labourProviderId', 'name bankName accountNumber').populate('tdsSectionId', 'name code'),
         ]),
         // The other half of TDS reconciliation — what's actually been
         // deposited with the tax department this month, not just withheld.
         FinanceTdsDeposit.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } })
             .populate('tdsSectionId', 'name code').populate('bankAccountId', 'accountName').sort({ date: 1 }),
-        FinanceExpense.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).sort({ date: 1 }),
+        FinanceExpense.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('bankAccountId', 'accountName bankName accountNumber').sort({ date: 1 }),
         // Opening/credits/debits/closing per account, plus the actual
         // transaction list with a running balance — a CA reconciling
         // against the real bank statement needs to match it line by line,
@@ -4794,6 +4811,28 @@ const computeCaMonthlyPackage = async (month) => {
             },
             { $sort: { _id: 1 } },
         ]),
+        // Owner capital put into the business — a CA needs this called out
+        // separately from revenue since it isn't income. Fetched through
+        // end of this month (not just within it) so allTime below can
+        // report the cumulative figure without a second query; the
+        // this-month slice is filtered out of the same result client-side.
+        FinanceBankEntry.find({ source: 'ownerInvestment', type: 'in', deleted: { $ne: true }, date: { $lte: end } })
+            .populate('bankAccountId', 'accountName').sort({ date: 1 }),
+        // Company-wide, all-time — Net Purchases above (and, for
+        // Contractor/Labour, TDS Withheld) is accrual: an invoice/measured
+        // work counts the moment it's dated, whether or not it's actually
+        // been paid yet. These give the CA the other half of that picture
+        // — what's still genuinely owed, right now — using the exact same
+        // balance formula the Payables dashboard and single-party ledgers
+        // already use (see that formula's own "one canonical version, not
+        // duplicated" comment on computeVendorBalance/computeContractorBalance/
+        // computeLabourBalance) rather than a second, divergent one here.
+        // Not month-scoped — these functions have no date parameter at
+        // all, so this is a live snapshot as of whenever the PDF is
+        // generated, same convention as Cumulative TDS Payable below.
+        computeVendorAnalysisRows(),
+        computeContractorAnalysisRows(),
+        computeLabourAnalysisRows(),
     ]);
 
     const outputGst = issuedBills.reduce((sum, b) => sum + (b.gstAmount || 0), 0);
@@ -4817,24 +4856,39 @@ const computeCaMonthlyPackage = async (month) => {
     const totalReturned = returnRows.reduce((sum, p) => sum + p.totalAmount, 0);
     const purchaseLineItems = purchases.map(p => ({
         date: p.date, vendorName: p.vendorId?.name || '—', vendorGstin: p.vendorId?.gstNumber || '—', materialName: p.materialId?.name || '—',
+        vendorBankDetails: p.vendorId?.bankName ? `${p.vendorId.bankName}\nA/C ${p.vendorId.accountNumber}` : '—',
         transactionType: p.transactionType, quantity: p.quantity, ratePerUnit: p.ratePerUnit,
         totalAmount: p.totalAmount, gstAmount: p.gstAmount || 0, referenceNumber: p.referenceNumber || '',
     }));
 
+    // A CA reconciling any of these tables against the real bank statement
+    // needs to know which account (or Cash) the money actually moved
+    // through — same account name + number shown on the Bank & Cash
+    // Movement section below, so a row here can be matched straight to a
+    // line in that account's own transaction list.
+    // \n splits into two lines in the PDF table (drawTable's drawRow) —
+    // account name and number crammed onto one line left the number
+    // clipped in a narrow column; on screen (CaMonthlyPackageView) this
+    // same \n is split and rendered as a primary/secondary line pair.
+    const paidFromLabel = (bankAccountId) => bankAccountId
+        ? `${bankAccountId.accountName}${bankAccountId.accountNumber ? `\nA/C ${bankAccountId.accountNumber}` : ''}`
+        : 'Cash';
+
     // partyType is the plain-English label for the PDF/on-screen table, not
-    // a schema/refPath name.
+    // a schema/refPath name. `party` carries that party's own bank details
+    // (populated above) for the Bank Details column below.
     const taggedPayments = [
-        ...contractorPayments.map(p => ({ p, partyType: 'Contractor', partyName: p.vendorId?.name })),
-        ...vendorPayments.map(p => ({ p, partyType: 'Vendor', partyName: p.vendorId?.name })),
-        ...salaryPayments.map(p => ({ p, partyType: 'Employee', partyName: p.employeeId?.name })),
-        ...labourPayments.map(p => ({ p, partyType: 'Labourer', partyName: p.labourerId?.name })),
-        ...commissionPayments.map(p => ({ p, partyType: 'Referral', partyName: p.referralId?.name })),
-        ...labourProviderPayments.map(p => ({ p, partyType: 'Labour Provider', partyName: p.labourProviderId?.name })),
+        ...contractorPayments.map(p => ({ p, partyType: 'Contractor', partyName: p.vendorId?.name, party: p.vendorId })),
+        ...vendorPayments.map(p => ({ p, partyType: 'Vendor', partyName: p.vendorId?.name, party: p.vendorId })),
+        ...salaryPayments.map(p => ({ p, partyType: 'Employee', partyName: p.employeeId?.name, party: p.employeeId })),
+        ...labourPayments.map(p => ({ p, partyType: 'Labourer', partyName: p.labourerId?.name, party: p.labourerId })),
+        ...commissionPayments.map(p => ({ p, partyType: 'Referral', partyName: p.referralId?.name, party: p.referralId })),
+        ...labourProviderPayments.map(p => ({ p, partyType: 'Labour Provider', partyName: p.labourProviderId?.name, party: p.labourProviderId })),
     ];
     const tdsBySection = new Map();
     let totalTds = 0;
     const tdsPaymentRows = [];
-    for (const { p, partyType, partyName } of taggedPayments) {
+    for (const { p, partyType, partyName, party } of taggedPayments) {
         if (!p.tdsAmount) continue;
         totalTds += p.tdsAmount;
         const key = p.tdsSectionId ? p.tdsSectionId._id.toString() : 'unspecified';
@@ -4846,6 +4900,7 @@ const computeCaMonthlyPackage = async (month) => {
             date: p.date, partyName: partyName || '—', partyType,
             sectionName: p.tdsSectionId?.name || 'Unspecified', sectionCode: p.tdsSectionId?.code || '',
             grossAmount: p.amount, tdsAmount: p.tdsAmount,
+            bankDetails: party?.bankName ? `${party.bankName}\nA/C ${party.accountNumber}` : '—',
         });
     }
     tdsPaymentRows.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -4857,7 +4912,8 @@ const computeCaMonthlyPackage = async (month) => {
     const totalTdsDeposited = round2(tdsDepositsRaw.reduce((s, d) => s + d.amount, 0));
     const tdsDepositRows = tdsDepositsRaw.map(d => ({
         date: d.date, challanNumber: d.challanNumber || '—',
-        sectionName: d.tdsSectionId?.name || 'Unspecified', accountName: d.bankAccountId?.accountName || 'Cash',
+        sectionName: d.tdsSectionId?.name || 'Unspecified', sectionCode: d.tdsSectionId?.code || '',
+        accountName: d.bankAccountId?.accountName || 'Cash',
         amount: d.amount,
     }));
 
@@ -4868,6 +4924,7 @@ const computeCaMonthlyPackage = async (month) => {
     const expenseGst = expenses.reduce((sum, e) => sum + (e.gstAmount || 0), 0);
     const expenseRows = expenses.map(e => ({
         date: e.date, category: e.expenseCategory || 'Uncategorized', amount: e.amount, gstAmount: e.gstAmount || 0,
+        paidFrom: paidFromLabel(e.bankAccountId),
     }));
 
     const totalBankBalance = bankPositions.reduce((sum, b) => sum + b.closingBalance, 0);
@@ -4906,6 +4963,26 @@ const computeCaMonthlyPackage = async (month) => {
         hsnCode: r._id || '—', quantity: round2(r.quantity), taxableValue: round2(r.taxableValue), gstAmount: round2(r.gstAmount),
     }));
 
+    const ownerInvestmentThisMonthEntries = ownerInvestmentEntries.filter(e => new Date(e.date) >= start);
+    const ownerInvestmentThisMonth = round2(ownerInvestmentThisMonthEntries.reduce((s, e) => s + e.amount, 0));
+    const ownerInvestmentAllTime = round2(ownerInvestmentEntries.reduce((s, e) => s + e.amount, 0));
+    const ownerInvestmentRows = ownerInvestmentThisMonthEntries.map(e => ({
+        date: e.date, bankAccountName: e.bankAccountId?.accountName || '—', reason: e.reason, amount: e.amount,
+    }));
+
+    // Clamp each party at 0 before summing — an overpaid/over-returned-on
+    // party owes the company back, not the other way round, and a naive
+    // sum would let that credit silently cancel out a different party's
+    // real, separate debt (identical reasoning to the Payables dashboard's
+    // own sumPositive helper, reimplemented locally here rather than
+    // reaching across into that request-scoped closure).
+    const sumPositive = (rows, key) => round2(rows.reduce((s, r) => s + Math.max(0, r[key]), 0));
+    const payables = {
+        vendors: sumPositive(vendorAnalysisRows, 'amountOwed'),
+        contractors: sumPositive(contractorAnalysisRows, 'balancePayable'),
+        labour: sumPositive(labourAnalysisRows, 'balancePayable'),
+    };
+
     return {
         month,
         gst: {
@@ -4922,10 +4999,12 @@ const computeCaMonthlyPackage = async (month) => {
         sales: { totalBilled: salesTotal, billCount: issuedBills.length, bills: billRows, sacSummary },
         purchases: { totalPurchased, totalReturned, netPurchases: totalPurchased - totalReturned, purchaseCount: purchaseRows.length, rows: purchaseLineItems, hsnSummary },
         expenses: { totalExpenses, expenseCount: expenses.length, expenseGst, rows: expenseRows },
+        payables,
         bankAndCash: {
             bankAccounts: bankPositions, totalBankBalance,
             cashOpeningBalance, cashInTotal, cashOutTotal, cashClosingBalance, cashTransactions,
             totalPosition: totalBankBalance + cashClosingBalance,
+            ownerInvestment: { thisMonth: ownerInvestmentThisMonth, allTime: ownerInvestmentAllTime, rows: ownerInvestmentRows },
         },
     };
 };
@@ -5036,6 +5115,16 @@ const downloadCaMonthlyPackage = async (req, res) => {
 
         await writeLetterhead(doc, `CA Monthly Package — ${month}`, company);
 
+        // Every transaction description below already follows a "Type —
+        // Counterparty" shape (getAccountActivity builds them that way) —
+        // splitting on the first " — " into two lines (see drawTable's \n
+        // handling) instead of one long line keeps a long party name from
+        // bleeding into the Direction column next to it.
+        const splitDescription = (desc) => {
+            const idx = desc.indexOf(' — ');
+            return idx === -1 ? desc : `${desc.slice(0, idx)}\n${desc.slice(idx + 3)}`;
+        };
+
         writeSectionHeading(doc, 'GST Summary');
         {
             const gstRows = [
@@ -5078,23 +5167,41 @@ const downloadCaMonthlyPackage = async (req, res) => {
             drawTable(doc, {
                 company,
                 rowHeight: 30, // see the Purchases table's identical comment — long party names
+                // Every width below is sized from doc.widthOfString at
+                // this table's actual font/size against realistic
+                // worst-case content (an 11-char date, a 9-digit rupee
+                // amount, "Labour Provider", a 15-char GSTIN, a bank name
+                // + full account number) — not guessed. Date/Section/Gross
+                // Amount/TDS never truncate for real content; Party/Bank
+                // Details keep fitOneLine's ellipsis as a rare-case
+                // fallback only (an unusually long name), not a routine
+                // occurrence.
                 columns: [
-                    { label: 'Date', width: 68, align: 'left' },
-                    { label: 'Party', width: 122, align: 'left' },
-                    { label: 'Type', width: 82, align: 'left' },
+                    { label: 'Date', width: 55, align: 'left' },
+                    { label: 'Party', width: 104, align: 'left' },
+                    { label: 'Type', width: 70, align: 'left' },
                     // A section CODE (194H, 194C, …) is what a 26Q return
                     // is actually filed against — shorter than the full
                     // descriptive name too, so this prefers it (falling
                     // back to the name only when no code is set) rather
                     // than printing both and overflowing the column.
-                    { label: 'Section', width: 78, align: 'left' },
-                    { label: 'Gross Amount', width: 82, align: 'right' },
-                    { label: 'TDS', width: 80, align: 'right' },
+                    { label: 'Section', width: 56, align: 'left' },
+                    { label: 'Gross Amount', width: 69, align: 'right' },
+                    { label: 'TDS', width: 58, align: 'right' },
+                    // The deductee's own receiving bank account — which of
+                    // OUR accounts paid from is obvious (there's only ever
+                    // a handful, already covered by Bank & Cash Movement
+                    // below); what a CA actually needs here to match this
+                    // row against a real NEFT/RTGS line on the bank
+                    // statement is whose account the money landed in. Bank
+                    // name on its own line, account number on the next
+                    // (see drawTable's \n handling).
+                    { label: 'Bank Details', width: 100, align: 'left' },
                 ],
                 rows: data.tds.payments.map(p => [
                     formatDate(p.date), p.partyName, p.partyType,
                     p.sectionCode || p.sectionName,
-                    formatCurrency(p.grossAmount), formatCurrency(p.tdsAmount),
+                    formatCurrency(p.grossAmount), formatCurrency(p.tdsAmount), p.bankDetails,
                 ]),
             });
         }
@@ -5103,17 +5210,39 @@ const downloadCaMonthlyPackage = async (req, res) => {
             drawTable(doc, {
                 company,
                 columns: [
-                    { label: 'Date', width: 68, align: 'left' },
-                    { label: 'Challan No.', width: 108, align: 'left' },
-                    { label: 'Section', width: 90, align: 'left' },
-                    { label: 'Paid From', width: 130, align: 'left' },
-                    { label: 'Amount', width: 116, align: 'right' },
+                    { label: 'Date', width: 60, align: 'left' },
+                    { label: 'Challan No.', width: 110, align: 'left' },
+                    // Code preferred over the full descriptive name (same
+                    // reasoning as TDS Withheld above) — "194H —
+                    // Commission/Brokerage" alone needs over 100pt at this
+                    // font, which starved every other column.
+                    { label: 'Section', width: 95, align: 'left' },
+                    { label: 'Paid From', width: 140, align: 'left' },
+                    { label: 'Amount', width: 107, align: 'right' },
                 ],
                 rows: data.tds.deposits.map(d => [
-                    formatDate(d.date), d.challanNumber, d.sectionName, d.accountName, formatCurrency(d.amount),
+                    formatDate(d.date), d.challanNumber, d.sectionCode || d.sectionName, d.accountName, formatCurrency(d.amount),
                 ]),
             });
         }
+
+        writeSectionHeading(doc, 'Contractor & Labour Payables');
+        // Payments actually made this month already appear above (TDS
+        // Withheld) and in Bank & Cash Movement below — cash-basis by
+        // construction, since a payment record only exists once money has
+        // genuinely moved. This is the other half: what's still owed for
+        // work already done but not yet paid for. All-time, not scoped to
+        // this month — same convention as Cumulative TDS Payable above.
+        doc.font('Helvetica').fontSize(9).fillColor('#888888')
+            .text('All-time running balance still owed for work already done — not scoped to this month. Payments actually made this month are in TDS Withheld above and Bank & Cash Movement below.', { width: contentBox(doc).width })
+            .fillColor('#000000').fontSize(10);
+        doc.moveDown(0.3);
+        drawStatBlock(doc, {
+            rows: [
+                { label: 'Outstanding Payable — Contractors (all-time, as of today)', value: formatCurrency(data.payables.contractors), bold: true },
+                { label: 'Outstanding Payable — Labour (all-time, as of today)', value: formatCurrency(data.payables.labour), bold: true },
+            ],
+        });
 
         writeSectionHeading(doc, 'Sales Summary');
         drawStatBlock(doc, {
@@ -5128,17 +5257,20 @@ const downloadCaMonthlyPackage = async (req, res) => {
                 company,
                 rowHeight: 30, // see the Purchases table's identical comment — long project/client names
                 columns: [
-                    { label: 'Bill #', width: 34, align: 'left' },
-                    { label: 'Date', width: 58, align: 'left' },
-                    { label: 'Project', width: 68, align: 'left' },
-                    { label: 'Client', width: 68, align: 'left' },
-                    { label: 'Client GSTIN', width: 92, align: 'left' },
-                    { label: 'Subtotal', width: 62, align: 'right' },
-                    { label: 'GST', width: 55, align: 'right' },
-                    { label: 'Total', width: 75, align: 'right' },
+                    { label: 'Bill #', width: 65, align: 'left' },
+                    { label: 'Date', width: 55, align: 'left' },
+                    { label: 'Project', width: 76, align: 'left' },
+                    // Name on its own line, GSTIN on the next (see
+                    // drawTable's \n handling) — same reasoning as the
+                    // Purchases table's Vendor column.
+                    { label: 'Client', width: 115, align: 'left' },
+                    { label: 'Subtotal', width: 69, align: 'right' },
+                    { label: 'GST', width: 60, align: 'right' },
+                    { label: 'Total', width: 72, align: 'right' },
                 ],
                 rows: data.sales.bills.map(b => [
-                    b.billNumber, formatDate(b.billDate), b.projectName, b.clientName, b.clientGstin,
+                    b.billNumber, formatDate(b.billDate), b.projectName,
+                    `${b.clientName}${b.clientGstin && b.clientGstin !== '—' ? `\n${b.clientGstin}` : ''}`,
                     formatCurrency(b.subtotal), formatCurrency(b.gstAmount), formatCurrency(b.total),
                 ]),
             });
@@ -5160,38 +5292,68 @@ const downloadCaMonthlyPackage = async (req, res) => {
         }
 
         writeSectionHeading(doc, 'Purchase Summary');
+        // Net Purchases is accrual — every purchase invoice dated this
+        // month, whether or not the vendor's actually been paid yet (GST
+        // Input Tax Credit is claimable from the invoice date, not the
+        // payment date, so this can't wait for cash to move). It will not
+        // match the vendor-payment debits on the real bank statement for
+        // this month — Outstanding Payable below is the gap: the running
+        // balance still owed to vendors, all-time, not just this month.
+        doc.font('Helvetica').fontSize(9).fillColor('#888888')
+            .text('Accrual basis — includes purchases not yet paid to the vendor. Will not match vendor-payment debits on the bank statement 1:1; see Outstanding Payable below for what remains unpaid.', { width: contentBox(doc).width })
+            .fillColor('#000000').fontSize(10);
+        doc.moveDown(0.3);
         drawStatBlock(doc, {
             rows: [
                 { label: 'Total Purchased', value: formatCurrency(data.purchases.totalPurchased) },
                 { label: 'Total Returned', value: formatCurrency(data.purchases.totalReturned) },
                 { label: 'Net Purchases', value: formatCurrency(data.purchases.netPurchases), bold: true },
                 { label: 'Purchase Count', value: String(data.purchases.purchaseCount) },
+                {
+                    label: 'Outstanding Payable — Vendors (all-time, as of today)',
+                    value: formatCurrency(data.payables.vendors), bold: true, tone: 'accent', divider: true,
+                },
             ],
         });
         if (data.purchases.rows.length > 0) {
             writeSubLabel(doc, 'Purchases');
             drawTable(doc, {
                 company,
-                // Taller rows than the default — a long vendor/material name
-                // has no reliable width that fits every real name on one
-                // line, so this gives PDFKit's own wrap room to use instead
-                // of bleeding into the row below it (see drawTable's own
-                // per-cell width; a cell's text can still wrap even with
-                // lineBreak: false once the column's genuinely too narrow).
+                // Taller rows than the default — every multi-line (\n) cell
+                // below needs the room (see drawTable's own
+                // MULTILINE_MIN_HEIGHT, which enforces this even if a
+                // caller forgets to set it explicitly).
                 rowHeight: 30,
+                // Date/Qty/Rate/Amount/GST widths are sized from real
+                // doc.widthOfString measurements against worst-case values
+                // (an 11-char date, a 6-figure rupee amount) so they never
+                // truncate. Vendor/Bank Details/Material keep fitOneLine's
+                // ellipsis as a rare-case fallback for an unusually long
+                // name, not a routine occurrence.
                 columns: [
                     { label: 'Date', width: 55, align: 'left' },
-                    { label: 'Vendor', width: 68, align: 'left' },
-                    { label: 'Vendor GSTIN', width: 88, align: 'left' },
-                    { label: 'Material', width: 65, align: 'left' },
+                    // Name on its own line, GSTIN on the next (see
+                    // drawTable's \n handling) — was two separate narrow
+                    // columns, which clipped/bled into each other on any
+                    // real vendor name.
+                    { label: 'Vendor', width: 80, align: 'left' },
+                    // Bank name / account number, same \n pairing — who
+                    // this vendor eventually gets paid into, so the CA can
+                    // pre-identify the account before a matching payment
+                    // even shows up on the bank statement.
+                    { label: 'Bank Details', width: 75, align: 'left' },
+                    { label: 'Material', width: 55, align: 'left' },
                     { label: 'Type', width: 48, align: 'left' },
                     { label: 'Qty', width: 38, align: 'right' },
-                    { label: 'Rate', width: 40, align: 'right' },
-                    { label: 'Amount', width: 65, align: 'right' },
-                    { label: 'GST', width: 45, align: 'right' },
+                    { label: 'Rate', width: 42, align: 'right' },
+                    { label: 'Amount', width: 62, align: 'right' },
+                    { label: 'GST', width: 57, align: 'right' },
                 ],
                 rows: data.purchases.rows.map(p => [
-                    formatDate(p.date), p.vendorName, p.vendorGstin, p.materialName, p.transactionType === 'return' ? 'Return' : 'Purchase',
+                    formatDate(p.date),
+                    `${p.vendorName}${p.vendorGstin && p.vendorGstin !== '—' ? `\n${p.vendorGstin}` : ''}`,
+                    p.vendorBankDetails,
+                    p.materialName, p.transactionType === 'return' ? 'Return' : 'Purchase',
                     String(p.quantity), formatCurrency(p.ratePerUnit), formatCurrency(p.totalAmount), formatCurrency(p.gstAmount),
                 ]),
             });
@@ -5222,13 +5384,17 @@ const downloadCaMonthlyPackage = async (req, res) => {
         if (data.expenses.rows.length > 0) {
             drawTable(doc, {
                 company,
+                rowHeight: 30, // Paid From is a 2-line cell (drawTable's \n handling) — the self-healing minimum in drawRow covers this too, but set explicitly for clarity same as every other multi-line table.
                 columns: [
-                    { label: 'Date', width: 80, align: 'left' },
-                    { label: 'Category', width: 220, align: 'left' },
-                    { label: 'Amount', width: 106, align: 'right' },
-                    { label: 'GST', width: 106, align: 'right' },
+                    { label: 'Date', width: 55, align: 'left' },
+                    { label: 'Category', width: 175, align: 'left' },
+                    { label: 'Amount', width: 70, align: 'right' },
+                    { label: 'GST', width: 62, align: 'right' },
+                    // So this row can be matched straight to a line in the
+                    // matching account's own Transactions table below.
+                    { label: 'Paid From', width: 150, align: 'left' },
                 ],
-                rows: data.expenses.rows.map(e => [formatDate(e.date), e.category, formatCurrency(e.amount), formatCurrency(e.gstAmount)]),
+                rows: data.expenses.rows.map(e => [formatDate(e.date), e.category, formatCurrency(e.amount), formatCurrency(e.gstAmount), e.paidFrom]),
             });
         }
 
@@ -5248,14 +5414,14 @@ const downloadCaMonthlyPackage = async (req, res) => {
                     company,
                     rowHeight: 30, // see the Purchases table's identical comment
                     columns: [
-                        { label: 'Date', width: 70, align: 'left' },
-                        { label: 'Description', width: 190, align: 'left' },
-                        { label: 'Direction', width: 70, align: 'left' },
-                        { label: 'Amount', width: 85, align: 'right' },
-                        { label: 'Running Balance', width: 97, align: 'right' },
+                        { label: 'Date', width: 55, align: 'left' },
+                        { label: 'Description', width: 220, align: 'left' },
+                        { label: 'In/Out', width: 40, align: 'left' },
+                        { label: 'Amount', width: 69, align: 'right' },
+                        { label: 'Running Balance', width: 128, align: 'right' },
                     ],
                     rows: a.transactions.map(t => [
-                        formatDate(t.date), t.description, t.direction === 'credit' ? 'In' : 'Out',
+                        formatDate(t.date), splitDescription(t.description), t.direction === 'credit' ? 'In' : 'Out',
                         formatCurrency(t.amount), formatCurrency(t.runningBalance),
                     ]),
                 });
@@ -5278,14 +5444,14 @@ const downloadCaMonthlyPackage = async (req, res) => {
                 company,
                 rowHeight: 30, // see the Purchases table's identical comment — cash entries carry a free-text reason
                 columns: [
-                    { label: 'Date', width: 70, align: 'left' },
-                    { label: 'Description', width: 190, align: 'left' },
-                    { label: 'Direction', width: 70, align: 'left' },
-                    { label: 'Amount', width: 85, align: 'right' },
-                    { label: 'Running Balance', width: 97, align: 'right' },
+                    { label: 'Date', width: 55, align: 'left' },
+                    { label: 'Description', width: 220, align: 'left' },
+                    { label: 'In/Out', width: 40, align: 'left' },
+                    { label: 'Amount', width: 69, align: 'right' },
+                    { label: 'Running Balance', width: 128, align: 'right' },
                 ],
                 rows: data.bankAndCash.cashTransactions.map(t => [
-                    formatDate(t.date), t.description, t.direction === 'credit' ? 'In' : 'Out',
+                    formatDate(t.date), splitDescription(t.description), t.direction === 'credit' ? 'In' : 'Out',
                     formatCurrency(t.amount), formatCurrency(t.runningBalance),
                 ]),
             });
@@ -5293,6 +5459,33 @@ const downloadCaMonthlyPackage = async (req, res) => {
             doc.font('Helvetica').fontSize(9).fillColor('#888888').text('No cash transactions this month.').fillColor('#000000').fontSize(10);
             doc.moveDown(0.4);
         }
+
+        // Called out separately from the bank/cash movement above — this is
+        // capital the owner put in, not revenue, and a CA needs it flagged
+        // as such rather than folded silently into "Credits (In)".
+        if (data.bankAndCash.ownerInvestment.allTime > 0) {
+            writeSubLabel(doc, 'Owner Investment');
+            drawStatBlock(doc, {
+                rows: [
+                    { label: 'This Month', value: formatCurrency(data.bankAndCash.ownerInvestment.thisMonth) },
+                    { label: 'Cumulative (All-Time, Through This Month)', value: formatCurrency(data.bankAndCash.ownerInvestment.allTime), bold: true, divider: true },
+                ],
+            });
+            if (data.bankAndCash.ownerInvestment.rows.length > 0) {
+                drawTable(doc, {
+                    company,
+                    rowHeight: 30,
+                    columns: [
+                        { label: 'Date', width: 80, align: 'left' },
+                        { label: 'Account', width: 160, align: 'left' },
+                        { label: 'Reason', width: 172, align: 'left' },
+                        { label: 'Amount', width: 100, align: 'right' },
+                    ],
+                    rows: data.bankAndCash.ownerInvestment.rows.map(r => [formatDate(r.date), r.bankAccountName, r.reason, formatCurrency(r.amount)]),
+                });
+            }
+        }
+
         drawStatBlock(doc, {
             rows: [
                 { label: 'Total Position (bank + cash, month end)', value: formatCurrency(data.bankAndCash.totalPosition), bold: true, tone: 'accent' },

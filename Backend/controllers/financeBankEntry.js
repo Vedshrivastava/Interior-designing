@@ -24,8 +24,9 @@ const listBankEntries = async (req, res) => {
 // alongside every other bank-account-tagged record.
 const addBankEntry = async (req, res) => {
     try {
-        const { date, type, amount, bankAccountId, projectId, reason, notes } = req.body;
+        const { date, type, amount, bankAccountId, projectId, reason, notes, source } = req.body;
         if (!['in', 'out'].includes(type)) return res.status(400).json({ success: false, message: 'type must be in or out' });
+        if (source && !['ownerInvestment', 'loan', 'interest', 'correction', 'other'].includes(source)) return res.status(400).json({ success: false, message: 'Invalid source' });
         if (!bankAccountId) return res.status(400).json({ success: false, message: 'Bank account is required' });
         if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
         if (!reason || !reason.trim()) return res.status(400).json({ success: false, message: 'Reason is required' });
@@ -36,6 +37,7 @@ const addBankEntry = async (req, res) => {
 
         const item = new FinanceBankEntry({
             date, type, amount: Number(amount), bankAccountId, projectId: projectId || null, reason: reason.trim(), notes: notes || '',
+            source: source || 'other',
         });
         await item.save();
         broadcast({ type: 'financeBankAccountsChanged' });

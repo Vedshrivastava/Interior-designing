@@ -149,7 +149,11 @@ export const computeCurrentStock = async (projectId, materialId) => {
                 materialName: '$material.name',
                 unit: '$material.unit',
                 dump: 1, consume: 1, returned: 1, waste: 1,
-                currentStock: { $subtract: [{ $subtract: [{ $subtract: ['$dump', '$consume'] }, '$returned'] }, '$waste'] },
+                // Rounded — summing many decimal quantities (measurement-
+                // derived consume rows especially) leaves float noise like
+                // 7.27e-13 instead of a clean 0, which renders on-screen as
+                // ugly scientific notation instead of "0".
+                currentStock: { $round: [{ $subtract: [{ $subtract: [{ $subtract: ['$dump', '$consume'] }, '$returned'] }, '$waste'] }, 2] },
             },
         },
         { $sort: { materialName: 1 } },

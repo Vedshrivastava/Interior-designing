@@ -3087,7 +3087,7 @@ const getMaterialAnalysis = async (req, res) => {
                 // bought at — a real loss, not just a quantity to note (see
                 // computeProjectMaterialWaste's identical reasoning).
                 wasteCost: s.waste * weightedAverageCost,
-                currentStock: s.dump - s.consume - s.returned - s.waste,
+                currentStock: round2(s.dump - s.consume - s.returned - s.waste),
                 weightedAverageCost,
                 // Only populated when scoped to one project (projectId set).
                 areaCoveredSqft,
@@ -3139,7 +3139,10 @@ const getInventorySummary = async (req, res) => {
             const stockByMaterial = new Map(stockRows.map(r => [r._id.materialId.toString(), r]));
             stockTable = materials.map(mat => {
                 const s = stockByMaterial.get(mat._id.toString()) || { dump: 0, consume: 0, returned: 0, waste: 0 };
-                const currentStock = s.dump - s.consume - s.returned - s.waste;
+                // Rounded — summing many decimal quantities leaves float
+                // noise like 7.27e-13 instead of a clean 0, which renders
+                // on-screen as ugly scientific notation instead of "0".
+                const currentStock = round2(s.dump - s.consume - s.returned - s.waste);
                 const wastageRate = (s.waste + s.consume) > 0 ? s.waste / (s.waste + s.consume) : 0;
                 return {
                     materialId: mat._id, materialName: mat.name, unit: mat.unit,
@@ -3165,7 +3168,7 @@ const getInventorySummary = async (req, res) => {
                 let currentStock = 0, totalDumped = 0, totalReturned = 0, totalConsumed = 0, totalWasted = 0;
                 let activeProjectCount = 0, lowAtProjectCount = 0;
                 for (const r of rows) {
-                    const projectStock = r.dump - r.consume - r.returned - r.waste;
+                    const projectStock = round2(r.dump - r.consume - r.returned - r.waste);
                     currentStock += projectStock;
                     totalDumped += r.dump;
                     totalReturned += r.returned;
@@ -3179,7 +3182,7 @@ const getInventorySummary = async (req, res) => {
                 const wastageRate = (totalWasted + totalConsumed) > 0 ? totalWasted / (totalWasted + totalConsumed) : 0;
                 return {
                     materialId: mat._id, materialName: mat.name, unit: mat.unit,
-                    currentStock, minimumStockLevel: mat.minimumStockLevel,
+                    currentStock: round2(currentStock), minimumStockLevel: mat.minimumStockLevel,
                     belowMinimum: lowAtProjectCount > 0, lowAtProjectCount, activeProjectCount,
                     totalDumped, totalReturned, totalConsumed, totalWasted, wastageRate,
                 };

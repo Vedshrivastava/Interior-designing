@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledDatePicker from './StyledDatePicker';
 import AddStockMovementModal from './AddStockMovementModal';
+import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -66,6 +67,12 @@ const StockMovementsManager = ({ url, projectId }) => {
             .then(res => { if (res.data.success && res.data.data.project?.startDate) setProjectStartDate(res.data.data.project.startDate.slice(0, 10)); })
             .catch(() => {});
     }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Without this, a Return/Purchase recorded from Procurement (or a
+    // measurement's auto-consume elsewhere) never reached this table until
+    // the page was fully reloaded — Site Inventory's own summary above
+    // already refreshes live on this same event, this table just didn't.
+    useFinanceWsRefresh(['financeStockChanged'], () => { fetchStock(); fetchHistory(); });
 
     const filteredMovements = movements.filter(m => {
         const dateKey = new Date(m.date).toISOString().slice(0, 10);

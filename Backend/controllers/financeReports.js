@@ -4385,22 +4385,23 @@ const getDashboardSummary = async (req, res) => {
                     earnings: commissionBreakdown.earningsTotal,
                     payments: commissionBreakdown.paymentsTotal,
                 },
-                // BUG FIX: this used to be overdue-backlog only (closed
-                // months, unpaid) — technically defensible (this month's
-                // salary "isn't due yet"), but it meant the Dashboard showed
-                // two different "salary payable" numbers side by side
-                // (Total Payables' slice vs the Salaries Payable card's own
-                // headline) with no visual signal they were answering
-                // different questions, which repeatedly read as a bug
-                // rather than a deliberate split. Now the one number
-                // "salary payable" means everywhere: backlog + whatever's
-                // still owed for the current month, net of payments
-                // already made. salaryOverduePayable keeps the backlog
-                // alone for the breakdown sub-line, so "how much of this
-                // is actually late" is still visible, just not the
-                // headline anymore.
-                salaryPayables: round2(salaryPayableBreakdown.overduePayable + salaryExpectedThisMonth),
-                salaryOverduePayable: salaryPayableBreakdown.overduePayable,
+                // "Payable" means the same thing everywhere on the
+                // Dashboard: money actually overdue right now (closed
+                // months, unpaid) — not the current, still-in-progress
+                // month's accrual, which isn't due yet. This was briefly
+                // changed to backlog + this-month combined (to stop Total
+                // Payables and the Salaries Payable card showing two
+                // different numbers), but that broke the OTHER, more
+                // important consistency: every other Payables category
+                // here (vendor/contractor/labour/commission) already means
+                // "currently, actually owed," with no "not due yet"
+                // component of its own — salary is the only one with a
+                // calendar-month accrual concept at all. Folding that in
+                // made Total Payables inconsistent with itself instead.
+                // salaryExpectedThisMonth stays separate, clearly labeled
+                // context ("what's accruing this month, not yet due"), not
+                // blended into "payable" anywhere.
+                salaryPayables: salaryPayableBreakdown.overduePayable,
                 salaryExpectedThisMonth,
                 salaryOverdue: salaryPayableBreakdown.overduePayable > 0.5,
                 // Every expense recorded pending (or only partially settled)
@@ -4496,6 +4497,11 @@ const getDashboardSummary = async (req, res) => {
                 cashFlowThisMonth: round2(cashFlowThisMonth.totals.net),
                 cashInThisMonth: round2(cashFlowThisMonth.totals.in),
                 cashOutThisMonth: round2(cashFlowThisMonth.totals.out),
+                // GST payable + Tax paid's own slice of cashOutThisMonth
+                // above — broken out so the card can say exactly how much
+                // of "out" was tax/GST rather than leaving it buried in one
+                // lump sum.
+                govtDuesThisMonth: round2(cashFlowThisMonth.byCategory.find(c => c.category === 'govtDues')?.amount || 0),
                 // Same cash-basis concept, all-time — "how much real profit
                 // has actually landed in the company's hands to date,"
                 // distinct from totalApprovedProfitToDate below (accrual,
@@ -4503,6 +4509,7 @@ const getDashboardSummary = async (req, res) => {
                 totalProfitCollectedTillDate: round2(cashFlowAllTime.totals.net),
                 totalCashInTillDate: round2(cashFlowAllTime.totals.in),
                 totalCashOutTillDate: round2(cashFlowAllTime.totals.out),
+                govtDuesTillDate: round2(cashFlowAllTime.byCategory.find(c => c.category === 'govtDues')?.amount || 0),
                 // Ongoing projects only (see ongoingProjects' own comment) —
                 // pairs with unapprovedProfitTotal above (also all-time, not
                 // month-scoped) rather than mismatching against This Month

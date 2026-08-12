@@ -73,9 +73,36 @@ const getSalaryLedger = async (req, res) => {
         // was withheld as TDS rather than actually reaching the employee.
         const tdsTotal = round2(allPayments.reduce((sum, p) => sum + (p.tdsAmount || 0), 0));
 
+        // Oldest unpaid month — walked from joining date through the
+        // current month, NOT just `months` above (that list only includes
+        // months with at least one payment; a month with ZERO payments,
+        // the most common way to be behind, would otherwise never surface
+        // here at all). Lets the Add Payment form default to this instead
+        // of the current month, so a normal payment naturally clears
+        // backlog first — same "don't silently skip a fully-unpaid month"
+        // reasoning as computeCompanyWideSalaryPayable's own walk.
+        const currentMonthKey = new Date().toISOString().slice(0, 7);
+        const paidByMonth = new Map(byMonth.map(m => [m.month, m.paid]));
+        let oldestUnpaidMonth = null;
+        if (employee.joiningDate) {
+            const joined = new Date(employee.joiningDate);
+            let y = joined.getFullYear(), mo = joined.getMonth() + 1;
+            const [curY, curM] = currentMonthKey.split('-').map(Number);
+            while (y < curY || (y === curY && mo <= curM)) {
+                const key = `${y}-${String(mo).padStart(2, '0')}`;
+                const expected = expectedSalaryForMonth(employee, key);
+                const paid = paidByMonth.get(key) || 0;
+                if (expected - paid > 0.5) { oldestUnpaidMonth = key; break; }
+                mo += 1;
+                if (mo > 12) { mo = 1; y += 1; }
+            }
+        } else if (expectedSalaryForMonth(employee, currentMonthKey) - (paidByMonth.get(currentMonthKey) || 0) > 0.5) {
+            oldestUnpaidMonth = currentMonthKey;
+        }
+
         res.json({
             success: true,
-            data: { employeeId: employee._id, employeeName: employee.name, expectedSalary: employee.salary || 0, months: byMonth, payments: allPayments, tdsTotal },
+            data: { employeeId: employee._id, employeeName: employee.name, expectedSalary: employee.salary || 0, months: byMonth, payments: allPayments, tdsTotal, oldestUnpaidMonth },
         });
     } catch (err) {
         console.error(err);

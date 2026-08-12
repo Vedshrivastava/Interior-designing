@@ -54,6 +54,20 @@ const SalaryLedgerView = ({ url, employeeId }) => {
 
     useEffect(() => { if (employeeId) fetchLedger(); }, [employeeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Jump the Add Payment month to this employee's oldest unpaid month
+    // the moment they're selected — see SalaryPaymentsManager.jsx's
+    // identical effect for the full reasoning. Deliberately its own fetch,
+    // keyed only on employeeId — folding this into fetchLedger itself
+    // would re-default the month every time a WS refresh re-runs it (any
+    // salary payment anywhere), fighting whatever month the user is
+    // partway through picking themselves.
+    useEffect(() => {
+        if (!employeeId) return;
+        axios.get(`${url}/api/finance/employees/${employeeId}/salary-ledger`, authHeader)
+            .then(res => { if (res.data.success && res.data.data.oldestUnpaidMonth) setForm(p => ({ ...p, month: res.data.data.oldestUnpaidMonth })); })
+            .catch(() => {});
+    }, [employeeId]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // A payment for this employee recorded elsewhere (the standalone
     // Salary Payment tab) wouldn't otherwise show up here until reselected.
     useFinanceWsRefresh(['financeSalaryPaymentsChanged'], (msg) => { if (employeeId && (!msg.employeeId || msg.employeeId === employeeId)) fetchLedger(); });

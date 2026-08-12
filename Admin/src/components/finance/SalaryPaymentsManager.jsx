@@ -83,6 +83,19 @@ const SalaryPaymentsManager = ({ url }) => {
         if (employeeId) { fetchPayments(); fetchBalanceDue(); } else { setPayments([]); setBalanceDue(null); }
     }, [employeeId, month]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Jump the month picker to this employee's oldest unpaid month the
+    // moment they're selected — a normal payment then clears backlog
+    // first by default, instead of silently paying the current month
+    // while an older month sits unpaid and unnoticed. Only on employee
+    // change, not every render, so it never fights a month the user then
+    // deliberately picks themselves (e.g. to record an advance).
+    useEffect(() => {
+        if (!employeeId) return;
+        axios.get(`${url}/api/finance/employees/${employeeId}/salary-ledger`, authHeader)
+            .then(res => { if (res.data.success && res.data.data.oldestUnpaidMonth) setMonth(res.data.data.oldestUnpaidMonth); })
+            .catch(() => {});
+    }, [employeeId]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // A payment for this employee/month recorded elsewhere (Masters' Salary
     // Ledger tab, or this same tab in another browser tab/admin) wouldn't
     // otherwise show up here until reselected.

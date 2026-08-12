@@ -3255,7 +3255,10 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         // Settlements against an accrual expense — see the paidAtEntry
         // split below for why these, not the expense rows themselves, are
         // the actual cash-out event for that half of FinanceExpense.
-        FinanceExpensePayment.find(otherFilter),
+        // Populated with the parent expense's own category so the
+        // category breakdown below can attribute a settlement correctly —
+        // an ExpensePayment has no category field of its own.
+        FinanceExpensePayment.find(otherFilter).populate('expenseId', 'expenseCategory'),
         // Real cash out today, same as a Payment — see
         // financeBankAccount.js's getAccountActivity, identical reasoning.
         FinanceContractorAdvance.find(otherFilter),
@@ -3310,6 +3313,24 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
     // date now; the accrual half counts via its actual settlements below,
     // each on the date that payment actually happened.
     const paidAtEntryExpenses = expenses.filter(e => e.paymentMode || e.bankAccountId);
+
+    // Category breakdown of cash-paid expenses only — same two shapes as
+    // paidAtEntryExpenses above, just grouped by expenseCategory instead
+    // of summed into one lump "expense" figure, so the Dashboard can show
+    // exactly what an outflow was for (Travel, Fuel, Rent, ...) instead of
+    // a single opaque number. Deliberately excludes the unpaid half of an
+    // accrual expense, same reasoning as everywhere else in this function
+    // — nothing here that hasn't actually left the company yet.
+    const expenseCategoryTotals = new Map();
+    const bumpCategory = (category, amount) => {
+        const key = category || 'Uncategorized';
+        expenseCategoryTotals.set(key, (expenseCategoryTotals.get(key) || 0) + amount);
+    };
+    paidAtEntryExpenses.forEach(e => bumpCategory(e.expenseCategory, e.amount));
+    expensePayments.forEach(p => bumpCategory(p.expenseId?.expenseCategory, p.amount));
+    const expenseByCategory = [...expenseCategoryTotals.entries()]
+        .map(([category, amount]) => ({ category, amount: round2(amount) }))
+        .sort((a, b) => b.amount - a.amount);
 
     // Cash actually leaving the company for any of these six payment types
     // is net of any TDS withheld (see financeBankAccount.js's
@@ -3404,6 +3425,12 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
             ...(manualBankInTotal > 0 ? [{ category: 'manualBankIn', direction: 'in', amount: manualBankInTotal }] : []),
             ...Object.entries(outByCategory).map(([category, amount]) => ({ category, direction: 'out', amount })),
         ],
+        // The "expense" line in outByCategory/byCategory above is one
+        // lump sum — this is that same cash-paid-expense total broken out
+        // by expenseCategory (Travel, Fuel, Rent, ...) instead, project-
+        // related or not (see this function's own header — no project
+        // filter anywhere here).
+        expenseByCategory,
         series: seriesArr,
     };
 };
@@ -4255,7 +4282,7 @@ const getDashboardSummary = async (req, res) => {
         // payment timing). Salary is cash-basis — see
         // computeSalaryPaidInRange's own comment for why it's different
         // from expense here.
-        const [monthMaterialWasteCost, reviewedCosts, monthExpenseAgg, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth, expensePayableBreakdown, totalExpenseToDate, reimbursementRows, companyWidePaidExpenses, gstItcPosition, cashFlowThisMonth, cashFlowAllTime] = await Promise.all([
+        const [monthMaterialWasteCost, reviewedCosts, monthExpenseAgg, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth, expensePayableBreakdown, totalExpenseToDate, reimbursementRows, companyWidePaidExpenses, gstItcPosition, cashFlowThisMonth, cashFlowAllTime, totalRevenueAgg] = await Promise.all([
             computeCompanyWideMaterialCostInRange(monthStart, monthEnd, null, 'waste'),
             computeReviewedCostsInRange(monthStart, monthEnd),
             FinanceExpense.aggregate([
@@ -4285,6 +4312,15 @@ const getDashboardSummary = async (req, res) => {
             // month").
             computeCashFlow(monthStart, monthEnd),
             computeCashFlow(null, null),
+            // All-time revenue, every project including completed (same
+            // scope as the two cash-flow figures above, for a consistent
+            // trio) — GST-exclusive, same convention as thisMonthRevenue
+            // below (totalAmount is the subtotal; gstAmount is tracked
+            // separately and never counted as revenue).
+            FinanceRunningBill.aggregate([
+                { $match: { status: 'issued', deleted: { $ne: true } } },
+                { $group: { _id: null, total: { $sum: '$totalAmount' } } },
+            ]),
         ]);
         const { materialCost: monthMaterialCost, contractorCost: monthContractorCost, labourCost: monthLabourCost, commissionCost: monthCommissionCost } = reviewedCosts;
         const thisMonthRevenue = monthRevenueAgg[0]?.total || 0;
@@ -4502,6 +4538,11 @@ const getDashboardSummary = async (req, res) => {
                 // of "out" was tax/GST rather than leaving it buried in one
                 // lump sum.
                 govtDuesThisMonth: round2(cashFlowThisMonth.byCategory.find(c => c.category === 'govtDues')?.amount || 0),
+                // Cash-paid expenses this month, broken out by category
+                // (Travel, Fuel, Rent, ...) instead of one lump sum —
+                // project-related or not, see computeCashFlow's own
+                // header comment (no project filter anywhere in it).
+                expenseByCategoryThisMonth: cashFlowThisMonth.expenseByCategory,
                 // Same cash-basis concept, all-time — "how much real profit
                 // has actually landed in the company's hands to date,"
                 // distinct from totalApprovedProfitToDate below (accrual,
@@ -4510,6 +4551,10 @@ const getDashboardSummary = async (req, res) => {
                 totalCashInTillDate: round2(cashFlowAllTime.totals.in),
                 totalCashOutTillDate: round2(cashFlowAllTime.totals.out),
                 govtDuesTillDate: round2(cashFlowAllTime.byCategory.find(c => c.category === 'govtDues')?.amount || 0),
+                expenseByCategoryTillDate: cashFlowAllTime.expenseByCategory,
+                // All-time revenue, every project including completed —
+                // same scope as the two cash-flow figures above.
+                totalRevenueToDate: round2(totalRevenueAgg[0]?.total || 0),
                 // Ongoing projects only (see ongoingProjects' own comment) —
                 // pairs with unapprovedProfitTotal above (also all-time, not
                 // month-scoped) rather than mismatching against This Month

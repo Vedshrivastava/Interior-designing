@@ -198,14 +198,47 @@ const FinanceHome = ({ url }) => {
                     <KpiCard hero loading={phase1Loading} icon={faMoneyBillTransfer} label="This Month Revenue" value={formatINR(summary?.thisMonthRevenue)}
                         sub={summary?.thisMonthRevenueBillCount > 0 ? `From ${summary.thisMonthRevenueBillCount} bill${summary.thisMonthRevenueBillCount === 1 ? '' : 's'} issued this month` : 'No bills issued this month'}
                         onClick={() => navigate('/finance/receivables')} />
+                    <KpiCard hero loading={phase1Loading} icon={faMoneyBillTransfer} label="Total Revenue Till Date" value={formatINR(summary?.totalRevenueToDate)}
+                        sub="All-time, every project including completed — GST-exclusive, same convention as This Month Revenue"
+                        onClick={() => navigate('/finance/receivables')} />
                     <KpiCard hero loading={phase1Loading} icon={faArrowTrendUp} label="This Month Profit" value={formatINR(summary?.thisMonthProfit)}
                         sub={`Revenue ${formatINR(summary?.thisMonthRevenue)} − Costs ${formatINR(summary?.thisMonthTotalCost)}`}
                         onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.thisMonthProfit >= 0 ? 'good' : 'danger'} />
+                    <KpiCard hero loading={phase1Loading} icon={faArrowTrendUp} label="Total Approved Profit - Ongoing Projects" value={formatINR(summary?.totalApprovedProfitToDate)} sub="All-time, excludes completed projects" onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.totalApprovedProfitToDate >= 0 ? 'good' : 'danger'} />
+                    <KpiCard hero loading={phase1Loading} icon={faMoneyBillTransfer} label="Cash Flow This Month" value={formatINR(summary?.cashFlowThisMonth)}
+                        // Real money in vs real money out this month —
+                        // deliberately separate from This Month Profit
+                        // above (accrual: what was billed/incurred, paid
+                        // or not). A month can be accrual-profitable but
+                        // cash-negative (billed a lot, collected little)
+                        // or the reverse — both cards stay, answering
+                        // different questions. GST/Tax paid and the paid
+                        // expenses making up "Out" (by category — Travel,
+                        // Fuel, Rent, ...) are both called out by name
+                        // instead of leaving them a mystery chunk of the
+                        // outflow.
+                        sub={[
+                            `In ${formatINR(summary?.cashInThisMonth)} − Out ${formatINR(summary?.cashOutThisMonth)}`,
+                            summary?.govtDuesThisMonth > 0 ? `incl. ${formatINR(summary.govtDuesThisMonth)} GST/Tax paid` : null,
+                            buildBreakdownSub((summary?.expenseByCategoryThisMonth || []).map(e => [e.category, e.amount])),
+                        ].filter(Boolean).join(' — ')}
+                        onClick={() => navigate('/finance/bank')} tone={summary?.cashFlowThisMonth >= 0 ? 'good' : 'danger'} />
+                    <KpiCard hero loading={phase1Loading} icon={faMoneyBillTransfer} label="Total Profit Collected Till Date" value={formatINR(summary?.totalProfitCollectedTillDate)}
+                        // Same cash-basis concept as Cash Flow This Month
+                        // above, all-time — real money that's actually
+                        // landed in the company's hands to date, every
+                        // project (including completed ones, unlike the
+                        // accrual profit figures above which exclude them).
+                        sub={[
+                            `Collected ${formatINR(summary?.totalCashInTillDate)} − Paid Out ${formatINR(summary?.totalCashOutTillDate)}`,
+                            summary?.govtDuesTillDate > 0 ? `incl. ${formatINR(summary.govtDuesTillDate)} GST/Tax paid` : null,
+                            buildBreakdownSub((summary?.expenseByCategoryTillDate || []).map(e => [e.category, e.amount])),
+                        ].filter(Boolean).join(' — ')}
+                        onClick={() => navigate('/finance/bank')} tone={summary?.totalProfitCollectedTillDate >= 0 ? 'good' : 'danger'} />
                     <KpiCard hero loading={phase1Loading} icon={faMoneyBillWave} label="This Month Miscellaneous Expense" value={formatINR(summary?.thisMonthExpense)}
                         sub={summary?.thisMonthExpenseCount > 0 ? `${summary.thisMonthExpenseCount} expense${summary.thisMonthExpenseCount === 1 ? '' : 's'} recorded this month` : undefined}
                         onClick={() => navigate('/finance/payables?tab=expenses')} />
                     <KpiCard hero loading={phase1Loading} icon={faReceipt} label="Total Miscellaneous Expense - Ongoing Projects" value={formatINR(summary?.totalExpenseToDate)} sub="All-time, excludes completed projects — misc./overhead expenses only (rent, tools, etc.); see Total Expenses below for everything" onClick={() => navigate('/finance/payables?tab=expenses')} />
-                    <KpiCard hero loading={phase1Loading} icon={faArrowTrendUp} label="Total Approved Profit - Ongoing Projects" value={formatINR(summary?.totalApprovedProfitToDate)} sub="All-time, excludes completed projects" onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.totalApprovedProfitToDate >= 0 ? 'good' : 'danger'} />
                     <KpiCard hero loading={phase1Loading} icon={faTriangleExclamation} label="Material Wastage Loss - Ongoing Projects" value={formatINR(summary?.materialWasteCostToDate)}
                         sub={[
                             summary?.materialWasteBreakdown && buildBreakdownSub([
@@ -285,33 +318,6 @@ const FinanceHome = ({ url }) => {
                         sub={summary?.bankAccountsCount > 0 ? `Across ${summary.bankAccountsCount} account${summary.bankAccountsCount === 1 ? '' : 's'}` : undefined}
                         onClick={() => navigate('/finance/bank')} />
                     <KpiCard loading={phase1Loading} icon={faWallet} label="Cash in Hand" value={formatINR(summary?.cashInHand)} onClick={() => navigate('/finance/cash-book')} />
-                    <KpiCard loading={phase1Loading} icon={faMoneyBillTransfer} label="Cash Flow This Month" value={formatINR(summary?.cashFlowThisMonth)}
-                        // Real money in vs real money out this month —
-                        // deliberately separate from This Month Profit
-                        // above (accrual: what was billed/incurred, paid
-                        // or not). A month can be accrual-profitable but
-                        // cash-negative (billed a lot, collected little)
-                        // or the reverse — both cards stay, answering
-                        // different questions. GST/Tax paid this month
-                        // (financeGstFiling, once filed) already sits
-                        // inside "Out" below — called out by name here so
-                        // it isn't just a mystery chunk of the outflow.
-                        sub={[
-                            `In ${formatINR(summary?.cashInThisMonth)} − Out ${formatINR(summary?.cashOutThisMonth)}`,
-                            summary?.govtDuesThisMonth > 0 ? `incl. ${formatINR(summary.govtDuesThisMonth)} GST/Tax paid` : null,
-                        ].filter(Boolean).join(' — ')}
-                        onClick={() => navigate('/finance/bank')} tone={summary?.cashFlowThisMonth >= 0 ? 'good' : 'danger'} />
-                    <KpiCard loading={phase1Loading} icon={faMoneyBillTransfer} label="Total Profit Collected Till Date" value={formatINR(summary?.totalProfitCollectedTillDate)}
-                        // Same cash-basis concept as Cash Flow This Month
-                        // above, all-time — real money that's actually
-                        // landed in the company's hands to date, every
-                        // project (including completed ones, unlike the
-                        // accrual profit figures above which exclude them).
-                        sub={[
-                            `Collected ${formatINR(summary?.totalCashInTillDate)} − Paid Out ${formatINR(summary?.totalCashOutTillDate)}`,
-                            summary?.govtDuesTillDate > 0 ? `incl. ${formatINR(summary.govtDuesTillDate)} GST/Tax paid` : null,
-                        ].filter(Boolean).join(' — ')}
-                        onClick={() => navigate('/finance/bank')} tone={summary?.totalProfitCollectedTillDate >= 0 ? 'good' : 'danger'} />
                     <KpiCard loading={phase1Loading} icon={faFileInvoiceDollar} label="Client Receivables" value={formatINR(summary?.clientReceivables)} onClick={() => navigate('/finance/clients')} tone={summary?.clientReceivables > 0 ? 'danger' : 'good'}
                         sub={summary?.clientCreditBalanceTotal > 0 ? `Client credit balance: ${formatINR(summary.clientCreditBalanceTotal)}` : undefined} />
                     <KpiCard loading={phase1Loading} icon={faCartShopping} label="Vendor Payables" value={formatINR(summary?.vendorPayables)}

@@ -7,7 +7,7 @@ import StyledDatePicker from './StyledDatePicker';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faCheck, faPen } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -46,6 +46,7 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
     const [modalOpen, setModalOpen] = useState(false);
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
+    const [editingId, setEditingId] = useState(null);
 
     const fetchProjects = () => {
         if (fixedProjectId) return;
@@ -84,8 +85,19 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
-    const openAdd = () => { setForm(emptyForm); setModalOpen(true); };
-    const closeModal = () => setModalOpen(false);
+    const openAdd = () => { setEditingId(null); setForm(emptyForm); setModalOpen(true); };
+    const openEdit = (r) => {
+        setEditingId(r._id);
+        setForm({
+            runningBillId: r.runningBillId?._id || r.runningBillId || '',
+            amount: r.amount, receiptDate: r.receiptDate ? r.receiptDate.slice(0, 10) : '',
+            paymentMode: r.paymentMode || '', bankOrCashLabel: r.bankOrCashLabel || '',
+            bankAccountId: r.bankAccountId?._id || r.bankAccountId || '',
+            utrNumber: r.utrNumber || '', notes: r.notes || '',
+        });
+        setModalOpen(true);
+    };
+    const closeModal = () => { setModalOpen(false); setEditingId(null); };
 
     const submit = async (e) => {
         e.preventDefault();
@@ -96,12 +108,16 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
 
         setSaving(true);
         try {
-            const res = await axios.post(`${url}/api/finance/receipts/add`, {
-                ...form,
-                projectId: selectedProjectId,
-                clientId: projectDetail.clientId._id || projectDetail.clientId,
-                runningBillId: form.runningBillId || null,
-            }, authHeader);
+            const endpoint = editingId ? 'update' : 'add';
+            const payload = editingId
+                ? { ...form, _id: editingId, runningBillId: form.runningBillId || null }
+                : {
+                    ...form,
+                    projectId: selectedProjectId,
+                    clientId: projectDetail.clientId._id || projectDetail.clientId,
+                    runningBillId: form.runningBillId || null,
+                };
+            const res = await axios.post(`${url}/api/finance/receipts/${endpoint}`, payload, authHeader);
             if (res.data.success) {
                 toast.success(res.data.message);
                 await registerSettingIfNew(url, authHeader, 'payment_mode', form.paymentMode, paymentModes.map(m => ({ name: m })));
@@ -149,7 +165,7 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                         <div className="submit-loader-overlay rcpt-overlay" style={{ zIndex: 100000 }}>
                             <div className="loader-modal-box edit-modal rcpt-modal">
                                 <div className="rcpt-modal-header">
-                                    <h2>Record Receipt</h2>
+                                    <h2>{editingId ? 'Edit Receipt' : 'Record Receipt'}</h2>
                                 </div>
 
                                 <div className="rcpt-modal-body">
@@ -183,7 +199,13 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                                                 <StyledSelect
                                                     value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash" loading={refDataLoading}
                                                     options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                                                    disabled={!!editingId}
                                                 />
+                                                {editingId && (
+                                                    <p style={{ fontSize: '0.72rem', color: 'var(--text-lt)', margin: '4px 0 0' }}>
+                                                        Can&apos;t be changed after recording — remove and re-add if the account was wrong.
+                                                    </p>
+                                                )}
                                             </div>
                                             <div className="add-product-name flex-col">
                                                 <p>UTR / Reference Number</p>
@@ -228,6 +250,9 @@ const ReceiptsManager = ({ url, projectId: fixedProjectId }) => {
                                     <p className="rcpt-account"><span className="rcpt-field-label">Account</span>{r.bankAccountId?.accountName || (r.paymentMode ? 'Cash' : '-')}</p>
                                     <p className="rcpt-reference"><span className="rcpt-field-label">Reference</span>{r.utrNumber || r.bankOrCashLabel || '-'}</p>
                                     <div className="action-buttons rcpt-action">
+                                        <button type="button" onClick={() => openEdit(r)} className="pq-btn-ghost-edit" title="Edit receipt" aria-label="Edit receipt">
+                                            <FontAwesomeIcon icon={faPen} className="pq-action-icon" />
+                                        </button>
                                         <button type="button" onClick={() => removeReceipt(r)} className="pq-btn-ghost-danger" title="Remove receipt" aria-label="Remove receipt">
                                             <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
                                         </button>

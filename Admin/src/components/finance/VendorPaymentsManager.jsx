@@ -14,7 +14,7 @@ import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '' };
+const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '', projectId: '', isRefund: false };
 
 /*
  * Standalone vendor-payment entry + history — the same financeVendorPayment
@@ -34,6 +34,8 @@ const VendorPaymentsManager = ({ url }) => {
     const [paymentModes, setPaymentModes] = useState([]);
     const [payments, setPayments] = useState([]);
     const [amountOwed, setAmountOwed] = useState(null);
+    const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(true);
     const [loading, setLoading] = useState(false);
 
     const [form, setForm] = useState(emptyForm);
@@ -53,6 +55,14 @@ const VendorPaymentsManager = ({ url }) => {
                 .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {}),
         ]).finally(() => setRefDataLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const fetchProjects = () => {
+        setProjectsLoading(true);
+        axios.get(`${url}/api/finance/projects/list`, authHeader)
+            .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
+    };
+    useEffect(fetchProjects, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
 
     const fetchPayments = async () => {
         setLoading(true);
@@ -179,7 +189,7 @@ const VendorPaymentsManager = ({ url }) => {
                         <div className="submit-loader-overlay vpm-overlay" style={{ zIndex: 99999 }}>
                             <div className="loader-modal-box edit-modal vpm-modal">
                                 <div className="vpm-modal-header">
-                                    <h2>Add Payment</h2>
+                                    <h2>{form.isRefund ? 'Add Refund' : 'Add Payment'}</h2>
                                     {amountOwed !== null && (
                                         <p className="admin-subtitle" style={{ margin: '4px 0 0' }}>
                                             Payment Left: <span style={{ fontWeight: 700, color: amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}>₹{amountOwed.toLocaleString('en-IN')}</span>
@@ -189,6 +199,10 @@ const VendorPaymentsManager = ({ url }) => {
                                 <div className="vpm-modal-body">
                                     <form id="vpm-form" onSubmit={submit}>
                                         <div className="wizard-field-grid">
+                                            <div className="add-product-name flex-col wizard-field-full" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+                                                <input type="checkbox" id="vpm-is-refund" checked={form.isRefund} onChange={e => setField('isRefund', e.target.checked)} />
+                                                <label htmlFor="vpm-is-refund" style={{ margin: 0 }}>This is a refund from the vendor (money coming in, not out)</label>
+                                            </div>
                                             <div className="add-product-name flex-col">
                                                 <p>Amount (₹) *</p>
                                                 <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.amount} onChange={e => setField('amount', e.target.value)} />
@@ -196,6 +210,13 @@ const VendorPaymentsManager = ({ url }) => {
                                             <div className="add-product-name flex-col">
                                                 <p>Date *</p>
                                                 <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>Project (optional)</p>
+                                                <StyledSelect
+                                                    value={form.projectId} onChange={v => setField('projectId', v)} placeholder="Not tied to a project" loading={projectsLoading}
+                                                    options={projects.map(p => ({ value: p._id, label: p.name }))}
+                                                />
                                             </div>
                                             <div className="add-product-name flex-col">
                                                 <p>Payment Mode</p>
@@ -241,7 +262,7 @@ const VendorPaymentsManager = ({ url }) => {
                                 </div>
                                 <div className="edit-modal-actions vpm-modal-footer">
                                     <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
-                                    <button type="submit" form="vpm-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                                    <button type="submit" form="vpm-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : (form.isRefund ? 'Save Refund' : 'Save Payment')}</button>
                                 </div>
                             </div>
                         </div>,

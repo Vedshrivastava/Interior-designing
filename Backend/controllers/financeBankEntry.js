@@ -60,6 +60,49 @@ const addBankEntry = async (req, res) => {
     }
 };
 
+const updateBankEntry = async (req, res) => {
+    try {
+        const { _id, date, type, amount, bankAccountId, projectId, reason, notes, source } = req.body;
+        const existing = await FinanceBankEntry.findById(_id);
+        if (!existing) return res.status(404).json({ success: false, message: 'Not found' });
+        if (!['in', 'out'].includes(type)) return res.status(400).json({ success: false, message: 'type must be in or out' });
+        if (source && !['ownerInvestment', 'loan', 'interest', 'correction', 'other'].includes(source)) return res.status(400).json({ success: false, message: 'Invalid source' });
+        if (!bankAccountId) return res.status(400).json({ success: false, message: 'Bank account is required' });
+        if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
+        if (!reason || !reason.trim()) return res.status(400).json({ success: false, message: 'Reason is required' });
+        if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
+
+        const account = await FinanceBankAccount.findOne({ _id: bankAccountId, deleted: { $ne: true } });
+        if (!account) return res.status(404).json({ success: false, message: 'Bank account not found' });
+
+        await FinanceBankEntry.findByIdAndUpdate(_id, {
+            date, type, amount: Number(amount), bankAccountId, projectId: projectId || null, reason: reason.trim(), notes: notes || '',
+            source: source || 'other',
+        });
+        // Unlike most edits here, a bank entry can freely move to a
+        // different account — there's no auto-generated cash-entry mirror
+        // to keep in sync (financeBankEntry is manual-only from the start,
+        // see this model's own comment), so nothing else needs updating.
+        broadcast({ type: 'financeBankAccountsChanged' });
+
+        await logActivity({
+            eventType: type === 'in' ? 'bank_entry_in' : 'bank_entry_out',
+            entityType: 'financeBankEntry',
+            entityId: _id,
+            projectId: projectId || null,
+            summary: `${type === 'in' ? 'Manual deposit into' : 'Manual withdrawal from'} ${account.accountName} updated — ${reason.trim()}`,
+            entityNames: [account.accountName],
+            amount: Number(amount),
+            req,
+        });
+
+        res.json({ success: true, message: 'Bank entry updated' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error updating bank entry' });
+    }
+};
+
 const removeBankEntry = async (req, res) => {
     try {
         const { _id } = req.body;
@@ -88,4 +131,4 @@ const removeBankEntry = async (req, res) => {
     }
 };
 
-export { listBankEntries, addBankEntry, removeBankEntry };
+export { listBankEntries, addBankEntry, updateBankEntry, removeBankEntry };

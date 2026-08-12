@@ -3575,6 +3575,65 @@
     .cem-action { grid-area: action; justify-content: flex-end; }
 }
 
+/* ── Bank Entries (BankEntriesManager) — its own 6-column variant of Cash
+   Book's row shape above (.cem-*), not a reuse of it: a bank entry has an
+   extra required dimension (Account) alongside the same Source concept,
+   so cramming it into .cem-source's single grid-area collided Account
+   and Source into the same cell. Kept as a separate bem- prefix rather
+   than widening .cem-* itself, since Cash Book's own rows (Date/Amount/
+   Reason/Source/Action, no Account) still need exactly 5 columns. */
+.bem-card {
+    padding: 0;
+}
+.bem-row {
+    display: grid;
+    grid-template-columns: 0.9fr 0.8fr 1.3fr 1fr 0.9fr 84px;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+}
+.bem-row:last-child {
+    border-bottom: none;
+}
+.bem-row.bem-header {
+    color: var(--text-lt, #9a8e84);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+}
+.bem-date { margin: 0; font-weight: 600; color: var(--text-dark, #1a1208); }
+.bem-amount, .bem-reason, .bem-account, .bem-source { margin: 0; }
+.bem-amount { font-variant-numeric: tabular-nums; font-weight: 600; }
+.bem-action { display: flex; justify-content: center; gap: 6px; }
+@media (min-width: 641px) {
+    .bem-amount, .bem-reason, .bem-account, .bem-source { justify-self: center; }
+}
+@media (max-width: 640px) {
+    .bem-row.bem-header {
+        display: none;
+    }
+    .bem-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "date amount"
+            "reason reason"
+            "account source"
+            "action action";
+        row-gap: 12px;
+        column-gap: 10px;
+        padding: 16px;
+    }
+    .bem-date { grid-area: date; font-size: 1rem; }
+    .bem-amount { grid-area: amount; text-align: right; font-size: 1rem; }
+    .bem-reason { grid-area: reason; }
+    .bem-account { grid-area: account; }
+    .bem-source { grid-area: source; }
+    .bem-action { grid-area: action; justify-content: flex-end; }
+}
+
 /* ── Reports page — Contractor/Labour Analysis (rca-/rla-, 9 cols, same
    shape as Payables' own Contractor tab) and Vendor/Supervisor Analysis
    (rva-/rsa-, 5 cols) — all four read-only, no Actions column. */

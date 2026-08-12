@@ -2949,17 +2949,22 @@
     .list-table-format.rcpt-row .rcpt-action {
         grid-area: actions !important;
         flex-direction: row !important;
+        gap: 8px !important;
         justify-content: flex-start !important;
         margin-top: 0 !important;
         padding-top: 0 !important;
         border-top: none !important;
         font-size: inherit !important;
     }
-    /* margin-left:0 clears dashboard.css's base-level desktop separation
-       (10px) — a 100%-wide button doesn't need it, same reasoning as
-       rb-actions above. */
+    /* Edit + Delete share the row evenly instead of one being a full-width
+       bar and the other a small icon floating next to it — margin-left:0
+       clears dashboard.css's base-level desktop separation (10px), which
+       an evenly-split pair doesn't need, same reasoning as rb-actions
+       above. */
+    .list-table-format.rcpt-row .rcpt-action .pq-btn-ghost-edit,
     .list-table-format.rcpt-row .rcpt-action .pq-btn-ghost-danger {
-        width: 100% !important;
+        flex: 1 1 0;
+        width: auto !important;
         height: 36px !important;
         margin-left: 0 !important;
     }

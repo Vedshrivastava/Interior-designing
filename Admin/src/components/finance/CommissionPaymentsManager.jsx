@@ -13,7 +13,7 @@ import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '' };
+const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '', projectId: '' };
 
 /*
  * Standalone commission-payment entry + history — the same
@@ -29,8 +29,11 @@ const CommissionPaymentsManager = ({ url }) => {
     const [bankAccounts, setBankAccounts] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
     const [paymentModes, setPaymentModes] = useState([]);
+    const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(true);
     const [refDataLoading, setRefDataLoading] = useState(true);
     const [payments, setPayments] = useState([]);
+    const [commissionPayable, setCommissionPayable] = useState(null);
     const [loading, setLoading] = useState(false);
 
     const [form, setForm] = useState(emptyForm);
@@ -50,6 +53,14 @@ const CommissionPaymentsManager = ({ url }) => {
         ]).finally(() => setRefDataLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    const fetchProjects = () => {
+        setProjectsLoading(true);
+        axios.get(`${url}/api/finance/projects/list`, authHeader)
+            .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}).finally(() => setProjectsLoading(false));
+    };
+    useEffect(fetchProjects, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+    useFinanceWsRefresh(['financeProjectsChanged'], fetchProjects);
+
     const fetchPayments = async () => {
         setLoading(true);
         try {
@@ -59,11 +70,24 @@ const CommissionPaymentsManager = ({ url }) => {
         finally { setLoading(false); }
     };
 
-    useEffect(() => { if (referralId) fetchPayments(); else setPayments([]); }, [referralId]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Commission Payable — same figure Procurement's Commission Ledger tab
+    // already shows, surfaced here too so it's visible right where you're
+    // about to record a payment against it. See
+    // LabourProviderPaymentsManager.jsx's identical fetchBalancePayable.
+    const fetchCommissionPayable = async () => {
+        try {
+            const res = await axios.get(`${url}/api/finance/referrals/${referralId}/commission-ledger`, authHeader);
+            if (res.data.success) setCommissionPayable(res.data.data.totals.commissionPayable);
+        } catch { setCommissionPayable(null); }
+    };
+
+    useEffect(() => {
+        if (referralId) { fetchPayments(); fetchCommissionPayable(); } else { setPayments([]); setCommissionPayable(null); }
+    }, [referralId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // A payment for this referral recorded elsewhere (Procurement's
     // Commission Ledger tab) wouldn't otherwise show up here until reselected.
-    useFinanceWsRefresh(['financeCommissionPaymentsChanged'], () => { if (referralId) fetchPayments(); });
+    useFinanceWsRefresh(['financeCommissionPaymentsChanged'], () => { if (referralId) { fetchPayments(); fetchCommissionPayable(); } });
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -77,7 +101,7 @@ const CommissionPaymentsManager = ({ url }) => {
             const res = await axios.post(`${url}/api/finance/commission-payments/add`, { ...form, referralId }, authHeader);
             if (res.data.success) {
                 if (form.paymentMode) await registerSettingIfNew(url, authHeader, 'payment_mode', form.paymentMode, paymentModes.map(m => ({ name: m })));
-                toast.success(res.data.message); setForm(emptyForm); setModalOpen(false); await fetchPayments();
+                toast.success(res.data.message); setForm(emptyForm); setModalOpen(false); await fetchPayments(); await fetchCommissionPayable();
             }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording commission payment'); }
@@ -89,7 +113,7 @@ const CommissionPaymentsManager = ({ url }) => {
         setDeleting(true);
         try {
             const res = await axios.delete(`${url}/api/finance/commission-payments/remove`, { ...authHeader, data: { _id: confirmItem._id } });
-            if (res.data.success) { toast.success(res.data.message); setConfirmItem(null); await fetchPayments(); }
+            if (res.data.success) { toast.success(res.data.message); setConfirmItem(null); await fetchPayments(); await fetchCommissionPayable(); }
             else toast.error(res.data.message);
         } catch { toast.error('Error removing commission payment'); }
         finally { setDeleting(false); }
@@ -111,6 +135,11 @@ const CommissionPaymentsManager = ({ url }) => {
                         <h3 style={{ margin: 0 }}>Payments</h3>
                         <button type="button" className="add-btn" onClick={() => setModalOpen(true)}>+ Add Payment</button>
                     </div>
+                    {commissionPayable !== null && (
+                        <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
+                            {commissionPayable < 0 ? 'Extra Paid' : 'Commission Payable'}: <span style={{ fontWeight: 700, color: commissionPayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(commissionPayable).toLocaleString('en-IN')}</span>
+                        </p>
+                    )}
                     {loading ? (
                         <div className="admin-empty-state"><p>Loading…</p></div>
                     ) : payments.length === 0 ? (
@@ -147,6 +176,11 @@ const CommissionPaymentsManager = ({ url }) => {
                             <div className="loader-modal-box edit-modal cmpm-modal">
                                 <div className="cmpm-modal-header">
                                     <h2>Add Payment</h2>
+                                    {commissionPayable !== null && (
+                                        <p className="admin-subtitle" style={{ margin: '4px 0 0' }}>
+                                            {commissionPayable < 0 ? 'Extra Paid' : 'Payment Left'}: <span style={{ fontWeight: 700, color: commissionPayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(commissionPayable).toLocaleString('en-IN')}</span>
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="cmpm-modal-body">
                                     <form id="cmpm-form" onSubmit={submit}>
@@ -181,6 +215,13 @@ const CommissionPaymentsManager = ({ url }) => {
                                             <div className="add-product-name flex-col">
                                                 <p>TDS Amount (optional)</p>
                                                 <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} />
+                                            </div>
+                                            <div className="add-product-name flex-col">
+                                                <p>Project (optional)</p>
+                                                <StyledSelect
+                                                    value={form.projectId} onChange={v => setField('projectId', v)} placeholder="Not tied to a project" loading={projectsLoading}
+                                                    options={projects.map(p => ({ value: p._id, label: p.name }))}
+                                                />
                                             </div>
                                             <div className="add-product-name flex-col">
                                                 <p>UTR / Reference Number</p>

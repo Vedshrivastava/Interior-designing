@@ -6,7 +6,7 @@ import StyledDatePicker from './StyledDatePicker';
 import StyledSelect from './StyledSelect';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faPen } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -47,6 +47,7 @@ const BankEntriesManager = ({ url }) => {
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
+    const [editingId, setEditingId] = useState(null);
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
@@ -73,6 +74,18 @@ const BankEntriesManager = ({ url }) => {
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
+    const openAdd = () => { setEditingId(null); setForm(emptyForm); setModalOpen(true); };
+    const openEdit = (entry) => {
+        setEditingId(entry._id);
+        setForm({
+            type: entry.type, date: entry.date ? entry.date.slice(0, 10) : '', amount: entry.amount,
+            bankAccountId: entry.bankAccountId?._id || entry.bankAccountId || '',
+            projectId: entry.projectId || '', reason: entry.reason, notes: entry.notes || '',
+            source: entry.source || 'other',
+        });
+        setModalOpen(true);
+    };
+
     const submit = async (e) => {
         e.preventDefault();
         if (!form.bankAccountId) return toast.error('Bank account is required');
@@ -82,8 +95,10 @@ const BankEntriesManager = ({ url }) => {
 
         setSaving(true);
         try {
-            const res = await axios.post(`${url}/api/finance/bank-entries/add`, form, authHeader);
-            if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); setModalOpen(false); await fetchEntries(); }
+            const endpoint = editingId ? 'update' : 'add';
+            const payload = editingId ? { ...form, _id: editingId } : form;
+            const res = await axios.post(`${url}/api/finance/bank-entries/${endpoint}`, payload, authHeader);
+            if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); setEditingId(null); setModalOpen(false); await fetchEntries(); }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording entry'); }
         finally { setSaving(false); }
@@ -104,7 +119,7 @@ const BankEntriesManager = ({ url }) => {
         <div>
             <div className="pq-section-header" style={{ marginBottom: '8px' }}>
                 <h3 style={{ margin: 0 }}>Manual Bank Entries</h3>
-                <button type="button" className="add-btn" onClick={() => { setForm(emptyForm); setModalOpen(true); }}>+ Add Bank Entry</button>
+                <button type="button" className="add-btn" onClick={openAdd}>+ Add Bank Entry</button>
             </div>
             <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
                 For money moving into/out of an account with no receipt, payment, or transfer behind it — capital injected, a loan disbursed, interest credited, or a correction against the real bank statement.
@@ -125,26 +140,29 @@ const BankEntriesManager = ({ url }) => {
             ) : entries.length === 0 ? (
                 <div className="admin-empty-state"><p>No manual bank entries yet.</p></div>
             ) : (
-                <div className="dash-chart-card cem-card">
-                    <div className="cem-row cem-header">
-                        <b className="cem-date">Date</b>
-                        <b className="cem-amount">Amount</b>
-                        <b className="cem-reason">Reason</b>
-                        <b className="cem-source">Account</b>
-                        <b className="cem-source">Source</b>
-                        <b className="cem-action">Action</b>
+                <div className="dash-chart-card bem-card">
+                    <div className="bem-row bem-header">
+                        <b className="bem-date">Date</b>
+                        <b className="bem-amount">Amount</b>
+                        <b className="bem-reason">Reason</b>
+                        <b className="bem-account">Account</b>
+                        <b className="bem-source">Source</b>
+                        <b className="bem-action">Action</b>
                     </div>
                     {entries.map(e => (
-                        <div key={e._id} className="cem-row">
-                            <p className="cem-date">{new Date(e.date).toLocaleDateString()}</p>
-                            <p className="cem-amount">
+                        <div key={e._id} className="bem-row">
+                            <p className="bem-date">{new Date(e.date).toLocaleDateString()}</p>
+                            <p className="bem-amount">
                                 <span className="pq-group-label">Amount</span>
                                 <span style={{ color: e.type === 'in' ? 'var(--moss)' : '#c0392b' }}>{e.type === 'in' ? '+' : '−'}₹{e.amount.toLocaleString('en-IN')}</span>
                             </p>
-                            <p className="cem-reason"><span className="pq-group-label">Reason</span>{e.reason}</p>
-                            <p className="cem-source"><span className="pq-group-label">Account</span>{e.bankAccountId?.accountName || '—'}</p>
-                            <p className="cem-source"><span className="pq-group-label">Source</span>{SOURCE_LABELS[e.source] || 'Other'}</p>
-                            <div className="cem-action">
+                            <p className="bem-reason"><span className="pq-group-label">Reason</span>{e.reason}</p>
+                            <p className="bem-account"><span className="pq-group-label">Account</span>{e.bankAccountId?.accountName || '—'}</p>
+                            <p className="bem-source"><span className="pq-group-label">Source</span>{SOURCE_LABELS[e.source] || 'Other'}</p>
+                            <div className="bem-action">
+                                <button type="button" className="pq-btn-ghost-edit" onClick={() => openEdit(e)} title="Edit entry" aria-label="Edit entry">
+                                    <FontAwesomeIcon icon={faPen} className="pq-action-icon" />
+                                </button>
                                 <button type="button" className="pq-btn-ghost-danger" onClick={() => setConfirmItem(e)} title="Remove entry" aria-label="Remove entry">
                                     <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
                                 </button>
@@ -158,7 +176,7 @@ const BankEntriesManager = ({ url }) => {
                 <div className="submit-loader-overlay cem-overlay" style={{ zIndex: 99999 }}>
                     <div className="loader-modal-box edit-modal cem-modal">
                         <div className="cem-modal-header">
-                            <h2>Add Bank Entry</h2>
+                            <h2>{editingId ? 'Edit Bank Entry' : 'Add Bank Entry'}</h2>
                         </div>
                         <div className="cem-modal-body">
                             <form id="bem-form" onSubmit={submit}>
@@ -211,7 +229,7 @@ const BankEntriesManager = ({ url }) => {
                             </form>
                         </div>
                         <div className="edit-modal-actions cem-modal-footer">
-                            <button type="button" className="add-btn cancel-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+                            <button type="button" className="add-btn cancel-btn" onClick={() => { setModalOpen(false); setEditingId(null); }}>Cancel</button>
                             <button type="submit" form="bem-form" className="add-btn" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
                         </div>
                     </div>

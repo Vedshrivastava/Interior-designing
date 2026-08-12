@@ -83,6 +83,60 @@ const addReceipt = async (req, res) => {
     }
 };
 
+// Bank account isn't editable here — switching cash<->bank would mean
+// creating/deleting a differently-shaped linked record (a cash receipt's
+// FinanceCashEntry), which is out of scope for a simple edit; remove and
+// re-add if the account was wrong. What DOES need to stay in sync: a
+// cash receipt's auto-generated FinanceCashEntry (see addReceipt's own
+// comment) — editing the amount/date here without updating it would
+// silently leave the Cash Book pointing at stale numbers.
+const updateReceipt = async (req, res) => {
+    try {
+        const { _id, runningBillId, amount, receiptDate, paymentMode, bankOrCashLabel, utrNumber, notes } = req.body;
+        const existing = await FinanceReceipt.findById(_id);
+        if (!existing) return res.status(404).json({ success: false, message: 'Not found' });
+        if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
+        if (!receiptDate) return res.status(400).json({ success: false, message: 'Receipt date is required' });
+
+        await FinanceReceipt.findByIdAndUpdate(_id, {
+            runningBillId: runningBillId || null,
+            amount: Number(amount), receiptDate,
+            paymentMode: paymentMode || '',
+            bankOrCashLabel: bankOrCashLabel || '',
+            utrNumber: utrNumber || '',
+            notes: notes || '',
+        });
+
+        if (!existing.bankAccountId) {
+            await FinanceCashEntry.updateMany(
+                { relatedReceiptId: existing._id, deleted: { $ne: true } },
+                { date: receiptDate, amount: Number(amount), notes: notes || '' }
+            );
+            broadcast({ type: 'financeCashBookChanged' });
+        } else {
+            broadcast({ type: 'financeBankAccountsChanged' });
+        }
+        broadcast({ type: 'financeReceiptsChanged', projectId: existing.projectId, clientId: existing.clientId });
+
+        const client = await FinanceClient.findById(existing.clientId).select('name');
+        await logActivity({
+            eventType: 'receipt_updated',
+            entityType: 'financeReceipt',
+            entityId: existing._id,
+            projectId: existing.projectId,
+            summary: `Receipt from ${client?.name || 'client'} updated`,
+            entityNames: client?.name ? [client.name] : [],
+            amount: Number(amount),
+            req,
+        });
+
+        res.json({ success: true, message: 'Receipt updated' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error updating receipt' });
+    }
+};
+
 const removeReceipt = async (req, res) => {
     try {
         const { _id } = req.body;
@@ -117,4 +171,4 @@ const removeReceipt = async (req, res) => {
     }
 };
 
-export { listReceipts, addReceipt, removeReceipt };
+export { listReceipts, addReceipt, updateReceipt, removeReceipt };

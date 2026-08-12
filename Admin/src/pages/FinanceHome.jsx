@@ -201,11 +201,30 @@ const FinanceHome = ({ url }) => {
                     <KpiCard hero loading={phase1Loading} icon={faArrowTrendUp} label="This Month Profit" value={formatINR(summary?.thisMonthProfit)}
                         sub={`Revenue ${formatINR(summary?.thisMonthRevenue)} − Costs ${formatINR(summary?.thisMonthTotalCost)}`}
                         onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.thisMonthProfit >= 0 ? 'good' : 'danger'} />
+                    <KpiCard hero loading={phase1Loading} icon={faMoneyBillTransfer} label="Cash Flow This Month" value={formatINR(summary?.cashFlowThisMonth)}
+                        // Real money in vs real money out this month —
+                        // deliberately separate from This Month Profit
+                        // above (accrual: what was billed/incurred, paid
+                        // or not). A month can be accrual-profitable but
+                        // cash-negative (billed a lot, collected little)
+                        // or the reverse (collected old dues, paid little
+                        // out) — both cards stay, answering different
+                        // questions rather than one replacing the other.
+                        sub={`In ${formatINR(summary?.cashInThisMonth)} − Out ${formatINR(summary?.cashOutThisMonth)}`}
+                        onClick={() => navigate('/finance/bank')} tone={summary?.cashFlowThisMonth >= 0 ? 'good' : 'danger'} />
                     <KpiCard hero loading={phase1Loading} icon={faMoneyBillWave} label="This Month Miscellaneous Expense" value={formatINR(summary?.thisMonthExpense)}
                         sub={summary?.thisMonthExpenseCount > 0 ? `${summary.thisMonthExpenseCount} expense${summary.thisMonthExpenseCount === 1 ? '' : 's'} recorded this month` : undefined}
                         onClick={() => navigate('/finance/payables?tab=expenses')} />
                     <KpiCard hero loading={phase1Loading} icon={faReceipt} label="Total Miscellaneous Expense - Ongoing Projects" value={formatINR(summary?.totalExpenseToDate)} sub="All-time, excludes completed projects — misc./overhead expenses only (rent, tools, etc.); see Total Expenses below for everything" onClick={() => navigate('/finance/payables?tab=expenses')} />
                     <KpiCard hero loading={phase1Loading} icon={faArrowTrendUp} label="Total Approved Profit - Ongoing Projects" value={formatINR(summary?.totalApprovedProfitToDate)} sub="All-time, excludes completed projects" onClick={() => navigate('/finance/reports?tab=project-profit')} tone={summary?.totalApprovedProfitToDate >= 0 ? 'good' : 'danger'} />
+                    <KpiCard hero loading={phase1Loading} icon={faMoneyBillTransfer} label="Total Profit Collected Till Date" value={formatINR(summary?.totalProfitCollectedTillDate)}
+                        // Same cash-basis concept as Cash Flow This Month
+                        // above, all-time — real money that's actually
+                        // landed in the company's hands to date, every
+                        // project (including completed ones, unlike the
+                        // accrual figure above which excludes them).
+                        sub={`Collected ${formatINR(summary?.totalCashInTillDate)} − Paid Out ${formatINR(summary?.totalCashOutTillDate)}`}
+                        onClick={() => navigate('/finance/bank')} tone={summary?.totalProfitCollectedTillDate >= 0 ? 'good' : 'danger'} />
                     <KpiCard hero loading={phase1Loading} icon={faTriangleExclamation} label="Material Wastage Loss - Ongoing Projects" value={formatINR(summary?.materialWasteCostToDate)}
                         sub={[
                             summary?.materialWasteBreakdown && buildBreakdownSub([
@@ -260,18 +279,17 @@ const FinanceHome = ({ url }) => {
                         // expensePayables already includes Reimbursement
                         // Payables (a subset, not a separate liability — see
                         // that card's own comment), so it's deliberately left
-                        // out here to avoid double-counting. Salary uses the
-                        // overdue-only figure (salaryPayables), not
-                        // salaryExpectedThisMonth — the latter isn't actually
-                        // due yet, so it doesn't belong in a "what's owed
-                        // right now" total the same way every other term
-                        // here is.
+                        // out here to avoid double-counting. Salary is
+                        // backlog + this month, same combined figure the
+                        // Salaries Payable card's own headline uses — see
+                        // that field's own comment for why these two used
+                        // to disagree.
                         sub={buildBreakdownSub([
                             ['Vendor', summary?.vendorPayables],
                             ['Contractor', summary?.contractorPayables],
                             ['Labour', summary?.labourPayables],
                             ['Commission', summary?.commissionPayables],
-                            ['Salary (overdue)', summary?.salaryPayables],
+                            ['Salary', summary?.salaryPayables],
                             ['Expenses', summary?.expensePayables],
                             ['TDS', summary?.tdsPayable],
                         ])}
@@ -332,8 +350,8 @@ const FinanceHome = ({ url }) => {
                             ['Paid', summary.commissionPayablesBreakdown.payments, true],
                         ])}
                         onClick={() => navigate('/finance/referrals')} tone={summary?.commissionPayables > 0 ? 'danger' : 'good'} />
-                    <KpiCard loading={phase1Loading} icon={faUsers} label="Salaries Payable This Month" value={formatINR(summary?.salaryExpectedThisMonth)}
-                        sub={`Payment left: ${formatINR(summary?.salaryPayables)}`}
+                    <KpiCard loading={phase1Loading} icon={faUsers} label="Salaries Payable" value={formatINR(summary?.salaryPayables)}
+                        sub={`This month: ${formatINR(summary?.salaryExpectedThisMonth)} · Backlog: ${formatINR(summary?.salaryOverduePayable)}`}
                         onClick={() => navigate('/finance/payables?tab=salary')} tone={summary?.salaryOverdue ? 'danger' : undefined} />
                     <KpiCard loading={phase1Loading} icon={faFileInvoice} label="Expense Payables" value={formatINR(summary?.expensePayables)}
                         sub={summary?.expensePayablesCount > 0 ? `${summary.expensePayablesCount} expense${summary.expensePayablesCount === 1 ? '' : 's'} pending or partially paid` : undefined}
@@ -357,6 +375,14 @@ const FinanceHome = ({ url }) => {
                     <KpiCard loading={phase1Loading} icon={faFileInvoiceDollar} label="TDS Payable" value={formatINR(summary?.tdsPayable)}
                         sub={`Withheld ${formatINR(summary?.tdsWithheldToDate)} − Deposited ${formatINR(summary?.tdsDepositedToDate)}`}
                         onClick={() => navigate('/finance/payments?tab=tds')} tone={summary?.tdsPayable > 0 ? 'danger' : 'good'} />
+                    <KpiCard loading={phase1Loading} icon={faFileInvoiceDollar} label="GST Claimable" value={formatINR(summary?.gstClaimable)}
+                        // Input Tax Credit available to claim as of this
+                        // month — the CA's actual filed figure once entered
+                        // (financeGstFiling), the system's own computed
+                        // estimate until then, clearly flagged either way
+                        // so this is never mistaken for a filed number.
+                        sub={summary?.gstIsFiled ? 'As filed with the CA' : `Estimated — GST Payable: ${formatINR(summary?.gstPayable)}`}
+                        onClick={() => navigate('/finance/reports?tab=ca-monthly-package')} tone="good" />
                     <KpiCard loading={phase1Loading} icon={faReceipt} label="Running Bills Ready" value={summary?.runningBillsReady ?? 0} onClick={() => navigate('/finance/receivables')} />
                 </KpiGrid>
 

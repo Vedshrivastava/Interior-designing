@@ -42,6 +42,7 @@ import FinanceTdsDeposit from '../models/financeTdsDeposit.js';
 import FinanceBankAccount from '../models/financeBankAccount.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
 import FinanceBankEntry from '../models/financeBankEntry.js';
+import FinanceGstFiling from '../models/financeGstFiling.js';
 import FinanceActivityLog from '../models/financeActivityLog.js';
 import { getAccountActivity } from './financeBankAccount.js';
 import PDFDocument from 'pdfkit';
@@ -4209,7 +4210,7 @@ const getDashboardSummary = async (req, res) => {
         // payment timing). Salary is cash-basis — see
         // computeSalaryPaidInRange's own comment for why it's different
         // from expense here.
-        const [monthMaterialWasteCost, reviewedCosts, monthExpenseAgg, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth, expensePayableBreakdown, totalExpenseToDate, reimbursementRows, companyWidePaidExpenses] = await Promise.all([
+        const [monthMaterialWasteCost, reviewedCosts, monthExpenseAgg, approvedBreakdown, labourRows, commissionBreakdown, salaryPayableBreakdown, salaryPaidThisMonth, salaryExpectedThisMonth, expensePayableBreakdown, totalExpenseToDate, reimbursementRows, companyWidePaidExpenses, gstItcPosition, cashFlowThisMonth, cashFlowAllTime] = await Promise.all([
             computeCompanyWideMaterialCostInRange(monthStart, monthEnd, null, 'waste'),
             computeReviewedCostsInRange(monthStart, monthEnd),
             FinanceExpense.aggregate([
@@ -4226,6 +4227,19 @@ const getDashboardSummary = async (req, res) => {
             computeCompanyWideExpenseToDate(),
             computeReimbursementRows(),
             computeCompanyWidePaidExpenses(),
+            computeGstItcPosition(monthKey),
+            // Real cash in vs real cash out — see computeCashFlow's own
+            // comment for exactly what counts (every receipt/payment/
+            // expense/manual entry, net of TDS/holding). This is a
+            // genuinely different number from This Month Profit below
+            // (accrual: revenue billed − costs incurred this month,
+            // regardless of whether either side has actually been paid) —
+            // both are kept, not one replacing the other, since they
+            // answer different questions ("is the business fundamentally
+            // profitable" vs "did money actually move that way this
+            // month").
+            computeCashFlow(monthStart, monthEnd),
+            computeCashFlow(null, null),
         ]);
         const { materialCost: monthMaterialCost, contractorCost: monthContractorCost, labourCost: monthLabourCost, commissionCost: monthCommissionCost } = reviewedCosts;
         const thisMonthRevenue = monthRevenueAgg[0]?.total || 0;
@@ -4326,12 +4340,22 @@ const getDashboardSummary = async (req, res) => {
                     earnings: commissionBreakdown.earningsTotal,
                     payments: commissionBreakdown.paymentsTotal,
                 },
-                // "Payment left" — overdue-only (closed months, unpaid),
-                // NOT the full payable-including-this-month total, so this
-                // is 0 whenever salaryOverdue is false. They're the same
-                // underlying number by construction, so they can never
-                // contradict each other.
-                salaryPayables: salaryPayableBreakdown.overduePayable,
+                // BUG FIX: this used to be overdue-backlog only (closed
+                // months, unpaid) — technically defensible (this month's
+                // salary "isn't due yet"), but it meant the Dashboard showed
+                // two different "salary payable" numbers side by side
+                // (Total Payables' slice vs the Salaries Payable card's own
+                // headline) with no visual signal they were answering
+                // different questions, which repeatedly read as a bug
+                // rather than a deliberate split. Now the one number
+                // "salary payable" means everywhere: backlog + whatever's
+                // still owed for the current month, net of payments
+                // already made. salaryOverduePayable keeps the backlog
+                // alone for the breakdown sub-line, so "how much of this
+                // is actually late" is still visible, just not the
+                // headline anymore.
+                salaryPayables: round2(salaryPayableBreakdown.overduePayable + salaryExpectedThisMonth),
+                salaryOverduePayable: salaryPayableBreakdown.overduePayable,
                 salaryExpectedThisMonth,
                 salaryOverdue: salaryPayableBreakdown.overduePayable > 0.5,
                 // Every expense recorded pending (or only partially settled)
@@ -4359,6 +4383,13 @@ const getDashboardSummary = async (req, res) => {
                 tdsPayable: tdsPayableInfo.payable,
                 tdsWithheldToDate: tdsPayableInfo.totalWithheld,
                 tdsDepositedToDate: tdsPayableInfo.totalDeposited,
+                // Input Tax Credit available to claim as of this month —
+                // the CA's actual filed figure (financeGstFiling) once
+                // entered, the system's own computed estimate until then.
+                // See computeGstItcPosition's own comment.
+                gstClaimable: gstItcPosition.itcCarriedForward,
+                gstPayable: gstItcPosition.netGstPayable,
+                gstIsFiled: gstItcPosition.isFiled,
                 // All-time FinanceExpense total, ongoing projects + general
                 // overhead only (completed projects excluded) — see
                 // computeCompanyWideExpenseToDate's own comment.
@@ -4411,6 +4442,22 @@ const getDashboardSummary = async (req, res) => {
                 unapprovedProfitTotal,
                 thisMonthRevenue, thisMonthProfit, thisMonthExpense,
                 thisMonthRevenueBillCount, thisMonthExpenseCount, thisMonthTotalCost,
+                // Cash actually in vs actually out — see computeCashFlow's
+                // own comment. Deliberately alongside thisMonthProfit
+                // above, not replacing it: that figure is accrual (revenue
+                // billed − costs incurred this month, paid or not), this
+                // one is real money movement, regardless of which month
+                // the work/purchase it settles actually happened in.
+                cashFlowThisMonth: round2(cashFlowThisMonth.totals.net),
+                cashInThisMonth: round2(cashFlowThisMonth.totals.in),
+                cashOutThisMonth: round2(cashFlowThisMonth.totals.out),
+                // Same cash-basis concept, all-time — "how much real profit
+                // has actually landed in the company's hands to date,"
+                // distinct from totalApprovedProfitToDate below (accrual,
+                // ongoing projects only).
+                totalProfitCollectedTillDate: round2(cashFlowAllTime.totals.net),
+                totalCashInTillDate: round2(cashFlowAllTime.totals.in),
+                totalCashOutTillDate: round2(cashFlowAllTime.totals.out),
                 // Ongoing projects only (see ongoingProjects' own comment) —
                 // pairs with unapprovedProfitTotal above (also all-time, not
                 // month-scoped) rather than mismatching against This Month
@@ -4667,19 +4714,51 @@ const computeMonthlyGstTotals = async (throughMonth) => {
 // to zero and settles (paid in cash), it does not carry forward as debt —
 // which is why this has to be a sequential walk rather than one lifetime
 // sum of (input - output).
+//
+// Any month with a real FinanceGstFiling (the CA's actual filed numbers,
+// entered by hand once known) uses THAT month's gstPayable/gstClaimable
+// directly instead of the computed estimate, and the walk carries the
+// filed gstClaimable forward as the next month's opening credit — so once
+// a month is filed, every later month's own "brought forward" reflects
+// the real number, not what purchases/sales/expenses alone would derive
+// (which has no way to know about blocked credit, reversals, or rounding
+// a real GSTR-3B applies).
 const computeGstItcPosition = async (month) => {
     const monthlyTotals = await computeMonthlyGstTotals(month);
+    const filings = await FinanceGstFiling.find({ deleted: { $ne: true }, month: { $lte: month } });
+    const filingByMonth = new Map(filings.map(f => [f.month, f]));
+
+    // Union of every month with computed activity AND every filed month —
+    // a NIL/adjustment-only month can be filed with no purchase/sale/
+    // expense activity of its own, so it wouldn't otherwise appear in
+    // monthlyTotals at all and its filing would be silently skipped.
+    const totalsByMonth = new Map(monthlyTotals.map(m => [m.monthKey, m]));
+    const monthKeys = [...new Set([...totalsByMonth.keys(), ...filingByMonth.keys()])].sort();
+
     let openingCredit = 0, result = null;
-    for (const m of monthlyTotals) {
-        const available = openingCredit + m.inputGst;
-        const payable = Math.max(0, m.outputGst - available);
-        const closingCredit = Math.max(0, available - m.outputGst);
-        if (m.monthKey === month) {
-            result = { itcBroughtForward: round2(openingCredit), availableCredit: round2(available), netGstPayable: round2(payable), itcCarriedForward: round2(closingCredit) };
+    for (const monthKey of monthKeys) {
+        const filing = filingByMonth.get(monthKey);
+        const totals = totalsByMonth.get(monthKey) || { outputGst: 0, inputGst: 0 };
+        const available = openingCredit + totals.inputGst;
+        const payable = filing ? filing.gstPayable : Math.max(0, totals.outputGst - available);
+        const closingCredit = filing ? filing.gstClaimable : Math.max(0, available - totals.outputGst);
+        if (monthKey === month) {
+            result = {
+                itcBroughtForward: round2(openingCredit), availableCredit: round2(available),
+                netGstPayable: round2(payable), itcCarriedForward: round2(closingCredit),
+                isFiled: !!filing, filedDate: filing?.filedDate || null, taxPaid: filing?.taxPaid || 0,
+                filingId: filing?._id || null,
+            };
         }
         openingCredit = closingCredit;
     }
-    if (!result) result = { itcBroughtForward: round2(openingCredit), availableCredit: round2(openingCredit), netGstPayable: 0, itcCarriedForward: round2(openingCredit) };
+    if (!result) {
+        result = {
+            itcBroughtForward: round2(openingCredit), availableCredit: round2(openingCredit),
+            netGstPayable: 0, itcCarriedForward: round2(openingCredit),
+            isFiled: false, filedDate: null, taxPaid: 0, filingId: null,
+        };
+    }
     return result;
 };
 
@@ -5011,6 +5090,13 @@ const computeCaMonthlyPackage = async (month) => {
             availableCredit: itcPosition.availableCredit,
             netGstPayable: itcPosition.netGstPayable,
             itcCarriedForward: itcPosition.itcCarriedForward,
+            // isFiled: this month's payable/claimable above are the CA's
+            // actual filed figures (financeGstFiling), not computed
+            // estimates — see computeGstItcPosition's own comment.
+            isFiled: itcPosition.isFiled,
+            filedDate: itcPosition.filedDate,
+            taxPaid: itcPosition.taxPaid,
+            filingId: itcPosition.filingId,
         },
         tds: {
             totalTds, bySection: [...tdsBySection.values()].sort((a, b) => b.totalTds - a.totalTds),

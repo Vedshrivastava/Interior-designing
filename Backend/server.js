@@ -70,6 +70,7 @@ import financeLabourProviderLedgerRouter  from "./routes/financeLabourProviderLe
 import financeExpenseRouter         from "./routes/financeExpense.js";
 import financeExpensePaymentRouter  from "./routes/financeExpensePayment.js";
 import financeTdsDepositRouter      from "./routes/financeTdsDeposit.js";
+import financeGstFilingRouter       from "./routes/financeGstFiling.js";
 import financeLabourerRouter        from "./routes/financeLabourer.js";
 import financeLabourRateRouter             from "./routes/financeLabourRate.js";
 import financeWorkLabourAssignmentRouter   from "./routes/financeWorkLabourAssignment.js";
@@ -192,6 +193,7 @@ app.use('/api/finance/labour-provider-payments', financeLabourProviderPaymentRou
 app.use('/api/finance/expenses',            financeExpenseRouter);
 app.use('/api/finance/expense-payments',    financeExpensePaymentRouter);
 app.use('/api/finance/tds-deposits',        financeTdsDepositRouter);
+app.use('/api/finance/gst-filings',         financeGstFilingRouter);
 app.use('/api/finance/labourers',           financeLabourerRouter);
 app.use('/api/finance/labour-rates',              financeLabourRateRouter);
 app.use('/api/finance/work-labour-assignments',   financeWorkLabourAssignmentRouter);

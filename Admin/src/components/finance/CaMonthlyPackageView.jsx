@@ -4,9 +4,11 @@ import { toast } from 'react-toastify';
 import { useFileDownload } from '../../hooks/useFileDownload';
 import DownloadButton from './DownloadButton';
 import StyledMonthPicker from './StyledMonthPicker';
+import StyledDatePicker from './StyledDatePicker';
 import { KpiCard, KpiGrid } from './DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/add.css';
+import '../../styles/wizard.css';
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 const fmtDate = (d) => new Date(d).toLocaleDateString('en-IN');
@@ -58,6 +60,8 @@ const LineItemTable = ({ columns, rows, emptyText }) => (
    what gets downloaded, right down to the same line-item detail (every
    bill, purchase, expense, TDS deduction/deposit, and bank/cash
    transaction) so nothing in the PDF needs separate explanation. */
+const emptyFilingForm = { gstPayable: '', gstClaimable: '', taxPaid: '', filedDate: '', notes: '' };
+
 const CaMonthlyPackageView = ({ url }) => {
     const token = localStorage.getItem('token');
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -66,14 +70,50 @@ const CaMonthlyPackageView = ({ url }) => {
     const [loading, setLoading] = useState(false);
     const { downloading, progress, run } = useFileDownload(authHeader);
 
+    const [filingForm, setFilingForm] = useState(emptyFilingForm);
+    const [savingFiling, setSavingFiling] = useState(false);
+
     const fetchPackage = async () => {
         setLoading(true);
         try {
             const res = await axios.get(`${url}/api/finance/reports/ca-monthly-package`, { ...authHeader, params: { month } });
-            if (res.data.success) setData(res.data.data);
+            if (res.data.success) {
+                setData(res.data.data);
+                // Prefill the "As Filed" form from whatever's currently in
+                // effect for this month — the CA's real filing if one
+                // exists, otherwise blank (nothing to edit, only to add).
+                setFilingForm(res.data.data.gst.isFiled ? {
+                    gstPayable: res.data.data.gst.netGstPayable, gstClaimable: res.data.data.gst.itcCarriedForward,
+                    taxPaid: res.data.data.gst.taxPaid, filedDate: res.data.data.gst.filedDate ? res.data.data.gst.filedDate.slice(0, 10) : '',
+                    notes: '',
+                } : emptyFilingForm);
+            }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error fetching CA monthly package'); }
         finally { setLoading(false); }
+    };
+
+    const setFilingField = (key, value) => setFilingForm(prev => ({ ...prev, [key]: value }));
+
+    const saveFiling = async () => {
+        setSavingFiling(true);
+        try {
+            const res = await axios.post(`${url}/api/finance/gst-filings/save`, { ...filingForm, month }, authHeader);
+            if (res.data.success) { toast.success(res.data.message); await fetchPackage(); }
+            else toast.error(res.data.message);
+        } catch (err) { toast.error(err.response?.data?.message || 'Error saving GST filing'); }
+        finally { setSavingFiling(false); }
+    };
+
+    const clearFiling = async () => {
+        if (!data?.gst?.filingId) return;
+        setSavingFiling(true);
+        try {
+            const res = await axios.delete(`${url}/api/finance/gst-filings/remove`, { ...authHeader, data: { _id: data.gst.filingId } });
+            if (res.data.success) { toast.success(res.data.message); setFilingForm(emptyFilingForm); await fetchPackage(); }
+            else toast.error(res.data.message);
+        } catch (err) { toast.error(err.response?.data?.message || 'Error removing GST filing'); }
+        finally { setSavingFiling(false); }
     };
 
     const download = () => run(
@@ -112,6 +152,43 @@ const CaMonthlyPackageView = ({ url }) => {
                         <KpiCard label="Net Payable" value={fmtMoney(data.gst.netGstPayable)}
                             sub={data.gst.netGstPayable === 0 && data.gst.itcCarriedForward > 0 ? `ITC Carried Forward: ${fmtMoney(data.gst.itcCarriedForward)}` : undefined} />
                     </KpiGrid>
+                    <p style={{ margin: '6px 0 16px', fontSize: '0.8rem', color: data.gst.isFiled ? 'var(--moss)' : 'var(--text-lt)' }}>
+                        {data.gst.isFiled
+                            ? `As filed with the CA${data.gst.filedDate ? ` on ${fmtDate(data.gst.filedDate)}` : ''} — figures above are the actual filed numbers, not computed estimates.`
+                            : 'Figures above are computed estimates — enter the CA’s actual filed numbers below once known.'}
+                    </p>
+
+                    <div className="dash-chart-card" style={{ padding: '16px', marginBottom: '24px' }}>
+                        <p className="wizard-section-label" style={{ marginBottom: '10px' }}>As Filed (Actual) — {month}</p>
+                        <div className="wizard-field-grid">
+                            <div className="add-product-name flex-col">
+                                <p>GST Payable (₹)</p>
+                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={filingForm.gstPayable} onChange={e => setFilingField('gstPayable', e.target.value)} />
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>GST Claimable / ITC Carried Forward (₹)</p>
+                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={filingForm.gstClaimable} onChange={e => setFilingField('gstClaimable', e.target.value)} />
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>Tax Paid — Income/Advance Tax (₹)</p>
+                                <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={filingForm.taxPaid} onChange={e => setFilingField('taxPaid', e.target.value)} />
+                            </div>
+                            <div className="add-product-name flex-col">
+                                <p>Filed Date</p>
+                                <StyledDatePicker value={filingForm.filedDate} onChange={v => setFilingField('filedDate', v)} />
+                            </div>
+                            <div className="add-product-name flex-col wizard-field-full">
+                                <p>Notes</p>
+                                <input type="text" value={filingForm.notes} onChange={e => setFilingField('notes', e.target.value)} placeholder="e.g. GSTR-3B ARN, adjustments made by the CA" />
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                            <button type="button" className="add-point-btn" disabled={savingFiling} onClick={saveFiling}>{savingFiling ? 'Saving…' : 'Save Filing'}</button>
+                            {data.gst.isFiled && (
+                                <button type="button" className="add-point-btn" style={{ background: 'transparent', color: 'var(--text-lt)', border: '1px solid rgba(154,142,132,0.4)' }} disabled={savingFiling} onClick={clearFiling}>Revert to Estimate</button>
+                            )}
+                        </div>
+                    </div>
 
                     <p className="admin-subtitle" style={{ margin: '24px 0 10px' }}>TDS Summary</p>
                     <KpiGrid>

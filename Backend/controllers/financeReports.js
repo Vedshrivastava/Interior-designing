@@ -3243,7 +3243,7 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         if (to) { receiptFilter.receiptDate.$lte = new Date(to); otherFilter.date.$lte = new Date(to); }
     }
 
-    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, expensePayments, contractorAdvances, labourAdvances, tdsDeposits, manualCashEntries, manualBankEntries] = await Promise.all([
+    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, expensePayments, contractorAdvances, labourAdvances, tdsDeposits, manualCashEntries, manualBankEntries, gstFilings] = await Promise.all([
         FinanceReceipt.find(receiptFilter),
         FinanceContractorPayment.find(otherFilter),
         FinanceVendorPayment.find(otherFilter),
@@ -3289,6 +3289,13 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
             relatedTdsDepositId: null,
         }),
         FinanceBankEntry.find(otherFilter),
+        // GST payable + Income/Advance Tax paid, as filed (financeGstFiling
+        // — see computeGstItcPosition's own comment). Real cash leaving the
+        // company once a month is filed, same as a TDS deposit above — not
+        // date-range-filtered in the query itself (a filing has no `date`
+        // field, only a `month` + optional `filedDate`), scoped in JS below
+        // instead using filedDate if set, else that month's own end.
+        FinanceGstFiling.find({ deleted: { $ne: true } }),
     ]);
 
     // FinanceExpense has two shapes (see financeExpense.js's withBalances):
@@ -3331,6 +3338,20 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
     const manualCashInTotal = manualCashIn.reduce((s, e) => s + e.amount, 0);
     const manualBankInTotal = manualBankIn.reduce((s, e) => s + e.amount, 0);
 
+    // A filing has no `date` field of its own — only a `month` + optional
+    // `filedDate` — so it's scoped to this call's range here rather than
+    // in the query above. filedDate wins when set (the CA told you the
+    // real date money moved); falls back to that month's own end when not
+    // (still real money owed, just no exact date recorded for it yet).
+    const filingEffectiveDate = (f) => f.filedDate || monthBounds(f.month).end;
+    const filingsInRange = gstFilings.filter((f) => {
+        const d = filingEffectiveDate(f);
+        if (from && d < new Date(from)) return false;
+        if (to && d > new Date(to)) return false;
+        return true;
+    });
+    const govtDuesTotal = filingsInRange.reduce((s, f) => s + (f.gstPayable || 0) + (f.taxPaid || 0), 0);
+
     const totalIn = receipts.reduce((s, r) => s + r.amount, 0) + vendorRefundsTotal + manualCashInTotal + manualBankInTotal;
     const outByCategory = {
         contractor: contractorPayments.reduce((s, p) => s + netOut(p), 0) + contractorAdvances.reduce((s, a) => s + a.amount, 0),
@@ -3343,6 +3364,11 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         tdsDeposit: tdsDeposits.reduce((s, d) => s + d.amount, 0),
         manualCash: manualCashOut.reduce((s, e) => s + e.amount, 0),
         manualBank: manualBankOut.reduce((s, e) => s + e.amount, 0),
+        // GST payable + Income/Advance Tax paid, as filed — see
+        // financeGstFiling's own comment. Only counts once a month is
+        // actually filed; a computed-estimate month contributes nothing
+        // here (nothing's actually been paid yet against an estimate).
+        govtDues: govtDuesTotal,
     };
     const totalOut = Object.values(outByCategory).reduce((a, b) => a + b, 0);
 
@@ -3363,6 +3389,7 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
     manualBankIn.forEach(e => bump(e.date, 'in', e.amount));
     manualCashOut.forEach(e => bump(e.date, 'out', e.amount));
     manualBankOut.forEach(e => bump(e.date, 'out', e.amount));
+    filingsInRange.forEach(f => bump(filingEffectiveDate(f), 'out', (f.gstPayable || 0) + (f.taxPaid || 0)));
 
     const seriesArr = [...series.values()]
         .sort((a, b) => a.bucket.localeCompare(b.bucket))

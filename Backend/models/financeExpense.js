@@ -50,5 +50,8 @@ const financeExpenseSchema = new mongoose.Schema({
     deletedBy: { type: String },
 }, { timestamps: true });
 
+financeExpenseSchema.index({ date: 1 });
+financeExpenseSchema.index({ projectId: 1 });
+
 const FinanceExpense = mongoose.models.financeExpense || mongoose.model('financeExpense', financeExpenseSchema);
 export default FinanceExpense;

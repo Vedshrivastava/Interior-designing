@@ -22,5 +22,7 @@ const financeContractorAdvanceSchema = new mongoose.Schema({
     deletedBy: { type: String },
 }, { timestamps: true });
 
+financeContractorAdvanceSchema.index({ vendorId: 1, projectId: 1 });
+
 const FinanceContractorAdvance = mongoose.models.financeContractorAdvance || mongoose.model('financeContractorAdvance', financeContractorAdvanceSchema);
 export default FinanceContractorAdvance;

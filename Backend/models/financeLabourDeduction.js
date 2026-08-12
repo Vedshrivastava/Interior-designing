@@ -60,5 +60,8 @@ const financeLabourDeductionSchema = new mongoose.Schema({
     deletedBy: { type: String },
 }, { timestamps: true });
 
+financeLabourDeductionSchema.index({ labourerId: 1, projectId: 1 });
+financeLabourDeductionSchema.index({ workId: 1 });
+
 const FinanceLabourDeduction = mongoose.models.financeLabourDeduction || mongoose.model('financeLabourDeduction', financeLabourDeductionSchema);
 export default FinanceLabourDeduction;

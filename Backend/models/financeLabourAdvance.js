@@ -20,5 +20,7 @@ const financeLabourAdvanceSchema = new mongoose.Schema({
     deletedBy: { type: String },
 }, { timestamps: true });
 
+financeLabourAdvanceSchema.index({ labourerId: 1, projectId: 1 });
+
 const FinanceLabourAdvance = mongoose.models.financeLabourAdvance || mongoose.model('financeLabourAdvance', financeLabourAdvanceSchema);
 export default FinanceLabourAdvance;

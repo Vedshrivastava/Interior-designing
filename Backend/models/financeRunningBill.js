@@ -61,5 +61,13 @@ const financeRunningBillSchema = new mongoose.Schema({
     deletedBy: { type: String },
 }, { timestamps: true });
 
+financeRunningBillSchema.index({ projectId: 1 });
+financeRunningBillSchema.index({ status: 1 });
+// Multikey — lets computeWorkProfit's per-Work revenue lookup find only the
+// bills containing that Work before unwinding lineItems, instead of
+// unwinding every issued bill on every call (see that aggregation's own
+// comment for the pipeline change this index makes effective).
+financeRunningBillSchema.index({ 'lineItems.workId': 1 });
+
 const FinanceRunningBill = mongoose.models.financeRunningBill || mongoose.model('financeRunningBill', financeRunningBillSchema);
 export default FinanceRunningBill;

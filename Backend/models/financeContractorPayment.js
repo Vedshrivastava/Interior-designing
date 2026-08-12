@@ -44,5 +44,7 @@ const financeContractorPaymentSchema = new mongoose.Schema({
     deletedBy: { type: String },
 }, { timestamps: true });
 
+financeContractorPaymentSchema.index({ vendorId: 1, projectId: 1 });
+
 const FinanceContractorPayment = mongoose.models.financeContractorPayment || mongoose.model('financeContractorPayment', financeContractorPaymentSchema);
 export default FinanceContractorPayment;

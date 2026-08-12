@@ -47,5 +47,9 @@ const financeStockMovementSchema = new mongoose.Schema({
     deletedBy: { type: String },
 }, { timestamps: true });
 
+// Every current-stock computation groups by (projectId, materialId) — see
+// computeCurrentStock above.
+financeStockMovementSchema.index({ projectId: 1, materialId: 1 });
+
 const FinanceStockMovement = mongoose.models.financeStockMovement || mongoose.model('financeStockMovement', financeStockMovementSchema);
 export default FinanceStockMovement;

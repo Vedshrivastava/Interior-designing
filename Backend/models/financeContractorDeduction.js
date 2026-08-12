@@ -52,5 +52,8 @@ const financeContractorDeductionSchema = new mongoose.Schema({
     deletedBy: { type: String },
 }, { timestamps: true });
 
+financeContractorDeductionSchema.index({ vendorId: 1, projectId: 1 });
+financeContractorDeductionSchema.index({ workId: 1 });
+
 const FinanceContractorDeduction = mongoose.models.financeContractorDeduction || mongoose.model('financeContractorDeduction', financeContractorDeductionSchema);
 export default FinanceContractorDeduction;

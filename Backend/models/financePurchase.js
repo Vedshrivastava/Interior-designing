@@ -32,5 +32,9 @@ const financePurchaseSchema = new mongoose.Schema({
     deletedBy: { type: String },
 }, { timestamps: true });
 
+financePurchaseSchema.index({ projectId: 1 });
+financePurchaseSchema.index({ materialId: 1 });
+financePurchaseSchema.index({ vendorId: 1 });
+
 const FinancePurchase = mongoose.models.financePurchase || mongoose.model('financePurchase', financePurchaseSchema);
 export default FinancePurchase;

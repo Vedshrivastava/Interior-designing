@@ -36,5 +36,7 @@ const financeCashEntrySchema = new mongoose.Schema({
     deletedBy: { type: String },
 }, { timestamps: true });
 
+financeCashEntrySchema.index({ date: 1 });
+
 const FinanceCashEntry = mongoose.models.financeCashEntry || mongoose.model('financeCashEntry', financeCashEntrySchema);
 export default FinanceCashEntry;

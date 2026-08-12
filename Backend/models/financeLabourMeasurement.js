@@ -38,6 +38,13 @@ const financeLabourMeasurementSchema = new mongoose.Schema({
     deletedBy: { type: String },
 }, { timestamps: true });
 
+// Mirrors financeMeasurement's own index reasoning — workId/labourerId
+// lookups (per-Work, per-labourer earnings) and date-range scans (Dashboard
+// today's activity) are the hottest query shapes here.
+financeLabourMeasurementSchema.index({ workId: 1 });
+financeLabourMeasurementSchema.index({ labourerId: 1 });
+financeLabourMeasurementSchema.index({ projectId: 1, date: 1 });
+
 const FinanceLabourMeasurement = mongoose.models.financeLabourMeasurement
     || mongoose.model('financeLabourMeasurement', financeLabourMeasurementSchema);
 export default FinanceLabourMeasurement;

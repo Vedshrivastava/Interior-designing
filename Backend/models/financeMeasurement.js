@@ -44,5 +44,12 @@ const financeMeasurementSchema = new mongoose.Schema({
     deletedBy: { type: String },
 }, { timestamps: true });
 
+// workId lookups (per-Work cost/profit computation) and date-range scans
+// (Dashboard "today's activity", monthly cost windows) are the two hottest
+// query shapes on this collection — every write here also touches Site
+// Inventory/Stock automation, so this can grow large fast without an index.
+financeMeasurementSchema.index({ workId: 1 });
+financeMeasurementSchema.index({ projectId: 1, date: 1 });
+
 const FinanceMeasurement = mongoose.models.financeMeasurement || mongoose.model('financeMeasurement', financeMeasurementSchema);
 export default FinanceMeasurement;

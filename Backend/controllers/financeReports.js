@@ -1640,8 +1640,15 @@ const computeWorkExpectedPay = async (work) => {
 // this filters to status: 'issued' too — flip this filter here only if
 // that turns out to be the wrong call.
 const computeWorkProfit = async (work) => {
+    // 'lineItems.workId' repeated in the pre-unwind $match too (redundant
+    // with the post-unwind one below, same result either way) — lets Mongo
+    // use the lineItems.workId index to find only the handful of bills that
+    // actually contain this Work before unwinding, instead of unwinding
+    // every issued bill in the database on every single call. This function
+    // runs once per Work (computeReviewedCostsInRange calls it per reviewed
+    // Work), so this was the dominant cost in a slow Dashboard load.
     const revenueAgg = await FinanceRunningBill.aggregate([
-        { $match: { status: 'issued', deleted: { $ne: true } } },
+        { $match: { status: 'issued', deleted: { $ne: true }, 'lineItems.workId': work._id } },
         { $unwind: '$lineItems' },
         { $match: { 'lineItems.workId': work._id } },
         { $group: { _id: null, amount: { $sum: '$lineItems.amount' }, areaBilledSqft: { $sum: '$lineItems.areaBilledSqft' } } },
@@ -3963,10 +3970,25 @@ const getProjectCompletionReadiness = async (projectId) => {
         }
 
         if (labourAssignments.length) {
-            const labourBalances = await computeLabourBalancesForProject(projectId, works);
-            for (const r of labourBalances) {
-                if (Math.abs(r.balancePayable) > 0.5) {
-                    blockers.push({ category: 'labour_balance', label: `${r.labourerName} — labour balance`, amount: r.balancePayable });
+            const labourerIds = new Set(labourAssignments.map(a => a.labourerId.toString()));
+            // BUG FIX: this used to call a separate, hand-rolled
+            // computeLabourBalancesForProject that split each Work's
+            // COMBINED (contractor + labour) approved ceiling directly
+            // against labour-only measured area — the exact double-
+            // counting bug getCategoryApprovedAreaByWorkId's own header
+            // comment describes, just re-introduced here in a second,
+            // drifted copy. On a Work with a large contractor crew and a
+            // small labour crew, that inflated "approved" labour earnings
+            // by whatever multiple the contractor's share of total area
+            // was (confirmed live: ~7x on a real test Work). Reusing the
+            // canonical computeLabourBalance via computeLabourAnalysisRows
+            // — the exact same formula the Labour Ledger and Dashboard
+            // already use correctly — instead of maintaining a second,
+            // buggy copy of the same math.
+            const rows = await computeLabourAnalysisRows(projectId);
+            for (const r of rows) {
+                if (labourerIds.has(r.labourerId.toString()) && Math.abs(r.balancePayable) > 0.5) {
+                    blockers.push({ category: 'labour_balance', label: `${r.labourerName} — labour balance`, amount: round2(r.balancePayable) });
                 }
             }
         }
@@ -4008,75 +4030,6 @@ const getProjectCompletionReadiness = async (projectId) => {
     }
 
     return { blockers, hasBlockers: blockers.length > 0 };
-};
-
-// Bulk labour-balance helper for getProjectCompletionReadiness — no
-// company-wide bulk equivalent of getContractorLedger exists for labour
-// (unlike computeContractorAnalysisRows on the contractor side), so this
-// mirrors that same formula, narrowed to one project's Works directly
-// rather than scanning every labourer in the company.
-const computeLabourBalancesForProject = async (projectId, works) => {
-    const workIds = works.map(w => w._id);
-    const [assignments, allMeasurements, approvedBillingByWorkId] = await Promise.all([
-        FinanceWorkLabourAssignment.find({ workId: { $in: workIds }, deleted: { $ne: true } }),
-        FinanceLabourMeasurement.find({ workId: { $in: workIds }, deleted: { $ne: true } }, 'workId labourerId areaCoveredSqft'),
-        getApprovedBillingByWorkId(workIds),
-    ]);
-    const labourerIds = [...new Set(assignments.map(a => a.labourerId.toString()))];
-    if (!labourerIds.length) return [];
-
-    const [labourers, rates] = await Promise.all([
-        FinanceLabourer.find({ _id: { $in: labourerIds } }),
-        FinanceLabourRate.find({ projectId, labourerId: { $in: labourerIds }, deleted: { $ne: true } }),
-    ]);
-    const labourerById = new Map(labourers.map(l => [l._id.toString(), l]));
-    const rateByKey = new Map(rates.map(r => [`${r.labourerId}_${r.workType}`, r.ratePerSqft]));
-
-    const totalAreaByWork = new Map();
-    const areaByLabourerWork = new Map();
-    for (const m of allMeasurements) {
-        const wk = m.workId.toString();
-        totalAreaByWork.set(wk, (totalAreaByWork.get(wk) || 0) + m.areaCoveredSqft);
-        const key = `${m.labourerId}_${wk}`;
-        areaByLabourerWork.set(key, (areaByLabourerWork.get(key) || 0) + m.areaCoveredSqft);
-    }
-
-    const earningsByLabourer = new Map();
-    for (const w of works) {
-        const wk = w._id.toString();
-        const totalArea = totalAreaByWork.get(wk) || 0;
-        if (!totalArea) continue;
-        const workApprovedArea = approvedBillingByWorkId.get(wk)?.areaSqft || 0;
-        for (const labourerId of labourerIds) {
-            const labourerArea = areaByLabourerWork.get(`${labourerId}_${wk}`) || 0;
-            if (!labourerArea) continue;
-            const rate = rateByKey.get(`${labourerId}_${w.workType}`);
-            if (!rate) continue;
-            const approvedArea = splitApprovedAreaByShare(workApprovedArea, labourerArea, totalArea);
-            earningsByLabourer.set(labourerId, (earningsByLabourer.get(labourerId) || 0) + approvedArea * rate);
-        }
-    }
-
-    const moneyFilter = { projectId, deleted: { $ne: true } };
-    return Promise.all(labourerIds.map(async (labourerId) => {
-        const [advances, allDeductions, payments] = await Promise.all([
-            FinanceLabourAdvance.find({ ...moneyFilter, labourerId }),
-            FinanceLabourDeduction.find({ ...moneyFilter, labourerId }),
-            FinanceLabourPayment.find({ ...moneyFilter, labourerId }),
-        ]);
-        const earnings = round2(earningsByLabourer.get(labourerId) || 0);
-        const advancesTotal = advances.reduce((s, a) => s + a.amount, 0);
-        // See computeContractorAnalysisRows' identical comment — a
-        // workReviewCycle-tagged row's `amount` is already reflected in
-        // earnings above (would double-count it), but materialWasteAmount
-        // is a genuinely new deduction nothing else accounts for.
-        const deductionsTotal = allDeductions.reduce((s, d) => s + (d.workReviewCycle == null ? (d.amount || 0) : 0) + (d.materialWasteAmount || 0), 0);
-        const paymentsTotal = payments.reduce((s, p) => s + p.amount, 0);
-        return {
-            labourerId, labourerName: labourerById.get(labourerId)?.name || '—',
-            balancePayable: round2(earnings - advancesTotal - deductionsTotal - paymentsTotal),
-        };
-    }));
 };
 
 // BUG FIX: This Month Profit (and the Revenue-vs-Cost trend chart, which

@@ -273,6 +273,7 @@ const CaMonthlyPackageView = ({ url }) => {
                                 { key: 'projectName', label: 'Project' },
                                 { key: 'clientName', label: 'Client' },
                                 { key: 'clientGstin', label: 'Client GSTIN' },
+                                { key: 'clientBankDetails', label: 'Bank Details', render: r => r.clientBankDetails.split('\n').join(' — ') },
                                 { key: 'subtotal', label: 'Subtotal', align: 'right', render: r => fmtMoney(r.subtotal) },
                                 { key: 'gstAmount', label: 'GST', align: 'right', render: r => fmtMoney(r.gstAmount) },
                                 { key: 'total', label: 'Total', align: 'right', render: r => fmtMoney(r.total) },
@@ -336,6 +337,8 @@ const CaMonthlyPackageView = ({ url }) => {
                             columns={[
                                 { key: 'date', label: 'Date', render: r => fmtDate(r.date) },
                                 { key: 'category', label: 'Category' },
+                                { key: 'partyName', label: 'Party' },
+                                { key: 'partyBankDetails', label: 'Bank Details', render: r => r.partyBankDetails.split('\n').join(' — ') },
                                 { key: 'amount', label: 'Amount', align: 'right', render: r => fmtMoney(r.amount) },
                                 { key: 'gstAmount', label: 'GST', align: 'right', render: r => fmtMoney(r.gstAmount) },
                                 { key: 'paidFrom', label: 'Paid From', render: r => r.paidFrom.split('\n').join(' — ') },
@@ -389,6 +392,7 @@ const CaMonthlyPackageView = ({ url }) => {
                                 columns={[
                                     { key: 'date', label: 'Date', render: r => fmtDate(r.date) },
                                     { key: 'description', label: 'Description' },
+                                    { key: 'bankDetails', label: 'Bank Details', render: r => r.bankDetails.split('\n').join(' — ') },
                                     { key: 'direction', label: 'Direction', render: r => (r.direction === 'credit' ? 'In' : 'Out') },
                                     { key: 'amount', label: 'Amount', align: 'right', render: r => fmtMoney(r.amount) },
                                     { key: 'runningBalance', label: 'Running Balance', align: 'right', render: r => fmtMoney(r.runningBalance) },

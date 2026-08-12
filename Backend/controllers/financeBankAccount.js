@@ -54,30 +54,40 @@ const getAccountActivity = async (accountId) => {
     // type label ("Contractor payment") — a CA (or anyone) reconciling
     // this feed against the real bank statement needs to know WHO a line
     // is for, not just what kind of transaction it was. See the CA Monthly
-    // Package's own identical need for this same feed.
+    // Package's own identical need for this same feed. bankName/
+    // accountNumber added alongside name for the same reason `bankDetails`
+    // exists below — the account this money actually moved to/from, so a
+    // reconciling CA can pre-identify it before it even shows up as a
+    // matching line on the real bank statement.
     const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, expensePayments, contractorAdvances, labourAdvances, tdsDeposits, transfersOut, transfersIn, bankEntries] = await Promise.all([
-        FinanceReceipt.find(filter).populate('clientId', 'name'),
-        FinanceContractorPayment.find(filter).populate('vendorId', 'name'),
-        FinanceVendorPayment.find(filter).populate('vendorId', 'name'),
-        FinanceSalaryPayment.find(filter).populate('employeeId', 'name'),
-        FinanceLabourPayment.find(filter).populate('labourerId', 'name'),
-        FinanceCommissionPayment.find(filter).populate('referralId', 'name'),
-        FinanceLabourProviderPayment.find(filter).populate('labourProviderId', 'name'),
+        FinanceReceipt.find(filter).populate('clientId', 'name bankName accountNumber'),
+        FinanceContractorPayment.find(filter).populate('vendorId', 'name bankName accountNumber'),
+        FinanceVendorPayment.find(filter).populate('vendorId', 'name bankName accountNumber'),
+        FinanceSalaryPayment.find(filter).populate('employeeId', 'name bankName accountNumber'),
+        FinanceLabourPayment.find(filter).populate('labourerId', 'name bankName accountNumber'),
+        FinanceCommissionPayment.find(filter).populate('referralId', 'name bankName accountNumber'),
+        FinanceLabourProviderPayment.find(filter).populate('labourProviderId', 'name bankName accountNumber'),
         // relatedToId is polymorphic (refPath: relatedToType on the schema
         // itself) — Mongoose resolves which collection to populate from per
         // document automatically. Silently comes back empty for the
-        // financeCompanySettings case (no `name` field there), which is
-        // fine — that's a company-level/overhead expense with no specific
-        // party to name in the first place.
-        FinanceExpense.find(filter).populate('relatedToId', 'name'),
-        FinanceExpensePayment.find(filter).populate({ path: 'expenseId', select: 'expenseCategory relatedToId relatedToType', populate: { path: 'relatedToId', select: 'name' } }),
-        FinanceContractorAdvance.find(filter).populate('vendorId', 'name'),
-        FinanceLabourAdvance.find(filter).populate('labourerId', 'name'),
+        // financeCompanySettings case (no `name`/bank fields there), which
+        // is fine — that's a company-level/overhead expense with no
+        // specific party to name in the first place.
+        FinanceExpense.find(filter).populate('relatedToId', 'name bankName accountNumber'),
+        FinanceExpensePayment.find(filter).populate({ path: 'expenseId', select: 'expenseCategory relatedToId relatedToType', populate: { path: 'relatedToId', select: 'name bankName accountNumber' } }),
+        FinanceContractorAdvance.find(filter).populate('vendorId', 'name bankName accountNumber'),
+        FinanceLabourAdvance.find(filter).populate('labourerId', 'name bankName accountNumber'),
         FinanceTdsDeposit.find(filter).populate('tdsSectionId', 'name code'),
         FinanceBankTransfer.find({ fromAccountId: accountId, deleted: { $ne: true } }).populate('toAccountId', 'accountName'),
         FinanceBankTransfer.find({ toAccountId: accountId, deleted: { $ne: true } }).populate('fromAccountId', 'accountName'),
         FinanceBankEntry.find(filter),
     ]);
+    // '\n'-joined so the CA Monthly Package PDF's drawTable renders it as
+    // a bank-name / account-number line pair (same convention as every
+    // other Bank Details column in that PDF) — '—' when the party has no
+    // bank details on file (or there's no specific party at all, e.g. a
+    // manual bank entry or a company-level expense).
+    const bankDetailsOf = (party) => party?.bankName ? `${party.bankName}\nA/C ${party.accountNumber}` : '—';
 
     // Every payment type here now has an identical tdsAmount/tdsSectionId
     // pair (see each model's own comment — "mirrors financeContractorPayment's
@@ -89,35 +99,41 @@ const getAccountActivity = async (accountId) => {
     const netOut = (p) => p.amount - (p.tdsAmount || 0) - (p.holdingAmount || 0);
 
     return [
-        ...receipts.map(r => ({ date: r.receiptDate, amount: r.amount, direction: 'credit', description: r.clientId?.name ? `Receipt — ${r.clientId.name}` : 'Receipt', sourceType: 'receipt', sourceId: r._id })),
+        ...receipts.map(r => ({ date: r.receiptDate, amount: r.amount, direction: 'credit', description: r.clientId?.name ? `Receipt — ${r.clientId.name}` : 'Receipt', bankDetails: bankDetailsOf(r.clientId), sourceType: 'receipt', sourceId: r._id })),
         // Only the post-TDS amount actually moved through the bank — the
         // withheld portion is owed to the tax authority instead (see
         // controllers/financeContractorPayment.js's identical reasoning).
-        ...contractorPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: p.vendorId?.name ? `Contractor payment — ${p.vendorId.name}` : 'Contractor payment', sourceType: 'contractorPayment', sourceId: p._id })),
+        ...contractorPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: p.vendorId?.name ? `Contractor payment — ${p.vendorId.name}` : 'Contractor payment', bankDetails: bankDetailsOf(p.vendorId), sourceType: 'contractorPayment', sourceId: p._id })),
         // A refund (isRefund: true) is the vendor paying money INTO this
         // account, not the company paying out — same record shape, just
         // the opposite direction.
-        ...vendorPayments.map(p => ({ date: p.date, amount: netOut(p), direction: p.isRefund ? 'credit' : 'debit', description: `${p.isRefund ? 'Vendor refund' : 'Vendor payment'}${p.vendorId?.name ? ` — ${p.vendorId.name}` : ''}`, sourceType: 'vendorPayment', sourceId: p._id })),
-        ...salaryPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: p.employeeId?.name ? `Salary payment — ${p.employeeId.name}` : 'Salary payment', sourceType: 'salaryPayment', sourceId: p._id })),
-        ...labourPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: p.labourerId?.name ? `Labour payment — ${p.labourerId.name}` : 'Labour payment', sourceType: 'labourPayment', sourceId: p._id })),
-        ...commissionPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: p.referralId?.name ? `Commission payment — ${p.referralId.name}` : 'Commission payment', sourceType: 'commissionPayment', sourceId: p._id })),
-        ...labourProviderPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: p.labourProviderId?.name ? `Labour provider payment — ${p.labourProviderId.name}` : 'Labour provider payment', sourceType: 'labourProviderPayment', sourceId: p._id })),
+        ...vendorPayments.map(p => ({ date: p.date, amount: netOut(p), direction: p.isRefund ? 'credit' : 'debit', description: `${p.isRefund ? 'Vendor refund' : 'Vendor payment'}${p.vendorId?.name ? ` — ${p.vendorId.name}` : ''}`, bankDetails: bankDetailsOf(p.vendorId), sourceType: 'vendorPayment', sourceId: p._id })),
+        ...salaryPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: p.employeeId?.name ? `Salary payment — ${p.employeeId.name}` : 'Salary payment', bankDetails: bankDetailsOf(p.employeeId), sourceType: 'salaryPayment', sourceId: p._id })),
+        ...labourPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: p.labourerId?.name ? `Labour payment — ${p.labourerId.name}` : 'Labour payment', bankDetails: bankDetailsOf(p.labourerId), sourceType: 'labourPayment', sourceId: p._id })),
+        ...commissionPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: p.referralId?.name ? `Commission payment — ${p.referralId.name}` : 'Commission payment', bankDetails: bankDetailsOf(p.referralId), sourceType: 'commissionPayment', sourceId: p._id })),
+        ...labourProviderPayments.map(p => ({ date: p.date, amount: netOut(p), direction: 'debit', description: p.labourProviderId?.name ? `Labour provider payment — ${p.labourProviderId.name}` : 'Labour provider payment', bankDetails: bankDetailsOf(p.labourProviderId), sourceType: 'labourProviderPayment', sourceId: p._id })),
         ...expenses.map(e => ({
             date: e.date, amount: e.amount, direction: 'debit',
             description: [e.expenseCategory ? `Expense — ${e.expenseCategory}` : 'Expense', e.relatedToId?.name].filter(Boolean).join(' — '),
+            bankDetails: bankDetailsOf(e.relatedToId),
             sourceType: 'expense', sourceId: e._id,
         })),
         ...expensePayments.map(p => ({
             date: p.date, amount: p.amount, direction: 'debit',
             description: [p.expenseId?.expenseCategory ? `Expense payment — ${p.expenseId.expenseCategory}` : 'Expense payment', p.expenseId?.relatedToId?.name].filter(Boolean).join(' — '),
+            bankDetails: bankDetailsOf(p.expenseId?.relatedToId),
             sourceType: 'expensePayment', sourceId: p._id,
         })),
-        ...contractorAdvances.map(a => ({ date: a.date, amount: a.amount, direction: 'debit', description: a.vendorId?.name ? `Contractor advance — ${a.vendorId.name}` : 'Contractor advance', sourceType: 'contractorAdvance', sourceId: a._id })),
-        ...labourAdvances.map(a => ({ date: a.date, amount: a.amount, direction: 'debit', description: a.labourerId?.name ? `Labour advance — ${a.labourerId.name}` : 'Labour advance', sourceType: 'labourAdvance', sourceId: a._id })),
-        ...tdsDeposits.map(d => ({ date: d.date, amount: d.amount, direction: 'debit', description: d.tdsSectionId?.name ? `TDS deposit — ${d.tdsSectionId.name}` : 'TDS deposit', sourceType: 'tdsDeposit', sourceId: d._id })),
-        ...transfersOut.map(t => ({ date: t.date, amount: t.amount, direction: 'debit', description: t.toAccountId?.accountName ? `Transfer out — to ${t.toAccountId.accountName}` : 'Transfer out', sourceType: 'transfer', sourceId: t._id })),
-        ...transfersIn.map(t => ({ date: t.date, amount: t.amount, direction: 'credit', description: t.fromAccountId?.accountName ? `Transfer in — from ${t.fromAccountId.accountName}` : 'Transfer in', sourceType: 'transfer', sourceId: t._id })),
-        ...bankEntries.map(e => ({ date: e.date, amount: e.amount, direction: e.type === 'in' ? 'credit' : 'debit', description: e.reason, sourceType: 'bankEntry', sourceId: e._id, entrySource: e.source })),
+        ...contractorAdvances.map(a => ({ date: a.date, amount: a.amount, direction: 'debit', description: a.vendorId?.name ? `Contractor advance — ${a.vendorId.name}` : 'Contractor advance', bankDetails: bankDetailsOf(a.vendorId), sourceType: 'contractorAdvance', sourceId: a._id })),
+        ...labourAdvances.map(a => ({ date: a.date, amount: a.amount, direction: 'debit', description: a.labourerId?.name ? `Labour advance — ${a.labourerId.name}` : 'Labour advance', bankDetails: bankDetailsOf(a.labourerId), sourceType: 'labourAdvance', sourceId: a._id })),
+        // Government, not a tracked party — no bank details to show.
+        ...tdsDeposits.map(d => ({ date: d.date, amount: d.amount, direction: 'debit', description: d.tdsSectionId?.name ? `TDS deposit — ${d.tdsSectionId.name}` : 'TDS deposit', bankDetails: '—', sourceType: 'tdsDeposit', sourceId: d._id })),
+        // The counterparty is one of the company's own other accounts, not
+        // an external party — already fully identified by name in the
+        // description, so no separate bank-details lookup applies here.
+        ...transfersOut.map(t => ({ date: t.date, amount: t.amount, direction: 'debit', description: t.toAccountId?.accountName ? `Transfer out — to ${t.toAccountId.accountName}` : 'Transfer out', bankDetails: '—', sourceType: 'transfer', sourceId: t._id })),
+        ...transfersIn.map(t => ({ date: t.date, amount: t.amount, direction: 'credit', description: t.fromAccountId?.accountName ? `Transfer in — from ${t.fromAccountId.accountName}` : 'Transfer in', bankDetails: '—', sourceType: 'transfer', sourceId: t._id })),
+        ...bankEntries.map(e => ({ date: e.date, amount: e.amount, direction: e.type === 'in' ? 'credit' : 'debit', description: e.reason, bankDetails: '—', sourceType: 'bankEntry', sourceId: e._id, entrySource: e.source })),
     ];
 };
 

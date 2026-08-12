@@ -4879,7 +4879,7 @@ const fetchBankPositions = async (start, end) => {
         let running = openingBalance;
         const transactions = duringMonth.map(t => {
             running += t.direction === 'credit' ? t.amount : -t.amount;
-            return { date: t.date, description: t.description, direction: t.direction, amount: t.amount, runningBalance: round2(running) };
+            return { date: t.date, description: t.description, bankDetails: t.bankDetails || '—', direction: t.direction, amount: t.amount, runningBalance: round2(running) };
         });
         const closingBalance = openingBalance + creditTotal - debitTotal;
         return {
@@ -4925,8 +4925,13 @@ const computeCaMonthlyPackage = async (month) => {
         // of. Client isn't a direct ref on FinanceRunningBill — reached
         // through projectId.clientId instead, so the CA can match a bill's
         // GSTIN against the actual GSTR-1 filing without a separate lookup.
+        // clientId's own bankName/accountNumber (required fields on that
+        // model) so the Bills Issued table can show whose account a
+        // matching client payment should land in — same "identify the
+        // account before it shows up on the bank statement" reasoning as
+        // the Purchases table's own Bank Details column.
         FinanceRunningBill.find({ billDate: { $gte: start, $lte: end }, status: 'issued', deleted: { $ne: true } })
-            .populate({ path: 'projectId', select: 'name clientId', populate: { path: 'clientId', select: 'name gstNumber' } })
+            .populate({ path: 'projectId', select: 'name clientId', populate: { path: 'clientId', select: 'name gstNumber bankName accountNumber' } })
             .sort({ billDate: 1 }),
         // bankName/accountNumber so a purchase row can show whose account
         // this vendor eventually gets paid into (same reasoning as the
@@ -4963,7 +4968,17 @@ const computeCaMonthlyPackage = async (month) => {
         // deposited with the tax department this month, not just withheld.
         FinanceTdsDeposit.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } })
             .populate('tdsSectionId', 'name code').populate('bankAccountId', 'accountName').sort({ date: 1 }),
-        FinanceExpense.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } }).populate('bankAccountId', 'accountName bankName accountNumber').sort({ date: 1 }),
+        // relatedToId's own bankName/accountNumber (refPath — resolves to
+        // whichever model relatedToType names; financeCompanySettings has
+        // neither field, so that populate silently returns just _id/name,
+        // same as an unrelated/company-level expense with no specific
+        // party at all) — an expense tied to a specific employee/vendor/
+        // labourer can otherwise be a real payment to a real party with no
+        // way to identify their account on the bank statement.
+        FinanceExpense.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true } })
+            .populate('bankAccountId', 'accountName bankName accountNumber')
+            .populate('relatedToId', 'name bankName accountNumber')
+            .sort({ date: 1 }),
         // Opening/credits/debits/closing per account, plus the actual
         // transaction list with a running balance — a CA reconciling
         // against the real bank statement needs to match it line by line,
@@ -5026,6 +5041,7 @@ const computeCaMonthlyPackage = async (month) => {
     const billRows = issuedBills.map(b => ({
         billNumber: b.billNumber, billDate: b.billDate, projectName: b.projectId?.name || '—',
         clientName: b.projectId?.clientId?.name || '—', clientGstin: b.projectId?.clientId?.gstNumber || '—',
+        clientBankDetails: b.projectId?.clientId?.bankName ? `${b.projectId.clientId.bankName}\nA/C ${b.projectId.clientId.accountNumber}` : '—',
         subtotal: b.totalAmount, gstAmount: b.gstAmount || 0, total: b.totalAmount + (b.gstAmount || 0),
     }));
 
@@ -5111,6 +5127,8 @@ const computeCaMonthlyPackage = async (month) => {
     const expenseRows = expenses.map(e => ({
         date: e.date, category: e.expenseCategory || 'Uncategorized', amount: e.amount, gstAmount: e.gstAmount || 0,
         paidFrom: paidFromLabel(e.bankAccountId),
+        partyName: e.relatedToId?.name || '—',
+        partyBankDetails: e.relatedToId?.bankName ? `${e.relatedToId.bankName}\nA/C ${e.relatedToId.accountNumber}` : '—',
     }));
 
     const totalBankBalance = bankPositions.reduce((sum, b) => sum + b.closingBalance, 0);
@@ -5450,13 +5468,18 @@ const downloadCaMonthlyPackage = async (req, res) => {
                 company,
                 rowHeight: 30, // see the Purchases table's identical comment — long project/client names
                 columns: [
-                    { label: 'Bill #', width: 65, align: 'left' },
-                    { label: 'Date', width: 55, align: 'left' },
-                    { label: 'Project', width: 76, align: 'left' },
+                    { label: 'Bill #', width: 48, align: 'left' },
+                    { label: 'Date', width: 48, align: 'left' },
+                    { label: 'Project', width: 45, align: 'left' },
                     // Name on its own line, GSTIN on the next (see
                     // drawTable's \n handling) — same reasoning as the
                     // Purchases table's Vendor column.
-                    { label: 'Client', width: 115, align: 'left' },
+                    { label: 'Client', width: 95, align: 'left' },
+                    // Bank name / account number, same \n pairing and same
+                    // width as the Purchases table's own Bank Details
+                    // column — whose account a matching client payment
+                    // should land in.
+                    { label: 'Bank Details', width: 75, align: 'left' },
                     { label: 'Subtotal', width: 69, align: 'right' },
                     { label: 'GST', width: 60, align: 'right' },
                     { label: 'Total', width: 72, align: 'right' },
@@ -5464,6 +5487,7 @@ const downloadCaMonthlyPackage = async (req, res) => {
                 rows: data.sales.bills.map(b => [
                     b.billNumber, formatDate(b.billDate), b.projectName,
                     `${b.clientName}${b.clientGstin && b.clientGstin !== '—' ? `\n${b.clientGstin}` : ''}`,
+                    b.clientBankDetails,
                     formatCurrency(b.subtotal), formatCurrency(b.gstAmount), formatCurrency(b.total),
                 ]),
             });
@@ -5579,15 +5603,28 @@ const downloadCaMonthlyPackage = async (req, res) => {
                 company,
                 rowHeight: 30, // Paid From is a 2-line cell (drawTable's \n handling) — the self-healing minimum in drawRow covers this too, but set explicitly for clarity same as every other multi-line table.
                 columns: [
-                    { label: 'Date', width: 55, align: 'left' },
-                    { label: 'Category', width: 175, align: 'left' },
-                    { label: 'Amount', width: 70, align: 'right' },
-                    { label: 'GST', width: 62, align: 'right' },
+                    { label: 'Date', width: 50, align: 'left' },
+                    { label: 'Category', width: 90, align: 'left' },
+                    // Who this expense was actually for — '—' for a plain
+                    // overhead expense with no specific employee/vendor/
+                    // labourer tagged (financeExpense.relatedToId is
+                    // optional). Was entirely absent before — a real
+                    // payment to a real party with no way to tell who.
+                    { label: 'Party', width: 70, align: 'left' },
+                    // Bank name / account number, same \n pairing and same
+                    // width as the Purchases table's own Bank Details
+                    // column.
+                    { label: 'Bank Details', width: 75, align: 'left' },
+                    { label: 'Amount', width: 69, align: 'right' },
+                    { label: 'GST', width: 60, align: 'right' },
                     // So this row can be matched straight to a line in the
                     // matching account's own Transactions table below.
-                    { label: 'Paid From', width: 150, align: 'left' },
+                    { label: 'Paid From', width: 98, align: 'left' },
                 ],
-                rows: data.expenses.rows.map(e => [formatDate(e.date), e.category, formatCurrency(e.amount), formatCurrency(e.gstAmount), e.paidFrom]),
+                rows: data.expenses.rows.map(e => [
+                    formatDate(e.date), e.category, e.partyName, e.partyBankDetails,
+                    formatCurrency(e.amount), formatCurrency(e.gstAmount), e.paidFrom,
+                ]),
             });
         }
 
@@ -5607,14 +5644,21 @@ const downloadCaMonthlyPackage = async (req, res) => {
                     company,
                     rowHeight: 30, // see the Purchases table's identical comment
                     columns: [
-                        { label: 'Date', width: 55, align: 'left' },
-                        { label: 'Description', width: 220, align: 'left' },
-                        { label: 'In/Out', width: 40, align: 'left' },
-                        { label: 'Amount', width: 69, align: 'right' },
-                        { label: 'Running Balance', width: 128, align: 'right' },
+                        { label: 'Date', width: 50, align: 'left' },
+                        { label: 'Description', width: 155, align: 'left' },
+                        // Bank name / account number, same \n pairing as
+                        // every other Bank Details column in this package —
+                        // the counterparty's own account, so this line can
+                        // be matched straight against the real bank
+                        // statement's matching entry.
+                        { label: 'Bank Details', width: 75, align: 'left' },
+                        { label: 'In/Out', width: 35, align: 'left' },
+                        { label: 'Amount', width: 65, align: 'right' },
+                        { label: 'Running Balance', width: 132, align: 'right' },
                     ],
                     rows: a.transactions.map(t => [
-                        formatDate(t.date), splitDescription(t.description), t.direction === 'credit' ? 'In' : 'Out',
+                        formatDate(t.date), splitDescription(t.description), t.bankDetails,
+                        t.direction === 'credit' ? 'In' : 'Out',
                         formatCurrency(t.amount), formatCurrency(t.runningBalance),
                     ]),
                 });

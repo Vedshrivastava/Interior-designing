@@ -60,9 +60,17 @@ const ClientProfitView = ({ url, clientId, onSelectClient, onViewProjectProfit }
                         <KpiCard label="Total Costs" value={`₹${(data.totals.materialCost + data.totals.materialWasteCost + data.totals.contractorCost + data.totals.commissionCost + data.totals.otherExpenses + data.totals.labourCost).toLocaleString('en-IN')}`} />
                         <KpiCard label="Profit" value={`₹${data.totals.profit.toLocaleString('en-IN')} (${data.totals.marginPercent.toFixed(1)}%)`} tone={data.totals.profit >= 0 ? 'good' : 'danger'} />
                     </KpiGrid>
-                    {(data.totals.totalContractorCost > data.totals.contractorCost || data.totals.totalLabourCost > data.totals.labourCost) && (
+                    {(data.totals.unapprovedContractorCost > 0 || data.totals.unapprovedLabourCost > 0) && (
+                        // BUG FIX: this used to compute the gap as
+                        // totalXCost − xCost directly, which also swept in
+                        // REJECTED work (a final, already-reviewed decision
+                        // that will never be billed — not "still pending").
+                        // unapprovedXCost already excludes rejectedAmount
+                        // (see computeProjectProfit's own comment); using
+                        // the raw subtraction here was double-counting
+                        // rejected work as if it were still awaiting review.
                         <p className="admin-subtitle" style={{ margin: '10px 0', color: '#c0392b' }}>
-                            Contractor/labour costs above only count work already billed to the client: ₹{(data.totals.totalContractorCost - data.totals.contractorCost + data.totals.totalLabourCost - data.totals.labourCost).toLocaleString('en-IN')} more is logged but still Unapproved (not yet billed), so Profit will move once it's billed.
+                            Contractor/labour costs above only count work already billed to the client: ₹{(data.totals.unapprovedContractorCost + data.totals.unapprovedLabourCost).toLocaleString('en-IN')} more is logged but still Unapproved (not yet billed), so Profit will move once it's billed.
                         </p>
                     )}
 

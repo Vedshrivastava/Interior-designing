@@ -821,14 +821,34 @@ const computeSalaryPaidInRange = async (start, end) => {
     return agg[0]?.total || 0;
 };
 
-// This month's fresh salary accrual only (not the running backlog) — the
-// Salary Payables KPI card's headline figure, with the full backlog
-// (computeCompanyWideSalaryPayable) shown as its "Payment left" sub-line
-// instead, so the card reads "what's newly due this month" up top and
-// "how far behind overall" underneath.
+// This month's fresh salary accrual, net of whatever's already been paid
+// for this month — the Salary Payables KPI card's headline figure, with
+// the OLDER backlog (computeCompanyWideSalaryPayable, closed months only)
+// shown as its "Payment left" sub-line instead, so the card reads "what's
+// still owed for this month" up top and "how far behind overall"
+// underneath.
+//
+// BUG FIX: this used to be the raw expected total with no netting against
+// this month's own payments at all — paying an employee's full salary for
+// the current month never moved this figure, so it silently kept reading
+// as "still payable" even once nothing was left owed for the month. Now
+// nets each employee's own expected-vs-paid for just this month, floored
+// at 0 per employee (same convention as computeCompanyWideSalaryPayable's
+// overduePayable) so one employee's advance/overpayment this month can't
+// mask a different employee's real shortfall.
 const computeCompanyWideSalaryExpectedThisMonth = async (monthKey) => {
     const employees = await FinanceEmployee.find({ deleted: { $ne: true } });
-    return round2(employees.reduce((sum, e) => sum + expectedSalaryForMonth(e, monthKey), 0));
+    const payments = await FinanceSalaryPayment.find({ month: monthKey, deleted: { $ne: true } });
+    const paidByEmployee = new Map();
+    for (const p of payments) {
+        const key = p.employeeId.toString();
+        paidByEmployee.set(key, (paidByEmployee.get(key) || 0) + p.amount);
+    }
+    return round2(employees.reduce((sum, e) => {
+        const expected = expectedSalaryForMonth(e, monthKey);
+        const paid = paidByEmployee.get(e._id.toString()) || 0;
+        return sum + Math.max(0, expected - paid);
+    }, 0));
 };
 
 // What the project's still-unreviewed sqft would bill the client once it

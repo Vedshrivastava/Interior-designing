@@ -15,20 +15,6 @@ import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, Ch
 import '../styles/welcome.css';
 import '../styles/list.css';
 
-// Salary for the current, still-in-progress month isn't owed yet — only
-// once that month has fully ended, so this dashboard's salary-payable
-// figure looks at the last completed month instead (see
-// PayablesPage.jsx's identical helper/reasoning).
-const lastCompletedMonth = () => {
-    const d = new Date();
-    d.setDate(1);
-    d.setMonth(d.getMonth() - 1);
-    // Built from local calendar fields, not .toISOString() — see
-    // PayablesPage.jsx's identical helper for why toISOString() here would
-    // roll the month back for viewers east of UTC in the early-morning hours.
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-};
-
 // Kept outside the component so it survives a route remount — navigating
 // away and back to the dashboard shows the last-known view instantly
 // instead of every card/chart reverting to its skeleton again, while a
@@ -97,7 +83,6 @@ const FinanceHome = ({ url }) => {
             // Root requests fired together — summary and trends don't
             // depend on each other, so there's no reason to wait for one
             // before starting the other.
-            const month = lastCompletedMonth();
             const [summaryRes, trendsRes] = await Promise.all([
                 axios.get(`${url}/api/finance/reports/dashboard-summary`, authHeader),
                 axios.get(`${url}/api/finance/reports/dashboard-trends`, { ...authHeader, params: { months: 6 } }),
@@ -110,30 +95,32 @@ const FinanceHome = ({ url }) => {
             if (nextTrends) setTrends(nextTrends);
             setPhase1Loading(false);
 
-            // Payables breakdown donut — vendor/contractor come straight off
-            // the summary; salary/commission/project-profit each have their
-            // own batch endpoint (one request computing every employee/
-            // referral/active-project's figure server-side, instead of the
-            // Dashboard firing one request per row) — all three run
-            // together since none depends on another.
-            const [salaryRes, commissionRes, profitsRes] = await Promise.all([
-                axios.get(`${url}/api/finance/employees/salary-ledgers-batch`, { ...authHeader, params: { month } }).catch(() => null),
-                axios.get(`${url}/api/finance/referrals/commission-ledgers-batch`, authHeader).catch(() => null),
-                axios.get(`${url}/api/finance/reports/project-profits-batch`, authHeader).catch(() => null),
-            ]);
+            // Payables breakdown donut — every figure the "Total Payables"
+            // hero KPI sums (see its own comment on the exact composition)
+            // comes straight off the same summary response, so this chart
+            // can never disagree with that headline number. Used to fire
+            // its own separate salary/commission batch calls instead
+            // (one request computing every employee/referral's figure
+            // server-side) — those produced genuinely different numbers
+            // than the hero KPI (a different month-scope for salary, a
+            // slightly different all-time formula for commission),
+            // which is exactly the "why doesn't this add up" confusion
+            // reading two different "payable" figures side by side on the
+            // same page caused. project-profits still needs its own batch
+            // endpoint — nothing in `summary` covers it.
+            const profitsRes = await axios.get(`${url}/api/finance/reports/project-profits-batch`, authHeader).catch(() => null);
             if (!aliveRef.current || requestIdRef.current !== myRequestId) return;
 
-            const salaryLedgers = salaryRes?.data?.success ? salaryRes.data.data : [];
-            const commissionLedgers = commissionRes?.data?.success ? commissionRes.data.data : [];
             const profits = profitsRes?.data?.success ? profitsRes.data.data : [];
 
-            const salaryPayable = salaryLedgers.reduce((s, l) => s + (l.balanceDue || 0), 0);
-            const commissionPayable = commissionLedgers.reduce((s, l) => s + (l.commissionPayable || 0), 0);
             const nextPayablesBreakdown = {
                 vendor: nextSummary?.vendorPayables || 0,
                 contractor: nextSummary?.contractorPayables || 0,
-                salary: salaryPayable,
-                commission: commissionPayable,
+                labour: nextSummary?.labourPayables || 0,
+                commission: nextSummary?.commissionPayables || 0,
+                salary: nextSummary?.salaryPayables || 0,
+                expenses: nextSummary?.expensePayables || 0,
+                tds: nextSummary?.tdsPayable || 0,
             };
             const nextProjectProfits = profits;
 
@@ -179,8 +166,11 @@ const FinanceHome = ({ url }) => {
     const payablesData = payablesBreakdown ? [
         { name: 'Vendor', value: payablesBreakdown.vendor },
         { name: 'Contractor', value: payablesBreakdown.contractor },
-        { name: 'Salary', value: payablesBreakdown.salary },
+        { name: 'Labour', value: payablesBreakdown.labour },
         { name: 'Commission', value: payablesBreakdown.commission },
+        { name: 'Salary', value: payablesBreakdown.salary },
+        { name: 'Expenses', value: payablesBreakdown.expenses },
+        { name: 'TDS', value: payablesBreakdown.tds },
     ].filter(d => d.value > 0) : [];
 
     // One box per work type present in today's measurements (Putty, Paint,

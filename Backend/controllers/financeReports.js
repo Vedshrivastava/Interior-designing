@@ -3269,7 +3269,25 @@ const computeCashFlow = async (from, to, groupBy = 'day') => {
         // real cash genuinely entering or leaving the company through one
         // of these manual entries was invisible here even though it's
         // exactly as real as a receipt or a payment.
-        FinanceCashEntry.find(otherFilter),
+        //
+        // BUG FIX 2: FinanceCashEntry also holds AUTO-generated mirror
+        // rows — every cash-mode receipt/payment/advance/expense already
+        // creates one of these alongside the real record (see
+        // financeReceipt.js's addReceipt, same pattern on every other
+        // payment controller), tagged with a relatedXId back to it. Fetching
+        // every FinanceCashEntry unconditionally double-counted every one
+        // of those: once as the receipt/payment itself above, again here
+        // as its own mirror — confirmed live (a single ₹50,000 cash
+        // receipt inflated totals.in by ₹100,000). Only entries with NO
+        // relatedXId set are genuinely manual and belong here.
+        FinanceCashEntry.find({
+            ...otherFilter,
+            relatedReceiptId: null, relatedContractorPaymentId: null, relatedVendorPaymentId: null,
+            relatedSalaryPaymentId: null, relatedCommissionPaymentId: null, relatedExpenseId: null,
+            relatedSupervisorIncentiveId: null, relatedLabourPaymentId: null, relatedExpensePaymentId: null,
+            relatedLabourProviderPaymentId: null, relatedContractorAdvanceId: null, relatedLabourAdvanceId: null,
+            relatedTdsDepositId: null,
+        }),
         FinanceBankEntry.find(otherFilter),
     ]);
 

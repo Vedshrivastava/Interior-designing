@@ -10,6 +10,7 @@ import StyledSelect from './StyledSelect';
 import DownloadButton from './DownloadButton';
 import { useFileDownload } from '../../hooks/useFileDownload';
 import StyledDatePicker from './StyledDatePicker';
+import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import ViewAttachmentLink from './ViewAttachmentLink';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
@@ -62,6 +63,7 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
     const [loading, setLoading] = useState(true);
     const [bankAccounts, setBankAccounts] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
+    const [paymentModes, setPaymentModes] = useState([]);
     const [workTypeSettings, setWorkTypeSettings] = useState([]);
     const [refDataLoading, setRefDataLoading] = useState(true);
     const [billProjectId, setBillProjectId] = useState('');
@@ -107,6 +109,8 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                 .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {}),
             axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
                 .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {}),
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
+                .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {}),
             // Work Types carry their own tdsSectionId (populated with rate) —
             // resolved by matching a picked Work's `workType` string against
             // this list's `name`, same string-match convention every other
@@ -123,7 +127,10 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
         setSaving('advance');
         try {
             const res = await axios.post(`${url}/api/finance/contractor-advances/add`, { ...advanceForm, vendorId, projectId: projectId || null }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); setAdvanceForm(emptyAdvanceForm); setAdvanceModalOpen(false); await fetchLedger(); }
+            if (res.data.success) {
+                if (advanceForm.paymentMode) await registerSettingIfNew(url, authHeader, 'payment_mode', advanceForm.paymentMode, paymentModes.map(m => ({ name: m })));
+                toast.success(res.data.message); setAdvanceForm(emptyAdvanceForm); setAdvanceModalOpen(false); await fetchLedger();
+            }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording advance'); }
         finally { setSaving(''); }
@@ -210,7 +217,10 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
             const res = await axios.post(`${url}/api/finance/contractor-payments/add`, data, {
                 headers: { ...authHeader.headers, 'Content-Type': 'multipart/form-data' },
             });
-            if (res.data.success) { toast.success(res.data.message); setPaymentForm(emptyPaymentForm); setPaymentFile(null); setPaymentModalOpen(false); await fetchLedger(); }
+            if (res.data.success) {
+                if (paymentForm.paymentMode) await registerSettingIfNew(url, authHeader, 'payment_mode', paymentForm.paymentMode, paymentModes.map(m => ({ name: m })));
+                toast.success(res.data.message); setPaymentForm(emptyPaymentForm); setPaymentFile(null); setPaymentModalOpen(false); await fetchLedger();
+            }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording payment'); }
         finally { setSaving(''); }
@@ -441,7 +451,8 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Payment Mode</p>
-                                    <input type="text" value={advanceForm.paymentMode} onChange={e => setAdvanceForm(p => ({ ...p, paymentMode: e.target.value }))} />
+                                    <SettingSelectField settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
+                                        value={advanceForm.paymentMode} onChange={v => setAdvanceForm(p => ({ ...p, paymentMode: v }))} placeholder="e.g. Cash, Bank Transfer, UPI…" />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Bank Account</p>
@@ -449,6 +460,10 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                         value={advanceForm.bankAccountId} onChange={v => setAdvanceForm(p => ({ ...p, bankAccountId: v }))} placeholder="Cash" loading={refDataLoading}
                                         options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
                                     />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>UTR / Reference Number</p>
+                                    <input type="text" value={advanceForm.utrNumber} onChange={e => setAdvanceForm(p => ({ ...p, utrNumber: e.target.value }))} />
                                 </div>
                                 <div className="add-product-name flex-col wizard-field-full">
                                     <p>Notes</p>
@@ -637,7 +652,8 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Payment Mode</p>
-                                    <input type="text" value={paymentForm.paymentMode} onChange={e => setPaymentForm(p => ({ ...p, paymentMode: e.target.value }))} />
+                                    <SettingSelectField settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
+                                        value={paymentForm.paymentMode} onChange={v => setPaymentForm(p => ({ ...p, paymentMode: v }))} placeholder="e.g. Cash, Bank Transfer, UPI…" />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Bank Account</p>
@@ -665,9 +681,17 @@ const ContractorLedgerView = ({ url, vendorId, projectId, showWorks = true }) =>
                                     <p>Holding Amount</p>
                                     <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={paymentForm.holdingAmount} onChange={e => setPaymentForm(p => ({ ...p, holdingAmount: e.target.value }))} />
                                 </div>
+                                <div className="add-product-name flex-col">
+                                    <p>UTR / Reference Number</p>
+                                    <input type="text" value={paymentForm.utrNumber} onChange={e => setPaymentForm(p => ({ ...p, utrNumber: e.target.value }))} />
+                                </div>
                                 <div className="add-product-name flex-col wizard-field-full">
                                     <p>Attachment</p>
                                     <input type="file" onChange={e => setPaymentFile(e.target.files[0] || null)} />
+                                </div>
+                                <div className="add-product-name flex-col wizard-field-full">
+                                    <p>Notes</p>
+                                    <textarea rows="2" value={paymentForm.notes} onChange={e => setPaymentForm(p => ({ ...p, notes: e.target.value }))} />
                                 </div>
                             </div>
                             {Number(paymentForm.holdingAmount) > 0 && !(projectId || paymentForm.projectId) && (

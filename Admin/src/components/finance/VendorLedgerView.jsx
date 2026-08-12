@@ -246,6 +246,13 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                     <div className="loader-modal-box edit-modal vlpay-modal">
                         <div className="vlpay-modal-header">
                             <h2>{paymentForm.isRefund ? 'Add Refund' : 'Add Payment'}</h2>
+                            {!paymentForm.isRefund && (
+                                <p className="admin-subtitle" style={{ margin: '4px 0 0' }}>
+                                    Amount Owed: <span style={{ fontWeight: 700, color: totals.amountOwed > 0 ? '#c0392b' : 'var(--moss)' }}>
+                                        {totals.amountOwed < 0 ? `Vendor owes us ${formatINR(Math.abs(totals.amountOwed))}` : formatINR(totals.amountOwed)}
+                                    </span>
+                                </p>
+                            )}
                         </div>
                         <div className="vlpay-modal-body">
                             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0 16px', cursor: 'pointer' }}>
@@ -285,9 +292,17 @@ const VendorLedgerView = ({ url, vendorId, projectId }) => {
                                         <p>TDS Amount (optional)</p>
                                         <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={paymentForm.tdsAmount} onChange={e => setPaymentForm(p => ({ ...p, tdsAmount: e.target.value }))} />
                                     </div>
+                                    <div className="add-product-name flex-col">
+                                        <p>UTR / Reference Number</p>
+                                        <input type="text" value={paymentForm.utrNumber} onChange={e => setPaymentForm(p => ({ ...p, utrNumber: e.target.value }))} />
+                                    </div>
                                     <div className="add-product-name flex-col wizard-field-full">
                                         <p>Attachment</p>
                                         <input type="file" onChange={e => setPaymentFile(e.target.files[0] || null)} />
+                                    </div>
+                                    <div className="add-product-name flex-col wizard-field-full">
+                                        <p>Notes</p>
+                                        <textarea rows="2" value={paymentForm.notes} onChange={e => setPaymentForm(p => ({ ...p, notes: e.target.value }))} />
                                     </div>
                                 </div>
                             </form>

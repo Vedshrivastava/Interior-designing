@@ -5,6 +5,8 @@ import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import StyledDatePicker from './StyledDatePicker';
+import StyledSelect from './StyledSelect';
+import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import { KpiCard, KpiGrid, formatINR } from './DashboardWidgets';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
@@ -12,7 +14,7 @@ import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '' };
+const emptyForm = { amount: '', date: '', paymentMode: '', bankOrCashLabel: '', bankAccountId: '', utrNumber: '', notes: '', tdsSectionId: '', tdsAmount: '', projectId: '' };
 
 /*
  * Labour Provider Ledger for one provider — mirrors CommissionLedgerView's
@@ -35,6 +37,9 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
     const [loading, setLoading] = useState(true);
     const [bankAccounts, setBankAccounts] = useState([]);
     const [tdsSections, setTdsSections] = useState([]);
+    const [paymentModes, setPaymentModes] = useState([]);
+    const [projects, setProjects] = useState([]);
+    const [refDataLoading, setRefDataLoading] = useState(true);
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
@@ -58,10 +63,16 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
     // reselected.
     useFinanceWsRefresh(['financeLabourProviderPaymentsChanged'], (msg) => { if (labourProviderId && (!msg.labourProviderId || msg.labourProviderId === labourProviderId)) fetchLedger(); });
     useEffect(() => {
-        axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
-            .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
-            .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {});
+        Promise.all([
+            axios.get(`${url}/api/finance/bank-accounts/list`, authHeader)
+                .then(res => { if (res.data.success) setBankAccounts(res.data.data); }).catch(() => {}),
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'tds_section' } })
+                .then(res => { if (res.data.success) setTdsSections(res.data.data); }).catch(() => {}),
+            axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'payment_mode' } })
+                .then(res => { if (res.data.success) setPaymentModes(res.data.data.map(s => s.name)); }).catch(() => {}),
+            axios.get(`${url}/api/finance/projects/list`, authHeader)
+                .then(res => { if (res.data.success) setProjects(res.data.data); }).catch(() => {}),
+        ]).finally(() => setRefDataLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
@@ -73,7 +84,10 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
         setSaving(true);
         try {
             const res = await axios.post(`${url}/api/finance/labour-provider-payments/add`, { ...form, labourProviderId }, authHeader);
-            if (res.data.success) { toast.success(res.data.message); setForm(emptyForm); setModalOpen(false); await fetchLedger(); }
+            if (res.data.success) {
+                if (form.paymentMode) await registerSettingIfNew(url, authHeader, 'payment_mode', form.paymentMode, paymentModes.map(m => ({ name: m })));
+                toast.success(res.data.message); setForm(emptyForm); setModalOpen(false); await fetchLedger();
+            }
             else toast.error(res.data.message);
         } catch (err) { toast.error(err.response?.data?.message || 'Error recording labour provider payment'); }
         finally { setSaving(false); }
@@ -174,6 +188,9 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
                     <div className="loader-modal-box edit-modal lpp-modal">
                         <div className="lpp-modal-header">
                             <h2>Add Payment</h2>
+                            <p className="admin-subtitle" style={{ margin: '4px 0 0' }}>
+                                {totals.balancePayable < 0 ? 'Extra Paid' : 'Payment Left'}: <span style={{ fontWeight: 700, color: totals.balancePayable > 0 ? '#c0392b' : 'var(--moss)' }}>₹{Math.abs(totals.balancePayable).toLocaleString('en-IN')}</span>
+                            </p>
                         </div>
                         <div className="lpp-modal-body">
                         <form id="labour-provider-payment-form" onSubmit={submit}>
@@ -187,26 +204,42 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
                                     <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
                                 </div>
                                 <div className="add-product-name flex-col">
+                                    <p>Project (optional)</p>
+                                    <StyledSelect
+                                        value={form.projectId} onChange={v => setField('projectId', v)} placeholder="Not tied to a project" loading={refDataLoading}
+                                        options={projects.map(p => ({ value: p._id, label: p.name }))}
+                                    />
+                                </div>
+                                <div className="add-product-name flex-col">
                                     <p>Payment Mode</p>
-                                    <input type="text" value={form.paymentMode} onChange={e => setField('paymentMode', e.target.value)} />
+                                    <SettingSelectField settingType="payment_mode" options={paymentModes.map(m => ({ _id: m, name: m }))}
+                                        value={form.paymentMode} onChange={v => setField('paymentMode', v)} placeholder="e.g. Cash, Bank Transfer, UPI…" />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>Bank Account</p>
-                                    <select value={form.bankAccountId} onChange={e => setField('bankAccountId', e.target.value)}>
-                                        <option value="">Cash</option>
-                                        {bankAccounts.map(a => <option key={a._id} value={a._id}>{a.accountName} · {a.bankName}</option>)}
-                                    </select>
+                                    <StyledSelect
+                                        value={form.bankAccountId} onChange={v => setField('bankAccountId', v)} placeholder="Cash" loading={refDataLoading}
+                                        options={bankAccounts.map(a => ({ value: a._id, label: `${a.accountName} · ${a.bankName}` }))}
+                                    />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>TDS Section</p>
-                                    <select value={form.tdsSectionId} onChange={e => setField('tdsSectionId', e.target.value)}>
-                                        <option value="">No TDS</option>
-                                        {tdsSections.map(s => <option key={s._id} value={s._id}>{s.name}{s.code ? ` (${s.code})` : ''}</option>)}
-                                    </select>
+                                    <StyledSelect
+                                        value={form.tdsSectionId} onChange={v => setField('tdsSectionId', v)} placeholder="No TDS" loading={refDataLoading}
+                                        options={tdsSections.map(s => ({ value: s._id, label: `${s.name}${s.code ? ` (${s.code})` : ''}` }))}
+                                    />
                                 </div>
                                 <div className="add-product-name flex-col">
                                     <p>TDS Amount (optional)</p>
                                     <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.tdsAmount} onChange={e => setField('tdsAmount', e.target.value)} />
+                                </div>
+                                <div className="add-product-name flex-col">
+                                    <p>UTR / Reference Number</p>
+                                    <input type="text" value={form.utrNumber} onChange={e => setField('utrNumber', e.target.value)} />
+                                </div>
+                                <div className="add-product-name flex-col wizard-field-full">
+                                    <p>Notes</p>
+                                    <textarea rows="2" value={form.notes} onChange={e => setField('notes', e.target.value)} />
                                 </div>
                             </div>
                         </form>

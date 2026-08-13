@@ -4031,7 +4031,14 @@
     .camp-bank-account {
         grid-column: 1 / -1;
     }
-    .camp-bank-opening, .camp-bank-in, .camp-bank-out, .camp-bank-balance { text-align: right; }
+    /* Opening/Debits land in the grid's left column (1st/3rd of the four,
+       in DOM order) once Account takes the full row above them, same as
+       Credits/Closing landing in the right column — each reads aligned to
+       its own column's edge (left column flush with Account's own left
+       edge above it) instead of every figure right-justified regardless
+       of which column it's actually sitting in. */
+    .camp-bank-opening, .camp-bank-out { text-align: left; }
+    .camp-bank-in, .camp-bank-balance { text-align: right; }
 }
 
 /* ── CA Monthly Package's generic line-item tables (LineItemTable — TDS

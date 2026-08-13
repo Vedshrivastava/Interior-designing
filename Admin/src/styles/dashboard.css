@@ -4017,8 +4017,19 @@
     }
     .camp-bank-row {
         grid-template-columns: 1fr 1fr;
-        row-gap: 10px;
+        row-gap: 14px;
         padding: 16px;
+    }
+    /* 5 cells (Account, Opening, Credits, Debits, Closing) wrapping
+       straight into a 2-column grid pair Account with Opening, then
+       Credits/Debits on their own row, leaving Closing alone with dead
+       space next to it — Account (name + bank + A/C, often 2-3 lines) is
+       also visually heavier than a bare figure, so it reads oddly paired
+       with a single-line number anyway. Giving it its own full-width row
+       lets the remaining four — always an even number — form a clean 2×2
+       grid underneath instead. */
+    .camp-bank-account {
+        grid-column: 1 / -1;
     }
     .camp-bank-opening, .camp-bank-in, .camp-bank-out, .camp-bank-balance { text-align: right; }
 }

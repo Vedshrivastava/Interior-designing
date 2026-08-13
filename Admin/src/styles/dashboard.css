@@ -4023,6 +4023,126 @@
     .camp-bank-opening, .camp-bank-in, .camp-bank-out, .camp-bank-balance { text-align: right; }
 }
 
+/* ── CA Monthly Package's generic line-item tables (LineItemTable — TDS
+   payments/deposits, Bills Issued, HSN summaries, Purchases, Expenses,
+   Bank transactions) — up to 10 columns on desktop, so unlike camp-tds-/
+   camp-bank- above (a fixed, known shape each) this can't collapse into a
+   bespoke grid-template-areas card; data-label + a ::before on each cell
+   carries that column's own header into the mobile layout generically,
+   regardless of column count. */
+.camp-line-table-card {
+    overflow-x: auto;
+}
+.camp-line-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+.camp-line-table th {
+    padding: 10px 14px;
+    white-space: nowrap;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.25);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-lt, #9a8e84);
+}
+.camp-line-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid rgba(201, 168, 124, 0.12);
+    white-space: nowrap;
+}
+@media (max-width: 640px) {
+    .camp-line-table-card {
+        overflow-x: visible;
+    }
+    .camp-line-table thead {
+        display: none;
+    }
+    .camp-line-table, .camp-line-table tbody, .camp-line-table tr, .camp-line-table td {
+        display: block;
+        width: 100%;
+    }
+    .camp-line-table tr {
+        padding: 14px 16px;
+        border-bottom: 1px solid rgba(201, 168, 124, 0.18);
+    }
+    .camp-line-table tr:last-child {
+        border-bottom: none;
+    }
+    .camp-line-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        padding: 5px 0;
+        border-bottom: none;
+        white-space: normal;
+        text-align: right !important;
+    }
+    .camp-line-table td::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: var(--text-lt, #9a8e84);
+        text-align: left;
+    }
+}
+
+/* ── Bank & Cash Movement's own transaction tables (camp-bank-txn-table —
+   6 cols: Date/Description/Bank Details/Direction/Amount/Running Balance;
+   camp-cash-txn-table — same minus Bank Details) — the generic
+   camp-line-table label:value stack above is correct for most tables on
+   this page, but a dozen-plus transactions each unfolding into 5-6
+   stacked label:value lines reads as a long, repetitive list rather than
+   a statement. Below 641px this repositions the same cells (by column
+   order, not a template — the two column counts differ) into a compact
+   2-column receipt line instead: Description + Direction on top, the
+   secondary detail (Bank Details, or just the date) + Amount in the
+   middle, Date/blank + Running Balance underneath — the same
+   primary/secondary hierarchy the downloadable PDF already uses for
+   these exact rows. */
+@media (max-width: 640px) {
+    .camp-bank-txn-table td,
+    .camp-cash-txn-table td {
+        display: block;
+        text-align: left !important;
+        padding: 0;
+    }
+    .camp-bank-txn-table td::before,
+    .camp-cash-txn-table td::before {
+        display: none;
+    }
+    .camp-bank-txn-table tr,
+    .camp-cash-txn-table tr {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        column-gap: 12px;
+        row-gap: 4px;
+        padding: 14px 16px;
+    }
+
+    /* Bank table columns, in order: Date, Description, Bank Details,
+       Direction, Amount, Running Balance. */
+    .camp-bank-txn-table td:nth-child(2) { grid-column: 1; grid-row: 1; font-weight: 600; color: var(--text-dark, #1a1208); }
+    .camp-bank-txn-table td:nth-child(4) { grid-column: 2; grid-row: 1; text-align: right !important; font-size: 0.72rem; color: var(--text-lt, #9a8e84); }
+    .camp-bank-txn-table td:nth-child(3) { grid-column: 1; grid-row: 2; font-size: 0.72rem; color: var(--text-lt, #9a8e84); }
+    .camp-bank-txn-table td:nth-child(5) { grid-column: 2; grid-row: 2; text-align: right !important; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .camp-bank-txn-table td:nth-child(1) { grid-column: 1; grid-row: 3; font-size: 0.72rem; color: var(--text-lt, #9a8e84); }
+    .camp-bank-txn-table td:nth-child(6) { grid-column: 2; grid-row: 3; text-align: right !important; font-size: 0.72rem; color: var(--text-lt, #9a8e84); font-variant-numeric: tabular-nums; }
+
+    /* Cash table columns, in order: Date, Description, Direction, Amount,
+       Running Balance — same layout, minus the Bank Details row. */
+    .camp-cash-txn-table td:nth-child(2) { grid-column: 1; grid-row: 1; font-weight: 600; color: var(--text-dark, #1a1208); }
+    .camp-cash-txn-table td:nth-child(3) { grid-column: 2; grid-row: 1; text-align: right !important; font-size: 0.72rem; color: var(--text-lt, #9a8e84); }
+    .camp-cash-txn-table td:nth-child(4) { grid-column: 2; grid-row: 2; text-align: right !important; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .camp-cash-txn-table td:nth-child(1) { grid-column: 1; grid-row: 3; font-size: 0.72rem; color: var(--text-lt, #9a8e84); }
+    .camp-cash-txn-table td:nth-child(5) { grid-column: 2; grid-row: 3; text-align: right !important; font-size: 0.72rem; color: var(--text-lt, #9a8e84); font-variant-numeric: tabular-nums; }
+}
+
 /* ── Profit views' own "drill-down" tables with an Action link: Project
    Profit's Works list (rpp-work-, 4 cols) and Client Profit's By
    project (rcp-proj-, 5 cols). */

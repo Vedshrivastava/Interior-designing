@@ -9,6 +9,7 @@ import { KpiCard, KpiGrid } from './DashboardWidgets';
 import '../../styles/list.css';
 import '../../styles/add.css';
 import '../../styles/wizard.css';
+import '../../styles/dashboard.css';
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 const fmtDate = (d) => new Date(d).toLocaleDateString('en-IN');
@@ -19,22 +20,30 @@ const fmtMoney = (n) => `₹${(n || 0).toLocaleString('en-IN')}`;
    is the same shape (a header row + N data rows), so one renderer covers
    all of them instead of a bespoke CSS grid per section. This is a
    preview surface, not the deliverable itself (the PDF is what actually
-   gets handed to the CA) — a plain scrollable HTML table keeps this
-   section lightweight while still showing every row the PDF shows. */
-const LineItemTable = ({ columns, rows, emptyText }) => (
+   gets handed to the CA), but up to 10 columns (Purchases) as a plain
+   horizontally-scrolling table read badly on mobile — nothing past
+   Date/Vendor visible without sideways scrolling. camp-line-table (CSS,
+   dashboard.css) collapses each row into its own labeled card below 641px
+   — data-label carries each column's own label into a ::before on its
+   cell, same "collapse to a labeled stack" pattern camp-tds-/camp-bank-
+   already use elsewhere on this same page, just generic enough to cover
+   every column shape here instead of a bespoke grid per table. */
+// tableClassName is an escape hatch for one table (Bank & Cash Movement's
+// transactions — see its own call site) whose 6 columns read better as a
+// small 2-column receipt-style card than a flat label:value stack once
+// there are a dozen-plus rows to scroll through — camp-bank-txn-table
+// (CSS) repositions those 6 cells by nth-child instead of using the
+// generic camp-line-table stacking for just that one table.
+const LineItemTable = ({ columns, rows, emptyText, tableClassName = '' }) => (
     rows.length === 0 ? (
         <div className="admin-empty-state"><p>{emptyText}</p></div>
     ) : (
-        <div className="dash-chart-card" style={{ overflowX: 'auto', padding: 0 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+        <div className="dash-chart-card camp-line-table-card" style={{ padding: 0 }}>
+            <table className={`camp-line-table ${tableClassName}`.trim()}>
                 <thead>
                     <tr>
                         {columns.map(c => (
-                            <th key={c.key} style={{
-                                textAlign: c.align || 'left', padding: '10px 14px', whiteSpace: 'nowrap',
-                                borderBottom: '1px solid rgba(201,168,124,0.25)', fontSize: '0.7rem',
-                                textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-lt)',
-                            }}>{c.label}</th>
+                            <th key={c.key} style={{ textAlign: c.align || 'left' }}>{c.label}</th>
                         ))}
                     </tr>
                 </thead>
@@ -42,7 +51,7 @@ const LineItemTable = ({ columns, rows, emptyText }) => (
                     {rows.map((r, i) => (
                         <tr key={i}>
                             {columns.map(c => (
-                                <td key={c.key} style={{ textAlign: c.align || 'left', padding: '8px 14px', borderBottom: '1px solid rgba(201,168,124,0.12)', whiteSpace: 'nowrap' }}>
+                                <td key={c.key} data-label={c.label} style={{ textAlign: c.align || 'left' }}>
                                     {c.render ? c.render(r) : r[c.key]}
                                 </td>
                             ))}
@@ -389,6 +398,7 @@ const CaMonthlyPackageView = ({ url }) => {
                             <p className="admin-subtitle" style={{ marginBottom: '10px' }}>{a.accountName} — {a.bankName} — A/C {a.accountNumber} — Transactions</p>
                             <LineItemTable
                                 emptyText="No transactions this month."
+                                tableClassName="camp-bank-txn-table"
                                 columns={[
                                     { key: 'date', label: 'Date', render: r => fmtDate(r.date) },
                                     { key: 'description', label: 'Description' },
@@ -405,6 +415,7 @@ const CaMonthlyPackageView = ({ url }) => {
                         <p className="admin-subtitle" style={{ marginBottom: '10px' }}>Cash — Transactions</p>
                         <LineItemTable
                             emptyText="No cash transactions this month."
+                            tableClassName="camp-cash-txn-table"
                             columns={[
                                 { key: 'date', label: 'Date', render: r => fmtDate(r.date) },
                                 { key: 'description', label: 'Description' },

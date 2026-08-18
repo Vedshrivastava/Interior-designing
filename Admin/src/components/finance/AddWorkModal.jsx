@@ -10,6 +10,7 @@ import QuickAddPicker from './QuickAddPicker';
 import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import { useSupervisorConflictCheck } from './useSupervisorConflictCheck';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -43,7 +44,7 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const editingId = editingWork?._id || null;
 
-    const [workTypeOptions, setWorkTypeOptions] = useState([]);
+    const [workTypeSettings, setWorkTypeSettings] = useState([]);
     const [workTypeLoading, setWorkTypeLoading] = useState(true);
     const [form, setForm] = useState(() => editingWork ? {
         workType: editingWork.workType,
@@ -60,8 +61,16 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
 
     useEffect(() => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } })
-            .then(res => { if (res.data.success) setWorkTypeOptions(res.data.data.map(s => s.name)); }).catch(() => {}).finally(() => setWorkTypeLoading(false));
+            .then(res => { if (res.data.success) setWorkTypeSettings(res.data.data); }).catch(() => {}).finally(() => setWorkTypeLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // The selected Work Type's own configured unit (Settings → Work
+    // Types) — resolved here just to preview the right label on Estimated
+    // Quantity below; the backend re-resolves and snapshots the real
+    // financeWork.unit itself on save (see addWork/updateWork), this is
+    // never sent as part of the payload.
+    const selectedUnit = workTypeSettings.find(s => s.name === form.workType)?.measurementUnit || 'sqft';
+    const selectedUnitLabel = measurementUnitLabel(selectedUnit);
 
     const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
     const setAssignmentField = (idx, key, value) =>
@@ -130,8 +139,13 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
                                         <StyledSelect
                                             value={form.workType} onChange={v => setField('workType', v)}
                                             placeholder="Select work type…" loading={workTypeLoading}
-                                            options={workTypeOptions.map(w => ({ value: w, label: w }))}
+                                            options={workTypeSettings.map(w => ({ value: w.name, label: w.name }))}
                                         />
+                                        {form.workType && (
+                                            <p className="admin-subtitle" style={{ margin: '6px 0 0' }}>
+                                                Measured in <strong>{selectedUnitLabel}</strong> — set on this Work Type in Settings.
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 
@@ -194,7 +208,7 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
                                             <StyledDatePicker value={form.startDate} onChange={v => setField('startDate', v)} />
                                         </div>
                                         <div className="add-product-name flex-col">
-                                            <p>Estimated Area (sqft) *</p>
+                                            <p>Estimated Quantity ({selectedUnitLabel}) *</p>
                                             <input type="number" onWheel={e => e.target.blur()} min="0" step="any" placeholder="e.g. 450" value={form.estimatedAreaSqft} onChange={e => setField('estimatedAreaSqft', e.target.value)} />
                                         </div>
                                         {editingId && (

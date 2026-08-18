@@ -24,7 +24,7 @@ const listLabourMeasurements = async (req, res) => {
             filter.date = { $gte: start, $lt: end };
         }
         const items = await FinanceLabourMeasurement.find(filter)
-            .populate('workId', 'workType workOrderNumber')
+            .populate('workId', 'workType workOrderNumber unit')
             .populate('labourerId', 'name')
             .populate('supervisorId', 'name')
             .populate('projectId', 'name')

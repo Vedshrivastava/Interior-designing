@@ -1,3 +1,18 @@
+// Work Type's own fixed set — what a Work of this type gets measured/rated
+// in. Distinct from the settingType: 'unit' list (Units tab — bag/kg/litre
+// for financeMaterial, free-form/admin-editable) — this is closed on
+// purpose, since every rate/measurement/bill formula (quantity × rate) is
+// written generically enough to already support all three, no fourth
+// option needed. Shared by SettingsCrudList (Work Types' own Unit field),
+// AddWorkModal, and AddMeasurementModal — one place so the label for a
+// given value ('sqft' -> 'Sqft') never drifts between them.
+export const MEASUREMENT_UNIT_OPTIONS = [
+    { value: 'sqft', label: 'Sqft' },
+    { value: 'nos', label: 'Nos' },
+    { value: 'rft', label: 'Running Ft' },
+];
+export const measurementUnitLabel = (unit) => MEASUREMENT_UNIT_OPTIONS.find(o => o.value === unit)?.label || 'Sqft';
+
 /*
  * Field + column config for each Phase 0 master, driving the generic
  * MasterCrudTable component. One config per resource instead of five
@@ -223,7 +238,7 @@ export const FINANCE_MASTERS = {
 /* Settings & Lists tab — categorized simple lists (name + optional code/rate,
    or the two deduct-flag checkboxes for direct payment categories) */
 export const FINANCE_SETTING_TYPES = [
-    { key: 'work_type', label: 'Work Types', hasCode: false, hasRate: false, hasTdsSection: true },
+    { key: 'work_type', label: 'Work Types', hasCode: false, hasRate: false, hasTdsSection: true, hasMeasurementUnit: true },
     { key: 'expense_category', label: 'Expense Categories', hasCode: false, hasRate: false },
     { key: 'payment_mode', label: 'Payment Modes', hasCode: false, hasRate: false },
     { key: 'tds_section', label: 'TDS Sections', hasCode: true, hasRate: true },

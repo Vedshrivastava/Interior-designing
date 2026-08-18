@@ -44,7 +44,7 @@ const listFinanceSettings = async (req, res) => {
 
 const addFinanceSetting = async (req, res) => {
     try {
-        const { settingType, name, code, rate, deductFromClientBill, deductFromWorkerPayout, tdsSectionId } = req.body;
+        const { settingType, name, code, rate, deductFromClientBill, deductFromWorkerPayout, tdsSectionId, measurementUnit } = req.body;
         if (!settingType || !VALID_TYPES.includes(settingType)) {
             return res.status(400).json({ success: false, message: 'A valid settingType is required' });
         }
@@ -67,6 +67,7 @@ const addFinanceSetting = async (req, res) => {
             existing.deductFromClientBill = deductFromClientBill ?? true;
             existing.deductFromWorkerPayout = deductFromWorkerPayout ?? false;
             existing.tdsSectionId = tdsSectionId || null;
+            existing.measurementUnit = measurementUnit || 'sqft';
             await existing.save();
             item = existing;
         } else {
@@ -76,6 +77,7 @@ const addFinanceSetting = async (req, res) => {
                 deductFromClientBill: deductFromClientBill ?? true,
                 deductFromWorkerPayout: deductFromWorkerPayout ?? false,
                 tdsSectionId: tdsSectionId || null,
+                measurementUnit: measurementUnit || 'sqft',
             });
             await item.save();
         }
@@ -94,7 +96,7 @@ const addFinanceSetting = async (req, res) => {
 // collide with a different active row.
 const updateFinanceSetting = async (req, res) => {
     try {
-        const { _id, name, code, rate, deductFromClientBill, deductFromWorkerPayout, tdsSectionId } = req.body;
+        const { _id, name, code, rate, deductFromClientBill, deductFromWorkerPayout, tdsSectionId, measurementUnit } = req.body;
         const item = await FinanceSetting.findById(_id);
         if (!item) return res.status(404).json({ success: false, message: 'Not found' });
         if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
@@ -110,6 +112,7 @@ const updateFinanceSetting = async (req, res) => {
         item.deductFromClientBill = deductFromClientBill ?? true;
         item.deductFromWorkerPayout = deductFromWorkerPayout ?? false;
         item.tdsSectionId = tdsSectionId || null;
+        item.measurementUnit = measurementUnit || 'sqft';
         await item.save();
 
         broadcast({ type: 'financeSettingsChanged', settingType: item.settingType });

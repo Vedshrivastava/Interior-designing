@@ -13,12 +13,26 @@ const financeWorkSchema = new mongoose.Schema({
 
     workOrderNumber:    { type: String, default: '' },
     startDate:          { type: Date },
+    // Named *AreaSqft for historical reasons (every existing Work is
+    // sqft-measured) — the number itself is unit-agnostic (quantity × rate
+    // = amount regardless of unit), so a Nos/Rft-measured Work stores its
+    // count/length in this same field rather than a parallel one. `unit`
+    // below is what actually decides which word labels it everywhere it's
+    // shown.
     estimatedAreaSqft:  { type: Number, required: true },
 
     // Running total — only ever updated by the measurement-save automation
     // (see controllers/financeMeasurement.js). Never accepted from the
     // update endpoint directly.
     completedAreaSqft:  { type: Number, default: 0 },
+
+    // Snapshotted from the selected Work Type's own financeSetting.
+    // measurementUnit at creation time (see that field's own comment) —
+    // never re-resolved later, so editing a Work Type's unit afterward
+    // can't silently relabel a Work that was already measured under the
+    // old one. Defaults to 'sqft' — every Work created before this field
+    // existed is, and always was, sqft-measured.
+    unit: { type: String, enum: ['sqft', 'nos', 'rft'], default: 'sqft' },
 
     status: { type: String, enum: ['active', 'completed'], default: 'active' },
     notes:  { type: String, default: '' },

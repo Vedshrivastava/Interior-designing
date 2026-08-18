@@ -26,6 +26,20 @@ const financeSettingSchema = new mongoose.Schema({
     // financeLabourRate/financeWorkTypeRate already use for work types,
     // not a new fragility.
     tdsSectionId: { type: mongoose.Schema.Types.ObjectId, ref: 'financeSetting', default: null },
+    // work_type only — what a Work of this type is measured/rated in.
+    // Every rate (financeContractorRate/financeLabourRate/
+    // financeWorkTypeRate) and measurement (financeMeasurement/
+    // financeLabourMeasurement) is already a plain "quantity × rate"
+    // number regardless of unit — this doesn't change that math, it only
+    // decides which word ("Sqft"/"Nos"/"Running Ft") labels it wherever
+    // it's shown, resolved once at Work-creation time and snapshotted onto
+    // financeWork.unit (see that model's own comment) rather than
+    // re-resolved from here every time, so re-labeling a Work Type later
+    // never silently relabels a Work that was already measured under the
+    // old unit. Distinct from the unrelated settingType: 'unit' list
+    // (financeMaterial.unit — bag/kg/litre, free-form) — this is a fixed,
+    // closed set specific to how a Work gets measured.
+    measurementUnit: { type: String, enum: ['sqft', 'nos', 'rft'], default: 'sqft' },
     // direct_payment_category only — whether a financeClientDirectPayment
     // tagged with this category reduces the client's outstanding balance
     // (getClientBillCreditTotal) and/or the contractor/labourer's own

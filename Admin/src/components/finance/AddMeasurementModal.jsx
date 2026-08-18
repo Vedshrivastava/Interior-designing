@@ -8,6 +8,7 @@ import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import { useSupervisorConflictCheck } from './useSupervisorConflictCheck';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import { measurementUnitLabel } from '../../config/financeMasters';
 
 const emptyState = {
     measurementType: 'contractor',
@@ -169,7 +170,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
         if (isContractor && !form.contractorVendorId) return toast.error('Contractor is required');
         if (!isContractor && !form.labourerId) return toast.error('Labourer is required');
         if (!form.date) return toast.error('Date is required');
-        if (!form.areaCoveredSqft || Number(form.areaCoveredSqft) <= 0) return toast.error('Area covered must be greater than zero');
+        if (!form.areaCoveredSqft || Number(form.areaCoveredSqft) <= 0) return toast.error('Quantity covered must be greater than zero');
         // Work can't happen without consuming some material — required
         // whenever this project tracks material at all, same rule the
         // backend now enforces (see addContractorMeasurement/
@@ -213,6 +214,10 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
     };
 
     const isContractor = form.measurementType === 'contractor';
+    // The selected Work's own snapshotted unit (financeWork.unit, set from
+    // its Work Type in Settings) — `works` already carries every field on
+    // each Work, so no separate fetch is needed here.
+    const selectedWorkUnitLabel = measurementUnitLabel(works.find(w => w._id === form.workId)?.unit);
 
     return <>{ReactDOM.createPortal(
         <div className="submit-loader-overlay amm-overlay" style={{ zIndex: 100000 }}>
@@ -279,7 +284,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                         </div>
 
                         <div className="add-product-name flex-col">
-                            <p>Area Covered (sqft) *</p>
+                            <p>Quantity Covered ({selectedWorkUnitLabel}) *</p>
                             <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.areaCoveredSqft} onChange={e => setField('areaCoveredSqft', e.target.value)} />
                         </div>
                         {!isContractor && (
@@ -303,7 +308,7 @@ const AddMeasurementModal = ({ url, projectId: fixedProjectId, defaultProjectId,
                     {materialTrackingEnabled && (
                         <div className="amm-materials" style={{ margin: '4px 0 20px' }}>
                             <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
-                                Material Used {materialLines.length > 0 && `(for ${form.areaCoveredSqft || '?'} sqft covered above, not per material)`}
+                                Material Used {materialLines.length > 0 && `(for ${form.areaCoveredSqft || '?'} ${selectedWorkUnitLabel.toLowerCase()} covered above, not per material)`}
                             </p>
                             {!form.workId ? (
                                 <p className="admin-subtitle">Select a work first.</p>

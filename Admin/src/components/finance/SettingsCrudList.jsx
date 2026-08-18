@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen, faTrash, faCheck } from '@fortawesome/free-solid-svg-icons';
-import { FINANCE_SETTING_TYPES } from '../../config/financeMasters';
+import { FINANCE_SETTING_TYPES, MEASUREMENT_UNIT_OPTIONS } from '../../config/financeMasters';
 import ToggleSwitch from './ToggleSwitch';
 import StyledSelect from './StyledSelect';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
@@ -16,7 +16,7 @@ import '../../styles/add.css';
 // mangled anything ending "-ies" into "-ie" (e.g. "Citie", "Categorie").
 const singularize = (s) => (s.endsWith('ies') ? `${s.slice(0, -3)}y` : s.replace(/s$/, ''));
 
-const emptyForm = { name: '', code: '', rate: '', deductFromClientBill: true, deductFromWorkerPayout: false, tdsSectionId: '' };
+const emptyForm = { name: '', code: '', rate: '', deductFromClientBill: true, deductFromWorkerPayout: false, tdsSectionId: '', measurementUnit: 'sqft' };
 
 /* `lockedType` (optional): when set, this renders as a single-type list with
    no internal switcher pills — used now that each setting type (Work Types,
@@ -93,6 +93,7 @@ const SettingsCrudList = ({ url, lockedType }) => {
             name: item.name, code: item.code || '', rate: item.rate ?? '',
             deductFromClientBill: item.deductFromClientBill ?? true, deductFromWorkerPayout: item.deductFromWorkerPayout ?? false,
             tdsSectionId: item.tdsSectionId?._id || item.tdsSectionId || '',
+            measurementUnit: item.measurementUnit || 'sqft',
         });
         setEditingId(item._id);
         setModalOpen(true);
@@ -109,6 +110,7 @@ const SettingsCrudList = ({ url, lockedType }) => {
                 settingType: activeType, name: form.name.trim(), code: form.code, rate: form.rate === '' ? null : Number(form.rate),
                 deductFromClientBill: form.deductFromClientBill, deductFromWorkerPayout: form.deductFromWorkerPayout,
                 tdsSectionId: form.tdsSectionId || null,
+                measurementUnit: form.measurementUnit || 'sqft',
             };
             const res = editingId
                 ? await axios.post(`${url}/api/finance/settings/update`, { _id: editingId, ...payload }, authHeader)
@@ -161,6 +163,7 @@ const SettingsCrudList = ({ url, lockedType }) => {
             ...(typeConfig.hasCode ? [{ key: 'code', label: 'Code', render: item => item.code || '-' }] : []),
             ...(typeConfig.hasRate ? [{ key: 'rate', label: 'Rate', render: item => (item.rate != null ? `${item.rate}%` : '-') }] : []),
             ...(typeConfig.hasTdsSection ? [{ key: 'tdsSection', label: 'TDS Section', render: item => item.tdsSectionId?.name || 'No TDS' }] : []),
+            ...(typeConfig.hasMeasurementUnit ? [{ key: 'measurementUnit', label: 'Unit', render: item => MEASUREMENT_UNIT_OPTIONS.find(o => o.value === (item.measurementUnit || 'sqft'))?.label || 'Sqft' }] : []),
         ];
     // Same shape as MasterCrudTable's own cardTitle branch (mastercrud-*,
     // dashboard.css) — column count varies per settingType (0-2 extra
@@ -274,7 +277,21 @@ const SettingsCrudList = ({ url, lockedType }) => {
                                             />
                                         </div>
                                     )}
+                                    {typeConfig.hasMeasurementUnit && (
+                                        <div className="add-product-name flex-col wizard-field-full">
+                                            <p>Unit</p>
+                                            <StyledSelect
+                                                value={form.measurementUnit} onChange={v => setField('measurementUnit', v)}
+                                                options={MEASUREMENT_UNIT_OPTIONS}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
+                                {typeConfig.hasMeasurementUnit && (
+                                    <p className="admin-subtitle" style={{ margin: '8px 0 0' }}>
+                                        What a Work of this type gets measured and rated in — set once here on the Work Type instead of choosing it every time a Work is added. Applies to Estimated Quantity, daily measurements, rates, and billing for every Work of this type.
+                                    </p>
+                                )}
                                 {typeConfig.hasTdsSection && (
                                     <p className="admin-subtitle" style={{ margin: '8px 0 0' }}>
                                         When set, a Contractor/Labour payment for a Work of this type auto-suggests this section and calculates TDS from its rate. Leave as "No TDS" if this work type doesn't attract any.

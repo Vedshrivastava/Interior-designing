@@ -25,7 +25,7 @@ const listMeasurements = async (req, res) => {
             filter.date = { $gte: start, $lt: end };
         }
         const items = await FinanceMeasurement.find(filter)
-            .populate('workId', 'workType workOrderNumber')
+            .populate('workId', 'workType workOrderNumber unit')
             .populate('materialUsed.materialId', 'name unit')
             .populate('contractorVendorId', 'name')
             .populate('projectId', 'name')

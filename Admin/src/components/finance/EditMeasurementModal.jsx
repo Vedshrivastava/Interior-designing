@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck } from '@fortawesome/free-solid-svg-icons';
+import { measurementUnitLabel } from '../../config/financeMasters';
 
 /*
  * Edit a measurement already logged. Area Covered and Material Used ARE
@@ -32,6 +33,7 @@ const EditMeasurementModal = ({ url, record, onClose, onSaved }) => {
     const authHeader = { headers: { Authorization: `Bearer ${token}` } };
     const { kind, data: m } = record;
     const isContractor = kind === 'contractor';
+    const workUnitLabel = measurementUnitLabel(m.workId?.unit);
 
     const [supervisorName, setSupervisorName] = useState(isContractor ? (m.supervisorName || '') : '');
     const [remarks, setRemarks] = useState(m.remarks || '');
@@ -76,7 +78,7 @@ const EditMeasurementModal = ({ url, record, onClose, onSaved }) => {
     const submit = async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!areaCoveredSqft || Number(areaCoveredSqft) <= 0) return toast.error('Area covered must be greater than zero');
+        if (!areaCoveredSqft || Number(areaCoveredSqft) <= 0) return toast.error('Quantity covered must be greater than zero');
         if (materialTrackingEnabled && !materialLines.some(l => l.materialId && Number(l.quantity) > 0)) {
             return toast.error('At least one material used is required');
         }
@@ -146,7 +148,7 @@ const EditMeasurementModal = ({ url, record, onClose, onSaved }) => {
                             </div>
 
                             <div className="add-product-name flex-col">
-                                <p>Area Covered (sqft) *</p>
+                                <p>Quantity Covered ({workUnitLabel}) *</p>
                                 <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={areaCoveredSqft} onChange={e => setAreaCoveredSqft(e.target.value)} />
                             </div>
 
@@ -176,7 +178,7 @@ const EditMeasurementModal = ({ url, record, onClose, onSaved }) => {
                         {materialTrackingEnabled && (
                             <div className="amm-materials" style={{ margin: '4px 0 20px' }}>
                                 <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
-                                    Material Used {materialLines.length > 0 && `(for ${areaCoveredSqft || '?'} sqft covered above, not per material)`}
+                                    Material Used {materialLines.length > 0 && `(for ${areaCoveredSqft || '?'} ${workUnitLabel.toLowerCase()} covered above, not per material)`}
                                 </p>
                                 {materialsLoading ? (
                                     <p className="admin-subtitle">Loading…</p>

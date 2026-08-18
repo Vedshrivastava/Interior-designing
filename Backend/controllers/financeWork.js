@@ -1,10 +1,22 @@
 import FinanceWork from '../models/financeWork.js';
 import FinanceProject from '../models/financeProject.js';
+import FinanceSetting from '../models/financeSetting.js';
 import FinanceWorkContractorAssignment from '../models/financeWorkContractorAssignment.js';
 import FinanceWorkLabourAssignment from '../models/financeWorkLabourAssignment.js';
 import { assertLabourersAvailable } from '../utils/labourAvailability.js';
 import { broadcast } from '../middlewares/webSocket.js';
 import { logActivity } from '../utils/financeActivityLog.js';
+
+// Resolves a Work Type's own configured unit (financeSetting.measurementUnit,
+// settingType: 'work_type') by the same name-match convention every other
+// work-type lookup already uses (financeContractorRate/financeLabourRate/
+// financeWorkTypeRate) — falls back to 'sqft' if the type isn't in the list
+// at all (a free-typed value, or the row was removed after this Work was
+// created) rather than leaving unit unset.
+const resolveWorkTypeUnit = async (workType) => {
+    const setting = await FinanceSetting.findOne({ settingType: 'work_type', name: workType, deleted: { $ne: true } });
+    return setting?.measurementUnit || 'sqft';
+};
 // Shared with financeProject.js's completion-readiness check — same reasoning
 // as that module's own cross-controller imports (e.g. financeMeasurement.js
 // importing computeCurrentStock from financeStockMovement.js).
@@ -56,6 +68,7 @@ const addWork = async (req, res) => {
             workOrderNumber: workOrderNumber || '',
             startDate: startDate || null,
             estimatedAreaSqft: Number(estimatedAreaSqft),
+            unit: await resolveWorkTypeUnit(workType.trim()),
             notes: notes || '',
             quickAdded: !!quickAdded,
         });
@@ -128,11 +141,17 @@ const updateWork = async (req, res) => {
             }
         }
 
+        // Re-resolved every save (not just when workType visibly changes) —
+        // cheap, and keeps a Work's unit in sync if its Work Type's own
+        // configured unit was edited in Settings since this Work was
+        // created, same "reflects current type" semantics as workType
+        // itself already has here.
         await FinanceWork.findByIdAndUpdate(_id, {
             workType: workType.trim(),
             workOrderNumber: workOrderNumber || '',
             startDate: startDate || null,
             estimatedAreaSqft: Number(estimatedAreaSqft) || existing.estimatedAreaSqft,
+            unit: await resolveWorkTypeUnit(workType.trim()),
             status: newStatus,
             notes: notes || '',
             // Reaching this endpoint only happens through the full Edit Work

@@ -7,6 +7,7 @@ import { useFileDownload } from '../../hooks/useFileDownload';
 import DownloadButton from './DownloadButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faCheck, faRotateLeft, faPercent, faFileArrowDown } from '@fortawesome/free-solid-svg-icons';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -84,11 +85,13 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
             const res = await axios.get(`${url}/api/finance/work-reviews/project/${projectId}`, authHeader);
             if (!res.data.success) return;
             const byType = new Map();
+            const unitByType = new Map();
             for (const row of res.data.data.rows) {
                 if (row.pendingReviewSqft <= 0) continue;
                 byType.set(row.workType, (byType.get(row.workType) || 0) + row.pendingReviewSqft);
+                unitByType.set(row.workType, row.unit || 'sqft');
             }
-            setPendingReviewByType([...byType.entries()].map(([workType, sqft]) => ({ workType, sqft: Math.round((sqft + Number.EPSILON) * 100) / 100 })));
+            setPendingReviewByType([...byType.entries()].map(([workType, sqft]) => ({ workType, sqft: Math.round((sqft + Number.EPSILON) * 100) / 100, unit: unitByType.get(workType) })));
         } catch { /* non-critical — banner just stays empty */ }
     };
 
@@ -157,7 +160,7 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
         const payloadSqft = Object.fromEntries(
             Object.entries(workTypeSqft).filter(([, v]) => Number(v) > 0).map(([wt, v]) => [wt, Number(v)])
         );
-        if (!Object.keys(payloadSqft).length) return toast.error('Enter approved sqft for at least one work type');
+        if (!Object.keys(payloadSqft).length) return toast.error('Enter an approved quantity for at least one work type');
         setGenerating(true);
         try {
             const res = await axios.post(`${url}/api/finance/running-bills/generate`, { projectId, periodFrom, periodTo, billDate, workTypeSqft: payloadSqft }, authHeader);
@@ -241,14 +244,14 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
             <div className="rb-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                 <div>
                     <h3 style={{ margin: '0 0 4px' }}>Running Bills</h3>
-                    <p className="admin-subtitle" style={{ margin: 0 }}>Sqft is manually confirmed per work type at generation: draft until issued; only issued bills count as revenue or approved work.</p>
+                    <p className="admin-subtitle" style={{ margin: 0 }}>Quantity is manually confirmed per work type at generation, in that type's own unit: draft until issued; only issued bills count as revenue or approved work.</p>
                 </div>
                 <button type="button" className="add-point-btn" style={{ whiteSpace: 'nowrap' }} onClick={openGenerate}>+ Generate Bill</button>
             </div>
 
             {pendingReviewByType.length > 0 && (
                 <div className="admin-subtitle" style={{ background: '#fdf6e3', border: '1px solid #e8d9a8', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', color: '#8a6d1f' }}>
-                    {pendingReviewByType.map(p => `${p.sqft} sqft of ${p.workType}`).join(', ')} logged but not yet reviewed — review it in Payables/Receivables → Deductions before it can be billed.
+                    {pendingReviewByType.map(p => `${p.sqft} ${measurementUnitLabel(p.unit).toLowerCase()} of ${p.workType}`).join(', ')} logged but not yet reviewed — review it in Payables/Receivables → Deductions before it can be billed.
                 </div>
             )}
 
@@ -388,14 +391,15 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                                 ) : (
                                     <div className="list-table finance-table" style={{ margin: '16px 0' }}>
                                         <div className="list-table-format title rbg-row rbg-header" style={{ gridTemplateColumns: '1.1fr 0.9fr 0.9fr 0.7fr 1fr' }}>
-                                            <b>Work Type</b><b>Approved Sqft</b><b>Rate</b><b>GST %</b><b>Amount</b>
+                                            <b>Work Type</b><b>Approved Qty</b><b>Rate</b><b>GST %</b><b>Amount</b>
                                         </div>
                                         {available.map(a => {
                                             const sqft = Number(workTypeSqft[a.workType]) || 0;
                                             const amount = sqft * (a.clientRatePerSqft || 0);
+                                            const unitLabel = measurementUnitLabel(a.unit);
                                             return (
                                                 <div key={a.workType} className="list-table-format row-item rbg-row" style={{ gridTemplateColumns: '1.1fr 0.9fr 0.9fr 0.7fr 1fr' }}>
-                                                    <p className="rbg-worktype">{a.workType} <span style={{ fontSize: '0.75rem', color: 'var(--text-lt)' }}>(of {a.availableSqft} available)</span></p>
+                                                    <p className="rbg-worktype">{a.workType} <span style={{ fontSize: '0.75rem', color: 'var(--text-lt)' }}>(of {a.availableSqft} {unitLabel} available)</span></p>
                                                     <p className="rbg-sqft">
                                                         <input
                                                             type="number" onWheel={e => e.target.blur()} min={0} step="any" max={a.availableSqft}
@@ -403,8 +407,9 @@ const RunningBillsManager = ({ url, projectId, statusFilter }) => {
                                                             onChange={e => setSqftFor(a.workType, e.target.value)}
                                                             style={{ width: '90px' }}
                                                         />
+                                                        <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--text-lt)' }}>{unitLabel}</span>
                                                     </p>
-                                                    <p className="rbg-rate">{a.clientRatePerSqft != null ? `₹${a.clientRatePerSqft}/sqft` : <span title="No Work Type Rate configured">(no rate)</span>}</p>
+                                                    <p className="rbg-rate">{a.clientRatePerSqft != null ? `₹${a.clientRatePerSqft}/${unitLabel}` : <span title="No Work Type Rate configured">(no rate)</span>}</p>
                                                     <p className="rbg-gst" title="From this work type's own Work Type Rate, or the company default from Settings → GST">
                                                         {a.gstRatePercent != null ? `${a.gstRatePercent}%` : '—'}
                                                     </p>

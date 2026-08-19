@@ -8,6 +8,7 @@ import StyledDatePicker from '../../components/finance/StyledDatePicker';
 import StyledMonthPicker from '../../components/finance/StyledMonthPicker';
 import ToggleSwitch from '../../components/finance/ToggleSwitch';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 
@@ -171,6 +172,7 @@ const WorkDetail = ({ url }) => {
     }
 
     const ringDeg = Math.min(360, (data.progressPercent / 100) * 360);
+    const unitLabel = measurementUnitLabel(data.unit);
 
     return (
         <div className="list add flex-col">
@@ -180,7 +182,7 @@ const WorkDetail = ({ url }) => {
                         <button type="button" className="admin-search-clear" style={{ position: 'static', fontSize: '0.8rem', color: 'var(--text-lt)', marginBottom: '8px' }} onClick={() => navigate(`/finance/projects/${projectId}`)}>← Back to Project</button>
                         <p className="admin-subtitle" style={{ margin: '0 0 2px' }}>{data.projectName}</p>
                         <h1>{data.workType}</h1>
-                        <p className="admin-subtitle">{data.completedAreaSqft} / {data.estimatedAreaSqft} sqft completed</p>
+                        <p className="admin-subtitle">{data.completedAreaSqft} / {data.estimatedAreaSqft} {unitLabel} completed</p>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
                         <div className="measurement-type-toggle" style={{ margin: 0 }}>
@@ -231,7 +233,7 @@ const WorkDetail = ({ url }) => {
                 </div>
 
                 <KpiGrid>
-                    <KpiCard label="Area Covered" value={`${data.areaCoveredSqft} sqft`} sub={`${data.scopeLabel}, not the all-time figures below`} />
+                    <KpiCard label="Area Covered" value={`${data.areaCoveredSqft} ${unitLabel}`} sub={`${data.scopeLabel}, not the all-time figures below`} />
                     {scope === 'alltime' ? (
                         <>
                             <KpiCard label="Revenue" value={formatINR(data.revenue)} />
@@ -241,7 +243,7 @@ const WorkDetail = ({ url }) => {
                         <KpiCard label="Total Cost" value={formatINR(data.totalCost)} />
                     )}
                     <KpiCard
-                        label="Average Material Cost/Sqft"
+                        label={`Average Material Cost/${unitLabel}`}
                         value={scope === 'alltime'
                             ? materialCostPerSqftDisplay(data.averageCostPerSqftApproved, data.averageCostPerSqftUnapproved)
                             : `₹${data.averageCostPerSqft.toFixed(2)}`}
@@ -267,7 +269,7 @@ const WorkDetail = ({ url }) => {
                     Unapproved table below instead of being blended in. */}
                 <KpiSectionLabel>Approved — Reviewed (All-Time)</KpiSectionLabel>
                 <KpiGrid>
-                    <KpiCard label="Area Approved" value={`${data.approvedAreaSqft} sqft`} tone="good" sub={data.unapprovedAreaSqft > 0 ? `${data.unapprovedAreaSqft} sqft still pending review` : 'Everything logged so far is reviewed'} />
+                    <KpiCard label="Area Approved" value={`${data.approvedAreaSqft} ${unitLabel}`} tone="good" sub={data.unapprovedAreaSqft > 0 ? `${data.unapprovedAreaSqft} ${unitLabel} still pending review` : 'Everything logged so far is reviewed'} />
                     <KpiCard
                         label="Contractor Cost"
                         {...reviewGatedValue(data.contractorCost, data.unapprovedContractorCost, data.rejectedContractorCost)}
@@ -403,7 +405,7 @@ const WorkDetail = ({ url }) => {
                             <b>Area</b><b>Material Unapproved</b><b>Contractor Unapproved</b><b>Labour Unapproved</b><b>Commission</b><b>Revenue</b><b>Profit</b>
                         </div>
                         <div className="list-table-format row-item unapproved-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                            <p>{data.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
+                            <p>{data.unapprovedAreaSqft.toLocaleString('en-IN')} {unitLabel}</p>
                             <p>{formatINR(data.unapprovedMaterialCost)}</p>
                             <p>{formatINR(data.unapprovedContractorCost)}</p>
                             <p>{formatINR(data.unapprovedLabourCost)}</p>
@@ -413,12 +415,12 @@ const WorkDetail = ({ url }) => {
                         </div>
                         {data.heldForAttribution ? (
                             <p className="admin-subtitle" style={{ padding: '0 20px 16px', color: '#c0392b' }}>
-                                ⚠ This Work was reviewed — {data.rejectedAreaSqft.toLocaleString('en-IN')} sqft rejected — but that rejection isn't fully attributed to specific contractors/labourers yet (Payables/Receivables → Deductions). Until it is, ALL logged work here shows as Unapproved, not just the rejected portion.
+                                ⚠ This Work was reviewed — {data.rejectedAreaSqft.toLocaleString('en-IN')} {unitLabel} rejected — but that rejection isn't fully attributed to specific contractors/labourers yet (Payables/Receivables → Deductions). Until it is, ALL logged work here shows as Unapproved, not just the rejected portion.
                             </p>
                         ) : (
                             <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
                                 Logged work on this Work whose cost isn't counted in Profit yet — review it in Payables/Receivables → Deductions to move it in. Revenue/Profit here are what this same unapproved work would add once reviewed and billed.
-                                {data.rejectedAreaSqft > 0 && ` Of this, ${data.rejectedAreaSqft.toLocaleString('en-IN')} sqft is permanently rejected (already attributed); the rest is simply pending its first review.`}
+                                {data.rejectedAreaSqft > 0 && ` Of this, ${data.rejectedAreaSqft.toLocaleString('en-IN')} ${unitLabel} is permanently rejected (already attributed); the rest is simply pending its first review.`}
                             </p>
                         )}
                         <p className="admin-subtitle" style={{ padding: '0 20px 16px', fontWeight: 600, color: data.totalProjectedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>
@@ -446,7 +448,7 @@ const WorkDetail = ({ url }) => {
                             </div>
                         )}
                         <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
-                            Amounts the client paid directly to a worker on this Work (recorded in Payables → Client Direct Payments) — an advance, not tied to specific sqft, so it's a flat reduction against that worker's overall Balance Payable (see their Ledger), not netted against this Work's own Approved/Unapproved split.
+                            Amounts the client paid directly to a worker on this Work (recorded in Payables → Client Direct Payments) — an advance, not tied to a specific quantity, so it's a flat reduction against that worker's overall Balance Payable (see their Ledger), not netted against this Work's own Approved/Unapproved split.
                         </p>
                     </div>
                 )}
@@ -500,7 +502,7 @@ const WorkDetail = ({ url }) => {
                 {data.contractorBreakdown.length > 0 && (
                     <div className="list-table finance-table" style={{ marginTop: '24px', marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.8fr 0.8fr 0.9fr 0.9fr 1.1fr' }}>
-                            <b>Contractor</b><b>Area (sqft)</b><b>Rate</b><b>Earnings</b><b>Direct Pay</b><b>Material Cost/Sqft</b>
+                            <b>Contractor</b><b>Area ({unitLabel})</b><b>Rate</b><b>Earnings</b><b>Direct Pay</b><b>Material Cost/{unitLabel}</b>
                         </div>
                         {data.contractorBreakdown.map(b => (
                             <div key={b.vendorId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.1fr 0.8fr 0.8fr 0.9fr 0.9fr 1.1fr' }}>
@@ -515,7 +517,7 @@ const WorkDetail = ({ url }) => {
                             </div>
                         ))}
                         <p className="admin-subtitle" style={{ padding: '8px 20px 16px' }}>
-                            Material Cost/Sqft is each contractor's own material use ÷ only the area they covered while logging it — compare across rows to see who gets the most coverage per unit of material.
+                            Material Cost/{unitLabel} is each contractor's own material use ÷ only the area they covered while logging it — compare across rows to see who gets the most coverage per unit of material.
                             {scope === 'alltime' && ' All Time shows real material cost ÷ only approved area instead (marked "(unapproved)" and divided by unapproved area when none of it is approved yet).'}
                         </p>
                     </div>
@@ -524,7 +526,7 @@ const WorkDetail = ({ url }) => {
                 {data.labourBreakdown.length > 0 && (
                     <div className="list-table finance-table" style={{ marginBottom: '24px' }}>
                         <div className="list-table-format title" style={{ gridTemplateColumns: '1.1fr 0.8fr 0.8fr 0.9fr 0.9fr 1.1fr' }}>
-                            <b>Labourer</b><b>Area (sqft)</b><b>Rate</b><b>Earnings</b><b>Direct Pay</b><b>Material Cost/Sqft</b>
+                            <b>Labourer</b><b>Area ({unitLabel})</b><b>Rate</b><b>Earnings</b><b>Direct Pay</b><b>Material Cost/{unitLabel}</b>
                         </div>
                         {data.labourBreakdown.map(b => (
                             <div key={b.labourerId} className="list-table-format row-item" style={{ gridTemplateColumns: '1.1fr 0.8fr 0.8fr 0.9fr 0.9fr 1.1fr' }}>

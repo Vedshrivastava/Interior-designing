@@ -78,6 +78,7 @@ const computeAvailableByWorkType = async (projectId) => {
         result.push({
             workType, availableSqft, clientRatePerSqft: rate?.clientRatePerSqft ?? null,
             gstRatePercent: resolveGstRatePercent(rate, defaultGstRate),
+            unit: typeWorks[0]?.unit || 'sqft',
         });
     }
     return result;

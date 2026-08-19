@@ -2285,6 +2285,7 @@ const getWorkDetail = async (req, res) => {
             success: true,
             data: {
                 workId: work._id, projectId: work.projectId, projectName: workProject?.name || '—', workType: work.workType,
+                unit: work.unit || 'sqft',
                 estimatedAreaSqft: work.estimatedAreaSqft, completedAreaSqft: work.completedAreaSqft, progressPercent,
                 scope, scopeLabel, month: monthKey, date: dateKey, cumulative,
                 ...report,

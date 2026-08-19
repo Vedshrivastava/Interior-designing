@@ -17,6 +17,20 @@ const resolveWorkTypeUnit = async (workType) => {
     const setting = await FinanceSetting.findOne({ settingType: 'work_type', name: workType, deleted: { $ne: true } });
     return setting?.measurementUnit || 'sqft';
 };
+
+// Mirrors financeProject.js's applyContractTypeRules exactly, just scoped
+// to one Work instead of the whole project — see financeWork.js's own
+// materialTrackingEnabled comment for why this needs to exist at the Work
+// level at all (an advance project mixing studio-supplied and
+// client-supplied material across different Works).
+const resolveWorkMaterialTracking = (project, requested) => {
+    if (project.contractType === 'with_material') return true;
+    if (project.contractType === 'without_material') return false;
+    // advance — freely chosen per Work, defaulting to the project's own
+    // flag (itself user-editable only for advance) when this Work doesn't
+    // specify one of its own.
+    return requested === undefined ? !!project.materialTrackingEnabled : !!requested;
+};
 // Shared with financeProject.js's completion-readiness check — same reasoning
 // as that module's own cross-controller imports (e.g. financeMeasurement.js
 // importing computeCurrentStock from financeStockMovement.js).
@@ -52,7 +66,7 @@ const listWorks = async (req, res) => {
 // supervisor) on an existing Work.
 const addWork = async (req, res) => {
     try {
-        const { projectId, workType, contractorAssignments, labourSupervisorId, labourerIds, workOrderNumber, startDate, estimatedAreaSqft, notes, quickAdded } = req.body;
+        const { projectId, workType, contractorAssignments, labourSupervisorId, labourerIds, workOrderNumber, startDate, estimatedAreaSqft, materialTrackingEnabled, notes, quickAdded } = req.body;
         const assignments = Array.isArray(contractorAssignments) ? contractorAssignments.filter(a => a?.contractorVendorId) : [];
         const labourRows = (labourSupervisorId && Array.isArray(labourerIds)) ? labourerIds.filter(Boolean) : [];
         if (!projectId || !workType || (!assignments.length && !labourRows.length)) {
@@ -61,6 +75,8 @@ const addWork = async (req, res) => {
         if (!estimatedAreaSqft || Number(estimatedAreaSqft) <= 0) {
             return res.status(400).json({ success: false, message: 'Estimated area is required' });
         }
+        const project = await FinanceProject.findById(projectId);
+        if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
         if (labourRows.length) await assertLabourersAvailable(labourRows);
 
         const item = new FinanceWork({
@@ -69,6 +85,7 @@ const addWork = async (req, res) => {
             startDate: startDate || null,
             estimatedAreaSqft: Number(estimatedAreaSqft),
             unit: await resolveWorkTypeUnit(workType.trim()),
+            materialTrackingEnabled: resolveWorkMaterialTracking(project, materialTrackingEnabled),
             notes: notes || '',
             quickAdded: !!quickAdded,
         });
@@ -87,7 +104,6 @@ const addWork = async (req, res) => {
         }
         broadcast({ type: 'financeWorksChanged', projectId });
 
-        const project = await FinanceProject.findById(projectId).select('name');
         await logActivity({
             eventType: 'work_created',
             entityType: 'financeWork',
@@ -110,10 +126,12 @@ const addWork = async (req, res) => {
 // financeWorkContractorAssignment.js.
 const updateWork = async (req, res) => {
     try {
-        const { _id, workType, workOrderNumber, startDate, estimatedAreaSqft, status, notes, confirmOverride } = req.body;
+        const { _id, workType, workOrderNumber, startDate, estimatedAreaSqft, materialTrackingEnabled, status, notes, confirmOverride } = req.body;
         const existing = await FinanceWork.findById(_id);
         if (!existing) return res.status(404).json({ success: false, message: 'Work not found' });
         if (!workType) return res.status(400).json({ success: false, message: 'Work type is required' });
+        const project = await FinanceProject.findById(existing.projectId);
+        if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
         const newStatus = ['active', 'completed'].includes(status) ? status : existing.status;
 
@@ -152,6 +170,7 @@ const updateWork = async (req, res) => {
             startDate: startDate || null,
             estimatedAreaSqft: Number(estimatedAreaSqft) || existing.estimatedAreaSqft,
             unit: await resolveWorkTypeUnit(workType.trim()),
+            materialTrackingEnabled: resolveWorkMaterialTracking(project, materialTrackingEnabled ?? existing.materialTrackingEnabled),
             status: newStatus,
             notes: notes || '',
             // Reaching this endpoint only happens through the full Edit Work
@@ -163,7 +182,6 @@ const updateWork = async (req, res) => {
         broadcast({ type: 'financeWorksChanged', projectId: existing.projectId });
 
         if (existing.status !== 'completed' && newStatus === 'completed') {
-            const project = await FinanceProject.findById(existing.projectId).select('name');
             await logActivity({
                 eventType: 'work_completed',
                 entityType: 'financeWork',

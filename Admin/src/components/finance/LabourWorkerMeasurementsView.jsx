@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 
@@ -38,7 +39,7 @@ const LabourWorkerMeasurementsView = ({ url, labourerId }) => {
                 <div key={m._id} className="lam-row">
                     <p className="lam-date"><span className="pq-group-label">Date</span>{new Date(m.date).toLocaleDateString()}</p>
                     <p className="lam-work">{m.workId?.workType || '-'}</p>
-                    <p className="lam-area"><span className="pq-group-label">Area Covered</span>{m.areaCoveredSqft} sqft</p>
+                    <p className="lam-area"><span className="pq-group-label">Area Covered</span>{m.areaCoveredSqft} {measurementUnitLabel(m.workId?.unit)}</p>
                 </div>
             ))}
         </div>

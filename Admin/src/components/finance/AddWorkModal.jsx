@@ -15,7 +15,7 @@ import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
 
-const emptyForm = { workType: '', workOrderNumber: '', startDate: '', estimatedAreaSqft: '', status: 'active', notes: '' };
+const emptyForm = { workType: '', workOrderNumber: '', startDate: '', estimatedAreaSqft: '', materialTrackingEnabled: true, status: 'active', notes: '' };
 const emptyAssignmentRow = () => ({ contractorVendorId: '', notes: '' });
 
 /* The one "Add Work" / "Edit Work" dialog, extracted out of WorksManager so
@@ -50,8 +50,11 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
         workType: editingWork.workType,
         workOrderNumber: editingWork.workOrderNumber || '',
         startDate: editingWork.startDate ? new Date(editingWork.startDate).toISOString().slice(0, 10) : '',
-        estimatedAreaSqft: editingWork.estimatedAreaSqft, status: editingWork.status, notes: editingWork.notes || '',
+        estimatedAreaSqft: editingWork.estimatedAreaSqft,
+        materialTrackingEnabled: editingWork.materialTrackingEnabled ?? true,
+        status: editingWork.status, notes: editingWork.notes || '',
     } : emptyForm);
+    const [project, setProject] = useState(null);
     const [contractorAssignments, setContractorAssignments] = useState([emptyAssignmentRow()]);
     const [labourSupervisorId, setLabourSupervisorId] = useState('');
     const [selectedLabourerIds, setSelectedLabourerIds] = useState([]);
@@ -59,10 +62,32 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
     const [completionBlockers, setCompletionBlockers] = useState(null); // [{category,label,amount}] | null
     const { checkSupervisor, modal: supervisorConflictModal } = useSupervisorConflictCheck(url);
 
+    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
     useEffect(() => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } })
             .then(res => { if (res.data.success) setWorkTypeSettings(res.data.data); }).catch(() => {}).finally(() => setWorkTypeLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Only needed to know the project's own contractType — mirrors
+    // financeWork.js's resolveWorkMaterialTracking exactly, just previewed
+    // here so the toggle below isn't shown/editable when the backend would
+    // force it anyway (see that function's own comment).
+    useEffect(() => {
+        axios.get(`${url}/api/finance/projects/${projectId}`, authHeader)
+            .then(res => { if (res.data.success) setProject(res.data.data.project); }).catch(() => {});
+    }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Forced to match the project's own rule the moment it loads, for
+    // with_material/without_material — advance leaves whatever's already
+    // in form (the editing Work's own saved choice, or the default true
+    // for a new one) untouched, since that's the one case it's actually
+    // editable.
+    useEffect(() => {
+        if (!project) return;
+        if (project.contractType === 'with_material') setField('materialTrackingEnabled', true);
+        else if (project.contractType === 'without_material') setField('materialTrackingEnabled', false);
+    }, [project]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // The selected Work Type's own configured unit (Settings → Work
     // Types) — resolved here just to preview the right label on Estimated
@@ -72,7 +97,6 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
     const selectedUnit = workTypeSettings.find(s => s.name === form.workType)?.measurementUnit || 'sqft';
     const selectedUnitLabel = measurementUnitLabel(selectedUnit);
 
-    const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
     const setAssignmentField = (idx, key, value) =>
         setContractorAssignments(prev => prev.map((a, i) => (i === idx ? { ...a, [key]: value } : a)));
     const addAssignmentRow = () => setContractorAssignments(prev => [...prev, emptyAssignmentRow()]);
@@ -225,6 +249,32 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
                                             <textarea rows="2" placeholder="Any additional notes about this work…" value={form.notes} onChange={e => setField('notes', e.target.value)} />
                                         </div>
                                     </div>
+                                </div>
+
+                                {/* Mirrors NewProjectWizard's identical Material Tracking
+                                    step — forced for with_material/without_material (same
+                                    rule the project itself already applies, just previewed
+                                    here), a real per-Work choice only for advance (see
+                                    resolveWorkMaterialTracking's own comment for why only
+                                    advance needs one). */}
+                                <div className="aw-group">
+                                    <p className="wizard-section-label">Material Tracking</p>
+                                    {project?.contractType === 'without_material' ? (
+                                        <p className="wizard-hidden-note">Material tracking isn't applicable: this contract is labour only.</p>
+                                    ) : project?.contractType === 'with_material' ? (
+                                        <p className="wizard-hidden-note">Material tracking is on for this contract (With Material always tracks material).</p>
+                                    ) : project?.contractType === 'advance' ? (
+                                        <>
+                                            <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>Advance clients don't always get material supplied by the studio for every Work; your call, per Work.</p>
+                                            <label className="featured-toggle" style={{ margin: 0, display: 'flex' }}>
+                                                <input type="checkbox" checked={form.materialTrackingEnabled} onChange={e => setField('materialTrackingEnabled', e.target.checked)} />
+                                                <span className="toggle-slider"></span>
+                                                <span className="toggle-label">Track material for this work</span>
+                                            </label>
+                                        </>
+                                    ) : (
+                                        <p className="wizard-hidden-note">Loading…</p>
+                                    )}
                                 </div>
                             </form>
                         </div>

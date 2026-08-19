@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -150,6 +151,7 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
         finally { setLoadingParties(false); }
     };
     const closeReview = () => setReviewTarget(null);
+    const reviewTargetUnitLabel = measurementUnitLabel(reviewTarget?.unit);
 
     const rejectedPreview = reviewTarget && approvedInput !== '' && !Number.isNaN(Number(approvedInput))
         ? Math.round(((reviewTarget.loggedSqft - Number(approvedInput)) + Number.EPSILON) * 100) / 100
@@ -165,15 +167,15 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
     const submitReview = async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (approvedInput === '' || Number(approvedInput) < 0) return toast.error('Approved sqft is required');
-        if (Number(approvedInput) > reviewTarget.loggedSqft) return toast.error(`Cannot approve more than the ${reviewTarget.loggedSqft} sqft logged`);
+        if (approvedInput === '' || Number(approvedInput) < 0) return toast.error(`Approved ${reviewTargetUnitLabel.toLowerCase()} is required`);
+        if (Number(approvedInput) > reviewTarget.loggedSqft) return toast.error(`Cannot approve more than the ${reviewTarget.loggedSqft} ${reviewTargetUnitLabel.toLowerCase()} logged`);
         if (!reviewDate) return toast.error('Date is required');
         if (needsDistribution) {
-            if (!reason.trim()) return toast.error('Reason is required — this is what went wrong on the rejected sqft');
+            if (!reason.trim()) return toast.error(`Reason is required — this is what went wrong on the rejected ${reviewTargetUnitLabel.toLowerCase()}`);
             if (!fullyDistributed) {
                 return toast.error(remainingToDistribute > 0
-                    ? `${remainingToDistribute} sqft still left to distribute before this can save`
-                    : `${Math.abs(remainingToDistribute)} sqft over-allocated — reduce it back to ${rejectedPreview}`);
+                    ? `${remainingToDistribute} ${reviewTargetUnitLabel.toLowerCase()} still left to distribute before this can save`
+                    : `${Math.abs(remainingToDistribute)} ${reviewTargetUnitLabel.toLowerCase()} over-allocated — reduce it back to ${rejectedPreview}`);
             }
         }
         setSaving(true);
@@ -200,7 +202,7 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
     return (
         <div>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>
-                Every Work on this project, its logged sqft, and how much of it has been reviewed. Reviewing is what unlocks both Generate Bill's ceiling and every contributing worker's own Approved Earnings — nothing here is billable or payable until it's been looked at. Whenever some of it is rejected, you'll distribute it to whoever's responsible right here before the review can save.
+                Every Work on this project, how much of it is logged, and how much of that has been reviewed — each Work Type in its own unit (Sqft/Nos/Running Ft, set in Settings). Reviewing is what unlocks both Generate Bill's ceiling and every contributing worker's own Approved Earnings — nothing here is billable or payable until it's been looked at. Whenever some of it is rejected, you'll distribute it to whoever's responsible right here before the review can save.
             </p>
 
             {crossProject && (
@@ -275,18 +277,20 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
                                 <b className="wr-pending">Pending Review</b>
                                 <b className="wr-action">Action</b>
                             </div>
-                            {visibleRows.map(row => (
+                            {visibleRows.map(row => {
+                                const rowUnitLabel = measurementUnitLabel(row.unit);
+                                return (
                                 <div key={row.workId} className="wr-row">
                                     <p className="wr-worktype">{row.workType}</p>
-                                    <p className="wr-logged"><span className="pq-group-label">Logged</span>{row.loggedSqft} sqft</p>
-                                    <p className="wr-approved" style={{ color: row.approvedAreaSqft > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}><span className="pq-group-label">Approved</span>{row.approvedAreaSqft} sqft</p>
+                                    <p className="wr-logged"><span className="pq-group-label">Logged</span>{row.loggedSqft} {rowUnitLabel}</p>
+                                    <p className="wr-approved" style={{ color: row.approvedAreaSqft > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}><span className="pq-group-label">Approved</span>{row.approvedAreaSqft} {rowUnitLabel}</p>
                                     <p className="wr-rejected" style={{ color: row.rejectedAreaSqft > 0 ? '#c0392b' : 'var(--text-lt)' }}>
-                                        <span className="pq-group-label">Rejected</span>{row.rejectedAreaSqft} sqft
+                                        <span className="pq-group-label">Rejected</span>{row.rejectedAreaSqft} {rowUnitLabel}
                                         {row.rejectedAreaSqft > 0 && row.unattributedAreaSqft > 0 && (
-                                            <span className="admin-subtitle" style={{ display: 'block', fontSize: '0.75em' }}>{row.unattributedAreaSqft} sqft unattributed</span>
+                                            <span className="admin-subtitle" style={{ display: 'block', fontSize: '0.75em' }}>{row.unattributedAreaSqft} {rowUnitLabel} unattributed</span>
                                         )}
                                     </p>
-                                    <p className="wr-pending" style={{ color: row.pendingReviewSqft > 0 ? '#b8860b' : 'var(--text-lt)', fontWeight: row.pendingReviewSqft > 0 ? 600 : 400 }}><span className="pq-group-label">Pending Review</span>{row.pendingReviewSqft} sqft</p>
+                                    <p className="wr-pending" style={{ color: row.pendingReviewSqft > 0 ? '#b8860b' : 'var(--text-lt)', fontWeight: row.pendingReviewSqft > 0 ? 600 : 400 }}><span className="pq-group-label">Pending Review</span>{row.pendingReviewSqft} {rowUnitLabel}</p>
                                     <div className="wr-action">
                                         {row.pendingReviewSqft > 0 ? (
                                             <p onClick={() => openReview(row)} className="cursor edit-action">Review</p>
@@ -295,7 +299,8 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
                                         )}
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </>
@@ -310,11 +315,11 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
                         <div className="wr-modal-body">
                             <form id="work-review-form" onSubmit={submitReview}>
                                 <p className="admin-subtitle" style={{ margin: '0 0 16px' }}>
-                                    {reviewTarget.loggedSqft} sqft logged in total. Enter how much is approved — whatever's left becomes a rejected pool you'll distribute below before this can save.
+                                    {reviewTarget.loggedSqft} {reviewTargetUnitLabel} logged in total. Enter how much is approved — whatever's left becomes a rejected pool you'll distribute below before this can save.
                                 </p>
                                 <div className="wizard-field-grid">
                                     <div className="add-product-name flex-col">
-                                        <p>Approved Sqft * (of {reviewTarget.loggedSqft})</p>
+                                        <p>Approved {reviewTargetUnitLabel} * (of {reviewTarget.loggedSqft})</p>
                                         <input type="number" onWheel={e => e.target.blur()} min="0" step="any" max={reviewTarget.loggedSqft} value={approvedInput} onChange={e => setApprovedInput(e.target.value)} />
                                     </div>
                                     <div className="add-product-name flex-col">
@@ -324,7 +329,7 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
                                 </div>
                                 {rejectedPreview !== null && (
                                     <p className="admin-subtitle" style={{ marginTop: '8px', color: rejectedPreview > 0 ? '#c0392b' : 'var(--moss)' }}>
-                                        {rejectedPreview > 0 ? `${rejectedPreview} sqft will be rejected — distribute it below.` : 'Everything logged will be approved.'}
+                                        {rejectedPreview > 0 ? `${rejectedPreview} ${reviewTargetUnitLabel.toLowerCase()} will be rejected — distribute it below.` : 'Everything logged will be approved.'}
                                     </p>
                                 )}
 
@@ -339,8 +344,8 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
                                         {fullyDistributed
                                             ? '✓ Fully distributed'
                                             : remainingToDistribute > 0
-                                                ? `${remainingToDistribute} sqft still left to distribute`
-                                                : `${Math.abs(remainingToDistribute)} sqft over-allocated — reduce it back to ${rejectedPreview}`}
+                                                ? `${remainingToDistribute} ${reviewTargetUnitLabel.toLowerCase()} still left to distribute`
+                                                : `${Math.abs(remainingToDistribute)} ${reviewTargetUnitLabel.toLowerCase()} over-allocated — reduce it back to ${rejectedPreview}`}
                                     </div>
                                 )}
 
@@ -351,7 +356,7 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
                                         <>
                                             <div className="dash-chart-card wrd-card" style={{ margin: '12px 0' }}>
                                                 <div className="wrd-row wrd-header">
-                                                    <b className="wrd-name">Name</b><b className="wrd-type">Type</b><b className="wrd-value">Sqft to Deduct</b>
+                                                    <b className="wrd-name">Name</b><b className="wrd-type">Type</b><b className="wrd-value">{reviewTargetUnitLabel} to Deduct</b>
                                                 </div>
                                                 {contractors.map(a => {
                                                     const key = `contractor|${a.contractorVendorId._id}`;
@@ -374,7 +379,7 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
                                                     );
                                                 })}
                                                 {contractors.length === 0 && labourers.length === 0 && (
-                                                    <div className="admin-empty-state"><p>No contractors or labourers assigned to this work — cannot distribute the rejected sqft, so this review can't be saved.</p></div>
+                                                    <div className="admin-empty-state"><p>No contractors or labourers assigned to this work — cannot distribute the rejected {reviewTargetUnitLabel.toLowerCase()}, so this review can't be saved.</p></div>
                                                 )}
                                             </div>
 
@@ -394,7 +399,7 @@ const WorkReviewPanel = ({ url, projectId: fixedProjectId }) => {
                                             )}
 
                                             <p className="admin-subtitle" style={{ marginBottom: '12px', fontWeight: 600, color: fullyDistributed ? 'var(--moss)' : '#c0392b' }}>
-                                                {fullyDistributed ? 'Fully distributed' : remainingToDistribute > 0 ? `${remainingToDistribute} sqft still left to distribute` : `${Math.abs(remainingToDistribute)} sqft over-allocated`}
+                                                {fullyDistributed ? 'Fully distributed' : remainingToDistribute > 0 ? `${remainingToDistribute} ${reviewTargetUnitLabel.toLowerCase()} still left to distribute` : `${Math.abs(remainingToDistribute)} ${reviewTargetUnitLabel.toLowerCase()} over-allocated`}
                                             </p>
 
                                             <div className="add-product-name flex-col wizard-field-full" style={{ marginBottom: '8px' }}>

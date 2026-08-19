@@ -80,7 +80,7 @@ const listReviewsForProject = async (req, res) => {
             const pendingReviewSqft = round2(Math.max(0, loggedSqft - approvedAreaSqft - rejectedAreaSqft));
             const attributedAreaSqft = rejectedAreaSqft > 0 ? await computeAttributedAreaSqft(w._id, review.reviewCycle) : 0;
             return {
-                workId: w._id, workType: w.workType,
+                workId: w._id, workType: w.workType, unit: w.unit || 'sqft',
                 loggedSqft, approvedAreaSqft, rejectedAreaSqft, pendingReviewSqft,
                 attributedAreaSqft, unattributedAreaSqft: round2(Math.max(0, rejectedAreaSqft - attributedAreaSqft)),
                 lastReviewedAt: review?.lastReviewedAt || null,

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faTrash, faPen } from '@fortawesome/free-solid-svg-icons';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -33,6 +34,11 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
     // Array<{vendorId, vendorName}>>; a Work can have more than one
     // contractor, and a contractor can appear under more than one work type.
     const [contractorsByWorkType, setContractorsByWorkType] = useState(new Map());
+    // workType name -> unit — same derivation as WorkTypeRatesManager's
+    // own identical map (straight from each real Work's snapshotted unit),
+    // fetched here too since this manager doesn't otherwise touch the
+    // Works list at all.
+    const [unitByWorkType, setUnitByWorkType] = useState({});
 
     // Pending rate per unset (workType, vendorId) pair, keyed by pairKey,
     // and which key is currently being saved.
@@ -70,10 +76,18 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
         } catch { /* leave as-is */ }
     };
 
+    const fetchUnitsByWorkType = async () => {
+        try {
+            const res = await axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } });
+            if (res.data.success) setUnitByWorkType(Object.fromEntries(res.data.data.map(w => [w.workType, w.unit || 'sqft'])));
+        } catch { /* leave as-is */ }
+    };
+
     useEffect(() => {
         if (!projectId) return;
         setLoading(true);
         fetchList();
+        fetchUnitsByWorkType();
         fetchProjectContractors().finally(() => setLoading(false));
     }, [projectId, worksVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -131,7 +145,9 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
                 <div className="admin-empty-state"><p>No contractors assigned to any Work yet; add one from a Work's "Contractors" action under the Works tab.</p></div>
             ) : (
                 <div className="list-table finance-table">
-                    {[...contractorsByWorkType.entries()].map(([workType, contractors]) => (
+                    {[...contractorsByWorkType.entries()].map(([workType, contractors]) => {
+                        const unitLabel = measurementUnitLabel(unitByWorkType[workType]);
+                        return (
                         <div key={workType}>
                             <div className="rate-group-header"><span className="rate-group-bar" /><b>{workType}</b></div>
                             {contractors.map(c => {
@@ -144,10 +160,10 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
                                         <div className="cr-field">
                                             <span className="wt-field-label">Rate</span>
                                             {existing && editingKey !== key ? (
-                                                <span className="rate-entry-saved">₹{existing.ratePerSqft} / sqft</span>
+                                                <span className="rate-entry-saved">₹{existing.ratePerSqft} / {unitLabel}</span>
                                             ) : (
                                                 <input
-                                                    type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder="Rate ₹/sqft" value={entry.rate}
+                                                    type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder={`Rate ₹/${unitLabel}`} value={entry.rate}
                                                     onChange={e => setPendingField(key, 'rate', e.target.value)}
                                                 />
                                             )}
@@ -180,7 +196,8 @@ const ContractorRatesManager = ({ url, projectId, worksVersion }) => {
                                 );
                             })}
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

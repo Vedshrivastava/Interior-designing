@@ -31,7 +31,7 @@ const listWorkLabourAssignments = async (req, res) => {
         const rows = await FinanceWorkLabourAssignment.find(filter)
             .populate('labourerId', 'name')
             .populate('supervisorId', 'name')
-            .populate({ path: 'workId', select: 'workType projectId', populate: { path: 'projectId', select: 'name' } })
+            .populate({ path: 'workId', select: 'workType unit projectId', populate: { path: 'projectId', select: 'name' } })
             .sort({ createdAt: 1 });
         res.json({ success: true, data: rows });
     } catch (err) {

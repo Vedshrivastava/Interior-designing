@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faTrash, faPen } from '@fortawesome/free-solid-svg-icons';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -15,8 +16,9 @@ const pairKey = (workType, labourerId) => `${workType}::${labourerId}`;
    (financeWorkLabourAssignment) — there is nothing to freely "select", so
    this renders one row per real pair, grouped by work type: a saved rate
    shows read-only + Edit/Remove, an unset (or currently-being-edited) one
-   shows an inline rate input. Always per-sqft — labour has no per-day
-   payment basis. Supervisor is
+   shows an inline rate input. Always a rate per unit of area/count/length
+   (whichever this work type is configured for, Settings → Work Types) —
+   labour has no per-day payment basis. Supervisor is
    shown alongside each labourer since it's a fact about their current
    assignment, not something this panel sets. */
 const WorkersManager = ({ url, projectId, worksVersion }) => {
@@ -31,6 +33,10 @@ const WorkersManager = ({ url, projectId, worksVersion }) => {
     // labourer master. Map<workType, Array<{labourerId, labourerName,
     // supervisorName}>>.
     const [labourersByWorkType, setLabourersByWorkType] = useState(new Map());
+    // workType name -> unit, straight from each assignment's own Work
+    // (financeWork.unit) — see WorkTypeRatesManager's identical map for
+    // the full reasoning.
+    const [unitByWorkType, setUnitByWorkType] = useState({});
 
     // Pending rate per unset (workType, labourerId) pair, keyed by pairKey,
     // and which key is currently being saved.
@@ -52,10 +58,12 @@ const WorkersManager = ({ url, projectId, worksVersion }) => {
             const res = await axios.get(`${url}/api/finance/work-labour-assignments/list`, { ...authHeader, params: { projectId } });
             if (!res.data.success) return;
             const byType = new Map();
+            const unitByType = {};
             const seen = new Set(); // dedupe — a labourer can only be on one Work at a time, but guard anyway
             for (const a of res.data.data) {
                 const workType = a.workId?.workType;
                 if (!workType || !a.labourerId) continue;
+                unitByType[workType] = a.workId?.unit || 'sqft';
                 const dedupeKey = `${workType}::${a.labourerId._id}`;
                 if (seen.has(dedupeKey)) continue;
                 seen.add(dedupeKey);
@@ -66,6 +74,7 @@ const WorkersManager = ({ url, projectId, worksVersion }) => {
                 });
             }
             setLabourersByWorkType(byType);
+            setUnitByWorkType(unitByType);
         } catch { /* leave as-is */ }
     };
 
@@ -128,7 +137,9 @@ const WorkersManager = ({ url, projectId, worksVersion }) => {
                 <div className="admin-empty-state"><p>No labour team assigned to any Work yet; add one from a Work's "Labour" action under the Works tab.</p></div>
             ) : (
                 <div className="list-table finance-table">
-                    {[...labourersByWorkType.entries()].map(([workType, labourers]) => (
+                    {[...labourersByWorkType.entries()].map(([workType, labourers]) => {
+                        const unitLabel = measurementUnitLabel(unitByWorkType[workType]);
+                        return (
                         <div key={workType}>
                             <div className="rate-group-header"><span className="rate-group-bar" /><b>{workType}</b></div>
                             {labourers.map(l => {
@@ -142,10 +153,10 @@ const WorkersManager = ({ url, projectId, worksVersion }) => {
                                         <div className="lr-field">
                                             <span className="wt-field-label">Rate</span>
                                             {existing && editingKey !== key ? (
-                                                <span className="rate-entry-saved">₹{existing.ratePerSqft} / sqft</span>
+                                                <span className="rate-entry-saved">₹{existing.ratePerSqft} / {unitLabel}</span>
                                             ) : (
                                                 <input
-                                                    type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder="Rate ₹/sqft" value={rate}
+                                                    type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder={`Rate ₹/${unitLabel}`} value={rate}
                                                     onChange={e => setPendingField(key, e.target.value)}
                                                 />
                                             )}
@@ -178,7 +189,8 @@ const WorkersManager = ({ url, projectId, worksVersion }) => {
                                 );
                             })}
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

@@ -10,6 +10,7 @@ import StyledSelect from './StyledSelect';
 import StyledDatePicker from './StyledDatePicker';
 import AddMeasurementModal from './AddMeasurementModal';
 import EditMeasurementModal from './EditMeasurementModal';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -298,7 +299,7 @@ const WorkMeasurementsSummary = ({ url, projectId: fixedProjectId, worksVersion 
                                                 <span className="item-category">Labour</span>
                                             </div>
                                         )}
-                                        <p className="wm-area">{m.areaCoveredSqft} sqft</p>
+                                        <p className="wm-area">{m.areaCoveredSqft} {measurementUnitLabel(m.workId?.unit)}</p>
                                         <p className="wm-remarks">{m.remarks || '-'}</p>
                                         <div className="action-buttons wm-action">
                                             <p

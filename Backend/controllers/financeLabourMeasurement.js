@@ -75,7 +75,10 @@ const addLabourMeasurement = async (req, res) => {
         let materialUsed = Array.isArray(req.body.materialUsed)
             ? req.body.materialUsed.filter(m => m && m.materialId && Number(m.quantity) > 0).map(m => ({ materialId: m.materialId, quantity: Number(m.quantity) }))
             : [];
-        if (!project.materialTrackingEnabled) materialUsed = [];
+        // Resolved per Work now (financeWork.materialTrackingEnabled), not
+        // the project's own flag directly — `work` was already fetched
+        // above to check the labour assignment.
+        if (!work.materialTrackingEnabled) materialUsed = [];
         // Work can't happen without consuming some material — required
         // whenever this project actually tracks material (a project with
         // tracking off has nothing to require, hence the flag check).
@@ -183,9 +186,9 @@ const updateLabourMeasurement = async (req, res) => {
 
         let stockChanged = false;
         if (materialProvided) {
-            const project = await FinanceProject.findById(existing.projectId);
+            const work = await FinanceWork.findById(existing.workId);
             let materialUsed = req.body.materialUsed.filter(m => m && m.materialId && Number(m.quantity) > 0).map(m => ({ materialId: m.materialId, quantity: Number(m.quantity) }));
-            if (!project?.materialTrackingEnabled) materialUsed = [];
+            if (!work?.materialTrackingEnabled) materialUsed = [];
             else if (materialUsed.length === 0) {
                 return res.status(400).json({ success: false, message: 'At least one material used is required' });
             }

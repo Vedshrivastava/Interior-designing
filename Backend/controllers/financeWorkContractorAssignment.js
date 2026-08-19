@@ -14,7 +14,7 @@ const listWorkContractorAssignments = async (req, res) => {
         if (contractorVendorId) filter.contractorVendorId = contractorVendorId;
         const rows = await FinanceWorkContractorAssignment.find(filter)
             .populate('contractorVendorId', 'name')
-            .populate({ path: 'workId', select: 'workType projectId', populate: { path: 'projectId', select: 'name' } })
+            .populate({ path: 'workId', select: 'workType unit projectId', populate: { path: 'projectId', select: 'name' } })
             .sort({ createdAt: 1 });
         res.json({ success: true, data: rows });
     } catch (err) {

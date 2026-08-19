@@ -7,6 +7,7 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import StyledDatePicker from './StyledDatePicker';
 import StyledSelect from './StyledSelect';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -35,7 +36,6 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
     const [workLabourers, setWorkLabourers] = useState([]);
     const [measurements, setMeasurements] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [materialTrackingEnabled, setMaterialTrackingEnabled] = useState(false);
     const [materials, setMaterials] = useState([]);
     const [materialLines, setMaterialLines] = useState([]);
 
@@ -62,11 +62,9 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
     };
 
     const fetchWorksForSelectedProject = () => {
-        if (!selectedProjectId) { setWorks([]); setMaterialTrackingEnabled(false); return; }
+        if (!selectedProjectId) { setWorks([]); return; }
         axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId: selectedProjectId } })
             .then(res => { if (res.data.success) setWorks(res.data.data); }).catch(() => {});
-        axios.get(`${url}/api/finance/projects/${selectedProjectId}`, authHeader)
-            .then(res => { if (res.data.success) setMaterialTrackingEnabled(!!res.data.data.project?.materialTrackingEnabled); }).catch(() => {});
     };
     useEffect(() => {
         if (!selectedProjectId) { setMeasurements([]); return; }
@@ -93,7 +91,10 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
 
     // Same fixed-checklist-per-work-type derivation as AddMeasurementModal —
     // a labourer's work consumes material exactly like a contractor's does,
-    // gated the same way on the project's own materialTrackingEnabled flag.
+    // gated the same way the backend now does: the selected Work's own
+    // materialTrackingEnabled (see financeWork.js's resolveWorkMaterialTracking),
+    // not the project's flag directly — a work can override it per-Work
+    // now (advance-contract projects only).
     useEffect(() => {
         if (!form.workId) { setMaterialLines([]); return; }
         const workType = works.find(w => w._id === form.workId)?.workType;
@@ -107,6 +108,10 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
         return next;
     });
 
+    const selectedWork = works.find(w => w._id === form.workId);
+    const selectedWorkUnitLabel = measurementUnitLabel(selectedWork?.unit);
+    const materialTrackingEnabled = selectedWork?.materialTrackingEnabled ?? false;
+
     const setMaterialLine = (idx, key, value) => setMaterialLines(prev => prev.map((l, i) => i === idx ? { ...l, [key]: value } : l));
 
     const resetForm = () => setForm(emptyForm);
@@ -117,7 +122,7 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
         if (!form.workId) return toast.error('Work is required');
         if (!form.labourerId) return toast.error('Labourer is required');
         if (!form.date) return toast.error('Date is required');
-        if (!form.areaCoveredSqft || Number(form.areaCoveredSqft) <= 0) return toast.error('Area covered must be greater than zero');
+        if (!form.areaCoveredSqft || Number(form.areaCoveredSqft) <= 0) return toast.error('Quantity covered must be greater than zero');
         // Work can't happen without consuming some material — required
         // whenever this project tracks material at all, same rule the
         // backend now enforces (see addLabourMeasurement's own check).
@@ -215,7 +220,7 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                                     <p className="lmm-date"><span className="pq-group-label">Date</span>{new Date(m.date).toLocaleDateString()}</p>
                                     <p className="lmm-work"><span className="pq-group-label">Work</span>{m.workId?.workType || '-'}</p>
                                     <p className="lmm-labourer">{m.labourerId?.name || '-'}</p>
-                                    <p className="lmm-area"><span className="pq-group-label">Area Covered</span>{m.areaCoveredSqft} sqft</p>
+                                    <p className="lmm-area"><span className="pq-group-label">Area Covered</span>{m.areaCoveredSqft} {measurementUnitLabel(m.workId?.unit)}</p>
                                     <div className="action-buttons lmm-actions">
                                         <button type="button" onClick={() => setConfirmItem(m)} className="pq-btn-ghost-danger" title="Remove measurement" aria-label="Remove measurement">
                                             <FontAwesomeIcon icon={faTrash} className="pq-action-icon" />
@@ -258,7 +263,7 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                                             <StyledDatePicker value={form.date} onChange={v => setField('date', v)} />
                                         </div>
                                         <div className="add-product-name flex-col">
-                                            <p>Area Covered (sqft) *</p>
+                                            <p>Quantity Covered ({selectedWorkUnitLabel}) *</p>
                                             <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={form.areaCoveredSqft} onChange={e => setField('areaCoveredSqft', e.target.value)} />
                                         </div>
                                         <div className="add-product-name flex-col wizard-field-full">
@@ -270,7 +275,7 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                                     {materialTrackingEnabled && (
                                         <div style={{ margin: '4px 0 20px' }}>
                                             <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
-                                                Material Used {materialLines.length > 0 && `(for ${form.areaCoveredSqft || '?'} sqft covered above, not per material)`}
+                                                Material Used {materialLines.length > 0 && `(for ${form.areaCoveredSqft || '?'} ${selectedWorkUnitLabel.toLowerCase()} covered above, not per material)`}
                                             </p>
                                             {!form.workId ? (
                                                 <p className="admin-subtitle">Select a work first.</p>
@@ -309,7 +314,7 @@ const LabourMeasurementsManager = ({ url, projectId: fixedProjectId }) => {
                             <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
                                 <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
                                 <h3>Remove this measurement?</h3>
-                                <p className="bin-confirm-name">{confirmItem.labourerId?.name || 'Labourer'} — {confirmItem.areaCoveredSqft} sqft</p>
+                                <p className="bin-confirm-name">{confirmItem.labourerId?.name || 'Labourer'} — {confirmItem.areaCoveredSqft} {measurementUnitLabel(confirmItem.workId?.unit)}</p>
                                 <p className="bin-confirm-warning">Moved to Recovery Bin.</p>
                                 <div className="bin-confirm-actions">
                                     <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>

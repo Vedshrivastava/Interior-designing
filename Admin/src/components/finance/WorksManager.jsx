@@ -10,6 +10,7 @@ import LabourMultiSelect from './LabourMultiSelect';
 import QuickAddPicker from './QuickAddPicker';
 import AddWorkModal from './AddWorkModal';
 import { useSupervisorConflictCheck } from './useSupervisorConflictCheck';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import '../../styles/list.css';
 import '../../styles/add.css';
 import '../../styles/wizard.css';
@@ -197,15 +198,29 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
         }
     };
 
-    const totalEstimated = works.reduce((sum, w) => sum + (w.estimatedAreaSqft || 0), 0);
-    const totalCompleted = works.reduce((sum, w) => sum + (w.completedAreaSqft || 0), 0);
+    // Grouped by unit, not blended into one total — a project can now mix
+    // Sqft/Nos/Running Ft works (each Work Type carries its own unit, see
+    // Settings → Work Types), and 80 sqft + 5 doors was never a real
+    // number to add together in the first place.
+    const totalsByUnit = works.reduce((acc, w) => {
+        const key = w.unit || 'sqft';
+        if (!acc[key]) acc[key] = { estimated: 0, completed: 0 };
+        acc[key].estimated += w.estimatedAreaSqft || 0;
+        acc[key].completed += w.completedAreaSqft || 0;
+        return acc;
+    }, {});
 
     return (
         <div>
             {works.length > 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                    Progress across all works: {totalCompleted.toLocaleString('en-IN')} / {totalEstimated.toLocaleString('en-IN')} sqft
-                    {totalEstimated > 0 && ` (${Math.round((totalCompleted / totalEstimated) * 100)}%)`}
+                    Progress across all works: {Object.entries(totalsByUnit).map(([unit, t], i) => (
+                        <span key={unit}>
+                            {i > 0 && ' · '}
+                            {t.completed.toLocaleString('en-IN')} / {t.estimated.toLocaleString('en-IN')} {measurementUnitLabel(unit)}
+                            {t.estimated > 0 && ` (${Math.round((t.completed / t.estimated) * 100)}%)`}
+                        </span>
+                    ))}
                 </p>
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
@@ -237,7 +252,7 @@ const WorksManager = ({ url, projectId, worksVersion, onWorksChanged }) => {
                                         </span>
                                     )}
                                 </div>
-                                <p className="wk-progress">{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft ({pct}%)</p>
+                                <p className="wk-progress">{w.completedAreaSqft} / {w.estimatedAreaSqft} {measurementUnitLabel(w.unit)} ({pct}%)</p>
                                 <p className="wk-status"><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
                                 {/* Single line, not wrapping — the widened 500px column fits
                                     all 4 management actions plus the delete icon on one row.

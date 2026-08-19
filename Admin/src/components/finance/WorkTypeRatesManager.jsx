@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faTrash, faPen } from '@fortawesome/free-solid-svg-icons';
 import AddWorkModal from './AddWorkModal';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import '../../styles/list.css';
 import '../../styles/wizard.css';
 import '../../styles/add.css';
@@ -34,6 +35,13 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
     // below: null must only ever mean "checked, there genuinely aren't
     // any", never "haven't checked yet".
     const [realWorkTypes, setRealWorkTypes] = useState(null);
+    // workType name -> unit, straight from each real Work's own snapshotted
+    // unit (financeWork.unit) rather than re-fetching Settings — a rate
+    // here is scoped by (projectId, workType), and every real Work of that
+    // type in this project already agrees on the same unit (set once from
+    // the Work Type when each was created), so this is both simpler and
+    // more authoritative than a second lookup.
+    const [unitByWorkType, setUnitByWorkType] = useState({});
     const [loading, setLoading] = useState(true);
     const [addWorkOpen, setAddWorkOpen] = useState(false);
 
@@ -58,8 +66,10 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
         if (!projectId) return;
         try {
             const res = await axios.get(`${url}/api/finance/works/list`, { ...authHeader, params: { projectId } });
-            const fromWorks = res.data.success ? [...new Set(res.data.data.map(w => w.workType))] : [];
+            const works = res.data.success ? res.data.data : [];
+            const fromWorks = [...new Set(works.map(w => w.workType))];
             setRealWorkTypes(fromWorks.length ? new Set(fromWorks) : null);
+            setUnitByWorkType(Object.fromEntries(works.map(w => [w.workType, w.unit || 'sqft'])));
         } catch { /* leave as-is */ }
         finally { setLoading(false); }
     };
@@ -151,6 +161,7 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                         {[...realWorkTypes].map(workType => {
                             const existing = findExisting(workType);
                             const entry = pending[workType] || { clientRate: '', referralRate: '', gstRate: '' };
+                            const unitLabel = measurementUnitLabel(unitByWorkType[workType]);
                             return (
                                 <div
                                     key={workType} className="list-table-format row-item wt-row"
@@ -161,11 +172,11 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                                         <>
                                             <div className="wt-field wt-client">
                                                 <span className="wt-field-label">Client Rate</span>
-                                                <p className="rate-entry-saved">₹{existing.clientRatePerSqft}/sqft</p>
+                                                <p className="rate-entry-saved">₹{existing.clientRatePerSqft}/{unitLabel}</p>
                                             </div>
                                             <div className="wt-field wt-referral">
                                                 <span className="wt-field-label">Referral Cut</span>
-                                                <p className="rate-entry-saved">₹{existing.referralRatePerSqft}/sqft</p>
+                                                <p className="rate-entry-saved">₹{existing.referralRatePerSqft}/{unitLabel}</p>
                                             </div>
                                             <div className="wt-field wt-gst">
                                                 <span className="wt-field-label">GST %</span>
@@ -187,14 +198,14 @@ const WorkTypeRatesManager = ({ url, projectId, worksVersion, referralVendorName
                                             <div className="wt-field wt-client">
                                                 <span className="wt-field-label">Client Rate</span>
                                                 <input
-                                                    type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder="₹/sqft" value={entry.clientRate} style={{ width: '100%' }}
+                                                    type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder={`₹/${unitLabel}`} value={entry.clientRate} style={{ width: '100%' }}
                                                     onChange={e => setPendingField(workType, 'clientRate', e.target.value)}
                                                 />
                                             </div>
                                             <div className="wt-field wt-referral">
                                                 <span className="wt-field-label">Referral Cut</span>
                                                 <input
-                                                    type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder="₹/sqft" value={entry.referralRate} style={{ width: '100%' }}
+                                                    type="number" onWheel={e => e.target.blur()} min="0" step="any" className="rate-entry-input" placeholder={`₹/${unitLabel}`} value={entry.referralRate} style={{ width: '100%' }}
                                                     onChange={e => setPendingField(workType, 'referralRate', e.target.value)}
                                                 />
                                             </div>

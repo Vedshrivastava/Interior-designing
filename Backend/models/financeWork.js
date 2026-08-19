@@ -34,6 +34,19 @@ const financeWorkSchema = new mongoose.Schema({
     // existed is, and always was, sqft-measured.
     unit: { type: String, enum: ['sqft', 'nos', 'rft'], default: 'sqft' },
 
+    // Resolved at Work creation/edit time from the project's own
+    // contractType — see resolveWorkMaterialTracking (controllers/
+    // financeWork.js), same forcing rules financeProject.js's
+    // applyContractTypeRules already applies at the project level: always
+    // true for a with_material project, always false for without_material,
+    // freely chosen per Work only for an advance project (an advance deal
+    // can have the studio supplying material on some Works and the client
+    // supplying their own on others — the one case a single project-wide
+    // flag couldn't express). Measurement save (financeMeasurement.js/
+    // financeLabourMeasurement.js) reads this instead of the project's own
+    // flag now that it's resolved per Work.
+    materialTrackingEnabled: { type: Boolean, default: true },
+
     status: { type: String, enum: ['active', 'completed'], default: 'active' },
     notes:  { type: String, default: '' },
 

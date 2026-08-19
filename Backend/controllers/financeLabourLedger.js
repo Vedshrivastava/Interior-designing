@@ -138,7 +138,7 @@ const computeLabourLedger = async (labourerId, projectId) => {
         worksOut.push({
             _id: w._id,
             projectId: w.projectId, projectName: projectNameById.get(w.projectId.toString()) || '—',
-            workType: w.workType,
+            workType: w.workType, unit: w.unit || 'sqft',
             estimatedAreaSqft: w.estimatedAreaSqft, completedAreaSqft: round2(totalArea),
             approvedAreaSqft: approvedArea, unapprovedAreaSqft: unapprovedArea,
             approvedDate: approvedArea > 0 ? (categoryEntry?.date || null) : null,

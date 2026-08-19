@@ -97,7 +97,7 @@ const computeLabourProviderLedger = async (labourProviderId, projectId) => {
             pendingApprovalPay += rowPendingPay;
             rows.push({
                 labourerId: labourer._id, labourerName: labourer.name,
-                workId: w._id, workType: w.workType,
+                workId: w._id, workType: w.workType, unit: w.unit || 'sqft',
                 projectId: w.projectId, projectName: projectNameById.get(w.projectId.toString()) || '—',
                 totalAreaSqft: round2(area), approvedAreaSqft: approvedArea, unapprovedAreaSqft: unapprovedArea,
                 rate, approvedPay: rowApprovedPay, pendingPay: rowPendingPay,

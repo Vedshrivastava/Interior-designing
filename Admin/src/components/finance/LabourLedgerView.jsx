@@ -12,6 +12,7 @@ import { useFileDownload } from '../../hooks/useFileDownload';
 import StyledDatePicker from './StyledDatePicker';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -125,7 +126,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
     const submitDeduction = async (e) => {
         e.preventDefault();
         if (!deductionForm.workId) return toast.error('Work is required: the deduction amount is derived from its rate');
-        if (!deductionForm.areaSqft || Number(deductionForm.areaSqft) <= 0) return toast.error('Sqft to deduct must be greater than zero');
+        if (!deductionForm.areaSqft || Number(deductionForm.areaSqft) <= 0) return toast.error('Quantity to deduct must be greater than zero');
         if (!deductionForm.reason.trim()) return toast.error('Reason is required');
         if (!deductionForm.date) return toast.error('Date is required');
         if (deductionForm.source === 'supervisor_catch' && !deductionForm.supervisorId) return toast.error('Supervisor is required when they caught the mistake');
@@ -272,17 +273,17 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
             </KpiGrid>
             {totals.unapprovedAmount > 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
-                    ₹{totals.unapprovedAmount.toLocaleString('en-IN')} worth of measured work hasn't been reviewed yet (or is still awaiting rejected-sqft attribution); it isn't counted as Approved earnings until that's resolved (Payables/Receivables → Deductions).
+                    ₹{totals.unapprovedAmount.toLocaleString('en-IN')} worth of measured work hasn't been reviewed yet (or is still awaiting rejected-quantity attribution); it isn't counted as Approved earnings until that's resolved (Payables/Receivables → Deductions).
                 </p>
             )}
             {totals.materialWasteTotal > 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
-                    ₹{totals.materialWasteTotal.toLocaleString('en-IN')} is the material this labourer's own rejected work wasted (priced at their own material-cost-per-sqft) — a separate, additional deduction from Deductions above, already subtracted from Balance Payable.
+                    ₹{totals.materialWasteTotal.toLocaleString('en-IN')} is the material this labourer's own rejected work wasted (priced at their own material cost per unit) — a separate, additional deduction from Deductions above, already subtracted from Balance Payable.
                 </p>
             )}
             {totals.directPaymentTotal > 0 && (
                 <p className="admin-subtitle" style={{ marginBottom: '8px' }}>
-                    ₹{totals.directPaymentTotal.toLocaleString('en-IN')} paid directly by the client to this labourer (an advance, not tied to specific sqft) — already subtracted from Balance Payable above.
+                    ₹{totals.directPaymentTotal.toLocaleString('en-IN')} paid directly by the client to this labourer (an advance, not tied to a specific quantity) — already subtracted from Balance Payable above.
                 </p>
             )}
             {totals.balancePayable < 0 && (
@@ -334,30 +335,33 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                                 <b className="lle-work-total">Total</b>
                                 <b className="lle-work-approved">Approved (as of)</b>
                                 <b className="lle-work-unapproved">Unapproved</b>
-                                <b className="lle-work-cost">Material Cost/Sqft</b>
+                                <b className="lle-work-cost">Material Cost/Unit</b>
                             </div>
-                            {ledger.works.map(w => (
+                            {ledger.works.map(w => {
+                                const wUnitLabel = measurementUnitLabel(w.unit);
+                                return (
                                 <div key={w._id} className="lle-work-row">
                                     <p className="lle-work-project">{w.projectName}</p>
                                     <p className="lle-work-type"><span className="pq-group-label">Work Type</span>{w.workType}</p>
                                     {/* This labourer's own logged area on this Work — not
                                         w.estimatedAreaSqft, which is the whole Work's target,
                                         not this labourer's share of it. */}
-                                    <p className="lle-work-area"><span className="pq-group-label">Area Done</span>{w.completedAreaSqft} sqft</p>
+                                    <p className="lle-work-area"><span className="pq-group-label">Area Done</span>{w.completedAreaSqft} {wUnitLabel}</p>
                                     <p className="lle-work-total"><span className="pq-group-label">Total</span>{w.rate ? `₹${w.totalAmount.toLocaleString('en-IN')}` : <span title="No matching labour rate configured">(no rate)</span>}</p>
                                     <p className="lle-work-approved" style={{ color: w.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>
                                         <span className="pq-group-label">Approved (as of)</span>
                                         {w.earnings > 0
-                                            ? <>₹{w.earnings.toLocaleString('en-IN')} <span style={{ fontWeight: 400, fontSize: '0.75rem' }}>({w.approvedAreaSqft} sqft{w.approvedDate ? `, ${new Date(w.approvedDate).toLocaleDateString()}` : ''})</span></>
+                                            ? <>₹{w.earnings.toLocaleString('en-IN')} <span style={{ fontWeight: 400, fontSize: '0.75rem' }}>({w.approvedAreaSqft} {wUnitLabel}{w.approvedDate ? `, ${new Date(w.approvedDate).toLocaleDateString()}` : ''})</span></>
                                             : 'Unapproved'}
                                     </p>
                                     <p className="lle-work-unapproved" style={{ color: w.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}>
                                         <span className="pq-group-label">Unapproved</span>
                                         {w.rate ? `₹${w.unapprovedAmount.toLocaleString('en-IN')}` : '-'}
                                     </p>
-                                    <p className="lle-work-cost"><span className="pq-group-label">Material Cost/Sqft</span>{materialCostPerSqftDisplay(w.materialCostPerSqftApproved, w.materialCostPerSqftUnapproved)}</p>
+                                    <p className="lle-work-cost"><span className="pq-group-label">Material Cost/Unit</span>{materialCostPerSqftDisplay(w.materialCostPerSqftApproved, w.materialCostPerSqftUnapproved)}</p>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </>
@@ -451,7 +455,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                 )}
             </div>
             <p className="admin-subtitle" style={{ marginBottom: '12px' }}>
-                Sqft in, ₹ out: the amount is always derived from the picked work's rate, never typed directly.
+                Quantity in (that work's own unit), ₹ out: the amount is always derived from the picked work's rate, never typed directly.
                 "Supervisor caught it" also credits that supervisor an incentive for the same amount. "Engineer review" is just a cut here, periodic, not tied to a specific day's entry.
                 {ledger.deductions.some(d => d.workReviewCycle != null) && (
                     <> Rows with Origin <b>Review</b> came from a Work Review's rejection distribution — their <b>Amount</b> is already reflected in Approved Earnings above, so it isn't counted again in the Deductions total below (only <b>Manual</b> rows' Amount is). Their <b>Material Waste</b>, if any, is different — always an additional, real deduction on top.</>
@@ -466,7 +470,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                 <div className="dash-chart-card lld-card" style={{ marginBottom: '28px' }}>
                     <div className="lld-row lld-header">
                         <b className="lld-date">Date</b>
-                        <b className="lld-sqft">Sqft</b>
+                        <b className="lld-sqft">Qty</b>
                         <b className="lld-amount">Amount</b>
                         <b className="lld-waste">Material Waste</b>
                         <b className="lld-reason">Reason</b>
@@ -475,10 +479,12 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                         <b className="lld-work">Work</b>
                         <b className="lld-actions">Action</b>
                     </div>
-                    {ledger.deductions.map(d => (
+                    {ledger.deductions.map(d => {
+                        const dWork = ledger.works.find(w => w._id === (d.workId?._id || d.workId));
+                        return (
                         <div key={d._id} className="lld-row">
                             <p className="lld-date"><span className="pq-group-label">Date</span>{new Date(d.date).toLocaleDateString()}</p>
-                            <p className="lld-sqft"><span className="pq-group-label">Sqft</span>{d.areaSqft ?? '-'}</p>
+                            <p className="lld-sqft"><span className="pq-group-label">Qty</span>{d.areaSqft ?? '-'} {d.areaSqft != null ? measurementUnitLabel(dWork?.unit) : ''}</p>
                             <p className="lld-amount"><span className="pq-group-label">Amount</span>₹{d.amount.toLocaleString('en-IN')}</p>
                             <p className="lld-waste"><span className="pq-group-label">Material Waste</span>{d.materialWasteAmount > 0 ? `₹${d.materialWasteAmount.toLocaleString('en-IN')}` : '-'}</p>
                             <p className="lld-reason"><span className="pq-group-label">Reason</span>{d.reason}</p>
@@ -487,7 +493,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                                 <span className="pq-group-label">Origin</span>
                                 {d.workReviewCycle != null ? 'Review' : 'Manual'}
                             </p>
-                            <p className="lld-work"><span className="pq-group-label">Work</span>{ledger.works.find(w => w._id === (d.workId?._id || d.workId))?.workType || '-'}</p>
+                            <p className="lld-work"><span className="pq-group-label">Work</span>{dWork?.workType || '-'}</p>
                             <div className="action-buttons lld-actions">
                                 {d.workReviewCycle != null
                                     ? <p title="Change this by redoing the Work Review, not by deleting it here" style={{ color: 'var(--text-lt)', fontSize: '0.85em', margin: 0 }}>—</p>
@@ -496,7 +502,8 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                                     </button>}
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
@@ -517,7 +524,7 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                                     </select>
                                 </div>
                                 <div className="add-product-name flex-col">
-                                    <p>Sqft to Deduct *</p>
+                                    <p>{measurementUnitLabel(ledger.works.find(w => w._id === deductionForm.workId)?.unit)} to Deduct *</p>
                                     <input type="number" onWheel={e => e.target.blur()} min="0" step="any" value={deductionForm.areaSqft} onChange={e => setDeductionForm(p => ({ ...p, areaSqft: e.target.value }))} />
                                 </div>
                                 <div className="add-product-name flex-col">
@@ -546,9 +553,10 @@ const LabourLedgerView = ({ url, labourerId, projectId, showWorks = true }) => {
                                 </div>
                             </div>
                             {deductionForm.workId && deductionForm.areaSqft > 0 && (() => {
-                                const rate = ledger.works.find(w => w._id === deductionForm.workId)?.rate;
+                                const selectedDeductionWork = ledger.works.find(w => w._id === deductionForm.workId);
+                                const rate = selectedDeductionWork?.rate;
                                 return rate
-                                    ? <p className="admin-subtitle" style={{ marginTop: '8px' }}>≈ ₹{(rate * Number(deductionForm.areaSqft)).toLocaleString('en-IN')} at ₹{rate}/sqft</p>
+                                    ? <p className="admin-subtitle" style={{ marginTop: '8px' }}>≈ ₹{(rate * Number(deductionForm.areaSqft)).toLocaleString('en-IN')} at ₹{rate}/{measurementUnitLabel(selectedDeductionWork?.unit)}</p>
                                     : <p className="admin-subtitle" style={{ marginTop: '8px', color: '#c0392b' }}>No rate configured for this work; deduction will be rejected.</p>;
                             })()}
                         </form>

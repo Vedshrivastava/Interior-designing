@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import StyledSelect from './StyledSelect';
 import { KpiCard, KpiGrid } from './DashboardWidgets';
 import '../../styles/list.css';
@@ -109,7 +110,7 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                         <>
                             <p className="admin-subtitle" style={{ margin: '24px 0 10px' }}>Unapproved (Pending Review)</p>
                             <KpiGrid>
-                                <KpiCard label="Area" value={`${data.unapprovedAreaSqft.toLocaleString('en-IN')} sqft`} />
+                                <KpiCard label="Area" value={`${data.unapprovedAreaSqft.toLocaleString('en-IN')}`} />
                                 <KpiCard label="Material Unapproved" value={`₹${data.unapprovedMaterialCost.toLocaleString('en-IN')}`} sub="Weighted avg — material for this work has already been used, review or no review" />
                                 <KpiCard label="Contractor Unapproved" value={`₹${data.unapprovedContractorCost.toLocaleString('en-IN')}`} />
                                 <KpiCard label="Labour Unapproved" value={`₹${data.unapprovedLabourCost.toLocaleString('en-IN')}`} />
@@ -157,7 +158,7 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                                 )}
                             </div>
                             <p className="admin-subtitle" style={{ marginBottom: '24px' }}>
-                                Amounts the client paid directly to a worker on this project — an advance, not tied to specific sqft, so it's a flat reduction against that worker's overall Balance Payable, not netted against Unapproved/Approved above.
+                                Amounts the client paid directly to a worker on this project — an advance, not tied to a specific quantity, so it's a flat reduction against that worker's overall Balance Payable, not netted against Unapproved/Approved above.
                             </p>
                         </>
                     )}
@@ -175,7 +176,7 @@ const ProjectProfitView = ({ url, projectId, onSelectProject, onViewClientProfit
                         ) : works.map(w => (
                             <div key={w._id} className="rpp-work-row">
                                 <p className="rpp-work-type">{w.workType}</p>
-                                <p className="rpp-work-area"><span className="pq-group-label">Completed / Estimated</span>{w.completedAreaSqft} / {w.estimatedAreaSqft} sqft</p>
+                                <p className="rpp-work-area"><span className="pq-group-label">Completed / Estimated</span>{w.completedAreaSqft} / {w.estimatedAreaSqft} {measurementUnitLabel(w.unit)}</p>
                                 <p className="rpp-work-status"><span className="item-category">{w.status}</span></p>
                                 <div className="rpp-work-action">
                                     <p className="cursor edit-action" onClick={() => onViewWorkProfit(w._id)}>View Profit</p>

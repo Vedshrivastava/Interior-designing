@@ -233,7 +233,13 @@ const ProjectOverviewTab = ({ url, projectId, contractType, status, onViewWorks,
                     label="Contractor Cost"
                     {...reviewGatedValue(profit.contractorCost, profit.unapprovedContractorCost, profit.rejectedContractorCost)}
                     sub={[
-                        profit.approvedContractorAreaSqft > 0 ? `${profit.approvedContractorAreaSqft.toLocaleString('en-IN')} sqft approved` : null,
+                        // Summed across every work type on this project — a
+                        // blended figure that's only a clean "sqft" total
+                        // when every work type here shares the same unit
+                        // (still the overwhelmingly common case); no unit
+                        // word attached here on purpose rather than
+                        // asserting one that may not universally apply.
+                        profit.approvedContractorAreaSqft > 0 ? `${profit.approvedContractorAreaSqft.toLocaleString('en-IN')} approved` : null,
                         profit.unapprovedContractorCost > 0 ? `Total logged: ${formatINR(profit.totalContractorCost)}`
                             : profit.rejectedContractorCost > 0 ? `${formatINR(profit.rejectedContractorCost)} rejected (already settled)` : null,
                     ].filter(Boolean).join('  ') || undefined}
@@ -249,7 +255,9 @@ const ProjectOverviewTab = ({ url, projectId, contractType, status, onViewWorks,
                     label="Labour Cost"
                     {...reviewGatedValue(profit.labourCost, profit.unapprovedLabourCost, profit.rejectedLabourCost)}
                     sub={[
-                        profit.approvedLabourAreaSqft > 0 ? `${profit.approvedLabourAreaSqft.toLocaleString('en-IN')} sqft approved` : null,
+                        // See Contractor Cost's identical comment — blended
+                        // across work types, no unit word asserted.
+                        profit.approvedLabourAreaSqft > 0 ? `${profit.approvedLabourAreaSqft.toLocaleString('en-IN')} approved` : null,
                         profit.unapprovedLabourCost > 0 ? `Total logged: ${formatINR(profit.totalLabourCost)}`
                             : profit.rejectedLabourCost > 0 ? `${formatINR(profit.rejectedLabourCost)} rejected (already settled)` : null,
                     ].filter(Boolean).join('  ') || undefined}
@@ -346,7 +354,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, status, onViewWorks,
                 <div className="dash-chart-card ov-card" style={{ marginBottom: '24px' }}>
                     <p className="dash-chart-title">Unapproved (Pending Review)</p>
                     <div className="stat-grid">
-                        <div className="stat-block"><span className="stat-block-label">Area</span><span className="stat-block-value">{profit.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</span></div>
+                        <div className="stat-block"><span className="stat-block-label">Area</span><span className="stat-block-value">{profit.unapprovedAreaSqft.toLocaleString('en-IN')}</span></div>
                         <div className="stat-block"><span className="stat-block-label">Material Unapproved</span><span className="stat-block-value">{formatINR(profit.unapprovedMaterialCost)}</span></div>
                         <div className="stat-block"><span className="stat-block-label">Contractor Unapproved</span><span className="stat-block-value">{formatINR(profit.unapprovedContractorCost)}</span></div>
                         <div className="stat-block"><span className="stat-block-label">Labour Unapproved</span><span className="stat-block-value">{formatINR(profit.unapprovedLabourCost)}</span></div>
@@ -391,7 +399,7 @@ const ProjectOverviewTab = ({ url, projectId, contractType, status, onViewWorks,
                         )}
                     </div>
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
-                        Amounts the client paid directly to a worker on this project (Payables → Client Direct Payments) — an advance, not tied to specific sqft, so it's a flat reduction against that worker's overall Balance Payable, not netted against Unapproved/Approved above.
+                        Amounts the client paid directly to a worker on this project (Payables → Client Direct Payments) — an advance, not tied to a specific quantity, so it's a flat reduction against that worker's overall Balance Payable, not netted against Unapproved/Approved above.
                     </p>
                 </div>
             )}

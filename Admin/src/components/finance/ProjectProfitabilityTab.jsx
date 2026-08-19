@@ -154,7 +154,10 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                     value={profit.contractorCost > 0 ? formatINR(profit.contractorCost) : (profit.totalContractorCost > 0 ? 'Unapproved' : formatINR(0))}
                     tone={profit.contractorCost > 0 ? 'good' : (profit.totalContractorCost > 0 ? 'danger' : undefined)}
                     sub={[
-                        profit.approvedContractorAreaSqft > 0 ? `${profit.approvedContractorAreaSqft.toLocaleString('en-IN')} sqft approved` : null,
+                        // Blended across every work type on this project —
+                        // no unit word asserted (see ProjectDetail.jsx's
+                        // identical comment).
+                        profit.approvedContractorAreaSqft > 0 ? `${profit.approvedContractorAreaSqft.toLocaleString('en-IN')} approved` : null,
                         profit.unapprovedContractorCost > 0 ? `Total logged: ${formatINR(profit.totalContractorCost)}`
                             : profit.rejectedContractorCost > 0 ? `${formatINR(profit.rejectedContractorCost)} rejected (already settled)` : null,
                     ].filter(Boolean).join('  ') || 'All-time'}
@@ -164,7 +167,7 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                     value={profit.labourCost > 0 ? formatINR(profit.labourCost) : (profit.totalLabourCost > 0 ? 'Unapproved' : formatINR(0))}
                     tone={profit.labourCost > 0 ? 'good' : (profit.totalLabourCost > 0 ? 'danger' : undefined)}
                     sub={[
-                        profit.approvedLabourAreaSqft > 0 ? `${profit.approvedLabourAreaSqft.toLocaleString('en-IN')} sqft approved` : null,
+                        profit.approvedLabourAreaSqft > 0 ? `${profit.approvedLabourAreaSqft.toLocaleString('en-IN')} approved` : null,
                         profit.unapprovedLabourCost > 0 ? `Total logged: ${formatINR(profit.totalLabourCost)}`
                             : profit.rejectedLabourCost > 0 ? `${formatINR(profit.rejectedLabourCost)} rejected (already settled)` : null,
                     ].filter(Boolean).join('  ') || 'All-time'}
@@ -266,7 +269,7 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                         <b>Area</b><b>Material Unapproved</b><b>Contractor Unapproved</b><b>Labour Unapproved</b><b>Commission</b><b>Revenue</b><b>Profit</b>
                     </div>
                     <div className="list-table-format row-item pp-unapp-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                        <p className="pp-unapp-field pp-unapp-area"><span className="pp-field-label">Area</span>{profit.unapprovedAreaSqft.toLocaleString('en-IN')} sqft</p>
+                        <p className="pp-unapp-field pp-unapp-area"><span className="pp-field-label">Area</span>{profit.unapprovedAreaSqft.toLocaleString('en-IN')}</p>
                         <p className="pp-unapp-field"><span className="pp-field-label">Material Unapproved</span>{formatINR(profit.unapprovedMaterialCost)}</p>
                         <p className="pp-unapp-field"><span className="pp-field-label">Contractor Unapproved</span>{formatINR(profit.unapprovedContractorCost)}</p>
                         <p className="pp-unapp-field"><span className="pp-field-label">Labour Unapproved</span>{formatINR(profit.unapprovedLabourCost)}</p>
@@ -315,7 +318,7 @@ const ProjectProfitabilityTab = ({ url, projectId, contractType }) => {
                         </div>
                     )}
                     <p className="admin-subtitle" style={{ padding: '0 20px 16px' }}>
-                        Amounts the client paid directly to a worker on this project (Payables → Client Direct Payments) — an advance, not tied to specific sqft, so it's a flat reduction against that worker's overall Balance Payable, not netted against Unapproved/Approved above.
+                        Amounts the client paid directly to a worker on this project (Payables → Client Direct Payments) — an advance, not tied to a specific quantity, so it's a flat reduction against that worker's overall Balance Payable, not netted against Unapproved/Approved above.
                     </p>
                 </div>
             )}

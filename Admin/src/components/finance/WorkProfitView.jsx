@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import StyledSelect from './StyledSelect';
 import { KpiCard, KpiGrid } from './DashboardWidgets';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import '../../styles/list.css';
 
 // Same dashboardCache idea as FinanceHome.jsx, keyed by workId.
@@ -100,6 +101,7 @@ const WorkProfitView = ({ url, workId, onSelectWork }) => {
     }
     if (loading) return <div>{picker}<div className="admin-empty-state"><p>Loading…</p></div></div>;
     if (!data) return <div>{picker}<div className="admin-empty-state"><p>Work not found.</p></div></div>;
+    const unitLabel = measurementUnitLabel(data.unit);
 
     // data.totalAmount (computeWorkExpectedPay's own figure) is contractor
     // + labour combined, computed from one blended rate per category — not
@@ -120,7 +122,7 @@ const WorkProfitView = ({ url, workId, onSelectWork }) => {
         <div>
             {picker}
             <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                {data.workType} · {data.completedAreaSqft} / {data.estimatedAreaSqft} sqft completed, {data.areaBilledSqft} sqft billed
+                {data.workType} · {data.completedAreaSqft} / {data.estimatedAreaSqft} {unitLabel} completed, {data.areaBilledSqft} {unitLabel} billed
             </p>
             <KpiGrid>
                 <KpiCard label="Revenue" value={`₹${data.revenue.toLocaleString('en-IN')}`} />
@@ -153,7 +155,7 @@ const WorkProfitView = ({ url, workId, onSelectWork }) => {
                         {data.heldForAttribution ? 'Unapproved — Held Pending Rejection Attribution' : 'Unapproved (Pending Review)'}
                     </p>
                     <KpiGrid>
-                        <KpiCard label="Area" value={`${data.unapprovedAreaSqft.toLocaleString('en-IN')} sqft`} />
+                        <KpiCard label="Area" value={`${data.unapprovedAreaSqft.toLocaleString('en-IN')} ${unitLabel}`} />
                         <KpiCard label="Material Unapproved" value={`₹${data.unapprovedMaterialCost.toLocaleString('en-IN')}`} />
                         <KpiCard label="Contractor Unapproved" value={`₹${data.unapprovedContractorCost.toLocaleString('en-IN')}`} />
                         <KpiCard label="Labour Unapproved" value={`₹${data.unapprovedLabourCost.toLocaleString('en-IN')}`} />
@@ -163,12 +165,12 @@ const WorkProfitView = ({ url, workId, onSelectWork }) => {
                     </KpiGrid>
                     {data.heldForAttribution ? (
                         <p className="admin-subtitle" style={{ margin: '10px 0 4px', color: '#c0392b' }}>
-                            ⚠ This Work was reviewed — {data.rejectedAreaSqft.toLocaleString('en-IN')} sqft rejected — but that rejection isn't fully attributed to specific contractors/labourers yet (Payables/Receivables → Deductions). Until it is, ALL logged work here shows as Unapproved, not just the rejected portion.
+                            ⚠ This Work was reviewed — {data.rejectedAreaSqft.toLocaleString('en-IN')} {unitLabel} rejected — but that rejection isn't fully attributed to specific contractors/labourers yet (Payables/Receivables → Deductions). Until it is, ALL logged work here shows as Unapproved, not just the rejected portion.
                         </p>
                     ) : (
                         <p className="admin-subtitle" style={{ margin: '10px 0 4px' }}>
                             Logged work on this Work whose cost isn't counted in Profit yet.
-                            {data.rejectedAreaSqft > 0 && ` Of this, ${data.rejectedAreaSqft.toLocaleString('en-IN')} sqft is permanently rejected (already attributed); the rest is simply pending its first review.`}
+                            {data.rejectedAreaSqft > 0 && ` Of this, ${data.rejectedAreaSqft.toLocaleString('en-IN')} ${unitLabel} is permanently rejected (already attributed); the rest is simply pending its first review.`}
                         </p>
                     )}
                     <p className="admin-subtitle" style={{ marginBottom: '24px', fontWeight: 600, color: data.totalProjectedProfit >= 0 ? 'var(--moss)' : '#c0392b' }}>
@@ -199,7 +201,7 @@ const WorkProfitView = ({ url, workId, onSelectWork }) => {
                         )}
                     </div>
                     <p className="admin-subtitle" style={{ marginBottom: '24px' }}>
-                        Amounts the client paid directly to a worker on this Work — an advance, not tied to specific sqft, so it's a flat reduction against that worker's overall Balance Payable (see their Ledger), not netted against this Work's own Approved/Unapproved split.
+                        Amounts the client paid directly to a worker on this Work — an advance, not tied to a specific quantity, so it's a flat reduction against that worker's overall Balance Payable (see their Ledger), not netted against this Work's own Approved/Unapproved split.
                     </p>
                 </>
             )}
@@ -217,8 +219,8 @@ const WorkProfitView = ({ url, workId, onSelectWork }) => {
                         {data.contractorBreakdown.map(r => (
                             <div key={r.vendorId} className="rwp-cb-row">
                                 <p className="rwp-cb-contractor">{r.vendorName}</p>
-                                <p className="rwp-cb-area"><span className="pq-group-label">Area</span>{r.areaSqft.toLocaleString('en-IN')} sqft</p>
-                                <p className="rwp-cb-rate"><span className="pq-group-label">Rate</span>₹{r.rate}/sqft</p>
+                                <p className="rwp-cb-area"><span className="pq-group-label">Area</span>{r.areaSqft.toLocaleString('en-IN')} {unitLabel}</p>
+                                <p className="rwp-cb-rate"><span className="pq-group-label">Rate</span>₹{r.rate}/{unitLabel}</p>
                                 <p className="rwp-cb-amount"><span className="pq-group-label">Amount</span>₹{r.approvedAmount.toLocaleString('en-IN')}</p>
                             </div>
                         ))}
@@ -239,8 +241,8 @@ const WorkProfitView = ({ url, workId, onSelectWork }) => {
                         {data.labourBreakdown.map(r => (
                             <div key={r.labourerId} className="rwp-lb-row">
                                 <p className="rwp-lb-labourer">{r.labourerName}</p>
-                                <p className="rwp-lb-area"><span className="pq-group-label">Area</span>{r.areaSqft.toLocaleString('en-IN')} sqft</p>
-                                <p className="rwp-lb-rate"><span className="pq-group-label">Rate</span>₹{r.rate}/sqft</p>
+                                <p className="rwp-lb-area"><span className="pq-group-label">Area</span>{r.areaSqft.toLocaleString('en-IN')} {unitLabel}</p>
+                                <p className="rwp-lb-rate"><span className="pq-group-label">Rate</span>₹{r.rate}/{unitLabel}</p>
                                 <p className="rwp-lb-amount"><span className="pq-group-label">Amount</span>₹{r.approvedAmount.toLocaleString('en-IN')}</p>
                             </div>
                         ))}

@@ -2153,7 +2153,7 @@ const getWorkProfit = async (req, res) => {
         res.json({
             success: true,
             data: {
-                workId: work._id, projectId: work.projectId, workType: work.workType,
+                workId: work._id, projectId: work.projectId, workType: work.workType, unit: work.unit || 'sqft',
                 estimatedAreaSqft: work.estimatedAreaSqft, completedAreaSqft: work.completedAreaSqft,
                 areaBilledSqft: wp.areaBilledSqft, revenue: wp.revenue, contractorCost: wp.contractorCost,
                 contractorBreakdown: wp.contractorBreakdown,

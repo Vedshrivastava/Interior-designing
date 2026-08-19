@@ -68,7 +68,7 @@ const computeCommissionLedger = async (referralId, projectId) => {
             unapprovedAmountTotal += unapprovedAmount;
             return {
                 _id: w._id, projectId: w.projectId, projectName: projectNameById.get(w.projectId.toString()) || '—',
-                workType: w.workType, completedAreaSqft: w.completedAreaSqft,
+                workType: w.workType, unit: w.unit || 'sqft', completedAreaSqft: w.completedAreaSqft,
                 referralRatePerSqft: rate ? rate.referralRatePerSqft : null,
                 totalAmount, earnings, unapprovedAmount,
                 approvedAreaSqft: approvedArea, unapprovedAreaSqft: unapprovedArea, approvedDate: approvedArea > 0 ? workApproved.date : null,

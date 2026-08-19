@@ -9,6 +9,7 @@ import StyledSelect from './StyledSelect';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import { KpiCard, KpiGrid, formatINR } from './DashboardWidgets';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 import '../../styles/wizard.css';
@@ -134,19 +135,22 @@ const LabourProviderLedgerView = ({ url, labourProviderId }) => {
                         <b className="lpe-approvedpay">Approved Pay</b>
                         <b className="lpe-pendingpay">Pending Pay</b>
                     </div>
-                    {ledger.rows.map((r, i) => (
+                    {ledger.rows.map((r, i) => {
+                        const rUnitLabel = measurementUnitLabel(r.unit);
+                        return (
                         <div key={i} className="lpe-row">
                             <p className="lpe-labourer">{r.labourerName}</p>
                             <p className="lpe-project"><span className="pq-group-label">Project</span>{r.projectName}</p>
                             <p className="lpe-type"><span className="pq-group-label">Work Type</span>{r.workType}</p>
-                            <p className="lpe-total"><span className="pq-group-label">Total Area</span>{r.totalAreaSqft} sqft</p>
-                            <p className="lpe-approved"><span className="pq-group-label">Approved</span>{r.approvedAreaSqft} sqft</p>
-                            <p className="lpe-pending"><span className="pq-group-label">Pending</span>{r.unapprovedAreaSqft} sqft</p>
-                            <p className="lpe-rate"><span className="pq-group-label">Rate</span>₹{r.rate}/sqft</p>
+                            <p className="lpe-total"><span className="pq-group-label">Total Area</span>{r.totalAreaSqft} {rUnitLabel}</p>
+                            <p className="lpe-approved"><span className="pq-group-label">Approved</span>{r.approvedAreaSqft} {rUnitLabel}</p>
+                            <p className="lpe-pending"><span className="pq-group-label">Pending</span>{r.unapprovedAreaSqft} {rUnitLabel}</p>
+                            <p className="lpe-rate"><span className="pq-group-label">Rate</span>₹{r.rate}/{rUnitLabel}</p>
                             <p className="lpe-approvedpay"><span className="pq-group-label">Approved Pay</span>₹{r.approvedPay.toLocaleString('en-IN')}</p>
                             <p className="lpe-pendingpay"><span className="pq-group-label">Pending Pay</span>₹{r.pendingPay.toLocaleString('en-IN')}</p>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 

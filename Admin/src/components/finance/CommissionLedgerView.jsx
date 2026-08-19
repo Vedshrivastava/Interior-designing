@@ -8,6 +8,7 @@ import StyledDatePicker from './StyledDatePicker';
 import StyledSelect from './StyledSelect';
 import SettingSelectField, { registerSettingIfNew } from './SettingSelectField';
 import { KpiCard, KpiGrid, formatINR } from './DashboardWidgets';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
@@ -130,21 +131,24 @@ const CommissionLedgerView = ({ url, referralId }) => {
                         <b className="cme-approved">Approved</b>
                         <b className="cme-unapproved">Unapproved</b>
                     </div>
-                    {ledger.works.map(w => (
+                    {ledger.works.map(w => {
+                        const wUnitLabel = measurementUnitLabel(w.unit);
+                        return (
                         <div key={w._id} className="cme-row">
                             <p className="cme-project">{w.projectName}</p>
                             <p className="cme-type"><span className="pq-group-label">Work Type</span>{w.workType}</p>
-                            <p className="cme-area"><span className="pq-group-label">Completed Area</span>{w.completedAreaSqft} sqft</p>
-                            <p className="cme-cut"><span className="pq-group-label">Referral Cut</span>{w.referralRatePerSqft != null ? `₹${w.referralRatePerSqft}/sqft` : <span title="No matching work type rate configured">(no rate)</span>}</p>
+                            <p className="cme-area"><span className="pq-group-label">Completed Area</span>{w.completedAreaSqft} {wUnitLabel}</p>
+                            <p className="cme-cut"><span className="pq-group-label">Referral Cut</span>{w.referralRatePerSqft != null ? `₹${w.referralRatePerSqft}/${wUnitLabel}` : <span title="No matching work type rate configured">(no rate)</span>}</p>
                             <p className="cme-approved" style={{ color: w.earnings > 0 ? 'var(--moss)' : 'var(--text-lt)', fontWeight: 600 }}>
                                 <span className="pq-group-label">Approved</span>
                                 {w.earnings > 0
-                                    ? <>₹{w.earnings.toLocaleString('en-IN')} <span style={{ fontWeight: 400, fontSize: '0.75rem' }}>({w.approvedAreaSqft} sqft{w.approvedDate ? `, ${new Date(w.approvedDate).toLocaleDateString()}` : ''})</span></>
+                                    ? <>₹{w.earnings.toLocaleString('en-IN')} <span style={{ fontWeight: 400, fontSize: '0.75rem' }}>({w.approvedAreaSqft} {wUnitLabel}{w.approvedDate ? `, ${new Date(w.approvedDate).toLocaleDateString()}` : ''})</span></>
                                     : 'Unapproved'}
                             </p>
                             <p className="cme-unapproved" style={{ color: w.unapprovedAmount > 0 ? '#c0392b' : 'var(--text-lt)' }}><span className="pq-group-label">Unapproved</span>{w.referralRatePerSqft != null ? `₹${w.unapprovedAmount.toLocaleString('en-IN')}` : '-'}</p>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 

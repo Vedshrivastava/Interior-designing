@@ -18,19 +18,16 @@ const resolveWorkTypeUnit = async (workType) => {
     return setting?.measurementUnit || 'sqft';
 };
 
-// Mirrors financeProject.js's applyContractTypeRules exactly, just scoped
-// to one Work instead of the whole project — see financeWork.js's own
-// materialTrackingEnabled comment for why this needs to exist at the Work
-// level at all (an advance project mixing studio-supplied and
-// client-supplied material across different Works).
-const resolveWorkMaterialTracking = (project, requested) => {
-    if (project.contractType === 'with_material') return true;
-    if (project.contractType === 'without_material') return false;
-    // advance — freely chosen per Work, defaulting to the project's own
-    // flag (itself user-editable only for advance) when this Work doesn't
-    // specify one of its own.
-    return requested === undefined ? !!project.materialTrackingEnabled : !!requested;
-};
+// Deliberately independent of the project's own contractType — the same
+// Work Type can be with-material on one project and without-material on
+// another (or even within the same project), so this is always a free,
+// explicit choice made when a Work is added/edited, never inherited or
+// forced from anything project-level. Defaults true (every Work created
+// before this field existed effectively was material-tracked at the
+// project level, so that's the closer-to-prior-behavior default for a
+// brand new Work that doesn't specify one).
+const resolveWorkMaterialTracking = (requested) => (requested === undefined ? true : !!requested);
+
 // Shared with financeProject.js's completion-readiness check — same reasoning
 // as that module's own cross-controller imports (e.g. financeMeasurement.js
 // importing computeCurrentStock from financeStockMovement.js).
@@ -85,7 +82,7 @@ const addWork = async (req, res) => {
             startDate: startDate || null,
             estimatedAreaSqft: Number(estimatedAreaSqft),
             unit: await resolveWorkTypeUnit(workType.trim()),
-            materialTrackingEnabled: resolveWorkMaterialTracking(project, materialTrackingEnabled),
+            materialTrackingEnabled: resolveWorkMaterialTracking(materialTrackingEnabled),
             notes: notes || '',
             quickAdded: !!quickAdded,
         });
@@ -170,7 +167,7 @@ const updateWork = async (req, res) => {
             startDate: startDate || null,
             estimatedAreaSqft: Number(estimatedAreaSqft) || existing.estimatedAreaSqft,
             unit: await resolveWorkTypeUnit(workType.trim()),
-            materialTrackingEnabled: resolveWorkMaterialTracking(project, materialTrackingEnabled ?? existing.materialTrackingEnabled),
+            materialTrackingEnabled: resolveWorkMaterialTracking(materialTrackingEnabled ?? existing.materialTrackingEnabled),
             status: newStatus,
             notes: notes || '',
             // Reaching this endpoint only happens through the full Edit Work

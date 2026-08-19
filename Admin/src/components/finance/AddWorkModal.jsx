@@ -54,7 +54,6 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
         materialTrackingEnabled: editingWork.materialTrackingEnabled ?? true,
         status: editingWork.status, notes: editingWork.notes || '',
     } : emptyForm);
-    const [project, setProject] = useState(null);
     const [contractorAssignments, setContractorAssignments] = useState([emptyAssignmentRow()]);
     const [labourSupervisorId, setLabourSupervisorId] = useState('');
     const [selectedLabourerIds, setSelectedLabourerIds] = useState([]);
@@ -68,26 +67,6 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
         axios.get(`${url}/api/finance/settings/list`, { ...authHeader, params: { settingType: 'work_type' } })
             .then(res => { if (res.data.success) setWorkTypeSettings(res.data.data); }).catch(() => {}).finally(() => setWorkTypeLoading(false));
     }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    // Only needed to know the project's own contractType — mirrors
-    // financeWork.js's resolveWorkMaterialTracking exactly, just previewed
-    // here so the toggle below isn't shown/editable when the backend would
-    // force it anyway (see that function's own comment).
-    useEffect(() => {
-        axios.get(`${url}/api/finance/projects/${projectId}`, authHeader)
-            .then(res => { if (res.data.success) setProject(res.data.data.project); }).catch(() => {});
-    }, [url, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    // Forced to match the project's own rule the moment it loads, for
-    // with_material/without_material — advance leaves whatever's already
-    // in form (the editing Work's own saved choice, or the default true
-    // for a new one) untouched, since that's the one case it's actually
-    // editable.
-    useEffect(() => {
-        if (!project) return;
-        if (project.contractType === 'with_material') setField('materialTrackingEnabled', true);
-        else if (project.contractType === 'without_material') setField('materialTrackingEnabled', false);
-    }, [project]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // The selected Work Type's own configured unit (Settings → Work
     // Types) — resolved here just to preview the right label on Estimated
@@ -251,30 +230,20 @@ const AddWorkModal = ({ url, projectId, editingWork, onClose, onSaved }) => {
                                     </div>
                                 </div>
 
-                                {/* Mirrors NewProjectWizard's identical Material Tracking
-                                    step — forced for with_material/without_material (same
-                                    rule the project itself already applies, just previewed
-                                    here), a real per-Work choice only for advance (see
-                                    resolveWorkMaterialTracking's own comment for why only
-                                    advance needs one). */}
+                                {/* Deliberately independent of the project's own contractType
+                                    (see resolveWorkMaterialTracking's own comment) — the same
+                                    Work Type can be with-material on one project and
+                                    without-material on another, so this is always a free,
+                                    explicit choice made right here, never inherited or forced
+                                    from the project. */}
                                 <div className="aw-group">
                                     <p className="wizard-section-label">Material Tracking</p>
-                                    {project?.contractType === 'without_material' ? (
-                                        <p className="wizard-hidden-note">Material tracking isn't applicable: this contract is labour only.</p>
-                                    ) : project?.contractType === 'with_material' ? (
-                                        <p className="wizard-hidden-note">Material tracking is on for this contract (With Material always tracks material).</p>
-                                    ) : project?.contractType === 'advance' ? (
-                                        <>
-                                            <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>Advance clients don't always get material supplied by the studio for every Work; your call, per Work.</p>
-                                            <label className="featured-toggle" style={{ margin: 0, display: 'flex' }}>
-                                                <input type="checkbox" checked={form.materialTrackingEnabled} onChange={e => setField('materialTrackingEnabled', e.target.checked)} />
-                                                <span className="toggle-slider"></span>
-                                                <span className="toggle-label">Track material for this work</span>
-                                            </label>
-                                        </>
-                                    ) : (
-                                        <p className="wizard-hidden-note">Loading…</p>
-                                    )}
+                                    <p className="admin-subtitle" style={{ margin: '0 0 12px' }}>Does the studio supply material for this specific work, or does the client provide their own? Independent of any other Work on this project.</p>
+                                    <label className="featured-toggle" style={{ margin: 0, display: 'flex' }}>
+                                        <input type="checkbox" checked={form.materialTrackingEnabled} onChange={e => setField('materialTrackingEnabled', e.target.checked)} />
+                                        <span className="toggle-slider"></span>
+                                        <span className="toggle-label">Track material for this work</span>
+                                    </label>
                                 </div>
                             </form>
                         </div>

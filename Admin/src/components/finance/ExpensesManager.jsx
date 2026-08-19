@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import StyledSelect from './StyledSelect';
@@ -27,7 +28,7 @@ const PAID_STATUS_OPTIONS = [
     { value: 'paid', label: 'Paid now' },
     { value: 'pending', label: 'Record as pending, settle later' },
 ];
-const workLabel = (w) => `${w.workType}${w.workOrderNumber ? ` · ${w.workOrderNumber}` : ''} (${w.completedAreaSqft}/${w.estimatedAreaSqft} sqft)`;
+const workLabel = (w) => `${w.workType}${w.workOrderNumber ? ` · ${w.workOrderNumber}` : ''} (${w.completedAreaSqft}/${w.estimatedAreaSqft} ${measurementUnitLabel(w.unit)})`;
 
 /*
  * General company/site expenses. Two ways an expense's cash side can play

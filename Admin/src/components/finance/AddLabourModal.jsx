@@ -82,7 +82,7 @@ const AddLabourModal = ({ url, onClose, onLabourerCreated }) => {
                 <div className="al-modal-header">
                     <h2>Add Labourer</h2>
                     <p className="admin-subtitle" style={{ marginBottom: '16px' }}>
-                        Hired directly by the company, paid per sqft. Not owned by any supervisor; pick who runs their crew when you add them to a Work's team, and that can change project to project.
+                        Hired directly by the company, paid per unit of work (sqft, count, or running feet, depending on the work type). Not owned by any supervisor; pick who runs their crew when you add them to a Work's team, and that can change project to project.
                     </p>
                 </div>
 

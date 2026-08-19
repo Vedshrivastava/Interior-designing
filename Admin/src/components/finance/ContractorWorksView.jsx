@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { materialCostPerSqftDisplay } from './DashboardWidgets';
+import { measurementUnitLabel } from '../../config/financeMasters';
 import '../../styles/list.css';
 import '../../styles/dashboard.css';
 
@@ -34,7 +35,7 @@ const ContractorWorksView = ({ url, vendorId }) => {
                 <b className="con-work-project">Project</b>
                 <b className="con-work-type">Work Type</b>
                 <b className="con-work-area">Area Covered</b>
-                <b className="con-work-cost">Material Cost/Sqft</b>
+                <b className="con-work-cost">Material Cost/Unit</b>
                 <b className="con-work-status">Status</b>
             </div>
             {works.map(w => (
@@ -45,8 +46,8 @@ const ContractorWorksView = ({ url, vendorId }) => {
                         compared against estimatedAreaSqft, which is the
                         whole Work's target, not this contractor's share of
                         it (a Work can have more than one contributor). */}
-                    <p className="con-work-area"><span className="pq-group-label">Area Covered</span>{w.completedAreaSqft} sqft</p>
-                    <p className="con-work-cost"><span className="pq-group-label">Material Cost/Sqft</span>{materialCostPerSqftDisplay(w.materialCostPerSqftApproved, w.materialCostPerSqftUnapproved)}</p>
+                    <p className="con-work-area"><span className="pq-group-label">Area Covered</span>{w.completedAreaSqft} {measurementUnitLabel(w.unit)}</p>
+                    <p className="con-work-cost"><span className="pq-group-label">Material Cost/Unit</span>{materialCostPerSqftDisplay(w.materialCostPerSqftApproved, w.materialCostPerSqftUnapproved)}</p>
                     <p className="con-work-status"><span className="item-category">{STATUS_LABEL[w.status]}</span></p>
                 </div>
             ))}

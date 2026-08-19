@@ -96,7 +96,7 @@ const ClientProfitView = ({ url, clientId, onSelectClient, onViewProjectProfit }
                                 )}
                             </div>
                             <p className="admin-subtitle" style={{ marginBottom: '24px' }}>
-                                Money this client paid directly to a contractor/labourer instead of through the company (an advance, not tied to specific sqft), summed across every one of their projects — a flat reduction against each worker's overall Balance Payable.
+                                Money this client paid directly to a contractor/labourer instead of through the company (an advance, not tied to a specific quantity), summed across every one of their projects — a flat reduction against each worker's overall Balance Payable.
                             </p>
                         </>
                     )}

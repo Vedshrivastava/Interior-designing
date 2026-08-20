@@ -4,12 +4,18 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import moment from 'moment';
 import FinanceTabShell from '../../components/finance/FinanceTabShell';
+import StyledSelect from '../../components/finance/StyledSelect';
 import { useFinanceWsRefresh } from '../../hooks/useFinanceWsRefresh';
 import '../../styles/list.css';
 import '../../styles/add.css';
 
+// Grouped only by array order (pill bar is still flat, same as every other
+// Finance tab strip) — related types sit next to each other so the "where
+// did my X go" scan is quicker than an alphabetical dump would be.
 const TABS = [
+    // Masters
     { key: 'client',          label: 'Clients' },
+    { key: 'clientContact',   label: 'Client Contacts' },
     { key: 'vendor',          label: 'Vendors' },
     { key: 'referral',        label: 'Referrals' },
     { key: 'labourProvider',  label: 'Labour Providers' },
@@ -17,24 +23,117 @@ const TABS = [
     { key: 'labourer',        label: 'Labourers' },
     { key: 'material',        label: 'Materials' },
     { key: 'bankAccount',     label: 'Bank Accounts' },
+    // Project & Work structure
     { key: 'project',         label: 'Projects' },
     { key: 'work',            label: 'Works' },
-    { key: 'runningBill',     label: 'Running Bills' },
-    { key: 'purchase',        label: 'Purchases' },
+    { key: 'workTypeRate',    label: 'Work Type Rates' },
+    { key: 'contractorRate',  label: 'Contractor Rates' },
+    { key: 'labourRate',      label: 'Labour Rates' },
+    { key: 'workContractorAssignment', label: 'Contractor Assignments' },
+    { key: 'workLabourAssignment',     label: 'Labour Assignments' },
+    // Measurements, billing, purchase & stock
+    { key: 'measurement',        label: 'Contractor Measurements' },
+    { key: 'labourMeasurement',  label: 'Labour Measurements' },
+    { key: 'runningBill',        label: 'Running Bills' },
+    { key: 'purchase',           label: 'Purchases' },
+    { key: 'stockMovement',      label: 'Stock Movements' },
+    // Client-side money
+    { key: 'clientQuotation',     label: 'Quotations' },
+    { key: 'receipt',             label: 'Receipts' },
+    { key: 'clientDirectPayment', label: 'Client Direct Payments' },
+    // Worker payouts
+    { key: 'contractorAdvance',    label: 'Contractor Advances' },
+    { key: 'contractorDeduction',  label: 'Contractor Deductions' },
+    { key: 'contractorPayment',    label: 'Contractor Payments' },
+    { key: 'labourAdvance',        label: 'Labour Advances' },
+    { key: 'labourDeduction',      label: 'Labour Deductions' },
+    { key: 'labourPayment',        label: 'Labour Payments' },
+    { key: 'labourProviderPayment', label: 'Labour Provider Payments' },
+    { key: 'vendorPayment',        label: 'Vendor Payments' },
+    { key: 'commissionPayment',    label: 'Commission Payments' },
+    { key: 'salaryPayment',        label: 'Salary Payments' },
+    // Expenses & staff
+    { key: 'expense',              label: 'Expenses' },
+    { key: 'expensePayment',       label: 'Expense Payments' },
+    { key: 'supervisorAttendance', label: 'Supervisor Attendance' },
+    { key: 'supervisorDeduction',  label: 'Supervisor Deductions' },
+    { key: 'supervisorIncentive',  label: 'Supervisor Incentives' },
+    // Compliance & misc
+    { key: 'gstFiling',       label: 'GST Filings' },
+    { key: 'tdsDeposit',      label: 'TDS Deposits' },
+    { key: 'setting',         label: 'Settings' },
+    { key: 'siteDiary',       label: 'Site Diary' },
+    { key: 'projectPhoto',    label: 'Project Photos' },
     { key: 'clientDocument',  label: 'Client Documents' },
     { key: 'projectDocument', label: 'Project Documents' },
 ];
 
+const SORT_OPTIONS = [
+    { key: 'deletedAtDesc', label: 'Deleted: Newest first' },
+    { key: 'deletedAtAsc',  label: 'Deleted: Oldest first' },
+    { key: 'nameAsc',       label: 'Name: A → Z' },
+    { key: 'nameDesc',      label: 'Name: Z → A' },
+];
+
+const sortItems = (items, sortKey) => {
+    const sorted = [...items];
+    switch (sortKey) {
+        case 'deletedAtAsc':
+            return sorted.sort((a, b) => new Date(a.deletedAt || 0) - new Date(b.deletedAt || 0));
+        case 'nameAsc':
+            return sorted.sort((a, b) => a._displayName.localeCompare(b._displayName));
+        case 'nameDesc':
+            return sorted.sort((a, b) => b._displayName.localeCompare(a._displayName));
+        case 'deletedAtDesc':
+        default:
+            return sorted.sort((a, b) => new Date(b.deletedAt || 0) - new Date(a.deletedAt || 0));
+    }
+};
+
 // What to show in the "Context" column per type — everything else falls
-// back to '—'. Keeps this one generic table from needing 12 bespoke ones.
+// back to '—'. Keeps this one generic table from needing 40+ bespoke ones.
 const contextOf = (item) => {
+    const join = (...parts) => parts.filter(Boolean).join(' · ') || '—';
     switch (item._type) {
-        case 'project':         return item.clientId?.name || '—';
-        case 'work':            return item.projectId?.name || '—';
-        case 'runningBill':     return item.projectId?.name || '—';
+        case 'clientContact':  return item.clientId?.name || '—';
+        case 'bankEntry':      return join(item.bankAccountId?.accountName, item.projectId?.name);
+        case 'bankTransfer':   return join(item.fromAccountId?.accountName && `From ${item.fromAccountId.accountName}`, item.toAccountId?.accountName && `To ${item.toAccountId.accountName}`);
+        case 'cashEntry':      return item.projectId?.name || '—';
+        case 'project':        return item.clientId?.name || '—';
+        case 'work':           return item.projectId?.name || '—';
+        case 'workTypeRate':   return item.projectId?.name || '—';
+        case 'contractorRate': return join(item.projectId?.name, item.contractorVendorId?.name);
+        case 'labourRate':     return join(item.projectId?.name, item.labourerId?.name);
+        case 'workContractorAssignment': return join(item.workId?.workType, item.contractorVendorId?.name);
+        case 'workLabourAssignment':     return join(item.workId?.workType, item.labourerId?.name);
+        case 'measurement':          return join(item.projectId?.name, item.workId?.workType, item.contractorVendorId?.name);
+        case 'labourMeasurement':    return join(item.projectId?.name, item.workId?.workType, item.labourerId?.name);
+        case 'runningBill':    return item.projectId?.name || '—';
+        case 'purchase':       return join(item.projectId?.name, item.vendorId?.name, item.materialId?.name);
+        case 'stockMovement':  return join(item.projectId?.name, item.materialId?.name);
+        case 'receipt':        return join(item.clientId?.name, item.projectId?.name);
+        case 'clientQuotation':     return item.projectId?.name || '—';
+        case 'clientDirectPayment': return join(item.projectId?.name, item.workId?.workType);
+        case 'contractorAdvance':
+        case 'contractorDeduction':
+        case 'contractorPayment':   return join(item.vendorId?.name, item.projectId?.name);
+        case 'labourAdvance':
+        case 'labourDeduction':
+        case 'labourPayment':       return join(item.labourerId?.name, item.projectId?.name);
+        case 'labourProviderPayment': return join(item.labourProviderId?.name, item.projectId?.name);
+        case 'vendorPayment':      return join(item.vendorId?.name, item.projectId?.name);
+        case 'commissionPayment':  return join(item.referralId?.name, item.projectId?.name);
+        case 'salaryPayment':      return item.employeeId?.name || '—';
+        case 'expense':             return item.projectId?.name || '—';
+        case 'expensePayment':      return item.expenseId ? `${item.expenseId.expenseCategory || 'Expense'} — ₹${(item.expenseId.amount || 0).toLocaleString('en-IN')}` : '—';
+        case 'supervisorAttendance': return item.employeeId?.name || '—';
+        case 'supervisorDeduction':
+        case 'supervisorIncentive':  return join(item.employeeId?.name, item.projectId?.name);
+        case 'tdsDeposit':     return item.tdsSectionId?.name || '—';
+        case 'siteDiary':      return item.projectId?.name || '—';
+        case 'projectPhoto':   return item.projectId?.name || '—';
         case 'clientDocument':  return item.clientId?.name || '—';
         case 'projectDocument': return item.projectId?.name || '—';
-        case 'purchase':        return [item.projectId?.name, item.vendorId?.name, item.materialId?.name].filter(Boolean).join(' · ') || '—';
         case 'vendor':          return item.vendorType || '—';
         default:                return '—';
     }
@@ -44,12 +143,10 @@ const contextOf = (item) => {
  * Finance's own Recovery Bin — deliberately separate from the main
  * dashboard's (/recovery-bin, pages/RecoveryBin.jsx), which only ever
  * covers public-site content (designs/products/projects/categories/etc.)
- * and never touches any financeXxx model. This one is the mirror image:
- * only the 14 Finance entities whose own list pages actually promise
- * "Moved to Recovery Bin" on delete (Clients, Vendors, Referrals, Labour
- * Providers, Employees, Labourers, Materials, Bank Accounts, Projects,
- * Works, Running Bills, Purchases, Client/Project Documents) — nothing
- * from the public site.
+ * and never touches any financeXxx model. This one covers every finance
+ * entity that soft-deletes (see financeRecovery.js's own comment for the
+ * short list deliberately left out — a singleton and two superseded
+ * models) — nothing from the public site.
  */
 const FinanceRecoveryBin = ({ url }) => {
     const token = localStorage.getItem('token');
@@ -59,6 +156,7 @@ const FinanceRecoveryBin = ({ url }) => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState(TABS[0].key);
     const [query, setQuery] = useState('');
+    const [sortKey, setSortKey] = useState('deletedAtDesc');
     const [confirmItem, setConfirmItem] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
@@ -108,7 +206,8 @@ const FinanceRecoveryBin = ({ url }) => {
 
     const tabs = TABS.map(t => ({ ...t, label: `${t.label} (${(bin[t.key] || []).length})` }));
     const total = Object.values(bin).reduce((sum, arr) => sum + (arr?.length || 0), 0);
-    const items = (bin[activeTab] || []).filter(item => !query || item._displayName.toLowerCase().includes(query.toLowerCase()));
+    const filtered = (bin[activeTab] || []).filter(item => !query || item._displayName.toLowerCase().includes(query.toLowerCase()));
+    const items = sortItems(filtered, sortKey);
 
     return (
         <FinanceTabShell
@@ -119,9 +218,14 @@ const FinanceRecoveryBin = ({ url }) => {
             onTabChange={setActiveTab}
             badge={`${total} item${total !== 1 ? 's' : ''}`}
             headerAction={
-                <div className="admin-search-wrap">
-                    <input type="text" placeholder="Search by name…" value={query} onChange={e => setQuery(e.target.value)} />
-                    {query && <button className="admin-search-clear" onClick={() => setQuery('')}>×</button>}
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ minWidth: '190px' }}>
+                        <StyledSelect value={sortKey} onChange={v => setSortKey(v || 'deletedAtDesc')} options={SORT_OPTIONS.map(o => ({ value: o.key, label: o.label }))} placeholder="Sort" />
+                    </div>
+                    <div className="admin-search-wrap">
+                        <input type="text" placeholder="Search by name…" value={query} onChange={e => setQuery(e.target.value)} />
+                        {query && <button className="admin-search-clear" onClick={() => setQuery('')}>×</button>}
+                    </div>
                 </div>
             }
         >

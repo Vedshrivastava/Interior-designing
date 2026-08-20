@@ -160,7 +160,7 @@ const PhotosTab = ({ url, projectId }) => {
                     <div className="bin-confirm-modal" onClick={e => e.stopPropagation()}>
                         <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
                         <h3>Remove Photo?</h3>
-                        <p className="bin-confirm-warning">This can't be undone from here.</p>
+                        <p className="bin-confirm-warning">Moved to Recovery Bin.</p>
                         <div className="bin-confirm-actions">
                             <button className="bin-btn-cancel" onClick={() => setConfirmItem(null)} disabled={deleting}>Cancel</button>
                             <button className="bin-btn-delete" onClick={confirmDelete} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>

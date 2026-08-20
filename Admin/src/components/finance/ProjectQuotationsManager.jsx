@@ -218,7 +218,7 @@ const ProjectQuotationsManager = ({ url, projectId }) => {
                         <div className="bin-confirm-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
                         <h3>Remove Quotation?</h3>
                         <p className="bin-confirm-name">#{confirmQuotation.quotationNumber} — ₹{confirmQuotation.amount.toLocaleString('en-IN')}</p>
-                        <p className="bin-confirm-warning">This removes it from the list for good — there's no Recovery Bin for quotations.</p>
+                        <p className="bin-confirm-warning">Moved to Recovery Bin.</p>
                         <div className="bin-confirm-actions">
                             <button className="bin-btn-cancel" onClick={() => setConfirmQuotation(null)} disabled={deleting}>Cancel</button>
                             <button className="bin-btn-delete" onClick={confirmRemove} disabled={deleting}>{deleting ? 'Removing…' : 'Yes, Remove'}</button>

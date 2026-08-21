@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import RouteLoader from '../../components/RouteLoader';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { KpiCard, KpiGrid, KpiSectionLabel, ChartCard, ChartGrid, EmptyChart, ChartTooltip, CHART_COLORS, formatINR, reviewGatedValue, materialCostPerSqftDisplay } from '../../components/finance/DashboardWidgets';
 import StyledDatePicker from '../../components/finance/StyledDatePicker';
@@ -165,7 +166,7 @@ const WorkDetail = ({ url }) => {
     );
 
     if (loading) {
-        return <div className="list add flex-col"><div className="admin-list-container"><div className="admin-empty-state"><p>Loading…</p></div></div></div>;
+        return <RouteLoader />;
     }
     if (!data) {
         return <div className="list add flex-col"><div className="admin-list-container"><div className="admin-empty-state"><p>Work not found.</p></div></div></div>;

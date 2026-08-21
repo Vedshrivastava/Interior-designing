@@ -2,6 +2,7 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import axios from 'axios';
 import Navbar from './components/Navbar';
 import Sidebar from './components/sidebar';
+import RouteLoader from './components/RouteLoader';
 import { Routes, Route } from 'react-router-dom';
 import './index.css';
 import 'react-toastify/dist/ReactToastify.css';
@@ -82,23 +83,6 @@ const Guest = lazy(() => import('./pages/guest'));
 // Reuses the same loader chrome as the app's existing global isLoading
 // overlay, so a lazy route boundary doesn't introduce a visually
 // different loading state from the one already used everywhere else.
-const RouteLoader = () => (
-  <div className="submit-loader-overlay">
-    <div className="loader-modal-box">
-      <div className="loader-ring"></div>
-      <div className="loader-brand">
-        <strong>Loading</strong>
-        <span>Please wait</span>
-      </div>
-      <div className="loader-dots">
-        <div className="loader-dot"></div>
-        <div className="loader-dot"></div>
-        <div className="loader-dot"></div>
-      </div>
-    </div>
-  </div>
-);
-
 const App = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [autoOpenRequest, setAutoOpenRequest] = useState(false);

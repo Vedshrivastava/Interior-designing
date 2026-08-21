@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import RouteLoader from '../../components/RouteLoader';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight, faPen, faTrash, faCheck } from '@fortawesome/free-solid-svg-icons';
@@ -692,7 +693,7 @@ const ClientDetail = ({ url }) => {
     }, [url, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (loading) {
-        return <div className="list add flex-col"><div className="admin-list-container"><div className="admin-empty-state"><p>Loading…</p></div></div></div>;
+        return <RouteLoader />;
     }
     if (!client) {
         return <div className="list add flex-col"><div className="admin-list-container"><div className="admin-empty-state"><p>Client not found.</p></div></div></div>;

@@ -46,6 +46,7 @@ import FinanceGstFiling from '../models/financeGstFiling.js';
 import FinanceTdsDeposit from '../models/financeTdsDeposit.js';
 import FinanceSetting from '../models/financeSetting.js';
 import FinanceSiteDiary from '../models/financeSiteDiary.js';
+import FinanceManualEntry from '../models/financeManualEntry.js';
 import FinanceProjectPhoto from '../models/financeProjectPhoto.js';
 import FinanceClientDocument from '../models/financeClientDocument.js';
 import FinanceProjectDocument from '../models/financeProjectDocument.js';
@@ -145,6 +146,7 @@ const RECOVERY_TYPES = {
     tdsDeposit:     { model: FinanceTdsDeposit,      label: 'TDS Deposit',     changed: 'financeCashBookChanged',        name: d => d.challanNumber ? `Challan ${d.challanNumber} — ${inr(d.amount)}` : moneyDate(d) },
     setting:        { model: FinanceSetting,         label: 'Setting',        changed: 'financeSettingsChanged',        name: d => d.name },
     siteDiary:      { model: FinanceSiteDiary,       label: 'Site Diary Entry', changed: 'financeSiteDiaryChanged',      name: d => (d.note || '').slice(0, 60) },
+    manualEntry:    { model: FinanceManualEntry,     label: 'Manual Entry',     changed: 'financeManualEntriesChanged',  name: d => (d.workDescription || '').slice(0, 60) },
     projectPhoto:   { model: FinanceProjectPhoto,    label: 'Project Photo',   changed: 'financeProjectPhotosChanged',   name: d => d.caption || 'Photo' },
     clientDocument:  { model: FinanceClientDocument,  label: 'Client Document',  changed: 'financeClientDocumentsChanged',  name: d => d.name, fileField: 'fileUrl', folder: 'client_documents' },
     projectDocument: { model: FinanceProjectDocument, label: 'Project Document', changed: 'financeProjectDocumentsChanged', name: d => d.name, fileField: 'fileUrl', folder: 'project_documents' },
@@ -187,6 +189,7 @@ const POPULATE_BY_TYPE = {
     supervisorIncentive: [{ path: 'employeeId', select: 'name' }, { path: 'projectId', select: 'name' }],
     tdsDeposit: [{ path: 'tdsSectionId', select: 'name' }],
     siteDiary: [{ path: 'projectId', select: 'name' }],
+    manualEntry: [{ path: 'projectId', select: 'name' }],
     projectPhoto: [{ path: 'projectId', select: 'name' }],
     clientDocument: [{ path: 'clientId', select: 'name' }],
     projectDocument: [{ path: 'projectId', select: 'name' }],

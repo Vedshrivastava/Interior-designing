@@ -356,6 +356,34 @@ const CaMonthlyPackageView = ({ url }) => {
                         />
                     </div>
 
+                    {data.manualEntries.count > 0 && (
+                        <>
+                            <p className="admin-subtitle" style={{ margin: '24px 0 10px' }}>Manual Entries</p>
+                            <p style={{ marginBottom: '10px', fontSize: '0.8rem', color: 'var(--text-lt)' }}>
+                                Hand-written daily records for work too fragmented into small tasks to formalize through Works/billing — not GST-invoiced, kept separate from Sales/Purchase Summary above.
+                            </p>
+                            <KpiGrid>
+                                <KpiCard label="Total Paid to Contractors/Labour" value={fmtMoney(data.manualEntries.totalPaid)} />
+                                <KpiCard label="Total Charged to Clients" value={fmtMoney(data.manualEntries.totalCharged)} />
+                                <KpiCard label="Entry Count" value={String(data.manualEntries.count)} />
+                            </KpiGrid>
+                            <div style={{ marginBottom: '20px' }}>
+                                <LineItemTable
+                                    emptyText="No manual entries this month."
+                                    columns={[
+                                        { key: 'date', label: 'Date', render: r => fmtDate(r.date) },
+                                        { key: 'projectName', label: 'Project' },
+                                        { key: 'workDescription', label: 'Work' },
+                                        { key: 'partyName', label: 'Party' },
+                                        { key: 'amountPaid', label: 'Paid', align: 'right', render: r => r.amountPaid > 0 ? fmtMoney(r.amountPaid) : '—' },
+                                        { key: 'amountChargedToClient', label: 'Charged', align: 'right', render: r => r.amountChargedToClient > 0 ? fmtMoney(r.amountChargedToClient) : '—' },
+                                    ]}
+                                    rows={data.manualEntries.rows}
+                                />
+                            </div>
+                        </>
+                    )}
+
                     <p className="admin-subtitle" style={{ margin: '24px 0 10px' }}>Bank & Cash Movement</p>
                     <div className="dash-chart-card camp-bank-card">
                         <div className="camp-bank-row camp-bank-header">

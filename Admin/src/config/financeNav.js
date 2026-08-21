@@ -70,6 +70,7 @@ export const FINANCE_NAV_SECTIONS = [
           { key: 'measurements', label: 'Daily Measurements',   description: 'Mobile-first site entry: project, work, supervisor, area covered, materials used. Saving updates the work\'s completed area and (if material tracking is on) logs stock consumption automatically.' },
           { key: 'consumption',  label: 'Material Consumption', description: 'Read-only log of material consumed, generated only by measurement saves.' },
           { key: 'diary',        label: 'Site Diary',           description: 'Daily site notes and an open/resolved issues log, per project.' },
+          { key: 'manual',       label: 'Manual Entries',       description: 'Hand-written daily records for work too fragmented into small tasks to formalize as Works with their own rates — what was done, who got paid, what to charge the client. Needs Approval before it counts toward Payables/Revenue/Profit.' },
         ],
       },
       {

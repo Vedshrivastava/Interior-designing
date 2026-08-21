@@ -43,6 +43,7 @@ import FinanceBankAccount from '../models/financeBankAccount.js';
 import FinanceCashEntry from '../models/financeCashEntry.js';
 import FinanceBankEntry from '../models/financeBankEntry.js';
 import FinanceGstFiling from '../models/financeGstFiling.js';
+import FinanceManualEntry from '../models/financeManualEntry.js';
 import FinanceActivityLog from '../models/financeActivityLog.js';
 import { getAccountActivity } from './financeBankAccount.js';
 import PDFDocument from 'pdfkit';
@@ -887,7 +888,7 @@ const computeProjectProfit = async (projectId) => {
     const project = await FinanceProject.findOne({ _id: projectId, deleted: { $ne: true } });
     if (!project) return null;
 
-    const [revenueAgg, materialCostSplit, materialWaste, contractorCostInfo, commissionCostInfo, expenseAgg, labourCostInfo, unapprovedRevenueInfo, directPaymentContractorByVendor, directPaymentLabourByLabourer] = await Promise.all([
+    const [revenueAgg, materialCostSplit, materialWaste, contractorCostInfo, commissionCostInfo, expenseAgg, labourCostInfo, unapprovedRevenueInfo, directPaymentContractorByVendor, directPaymentLabourByLabourer, manualEntries] = await Promise.all([
         FinanceRunningBill.aggregate([
             { $match: { projectId: project._id, status: 'issued', deleted: { $ne: true } } },
             { $group: { _id: null, total: { $sum: '$totalAmount' } } },
@@ -915,9 +916,31 @@ const computeProjectProfit = async (projectId) => {
         // shown as its own total (Payables/Dashboard "Direct Payments").
         getWorkerPayoutTotalsBulk('contractor', project._id),
         getWorkerPayoutTotalsBulk('labour', project._id),
+        // Hand-written rows for work too fragmented to formalize as Works
+        // with their own rates — read directly (not aggregated) since each
+        // row's own paymentStatus/reviewStatus feeds the split below,
+        // alongside the summed amounts. Additive to every figure below
+        // regardless of whether this project has any Works at all — a
+        // project can be partly formally tracked and partly manual at
+        // the same time.
+        FinanceManualEntry.find({ projectId: project._id, deleted: { $ne: true } }, 'amountPaid amountChargedToClient paymentStatus reviewStatus'),
     ]);
 
-    const revenue = revenueAgg[0]?.total || 0;
+    // Manual entries blend into Revenue/Profit only once approved — same
+    // "logged isn't the same as confirmed" gate the formal Work Review
+    // Panel already enforces for sqft, just per-row (see
+    // financeManualEntry.js's own comment). Pending/rejected entries are
+    // excluded from Profit entirely but still surfaced (manualPending*)
+    // so they're visible instead of silently invisible until reviewed.
+    const approvedManualEntries = manualEntries.filter(e => e.reviewStatus === 'approved');
+    const pendingManualEntries = manualEntries.filter(e => e.reviewStatus === 'pending');
+    const manualRevenue = round2(approvedManualEntries.reduce((s, e) => s + (e.amountChargedToClient || 0), 0));
+    const manualCost = round2(approvedManualEntries.reduce((s, e) => s + (e.amountPaid || 0), 0));
+    const manualOutstanding = round2(approvedManualEntries.filter(e => e.paymentStatus === 'outstanding').reduce((s, e) => s + (e.amountPaid || 0), 0));
+    const manualPendingRevenue = round2(pendingManualEntries.reduce((s, e) => s + (e.amountChargedToClient || 0), 0));
+    const manualPendingCost = round2(pendingManualEntries.reduce((s, e) => s + (e.amountPaid || 0), 0));
+
+    const revenue = round2((revenueAgg[0]?.total || 0) + manualRevenue);
     const otherExpenses = expenseAgg[0]?.total || 0;
     const { unapprovedRevenue, unapprovedAreaSqft } = unapprovedRevenueInfo;
     // Clamped at 0 — materialWasteReclassified was priced at review time
@@ -947,7 +970,7 @@ const computeProjectProfit = async (projectId) => {
     const contractorCost = contractorCostInfo.approvedAmount;
     const labourCost = labourCostInfo.approvedAmount;
     const commissionCost = commissionCostInfo.approvedAmount;
-    const profit = revenue - materialCost - materialWasteCost - contractorCost - commissionCost - otherExpenses - labourCost;
+    const profit = revenue - materialCost - materialWasteCost - contractorCost - commissionCost - otherExpenses - labourCost - manualCost;
 
     // "Pending review" — logged work whose cost isn't counted in Profit yet
     // because it hasn't been reviewed. Never negative: review can only ever
@@ -996,6 +1019,14 @@ const computeProjectProfit = async (projectId) => {
         // "Unapproved" section's own mini profit picture, same shape as the
         // approved figures above it.
         unapprovedRevenue, unapprovedAreaSqft, unapprovedProfit,
+        // Hand-written entries' own contribution to the totals above,
+        // broken out — see financeManualEntry.js. manualOutstanding is
+        // informational (already counted in profit via manualCost above,
+        // regardless of paid/unpaid) — it's "how much of manualCost hasn't
+        // actually been handed over yet." manualPending* is NOT counted in
+        // Profit (awaiting review) — surfaced so it's visible instead of
+        // silently invisible until approved/rejected.
+        manualRevenue, manualCost, manualOutstanding, manualPendingRevenue, manualPendingCost,
         // What Profit becomes once everything currently logged and still
         // pending review actually clears review — Approved + Unapproved,
         // computed once here so every view showing both never has to add
@@ -4358,6 +4389,10 @@ const getDashboardSummary = async (req, res) => {
         // the credit side as its own total instead of netting it away.
         const sumPositive = (rows, key) => round2(rows.reduce((s, r) => s + Math.max(0, r[key]), 0));
         const sumNegative = (rows, key) => round2(rows.reduce((s, r) => s + Math.max(0, -r[key]), 0));
+        // Every ongoing project's own computeProjectProfit already tallies
+        // its manual entries' outstanding amount (manualOutstanding) — no
+        // separate query needed, just sum what's already been computed.
+        const manualPayablesTotal = round2(ongoingProjectProfits.reduce((s, p) => s + (p.manualOutstanding || 0), 0));
 
         res.json({
             success: true,
@@ -4456,6 +4491,10 @@ const getDashboardSummary = async (req, res) => {
                 tdsPayable: tdsPayableInfo.payable,
                 tdsWithheldToDate: tdsPayableInfo.totalWithheld,
                 tdsDepositedToDate: tdsPayableInfo.totalDeposited,
+                // Hand-written entries (financeManualEntry) still marked
+                // outstanding, summed across every ongoing project — see
+                // computeProjectProfit's manualOutstanding.
+                manualPayables: manualPayablesTotal,
                 // Input Tax Credit available to claim as of this month —
                 // the CA's actual filed figure (financeGstFiling) once
                 // entered, the system's own computed estimate until then.
@@ -4918,6 +4957,7 @@ const computeCaMonthlyPackage = async (month) => {
         vendorAnalysisRows,
         contractorAnalysisRows,
         labourAnalysisRows,
+        manualEntries,
     ] = await Promise.all([
         // Line items alongside every total below — a CA reconciling this
         // against the real bank statement, GSTR filings, and a 26Q TDS
@@ -5035,6 +5075,14 @@ const computeCaMonthlyPackage = async (month) => {
         computeVendorAnalysisRows(),
         computeContractorAnalysisRows(),
         computeLabourAnalysisRows(),
+        // Approved manual entries dated this month — not GST-invoiced (no
+        // GST field exists on this model), so deliberately kept out of
+        // Sales/Purchase Summary above (which the CA reconciles against
+        // actual GSTR filings) and surfaced as its own section instead.
+        // Pending/rejected entries are excluded, same review gate
+        // computeProjectProfit's own manual-entry blending uses.
+        FinanceManualEntry.find({ date: { $gte: start, $lte: end }, deleted: { $ne: true }, reviewStatus: 'approved' })
+            .populate('projectId', 'name').sort({ date: 1 }),
     ]);
 
     const outputGst = issuedBills.reduce((sum, b) => sum + (b.gstAmount || 0), 0);
@@ -5188,6 +5236,13 @@ const computeCaMonthlyPackage = async (month) => {
         labour: sumPositive(labourAnalysisRows, 'balancePayable'),
     };
 
+    const manualEntryRows = manualEntries.map(e => ({
+        date: e.date, projectName: e.projectId?.name || '—', workDescription: e.workDescription,
+        partyName: e.partyName, amountPaid: e.amountPaid, amountChargedToClient: e.amountChargedToClient,
+    }));
+    const manualEntriesTotalPaid = round2(manualEntries.reduce((s, e) => s + (e.amountPaid || 0), 0));
+    const manualEntriesTotalCharged = round2(manualEntries.reduce((s, e) => s + (e.amountChargedToClient || 0), 0));
+
     return {
         month,
         gst: {
@@ -5212,6 +5267,12 @@ const computeCaMonthlyPackage = async (month) => {
         purchases: { totalPurchased, totalReturned, netPurchases: totalPurchased - totalReturned, purchaseCount: purchaseRows.length, rows: purchaseLineItems, hsnSummary },
         expenses: { totalExpenses, expenseCount: expenses.length, expenseGst, rows: expenseRows },
         payables,
+        // Approved hand-written entries (financeManualEntry) dated this
+        // month — not GST-invoiced, kept separate from Sales/Purchase
+        // above rather than blended in, so those stay accurate against
+        // the CA's actual GSTR reconciliation. See this block's own
+        // comment above the query for why.
+        manualEntries: { rows: manualEntryRows, totalPaid: manualEntriesTotalPaid, totalCharged: manualEntriesTotalCharged, count: manualEntries.length },
         bankAndCash: {
             bankAccounts: bankPositions, totalBankBalance,
             cashOpeningBalance, cashInTotal, cashOutTotal, cashClosingBalance, cashTransactions,
@@ -5625,6 +5686,38 @@ const downloadCaMonthlyPackage = async (req, res) => {
                 rows: data.expenses.rows.map(e => [
                     formatDate(e.date), e.category, e.partyName, e.partyBankDetails,
                     formatCurrency(e.amount), formatCurrency(e.gstAmount), e.paidFrom,
+                ]),
+            });
+        }
+
+        if (data.manualEntries.count > 0) {
+            writeSectionHeading(doc, 'Manual Entries');
+            doc.fontSize(9).fillColor('#666666').text(
+                'Hand-written daily records for work too fragmented into small tasks to formalize through Works/billing — not GST-invoiced, kept separate from Sales/Purchase Summary above.',
+                { width: doc.page.width - doc.page.margins.left - doc.page.margins.right }
+            );
+            doc.moveDown(0.5);
+            drawStatBlock(doc, {
+                rows: [
+                    { label: 'Total Paid to Contractors/Labour', value: formatCurrency(data.manualEntries.totalPaid) },
+                    { label: 'Total Charged to Clients', value: formatCurrency(data.manualEntries.totalCharged), bold: true },
+                    { label: 'Entry Count', value: String(data.manualEntries.count) },
+                ],
+            });
+            drawTable(doc, {
+                company,
+                columns: [
+                    { label: 'Date', width: 50, align: 'left' },
+                    { label: 'Project', width: 90, align: 'left' },
+                    { label: 'Work', width: 130, align: 'left' },
+                    { label: 'Party', width: 70, align: 'left' },
+                    { label: 'Paid', width: 60, align: 'right' },
+                    { label: 'Charged', width: 62, align: 'right' },
+                ],
+                rows: data.manualEntries.rows.map(e => [
+                    formatDate(e.date), e.projectName, e.workDescription, e.partyName || '—',
+                    e.amountPaid > 0 ? formatCurrency(e.amountPaid) : '—',
+                    e.amountChargedToClient > 0 ? formatCurrency(e.amountChargedToClient) : '—',
                 ]),
             });
         }

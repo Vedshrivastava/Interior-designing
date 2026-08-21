@@ -38,6 +38,7 @@ import financeWorkContractorAssignmentRouter from "./routes/financeWorkContracto
 import financeMeasurementRouter    from "./routes/financeMeasurement.js";
 import financeStockMovementRouter  from "./routes/financeStockMovement.js";
 import financeSiteDiaryRouter      from "./routes/financeSiteDiary.js";
+import financeManualEntryRouter    from "./routes/financeManualEntry.js";
 import financeRunningBillRouter    from "./routes/financeRunningBill.js";
 import financeReceiptRouter        from "./routes/financeReceipt.js";
 import financeReceivableRouter     from "./routes/financeReceivable.js";
@@ -170,6 +171,7 @@ app.use('/api/finance/work-contractor-assignments', financeWorkContractorAssignm
 app.use('/api/finance/measurements',    financeMeasurementRouter);
 app.use('/api/finance/stock-movements', financeStockMovementRouter);
 app.use('/api/finance/site-diary',      financeSiteDiaryRouter);
+app.use('/api/finance/manual-entries',  financeManualEntryRouter);
 app.use('/api/finance/running-bills',   financeRunningBillRouter);
 app.use('/api/finance/receipts',        financeReceiptRouter);
 app.use('/api/finance/receivables',     financeReceivableRouter);

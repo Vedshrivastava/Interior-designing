@@ -63,6 +63,7 @@ const TABS = [
     { key: 'tdsDeposit',      label: 'TDS Deposits' },
     { key: 'setting',         label: 'Settings' },
     { key: 'siteDiary',       label: 'Site Diary' },
+    { key: 'manualEntry',     label: 'Manual Entries' },
     { key: 'projectPhoto',    label: 'Project Photos' },
     { key: 'clientDocument',  label: 'Client Documents' },
     { key: 'projectDocument', label: 'Project Documents' },
@@ -131,6 +132,7 @@ const contextOf = (item) => {
         case 'supervisorIncentive':  return join(item.employeeId?.name, item.projectId?.name);
         case 'tdsDeposit':     return item.tdsSectionId?.name || '—';
         case 'siteDiary':      return item.projectId?.name || '—';
+        case 'manualEntry':    return item.projectId?.name || '—';
         case 'projectPhoto':   return item.projectId?.name || '—';
         case 'clientDocument':  return item.clientId?.name || '—';
         case 'projectDocument': return item.projectId?.name || '—';

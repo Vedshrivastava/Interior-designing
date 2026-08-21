@@ -3,11 +3,13 @@ import FinanceTabShell from '../../components/finance/FinanceTabShell';
 import WorkMeasurementsSummary from '../../components/finance/WorkMeasurementsSummary';
 import MaterialConsumptionList from '../../components/finance/MaterialConsumptionList';
 import SiteDiaryManager from '../../components/finance/SiteDiaryManager';
+import ManualEntriesManager from '../../components/finance/ManualEntriesManager';
 
 const TABS = [
     { key: 'measurements', label: 'Daily Measurements' },
     { key: 'consumption',  label: 'Material Consumption' },
     { key: 'diary',        label: 'Site Diary' },
+    { key: 'manual',       label: 'Manual Entries' },
 ];
 
 const SiteOperationsPage = ({ url }) => {
@@ -24,6 +26,7 @@ const SiteOperationsPage = ({ url }) => {
             {activeTab === 'measurements' && <WorkMeasurementsSummary url={url} />}
             {activeTab === 'consumption' && <MaterialConsumptionList url={url} />}
             {activeTab === 'diary' && <SiteDiaryManager url={url} />}
+            {activeTab === 'manual' && <ManualEntriesManager url={url} />}
         </FinanceTabShell>
     );
 };

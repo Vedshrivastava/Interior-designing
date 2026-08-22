@@ -5,6 +5,7 @@ import BankBalanceView from '../../components/finance/BankBalanceView';
 import BankStatementView from '../../components/finance/BankStatementView';
 import BankTransfersManager from '../../components/finance/BankTransfersManager';
 import BankEntriesManager from '../../components/finance/BankEntriesManager';
+import LoansManager from '../../components/finance/LoansManager';
 
 const TABS = [
     { key: 'accounts',     label: 'All Accounts' },
@@ -12,6 +13,7 @@ const TABS = [
     { key: 'transactions', label: 'Transactions / Statements' },
     { key: 'transfers',    label: 'Transfers' },
     { key: 'entries',      label: 'Manual Entries' },
+    { key: 'loans',        label: 'Loans' },
 ];
 
 /* Real as of the Bank + Cash Book build. Transactions and Statements were
@@ -35,6 +37,7 @@ const BankPage = ({ url }) => {
             {activeTab === 'transactions' && <BankStatementView url={url} />}
             {activeTab === 'transfers' && <BankTransfersManager url={url} />}
             {activeTab === 'entries' && <BankEntriesManager url={url} />}
+            {activeTab === 'loans' && <LoansManager url={url} />}
         </FinanceTabShell>
     );
 };

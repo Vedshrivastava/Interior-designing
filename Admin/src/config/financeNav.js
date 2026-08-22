@@ -290,6 +290,7 @@ export const FINANCE_NAV_SECTIONS = [
           { key: 'balance',      label: 'Balance',                 description: 'Current balance per account: opening balance plus computed activity.' },
           { key: 'transactions', label: 'Transactions / Statements', description: 'Running-balance transaction list per account: every linked receipt, contractor/vendor payment, and transfer, in date order.' },
           { key: 'transfers',    label: 'Transfers',               description: 'Transfers between our own accounts: a debit on one statement, a credit on the other.' },
+          { key: 'loans',        label: 'Loans',                   description: 'Loans taken from a lender, with an outstanding balance that drops as repayments are logged against it. Bank/cash mode same as every other payment type — shows up on that account\'s statement, or the Cash Book.' },
         ],
       },
       {

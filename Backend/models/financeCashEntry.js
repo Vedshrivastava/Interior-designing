@@ -28,6 +28,8 @@ const financeCashEntrySchema = new mongoose.Schema({
     relatedContractorAdvanceId:   { type: mongoose.Schema.Types.ObjectId, ref: 'financeContractorAdvance', default: null },
     relatedLabourAdvanceId:       { type: mongoose.Schema.Types.ObjectId, ref: 'financeLabourAdvance', default: null },
     relatedTdsDepositId:          { type: mongoose.Schema.Types.ObjectId, ref: 'financeTdsDeposit', default: null },
+    relatedLoanId:                { type: mongoose.Schema.Types.ObjectId, ref: 'financeLoan', default: null },
+    relatedLoanRepaymentId:       { type: mongoose.Schema.Types.ObjectId, ref: 'financeLoanRepayment', default: null },
 
     notes: { type: String, default: '' },
 

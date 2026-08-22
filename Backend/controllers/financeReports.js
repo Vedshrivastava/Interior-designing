@@ -44,6 +44,8 @@ import FinanceCashEntry from '../models/financeCashEntry.js';
 import FinanceBankEntry from '../models/financeBankEntry.js';
 import FinanceGstFiling from '../models/financeGstFiling.js';
 import FinanceManualEntry from '../models/financeManualEntry.js';
+import FinanceLoan from '../models/financeLoan.js';
+import FinanceLoanRepayment from '../models/financeLoanRepayment.js';
 import FinanceActivityLog from '../models/financeActivityLog.js';
 import { getAccountActivity } from './financeBankAccount.js';
 import PDFDocument from 'pdfkit';
@@ -4179,7 +4181,7 @@ const getDashboardSummary = async (req, res) => {
             bankAccounts, cashEntriesToDate, receivableSummaries, contractorRows, vendorRows,
             readyProjectIds, activeProjectsCount, activeWorksCount, labourersWorkingTodayIds, lowStockCount,
             todayContractorMeasurements, todayLabourMeasurements, monthRevenueAgg, recentActivities,
-            ongoingProjectProfits, tdsPayableInfo,
+            ongoingProjectProfits, tdsPayableInfo, activeLoans, loanRepayments,
         ] = await Promise.all([
             FinanceBankAccount.find({ deleted: { $ne: true } }),
             FinanceCashEntry.find({ deleted: { $ne: true }, date: { $lte: todayEnd } }),
@@ -4217,6 +4219,8 @@ const getDashboardSummary = async (req, res) => {
             // waste-only query needed.
             Promise.all(ongoingProjects.map(p => computeProjectProfit(p._id))),
             computeTdsPayable(),
+            FinanceLoan.find({ deleted: { $ne: true }, status: 'active' }, 'principal'),
+            FinanceLoanRepayment.find({ deleted: { $ne: true } }, 'loanId amount interestPortion'),
         ]);
 
         const bankBalances = await Promise.all(bankAccounts.map(async (a) => {
@@ -4393,6 +4397,17 @@ const getDashboardSummary = async (req, res) => {
         // its manual entries' outstanding amount (manualOutstanding) — no
         // separate query needed, just sum what's already been computed.
         const manualPayablesTotal = round2(ongoingProjectProfits.reduce((s, p) => s + (p.manualOutstanding || 0), 0));
+        // Outstanding balance per active loan — principal minus the
+        // principal portion (amount minus interestPortion) of every
+        // repayment against it, clamped at 0 per loan same reasoning as
+        // every other Payables figure (a fully-repaid loan can't offset
+        // a different loan's real remaining balance).
+        const principalPaidByLoan = new Map();
+        for (const r of loanRepayments) {
+            const key = r.loanId.toString();
+            principalPaidByLoan.set(key, (principalPaidByLoan.get(key) || 0) + (r.amount - (r.interestPortion || 0)));
+        }
+        const loansPayableTotal = round2(activeLoans.reduce((s, l) => s + Math.max(0, l.principal - (principalPaidByLoan.get(l._id.toString()) || 0)), 0));
 
         res.json({
             success: true,
@@ -4495,6 +4510,10 @@ const getDashboardSummary = async (req, res) => {
                 // outstanding, summed across every ongoing project — see
                 // computeProjectProfit's manualOutstanding.
                 manualPayables: manualPayablesTotal,
+                // Outstanding balance across every active loan (financeLoan)
+                // — a real liability, same "currently, actually owed"
+                // meaning every other Payables figure here already has.
+                loansPayable: loansPayableTotal,
                 // Input Tax Credit available to claim as of this month —
                 // the CA's actual filed figure (financeGstFiling) once
                 // entered, the system's own computed estimate until then.

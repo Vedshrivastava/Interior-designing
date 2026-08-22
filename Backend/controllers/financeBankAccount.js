@@ -13,6 +13,8 @@ import FinanceContractorAdvance from '../models/financeContractorAdvance.js';
 import FinanceLabourAdvance from '../models/financeLabourAdvance.js';
 import FinanceTdsDeposit from '../models/financeTdsDeposit.js';
 import FinanceBankEntry from '../models/financeBankEntry.js';
+import FinanceLoan from '../models/financeLoan.js';
+import FinanceLoanRepayment from '../models/financeLoanRepayment.js';
 import { broadcast } from '../middlewares/webSocket.js';
 
 /*
@@ -59,7 +61,7 @@ const getAccountActivity = async (accountId) => {
     // exists below — the account this money actually moved to/from, so a
     // reconciling CA can pre-identify it before it even shows up as a
     // matching line on the real bank statement.
-    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, expensePayments, contractorAdvances, labourAdvances, tdsDeposits, transfersOut, transfersIn, bankEntries] = await Promise.all([
+    const [receipts, contractorPayments, vendorPayments, salaryPayments, labourPayments, commissionPayments, labourProviderPayments, expenses, expensePayments, contractorAdvances, labourAdvances, tdsDeposits, transfersOut, transfersIn, bankEntries, loans, loanRepayments] = await Promise.all([
         FinanceReceipt.find(filter).populate('clientId', 'name bankName accountNumber'),
         FinanceContractorPayment.find(filter).populate('vendorId', 'name bankName accountNumber'),
         FinanceVendorPayment.find(filter).populate('vendorId', 'name bankName accountNumber'),
@@ -81,6 +83,11 @@ const getAccountActivity = async (accountId) => {
         FinanceBankTransfer.find({ fromAccountId: accountId, deleted: { $ne: true } }).populate('toAccountId', 'accountName'),
         FinanceBankTransfer.find({ toAccountId: accountId, deleted: { $ne: true } }).populate('fromAccountId', 'accountName'),
         FinanceBankEntry.find(filter),
+        // Principal received (credit) — loans/loan repayments have no
+        // bankDetails/counterparty concept of their own (lenderName is
+        // free text, not a tracked party model), same as a bank transfer.
+        FinanceLoan.find(filter),
+        FinanceLoanRepayment.find(filter).populate('loanId', 'lenderName'),
     ]);
     // '\n'-joined so the CA Monthly Package PDF's drawTable renders it as
     // a bank-name / account-number line pair (same convention as every
@@ -134,6 +141,8 @@ const getAccountActivity = async (accountId) => {
         ...transfersOut.map(t => ({ date: t.date, amount: t.amount, direction: 'debit', description: t.toAccountId?.accountName ? `Transfer out — to ${t.toAccountId.accountName}` : 'Transfer out', bankDetails: '—', sourceType: 'transfer', sourceId: t._id })),
         ...transfersIn.map(t => ({ date: t.date, amount: t.amount, direction: 'credit', description: t.fromAccountId?.accountName ? `Transfer in — from ${t.fromAccountId.accountName}` : 'Transfer in', bankDetails: '—', sourceType: 'transfer', sourceId: t._id })),
         ...bankEntries.map(e => ({ date: e.date, amount: e.amount, direction: e.type === 'in' ? 'credit' : 'debit', description: e.reason, bankDetails: '—', sourceType: 'bankEntry', sourceId: e._id, entrySource: e.source })),
+        ...loans.map(l => ({ date: l.dateTaken, amount: l.principal, direction: 'credit', description: `Loan received — ${l.lenderName}`, bankDetails: '—', sourceType: 'loan', sourceId: l._id })),
+        ...loanRepayments.map(r => ({ date: r.date, amount: r.amount, direction: 'debit', description: r.loanId?.lenderName ? `Loan repayment — ${r.loanId.lenderName}` : 'Loan repayment', bankDetails: '—', sourceType: 'loanRepayment', sourceId: r._id })),
     ];
 };
 

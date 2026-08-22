@@ -47,6 +47,8 @@ import FinanceTdsDeposit from '../models/financeTdsDeposit.js';
 import FinanceSetting from '../models/financeSetting.js';
 import FinanceSiteDiary from '../models/financeSiteDiary.js';
 import FinanceManualEntry from '../models/financeManualEntry.js';
+import FinanceLoan from '../models/financeLoan.js';
+import FinanceLoanRepayment from '../models/financeLoanRepayment.js';
 import FinanceProjectPhoto from '../models/financeProjectPhoto.js';
 import FinanceClientDocument from '../models/financeClientDocument.js';
 import FinanceProjectDocument from '../models/financeProjectDocument.js';
@@ -147,6 +149,8 @@ const RECOVERY_TYPES = {
     setting:        { model: FinanceSetting,         label: 'Setting',        changed: 'financeSettingsChanged',        name: d => d.name },
     siteDiary:      { model: FinanceSiteDiary,       label: 'Site Diary Entry', changed: 'financeSiteDiaryChanged',      name: d => (d.note || '').slice(0, 60) },
     manualEntry:    { model: FinanceManualEntry,     label: 'Manual Entry',     changed: 'financeManualEntriesChanged',  name: d => (d.workDescription || '').slice(0, 60) },
+    loan:           { model: FinanceLoan,            label: 'Loan',             changed: 'financeLoansChanged',          name: d => `${inr(d.principal)} from ${d.lenderName}` },
+    loanRepayment:  { model: FinanceLoanRepayment,   label: 'Loan Repayment',   changed: 'financeLoansChanged',          name: d => `${inr(d.amount)} — ${dfmt(d.date)}` },
     projectPhoto:   { model: FinanceProjectPhoto,    label: 'Project Photo',   changed: 'financeProjectPhotosChanged',   name: d => d.caption || 'Photo' },
     clientDocument:  { model: FinanceClientDocument,  label: 'Client Document',  changed: 'financeClientDocumentsChanged',  name: d => d.name, fileField: 'fileUrl', folder: 'client_documents' },
     projectDocument: { model: FinanceProjectDocument, label: 'Project Document', changed: 'financeProjectDocumentsChanged', name: d => d.name, fileField: 'fileUrl', folder: 'project_documents' },
@@ -190,6 +194,8 @@ const POPULATE_BY_TYPE = {
     tdsDeposit: [{ path: 'tdsSectionId', select: 'name' }],
     siteDiary: [{ path: 'projectId', select: 'name' }],
     manualEntry: [{ path: 'projectId', select: 'name' }],
+    loan: [{ path: 'bankAccountId', select: 'accountName' }],
+    loanRepayment: [{ path: 'loanId', select: 'lenderName' }, { path: 'bankAccountId', select: 'accountName' }],
     projectPhoto: [{ path: 'projectId', select: 'name' }],
     clientDocument: [{ path: 'clientId', select: 'name' }],
     projectDocument: [{ path: 'projectId', select: 'name' }],
@@ -238,6 +244,25 @@ const restoreFinanceItem = async (req, res) => {
                 { deleted: false, $unset: { deletedAt: '', deletedBy: '' } }
             );
             broadcast({ type: 'financeStockChanged', projectId: item.projectId });
+        }
+
+        // Same reversal pattern — a cash-mode loan/repayment auto-created
+        // a matching FinanceCashEntry that was cascade-soft-deleted
+        // alongside it (see controllers/financeLoan.js); restore both
+        // together so the Cash Book doesn't stay missing that entry.
+        if (_type === 'loan') {
+            await FinanceCashEntry.updateMany(
+                { relatedLoanId: item._id },
+                { deleted: false, $unset: { deletedAt: '', deletedBy: '' } }
+            );
+            broadcast({ type: 'financeCashBookChanged' });
+        }
+        if (_type === 'loanRepayment') {
+            await FinanceCashEntry.updateMany(
+                { relatedLoanRepaymentId: item._id },
+                { deleted: false, $unset: { deletedAt: '', deletedBy: '' } }
+            );
+            broadcast({ type: 'financeCashBookChanged' });
         }
 
         broadcast({ type: 'binChanged' });

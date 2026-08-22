@@ -64,6 +64,8 @@ const TABS = [
     { key: 'setting',         label: 'Settings' },
     { key: 'siteDiary',       label: 'Site Diary' },
     { key: 'manualEntry',     label: 'Manual Entries' },
+    { key: 'loan',            label: 'Loans' },
+    { key: 'loanRepayment',   label: 'Loan Repayments' },
     { key: 'projectPhoto',    label: 'Project Photos' },
     { key: 'clientDocument',  label: 'Client Documents' },
     { key: 'projectDocument', label: 'Project Documents' },
@@ -133,6 +135,8 @@ const contextOf = (item) => {
         case 'tdsDeposit':     return item.tdsSectionId?.name || '—';
         case 'siteDiary':      return item.projectId?.name || '—';
         case 'manualEntry':    return item.projectId?.name || '—';
+        case 'loan':           return item.bankAccountId?.accountName || '—';
+        case 'loanRepayment':  return item.loanId?.lenderName || '—';
         case 'projectPhoto':   return item.projectId?.name || '—';
         case 'clientDocument':  return item.clientId?.name || '—';
         case 'projectDocument': return item.projectId?.name || '—';

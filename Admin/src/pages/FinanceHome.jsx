@@ -122,6 +122,7 @@ const FinanceHome = ({ url }) => {
                 expenses: nextSummary?.expensePayables || 0,
                 tds: nextSummary?.tdsPayable || 0,
                 manual: nextSummary?.manualPayables || 0,
+                loans: nextSummary?.loansPayable || 0,
             };
             const nextProjectProfits = profits;
 
@@ -289,7 +290,7 @@ const FinanceHome = ({ url }) => {
                         value={formatINR(
                             (summary?.vendorPayables || 0) + (summary?.contractorPayables || 0) + (summary?.labourPayables || 0)
                             + (summary?.commissionPayables || 0) + (summary?.salaryPayables || 0)
-                            + (summary?.expensePayables || 0) + (summary?.tdsPayable || 0) + (summary?.manualPayables || 0)
+                            + (summary?.expensePayables || 0) + (summary?.tdsPayable || 0) + (summary?.manualPayables || 0) + (summary?.loansPayable || 0)
                         )}
                         // expensePayables already includes Reimbursement
                         // Payables (a subset, not a separate liability — see
@@ -310,6 +311,7 @@ const FinanceHome = ({ url }) => {
                             ['Expenses', summary?.expensePayables],
                             ['TDS', summary?.tdsPayable],
                             ['Manual Entries', summary?.manualPayables],
+                            ['Loans', summary?.loansPayable],
                         ])}
                         tone="danger" />
                 </KpiGrid>
